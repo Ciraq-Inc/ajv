@@ -82,6 +82,8 @@ const sendWhatsAppMessage = () => {
   const messageText = generateWhatsAppMessage();
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(messageText)}`;
   window.open(whatsappUrl, '_blank');
+
+  clearCart();
 };
 
 const generateWhatsAppMessage = () => {
@@ -94,6 +96,14 @@ const generateWhatsAppMessage = () => {
 ${itemDetails}
 
 Total Price: GHS${cartTotal.value.toFixed(2)}`;
+};
+
+const clearCart = () => {
+  // Reset the cart to an empty state
+  cartStore.$patch({
+    items: [],
+    cartTotal: 0
+  });
 };
 
 defineExpose({
