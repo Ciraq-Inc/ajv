@@ -24,7 +24,7 @@
             >
               {{ cartItemCount }}
             </span>
-            <span class="text-green-800">GHS - {{ cartTotal.toFixed(2) }}</span>
+            <span class="text-green-800 ml-1">GHS{{ cartTotal.toFixed(2) }}</span>
           </button>
 
           <button class="lg:hidden z-50 relative">
@@ -64,7 +64,7 @@
             >
               {{ cartItemCount }}
             </span>
-            <span class="text-green-800">GHS - {{ cartTotal.toFixed(2) }}</span>
+            <span class="text-green-800 ml-1">GHS{{ cartTotal.toFixed(2) }}</span>
           </button>
 
           <a
