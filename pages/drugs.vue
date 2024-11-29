@@ -18,20 +18,6 @@
       </div>
 
       <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2" for="dosage">
-          Dosage
-        </label>
-        <input 
-          v-model="drugForm.dosage" 
-          id="dosage"
-          type="text" 
-          required
-          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          placeholder="e.g., 500mg, 2 tablets"
-        />
-      </div>
-
-      <div class="mb-4">
         <label class="block text-gray-700 text-sm font-bold mb-2" for="expiryDate">
           Expiry Date
         </label>
@@ -115,7 +101,6 @@ const {
 // DRUG REFERENCE
 const drugForm = ref({
   name: '',
-  dosage: '',
   expiryDate: '',
   image: null,
   imagePreview: null,
@@ -125,7 +110,7 @@ const drugForm = ref({
 const submitDrug = async () => {
   try {
     // Validate form
-    if (!drugForm.value.name || !drugForm.value.dosage || 
+    if (!drugForm.value.name ||
         !drugForm.value.expiryDate || !imageUrl.value || 
         !drugForm.value.price) {
       alert('Please fill in all fields')
@@ -141,7 +126,6 @@ const submitDrug = async () => {
 
     const newDrug = {
       name: drugForm.value.name,
-      dosage: drugForm.value.dosage,
       expiryDate: drugForm.value.expiryDate,
       price: drugForm.value.price,
       justAdded: false,
@@ -155,7 +139,6 @@ const submitDrug = async () => {
     // Reset form
     drugForm.value = {
       name: '',
-      dosage: '',
       expiryDate: '',
       image: null,
       imagePreview: null,
