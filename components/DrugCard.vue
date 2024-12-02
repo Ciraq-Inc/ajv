@@ -7,13 +7,13 @@
     >
       <div class="flex space-x-3">
         <!-- Image Section -->
-        <div>
+        <div class="flex flex-col">
           <img
             :src="drug.image"
             :alt="drug.name"
             class="w-[90px] h-[80px] rounded object-cover cursor-pointer"
           />
-          <div class="text-xs text-gray-600 mt-1 flex items-center">
+          <div class="text-xs text-gray-600 mt-1 flex items-center whitespace-nowrap">
             <Icon name="ph:clock" class="w-3 h-3 mr-1" />
             {{ drug.expiryDate }}
           </div>
@@ -22,7 +22,7 @@
         <!-- Content Section -->
         <div class="space-y-2 flex-grow">
           <h3 class="text-base font-semibold text-gray-800 truncate">
-            {{ drug.name }}
+            {{ drug.name.length > 25 ? drug.name.slice(0, 20) + '...' : drug.name}}
           </h3>
 
           <div class="text-xs text-gray-800 font-semibold flex justify-between">

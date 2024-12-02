@@ -50,7 +50,7 @@
           </div>
           <div class="flex items-center gap-x-2">
             <i class="ri-phone-fill text-2xl text-green-800"></i>
-            <div class="text-secondary text-sm">(+233) 30 255-4857</div>
+            <div class="text-secondary text-sm">(+233) 503793513</div>
           </div>
         </div>
 
@@ -68,7 +68,7 @@
           </button>
 
           <a
-            href="https://wa.me/+233537291557"
+            href="https://wa.me/+233503793513"
             target="_blank"
             class="btn btn-sm btn-outline w-[240px] lg:w-auto mx-auto lg:mx-0"
           >
