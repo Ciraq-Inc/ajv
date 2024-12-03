@@ -78,7 +78,7 @@ const { items, isOpen, cartTotal } = storeToRefs(cartStore);
 const { toggleCart, removeFromCart, updateQuantity } = cartStore;
 
 const sendWhatsAppMessage = () => {
-  const phoneNumber = '+233257173767';
+  const phoneNumber = '+233503793513';
   const messageText = generateWhatsAppMessage();
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(messageText)}`;
   window.open(whatsappUrl, '_blank');
