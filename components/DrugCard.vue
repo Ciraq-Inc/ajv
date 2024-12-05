@@ -134,7 +134,6 @@ const handleAddToCart = (drug) => {
     setTimeout(() => {
       drug.justAdded = false;
     }, 2000);
-
 }
 
 </script>

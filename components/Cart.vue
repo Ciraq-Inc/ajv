@@ -24,7 +24,7 @@
           <div class="flex items-center">
             <img :src="item.image" :alt="item.name" class="w-12 h-12 mr-4" />
             <div>
-              <h3 class="font-semibold">{{ item.name }}</h3>
+              <h3 class="font-semibold text-sm">{{ item.name }}</h3>
               <p class="text-sm text-gray-500">GHS {{ item.price }}</p>
             </div>
           </div>
@@ -102,7 +102,6 @@ const clearCart = () => {
   // Reset the cart to an empty state
   cartStore.$patch({
     items: [],
-    cartTotal: 0
   });
 };
 

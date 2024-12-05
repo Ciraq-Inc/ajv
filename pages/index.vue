@@ -1,16 +1,18 @@
 <template>
-    <Navbar />
-  <div class="bg-grey h-screen">
-    <div class="px-4 py-8">
+  <Navbar />
+  <div class="bg-grey h-full">
+
+    <div class="px-4 py-2">
       <!-- Header -->
       <div class="text-center my-8">
         <h2 class="h2 mb-2">AJV Pharmacy Wholesale</h2>
         <p class="text-gray-600">Find your medications</p>
       </div>
 
-      <!-- Search Bar -->
-      <div class="max-w-2xl mx-auto mb-12">
-        <div class="relative">
+<!-- Search Bar and Tabs Container -->
+<div class="max-w-2xl mx-auto mb-12 flex items-center space-x-4">
+        <!-- Search Bar -->
+        <div class="relative flex-grow">
           <span
             class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
           >
@@ -34,20 +36,51 @@
             placeholder="Search medications..."
           />
         </div>
+
+        <!-- Tabs -->
+        <div class="md:flex space-x-4 hidden">
+          <button 
+            @click="activeTab = 'table'"
+            :class="[
+              'px-4 py-2 rounded-lg transition-all',
+              activeTab === 'table' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-400 text-gray-700 hover:bg-gray-300'
+            ]"
+          >
+            Table View
+          </button>
+          <button 
+            @click="activeTab = 'grid'"
+            :class="[
+              'px-4 py-2 rounded-lg transition-all',
+              activeTab === 'grid' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-400 text-gray-700 hover:bg-gray-300'
+            ]"
+          >
+            Grid View
+          </button>
+        </div>
       </div>
 
-        <!-- Drug Grid -->
-        <div>
-          <DrugCard :searchQuery="searchQuery" />
-        </div>
 
+
+      <!-- Dynamic Content -->
+      <div class="hidden md:block">
+        <DrugTable v-if="activeTab === 'table'" :searchQuery="searchQuery" />
+        <DrugCard v-else :searchQuery="searchQuery" />
+      </div>
+
+      <div class="md:hidden flex">
+        <DrugCard :searchQuery="searchQuery" />
+      </div>
     </div>
   </div>
 </template>
 
-
 <script setup>
 
 const searchQuery = ref('')
-
+const activeTab = ref('table') // Default to table view
 </script>
