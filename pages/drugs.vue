@@ -88,11 +88,23 @@
             />
           </div>
 
+          <!-- Out of Stock Checkbox-->
+          <div class="mb-6">
+            <label class="flex items-center space-x-2 text-gray-700 text-sm font-bold">
+              <input 
+                type="checkbox"
+                v-model="drugForm.outOfStock"
+                class="rounded border-gray-300 text-blue-500 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+              />
+              <span>Out of Stock</span>
+            </label>
+          </div>
+
           <div class="flex items-center justify-between">
             <button 
               type="submit" 
               :disabled="isUploading"
-              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
+              class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
             >
               {{ isUploading ? 'Uploading...' : 'Add Drug' }}
             </button>
@@ -118,6 +130,7 @@
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Price</th>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Expiry Date</th>
+              <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Stock Status</th>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Created At</th>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Actions</th>
             </tr>
@@ -165,6 +178,32 @@
                 <span v-else>{{ drug.expiryDate }}</span>
               </td>
 
+ <!-- Stock Status Cell -->
+ <td class="p-4 text-sm text-gray-900">
+                <div v-if="editingId === drug.id" class="flex items-center space-x-2">
+                  <label class="flex items-center space-x-2">
+                    <input 
+                      type="checkbox"
+                      v-model="editForm.outOfStock"
+                      class="rounded border-gray-300 text-blue-500 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span>Out of Stock</span>
+                  </label>
+                </div>
+                <div v-else class="flex items-center space-x-2">
+                  <span 
+                    :class="[
+                      'px-2 py-1 text-xs rounded-full',
+                      drug.outOfStock 
+                        ? 'bg-red-100 text-red-800' 
+                        : 'bg-green-100 text-green-800'
+                    ]"
+                  >
+                    {{ drug.outOfStock ? 'Out of Stock' : 'In Stock' }}
+                  </span>
+                </div>
+              </td>
+
               <!-- Created At Cell -->
               <td class="p-4 text-sm text-gray-900">
                 {{ formatDate(drug.createdAt) }}
@@ -193,12 +232,6 @@
                     class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs transition-colors"
                   >
                     Edit
-                  </button>
-                  <button 
-                    @click="deleteDrug(drug.id)"
-                    class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs transition-colors"
-                  >
-                    Delete
                   </button>
                 </div>
               </td>
@@ -246,7 +279,8 @@ const drugForm = ref({
   expiryDate: '',
   image: null,
   imagePreview: null,
-  price: null
+  price: null,
+  outOfStock: false
 })
 
 // Fetch drugs data
@@ -279,6 +313,7 @@ const formatDate = (dateString) => {
   })
 }
 
+// Submit Form
 const submitDrug = async () => {
   try {
     // Validate form
@@ -301,6 +336,7 @@ const submitDrug = async () => {
       expiryDate: drugForm.value.expiryDate,
       price: drugForm.value.price,
       image: imageUrl.value,
+      outOfStock: drugForm.value.outOfStock,
       createdAt: new Date().toISOString()
     }
 
@@ -313,7 +349,8 @@ const submitDrug = async () => {
       expiryDate: '',
       image: null,
       imagePreview: null,
-      price: null
+      price: null,
+      outOfStock: false
     }
     resetUpload()
 
@@ -331,7 +368,8 @@ const editingId = ref(null)
 const editForm = ref({
   name: '',
   price: 0,
-  expiryDate: ''
+  expiryDate: '',
+  outOfStock: false
 })
 
 // Edit methods
@@ -340,7 +378,8 @@ const startEdit = (drug) => {
   editForm.value = {
     name: drug.name,
     price: drug.price,
-    expiryDate: drug.expiryDate
+    expiryDate: drug.expiryDate,
+    outOfStock: drug.outOfStock || false
   }
 }
 
@@ -349,7 +388,8 @@ const cancelEdit = () => {
   editForm.value = {
     name: '',
     price: 0,
-    expiryDate: ''
+    expiryDate: '',
+    outOfStock: false
   }
 }
 
@@ -373,6 +413,7 @@ const handleSave = async (drugId) => {
       name: editForm.value.name,
       price: editForm.value.price,
       expiryDate: editForm.value.expiryDate,
+      outOfStock: editForm.value.outOfStock,
       updatedAt: new Date().toISOString()
     }
 
@@ -383,7 +424,8 @@ const handleSave = async (drugId) => {
     editForm.value = {
       name: '',
       price: 0,
-      expiryDate: ''
+      expiryDate: '',
+      outOfStock: false
     }
 
     alert('Drug updated successfully!')
@@ -393,17 +435,4 @@ const handleSave = async (drugId) => {
   }
 }
 
-const deleteDrug = async (drugId) => {
-  if (!confirm('Are you sure you want to delete this drug?')) {
-    return
-  }
-
-  try {
-    await remove(dbRef(db, `drugs/${drugId}`))
-    alert('Drug deleted successfully!')
-  } catch (error) {
-    console.error('Error deleting drug:', error)
-    alert('Failed to delete drug. Please try again.')
-  }
-}
 </script>

@@ -17,6 +17,18 @@
             <Icon name="ph:clock" class="w-3 h-3 mr-1" />
             {{ drug.expiryDate }}
           </div>
+          <div class="flex items-center whitespace-nowrap mt-1">
+            <span 
+                    :class="[
+                      'px-2 py-1 text-xs rounded-full',
+                      drug.outOfStock 
+                        ? 'bg-red-100 text-red-800' 
+                        : 'bg-green-100 text-green-800'
+                    ]"
+                  >
+                    {{ drug.outOfStock ? 'Out of Stock' : 'In Stock' }}
+                  </span>
+          </div>
         </div>
 
         <!-- Content Section -->

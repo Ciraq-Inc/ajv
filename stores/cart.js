@@ -19,7 +19,7 @@ export const useCartStore = defineStore('cart', {
       if (existingItem) {
         existingItem.quantity += drug.quantity;
       } else { 
-        this.items.push({ ...drug });
+        this.items.unshift({ ...drug });
       }
     },
     removeFromCart(drugId) { 

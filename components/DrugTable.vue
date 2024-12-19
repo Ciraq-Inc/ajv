@@ -6,6 +6,7 @@
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Price</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Expiry Date</th>
+            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Stock Status</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Quantity</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Actions</th>
           </tr>
@@ -25,6 +26,18 @@
             <td class="p-3 text-sm text-gray-900">
               {{ drug.expiryDate }}
             </td>
+            <td class="p-3 text-sm">
+                  <span 
+                    :class="[
+                      'px-2 py-1 text-xs rounded-full',
+                      drug.outOfStock 
+                        ? 'bg-red-100 text-red-800' 
+                        : 'bg-green-100 text-green-800'
+                    ]"
+                  >
+                    {{ drug.outOfStock ? 'Out of Stock' : 'In Stock' }}
+                  </span>
+                </td>
             <td class="p-3">
               <div class="flex items-center">
                 <button 
