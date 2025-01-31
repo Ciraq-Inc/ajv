@@ -36,13 +36,13 @@ export default defineNuxtConfig({
 	// PRODUCTION SERVER
 	config: {
 		apiKey: process.env.FIREBASE_API_KEY,
-		authDomain: "referral-system-5cebe.firebaseapp.com",
-		databaseURL: "https://referral-system-5cebe-default-rtdb.europe-west1.firebasedatabase.app",
-		projectId: "referral-system-5cebe",
-		storageBucket: "referral-system-5cebe.appspot.com",
-		messagingSenderId: "110599877750",
-		appId: "1:110599877750:web:f8cb21ad5275d11d75db57",
-		measurementId: "G-81Q9KWP8LW"
+			authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+			databaseURL: process.env.FIREBASE_AUTH_DATABASE_URL,
+			projectId: process.env.FIREBASE_PROJECT_ID,
+			storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+			messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+			appId: process.env.FIREBASE_APP_ID,
+			measurementId: process.env.FIREBASE_MEASUREMENT_ID,
 	},
 
 }
