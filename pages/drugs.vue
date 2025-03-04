@@ -1,127 +1,96 @@
 <template>
   <AccessControl>
     <div class="container mx-auto px-4 py-8">
+      <!-- Display current pharmacy info -->
+      <div v-if="pharmacyData" class="mb-6 p-4 bg-blue-50 rounded-lg">
+        <h1 class="text-xl font-semibold">
+          Managing Inventory for: {{ pharmacyData.name }}
+        </h1>
+        <p class="text-sm text-gray-600">{{ pharmacyData.location }}</p>
+      </div>
+
       <!-- Tabs Navigation -->
       <div class="border-b border-gray-200 mb-6">
         <nav class="flex -mb-px" aria-label="Tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.value"
-            @click="activeTab = tab.value"
-            :class="[
-              activeTab === tab.value
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              'w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm'
-            ]"
-          >
+          <button v-for="tab in tabs" :key="tab.value" @click="activeTab = tab.value" :class="[
+            activeTab === tab.value
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+            'w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm'
+          ]">
             {{ tab.name }}
           </button>
         </nav>
       </div>
 
-      <!-- Add Drug Form Tab -->
+      <!-- Add Product Form Tab -->
       <div v-if="activeTab === 'form'">
-        <h1 class="text-3xl font-bold mb-6 text-center">Add New Drug</h1>
-        
-        <form @submit.prevent="submitDrug" class="max-w-lg mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <h1 class="text-3xl font-bold mb-6 text-center">Add New Product</h1>
+
+        <form @submit.prevent="submitProduct" class="max-w-lg mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
-              Drug Name
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="brandName">
+              Product Name
             </label>
-            <input 
-              v-model="drugForm.name" 
-              id="name"
-              type="text" 
-              required
+            <input v-model="productForm.brandName" id="brandName" type="text" required
               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="Enter drug name"
-            />
+              placeholder="Enter product name" />
           </div>
 
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="expiryDate">
-              Expiry Date
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="unit">
+              Unit
             </label>
-            <input 
-              v-model="drugForm.expiryDate" 
-              id="expiryDate"
-              type="date" 
-              required
+            <input v-model="productForm.unit" id="unit" type="text" required
               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
+              placeholder="e.g., TABLET, BOTTLE, PACK" />
           </div>
 
           <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="image">
-              Drug Image
+              Product Image
             </label>
-            <input 
-              @change="handleImageUpload"
-              id="image"
-              type="file" 
-              accept="image/*"
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
-            
-            <div v-if="drugForm.imagePreview" class="mt-4">
-              <img 
-                :src="drugForm.imagePreview" 
-                alt="Drug Preview" 
-                class="max-w-full h-auto rounded"
-              />
+            <input @change="handleImageUpload" id="image" type="file" accept="image/*"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+
+            <div v-if="productForm.imagePreview" class="mt-4">
+              <img :src="productForm.imagePreview" alt="Product Preview" class="max-w-full h-auto rounded" />
             </div>
           </div>
 
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="price">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="sellingPrice">
               Price (GHS)
             </label>
-            <input 
-              v-model.number="drugForm.price" 
-              id="price"
-              type="number" 
-              step="0.01"
-              required
+            <input v-model.number="productForm.sellingPrice" id="sellingPrice" type="number" step="0.01" required
               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="Enter price"
-            />
+              placeholder="Enter price" />
           </div>
 
-          <!-- Out of Stock Checkbox-->
-          <div class="mb-6">
-            <label class="flex items-center space-x-2 text-gray-700 text-sm font-bold">
-              <input 
-                type="checkbox"
-                v-model="drugForm.outOfStock"
-                class="rounded border-gray-300 text-blue-500 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              <span>Out of Stock</span>
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="stockQty">
+              Stock Quantity
             </label>
+            <input v-model.number="productForm.stockQty" id="stockQty" type="number" required min="0" step="1"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="Enter quantity in stock" />
           </div>
 
           <div class="flex items-center justify-between">
-            <button 
-              type="submit" 
-              :disabled="isUploading"
-              class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
-            >
-              {{ isUploading ? 'Uploading...' : 'Add Drug' }}
+            <button type="submit" :disabled="isUploading || !currentPharmacy"
+              class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50">
+              {{ isUploading ? 'Uploading...' : 'Add Product' }}
             </button>
           </div>
         </form>
       </div>
 
-      <!-- Drugs Table Tab -->
+      <!-- Products Table Tab -->
       <div v-else class="bg-white rounded-lg shadow-md overflow-x-auto">
         <!-- Search Input -->
         <div class="p-4 border-b">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search drugs..."
-            class="w-full max-w-md px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input v-model="searchQuery" type="text" placeholder="Search products..."
+            class="w-full max-w-md px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
 
         <table class="w-full">
@@ -129,108 +98,79 @@
             <tr>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Price</th>
-              <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Expiry Date</th>
-              <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Stock Status</th>
-              <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Created At</th>
+              <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Unit</th>
+              <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Stock</th>
+              <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Last Updated</th>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr 
-              v-for="drug in filteredDrugs" 
-              :key="drug.id" 
-              class="hover:bg-gray-50 transition-colors"
-            >
+            <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-gray-50 transition-colors">
               <!-- Name Cell -->
               <td class="p-4 text-sm text-gray-900">
-                <div v-if="editingId === drug.id" class="flex items-center space-x-2">
-                  <input
-                    v-model="editForm.name"
-                    type="text"
-                    class="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                <div v-if="editingId === product.id" class="flex items-center space-x-2">
+                  <input v-model="editForm.brandName" type="text"
+                    class="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
-                <span v-else>{{ drug.name }}</span>
+                <span v-else>{{ product.brandName }}</span>
               </td>
 
               <!-- Price Cell -->
               <td class="p-4 text-sm text-gray-900">
-                <div v-if="editingId === drug.id" class="flex items-center space-x-2">
-                  <input
-                    v-model.number="editForm.price"
-                    type="number"
-                    step="0.01"
-                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                <div v-if="editingId === product.id" class="flex items-center space-x-2">
+                  <input v-model.number="editForm.sellingPrice" type="number" step="0.01"
+                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
-                <span v-else>GHS {{ drug.price }}</span>
+                <span v-else>GHS {{ product.sellingPrice }}</span>
               </td>
 
-              <!-- Expiry Date Cell -->
+              <!-- Unit Cell -->
               <td class="p-4 text-sm text-gray-900">
-                <div v-if="editingId === drug.id" class="flex items-center space-x-2">
-                  <input
-                    v-model="editForm.expiryDate"
-                    type="date"
-                    class="px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                <div v-if="editingId === product.id" class="flex items-center space-x-2">
+                  <input v-model="editForm.unit" type="text"
+                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
-                <span v-else>{{ drug.expiryDate }}</span>
+                <span v-else>{{ product.unit }}</span>
               </td>
 
- <!-- Stock Status Cell -->
- <td class="p-4 text-sm text-gray-900">
-                <div v-if="editingId === drug.id" class="flex items-center space-x-2">
-                  <label class="flex items-center space-x-2">
-                    <input 
-                      type="checkbox"
-                      v-model="editForm.outOfStock"
-                      class="rounded border-gray-300 text-blue-500 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                    />
-                    <span>Out of Stock</span>
-                  </label>
+              <!-- Stock Status Cell -->
+              <td class="p-4 text-sm text-gray-900">
+                <div v-if="editingId === product.id" class="flex items-center space-x-2">
+                  <input v-model.number="editForm.stockQty" type="number" min="0" step="1"
+                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div v-else class="flex items-center space-x-2">
-                  <span 
-                    :class="[
-                      'px-2 py-1 text-xs rounded-full',
-                      drug.outOfStock 
-                        ? 'bg-red-100 text-red-800' 
-                        : 'bg-green-100 text-green-800'
-                    ]"
-                  >
-                    {{ drug.outOfStock ? 'Out of Stock' : 'In Stock' }}
+                  <span :class="[
+                    'px-2 py-1 text-xs rounded-full',
+                    product.stockQty <= 0
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-green-100 text-green-800'
+                  ]">
+                    {{ product.stockQty > 0 ? `${product.stockQty} in stock` : 'Out of Stock' }}
                   </span>
                 </div>
               </td>
 
-              <!-- Created At Cell -->
+              <!-- Last Updated Cell -->
               <td class="p-4 text-sm text-gray-900">
-                {{ formatDate(drug.createdAt) }}
+                {{ formatDate(product.lastUpdated) }}
               </td>
 
               <!-- Actions Cell -->
               <td class="p-4 text-sm">
                 <div class="flex items-center space-x-2">
-                  <template v-if="editingId === drug.id">
-                    <button 
-                      @click="handleSave(drug.id)"
-                      class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs transition-colors"
-                    >
+                  <template v-if="editingId === product.id">
+                    <button @click="handleSave(product.id)"
+                      class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs transition-colors">
                       Save
                     </button>
-                    <button 
-                      @click="cancelEdit"
-                      class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs transition-colors"
-                    >
+                    <button @click="cancelEdit"
+                      class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs transition-colors">
                       Cancel
                     </button>
                   </template>
-                  <button 
-                    v-else
-                    @click="startEdit(drug)"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs transition-colors"
-                  >
+                  <button v-else @click="startEdit(product)"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs transition-colors">
                     Edit
                   </button>
                 </div>
@@ -246,67 +186,59 @@
 <script setup>
 import { getDatabase, ref as dbRef, push, onValue, update, remove } from 'firebase/database'
 import { useImageUpload } from '@/composables/useImageUpload'
+import { usePharmacyStore } from '@/stores/pharmacy.js'
+
+// Get pharmacy store
+const pharmacyStore = usePharmacyStore()
+const currentPharmacy = computed(() => pharmacyStore.currentPharmacy)
+const pharmacyData = computed(() => pharmacyStore.pharmacyData)
+const products = computed(() => pharmacyStore.products)
 
 // Tabs Configuration
 const tabs = [
-  { name: 'Add Drug', value: 'form' },
-  { name: 'Drugs List', value: 'table' }
+  { name: 'Add Product', value: 'form' },
+  { name: 'Products List', value: 'table' }
 ]
 const activeTab = ref('form')
 
 // Database setup
 const db = getDatabase()
-const drugsRef = dbRef(db, 'drugs')
 
-// Search and Drugs state
+// Search state
 const searchQuery = ref('')
-const drugs = ref([])
 
 // Image Upload Setup
-const { 
-  imageFile, 
-  imageUrl, 
-  isUploading, 
-  uploadProgress, 
-  uploadError, 
-  handleImageUpload, 
-  resetUpload 
+const {
+  imageFile,
+  imageUrl,
+  isUploading,
+  uploadProgress,
+  uploadError,
+  handleImageUpload,
+  resetUpload
 } = useImageUpload()
 
-// Drug Form state
-const drugForm = ref({
-  name: '',
-  expiryDate: '',
-  image: null,
+// Product Form state
+const productForm = ref({
+  brandName: '',
+  unit: '',
   imagePreview: null,
-  price: null,
-  outOfStock: false
-})
-
-// Fetch drugs data
-onMounted(() => {
-  onValue(drugsRef, (snapshot) => {
-    const drugsData = snapshot.val()
-    if (drugsData) {
-      drugs.value = Object.entries(drugsData).map(([id, data]) => ({
-        id,
-        ...data
-      }))
-    }
-  })
+  sellingPrice: null,
+  stockQty: 0
 })
 
 // Computed properties
-const filteredDrugs = computed(() => {
+const filteredProducts = computed(() => {
   const query = searchQuery.value.toLowerCase()
-  return drugs.value.filter(drug => 
-    drug.name.toLowerCase().includes(query)
+  return products.value.filter(product =>
+    product.brandName.toLowerCase().includes(query)
   )
 })
 
 // Methods
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-GB', {
+  const date = dateString ? new Date(dateString) : new Date()
+  return date.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
@@ -314,125 +246,124 @@ const formatDate = (dateString) => {
 }
 
 // Submit Form
-const submitDrug = async () => {
+const submitProduct = async () => {
   try {
     // Validate form
-    if (!drugForm.value.name ||
-        !drugForm.value.expiryDate || !imageUrl.value || 
-        !drugForm.value.price) {
-      alert('Please fill in all fields')
+    if (!productForm.value.brandName ||
+      !productForm.value.unit ||
+      !productForm.value.sellingPrice) {
+      alert('Please fill in all required fields')
       return
     }
 
-    // Check expiry date
-    const expiryDate = new Date(drugForm.value.expiryDate)
-    if (expiryDate < new Date()) {
-      alert('Drug cannot have an expired date')
+    if (!currentPharmacy.value) {
+      alert('No pharmacy selected. Please select a pharmacy first.')
       return
     }
 
-    const newDrug = {
-      name: drugForm.value.name,
-      expiryDate: drugForm.value.expiryDate,
-      price: drugForm.value.price,
-      image: imageUrl.value,
-      outOfStock: drugForm.value.outOfStock,
-      createdAt: new Date().toISOString()
+    const newProduct = {
+      brandName: productForm.value.brandName,
+      unit: productForm.value.unit,
+      sellingPrice: productForm.value.sellingPrice,
+      stockQty: productForm.value.stockQty || 0,
+      lastUpdated: new Date().toISOString()
     }
 
-    // Add to Realtime Database
-    await push(drugsRef, newDrug)
+    // Add image if available
+    if (imageUrl.value) {
+      newProduct.imageUrl = imageUrl.value
+    }
+
+    // Add to Realtime Database under the current pharmacy's products
+    const productsRef = dbRef(db, `${currentPharmacy.value}/products`)
+    await push(productsRef, newProduct)
 
     // Reset form
-    drugForm.value = {
-      name: '',
-      expiryDate: '',
-      image: null,
+    productForm.value = {
+      brandName: '',
+      unit: '',
       imagePreview: null,
-      price: null,
-      outOfStock: false
+      sellingPrice: null,
+      stockQty: 0
     }
     resetUpload()
 
     // Switch to table view and show success message
     activeTab.value = 'table'
-    alert('Drug added successfully!')
+    alert('Product added successfully!')
   } catch (error) {
-    console.error('Error adding drug:', error)
-    alert('Failed to add drug. Please try again.')
+    console.error('Error adding product:', error)
+    alert('Failed to add product. Please try again.')
   }
 }
 
 // Editing state
 const editingId = ref(null)
 const editForm = ref({
-  name: '',
-  price: 0,
-  expiryDate: '',
-  outOfStock: false
+  brandName: '',
+  sellingPrice: 0,
+  unit: '',
+  stockQty: 0
 })
 
 // Edit methods
-const startEdit = (drug) => {
-  editingId.value = drug.id
+const startEdit = (product) => {
+  editingId.value = product.id
   editForm.value = {
-    name: drug.name,
-    price: drug.price,
-    expiryDate: drug.expiryDate,
-    outOfStock: drug.outOfStock || false
+    brandName: product.brandName,
+    sellingPrice: product.sellingPrice,
+    unit: product.unit,
+    stockQty: product.stockQty || 0
   }
 }
 
 const cancelEdit = () => {
   editingId.value = null
   editForm.value = {
-    name: '',
-    price: 0,
-    expiryDate: '',
-    outOfStock: false
+    brandName: '',
+    sellingPrice: 0,
+    unit: '',
+    stockQty: 0
   }
 }
 
-const handleSave = async (drugId) => {
+const handleSave = async (productId) => {
   try {
     // Validate form
-    if (!editForm.value.name || !editForm.value.price || !editForm.value.expiryDate) {
-      alert('Please fill in all fields')
+    if (!editForm.value.brandName || !editForm.value.sellingPrice || !editForm.value.unit) {
+      alert('Please fill in all required fields')
       return
     }
 
-    // Check expiry date
-    const expiryDate = new Date(editForm.value.expiryDate)
-    if (expiryDate < new Date()) {
-      alert('Drug cannot have an expired date')
+    if (!currentPharmacy.value) {
+      alert('No pharmacy selected. Please select a pharmacy first.')
       return
     }
 
     // Update in Firebase
     const updates = {
-      name: editForm.value.name,
-      price: editForm.value.price,
-      expiryDate: editForm.value.expiryDate,
-      outOfStock: editForm.value.outOfStock,
-      updatedAt: new Date().toISOString()
+      brandName: editForm.value.brandName,
+      sellingPrice: editForm.value.sellingPrice,
+      unit: editForm.value.unit,
+      stockQty: editForm.value.stockQty,
+      lastUpdated: new Date().toISOString()
     }
 
-    await update(dbRef(db, `drugs/${drugId}`), updates)
-    
+    await update(dbRef(db, `${currentPharmacy.value}/products/${productId}`), updates)
+
     // Reset edit state
     editingId.value = null
     editForm.value = {
-      name: '',
-      price: 0,
-      expiryDate: '',
-      outOfStock: false
+      brandName: '',
+      sellingPrice: 0,
+      unit: '',
+      stockQty: 0
     }
 
-    alert('Drug updated successfully!')
+    alert('Product updated successfully!')
   } catch (error) {
-    console.error('Error updating drug:', error)
-    alert('Failed to update drug. Please try again.')
+    console.error('Error updating product:', error)
+    alert('Failed to update product. Please try again.')
   }
 }
-
 </script>
