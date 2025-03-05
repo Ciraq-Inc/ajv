@@ -114,11 +114,36 @@ export const usePharmacyStore = defineStore("pharmacy", {
         this.products = [];
         throw error;
       }
+    },
+    
+    // Add a method to get the pharmacy's subdomain
+    getPharmacySubdomain() {
+      if (this.pharmacyData && this.pharmacyData.subdomain) {
+        return this.pharmacyData.subdomain;
+      }
+      
+      // Fallback - if the subdomain isn't set yet
+      if (this.pharmacyData && this.pharmacyData.name) {
+        return this.pharmacyData.name
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim();
+      }
+      
+      return null;
     }
   },
   
   getters: {
     hasProducts: (state) => Array.isArray(state.products) && state.products.length > 0,
     isNotFound: (state) => state.notFound,
+    subdomain: (state) => {
+      if (state.pharmacyData && state.pharmacyData.subdomain) {
+        return state.pharmacyData.subdomain;
+      }
+      return null;
+    }
   },
 });

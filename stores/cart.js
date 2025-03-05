@@ -5,7 +5,7 @@ export const useCartStore = defineStore("cart", {
   state: () => ({
     items: [],
     isOpen: false,
-    activePharmacy: null, // Track which pharmacy the cart belongs to
+    activePharmacy: null, 
   }),
   getters: {
     cartItemCount() {

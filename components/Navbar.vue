@@ -1,16 +1,12 @@
 <!-- Navbar -->
 <template>
-  <header class="py-6">
+  <header class="py-6 bg-white">
     <div class="container mx-auto lg:relative flex flex-col lg:flex-row lg:justify-between gap-y-4 lg:gap-y-0">
       <!-- Logo Section -->
       <div class="flex justify-between items-center lg:justify-start">
         <nuxt-link to="/" class="flex items-center cursor-pointer">
-          <!-- Dynamic Pharmacy Logo -->
-          <img v-if="pharmacyStore.pharmacyData && pharmacyStore.pharmacyData.logoUrl"
-            :src="pharmacyStore.pharmacyData.logoUrl"
-            :alt="pharmacyStore.pharmacyData ? pharmacyStore.pharmacyData.name : 'Pharmacy'" width="150" height="80" />
           <!-- Fallback Logo -->
-          <img v-else src="~/assets/images/ajv.png" alt="Meds GH" width="150" height="80" />
+          <img src="~/assets/images/ajv.png" alt="Meds GH" width="150" height="80" />
         </nuxt-link>
 
         <!-- Mobile Hamburger Button -->
@@ -65,82 +61,6 @@
         </div>
       </div>
 
-      <!-- Mobile Navigation Overlay -->
-      <div v-if="mobileNavOpen" class="fixed inset-0 bg-black/50 z-40 lg:hidden" @click="closeMobileNav"></div>
-
-      <!-- Mobile Navigation Menu -->
-      <nav :class="[
-        'fixed top-0 left-0 w-[80%] h-full bg-white z-50 transform transition-transform duration-300 ease-in-out',
-        mobileNavOpen ? 'translate-x-0' : '-translate-x-full',
-      ]">
-        <div class="p-6">
-          <!-- Mobile Nav Close Button -->
-          <div @click="closeMobileNav" class="absolute top-4 right-4 cursor-pointer">
-            <i class="ri-close-line text-3xl"></i>
-          </div>
-
-          <!-- Mobile Logo -->
-          <nuxt-link to="/" class="flex items-center mb-8">
-            <img src="~/assets/images/ajv.png" alt="ajv" width="100" height="50" />
-          </nuxt-link>
-
-          <!-- Mobile Navigation Links -->
-          <ul class="space-y-4">
-            <li class="flex items-center space-x-2">
-              <i class="ri-home-4-fill text-2xl text-green-800"></i>
-              <nuxt-link to="/" class="text-secondary hover:text-text-green-800 transition-colors"
-                @click="closeMobileNav">
-                Home
-              </nuxt-link>
-            </li>
-            <li class="flex items-center space-x-2">
-              <i class="ri-customer-service-2-fill text-2xl text-green-800"></i>
-              <a href="#services" class="text-secondary hover:text-green-800 transition-colors" @click="closeMobileNav">
-                Services
-              </a>
-            </li>
-            <li class="flex items-center space-x-2">
-              <i class="ri-message-2-line text-2xl text-green-800"></i>
-              <a href="#about" class="text-secondary hover:text-green-800 transition-colors" @click="closeMobileNav">
-                About Us
-              </a>
-            </li>
-            <li class="flex items-center space-x-2">
-              <i class="ri-shake-hands-fill text-2xl text-green-800"></i>
-              <a href="mailto:rigelis@rigelis.co" class="text-secondary hover:text-green-800 transition-colors"
-                @click="closeMobileNav">
-                Investor Relations
-              </a>
-            </li>
-
-            <!-- Resources Dropdown (Mobile) -->
-            <li>
-              <div @click="toggleMobileResourceDropdown" class="flex items-center justify-between cursor-pointer">
-                <div class="flex items-center space-x-2">
-                  <i class="ri-folder-open-line text-2xl text-green-800"></i>
-                  <span class="text-secondary">Resources</span>
-                </div>
-                <i :class="[
-                  'ri-arrow-down-s-line text-2xl text-green-800',
-                  mobileResourceDropdownOpen ? 'rotate-180' : '',
-                ]"></i>
-              </div>
-
-              <div v-if="mobileResourceDropdownOpen" class="pl-6 mt-2 space-y-2">
-                <nuxt-link to="/locator" class="block text-secondary hover:text-green-800" @click="closeMobileNav">
-                  Locator
-                </nuxt-link>
-                <nuxt-link to="/referral" class="block text-secondary hover:text-green-800" @click="closeMobileNav">
-                  Referral
-                </nuxt-link>
-                <nuxt-link to="/market" class="block text-secondary hover:text-green-800" @click="closeMobileNav">
-                  Market Place
-                </nuxt-link>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </nav>
     </div>
   </header>
 

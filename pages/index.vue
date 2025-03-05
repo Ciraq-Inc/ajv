@@ -98,6 +98,7 @@
 <script setup>
 import { ref } from 'vue';
 import { usePharmacyStore } from '../stores/pharmacy.js';
+import { getDatabase, ref as dbRef, get } from "firebase/database";
 
 definePageMeta({
   middleware: ['subdomain']
@@ -110,5 +111,11 @@ const pharmacyStore = usePharmacyStore();
 onMounted(() => {
   console.log('Current pharmacy:', pharmacyStore.currentPharmacy);
   console.log('Products available:', pharmacyStore.products);
+  
+  // Add this test code
+  const db = getDatabase();
+  get(dbRef(db, `pharmacies/arzthena-jv-pharmacy/info`))
+    .then(snapshot => console.log("Direct Firebase access result:", snapshot.val()))
+    .catch(error => console.error("Firebase access error:", error));
 });
 </script>
