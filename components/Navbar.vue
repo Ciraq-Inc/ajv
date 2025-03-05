@@ -1,6 +1,6 @@
 <!-- Navbar -->
 <template>
-  <header class="py-8">
+  <header class="py-6">
     <div class="container mx-auto lg:relative flex flex-col lg:flex-row lg:justify-between gap-y-4 lg:gap-y-0">
       <!-- Logo Section -->
       <div class="flex justify-between items-center lg:justify-start">

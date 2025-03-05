@@ -1,21 +1,22 @@
 // middleware/subdomain.js
 export default defineNuxtRouteMiddleware((to, from) => {
-  const host = process.server ? useRequestHeaders().host : window.location.host;
-  const isLocalhost = host.includes("localhost") || host.includes("127.0.0.1");
+  const { hostname, isLocalhost } = useHostname();
 
   let pharmacyId;
 
   // Handle localhost differently for development
   if (isLocalhost) {
     // For local development, get pharmacy from query parameter
-    // e.g. localhost:3000?pharmacy=lesson-pharmacy
-    pharmacyId = to.query.pharmacy || null;
+    pharmacyId = to.query.pharmacy || "arzthena-jv-pharmacy";
   } else {
     // For production, extract from hostname
-    const hostParts = host.split(".");
+    const hostParts = hostname.split(".");
+
     // If we have a subdomain (e.g., "lesson-pharmacy.medsgh.com")
     if (hostParts.length > 2 && hostParts[0] !== "www") {
       pharmacyId = hostParts[0];
+    } else {
+      pharmacyId = 'arzthena-jv-pharmacy'
     }
   }
 
@@ -26,11 +27,12 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
   // Set up the stores
   const pharmacyStore = usePharmacyStore();
-  const cartStore = useCartStore();
 
   // Set the current pharmacy
   pharmacyStore.setCurrentPharmacy(pharmacyId);
 
-  // Set the cart's active pharmacy
-  cartStore.setActivePharmacy(pharmacyId);
+   const cartStore = useCartStore()
+  if (cartStore.setActivePharmacy) {
+    cartStore.setActivePharmacy(pharmacyId)
+  }
 });

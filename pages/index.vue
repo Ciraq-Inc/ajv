@@ -15,7 +15,7 @@
     </div>
     
     <!-- Pharmacy Not Found -->
-    <PharmacyNotFound v-else-if="pharmacyStore.isNotFound" />
+    <NotFound v-else-if="pharmacyStore.isNotFound" />
     
     <!-- Pharmacy Data Loaded Successfully -->
     <div v-else>
@@ -99,7 +99,16 @@
 import { ref } from 'vue';
 import { usePharmacyStore } from '../stores/pharmacy.js';
 
+definePageMeta({
+  middleware: ['subdomain']
+})
+
 const searchQuery = ref('');
 const activeTab = ref('table'); // Default to table view
 const pharmacyStore = usePharmacyStore();
+
+onMounted(() => {
+  console.log('Current pharmacy:', pharmacyStore.currentPharmacy);
+  console.log('Products available:', pharmacyStore.products);
+});
 </script>

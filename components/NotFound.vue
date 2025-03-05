@@ -1,4 +1,3 @@
-<!-- components/PharmacyNotFound.vue -->
 <template>
     <div class="flex flex-col items-center justify-center min-h-screen px-4 py-12 bg-gray-50">
         <div class="text-center">
