@@ -30,7 +30,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
         if (snapshot.exists()) {
           pharmacyId = snapshot.val();
         } else {
-          console.error(`No pharmacy found for subdomain: ${subdomain}`);
+          console.error(`No pharmacy Found for subdomain: ${subdomain}`);
           
           // Fallback to default pharmacy
           pharmacyId = '5270468805366809';
