@@ -1,6 +1,7 @@
-// stores/pharmacy.js
+// stores/pharmacy.js - Updated with subdomain handling
 import { defineStore } from "pinia";
 import { getDatabase, ref as dbRef, get } from "firebase/database";
+import { subdomainService } from "@/services/subdomain";
 
 export const usePharmacyStore = defineStore("pharmacy", {
   state: () => ({
@@ -10,12 +11,25 @@ export const usePharmacyStore = defineStore("pharmacy", {
     isLoading: false,
     error: null,
     notFound: false,
+    subdomain: null,
   }),
 
   actions: {
     setCurrentPharmacy(pharmacyId) {
       this.currentPharmacy = pharmacyId;
       this.fetchPharmacyData();
+      this.fetchSubdomain();
+    },
+    
+    async fetchSubdomain() {
+      if (!this.currentPharmacy) return;
+      
+      try {
+        const subdomain = await subdomainService.getSubdomainFromPharmacyId(this.currentPharmacy);
+        this.subdomain = subdomain;
+      } catch (error) {
+        console.error("Error fetching subdomain:", error);
+      }
     },
 
     async fetchPharmacyData() {
@@ -42,36 +56,14 @@ export const usePharmacyStore = defineStore("pharmacy", {
         }
 
         this.pharmacyData = infoSnapshot.val();
+        
+        // Update subdomain from pharmacy data
+        if (this.pharmacyData.subdomain) {
+          this.subdomain = this.pharmacyData.subdomain;
+        }
 
         // Fetch pharmacy products
-        const productsSnapshot = await get(
-          dbRef(db, `pharmacies/${this.currentPharmacy}/products`)
-        );
-        
-        // Fix: Properly handle null products from Firebase
-        const productsData = productsSnapshot.val();
-        
-        // Safely convert Firebase data to array
-        if (productsData && typeof productsData === 'object') {
-          try {
-            this.products = Object.entries(productsData).map(([id, data]) => ({
-              id,
-              ...data,
-            }));
-          } catch (error) {
-            console.error("Error processing products data:", error);
-            this.products = [];
-          }
-        } else {
-          console.log("No products found for this pharmacy:", this.currentPharmacy);
-          this.products = [];
-        }
-        
-        // Debug output
-        console.log(`Loaded ${this.products.length} products for ${this.currentPharmacy}`);
-        if (this.products.length > 0) {
-          console.log("Sample product:", this.products[0]);
-        }
+        await this.fetchProducts();
         
       } catch (error) {
         console.error("Error fetching pharmacy data:", error);
@@ -82,9 +74,8 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
     },
     
-    // Add a method that can be called explicitly from components
     async fetchProducts() {
-      if (!this.currentPharmacy) return;
+      if (!this.currentPharmacy) return [];
       
       try {
         const db = getDatabase();
@@ -116,32 +107,57 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
     },
     
-    // Add a method to get the pharmacy's subdomain
-    getPharmacySubdomain() {
-      if (this.pharmacyData && this.pharmacyData.subdomain) {
-        return this.pharmacyData.subdomain;
-      }
+    async setSubdomain(newSubdomain) {
+      if (!this.currentPharmacy) return false;
       
-      // Fallback - if the subdomain isn't set yet
-      if (this.pharmacyData && this.pharmacyData.name) {
-        return this.pharmacyData.name
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-')
-          .trim();
+      try {
+        await subdomainService.setSubdomain(this.currentPharmacy, newSubdomain);
+        this.subdomain = newSubdomain;
+        if (this.pharmacyData) {
+          this.pharmacyData.subdomain = newSubdomain;
+        }
+        return true;
+      } catch (error) {
+        throw error;
       }
+    },
+    
+    // Fetch pharmacy by subdomain
+    async fetchPharmacyBySubdomain(subdomain) {
+      this.isLoading = true;
+      this.error = null;
+      this.notFound = false;
       
-      return null;
+      try {
+        const pharmacyId = await subdomainService.getPharmacyIdFromSubdomain(subdomain);
+        
+        if (!pharmacyId) {
+          this.notFound = true;
+          this.isLoading = false;
+          return false;
+        }
+        
+        this.currentPharmacy = pharmacyId;
+        this.subdomain = subdomain;
+        
+        await this.fetchPharmacyData();
+        return true;
+      } catch (error) {
+        console.error("Error fetching pharmacy by subdomain:", error);
+        this.error = error.message;
+        return false;
+      } finally {
+        this.isLoading = false;
+      }
     }
   },
   
   getters: {
     hasProducts: (state) => Array.isArray(state.products) && state.products.length > 0,
     isNotFound: (state) => state.notFound,
-    subdomain: (state) => {
-      if (state.pharmacyData && state.pharmacyData.subdomain) {
-        return state.pharmacyData.subdomain;
+    subdomainUrl: (state) => {
+      if (state.subdomain) {
+        return `https://${state.subdomain}.medsgh.com`;
       }
       return null;
     }

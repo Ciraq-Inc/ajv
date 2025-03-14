@@ -1,19 +1,22 @@
 // composables/useHostname.js
 export function useHostname() {
-    const nuxtApp = useNuxtApp()
-    let hostname = ''
+  const hostname = process.client ? window.location.hostname : '';
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  
+  function parseSubdomain() {
+    if (isLocalhost) return null;
     
-    if (import.meta.server) {
-      // Server-side
-      const reqHeaders = useRequestHeaders(['host'])
-      hostname = reqHeaders.host
-    } else {
-      // Client-side
-      hostname = window.location.hostname
+    const parts = hostname.split('.');
+    if (parts.length > 2 && parts[0] !== 'www') {
+      return parts[0];
     }
     
-    return {
-      hostname,
-      isLocalhost: hostname.includes('localhost') || hostname.includes('127.0.0.1')
-    }
+    return null;
   }
+  
+  return {
+    hostname,
+    isLocalhost,
+    parseSubdomain
+  };
+}

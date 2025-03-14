@@ -1,5 +1,5 @@
-// middleware/subdomain.js
-import { getDatabase, ref as dbRef, get, query, orderByValue, equalTo } from "firebase/database";
+// middleware/subdomain.js - Updated for new database structure
+import { getDatabase, ref as dbRef, get } from "firebase/database";
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   const { hostname, isLocalhost } = useHostname();
@@ -15,7 +15,24 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     // Handle localhost differently for development
     if (isLocalhost) {
       // For local development, get pharmacy from query parameter
-      pharmacyId = to.query.pharmacy || DEFAULT_PHARMACY_ID;
+      if (to.query.subdomain) {
+        subdomain = to.query.subdomain;
+        console.log(`Development mode: Testing subdomain ${subdomain}`);
+        
+        // Look up the pharmacy ID in the new subdomains collection
+        const db = getDatabase();
+        const pharmacyIdSnapshot = await get(dbRef(db, `subdomains/${subdomain}`));
+        
+        if (pharmacyIdSnapshot.exists()) {
+          pharmacyId = pharmacyIdSnapshot.val();
+          console.log(`Found pharmacy ID ${pharmacyId} for subdomain: ${subdomain}`);
+        } else {
+          console.warn(`Dev mode: No pharmacy found for test subdomain: ${subdomain}`);
+          pharmacyId = to.query.pharmacy || DEFAULT_PHARMACY_ID;
+        }
+      } else {
+        pharmacyId = to.query.pharmacy || DEFAULT_PHARMACY_ID;
+      }
       console.log(`Development mode: Using pharmacy ID ${pharmacyId}`);
     } else {
       // For production, extract subdomain from hostname
@@ -26,27 +43,16 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
         subdomain = hostParts[0];
         console.log(`Detected subdomain: ${subdomain}`);
         
-        // Look up the pharmacy ID directly from the subdomains collection
+        // Look up the pharmacy ID in the new subdomains collection
         const db = getDatabase();
-
-        // First try to find exact match in the subdomains collection
-        const subdomainsQuery = query(
-          dbRef(db, 'subdomains'),
-          orderByValue(),
-          equalTo(subdomain)
-        );
-
-        const snapshot = await get(subdomainsQuery);
-
-        if (snapshot.exists()) {
-          // Get the first key (pharmacy ID) from the results
-          const pharmacyIds = Object.keys(snapshot.val());
-          pharmacyId = pharmacyIds[0];
+        const pharmacyIdSnapshot = await get(dbRef(db, `subdomains/${subdomain}`));
+        
+        if (pharmacyIdSnapshot.exists()) {
+          pharmacyId = pharmacyIdSnapshot.val();
           console.log(`Found pharmacy ID ${pharmacyId} for subdomain: ${subdomain}`);
         } else {
           console.warn(`No pharmacy found for subdomain: ${subdomain}`);
-          // Fallback to default pharmacy
-          pharmacyId = DEFAULT_PHARMACY_ID;
+          return navigateTo('/error/pharmacy-not-found');
         }
       } else {
         // Main domain - use default pharmacy
@@ -81,7 +87,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     pharmacyId = DEFAULT_PHARMACY_ID;
     await pharmacyStore.setCurrentPharmacy(pharmacyId);
     
-    // Optionally redirect to an error page for critical failures
-    // return navigateTo('/error/system-error');
+    return navigateTo('/error/system-error');
   }
 });

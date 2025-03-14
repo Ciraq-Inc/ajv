@@ -12,6 +12,7 @@
   "dependencies": {
     "@pinia/nuxt": "^0.7.0",
     "browser-image-compression": "^2.0.2",
+    "dotenv": "^16.4.7",
     "firebase": "^10.14.1",
     "nuxt": "^3.14.159",
     "nuxt-icon": "^1.0.0-beta.7",
