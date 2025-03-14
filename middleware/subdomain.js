@@ -6,7 +6,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   const pharmacyStore = usePharmacyStore();
   const cartStore = useCartStore();
 
-  const DEFAULT_PHARMACY_ID = '5270468805366809';
+  const DEFAULT_PHARMACY_ID = '2234123412341238';
   
   let subdomain;
   let pharmacyId;
