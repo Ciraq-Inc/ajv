@@ -1,6 +1,6 @@
 <template>
   <header class="bg-white shadow-sm py-4 border-b border-gray-100">
-    <div class="container mx-auto px-6 lg:relative flex flex-col lg:flex-row lg:justify-between lg:items-center gap-y-6 lg:gap-y-0">
+    <div class="container mx-auto px-6 lg:relative flex flex-col lg:flex-row lg:justify-between lg:items-center gap-y-6 lg:gap-y-0 max-w-7xl">
       <!-- Logo and Brand -->
       <div class="flex justify-center lg:justify-start">
         <nuxt-link to="/" class="flex items-center cursor-pointer">
