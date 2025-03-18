@@ -26,7 +26,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   }
   
   if (pharmacyParam) {
-    // We're in a pharmacy route, set the context
     // Check if it matches current pharmacy slug
     if (pharmacyStore.pharmacySlug !== pharmacyParam) {
       // We need to look up the pharmacy ID from the slug
@@ -52,7 +51,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     return;
   }
   
-  // Not a pharmacy-specific route, but not a system path
   
   // If pharmacy is selected, redirect to pharmacy route
   if (pharmacyStore.currentPharmacy && pharmacyStore.pharmacySlug) {
