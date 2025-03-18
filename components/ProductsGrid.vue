@@ -1,3 +1,4 @@
+<!-- components/ProductsGrid.vue -->
 <template>
   <div>
     <!-- Loading state -->
@@ -52,7 +53,7 @@
 
             <div class="text-xs text-gray-800 font-semibold flex justify-between">
               <div>
-                GHS {{ product.sellingPrice }}
+                GHS {{ formatPrice(product.sellingPrice) }}
                 <span class="text-gray-500 text-xs ml-1">/ {{ product.unit || 'unit' }}</span>
               </div>
               <div class="flex items-center">
@@ -76,7 +77,7 @@
                 'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
                 product.stockQty <= 0 ? 'bg-gray-400 text-white cursor-not-allowed' :
                   product.justAdded ? 'bg-green-700 text-white transform scale-95 cursor-default' :
-                    'bg-green-500 text-white hover:bg-blue-600'
+                    'bg-green-500 text-white hover:bg-green-600'
               ]">
                 <i class="ri-shopping-cart-line text-xs mr-1"></i>
                 {{ product.justAdded ? 'Added!' : 'Add to cart' }}
@@ -86,21 +87,14 @@
         </div>
       </div>
     </div>
-
-    <!-- Debug info in development mode -->
-    <div v-if="isDev" class="mt-4 p-3 bg-gray-100 rounded text-xs">
-      <p>Debug Info:</p>
-      <p>Current Pharmacy: {{ pharmacyStore.currentPharmacy || 'Not set' }}</p>
-      <p>Products Count: {{ pharmacyStore.products?.length || 0 }}</p>
-      <p>Filtered Products: {{ filteredProducts.length }}</p>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue';
-import { usePharmacyStore } from '../stores/pharmacy.js';
-import { useCartStore } from '../stores/cart.js';
+import { usePharmacyStore } from '~/stores/pharmacy';
+import { useCartStore } from '~/stores/cart';
+import { useRoute } from 'vue-router';
 
 const props = defineProps({
   searchQuery: {
@@ -109,12 +103,15 @@ const props = defineProps({
   }
 });
 
+const route = useRoute();
 const pharmacyStore = usePharmacyStore();
 const cartStore = useCartStore();
 
 // Add loading state
 const loading = ref(true);
-const isDev = process.env.NODE_ENV !== 'production';
+
+// Get pharmacy slug from route params
+const pharmacySlug = computed(() => route.params.pharmacy);
 
 // Fetch products if not already loaded
 onMounted(async () => {
@@ -137,6 +134,16 @@ onMounted(async () => {
       console.error('Error fetching products:', error);
     } finally {
       loading.value = false;
+    }
+  }
+});
+
+// Watch for changes in the pharmacy route parameter
+watch(() => pharmacySlug.value, async (newSlug, oldSlug) => {
+  if (newSlug && newSlug !== oldSlug) {
+    if (pharmacyStore.pharmacySlug !== newSlug) {
+      // Handle slug change in store if needed
+      // This would usually be handled by middleware
     }
   }
 });
@@ -219,5 +226,9 @@ const formatDate = (dateString) => {
     month: 'short',
     year: 'numeric'
   });
+};
+
+const formatPrice = (price) => {
+  return Number(price || 0).toFixed(2);
 };
 </script>

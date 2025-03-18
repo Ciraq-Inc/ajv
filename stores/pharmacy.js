@@ -1,7 +1,6 @@
-// stores/pharmacy.js - Updated with subdomain handling
+// stores/pharmacy.js - Updated for path-based routing
 import { defineStore } from "pinia";
 import { getDatabase, ref as dbRef, get } from "firebase/database";
-import { subdomainService } from "@/services/subdomain";
 
 export const usePharmacyStore = defineStore("pharmacy", {
   state: () => ({
@@ -11,25 +10,19 @@ export const usePharmacyStore = defineStore("pharmacy", {
     isLoading: false,
     error: null,
     notFound: false,
-    subdomain: null,
+    pharmacySlug: null,
   }),
 
   actions: {
-    setCurrentPharmacy(pharmacyId) {
+    async setCurrentPharmacy(pharmacyId) {
       this.currentPharmacy = pharmacyId;
-      this.fetchPharmacyData();
-      this.fetchSubdomain();
-    },
-    
-    async fetchSubdomain() {
-      if (!this.currentPharmacy) return;
       
-      try {
-        const subdomain = await subdomainService.getSubdomainFromPharmacyId(this.currentPharmacy);
-        this.subdomain = subdomain;
-      } catch (error) {
-        console.error("Error fetching subdomain:", error);
+      // Store in session/localStorage for persistence
+      if (process.client) {
+        localStorage.setItem('currentPharmacyId', pharmacyId);
       }
+      
+      await this.fetchPharmacyData();
     },
 
     async fetchPharmacyData() {
@@ -57,9 +50,14 @@ export const usePharmacyStore = defineStore("pharmacy", {
 
         this.pharmacyData = infoSnapshot.val();
         
-        // Update subdomain from pharmacy data
+        // Update pharmacySlug from pharmacy data if available
         if (this.pharmacyData.subdomain) {
-          this.subdomain = this.pharmacyData.subdomain;
+          this.pharmacySlug = this.pharmacyData.subdomain;
+          
+          // Store in session/localStorage for persistence
+          if (process.client) {
+            localStorage.setItem('currentPharmacySlug', this.pharmacySlug);
+          }
         }
 
         // Fetch pharmacy products
@@ -107,47 +105,63 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
     },
     
-    async setSubdomain(newSubdomain) {
-      if (!this.currentPharmacy) return false;
+    setPharmacySlug(slug) {
+      this.pharmacySlug = slug;
       
-      try {
-        await subdomainService.setSubdomain(this.currentPharmacy, newSubdomain);
-        this.subdomain = newSubdomain;
-        if (this.pharmacyData) {
-          this.pharmacyData.subdomain = newSubdomain;
-        }
-        return true;
-      } catch (error) {
-        throw error;
+      // Store in session/localStorage for persistence
+      if (process.client) {
+        localStorage.setItem('currentPharmacySlug', slug);
       }
     },
     
-    // Fetch pharmacy by subdomain
-    async fetchPharmacyBySubdomain(subdomain) {
-      this.isLoading = true;
-      this.error = null;
-      this.notFound = false;
+    // Get pharmacy ID from the slug (path segment)
+    async getPharmacyIdFromSlug(slug) {
+      if (!slug) return null;
       
       try {
-        const pharmacyId = await subdomainService.getPharmacyIdFromSubdomain(subdomain);
+        const db = getDatabase();
+        const pharmacyIdSnapshot = await get(dbRef(db, `subdomains/${slug}`));
         
-        if (!pharmacyId) {
-          this.notFound = true;
-          this.isLoading = false;
-          return false;
+        if (pharmacyIdSnapshot.exists()) {
+          return pharmacyIdSnapshot.val();
         }
         
-        this.currentPharmacy = pharmacyId;
-        this.subdomain = subdomain;
-        
-        await this.fetchPharmacyData();
-        return true;
+        return null;
       } catch (error) {
-        console.error("Error fetching pharmacy by subdomain:", error);
-        this.error = error.message;
-        return false;
-      } finally {
-        this.isLoading = false;
+        console.error("Error getting pharmacy ID from slug:", error);
+        return null;
+      }
+    },
+    
+    // Restore pharmacy context from localStorage if needed
+    restoreFromStorage() {
+      if (!process.client) return;
+      
+      const storedPharmacyId = localStorage.getItem('currentPharmacyId');
+      const storedPharmacySlug = localStorage.getItem('currentPharmacySlug');
+      
+      if (storedPharmacyId && !this.currentPharmacy) {
+        this.currentPharmacy = storedPharmacyId;
+        this.fetchPharmacyData();
+      }
+      
+      if (storedPharmacySlug && !this.pharmacySlug) {
+        this.pharmacySlug = storedPharmacySlug;
+      }
+    },
+    
+    // Clear pharmacy data (for logout or switching)
+    clearPharmacyData() {
+      this.currentPharmacy = null;
+      this.pharmacyData = null;
+      this.products = [];
+      this.pharmacySlug = null;
+      
+      if (process.client) {
+        localStorage.removeItem('currentPharmacyId');
+        localStorage.removeItem('currentPharmacySlug');
+        sessionStorage.removeItem('currentPharmacyId');
+        sessionStorage.removeItem('currentPharmacySlug');
       }
     }
   },
@@ -155,11 +169,20 @@ export const usePharmacyStore = defineStore("pharmacy", {
   getters: {
     hasProducts: (state) => Array.isArray(state.products) && state.products.length > 0,
     isNotFound: (state) => state.notFound,
-    subdomainUrl: (state) => {
-      if (state.subdomain) {
-        return `https://${state.subdomain}.medsgh.com`;
+    pathPrefix: (state) => {
+      if (state.pharmacySlug) {
+        return `/${state.pharmacySlug}`;
       }
-      return null;
+      return '';
+    },
+    // Generate path with pharmacy slug prefixed
+    getPharmacyPath: (state) => (path) => {
+      if (state.pharmacySlug) {
+        // Ensure path starts with / if not empty
+        const normalizedPath = path && !path.startsWith('/') ? `/${path}` : path;
+        return `/${state.pharmacySlug}${normalizedPath || ''}`;
+      }
+      return path || '/';
     }
   },
 });

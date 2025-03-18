@@ -14,7 +14,7 @@
       </div>
 
       <div v-else class="space-y-4 max-h[70vh] overflow-y-auto">
-        <!-- Pharmacy Name (added this) -->
+        <!-- Pharmacy Name -->
         <div v-if="pharmacyStore.pharmacyData" class="mb-4 bg-gray-100 p-3 rounded-lg">
           <p class="text-sm text-gray-700">
             Order from: <span class="font-semibold">{{ pharmacyStore.pharmacyData.name }}</span>
@@ -27,7 +27,7 @@
             <img v-if="item.image" :src="item.image" :alt="item.name" class="w-12 h-12 mr-4" />
             <div>
               <h3 class="font-semibold text-sm">{{ item.name }}</h3>
-              <p class="text-sm text-gray-500">GHS {{ item.price }}</p>
+              <p class="text-sm text-gray-500">GHS {{ formatPrice(item.price) }}</p>
             </div>
           </div>
           <div class="flex items-center">
@@ -49,10 +49,10 @@
       <div v-if="items.length > 0" class="mt-6">
         <div class="flex justify-between mb-4">
           <span class="font-semibold">Total</span>
-          <span>GHS{{ cartTotal.toFixed(2) }}</span>
+          <span>GHS{{ formatPrice(cartTotal) }}</span>
         </div>
         <button @click="sendWhatsAppMessage" class="w-full bg-green-600 text-white py-2 rounded hover:bg-blue-500">
-          <i class="ri-shopping-cart-line text-2xl mr-1"></i>Send Order
+          <i class="ri-shopping-cart-line text-2xl mr-1"></i>Send Order via WhatsApp
         </button>
       </div>
     </div>
@@ -62,10 +62,10 @@
 <script setup>
 import { storeToRefs } from 'pinia';
 import { useCartStore } from "/stores/cart.js";
-import { usePharmacyStore } from "/stores/pharmacy.js"; // Import the pharmacy store
+import { usePharmacyStore } from "/stores/pharmacy.js";
 
 const cartStore = useCartStore();
-const pharmacyStore = usePharmacyStore(); // Get pharmacy store
+const pharmacyStore = usePharmacyStore();
 const { items, isOpen, cartTotal } = storeToRefs(cartStore);
 const { toggleCart, removeFromCart, updateQuantity } = cartStore;
 
@@ -76,7 +76,8 @@ const sendWhatsAppMessage = () => {
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(messageText)}`;
   window.open(whatsappUrl, '_blank');
 
-  clearCart();
+  cartStore.clearCart();
+  toggleCart();
 };
 
 const generateWhatsAppMessage = () => {
@@ -91,14 +92,11 @@ const generateWhatsAppMessage = () => {
 
 ${itemDetails}
 
-Total Price: GHS${cartTotal.value.toFixed(2)}`;
+Total Price: GHS${formatPrice(cartTotal.value)}`;
 };
 
-const clearCart = () => {
-  // Reset the cart to an empty state
-  cartStore.$patch({
-    items: [],
-  });
+const formatPrice = (price) => {
+  return Number(price || 0).toFixed(2);
 };
 
 defineExpose({

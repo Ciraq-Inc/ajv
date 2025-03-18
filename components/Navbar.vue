@@ -1,104 +1,48 @@
-<!-- Navbar -->
 <template>
-  <header class="py-6 bg-white">
-    <div class="container mx-auto lg:relative flex flex-col lg:flex-row lg:justify-between gap-y-4 lg:gap-y-0">
-      <!-- Logo Section -->
-      <div class="flex justify-between items-center lg:justify-start">
+  <header class="bg-white shadow-sm py-4 border-b border-gray-100">
+    <div class="container mx-auto px-6 lg:relative flex flex-col lg:flex-row lg:justify-between lg:items-center gap-y-6 lg:gap-y-0">
+      <!-- Logo and Brand -->
+      <div class="flex justify-center lg:justify-start">
         <nuxt-link to="/" class="flex items-center cursor-pointer">
-          <!-- Fallback Logo -->
-          <img src="~/assets/images/ajv.png" alt="Meds GH" width="150" height="80" />
+          <img src="../assets/images/rigellogo.png" alt="Rigelis" width="60" height="60" class="mr-1.5" />
+          <h1 class="text-2xl font-bold text-black">MedsGh</h1>
         </nuxt-link>
-
-        <!-- Mobile Hamburger Button -->
-        <div class="flex items-center">
-          <button @click="toggleCart" class="mr-4 relative lg:hidden">
-            <i class="ri-shopping-cart-line text-2xl text-green-800"></i>
-            <span v-if="cartItemCount > 0"
-              class="absolute -top-2 -left-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {{ cartItemCount }}
-            </span>
-            <span class="text-green-800 ml-1">GHS{{ cartTotal.toFixed(2) }}</span>
-          </button>
-
-          <button class="lg:hidden z-50 relative">
-            <i :class="[
-              'ri-menu-line text-3xl',
-              mobileNavOpen ? 'text-white' : 'text-black',
-            ]"></i>
-          </button>
-        </div>
       </div>
 
-      <!-- Navigation Container -->
-      <div class="flex flex-col gap-y-4 lg:flex-row lg:gap-x-10 lg:gap-y-0 lg:items-center">
-        <!-- Contact Info (Visible on Desktop) -->
-        <div class="hidden lg:flex items-center space-x-6">
-          <div class="flex items-center gap-x-2">
-            <i class="ri-map-pin-2-fill text-2xl text-green-800"></i>
-            <div class="text-secondary text-sm">Accra</div>
+      <div class="flex flex-col gap-y-5 lg:flex-row lg:gap-x-8 lg:gap-y-0 lg:items-center">
+        <!-- Location -->
+        <div class="flex justify-center items-center gap-x-3 lg:justify-normal">
+          <div class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
           </div>
-          <div class="flex items-center gap-x-2">
-            <i class="ri-phone-fill text-2xl text-green-800"></i>
-            <div class="text-secondary text-sm">(+233) 503793513</div>
+          <div class="text-gray-700 font-medium">
+            1 La Bawaleshie Rd, Accra, Ghana
           </div>
         </div>
-
-        <!--Cart & Contact Button -->
-        <div class="flex items-center">
-          <button @click="toggleCart" class="hidden lg:flex mr-4 relative">
-            <i class="ri-shopping-cart-line text-2xl text-green-800"></i>
-            <span v-if="cartItemCount > 0"
-              class="absolute -top-2 -left-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {{ cartItemCount }}
-            </span>
-            <span class="text-green-800 ml-1">GHS{{ cartTotal.toFixed(2) }}</span>
-          </button>
-
-          <a href="https://wa.me/+233503793513" target="_blank"
-            class="btn btn-sm btn-outline w-[240px] lg:w-auto mx-auto lg:mx-0">
-            Contact Us
-          </a>
+        
+        <!-- Phone -->
+        <div class="flex justify-center items-center gap-x-3 lg:justify-normal">
+          <div class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+          </div>
+          <div class="text-gray-700 font-medium">(+233) 30 255-4857</div>
         </div>
+        
+        <!-- Contact Button -->
+        <a 
+          target="_blank" 
+          href="https://wa.me/+233537291557"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-x-2 w-[240px] mx-auto lg:w-auto lg:mx-0"
+        >
+        <i class="ri-whatsapp-line mr-1 text-2xl"></i>
+          Contact Us
+        </a>
       </div>
-
     </div>
   </header>
-
-  <Cart ref="cartComponent" />
 </template>
-
-<script setup>
-import { storeToRefs } from "pinia";
-import { usePharmacyStore } from "../stores/pharmacy.js";
-import { useCartStore } from "../stores/cart.js";
-
-const pharmacyStore = usePharmacyStore();
-
-const cartStore = useCartStore();
-const { cartItemCount, cartTotal } = storeToRefs(cartStore);
-const cartComponent = ref(null);
-
-const toggleCart = () => {
-  cartComponent.value.toggleCart();
-};
-
-const mobileNavOpen = ref(false);
-const mobileResourceDropdownOpen = ref(false);
-
-const toggleMobileNav = () => {
-  mobileNavOpen.value = !mobileNavOpen.value;
-};
-
-const closeMobileNav = () => {
-  mobileNavOpen.value = false;
-  mobileResourceDropdownOpen.value = false;
-};
-
-const toggleMobileResourceDropdown = () => {
-  mobileResourceDropdownOpen.value = !mobileResourceDropdownOpen.value;
-};
-</script>
-
-<style scoped>
-/* Add any additional scoped styles if needed */
-</style>

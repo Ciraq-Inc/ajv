@@ -1,3 +1,4 @@
+<!-- components/ProductsTable.vue -->
 <template>
   <div>
     <!-- Loading state - only show if pharmacy store is not loading -->
@@ -74,7 +75,7 @@
                 :class="[
                   'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
                   {
-                    'bg-green-500 text-white hover:bg-blue-600 disabled:bg-gray-400': !product.justAdded,
+                    'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400': !product.justAdded,
                     'bg-green-700 text-white transform scale-95 cursor-default': product.justAdded,
                     'cursor-not-allowed': product.stockQty <= 0
                   }
@@ -87,26 +88,14 @@
         </tbody>
       </table>
     </div>
-    
-    <!-- Debug info in development mode -->
-    <div v-if="isDev" class="mt-4 p-3 bg-gray-100 rounded text-xs">
-      <p>Debug Info:</p>
-      <p>Current Pharmacy: {{ pharmacyStore.currentPharmacy || 'Not set' }}</p>
-      <p>Products Count: {{ pharmacyStore.products?.length || 0 }}</p>
-      <p>Filtered Products: {{ filteredProducts.length }}</p>
-      <hr class="my-1">
-      <div v-if="pharmacyStore.products?.length">
-        <p>Sample Product Data:</p>
-        <pre>{{ JSON.stringify(pharmacyStore.products[0], null, 2).substring(0, 200) + '...' }}</pre>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { usePharmacyStore } from '../stores/pharmacy.js';
-import { useCartStore } from '../stores/cart.js';
+import { usePharmacyStore } from '~/stores/pharmacy';
+import { useCartStore } from '~/stores/cart';
+import { useRoute } from 'vue-router';
 
 const props = defineProps({
   searchQuery: {
@@ -115,12 +104,15 @@ const props = defineProps({
   }
 });
 
+const route = useRoute();
 const pharmacyStore = usePharmacyStore();
 const cartStore = useCartStore();
 
 // Add loading state
 const loading = ref(true);
-const isDev = process.env.NODE_ENV !== 'production';
+
+// Get pharmacy slug from route params
+const pharmacySlug = computed(() => route.params.pharmacy);
 
 // Fetch products if not already loaded
 onMounted(async () => {
@@ -144,6 +136,16 @@ onMounted(async () => {
       console.error('Error fetching products:', error);
     } finally {
       loading.value = false;
+    }
+  }
+});
+
+// Watch for changes in the pharmacy route parameter
+watch(() => pharmacySlug.value, async (newSlug, oldSlug) => {
+  if (newSlug && newSlug !== oldSlug) {
+    if (pharmacyStore.pharmacySlug !== newSlug) {
+      // Handle slug change in store if needed
+      // This would usually be handled by middleware
     }
   }
 });

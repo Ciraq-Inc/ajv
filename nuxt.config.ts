@@ -21,11 +21,23 @@ export default defineNuxtConfig({
       charset: "utf-8",
       viewport: "width=device-width, initial-scale=1",
     },
+    // Add page transitions for smoother navigation with pharmacy routing
+    pageTransition: { name: 'page', mode: 'out-in' }
   },
 
   modules: ["@nuxtjs/tailwindcss", "@nuxt/icon", "@pinia/nuxt", "nuxt-vuefire"],
 
   css: ["~/assets/css/tailwind.css"],
+
+  // Plugins
+  plugins: [
+    '~/plugins/init-stores.js'
+  ],
+
+  // Add global middleware for pharmacy routing
+  router: {
+    middleware: ['pharmacy']
+  },
 
   vuefire: {
     // PRODUCTION SERVER
