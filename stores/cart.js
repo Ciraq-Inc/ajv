@@ -1,4 +1,4 @@
-// Cart.js - Updated for path-based routing
+// Cart.js - Fixed to properly handle quantity updates
 import { defineStore } from "pinia";
 
 export const useCartStore = defineStore("cart", {
@@ -6,7 +6,7 @@ export const useCartStore = defineStore("cart", {
     items: [],
     isOpen: false,
     activePharmacy: null,
-    activePharmacySlug: null, // Added to track the pharmacy slug
+    activePharmacySlug: null,
   }),
   
   getters: {
@@ -19,20 +19,17 @@ export const useCartStore = defineStore("cart", {
         0
       );
     },
-    // Check if cart has items
     hasItems() {
       return this.items.length > 0;
     }
   },
   
   actions: {
-    // Set active pharmacy
     setActivePharmacy(pharmacyId, pharmacySlug = null) {
-      // If switching pharmacies, clear the cart
       if (
         this.activePharmacy &&
         this.activePharmacy !== pharmacyId &&
-        this.items.length > 0 // Fixed typo: was this.item.length
+        this.items.length > 0
       ) {
         if (
           confirm(
@@ -50,7 +47,6 @@ export const useCartStore = defineStore("cart", {
         this.activePharmacySlug = pharmacySlug;
       }
       
-      // Store pharmacy info for persistence
       if (process.client) {
         localStorage.setItem('activeCartPharmacy', pharmacyId);
         if (pharmacySlug) {
@@ -61,7 +57,6 @@ export const useCartStore = defineStore("cart", {
       return true;
     },
     
-    // Set pharmacy slug without changing ID (e.g. if learned later)
     setPharmacySlug(slug) {
       if (!slug) return;
       
@@ -86,14 +81,20 @@ export const useCartStore = defineStore("cart", {
 
       const existingItem = this.items.find((item) => item.id === drug.id);
       if (existingItem) {
-        existingItem.quantity += drug.quantity || 1;
+        // FIXED: Replace quantity instead of adding to it
+        existingItem.quantity = drug.quantity || 1;
       } else {
         const quantity = drug.quantity || 1;
         this.items.unshift({ ...drug, quantity });
       }
       
-      // Save cart to localStorage for persistence
       this.saveCartToStorage();
+      
+      // Open cart briefly to show the item was added (optional)
+      this.isOpen = true;
+      setTimeout(() => {
+        this.isOpen = false;
+      }, 3000);
     },
     
     removeFromCart(drugId) {
@@ -121,7 +122,6 @@ export const useCartStore = defineStore("cart", {
       this.saveCartToStorage();
     },
     
-    // Save cart to localStorage
     saveCartToStorage() {
       if (!process.client) return;
       
@@ -132,12 +132,10 @@ export const useCartStore = defineStore("cart", {
       }
     },
     
-    // Restore cart from localStorage
     restoreFromStorage() {
       if (!process.client) return;
       
       try {
-        // Restore active pharmacy
         const storedPharmacy = localStorage.getItem('activeCartPharmacy');
         const storedPharmacySlug = localStorage.getItem('activeCartPharmacySlug');
         
@@ -149,7 +147,6 @@ export const useCartStore = defineStore("cart", {
           this.activePharmacySlug = storedPharmacySlug;
         }
         
-        // Restore cart items
         const storedItems = localStorage.getItem('cartItems');
         if (storedItems) {
           this.items = JSON.parse(storedItems);

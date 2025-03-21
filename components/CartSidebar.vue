@@ -70,8 +70,21 @@ const { items, isOpen, cartTotal } = storeToRefs(cartStore);
 const { toggleCart, removeFromCart, updateQuantity } = cartStore;
 
 const sendWhatsAppMessage = () => {
-  // Get pharmacy phone number from pharmacy data, or use default
   const phoneNumber = pharmacyStore.pharmacyData?.tel || '+233503793513';
+
+  // Extract the first phone number if multiple are provided with a separator
+  if (phoneNumber.includes('/')) {
+    phoneNumber = phoneNumber.split('/')[0];
+  }
+
+  // Remove leading zero if present and add Ghana country code (+233)
+  if (phoneNumber.startsWith('0')) {
+    phoneNumber = '+233' + phoneNumber.substring(1);
+  } else if (!phoneNumber.startsWith('+')) {
+    // If it doesn't start with + already, assume it needs the country code
+    phoneNumber = '+233' + phoneNumber;
+  }
+
   const messageText = generateWhatsAppMessage();
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(messageText)}`;
   window.open(whatsappUrl, '_blank');

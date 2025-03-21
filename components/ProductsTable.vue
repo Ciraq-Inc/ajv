@@ -202,6 +202,17 @@ const decreaseQuantity = (product) => {
   }
 };
 
+// Check if product is already in cart
+const isProductInCart = (productId) => {
+  return cartStore.items.some(item => item.id === productId);
+};
+
+// Find product quantity in cart
+const getCartQuantity = (productId) => {
+  const item = cartStore.items.find(item => item.id === productId);
+  return item ? item.quantity : 0;
+};
+
 const handleAddToCart = (product) => {
   if (product.stockQty <= 0) return;
   
@@ -210,7 +221,7 @@ const handleAddToCart = (product) => {
     id: product.id,
     name: product.brandName,
     price: product.sellingPrice,
-    quantity: product.quantity || 1,
+    quantity: product.quantity || 1,  // Use the quantity from UI
     image: product.imageUrl,
     pharmacyId: pharmacyStore.currentPharmacy,
     unit: product.unit || 'unit'

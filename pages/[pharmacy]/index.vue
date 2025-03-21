@@ -62,6 +62,18 @@
               </div>
               <p class="mt-3 text-gray-700">{{ pharmacyStore.pharmacyData?.description || 'Browse our available products' }}</p>
             </div>
+
+            <!--Cart & Contact Button -->
+            <div class="flex items-center">
+              <button @click="toggleCart" class="hidden lg:flex mr-4 relative">
+                <i class="ri-shopping-cart-line text-2xl text-green-800"></i>
+                <span v-if="cartStore.cartItemCount > 0"
+                  class="absolute -top-2 -left-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {{ cartStore.cartItemCount }}
+                </span>
+                <span class="text-green-800 ml-1">GHS{{ formatCartTotal }}</span>
+              </button>
+            </div>
             
             <div class="flex space-x-3 mt-5 md:mt-0">
               <a v-if="pharmacyStore.pharmacyData?.tel" :href="`tel:${pharmacyStore.pharmacyData.tel}`" 
@@ -148,13 +160,14 @@
         </div>
         
         <template v-else>
-          <ProductsTable 
+          <ProductsTable    
             v-if="viewMode === 'table'" 
-            :search-query="searchQuery" 
+            :search-query="searchQuery"
+            class="hidden lg:flex"
           />
           
           <ProductsGrid 
-            v-else 
+            v-else
             :search-query="searchQuery" 
           />
         </template>
@@ -168,7 +181,7 @@
     <button
       v-if="cartStore.hasItems"
       @click="openCart"
-      class="fixed bottom-4 right-4 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200"
+      class="hidden lg:flex fixed bottom-4 right-4 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -181,7 +194,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
@@ -192,18 +205,33 @@ const pharmacyStore = usePharmacyStore();
 const cartStore = useCartStore();
 
 definePageMeta({
-  layout: 'pharmy',
+  layout: 'pharm',
   title: 'Pharmacy Store',
-  middleware: ['pharmacy'] // if you have middleware
+  middleware: ['pharmacy']
 });
 
 // State
 const searchQuery = ref('');
-const viewMode = ref('table'); // 'grid' or 'table'
+const viewMode = ref('table');
 const cartSidebar = ref(null);
 
 // Get pharmacy slug from route params
 const pharmacySlug = computed(() => route.params.pharmacy);
+
+// Format cart total with safety checks
+const formatCartTotal = computed(() => {
+  const total = cartStore.cartTotal || 0;
+  return total.toFixed(2);
+});
+
+// Toggle cart
+const toggleCart = () => {
+  if (cartSidebar.value) {
+    cartSidebar.value.toggleCart();
+  } else {
+    cartStore.toggleCart();
+  }
+};
 
 // Refresh data
 const refreshData = async () => {
@@ -224,12 +252,24 @@ const openCart = () => {
   }
 };
 
+// Function to handle screen size
+const updateViewMode = () => {
+  viewMode.value = window.innerWidth < 768 ? 'grid' : 'table';
+};
+
 // On page load - most initial loading should be handled by middleware
 onMounted(async () => {
   // Just in case, check if pharmacy data needs to be loaded
   if (pharmacyStore.currentPharmacy && !pharmacyStore.pharmacyData) {
     await pharmacyStore.fetchPharmacyData();
-  }
+  };
+
+  updateViewMode();
+  window.addEventListener('resize', updateViewMode);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateViewMode);
 });
 
 // Watch for route changes (in case pharmacy param changes)
