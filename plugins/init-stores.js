@@ -1,20 +1,37 @@
-// plugins/init-stores.js
+// plugins/pharmacy-init.js
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useCartStore } from "~/stores/cart";
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Only run on client-side
-  if (process.client) {
-    nuxtApp.hook("app:created", () => {
-      const pharmacyStore = usePharmacyStore();
-      const cartStore = useCartStore();
-
-      // Initialize pharmacy store
+  if (!process.client) return;
+  
+  const route = useRoute();
+  
+  nuxtApp.hook("app:created", async () => {
+    const pharmacyStore = usePharmacyStore();
+    const cartStore = useCartStore();
+    
+    // Check if we have a pharmacy in the URL
+    const pharmacySlug = route.params.pharmacy;
+    
+    if (pharmacySlug) {
+      console.log(`Initializing pharmacy from URL slug: ${pharmacySlug}`);
+      
+      // Initialize directly from the URL parameter
+      if (pharmacySlug !== pharmacyStore.pharmacySlug || !pharmacyStore.currentPharmacy) {
+        const success = await pharmacyStore.initializeFromSlug(pharmacySlug);
+        
+        if (success && pharmacyStore.currentPharmacy) {
+          // Also update cart context
+          cartStore.setActivePharmacy(pharmacyStore.currentPharmacy, pharmacySlug);
+        }
+      }
+    } else {
+      // No pharmacy in URL, restore from storage
       pharmacyStore.restoreFromStorage();
-
-      // Initialize cart store
       cartStore.restoreFromStorage();
-
+      
       // Sync store data if needed
       if (pharmacyStore.currentPharmacy && cartStore.activePharmacy) {
         // If pharmacy IDs don't match but they should, fix it
@@ -27,15 +44,12 @@ export default defineNuxtPlugin((nuxtApp) => {
             pharmacyStore.pharmacySlug
           );
         }
-
+        
         // If slugs don't match but they should, fix it
-        if (
-          pharmacyStore.pharmacySlug &&
-          pharmacyStore.pharmacySlug !== cartStore.activePharmacySlug
-        ) {
+        if (pharmacyStore.pharmacySlug && pharmacyStore.pharmacySlug !== cartStore.activePharmacySlug) {
           cartStore.setPharmacySlug(pharmacyStore.pharmacySlug);
         }
       }
-    });
-  }
+    }
+  });
 });

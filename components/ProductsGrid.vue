@@ -1,4 +1,3 @@
-<!-- components/ProductsGrid.vue -->
 <template>
   <div>
     <!-- Loading state -->
@@ -28,7 +27,9 @@
           <!-- Image Section -->
           <div class="flex flex-col">
             <!-- Use product image or a placeholder -->
-            <img :src="product.imageUrl || '/images/placeholder-med.jpg'" :alt="product.brandName"
+            <img 
+              :src="product.imageUrl || '/images/placeholder-med.jpg'"
+              :alt="product.brandName"
               class="w-[90px] h-[80px] rounded object-cover cursor-pointer" />
             <div class="text-xs text-gray-600 mt-1 flex items-center whitespace-nowrap">
               <span class="w-3 h-3 mr-1">🕒</span>
@@ -41,7 +42,7 @@
                   ? 'bg-red-100 text-red-800'
                   : 'bg-green-100 text-green-800'
               ]">
-                {{ product.stockQty <= 0 ? 'Out of Stock' : `${product.stockQty} In Stock` }} </span>
+                {{ product.stockQty <= 0 ? 'Out of Stock' : `In Stock` }} </span>
             </div>
           </div>
 
@@ -106,12 +107,23 @@ const props = defineProps({
 const route = useRoute();
 const pharmacyStore = usePharmacyStore();
 const cartStore = useCartStore();
+const productItems = ref([]);
 
 // Add loading state
 const loading = ref(true);
 
 // Get pharmacy slug from route params
 const pharmacySlug = computed(() => route.params.pharmacy);
+
+const initializeProductItems = () => {
+  if (Array.isArray(pharmacyStore.products)) {
+    productItems.value = pharmacyStore.products.map(product => ({
+      ...product,
+      quantity: 1,
+      justAdded: false
+    }));
+  }
+};
 
 // Fetch products if not already loaded
 onMounted(async () => {
@@ -120,6 +132,8 @@ onMounted(async () => {
     watch(() => pharmacyStore.isLoading, (newVal) => {
       if (!newVal) {
         loading.value = false;
+        // Initialize productItems when pharmacy store finishes loading
+        initializeProductItems();
       }
     });
   } else {
@@ -127,9 +141,12 @@ onMounted(async () => {
       // If products aren't loaded yet and we're not already loading, fetch them
       if ((!pharmacyStore.products || pharmacyStore.products.length === 0) && 
           pharmacyStore.currentPharmacy) {
+
         // Call the explicit fetchProducts method
         await pharmacyStore.fetchProducts();
       }
+            // Initialize productItems
+            initializeProductItems();
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -155,6 +172,8 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
     try {
       // Explicitly fetch products when pharmacy changes
       await pharmacyStore.fetchProducts();
+            // Reinitialize productItems
+            initializeProductItems();
     } catch (error) {
       console.error('Error fetching products for pharmacy:', error);
     } finally {
@@ -173,16 +192,10 @@ const filteredProducts = computed(() => {
     return [];
   }
   
-  // Map products to add quantity property for cart functionality
-  return pharmacyStore.products
-    .filter(product => 
-      product.brandName && product.brandName.toLowerCase().includes(query.toLowerCase())
-    )
-    .map(product => ({
-      ...product,
-      quantity: 1,
-      justAdded: false
-    }));
+  return productItems.value.filter(product => 
+    product.brandName && 
+    product.brandName.toLowerCase().includes(query.toLowerCase())
+  );
 });
 
 const increaseQuantity = (product) => {
