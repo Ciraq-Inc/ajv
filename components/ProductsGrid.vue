@@ -28,7 +28,7 @@
           <div class="flex flex-col">
             <!-- Use product image or a placeholder -->
             <img 
-              :src="product.imageUrl || '/images/placeholder-med.jpg'"
+              :src="product.imageUrl || '/placeholder-med.svg'"
               :alt="product.brandName"
               class="w-[90px] h-[80px] rounded object-cover cursor-pointer" />
             <div class="text-xs text-gray-600 mt-1 flex items-center whitespace-nowrap">

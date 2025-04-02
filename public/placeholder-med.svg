@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 160">
+  <!-- Background -->
+  <rect width="180" height="160" fill="#f3f4f6" rx="8" ry="8"/>
+  
+  <!-- Pharmacy Cross -->
+  <rect x="75" y="40" width="30" height="80" fill="#60a5fa" rx="4" ry="4"/>
+  <rect x="50" y="65" width="80" height="30" fill="#60a5fa" rx="4" ry="4"/>
+  
+  <!-- Medicine Pill -->
+  <ellipse cx="50" cy="120" rx="25" ry="15" fill="#e5e7eb" stroke="#d1d5db" stroke-width="2"/>
+  <line x1="38" y1="120" x2="62" y2="120" stroke="#d1d5db" stroke-width="2"/>
+  
+  <!-- Medicine Bottle -->
+  <path d="M130,120 L145,120 L145,85 C145,80 140,80 140,80 L135,80 C135,80 130,80 130,85 Z" fill="#e5e7eb" stroke="#d1d5db" stroke-width="2"/>
+  <rect x="130" y="75" width="15" height="5" fill="#e5e7eb" stroke="#d1d5db" stroke-width="2"/>
+  
+  <!-- Text -->
+  <text x="90" y="145" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#6b7280">No Image</text>
+</svg>
