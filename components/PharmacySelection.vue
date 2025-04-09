@@ -1,6 +1,6 @@
 <!-- components/PharmacySelection.vue -->
 <template>
-  <div class="pharmacy-selection bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl">
+  <div class="pharmacy-selection p-6 rounded-xl">
     <!-- Pharmacy Selection UI -->
     <div v-if="!selectingPharmacy">
       <h1 class="text-3xl font-bold mb-2 text-center text-indigo-800">Select Your Pharmacy</h1>

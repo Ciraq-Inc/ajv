@@ -1,16 +1,18 @@
 <!-- pages/index.vue -->
 <template>
-  <div class="container mx-auto px-4 py-8 max-w-7xl">
-    <div v-if="errorMessage" class="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
-      <p>{{ errorMessage }}</p>
+  <div class="bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+      <div v-if="errorMessage" class="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
+        <p>{{ errorMessage }}</p>
+      </div>
+      
+      <div v-if="redirectMessage" class="mb-6 border-l-4 bg-blue-100 border-blue-500 text-blue-700 p-4 rounded">
+        <p>{{ redirectMessage }}</p>
+      </div>
+      
+      <PharmacySelection />
     </div>
-    
-    <div v-if="redirectMessage" class="mb-6 bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded">
-      <p>{{ redirectMessage }}</p>
-    </div>
-    
-    <PharmacySelection />
-  </div>
+</div>
 </template>
 
 <script setup>
