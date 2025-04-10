@@ -97,6 +97,8 @@ import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
 import { useRoute } from 'vue-router';
 
+const emit = defineEmits(['itemAddedToCart']);
+
 const props = defineProps({
   searchQuery: {
     type: String,
@@ -243,6 +245,8 @@ const handleAddToCart = (product) => {
   // Reset justAdded after 2 seconds
   setTimeout(() => {
     product.justAdded = false;
-  }, 2000);
+  }, 1000);
+
+  emit('itemAddedToCart', product);
 };
 </script>

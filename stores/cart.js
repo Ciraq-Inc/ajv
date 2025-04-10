@@ -131,10 +131,10 @@ export const useCartStore = defineStore("cart", {
       this.saveCartToStorage();
       
       // Open cart briefly to show the item was added
-      this.isOpen = true;
-      setTimeout(() => {
-        this.isOpen = false;
-      }, 3000);
+      // this.isOpen = true;
+      // setTimeout(() => {
+      //   this.isOpen = false;
+      // }, 3000);
     },
     
     removeFromCart(drugId) {
