@@ -44,13 +44,18 @@
       <div class="bg-white rounded-xl shadow-md overflow-hidden">
         <div class="bg-gradient-to-r from-indigo-500 to-indigo-700 h-24 flex items-end p-6">
           <div class="bg-white rounded-full p-3 shadow-lg -mb-12">
+            <div v-if="pharmacyStore.pharmacyData?.logoUrl">
+              <img 
+      :src="pharmacyStore.pharmacyData.logoUrl"
+      :alt="pharmacyStore.pharmacyData?.name + ' logo'"
+      class="w-12 h-12 rounded-full object-cover"
+    />
+          </div>
+          <div v-else>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <!-- <img 
-              :src="pharmacyStore.pharmacyData?.logoUr || '/images/placeholder-med.jpg'"
-              :alt="pharmacyStore.pharmacyData?.logo"
-              class="w-[90px] h-[80px] rounded object-cover cursor-pointer" /> -->
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+          </div>
           </div>
         </div>
         <div class="p-6 pt-14">
@@ -112,9 +117,11 @@
             </div>
             <input
               v-model="searchQuery"
+              ref="searchInput"
               type="text"
               placeholder="Search for products..."
               class="w-full pl-10 px-4 py-3 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-700 shadow-sm"
+              autofocus
             />
             <span v-if="searchQuery" @click="searchQuery = ''" 
               class="absolute right-3 top-3 text-gray-500 hover:text-gray-700 cursor-pointer p-1 rounded-full hover:bg-gray-100">
@@ -221,9 +228,17 @@ definePageMeta({
 const searchQuery = ref('');
 const viewMode = ref('table');
 const cartSidebar = ref(null);
+const searchInput = ref(null);
+
 
 // Get pharmacy slug from route params
 const pharmacySlug = computed(() => route.params.pharmacy);
+
+const focusSearchInput = () => {
+  if (searchInput.value) {
+    searchInput.value.focus();
+  }
+};
 
 // Format cart total with safety checks
 const formatCartTotal = computed(() => {
@@ -238,6 +253,7 @@ const toggleCart = () => {
   } else {
     cartStore.toggleCart();
   }
+  refocusAfterAction();
 };
 
 // Refresh data
@@ -286,6 +302,8 @@ const openCart = () => {
   if (cartSidebar.value) {
     cartSidebar.value.toggleCart();
   }
+
+  refocusAfterAction();
 };
 
 // Function to handle screen size
@@ -297,9 +315,13 @@ const clearSearchAfterAddToCart = (product) => {
   setTimeout(() => {
     searchQuery.value = '';
     console.log(`Search cleared after adding ${product.brandName} to cart`);
+    focusSearchInput();
   }, 100);
 };
 
+const refocusAfterAction = () => {
+  setTimeout(focusSearchInput, 100);
+};
 
 onMounted(async () => {
   // Just in case, check if pharmacy data needs to be loaded
@@ -311,10 +333,22 @@ onMounted(async () => {
   window.addEventListener('resize', updateViewMode);
 
   showButton.value = cartStore.hasItems;
+
+  document.addEventListener('click', (event) => {
+    // Don't refocus if clicking on the search input itself
+    if (event.target !== searchInput.value) {
+      // Small delay to ensure the click completes first
+      setTimeout(focusSearchInput, 10);
+    };
+
+    focusSearchInput();
 });
+})
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateViewMode);
+
+  document.removeEventListener('click', focusSearchInput);
 });
 
 // Watch for route changes (in case pharmacy param changes)
