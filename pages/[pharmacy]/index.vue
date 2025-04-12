@@ -223,7 +223,6 @@ const router = useRouter();
 const route = useRoute();
 const pharmacyStore = usePharmacyStore();
 const cartStore = useCartStore();
-const showButton = ref(false);
 
 definePageMeta({
   layout: 'pharm',
@@ -237,6 +236,7 @@ const viewMode = ref('table');
 const cartSidebar = ref(null);
 const searchInput = ref(null);
 
+const showButton = computed(() => cartStore.hasItems && cartStore.cartItemCount > 0);
 
 // Get pharmacy slug from route params
 const pharmacySlug = computed(() => route.params.pharmacy);
@@ -338,8 +338,6 @@ onMounted(async () => {
 
   updateViewMode();
   window.addEventListener('resize', updateViewMode);
-
-  showButton.value = cartStore.hasItems;
 
   document.addEventListener('click', (event) => {
     // Don't refocus if clicking on the search input itself
