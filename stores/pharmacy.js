@@ -83,10 +83,33 @@ export const usePharmacyStore = defineStore("pharmacy", {
 
         if (productsData && typeof productsData === "object") {
           try {
-            this.products = Object.entries(productsData).map(([id, data]) => ({
-              id,
-              ...data,
-            }));
+            // Map products data to array with ids
+            const productsArray = Object.entries(productsData).map(
+              ([id, data]) => ({
+                id,
+                ...data,
+              })
+            );
+
+            // Sort products alphabetically by name
+            this.products = productsArray.sort((a, b) => {
+              const nameA = (a.name || "").toLowerCase();
+              const nameB = (b.name || "").toLowerCase();
+
+              // Check if names start with a number
+              const aStartsWithNumber = /^\d/.test(nameA);
+              const bStartsWithNumber = /^\d/.test(nameB);
+
+              // If one starts with a number and the other with a letter
+              if (aStartsWithNumber && !bStartsWithNumber) {
+                return 1; // a goes after b (numbers last)
+              } else if (!aStartsWithNumber && bStartsWithNumber) {
+                return -1; // a goes before b (letters first)
+              }
+
+              // If both are the same type (both letters or both numbers), use standard alphabetical sorting
+              return nameA.localeCompare(nameB, undefined, { numeric: true });
+            });
           } catch (error) {
             console.error("Error processing products data:", error);
             this.products = [];

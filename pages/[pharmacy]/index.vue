@@ -265,7 +265,6 @@ const toggleCart = () => {
   } else {
     cartStore.toggleCart();
   }
-  refocusAfterAction();
 };
 
 // Refresh data
@@ -314,8 +313,6 @@ const openCart = () => {
   if (cartSidebar.value) {
     cartSidebar.value.toggleCart();
   }
-
-  refocusAfterAction();
 };
 
 // Function to handle screen size
