@@ -50,82 +50,84 @@
       </button>
     </div>
 
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-2 md:space-y-6">
       <!-- Pharmacy Header -->
-      <div class="bg-white rounded-xl shadow-md overflow-hidden">
-        <div class="bg-gradient-to-r from-indigo-500 to-indigo-700 h-24 flex items-end p-6">
-          <div class="bg-white rounded-full p-3 shadow-lg -mb-12">
-            <div v-if="pharmacyStore.pharmacyData?.logoUrl">
-              <img :src="pharmacyStore.pharmacyData.logoUrl" :alt="pharmacyStore.pharmacyData?.name + ' logo'"
-                class="w-12 h-12 rounded-full object-cover" />
-            </div>
-            <div v-else>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div class="p-6 pt-14">
-          <div class="flex flex-col md:flex-row md:justify-between md:items-center">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-800">{{ pharmacyStore.pharmacyData?.name || 'Welcome' }}</h1>
-              <div class="flex items-center mt-2 text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-indigo-500" fill="none"
+      <div class="sticky top-0 z-40">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+          <div class="bg-gradient-to-r from-indigo-500 to-indigo-700 h-16 md:h-24 flex items-end p-4 md:p-6">
+            <div class="bg-white rounded-full p-2 md:p-3 shadow-lg -mb-8 md:-mb-12">
+              <div v-if="pharmacyStore.pharmacyData?.logoUrl">
+                <img :src="pharmacyStore.pharmacyData.logoUrl" :alt="pharmacyStore.pharmacyData?.name + ' logo'"
+                  class="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover" />
+              </div>
+              <div v-else>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 md:h-12 md:w-12 text-indigo-600" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <p>{{ pharmacyStore.pharmacyData?.location }}</p>
               </div>
-              <p class="mt-3 text-gray-700">{{ pharmacyStore.pharmacyData?.description || 'Browse our available products' }}</p>
             </div>
+          </div>
 
-            <!--Cart & Contact Button -->
-            <div class="flex items-center">
-              <button @click="toggleCart" class="hidden lg:flex mr-4 relative">
-                <i class="ri-shopping-cart-line text-2xl text-green-800"></i>
-                <span v-if="cartStore.cartItemCount > 0"
-                  class="absolute -top-2 -left-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {{ cartStore.cartItemCount }}
-                </span>
-                <span class="text-green-800 ml-1">GHS{{ formatCartTotal }}</span>
-              </button>
-            </div>
+          <div class="p-3 pt-4 md:p-6 md:pt-14">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center">
+              <div>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">{{ pharmacyStore.pharmacyData?.name || 'Welcome'
+                  }}</h1>
+                <div class="flex items-center mt-1 md:mt-2 text-sm md:text-base text-gray-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-1 text-indigo-500" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <p class="truncate">{{ pharmacyStore.pharmacyData?.location }}</p>
+                </div>
+                <p class="hidden md:block mt-3 text-gray-700">{{ pharmacyStore.pharmacyData?.description || 'Browse our available products' }}</p>
+              </div>
 
-            <div class="flex space-x-3 mt-5 md:mt-0">
-              <a v-if="pharmacyStore.pharmacyData?.tel" :href="`tel:${pharmacyStore.pharmacyData.tel}`"
-                class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Call
-              </a>
-              <a v-if="pharmacyStore.pharmacyData?.tel" :href="whatsappLink" target="_blank"
-                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                WhatsApp
-              </a>
+              <div class="flex items-center justify-between md:space-x-3 space-x-0 w-full md:w-auto mt-4 md:mt-0">
+                <button @click="toggleCart" class="flex relative">
+                  <i class="ri-shopping-cart-line text-xl md:text-2xl text-green-800"></i>
+                  <span v-if="cartStore.cartItemCount > 0"
+                    class="absolute -top-2 -left-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {{ cartStore.cartItemCount }}
+                  </span>
+                  <span class="text-green-800 ml-1">GHS{{ formatCartTotal }}</span>
+                </button>
+
+                <!-- Contact buttons -->
+                <div class="flex space-x-2 md:space-x-3">
+                  <a v-if="pharmacyStore.pharmacyData?.tel" :href="`tel:${pharmacyStore.pharmacyData.tel}`"
+                    class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 md:px-4 md:py-2 rounded-lg flex items-center transition-colors duration-200 text-sm md:text-base">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-1 md:mr-2" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Call
+                  </a>
+                  <a v-if="pharmacyStore.pharmacyData?.tel" :href="whatsappLink" target="_blank"
+                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 md:px-4 md:py-2 rounded-lg flex items-center transition-colors duration-200 text-sm md:text-base">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-1 md:mr-2" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    WhatsApp
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <!-- Main Content Section -->
-      <div>
         <!-- Search Bar -->
-        <div class="sticky top-0 z-10 bg-gray-50 pt-2 pb-2">
-          <div class="bg-white rounded-xl shadow-md p-4">
+        <div class="bg-opacity-80 backdrop-blur-md py-2.5 lg:py-2">
+          <div class="bg-white rounded-xl shadow-md p-2 lg:p-4">
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
@@ -147,10 +149,13 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div>
 
         <!-- View Toggle and Title -->
-        <div class="mb-6 flex justify-between items-center">
-          <h2 class="text-xl font-bold text-gray-800">Products</h2>
+        <div class="mb-2 lg:mb-6 flex justify-between items-center">
+          <h2 class="text-lg font-bold text-gray-800">Products</h2>
           <div class="lg:flex bg-gray-100 p-1 rounded-lg hidden">
             <button @click="viewMode = 'grid'" :class="['p-2 rounded-md transition-colors duration-200',
               viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-200']">

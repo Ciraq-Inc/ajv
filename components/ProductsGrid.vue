@@ -22,7 +22,7 @@
     <!-- Products grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
       <div v-for="product in filteredProducts" :key="product.id"
-        class="bg-white rounded-lg shadow-md hover:shadow-lg p-4 transition-shadow duration-300 overflow-hidden">
+        class="bg-white rounded-lg shadow-md hover:shadow-lg p-2 md:p-4 transition-shadow duration-300 overflow-hidden">
         <div class="flex space-x-3">
           <!-- Image Section -->
           <div class="flex flex-col">
@@ -31,25 +31,12 @@
               :src="product.imageUrl || '/placeholder-med.svg'"
               :alt="product.brandName"
               class="w-[90px] h-[80px] rounded object-cover cursor-pointer" />
-            <div class="text-xs text-gray-600 mt-1 flex items-center whitespace-nowrap">
-              <span class="w-3 h-3 mr-1">🕒</span>
-              {{ product.lastUpdated ? formatDate(product.lastUpdated) : 'N/A' }}
-            </div>
-            <div class="flex items-center whitespace-nowrap mt-1">
-              <span :class="[
-                'px-2 py-1 text-xs rounded-full',
-                product.stockQty <= 0
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-green-100 text-green-800'
-              ]">
-                {{ product.stockQty <= 0 ? 'Out of Stock' : `In Stock` }} </span>
-            </div>
           </div>
 
           <!-- Content Section -->
           <div class="space-y-2 flex-grow">
-            <h3 class="text-base font-semibold text-gray-800 truncate">
-              {{ product.brandName.length > 25 ? product.brandName.slice(0, 20) + '...' : product.brandName }}
+            <h3 class="text-sm font-semibold text-gray-800">
+              {{ product.brandName.length > 25 ? product.brandName.slice(0, 25) + '...' : product.brandName }}
             </h3>
 
             <div class="text-xs text-gray-800 font-semibold flex justify-between">
@@ -77,11 +64,11 @@
               <button @click="handleAddToCart(product)" :disabled="product.stockQty <= 0" :class="[
                 'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
                 product.stockQty <= 0 ? 'bg-gray-400 text-white cursor-not-allowed' :
-                  product.justAdded ? 'bg-green-700 text-white transform scale-95 cursor-default' :
-                    'bg-green-500 text-white hover:bg-green-600'
+                  product.justAdded ? 'bg-green-600 text-white transform scale-95 cursor-default' :
+                    'bg-green-700 text-white hover:bg-green-600'
               ]">
                 <i class="ri-shopping-cart-line text-xs mr-1"></i>
-                {{ product.justAdded ? 'Added!' : 'Add to cart' }}
+                {{ product.justAdded ? 'Added!' : 'Cart' }}
               </button>
             </div>
           </div>
