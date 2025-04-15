@@ -72,43 +72,21 @@ export const usePharmacyStore = defineStore("pharmacy", {
 
     async fetchProducts() {
       if (!this.currentPharmacy) return [];
-    
+
       try {
         const db = getDatabase();
         const productsSnapshot = await get(
           dbRef(db, `pharmacies/${this.currentPharmacy}/products`)
         );
-    
+
         const productsData = productsSnapshot.val();
-    
+
         if (productsData && typeof productsData === "object") {
           try {
-            // Map products data to array with ids
-            const productsArray = Object.entries(productsData).map(([id, data]) => ({
+            this.products = Object.entries(productsData).map(([id, data]) => ({
               id,
               ...data,
             }));
-            
-            // Create a new array reference for reactivity
-            this.products = [...productsArray].sort((a, b) => {
-              // Handle cases where name might be undefined - sort missing names last
-              const nameA = a.name ? a.name.toLowerCase() : "zzz";
-              const nameB = b.name ? b.name.toLowerCase() : "zzz";
-              
-              // More efficient check for numbers
-              const isNumber = (str) => !isNaN(str.charAt(0));
-              
-              // Sort alphabetic names first, numeric names last
-              if (isNumber(nameA) && !isNumber(nameB)) return 1;
-              if (!isNumber(nameA) && isNumber(nameB)) return -1;
-              
-              // Regular alphanumeric sorting within each group
-              // Add secondary sort by ID for stability when names are identical
-              return nameA.localeCompare(nameB) || (a.id || "").localeCompare(b.id || "");
-            });
-            
-            // Log for debugging
-            console.log(`Sorted ${this.products.length} products`);
           } catch (error) {
             console.error("Error processing products data:", error);
             this.products = [];
@@ -116,17 +94,13 @@ export const usePharmacyStore = defineStore("pharmacy", {
         } else {
           this.products = [];
         }
-    
+
         return this.products;
       } catch (error) {
         console.error("Error fetching products:", error);
         this.products = [];
         throw error;
       }
-    },
-
-    refreshProducts() {
-      return this.fetchProducts();
     },
 
     setPharmacySlug(slug) {
