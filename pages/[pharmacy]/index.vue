@@ -348,7 +348,6 @@ onMounted(async () => {
       setTimeout(focusSearchInput, 10);
     };
 
-    focusSearchInput();
   });
 })
 
