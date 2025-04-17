@@ -226,6 +226,8 @@ export const usePharmacyStore = defineStore("pharmacy", {
   getters: {
     hasProducts: (state) =>
       Array.isArray(state.products) && state.products.length > 0,
+    inStockProducts: (state) =>
+      state.products.filter(product => product.quantity > 0 || product.inStock === true),
     isNotFound: (state) => state.notFound,
     pathPrefix: (state) => {
       if (state.pharmacySlug) {

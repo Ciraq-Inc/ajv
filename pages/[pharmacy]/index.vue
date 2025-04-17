@@ -192,10 +192,10 @@
         </div>
 
         <template v-else>
-          <ProductsTable v-if="viewMode === 'table'" :search-query="searchQuery" class="hidden lg:flex"
+          <ProductsTable v-if="viewMode === 'table'" :products="pharmacyStore.inStockProducts" :search-query="searchQuery" class="hidden lg:flex"
             @item-added-to-cart="clearSearchAfterAddToCart" />
 
-          <ProductsGrid v-else :search-query="searchQuery" @item-added-to-cart="clearSearchAfterAddToCart" />
+          <ProductsGrid v-else :products="pharmacyStore.inStockProducts" :search-query="searchQuery" @item-added-to-cart="clearSearchAfterAddToCart" />
         </template>
       </div>
     </div>

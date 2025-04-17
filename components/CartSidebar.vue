@@ -1,6 +1,5 @@
 <template>
-  <div v-if="isOpen"
-    class="fixed inset-0 bg-black/30 z-50 flex justify-end sm:justify-end">
+  <div v-if="isOpen" class="fixed inset-0 bg-black/30 z-50 flex justify-end sm:justify-end">
     <!-- Cart container - full width on mobile, fixed width on desktop -->
     <div class="bg-white w-full sm:w-96 flex flex-col h-full shadow-lg">
       <!-- Header -->
@@ -27,7 +26,8 @@
           </div>
 
           <!-- Cart items -->
-          <div v-for="item in items" :key="item.id" class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3">
+          <div v-for="item in items" :key="item.id"
+            class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3">
             <div class="flex items-center mb-2 sm:mb-0 w-full sm:w-auto">
               <img v-if="item.image" :src="item.image" :alt="item.name" class="w-12 h-12 mr-3 object-cover rounded" />
               <div>
@@ -35,7 +35,7 @@
                 <p class="text-sm text-gray-500">GHS {{ formatPrice(item.price) }}</p>
               </div>
             </div>
-            
+
             <div class="flex items-center justify-between w-full sm:w-auto">
               <div class="flex items-center border rounded overflow-hidden">
                 <button @click="updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1"
@@ -43,8 +43,7 @@
                   -
                 </button>
                 <span class="px-3 py-1 border-x">{{ item.quantity }}</span>
-                <button @click="updateQuantity(item.id, item.quantity + 1)" 
-                  class="px-3 py-1 bg-gray-100">
+                <button @click="updateQuantity(item.id, item.quantity + 1)" class="px-3 py-1 bg-gray-100">
                   +
                 </button>
               </div>
@@ -57,16 +56,27 @@
       </div>
 
       <!-- Sticky footer with total and checkout -->
-      <div v-if="items.length > 0" 
-        class="border-t border-gray-200 p-4 sm:p-5 bg-white">
-        <div class="flex justify-between mb-4">
-          <span class="font-semibold">Total</span>
-          <span class="font-bold">GHS{{ formatPrice(cartTotal) }}</span>
+      <div v-if="items.length > 0" class="border-t border-gray-200 p-4 sm:p-5 bg-white">
+        <div class="flex justify-between items-center mb-4">
+          <button @click="toggleCart"
+            class="text-blue-600 hover:text-blue-800 transition-colors flex items-center">
+            <i class="ri-arrow-left-line mr-1"></i>Continue Shopping
+          </button>
+          <div class="flex items-center">
+            <span class="font-semibold mr-2">Total:</span>
+            <span class="font-bold">GHS{{ formatPrice(cartTotal) }}</span>
+          </div>
         </div>
-        <button @click="sendWhatsAppMessage" 
-          class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
-          <i class="ri-whatsapp-line text-xl mr-2"></i>Send Order via WhatsApp
-        </button>
+        <div class="space-y-3">
+          <button @click="sendWhatsAppMessage"
+            class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
+            <i class="ri-whatsapp-line text-xl mr-2"></i>Send Order via WhatsApp
+          </button>
+          <!-- <button
+            class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
+            <i class="ri-wallet-line text-xl mr-2"></i>Order Directly
+          </button> -->
+        </div>
       </div>
     </div>
   </div>
@@ -98,7 +108,7 @@ const sendWhatsAppMessage = () => {
   if (phoneNumber.startsWith('0')) {
     phoneNumber = phoneNumber.substring(1);
   }
-  
+
   // Add country code if missing (233 for Ghana)
   if (!phoneNumber.startsWith('233')) {
     phoneNumber = '233' + phoneNumber;
@@ -116,8 +126,8 @@ const sendWhatsAppMessage = () => {
 
 const generateWhatsAppMessage = () => {
   // Format each item with proper spacing and alignment
-  const itemDetails = items.value.map((item, index) => 
-    `${index + 1}. ${item.name} - ${item.quantity} ${item.unit || 'unit(s)'} x GHS${formatPrice(item.price)} = GHS${formatPrice(item.quantity * item.price)}`
+  const itemDetails = items.value.map((item, index) =>
+    `${index + 1}. ${item.name} - *${item.quantity}*`
   ).join('\n');
 
   // Get pharmacy name and location
