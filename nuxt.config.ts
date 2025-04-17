@@ -39,6 +39,10 @@ export default defineNuxtConfig({
     middleware: ['pharmacy']
   },
 
+  gtag: {
+		id: process.env.GTAG_ID,
+	},
+
   vuefire: {
     // PRODUCTION SERVER
     config: {
