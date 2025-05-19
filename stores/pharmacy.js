@@ -1,11 +1,16 @@
+// store/pharmacy.js
+
 import { defineStore } from "pinia";
 import { getDatabase, ref as dbRef, get } from "firebase/database";
+import { otpService } from "~/utils/otpService";
+
 
 export const usePharmacyStore = defineStore("pharmacy", {
   state: () => ({
     currentPharmacy: null,
     pharmacyData: null,
     products: [],
+    customers: [],
     isLoading: false,
     error: null,
     notFound: false,
@@ -18,7 +23,11 @@ export const usePharmacyStore = defineStore("pharmacy", {
 
       // Store in session/localStorage for persistence
       if (process.client) {
-        localStorage.setItem("currentPharmacyId", pharmacyId);
+        try {
+          localStorage.setItem("currentPharmacyId", pharmacyId);
+        } catch (error) {
+          console.error("Failed to save pharmacy ID to localStorage:", error);
+        }
       }
 
       await this.fetchPharmacyData();
@@ -44,6 +53,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
           this.isLoading = false;
           this.pharmacyData = null;
           this.products = [];
+          this.customers = [];
           return;
         }
 
@@ -55,7 +65,11 @@ export const usePharmacyStore = defineStore("pharmacy", {
 
           // Store in session/localStorage for persistence
           if (process.client) {
-            localStorage.setItem("currentPharmacySlug", this.pharmacySlug);
+            try {
+              localStorage.setItem("currentPharmacySlug", this.pharmacySlug);
+            } catch (error) {
+              console.error("Failed to save pharmacy slug to localStorage:", error);
+            }
           }
         }
 
@@ -70,6 +84,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
     },
 
+    // fetch products
     async fetchProducts() {
       if (!this.currentPharmacy) return [];
 
@@ -103,12 +118,55 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
     },
 
+    // fetch customers
+    async fetchCustomers() {
+      if (!this.currentPharmacy) return [];
+
+      try {
+        const db = getDatabase();
+        const customersSnapshot = await get(
+          dbRef(db, `pharmacies/${this.currentPharmacy}/customers`)
+        );
+
+        const customersData = customersSnapshot.val();
+
+        if (customersData && typeof customersData === "object") {
+          try {
+            this.customers = Object.entries(customersData).map(([id, data]) => ({
+              id,
+              ...data,
+            }));
+          } catch (error) {
+            console.error("Error processing customers data:", error);
+            this.customers = [];
+          }
+        } else {
+          this.customers = [];
+        }
+
+        return this.customers;
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+        this.customers = [];
+        throw error;
+      }
+    },
+
+    // New method to set customers data (useful when loaded from another service)
+    setCustomers(customersData) {
+      this.customers = customersData;
+    },
+
     setPharmacySlug(slug) {
       this.pharmacySlug = slug;
 
       // Store in session/localStorage for persistence
       if (process.client) {
-        localStorage.setItem("currentPharmacySlug", slug);
+        try {
+          localStorage.setItem("currentPharmacySlug", slug);
+        } catch (error) {
+          console.error("Failed to save pharmacy slug to localStorage:", error);
+        }
       }
     },
 
@@ -173,8 +231,12 @@ export const usePharmacyStore = defineStore("pharmacy", {
 
         // Store in local storage
         if (process.client) {
-          localStorage.setItem("currentPharmacyId", pharmacyId);
-          localStorage.setItem("currentPharmacySlug", slug);
+          try {
+            localStorage.setItem("currentPharmacyId", pharmacyId);
+            localStorage.setItem("currentPharmacySlug", slug);
+          } catch (error) {
+            console.error("Failed to save pharmacy data to localStorage:", error);
+          }
         }
 
         // Fetch pharmacy data
@@ -190,35 +252,108 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
     },
 
-    // Restore pharmacy context from localStorage if needed
-    restoreFromStorage() {
-      if (!process.client) return;
+    // Find a customer by phone number (with flexible matching)
+    findCustomerByPhone(phone) {
+      console.log(`Finding customer with phone: ${phone}`);
 
-      const storedPharmacyId = localStorage.getItem("currentPharmacyId");
-      const storedPharmacySlug = localStorage.getItem("currentPharmacySlug");
-
-      if (storedPharmacyId && !this.currentPharmacy) {
-        this.currentPharmacy = storedPharmacyId;
-        this.fetchPharmacyData();
+      if (!this.customers || !Array.isArray(this.customers) || this.customers.length === 0) {
+        console.log("No customers loaded in store");
+        return null;
+      }
+      
+      if (!phone) {
+        console.error("No phone number provided to find customer");
+        return null;
       }
 
-      if (storedPharmacySlug && !this.pharmacySlug) {
-        this.pharmacySlug = storedPharmacySlug;
+      // Format the input phone number for consistent comparison
+      const formattedInputPhone = otpService.formatPhoneNumber(phone);
+
+      // First try to find an exact match
+      const exactMatch = this.customers.find(customer => 
+        customer.phone === formattedInputPhone
+      )
+
+       if (exactMatch) {
+        console.log(`Found exact phone match: ${exactMatch.id}`);
+        return exactMatch;
+      }
+      
+      // If no exact match, try using otpService's compare method
+      const customer = this.customers.find(customer => {
+        if (!customer.phone) return false;
+        
+        const isMatch = otpService.comparePhoneNumbers(customer.phone, formattedInputPhone);
+        console.log(`Comparing: ${customer.phone} with ${formattedInputPhone}: ${isMatch ? 'MATCH' : 'no match'}`);
+        
+        return isMatch;
+      });
+
+      if (customer) {
+        console.log(`Found customer using flexible matching: ${customer.id}`);
+        return customer;
+      }
+      
+      // If still no match, log available phone numbers for debugging
+      console.warn(`No customer found with phone number: ${formattedInputPhone}`);
+      console.log("Available customer phones:", 
+        this.customers
+          .filter(c => c.phone) 
+          .map(c => ({id: c.id, phone: c.phone}))
+          .slice(0, 5) // Show just the first 5 for debugging
+      );
+      
+      return null;
+    },
+
+// Helper method to ensure customers are loaded
+    async ensureCustomersLoaded() {
+      if (!this.customers || this.customers.length === 0) {
+        console.log("No customers loaded, fetching from database...");
+        await this.fetchCustomers();
+        console.log(`Loaded ${this.customers.length} customers`);
       }
     },
 
-    // Clear pharmacy data (for logout or switching)
+
+    // Restore pharmacy context from localStorage if needed
+    async restoreFromStorage() {
+      if (!process.client) return;
+
+      try {
+        const storedPharmacyId = localStorage.getItem("currentPharmacyId");
+        const storedPharmacySlug = localStorage.getItem("currentPharmacySlug");
+
+        if (storedPharmacyId && !this.currentPharmacy) {
+          this.currentPharmacy = storedPharmacyId;
+          await this.fetchPharmacyData();
+        }
+
+        if (storedPharmacySlug && !this.pharmacySlug) {
+          this.pharmacySlug = storedPharmacySlug;
+        }
+      } catch (error) {
+        console.error("Error restoring pharmacy data from storage:", error);
+      }
+    },
+
+    // Clear pharmacy data (for logout / switching)
     clearPharmacyData() {
       this.currentPharmacy = null;
       this.pharmacyData = null;
       this.products = [];
+      this.customers = [];
       this.pharmacySlug = null;
 
       if (process.client) {
-        localStorage.removeItem("currentPharmacyId");
-        localStorage.removeItem("currentPharmacySlug");
-        sessionStorage.removeItem("currentPharmacyId");
-        sessionStorage.removeItem("currentPharmacySlug");
+        try {
+          localStorage.removeItem("currentPharmacyId");
+          localStorage.removeItem("currentPharmacySlug");
+          sessionStorage.removeItem("currentPharmacyId");
+          sessionStorage.removeItem("currentPharmacySlug");
+        } catch (error) {
+          console.error("Failed to clear pharmacy data from storage:", error);
+        }
       }
     },
   },
@@ -228,6 +363,8 @@ export const usePharmacyStore = defineStore("pharmacy", {
       Array.isArray(state.products) && state.products.length > 0,
     inStockProducts: (state) =>
       state.products.filter(product => product.quantity > 0 || product.inStock === true),
+    hasCustomers: (state) =>
+      Array.isArray(state.customers) && state.customers.length > 0,
     isNotFound: (state) => state.notFound,
     pathPrefix: (state) => {
       if (state.pharmacySlug) {
@@ -235,6 +372,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
       return "";
     },
+    
     // Generate path with pharmacy slug prefixed
     getPharmacyPath: (state) => (path) => {
       if (state.pharmacySlug) {

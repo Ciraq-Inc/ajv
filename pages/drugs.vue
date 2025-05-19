@@ -186,7 +186,7 @@
 <script setup>
 import { getDatabase, ref as dbRef, push, onValue, update, remove } from 'firebase/database'
 import { useImageUpload } from '@/composables/useImageUpload'
-import { usePharmacyStore } from '@/stores/pharmacy.js'
+import { usePharmacyStore } from '~/stores/pharmacy'
 
 // Get pharmacy store
 const pharmacyStore = usePharmacyStore()

@@ -4,7 +4,7 @@
       <!-- Logo and Brand -->
       <div class="flex justify-center lg:justify-start">
         <nuxt-link to="/" class="flex items-center cursor-pointer">
-          <img src="../assets/images/rigellogo.png" alt="Rigelis" width="60" height="60" class="mr-1.5" />
+          <img src="../assets/images/rigellogo.png" alt="Rigelis" width="60" height="60" class="mr-1" />
           <h1 class="text-2xl font-bold text-black">MedsGh</h1>
         </nuxt-link>
       </div>

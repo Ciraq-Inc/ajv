@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 bg-black/30 z-50 flex justify-end sm:justify-end">
+  <div v-if="isOpenSidebar" class="fixed inset-0 bg-black/30 z-50 flex justify-end sm:justify-end">
     <!-- Cart container - full width on mobile, fixed width on desktop -->
     <div class="bg-white w-full sm:w-96 flex flex-col h-full shadow-lg">
       <!-- Header -->
@@ -23,6 +23,11 @@
               Order from: <span class="font-semibold">{{ pharmacyStore.pharmacyData.name }}</span>
             </p>
             <p class="text-xs text-gray-500">{{ pharmacyStore.pharmacyData.location }}</p>
+          </div>
+
+          <!-- Error message area (if any) -->
+          <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded">
+            {{ errorMessage }}
           </div>
 
           <!-- Cart items -->
@@ -69,28 +74,72 @@
         </div>
         <div class="space-y-3">
           <button @click="sendWhatsAppMessage"
-            class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
+            class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
+            :disabled="isProcessingOrder">
             <i class="ri-whatsapp-line text-xl mr-2"></i>Send Order via WhatsApp
           </button>
-          <!-- <button
-            class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
-            <i class="ri-wallet-line text-xl mr-2"></i>Order Directly
-          </button> -->
+          <button @click="handleDirectOrder"
+            class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+            :disabled="isProcessingOrder">
+            <span v-if="isProcessingOrder" class="flex items-center justify-center">
+              <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+            <span v-else class="flex items-center justify-center">
+              <i class="ri-wallet-line text-xl mr-2"></i>Order Directly
+            </span>
+          </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Login Modal -->
+  <ClientOnly>
+    <Login
+      v-if="showLoginModal" 
+      :is-open="showLoginModal"
+      @close="closeLoginModal"
+      @login-success="handleLoginSuccess"/>
+  </ClientOnly>
+
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useCartStore } from "/stores/cart.js";
-import { usePharmacyStore } from "/stores/pharmacy.js";
+import { useCartStore } from "~/stores/cart";
+import { usePharmacyStore } from "~/stores/pharmacy";
+import { useUserStore } from "~/stores/user";
 
+// Local state for the cart sidebar
+const isOpenSidebar = ref(false);
+const showLoginModal = ref(false);
+const isProcessingOrder = ref(false);
+const errorMessage = ref('');
+
+// Store references
 const cartStore = useCartStore();
 const pharmacyStore = usePharmacyStore();
-const { items, isOpen, cartTotal } = storeToRefs(cartStore);
-const { toggleCart, removeFromCart, updateQuantity } = cartStore;
+const userStore = useUserStore();
+
+// Get reactive store state
+const { items, cartTotal } = storeToRefs(cartStore);
+const { removeFromCart, updateQuantity } = cartStore;
+
+// Emits
+const emit = defineEmits(['close', 'order-success']);
+
+// Methods
+const toggleCart = () => {
+  isOpenSidebar.value = !isOpenSidebar.value;
+  if (!isOpenSidebar.value) {
+    emit('close');
+  }
+};
 
 const sendWhatsAppMessage = () => {
   let phoneNumber = pharmacyStore.pharmacyData?.tel || '+233503793513';
@@ -153,11 +202,78 @@ Please confirm if these items are available for delivery or pickup.
 Thank you!`;
 };
 
+// Handle direct order
+const handleDirectOrder = () => {
+  errorMessage.value = ''; // Clear any previous errors
+  
+  // Check if user is logged in
+  if (!userStore.isLoggedIn) {
+    // Show login modal if not logged in
+    showLoginModal.value = true;
+  } else {
+    // User is already logged in, proceed with direct order
+    processDirectOrder();
+  }
+};
+
+// Process the direct order after successful login
+const processDirectOrder = async () => {
+  if (!pharmacyStore.currentPharmacy) {
+    errorMessage.value = 'Pharmacy information is missing. Please try again.';
+    return;
+  }
+  
+  try {
+    // Show loading state
+    isProcessingOrder.value = true;
+    errorMessage.value = '';
+    
+    // Process the order through the user store
+    const orderResult = await userStore.processDirectOrder(
+      items.value,
+      pharmacyStore.currentPharmacy
+    );
+    
+    // After successful order, clear cart and close sidebar
+    cartStore.clearCart();
+    toggleCart();
+    
+    // Emit order success event with full order data
+    emit('order-success', orderResult.orderData);
+  } catch (error) {
+    console.error('Failed to process order:', error);
+    errorMessage.value = error.message || 'Failed to process your order. Please try again.';
+  } finally {
+    isProcessingOrder.value = false;
+  }
+};
+
+// Close login modal
+const closeLoginModal = () => {
+  showLoginModal.value = false;
+};
+
+// Handle successful login
+const handleLoginSuccess = () => {
+  console.log('User successfully logged in');
+  // Process the order after successful login
+  processDirectOrder();
+};
+
 const formatPrice = (price) => {
   return Number(price || 0).toFixed(2);
 };
 
+// Expose methods for parent components
 defineExpose({
-  toggleCart,
+  toggleCart: () => {
+    isOpenSidebar.value = !isOpenSidebar.value;
+  },
+  isOpen: computed(() => isOpenSidebar.value)
+});
+
+onMounted(() => {
+  // Initialize cart with safer server-client hydration
+  // cartStore.init();
 });
 </script>

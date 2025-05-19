@@ -1,4 +1,4 @@
-<!-- layouts/default.vue -->
+<!-- layouts/pharm.vue -->
 <template>
     <div>
       <main>

@@ -14,6 +14,7 @@
     "browser-image-compression": "^2.0.2",
     "dotenv": "^16.4.7",
     "firebase": "^10.14.1",
+    "firebaseui": "^6.1.0",
     "nuxt": "^3.14.159",
     "nuxt-gtag": "^3.0.2",
     "nuxt-icon": "^1.0.0-beta.7",
