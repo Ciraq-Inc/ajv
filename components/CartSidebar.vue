@@ -142,7 +142,7 @@ const toggleCart = () => {
 };
 
 const sendWhatsAppMessage = () => {
-  let phoneNumber = pharmacyStore.pharmacyData?.tel || '+233503793513';
+  let phoneNumber = pharmacyStore.pharmacyData?.phone || '+233503793513';
 
   // Extract the first phone number if multiple are provided with a separator
   if (phoneNumber.includes('/')) {
