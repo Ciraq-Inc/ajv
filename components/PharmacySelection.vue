@@ -186,8 +186,7 @@ const fetchPharmacies = async () => {
             id,
             name: pharmacy.info.name || 'Unknown Pharmacy',
             location: pharmacy.info.location || 'Location not provided',
-            tel: pharmacy.info.tel || 'No contact information',
-            email: pharmacy.info.email || '',
+            phone: pharmacy.info.phone || 'No contact information',
             subdomain: pharmacy.info.subdomain || id 
           });
         }
