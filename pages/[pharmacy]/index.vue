@@ -126,7 +126,7 @@
 
                 <!-- Contact buttons with improved styling -->
                 <div class="flex gap-3">
-                  <a v-if="pharmacyStore.pharmacyData?.phone" :href="`phone:${pharmacyStore.pharmacyData.phone}`"
+                  <a v-if="pharmacyStore.pharmacyData?.phone" :href="`tel:${pharmacyStore.pharmacyData.phone}`"
                     class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-4 py-2 rounded-lg flex items-center transition-colors duration-200 text-sm md:text-base shadow-md">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                       viewBox="0 0 24 24" stroke="currentColor">
