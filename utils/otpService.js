@@ -199,6 +199,61 @@ async sendOtpViaMNotify(phone, otp) {
       if (data && data.errors) {
         console.error("Error details:", data.errors);
       }
+
+      // fallback to nalosolutions
+  // fallback to nalosolutions
+try {
+  console.log("Attempting fallback SMS via Nalo Solutions...");
+  
+  const username = "Rigelis";
+  const password = "Maestro1985@";
+  const source = "RigelOS";
+  
+  const response = await fetch(
+    `https://sms.nalosolutions.com/smsbackend/clientapi/Resl_Nalo/send-message/?username=${username}&password=${password}&type=0&destination=${mNotifyPhone}&dlr=1&source=${source}&message=${encodeURIComponent(messageText)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  
+  const fallbackData = await response.text(); // Nalo returns text response
+  console.log("Nalo Solutions API response:", fallbackData);
+  
+  if (!response.ok) {
+    console.error("Nalo Solutions API error:", {
+      status: response.status,
+      statusText: response.statusText,
+      data: fallbackData
+    });
+    throw new Error(`Fallback SMS provider failed (Status: ${response.status})`);
+  }
+  
+  // Check if the response indicates success (adjust based on Nalo's response format)
+  if (fallbackData.includes("success") || fallbackData.includes("sent")) {
+    console.log("OTP sent successfully via Nalo Solutions (fallback)");
+    return { 
+      success: true, 
+      fallback: true,
+      provider: "nalosolutions",
+      message: 'SMS sent via fallback provider'
+    };
+  } else {
+    throw new Error(`Fallback SMS provider returned unexpected response: ${fallbackData}`);
+  }
+  
+} catch (fallbackError) {
+  console.error("Error sending SMS with fallback provider:", fallbackError);
+  
+  // If both providers fail, throw the original error
+  if (data && data.message) {
+    throw new Error(`Both SMS providers failed. Primary: ${data.message}, Fallback: ${fallbackError.message}`);
+  } else {
+    throw new Error(`Both SMS providers failed. Primary: mNotify API error (Status: ${response.status}), Fallback: ${fallbackError.message}`);
+  }
+}
       
       // Throw a descriptive error
       if (data && data.message) {
