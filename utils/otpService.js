@@ -120,16 +120,16 @@ export const otpService = {
       let mNotifyPhone = phoneUtils.getMNotifyFormattedPhone(phone);
 
       // send sms via mNotify
-     const response = await $fetch("https://sendsms-b2lgze5f7q-uc.a.run.app", {
-  method: "POST",
-  body: {
-    mNotifyPhone,
-    otp
-  },
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+      const response = await $fetch("https://sendsms-b2lgze5f7q-uc.a.run.app", {
+        method: "POST",
+        body: {
+          mNotifyPhone,
+          otp
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
         const errorText = response.statusText || "Unknown error";
@@ -139,7 +139,7 @@ export const otpService = {
         console.log("SMS sent successfully:", data);
         return data;
       }
-          
+
 
     } catch (error) {
       console.error("Error sending OTP via mNotify:", error);
