@@ -10,9 +10,7 @@ export const otpService = {
   otpExpiry: 5 * 60 * 1000,
   _manualApiKey: "0KLeqS4nHwJD76dIhTy8bppRV",
   // Add a default dev API key if environment variable is missing
-  get mNotifyApiKey() {
-    return process.env.MNOTIFY_API_KEY || process.env.NUXT_PUBLIC_MNOTIFY_API_KEY || '';
-  },
+
   forceSmsInDev: false,
 
   // Store for active OTPs
@@ -117,19 +115,22 @@ export const otpService = {
   async sendOtpViaMNotify(phone, otp) {
     try {
       // Get API key with fallbacks
-      let mNotifyPhone = phoneUtils.getMNotifyFormattedPhone(phone);
+      let userPhoneNo = phoneUtils.getMNotifyFormattedPhone(phone);
 
       // send sms via mNotify
-      const response = await $fetch("https://sendsms-b2lgze5f7q-uc.a.run.app", {
-        method: "POST",
-        body: {
-          mNotifyPhone,
-          otp
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await $fetch(
+        "https://us-central1-referral-system-5cebe.cloudfunctions.net/sendSMS" 
+        , {
+          method: "POST",
+          body: {
+            userPhoneNo,
+            otp
+          },
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      console.log("🚀 ~ sendOtpViaMNotify ~ response:", response)
 
       if (!response.ok) {
         const errorText = response.statusText || "Unknown error";
@@ -142,7 +143,7 @@ export const otpService = {
 
 
     } catch (error) {
-      console.error("Error sending OTP via mNotify:", error);
+      console.error("Error sending OTP:", error);
       throw error;
     }
   },
