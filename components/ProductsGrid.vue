@@ -40,9 +40,9 @@
             <h3 class="text-sm font-semibold text-gray-800">
               {{ product.brandName.length > 25 ? product.brandName.slice(0, 25) + '...' : product.brandName }}
             </h3>
-            <h3 class="text-sm font-semibold text-gray-800">
+            <!-- <h3 class="text-sm font-semibold text-gray-800">
               {{ product.uniqid }}
-            </h3>
+            </h3> -->
 
             <div class="text-xs text-gray-800 font-semibold flex justify-between">
               <div>
