@@ -26,10 +26,12 @@
         <div class="flex space-x-3">
           <!-- Image Section -->
           <div class="flex flex-col">
-            <!-- Use product image or a placeholder -->
+            <!-- Use product image or a placeholder with lazy loading -->
             <img 
-              :src="product.imageUrl || '/placeholder-med.svg'"
+              :src="getImageURL(product) || '/placeholder-med.svg'"
               :alt="product.brandName"
+              loading="lazy"
+              :onerror="handleImageError"
               class="w-[90px] h-[80px] rounded object-cover cursor-pointer" />
           </div>
 
@@ -37,6 +39,9 @@
           <div class="space-y-2 flex-grow">
             <h3 class="text-sm font-semibold text-gray-800">
               {{ product.brandName.length > 25 ? product.brandName.slice(0, 25) + '...' : product.brandName }}
+            </h3>
+            <h3 class="text-sm font-semibold text-gray-800">
+              {{ product.uniqid }}
             </h3>
 
             <div class="text-xs text-gray-800 font-semibold flex justify-between">
@@ -100,9 +105,34 @@ const productItems = ref([]);
 
 // Add loading state
 const loading = ref(true);
+const isFetching = ref(false); // Prevent duplicate fetches
 
 // Get pharmacy slug from route params
 const pharmacySlug = computed(() => route.params.pharmacy);
+
+// Memoized image URL cache to prevent unnecessary recalculations
+const imageUrlCache = new Map();
+
+const getImageURL = (product) => {
+  if (!product || !product.uniqid || product.uniqid == 0) return '/placeholder-med.svg';
+  
+  // Check cache first
+  const cacheKey = product.uniqid;
+  if (imageUrlCache.has(cacheKey)) {
+    return imageUrlCache.get(cacheKey);
+  }
+  
+  // Generate URL and cache it
+  const imageUrl = `https://firebasestorage.googleapis.com/v0/b/referral-system-5cebe.appspot.com/o/masterproducts%2F${product.uniqid}.jpg?alt=media`;
+  imageUrlCache.set(cacheKey, imageUrl);
+  return imageUrl;
+};
+
+// Handle image load errors by falling back to placeholder
+const handleImageError = (event) => {
+  event.target.src = '/placeholder-med.svg';
+  event.target.onerror = null; // Prevent infinite loop
+};
 
 const initializeProductItems = () => {
   if (Array.isArray(pharmacyStore.products)) {
@@ -111,11 +141,18 @@ const initializeProductItems = () => {
       quantity: 1,
       justAdded: false
     }));
+    
+    // Clear image cache when products change to free memory
+    if (imageUrlCache.size > 100) {
+      imageUrlCache.clear();
+    }
   }
 };
 
 // Fetch products if not already loaded
 onMounted(async () => {
+  if (isFetching.value) return; // Prevent duplicate fetches
+  
   if (pharmacyStore.isLoading) {
     // If the main store is already loading, wait for it
     watch(() => pharmacyStore.isLoading, (newVal) => {
@@ -129,8 +166,9 @@ onMounted(async () => {
     try {
       // If products aren't loaded yet and we're not already loading, fetch them
       if ((!pharmacyStore.products || pharmacyStore.products.length === 0) && 
-          pharmacyStore.currentPharmacy) {
+          pharmacyStore.currentPharmacy && !isFetching.value) {
 
+        isFetching.value = true;
         // Call the explicit fetchProducts method
         await pharmacyStore.fetchProducts();
       }
@@ -140,6 +178,7 @@ onMounted(async () => {
       console.error('Error fetching products:', error);
     } finally {
       loading.value = false;
+      isFetching.value = false;
     }
   }
 });
@@ -156,8 +195,9 @@ watch(() => pharmacySlug.value, async (newSlug, oldSlug) => {
 
 // Watch for changes in the current pharmacy
 watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
-  if (newPharmacy && newPharmacy !== oldPharmacy) {
+  if (newPharmacy && newPharmacy !== oldPharmacy && !isFetching.value) {
     loading.value = true;
+    isFetching.value = true;
     try {
       // Explicitly fetch products when pharmacy changes
       await pharmacyStore.fetchProducts();
@@ -167,6 +207,7 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
       console.error('Error fetching products for pharmacy:', error);
     } finally {
       loading.value = false;
+      isFetching.value = false;
     }
   }
 });

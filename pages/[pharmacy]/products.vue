@@ -51,4 +51,8 @@
     
     cartStore.addToCart(cartItem);
   };
+
+  onMounted(() => {
+    console.log('Mounted products page for pharmacy:', pharmacyStore.products);
+  });
   </script>

@@ -113,6 +113,7 @@ const productItems = ref([]);
 
 // Add loading state
 const loading = ref(true);
+const isFetching = ref(false); // Prevent duplicate fetches
 
 // Get pharmacy slug from route params
 const pharmacySlug = computed(() => route.params.pharmacy);
@@ -129,6 +130,8 @@ const initializeProductItems = () => {
 
 // Fetch products if not already loaded
 onMounted(async () => {
+  if (isFetching.value) return; // Prevent duplicate fetches
+  
   if (pharmacyStore.isLoading) {
     // If the main store is already loading, wait for it
     watch(() => pharmacyStore.isLoading, (newVal) => {
@@ -142,8 +145,9 @@ onMounted(async () => {
     try {
       // If products aren't loaded yet and we're not already loading, fetch them
       if ((!pharmacyStore.products || pharmacyStore.products.length === 0) && 
-          pharmacyStore.currentPharmacy) {
+          pharmacyStore.currentPharmacy && !isFetching.value) {
 
+        isFetching.value = true;
         // Call the explicit fetchProducts method
         await pharmacyStore.fetchProducts();
       }
@@ -153,6 +157,7 @@ onMounted(async () => {
       console.error('Error fetching products:', error);
     } finally {
       loading.value = false;
+      isFetching.value = false;
     }
   }
 });
@@ -170,8 +175,9 @@ watch(() => pharmacySlug.value, async (newSlug, oldSlug) => {
 
 // Watch for changes in the current pharmacy
 watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
-  if (newPharmacy && newPharmacy !== oldPharmacy) {
+  if (newPharmacy && newPharmacy !== oldPharmacy && !isFetching.value) {
     loading.value = true;
+    isFetching.value = true;
     try {
       // Explicitly fetch products when pharmacy changes
       await pharmacyStore.fetchProducts();
@@ -181,6 +187,7 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
       console.error('Error fetching products for pharmacy:', error);
     } finally {
       loading.value = false;
+      isFetching.value = false;
     }
   }
 });
