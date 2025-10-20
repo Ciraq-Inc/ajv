@@ -1,624 +1,499 @@
-// stores/user.js
+﻿// stores/user.js - Master Account Authentication System
+import { defineStore } from 'pinia';
 
-import { defineStore } from "pinia";
-import { getDatabase, ref, set, get, push } from "firebase/database";
-import { usePharmacyStore } from "./pharmacy";
-import { otpService } from "@/utils/otpService";
-
-export const useUserStore = defineStore("user", {
+export const useUserStore = defineStore('user', {
   state: () => ({
-    user: null,
+    masterCustomer: null,
+    selectedCompany: null,
+    companies: [],
+    customerAuthToken: null,
+    phoneStatus: null,
+    phoneVerifying: null,
+    otpSent: false,
     isLoading: false,
     error: null,
-    userProfile: null,
     authInitialized: false,
-    isOtpSent: false,
-    phoneVerifying: null,
   }),
 
   getters: {
-    isLoggedIn: (state) => !!state.user,
-    currentUser: (state) => state.user,
-    userPhoneNumber: (state) => state.user?.phone || null,
-    profile: (state) => state.userProfile || {},
-    hasOrders: (state) => (state.userProfile?.ordersCount || 0) > 0,
+    isLoggedIn: (state) => !!state.masterCustomer && !!state.customerAuthToken,
+    currentUser: (state) => state.masterCustomer,
+    userPhoneNumber: (state) => state.masterCustomer?.phone || null,
+    currentCompany: (state) => state.selectedCompany,
+    hasMultipleCompanies: (state) => state.companies.length > 1,
+    companyCount: (state) => state.companies.length,
   },
 
   actions: {
     formatPhoneNumber(phone) {
-      return otpService.formatPhoneNumber(phone);
+      if (!phone) return '';
+      let digits = phone.replace(/\D/g, '');
+      if (digits.startsWith('0')) {
+        digits = '233' + digits.slice(1);
+      }
+      if (!digits.startsWith('233')) {
+        digits = '233' + digits;
+      }
+      return digits;
     },
 
-    async sendVerificationCode(phone) {
+    async checkPhoneStatus(phone) {
       this.isLoading = true;
       this.error = null;
-
       try {
-        const pharmacyStore = usePharmacyStore();
-
-        // Format phone number consistently
+        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-
-        console.log("Sending verification code to:", formattedPhone);
-
-        // Generate and send OTP using our custom service
-        await otpService.generateAndSendOtp(
-          formattedPhone,
-          pharmacyStore.currentPharmacy,
-          true
-        );
-
-        // Store the phone number we're verifying
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/check-phone`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: formattedPhone })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to check phone status');
+        this.phoneStatus = data.data.status;
         this.phoneVerifying = formattedPhone;
-        this.isOtpSent = true;
-        return { success: true };
+        return data.data;
       } catch (error) {
-        console.error("Error sending verification code:", error);
-        this.error =
-          error.message ||
-          "Failed to send verification code. Please try again.";
+        console.error('Error checking phone status:', error);
+        this.error = error.message || 'Failed to check phone number';
         throw error;
       } finally {
         this.isLoading = false;
       }
     },
 
-    async verifyCode(phone, code, rememberMe = true) {
+    async sendSetupOTP(phone) {
       this.isLoading = true;
       this.error = null;
-
       try {
-        // Format phone number consistently
+        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-
-        // Make sure we're verifying the same phone number
-        if (this.phoneVerifying !== formattedPhone) {
-          throw new Error("Phone number mismatch. Please request a new code.");
-        }
-
-        // Verify the OTP
-        const isValid = await otpService.verifyOtp(formattedPhone, code);
-
-        if (!isValid) {
-          throw new Error("Invalid verification code. Please try again.");
-        }
-
-        // After successful OTP verification, get the customer information
-        const pharmacyStore = usePharmacyStore();
-        if (!pharmacyStore.customers || pharmacyStore.customers.length === 0) {
-          await pharmacyStore.fetchCustomers();
-        }
-
-        // Find the customer based on phone number
-        const customer = pharmacyStore.findCustomerByPhone(formattedPhone);
-
-        if (!customer) {
-          throw new Error("Customer not found. Please contact support.");
-        }
-
-        let customerName = "";
-        if (customer.name) {
-          customerName = customer.name;
-        } else if (customer.firstName && customer.lastName) {
-          customerName = `${customer.firstName} ${customer.lastName}`;
-        } else if (customer.firstName) {
-          customerName = customer.firstName;
-        } else if (customer.lastName) {
-          customerName = customer.lastName;
-        }
-
-        // Set the user data
-        this.user = {
-          uid: customer.id,
-          phone: formattedPhone,
-          name: customerName,
-        };
-
-        // Update user profile with latest info
-        await this.updateUserProfile(this.user);
-
-        // Store user in localStorage for persistence if rememberMe is true
-        if (rememberMe && typeof window !== "undefined") {
-          localStorage.setItem("user", JSON.stringify(this.user));
-        }
-
-        // Clear verification state
-        this.phoneVerifying = null;
-        this.isOtpSent = false;
-
-        return this.user;
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-setup-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: formattedPhone })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to send OTP');
+        this.otpSent = true;
+        this.phoneVerifying = formattedPhone;
+        return data.data;
       } catch (error) {
-        console.error("Error verifying code:", error);
-        this.error =
-          error.message || "Failed to verify code. Please try again.";
+        console.error('Error sending setup OTP:', error);
+        this.error = error.message || 'Failed to send verification code';
         throw error;
       } finally {
         this.isLoading = false;
       }
     },
 
-    async updateUserProfile(userData) {
-      if (!userData || !userData.uid) return;
-
+    async setupPassword(phone, otp, password) {
+      this.isLoading = true;
+      this.error = null;
       try {
-        const pharmacyStore = usePharmacyStore();
-        const db = getDatabase();
-
-        // Correctly build the path to user data
-        const userRef = ref(
-          db,
-          `pharmacies/${pharmacyStore.currentPharmacy}/customers/${userData.uid}`
-        );
-
-        // Get existing user data if available
-        const snapshot = await get(userRef);
-        const existingData = snapshot.exists() ? snapshot.val() : {};
-
-         // Determine the name to use, prioritizing existing data
-    let displayName = '';
-    
-    // Use existing name if available
-    if (existingData.name) {
-      displayName = existingData.name;
-    } 
-    // Construct from first and last name
-    else if (existingData.firstName && existingData.lastName) {
-      displayName = `${existingData.firstName} ${existingData.lastName}`;
-    } 
-    // Use just first name
-    else if (existingData.firstName) {
-      displayName = existingData.firstName;
-    } 
-    // Use just last name
-    else if (existingData.lastName) {
-      displayName = existingData.lastName;
-    }
-    // Fall back to name from userData
-    else if (userData.name) {
-      displayName = userData.name;
-    }
-
-        // Get device and browser info for better tracking
-        const deviceInfo =
-          typeof window !== "undefined"
-            ? {
-                userAgent: navigator.userAgent,
-                language: navigator.language,
-                platform: navigator.platform,
-                screenSize: `${window.screen.width}x${window.screen.height}`,
-              }
-            : {};
-
-        // Merge existing data with new data
-        const updatedData = {
-          ...existingData,
-          phone: userData.phone,
-          lastLogin: new Date().toISOString(),
-          loginHistory: [
-            ...(existingData.loginHistory || []),
-            {
-              timestamp: new Date().toISOString(),
-              deviceInfo,
-            },
-          ].slice(-5), // Keep only last 5 logins
-          // Track orders count if available
-          ordersCount: existingData.ordersCount || 0,
-          // Keep customer data if already exists
-          name: displayName,
-          // Store pharmacy context
-          lastPharmacy: pharmacyStore.currentPharmacy,
-        };
-
-        // Save to database
-        await set(userRef, updatedData);
-
-        // Save to local state for easy access
-        this.userProfile = updatedData;
-
-        return updatedData;
+        const config = useRuntimeConfig();
+        const formattedPhone = this.formatPhoneNumber(phone);
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/setup-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: formattedPhone, otp, password })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to setup password');
+        this.masterCustomer = data.data.master_customer;
+        this.companies = data.data.companies || [];
+        this.selectedCompany = data.data.current_company || this.companies[0];
+        this.customerAuthToken = data.data.token;
+        this.persistAuthData();
+        this.authInitialized = true;
+        this.phoneVerifying = null;
+        this.otpSent = false;
+        return data.data;
       } catch (error) {
-        console.error("Error updating user profile:", error);
+        console.error('Error setting up password:', error);
+        this.error = error.message || 'Failed to setup password';
         throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async register(registrationData) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const config = useRuntimeConfig();
+        const formattedPhone = this.formatPhoneNumber(registrationData.phone);
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            company_id: registrationData.company_id,
+            fname: registrationData.fname,
+            lname: registrationData.lname,
+            phone: formattedPhone,
+            password: registrationData.password,
+            email: registrationData.email,
+            otp: registrationData.otp
+          })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Registration failed');
+        this.masterCustomer = data.data.master_customer;
+        this.companies = [data.data.customer];
+        this.selectedCompany = data.data.customer;
+        this.customerAuthToken = data.data.token;
+        this.persistAuthData();
+        this.authInitialized = true;
+        this.phoneVerifying = null;
+        this.otpSent = false;
+        return data.data;
+      } catch (error) {
+        console.error('Error registering customer:', error);
+        this.error = error.message || 'Registration failed';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async login(phone, password) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const config = useRuntimeConfig();
+        const formattedPhone = this.formatPhoneNumber(phone);
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: formattedPhone, password })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Login failed');
+        this.masterCustomer = data.data.master_customer;
+        this.companies = data.data.companies || [];
+        this.selectedCompany = data.data.selected_company || this.companies[0];
+        this.customerAuthToken = data.data.token;
+        this.persistAuthData();
+        this.authInitialized = true;
+        this.phoneVerifying = null;
+        return data.data;
+      } catch (error) {
+        console.error('Error logging in:', error);
+        this.error = error.message || 'Login failed';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async getMyCompanies() {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      this.isLoading = true;
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/my-companies`, {
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to fetch companies');
+        this.companies = data.data || [];
+        return this.companies;
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async switchCompany(companyId) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      this.isLoading = true;
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/switch-company`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ company_id: companyId })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to switch company');
+        this.customerAuthToken = data.data.token;
+        this.selectedCompany = data.data.company;
+        this.persistAuthData();
+        return this.selectedCompany;
+      } catch (error) {
+        console.error('Error switching company:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async getProfile() {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/profile`, {
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to fetch profile');
+        return data.data;
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+    },
+
+    async updateProfile(profileData) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      this.isLoading = true;
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/profile`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(profileData)
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to update profile');
+        return data.data;
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async changePassword(currentPassword, newPassword) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      this.isLoading = true;
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/change-password`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to change password');
+        return data;
+      } catch (error) {
+        console.error('Error changing password:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async processDirectOrder(cartItems, pharmacyId) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in to place an order');
+      this.isLoading = true;
+      try {
+        const config = useRuntimeConfig();
+        const items = cartItems.map((item) => ({
+          product_id: item.id,
+          qty: item.quantity || 1,
+          discount: item.discount || 0,
+          tax_amount: item.tax || 0,
+          notes: item.notes || ''
+        }));
+        const response = await fetch(`${config.public.apiBase}/api/orders`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ items, notes: `Order from pharmacy ${pharmacyId}` })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to create order');
+        return { success: true, orderId: data.data.order_id, orderData: data.data };
+      } catch (error) {
+        console.error('Error processing order:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async getOrderHistory(filters = {}) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      try {
+        const config = useRuntimeConfig();
+        const params = new URLSearchParams();
+        if (filters.status) params.append('status', filters.status);
+        if (filters.limit) params.append('limit', filters.limit);
+        if (filters.offset) params.append('offset', filters.offset);
+        const response = await fetch(`${config.public.apiBase}/api/orders?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to fetch orders');
+        return data.data || [];
+      } catch (error) {
+        console.error('Error fetching order history:', error);
+        throw error;
+      }
+    },
+
+    async getAllOrders(filters = {}) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      try {
+        const config = useRuntimeConfig();
+        const params = new URLSearchParams();
+        if (filters.status) params.append('status', filters.status);
+        if (filters.limit) params.append('limit', filters.limit);
+        if (filters.offset) params.append('offset', filters.offset);
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/all-orders?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to fetch all orders');
+        return data.data || [];
+      } catch (error) {
+        console.error('Error fetching all orders:', error);
+        throw error;
+      }
+    },
+
+    async getOrderDetails(orderId) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/orders/${orderId}`, {
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to fetch order details');
+        return data.data;
+      } catch (error) {
+        console.error('Error fetching order details:', error);
+        throw error;
+      }
+    },
+
+    async cancelOrder(orderId) {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      this.isLoading = true;
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/orders/${orderId}/cancel`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to cancel order');
+        return data;
+      } catch (error) {
+        console.error('Error cancelling order:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    persistAuthData() {
+      if (typeof window === 'undefined') return;
+      try {
+        localStorage.setItem('masterCustomer', JSON.stringify(this.masterCustomer));
+        localStorage.setItem('selectedCompany', JSON.stringify(this.selectedCompany));
+        localStorage.setItem('companies', JSON.stringify(this.companies));
+        localStorage.setItem('customerAuthToken', this.customerAuthToken);
+      } catch (error) {
+        console.error('Error persisting auth data:', error);
       }
     },
 
     async checkAuthState() {
-      if (typeof window === "undefined") return;
-
+      if (typeof window === 'undefined') return;
       this.isLoading = true;
-
       try {
-        // If auth is already initialized, return current state
-        if (this.authInitialized && this.user) {
+        if (this.authInitialized && this.masterCustomer && this.customerAuthToken) {
           this.isLoading = false;
-          return this.user;
+          return this.masterCustomer;
         }
-
-        // Try to restore from localStorage
-        const savedUser = localStorage.getItem("user");
-        if (savedUser) {
-          try {
-            this.user = JSON.parse(savedUser);
-
-            // Verify the stored user still exists in Firebase
-            const userExists = await this.verifyStoredUser(this.user.uid);
-
-            if (!userExists) {
-              // Saved user no longer valid
-              this.user = null;
-              localStorage.removeItem("user");
-            } else {
-              // User is valid, fetch profile
-              const profile = await this.updateUserProfile(this.user);
-              this.userProfile = profile;
-            }
-          } catch (e) {
-            console.error("Error restoring user from storage:", e);
-            this.user = null;
-            localStorage.removeItem("user");
-          }
+        const savedMasterCustomer = localStorage.getItem('masterCustomer');
+        const savedToken = localStorage.getItem('customerAuthToken');
+        const savedCompanies = localStorage.getItem('companies');
+        const savedSelectedCompany = localStorage.getItem('selectedCompany');
+        if (savedMasterCustomer && savedToken) {
+          this.masterCustomer = JSON.parse(savedMasterCustomer);
+          this.customerAuthToken = savedToken;
+          if (savedCompanies) this.companies = JSON.parse(savedCompanies);
+          if (savedSelectedCompany) this.selectedCompany = JSON.parse(savedSelectedCompany);
+          this.authInitialized = true;
         } else {
-          this.user = null;
+          this.clearAuthState();
         }
-
-        this.authInitialized = true;
         this.isLoading = false;
-        return this.user;
+        return this.masterCustomer;
       } catch (error) {
-        console.error("Error checking auth state:", error);
+        console.error('Error checking auth state:', error);
+        this.clearAuthState();
         this.isLoading = false;
-        this.user = null;
         return null;
       }
     },
 
-    // Verify a stored user still exists in Firebase
-    async verifyStoredUser(uid) {
-      if (!uid) return false;
-
-      try {
-        const db = getDatabase();
-        const pharmacyStore = usePharmacyStore();
-
-        // Try to fetch user data
-        const userRef = ref(
-          db,
-          `pharmacies/${pharmacyStore.currentPharmacy}/customers/${uid}`
-        );
-        const snapshot = await get(userRef);
-
-        return snapshot.exists();
-      } catch (error) {
-        console.error("Error verifying stored user:", error);
-        return false;
+    clearAuthState() {
+      this.masterCustomer = null;
+      this.selectedCompany = null;
+      this.companies = [];
+      this.customerAuthToken = null;
+      this.phoneVerifying = null;
+      this.otpSent = false;
+      this.phoneStatus = null;
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('masterCustomer');
+        localStorage.removeItem('selectedCompany');
+        localStorage.removeItem('companies');
+        localStorage.removeItem('customerAuthToken');
       }
     },
 
     async logout() {
       this.isLoading = true;
-
       try {
-        // Clear user data
-        this.user = null;
-        this.userProfile = null;
-        this.phoneVerifying = null;
-        this.isOtpSent = false;
-
-        // Remove from localStorage
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("user");
-        }
-
+        this.clearAuthState();
         return true;
       } catch (error) {
-        console.error("Error logging out:", error);
+        console.error('Error logging out:', error);
         this.error = error.message;
         throw error;
       } finally {
         this.isLoading = false;
       }
-    },
-
-    // Enhanced order processing
-    async processDirectOrder(cartItems, pharmacyId) {
-      if (!this.isLoggedIn) {
-        throw new Error("User must be logged in to place an order");
-      }
-
-      try {
-        this.isLoading = true;
-
-        const db = getDatabase();
-        const orderRef = push(ref(db, `orders/${this.user.uid}`));
-        const orderKey = orderRef.key;
-
-        // Calculate total amount and save item details
-        const totalAmount = cartItems.reduce(
-          (total, item) => total + item.price * item.quantity,
-          0
-        );
-        const itemsWithDetails = cartItems.map((item) => ({
-          id: item.id,
-          brandName: item.name,
-          price: item.price || 0,
-          quantity: item.quantity || 1,
-          subtotal: (item.price || 0) * (item.quantity || 1),
-        }));
-
-        // Get customer delivery information from profile
-        const customerInfo = {
-          phone: this.user.phone,
-          name: this.userProfile?.firstName || "",
-        };
-
-        // Create order data
-        const orderData = {
-          orderId: orderKey,
-          userId: this.user.uid,
-          pharmacyId,
-          items: itemsWithDetails,
-          totalItems: cartItems.length,
-          totalQuantity: cartItems.reduce(
-            (sum, item) => sum + (item.quantity || 1),
-            0
-          ),
-          totalAmount,
-          status: "pending",
-          payment: {
-            method: "cash_on_delivery",
-            status: "pending",
-          },
-          createdAt: new Date().toISOString(),
-          customerInfo,
-          // Track any delivery notes (can be added by pharmacy staff later)
-          notes: "",
-        };
-
-        // Save the order to database
-        await set(orderRef, orderData);
-
-        // Also save a reference to the pharmacy's orders list for easier lookup
-        await set(ref(db, `pharmacies/${pharmacyId}/orders/${orderKey}`), {
-          orderId: orderKey,
-          userId: this.user.uid,
-          createdAt: new Date().toISOString(),
-          totalAmount,
-          status: "pending",
-        });
-
-        // Update user's orders count
-        if (this.userProfile) {
-          const updatedProfile = {
-            ...this.userProfile,
-            ordersCount: (this.userProfile.ordersCount || 0) + 1,
-          };
-
-          await this.updateUserProfile({
-            ...this.user,
-            profile: updatedProfile,
-          });
-        }
-
-        return {
-          success: true,
-          orderId: orderKey,
-          orderData,
-        };
-      } catch (error) {
-        console.error("Error processing order:", error);
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    async cancelOrder(orderId, reason = '') {
-  if (!this.isLoggedIn || !orderId) {
-    throw new Error("User must be logged in to cancel an order");
-  }
-
-  try {
-    this.isLoading = true;
-
-    const db = getDatabase();
-    
-    // First, get the current order to check if it can be cancelled
-    const orderRef = ref(db, `orders/${this.user.uid}/${orderId}`);
-    const snapshot = await get(orderRef);
-    
-    if (!snapshot.exists()) {
-      throw new Error("Order not found");
-    }
-    
-    const orderData = snapshot.val();
-    
-    // Only allow cancellation of pending or processing orders
-    if (orderData.status !== 'pending' && orderData.status !== 'processing') {
-      throw new Error(`Cannot cancel an order with status: ${orderData.status}`);
-    }
-    
-    // Update the order status to cancelled
-    const updatedOrderData = {
-      ...orderData,
-      status: 'cancelled',
-      cancellation: {
-        timestamp: new Date().toISOString(),
-        reason: reason || 'No reason provided',
-        cancelledBy: 'customer'
-      },
-      updatedAt: new Date().toISOString()
-    };
-    
-    // Update in the user's orders collection
-    await set(orderRef, updatedOrderData);
-    
-    // Also update in the pharmacy's orders collection
-    if (orderData.pharmacyId) {
-      const pharmacyOrderRef = ref(
-        db, 
-        `pharmacies/${orderData.pharmacyId}/orders/${orderId}`
-      );
-      
-      // Get existing summary data first
-      const pharmacyOrderSnapshot = await get(pharmacyOrderRef);
-      if (pharmacyOrderSnapshot.exists()) {
-        const pharmacyOrderData = pharmacyOrderSnapshot.val();
-        
-        // Update with new status
-        await set(pharmacyOrderRef, {
-          ...pharmacyOrderData,
-          status: 'cancelled',
-          updatedAt: new Date().toISOString()
-        });
-      }
-    }
-    
-    return {
-      success: true,
-      orderId: orderId,
-      message: 'Order cancelled successfully'
-    };
-  } catch (error) {
-    console.error("Error cancelling order:", error);
-    throw error;
-  } finally {
-    this.isLoading = false;
-  }
-},
-
-    // Get user order history
-    async getOrderHistory() {
-      if (!this.isLoggedIn) {
-        throw new Error("User must be logged in to view order history");
-      }
-
-      try {
-        this.isLoading = true;
-
-        const db = getDatabase();
-        const ordersRef = ref(db, `orders/${this.user.uid}`);
-        const snapshot = await get(ordersRef);
-
-        if (!snapshot.exists()) {
-          return [];
-        }
-
-        const orders = [];
-        snapshot.forEach((childSnapshot) => {
-          orders.push({
-            id: childSnapshot.key,
-            ...childSnapshot.val(),
-          });
-        });
-
-        // Sort by date, newest first
-        return orders.sort((a, b) => {
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        });
-      } catch (error) {
-        console.error("Error fetching order history:", error);
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    // Update user profile data
-    async updateUserData(profileData) {
-      if (!this.isLoggedIn) {
-        throw new Error("User must be logged in to update profile");
-      }
-
-      try {
-        this.isLoading = true;
-
-        // Merge with existing profile
-        const updatedProfile = {
-          ...this.userProfile,
-          ...profileData,
-          lastUpdated: new Date().toISOString(),
-        };
-
-        // Update in Firebase
-        await this.updateUserProfile({
-          ...this.user,
-          profile: updatedProfile,
-        });
-
-        // Update local state
-        this.userProfile = updatedProfile;
-
-        return updatedProfile;
-      } catch (error) {
-        console.error("Error updating user data:", error);
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    async checkAdminRights() {
-      if (!this.isLoggedIn || !this.user || !this.user.uid) {
-        return false;
-      }
-
-      try {
-        const pharmacyStore = usePharmacyStore();
-        if (!pharmacyStore.currentPharmacy) {
-          await pharmacyStore.restoreFromStorage();
-          if (!pharmacyStore.currentPharmacy) {
-            return false;
-          }
-        }
-
-        const db = getDatabase();
-
-        // Option 1: Check if user exists in pharmacy's admin list
-        const adminRef = ref(
-          db,
-          `pharmacies/${pharmacyStore.currentPharmacy}/admins/${this.user.uid}`
-        );
-        const adminSnapshot = await get(adminRef);
-
-        // If user exists in the admins collection, they have admin rights
-        if (adminSnapshot.exists()) {
-          return true;
-        }
-
-        // Option 2: Check if user has admin flag in their profile
-        if (this.userProfile && this.userProfile.isAdmin) {
-          return true;
-        }
-
-        // Option 3: Check if pharmacy owner matches user ID
-        const pharmacyInfoRef = ref(
-          db,
-          `pharmacies/${pharmacyStore.currentPharmacy}/info`
-        );
-        const pharmacyInfoSnapshot = await get(pharmacyInfoRef);
-
-        if (pharmacyInfoSnapshot.exists()) {
-          const pharmacyInfo = pharmacyInfoSnapshot.val();
-          if (pharmacyInfo.ownerId && pharmacyInfo.ownerId === this.user.uid) {
-            return true;
-          }
-        }
-
-        return false;
-      } catch (error) {
-        console.error("Error checking admin rights:", error);
-        return false;
-      }
-    },
-
-    getAdminLink() {
-      if (!this.isLoggedIn) return null;
-
-      return {
-        text: "Pharmacy Dashboard",
-        path: "/admin/orders",
-        icon: "ri-dashboard-line",
-      };
     },
   },
 });

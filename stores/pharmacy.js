@@ -1,9 +1,7 @@
 // store/pharmacy.js
 
 import { defineStore } from "pinia";
-import { getDatabase, ref as dbRef, get } from "firebase/database";
 import { otpService } from "~/utils/otpService";
-
 
 export const usePharmacyStore = defineStore("pharmacy", {
   state: () => ({
@@ -41,27 +39,52 @@ export const usePharmacyStore = defineStore("pharmacy", {
       this.notFound = false;
 
       try {
-        const db = getDatabase();
+        const config = useRuntimeConfig();
+        const baseURL = config.public.apiBase;
 
-        // Fetch pharmacy info
-        const infoSnapshot = await get(
-          dbRef(db, `pharmacies/${this.currentPharmacy}/info`)
-        );
-
-        if (!infoSnapshot.exists()) {
-          this.notFound = true;
-          this.isLoading = false;
-          this.pharmacyData = null;
-          this.products = [];
-          this.customers = [];
-          return;
+        // Fetch pharmacy info via API
+        const response = await fetch(`${baseURL}/api/companies/${this.currentPharmacy}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            this.notFound = true;
+            this.pharmacyData = null;
+            this.products = [];
+            this.customers = [];
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        this.pharmacyData = infoSnapshot.val();
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to fetch pharmacy data');
+        }
+
+        this.pharmacyData = {
+          id: data.data.id,
+          uiid: data.data.uiid,
+          name: data.data.name,
+          email: data.data.email,
+          phone: data.data.tel1 || data.data.tel2,
+          tel1: data.data.tel1,
+          tel2: data.data.tel2,
+          whatsapp_number: data.data.whatsapp_number,
+          address: data.data.address1,
+          address1: data.data.address1,
+          address2: data.data.address2,
+          location: data.data.location,
+          companytype: data.data.companytype,
+          domain_name: data.data.domain_name,
+          logo: data.data.logo,
+          shop_banner: data.data.shop_banner,
+          subdomain: data.data.domain_name, // Use domain_name as subdomain
+        };
 
         // Update pharmacySlug from pharmacy data if available
-        if (this.pharmacyData.subdomain) {
-          this.pharmacySlug = this.pharmacyData.subdomain;
+        if (this.pharmacyData.domain_name) {
+          this.pharmacySlug = this.pharmacyData.domain_name;
 
           // Store in session/localStorage for persistence
           if (process.client) {
@@ -89,26 +112,51 @@ export const usePharmacyStore = defineStore("pharmacy", {
       if (!this.currentPharmacy) return [];
 
       try {
-        const db = getDatabase();
-        const productsSnapshot = await get(
-          dbRef(db, `pharmacies/${this.currentPharmacy}/products`)
-        );
+        const config = useRuntimeConfig();
+        const baseURL = config.public.apiBase;
 
-        const productsData = productsSnapshot.val();
+        // Fetch products via API
+        const response = await fetch(`${baseURL}/api/products?company_id=${this.currentPharmacy}`);
 
-        if (productsData && typeof productsData === "object") {
-          try {
-            this.products = Object.entries(productsData).map(([id, data]) => ({
-              id,
-              ...data,
-            }));
-          } catch (error) {
-            console.error("Error processing products data:", error);
-            this.products = [];
-          }
-        } else {
-          this.products = [];
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to fetch products');
+        }
+
+        // Map API response to expected format
+        this.products = (data.data || []).map(product => ({
+          id: product.id,
+          barcode: product.barcode,
+          brandName: product.brand_name,
+          masterName: product.master_name,
+          dosage: product.dosage,
+          strength: product.strength,
+          unit: product.unit,
+          buyUnit: product.buy_unit,
+          sellUnit: product.sell_unit,
+          costPrice: product.cost_price,
+          sellingPrice: product.selling_price,
+          markup: product.markup,
+          discount: product.discount,
+          stockQty: product.stock_qty,
+          reorder: product.reorder,
+          shelves: product.shelves,
+          productExpiry: product.product_expiry,
+          hasMultiExpiryDate: product.has_multi_expiry_date,
+          hasTax: product.has_tax,
+          multi: product.multi,
+          supplier: product.supplier,
+          supplierId: product.supplier_id,
+          selectedProdClass: product.selected_prod_class,
+          isActive: product.is_active,
+          inStock: product.stock_qty > 0,
+          quantity: product.stock_qty,
+        }));
 
         return this.products;
       } catch (error) {
@@ -118,32 +166,16 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
     },
 
-    // fetch customers
+    // fetch customers - Keep for backward compatibility but note: customers should use auth API
     async fetchCustomers() {
       if (!this.currentPharmacy) return [];
 
       try {
-        const db = getDatabase();
-        const customersSnapshot = await get(
-          dbRef(db, `pharmacies/${this.currentPharmacy}/customers`)
-        );
-
-        const customersData = customersSnapshot.val();
-
-        if (customersData && typeof customersData === "object") {
-          try {
-            this.customers = Object.entries(customersData).map(([id, data]) => ({
-              id,
-              ...data,
-            }));
-          } catch (error) {
-            console.error("Error processing customers data:", error);
-            this.customers = [];
-          }
-        } else {
-          this.customers = [];
-        }
-
+        // For now, customers list is not exposed via public API
+        // Customer authentication happens via /api/auth/customer endpoints
+        // This method is kept for backward compatibility with existing code
+        console.warn('fetchCustomers: Customer data should be managed via authentication API');
+        this.customers = [];
         return this.customers;
       } catch (error) {
         console.error("Error fetching customers:", error);
@@ -179,26 +211,25 @@ export const usePharmacyStore = defineStore("pharmacy", {
       console.log(`Looking up pharmacy ID for slug: '${slug}'`);
 
       try {
-        const db = getDatabase();
-        console.log("Database reference obtained");
+        const config = useRuntimeConfig();
+        const baseURL = config.public.apiBase;
 
-        const subdomainsRef = dbRef(db, "subdomains");
-        const subdomainsSnapshot = await get(subdomainsRef);
+        // Fetch pharmacy by domain name
+        const response = await fetch(`${baseURL}/api/companies/domain/${encodeURIComponent(slug)}`);
 
-        if (!subdomainsSnapshot.exists()) {
-          console.log("No subdomains found in database");
-          return null;
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log(`No pharmacy found for slug: '${slug}'`);
+            return null;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const subdomains = subdomainsSnapshot.val();
-        console.log("Subdomains data retrieved:", subdomains);
+        const data = await response.json();
 
-        // Search for the matching slug
-        for (const [id, value] of Object.entries(subdomains)) {
-          if (value === slug) {
-            console.log(`Found pharmacy ID: ${id} for slug: ${slug}`);
-            return id;
-          }
+        if (data.success && data.data) {
+          console.log(`Found pharmacy ID: ${data.data.id} for slug: ${slug}`);
+          return data.data.id.toString();
         }
 
         console.log(`No pharmacy ID found for slug: '${slug}'`);
@@ -256,6 +287,10 @@ export const usePharmacyStore = defineStore("pharmacy", {
     findCustomerByPhone(phone) {
       console.log(`Finding customer with phone: ${phone}`);
 
+      // Note: With the new REST API architecture, customer lookup
+      // should happen server-side during authentication
+      console.warn('findCustomerByPhone: This method is deprecated. Use authentication API instead.');
+
       if (!this.customers || !Array.isArray(this.customers) || this.customers.length === 0) {
         console.log("No customers loaded in store");
         return null;
@@ -272,47 +307,23 @@ export const usePharmacyStore = defineStore("pharmacy", {
       // First try to find an exact match
       const exactMatch = this.customers.find(customer => 
         customer.phone === formattedInputPhone
-      )
+      );
 
-       if (exactMatch) {
+      if (exactMatch) {
         console.log(`Found exact phone match: ${exactMatch.id}`);
         return exactMatch;
       }
       
-      // If no exact match, try using otpService's compare method
-      const customer = this.customers.find(customer => {
-        if (!customer.phone) return false;
-        
-        const isMatch = otpService.comparePhoneNumbers(customer.phone, formattedInputPhone);
-        console.log(`Comparing: ${customer.phone} with ${formattedInputPhone}: ${isMatch ? 'MATCH' : 'no match'}`);
-        
-        return isMatch;
-      });
-
-      if (customer) {
-        console.log(`Found customer using flexible matching: ${customer.id}`);
-        return customer;
-      }
-      
-      // If still no match, log available phone numbers for debugging
       console.warn(`No customer found with phone number: ${formattedInputPhone}`);
-      console.log("Available customer phones:", 
-        this.customers
-          .filter(c => c.phone) 
-          .map(c => ({id: c.id, phone: c.phone}))
-          .slice(0, 5) // Show just the first 5 for debugging
-      );
-      
       return null;
     },
 
 // Helper method to ensure customers are loaded
     async ensureCustomersLoaded() {
-      if (!this.customers || this.customers.length === 0) {
-        console.log("No customers loaded, fetching from database...");
-        await this.fetchCustomers();
-        console.log(`Loaded ${this.customers.length} customers`);
-      }
+      // With REST API, customers are managed via authentication endpoints
+      // This method is kept for backward compatibility
+      console.warn('ensureCustomersLoaded: Customer management now handled via authentication API');
+      return;
     },
 
 

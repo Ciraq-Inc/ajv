@@ -61,4 +61,16 @@ export default defineNuxtConfig({
   routeRules: {
     "/**": { prerender: false },
   },
+
+  // Runtime configuration for API endpoints
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.API_BASE_URL
+    }
+  },
+
+  // Dev server configuration
+  devServer: {
+    port: 4000
+  },
 });

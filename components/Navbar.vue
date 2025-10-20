@@ -18,9 +18,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <div class="text-gray-700 font-medium">
+          <!-- <div class="text-gray-700 font-medium">
             1 La Bawaleshie Rd, Accra, Ghana
-          </div>
+          </div> -->
         </div>
         
         <!-- Phone -->
@@ -42,7 +42,34 @@
         <i class="ri-whatsapp-line mr-1 text-2xl"></i>
           Contact Us
         </a>
+
+        <!-- customer Login -->
+        <button 
+          @click="showLoginModal = true"
+          class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-6 py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-x-2 w-[240px] mx-auto lg:w-auto lg:mx-0"
+        >
+          <i class="ri-user-line mr-1 text-2xl"></i>
+          Login
+        </button>
+
+        <!-- Login Modal -->
+        <Login 
+          :is-open="showLoginModal" 
+          @close="showLoginModal = false"
+          @login-success="handleLoginSuccess"
+        />
       </div>
     </div>
   </header>
 </template>
+
+<script setup>
+import Login from '~/components/Login.vue'
+
+const showLoginModal = ref(false)
+
+const handleLoginSuccess = () => {
+  // Redirect to customer account page after successful login
+  navigateTo('/customer')
+}
+</script>
