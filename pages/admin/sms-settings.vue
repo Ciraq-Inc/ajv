@@ -54,7 +54,7 @@
                 </div>
                 <div class="status-item">
                   <span class="status-label">SMS Rate:</span>
-                  <span class="status-value">${{ globalSettings.sms_rate || '0.00' }}</span>
+                  <span class="status-value">{{ globalSettings.sms_rate_per_unit || '0.00' }}</span>
                 </div>
                 <div class="status-item">
                   <span class="status-label">Last Updated:</span>
@@ -91,152 +91,18 @@
                 </select>
               </div>
 
-              <button @click="updateSmsRate" class="btn-primary" :disabled="loading || !updateRateForm.sms_rate">
-                <Icon name="Update" size="16" />
-                <span>Update Rate</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-
-      <!-- Company Settings -->
-      <div v-if="activeTab === 'companies'" class="settings-section">
-        <div class="section-header">
-          <h3>Company-Specific Settings</h3>
-          <p>Manage SMS settings for individual companies</p>
-        </div>
-
-        <div class="companies-section">
-          <div class="companies-header">
-            <h4>Company Settings</h4>
-            <div class="search-group">
-              <input
-                v-model="companySearch"
-                type="text"
-                class="form-control"
-                placeholder="Search companies..."
-              />
-              <button @click="loadCompanies" class="btn-secondary">
-                <Icon name="Search" size="16" />
-              </button>
-            </div>
-          </div>
-
-          <div class="companies-list">
-            <div v-for="company in filteredCompanies" :key="company.id" class="company-card">
-              <div class="company-header">
-                <h5>{{ company.name }}</h5>
-                <div class="company-status" :class="{ active: company.is_active }">
-                  {{ company.is_active ? 'Active' : 'Inactive' }}
-                </div>
-              </div>
-              <div class="company-content">
-                <div class="company-details">
-                  <span class="company-sender">Sender ID: {{ company.sender_id || 'Default' }}</span>
-                  <span class="company-updated">Updated: {{ formatDate(company.updated_at) }}</span>
-                </div>
-                <div class="company-actions">
-                  <button @click="editCompanySettings(company)" class="btn-icon">
-                    <Icon name="Edit" size="14" />
-                  </button>
-                </div>
+              <div class="flex gap-2">
+                <button @click="updateSmsRate" class="btn-primary" :disabled="loading || !updateRateForm.sms_rate">
+                  <Icon name="Update" size="16" />
+                  <span>Update Rate</span>
+                </button>
+                <button @click="updateProvider" class="btn-secondary" :disabled="loading || !updateRateForm.active_provider">
+                  <Icon name="Settings" size="16" />
+                  <span>Update Provider</span>
+                </button>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Add/Edit Provider Modal -->
-    <div v-if="showAddProviderModal || editingProvider" class="modal-overlay" @click="closeModals">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>{{ editingProvider ? 'Edit Provider' : 'Add New Provider' }}</h3>
-          <button @click="closeModals" class="modal-close">
-            <Icon name="X" size="20" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Provider Name</label>
-            <select v-model="providerForm.provider" class="form-control" :disabled="editingProvider">
-              <option value="">Select Provider</option>
-              <option value="nalo">Nalo</option>
-              <option value="mnotify">MNotify</option>
-           
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>SMS Rate ($)</label>
-            <input
-              v-model.number="providerForm.sms_rate"
-              type="number"
-              class="form-control"
-              step="0.01"
-              min="0"
-              placeholder="0.18"
-            />
-          </div>
-
-          <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input
-                v-model="providerForm.active_provider"
-                type="checkbox"
-                class="checkbox-input"
-              />
-              <span>Set as active provider</span>
-            </label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="closeModals" class="btn-secondary">Cancel</button>
-          <button @click="saveProvider" class="btn-primary" :disabled="loading">
-            <span>{{ loading ? 'Saving...' : 'Save Provider' }}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Edit Company Modal -->
-    <div v-if="editingCompany" class="modal-overlay" @click="closeModals">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Edit Company Settings - {{ editingCompany?.name }}</h3>
-          <button @click="closeModals" class="modal-close">
-            <Icon name="X" size="20" />
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Sender ID</label>
-            <input
-              v-model="companyForm.sender_id"
-              type="text"
-              class="form-control"
-              placeholder="CustomBrand"
-            />
-          </div>
-
-          <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input
-                v-model="companyForm.is_active"
-                type="checkbox"
-                class="checkbox-input"
-              />
-              <span>SMS service active for this company</span>
-            </label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="closeModals" class="btn-secondary">Cancel</button>
-          <button @click="saveCompanySettings" class="btn-primary" :disabled="loading">
-            <span>{{ loading ? 'Saving...' : 'Save Settings' }}</span>
-          </button>
         </div>
       </div>
     </div>
@@ -261,16 +127,15 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 
+
 // State
 const adminStore = useAdminStore()
 const loading = ref(false)
 const loadingMessage = ref('')
 const activeTab = ref('global')
 const message = ref(null)
-const companySearch = ref('')
-const showAddProviderModal = ref(false)
-const editingProvider = ref(null)
-const editingCompany = ref(null)
+const config = useRuntimeConfig()
+const apiBaseUrl = config.public.apiBase
 
 // Data
 const globalSettings = reactive({
@@ -279,30 +144,15 @@ const globalSettings = reactive({
   updated_at: null
 })
 
-const providers = ref([])
-const companies = ref([])
-
 // Forms
 const updateRateForm = reactive({
   sms_rate: null,
   active_provider: ''
 })
 
-const providerForm = reactive({
-  provider: '',
-  sms_rate: null,
-  active_provider: false
-})
-
-const companyForm = reactive({
-  sender_id: '',
-  is_active: true
-})
-
 // Tabs configuration
 const tabs = [
-  { id: 'global', label: 'Global Settings', icon: 'Settings' },
-  { id: 'companies', label: 'Companies', icon: 'Building' }
+  { id: 'global', label: 'Global Settings', icon: 'Settings' }
 ]
 
 // Computed
@@ -310,15 +160,9 @@ const hasGlobalChanges = computed(() => {
   return updateRateForm.sms_rate !== null || updateRateForm.active_provider !== ''
 })
 
-const filteredCompanies = computed(() => {
-  if (!companySearch.value) return companies.value
-  return companies.value.filter(company =>
-    company.name.toLowerCase().includes(companySearch.value.toLowerCase())
-  )
-})
-
 // API Methods
 const apiCall = async (method, url, data = null) => {
+  const fullUrl = `${apiBaseUrl}${url}`
   const config = {
     method,
     headers: {
@@ -331,7 +175,7 @@ const apiCall = async (method, url, data = null) => {
     config.body = JSON.stringify(data)
   }
 
-  const response = await fetch(url, config)
+  const response = await fetch(fullUrl, config)
   if (!response.ok) {
     throw new Error(`API call failed: ${response.status}`)
   }
@@ -345,23 +189,48 @@ const refreshSettings = async () => {
 
   try {
     // Load global settings
-    const globalData = await apiCall('GET', '/api/sms-settings/admin')
-    Object.assign(globalSettings, globalData)
-
-    // Load providers (assuming providers are part of global settings or separate endpoint)
-    // For now, we'll simulate this
-    providers.value = [
-      { id: 1, provider: 'nalo', sms_rate: 0.20, active_provider: globalSettings.active_provider === 'nalo', updated_at: new Date().toISOString() },
-      { id: 2, provider: 'mnotify', sms_rate: 0.18, active_provider: globalSettings.active_provider === 'mnotify', updated_at: new Date().toISOString() }
-    ]
-
-    // Load companies
-    await loadCompanies()
+    const globalData = await apiCall('GET', '/api/sms-settings/active')
+    if (globalData.success && globalData.data) {
+      Object.assign(globalSettings, globalData.data)
+    } else if (globalData.message === 'SMS settings not configured') {
+      // Settings not initialized yet
+      showMessage('SMS settings not configured yet', 'error')
+    }
 
     showMessage('Settings refreshed successfully', 'success')
   } catch (error) {
     console.error('Failed to refresh settings:', error)
-    showMessage('Failed to refresh settings', 'error')
+    if (error.message.includes('404')) {
+      showMessage('SMS settings not configured yet', 'error')
+    } else {
+      showMessage('Failed to refresh settings', 'error')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+const updateSmsRate = async () => {
+  if (updateRateForm.sms_rate === null) return
+
+  loading.value = true
+  loadingMessage.value = 'Updating SMS rate...'
+
+  try {
+    const data = { rate: updateRateForm.sms_rate }
+
+    await apiCall('PUT', '/api/sms-settings/rate', data)
+
+    // Reset form
+    updateRateForm.sms_rate = null
+
+    // Refresh data
+    await refreshSettings()
+
+    showMessage('SMS rate updated successfully', 'success')
+  } catch (error) {
+    console.error('Failed to update SMS rate:', error)
+    showMessage('Failed to update SMS rate', 'error')
   } finally {
     loading.value = false
   }
@@ -374,15 +243,13 @@ const saveGlobalSettings = async () => {
   try {
     const data = {}
     if (updateRateForm.sms_rate !== null) {
-      data.sms_rate = updateRateForm.sms_rate
+      data.rate = updateRateForm.sms_rate
     }
     if (updateRateForm.active_provider) {
-      data.active_provider = updateRateForm.active_provider
+      data.provider = updateRateForm.active_provider
     }
 
-    // Assuming we have an ID for the global settings
-    const globalSettingsId = 1 // This should come from the API
-    await apiCall('PUT', `/api/sms-settings/admin/${globalSettingsId}`, data)
+    await apiCall('PUT', '/api/sms-settings', data)
 
     // Reset form
     updateRateForm.sms_rate = null
@@ -400,186 +267,34 @@ const saveGlobalSettings = async () => {
   }
 }
 
-const updateSmsRate = async () => {
-  if (!updateRateForm.sms_rate) return
+const updateProvider = async () => {
+  if (!updateRateForm.active_provider) return
 
   loading.value = true
-  loadingMessage.value = 'Updating SMS rate...'
+  loadingMessage.value = 'Updating provider...'
 
   try {
-    const globalSettingsId = 1 // This should come from the API
-    const data = {
-      sms_rate: updateRateForm.sms_rate,
-      active_provider: updateRateForm.active_provider || globalSettings.active_provider
-    }
+    const data = { provider: updateRateForm.active_provider }
 
-    await apiCall('PUT', `/api/sms-settings/admin/${globalSettingsId}`, data)
+    await apiCall('PUT', '/api/sms-settings/provider', data)
 
     // Reset form
-    updateRateForm.sms_rate = null
     updateRateForm.active_provider = ''
 
     // Refresh data
     await refreshSettings()
 
-    showMessage('SMS rate updated successfully', 'success')
+    showMessage('Provider updated successfully', 'success')
   } catch (error) {
-    console.error('Failed to update SMS rate:', error)
-    showMessage('Failed to update SMS rate', 'error')
+    console.error('Failed to update provider:', error)
+    showMessage('Failed to update provider', 'error')
   } finally {
     loading.value = false
   }
-}
-
-const saveProvider = async () => {
-  if (!providerForm.provider || providerForm.sms_rate === null) return
-
-  loading.value = true
-  loadingMessage.value = editingProvider ? 'Updating provider...' : 'Adding provider...'
-
-  try {
-    const data = {
-      provider: providerForm.provider,
-      sms_rate: providerForm.sms_rate,
-      active_provider: providerForm.active_provider ? providerForm.provider : null
-    }
-
-    if (editingProvider) {
-      // Update existing provider
-      await apiCall('PUT', `/api/sms-settings/admin/${editingProvider.id}`, data)
-    } else {
-      // Add new provider
-      await apiCall('POST', '/api/sms-settings/admin', data)
-    }
-
-    // Reset form
-    resetProviderForm()
-
-    // Refresh data
-    await refreshSettings()
-
-    showMessage(`Provider ${editingProvider ? 'updated' : 'added'} successfully`, 'success')
-  } catch (error) {
-    console.error('Failed to save provider:', error)
-    showMessage('Failed to save provider', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-const editProvider = (provider) => {
-  editingProvider.value = provider
-  providerForm.provider = provider.provider
-  providerForm.sms_rate = provider.sms_rate
-  providerForm.active_provider = provider.active_provider
-}
-
-const deleteProvider = async (providerId) => {
-  if (!confirm('Are you sure you want to delete this provider?')) return
-
-  loading.value = true
-  loadingMessage.value = 'Deleting provider...'
-
-  try {
-    // Assuming DELETE endpoint exists
-    await apiCall('DELETE', `/api/sms-settings/admin/${providerId}`)
-
-    // Refresh data
-    await refreshSettings()
-
-    showMessage('Provider deleted successfully', 'success')
-  } catch (error) {
-    console.error('Failed to delete provider:', error)
-    showMessage('Failed to delete provider', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-const loadCompanies = async () => {
-  try {
-    // This would typically load all companies, then we can get settings for each
-    // For now, we'll simulate company data
-    companies.value = [
-      { id: 1, name: 'Company A', sender_id: 'CompA', is_active: true, updated_at: new Date().toISOString() },
-      { id: 2, name: 'Company B', sender_id: 'CompB', is_active: false, updated_at: new Date().toISOString() },
-      { id: 3, name: 'Company C', sender_id: null, is_active: true, updated_at: new Date().toISOString() }
-    ]
-  } catch (error) {
-    console.error('Failed to load companies:', error)
-  }
-}
-
-const editCompanySettings = async (company) => {
-  editingCompany.value = company
-
-  try {
-    // Load company-specific settings
-    const companySettings = await apiCall('GET', `/api/sms-settings/admin/company/${company.id}`)
-    companyForm.sender_id = companySettings.sender_id || ''
-    companyForm.is_active = companySettings.is_active !== false
-  } catch (error) {
-    console.error('Failed to load company settings:', error)
-    // Use default values if API fails
-    companyForm.sender_id = company.sender_id || ''
-    companyForm.is_active = company.is_active !== false
-  }
-}
-
-const saveCompanySettings = async () => {
-  if (!editingCompany.value) return
-
-  loading.value = true
-  loadingMessage.value = 'Saving company settings...'
-
-  try {
-    const data = {
-      sender_id: companyForm.sender_id,
-      is_active: companyForm.is_active
-    }
-
-    await apiCall('PUT', `/api/sms-settings/admin/company/${editingCompany.value.id}`, data)
-
-    // Update local company data
-    const company = companies.value.find(c => c.id === editingCompany.value.id)
-    if (company) {
-      company.sender_id = companyForm.sender_id
-      company.is_active = companyForm.is_active
-      company.updated_at = new Date().toISOString()
-    }
-
-    // Reset form
-    resetCompanyForm()
-
-    showMessage('Company settings saved successfully', 'success')
-  } catch (error) {
-    console.error('Failed to save company settings:', error)
-    showMessage('Failed to save company settings', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-const resetProviderForm = () => {
-  providerForm.provider = ''
-  providerForm.sms_rate = null
-  providerForm.active_provider = false
-  editingProvider.value = null
-  showAddProviderModal.value = false
-}
-
-const resetCompanyForm = () => {
-  companyForm.sender_id = ''
-  companyForm.is_active = true
-  editingCompany.value = null
 }
 
 const closeModals = () => {
-  showAddProviderModal.value = false
-  editingProvider.value = null
-  editingCompany.value = null
-  resetProviderForm()
-  resetCompanyForm()
+  // No modals to close
 }
 
 const formatDate = (dateString) => {

@@ -87,7 +87,7 @@ defineEmits(['refresh', 'topup'])
 
 const availableBalance = computed(() => {
   return props.balanceData?.available_balance || 
-         props.balanceData?.sms_credit_balance || 
+         props.balanceData?.sms_balance || 
          0
 })
 

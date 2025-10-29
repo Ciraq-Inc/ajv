@@ -2,10 +2,14 @@ import { ref, computed } from 'vue'
 import campaignService from '~/services/sms/campaignService'
 
 export const useSMSCampaigns = () => {
+  const config = useRuntimeConfig()
+  const apiBase = config.public.apiBase
+  const service = campaignService(apiBase)
   const campaigns = ref([])
   const currentCampaign = ref(null)
   const loading = ref(false)
   const error = ref(null)
+  const retryAttempts = ref({}) // Track retry attempts per campaign action
 
   // Get auth token from company store
   const getToken = () => {
@@ -43,7 +47,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.getCampaigns(filters, token)
+      const response = await service.getCampaigns(filters, token)
       campaigns.value = response.data || response.campaigns || []
       return response
     } catch (err) {
@@ -62,7 +66,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.getCampaignById(campaignId, token)
+      const response = await service.getCampaignById(campaignId, token)
       currentCampaign.value = response.data || response.campaign
       return response
     } catch (err) {
@@ -81,7 +85,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.createCampaign(campaignData, token)
+      const response = await service.createCampaign(campaignData, token)
       
       // Add to campaigns list if successful
       if (response.data || response.campaign) {
@@ -99,6 +103,75 @@ export const useSMSCampaigns = () => {
     }
   }
 
+  // Update campaign
+  const updateCampaign = async (campaignId, campaignData) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const token = getToken()
+      const response = await service.updateCampaign(campaignId, campaignData, token)
+      
+      // Update in campaigns list
+      updateCampaignInList(campaignId, response.data || response.campaign || campaignData)
+      
+      return response
+    } catch (err) {
+      error.value = err.message
+      console.error('Error updating campaign:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Reuse/Duplicate campaign
+  const reuseCampaign = async (campaignId, reuseName = null) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const token = getToken()
+      const response = await service.reuseCampaign(campaignId, reuseName ? { name: reuseName } : {}, token)
+      
+      // Add new campaign to list
+      if (response.data || response.campaign) {
+        const newCampaign = response.data || response.campaign
+        campaigns.value.unshift(newCampaign)
+      }
+      
+      return response
+    } catch (err) {
+      error.value = err.message
+      console.error('Error reusing campaign:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Resend campaign
+  const resendCampaign = async (campaignId, options = {}) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const token = getToken()
+      const response = await service.resendCampaign(campaignId, options, token)
+      
+      // Update campaign status
+      updateCampaignInList(campaignId, { status: 'sending' })
+      
+      return response
+    } catch (err) {
+      error.value = err.message
+      console.error('Error resending campaign:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Start campaign
   const startCampaign = async (campaignId) => {
     loading.value = true
@@ -106,7 +179,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.startCampaign(campaignId, token)
+      const response = await service.startCampaign(campaignId, token)
       
       // Update campaign status in list
       updateCampaignInList(campaignId, { status: 'sending' })
@@ -128,7 +201,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.pauseCampaign(campaignId, token)
+      const response = await service.pauseCampaign(campaignId, token)
       
       // Update campaign status in list
       updateCampaignInList(campaignId, { status: 'paused' })
@@ -150,7 +223,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.resumeCampaign(campaignId, token)
+      const response = await service.resumeCampaign(campaignId, token)
       
       // Update campaign status in list
       updateCampaignInList(campaignId, { status: 'sending' })
@@ -172,7 +245,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.cancelCampaign(campaignId, token)
+      const response = await service.cancelCampaign(campaignId, token)
       
       // Update campaign status in list
       updateCampaignInList(campaignId, { status: 'cancelled' })
@@ -194,7 +267,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.deleteCampaign(campaignId, token)
+      const response = await service.deleteCampaign(campaignId, token)
       
       // Remove from campaigns list
       campaigns.value = campaigns.value.filter(c => c.id !== campaignId)
@@ -216,7 +289,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.getCampaignStats(campaignId, token)
+      const response = await service.getCampaignStats(campaignId, token)
       return response
     } catch (err) {
       error.value = err.message
@@ -234,7 +307,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.getCampaignRecipients(campaignId, filters, token)
+      const response = await service.getCampaignRecipients(campaignId, filters, token)
       return response
     } catch (err) {
       error.value = err.message
@@ -252,7 +325,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.getCampaignLogs(campaignId, filters, token)
+      const response = await service.getCampaignLogs(campaignId, filters, token)
       return response
     } catch (err) {
       error.value = err.message
@@ -270,7 +343,7 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await campaignService.sendTestSms(testData, token)
+      const response = await service.sendTestSms(testData, token)
       return response
     } catch (err) {
       error.value = err.message
@@ -300,6 +373,46 @@ export const useSMSCampaigns = () => {
     }
   }
 
+  // Helper: Exponential backoff for retries
+  const exponentialBackoff = (attemptNumber) => {
+    // First retry: 1 second, second retry: 2 seconds, third: 4 seconds, etc.
+    return Math.min(1000 * Math.pow(2, attemptNumber), 30000) // Max 30 seconds
+  }
+
+  // Helper: Retry action with exponential backoff
+  const retryAction = async (actionFn, campaignId, maxRetries = 3) => {
+    const retryKey = `${campaignId}_${actionFn.name || 'action'}`
+    
+    if (!retryAttempts.value[retryKey]) {
+      retryAttempts.value[retryKey] = 0
+    }
+
+    try {
+      const result = await actionFn()
+      // Reset retry counter on success
+      retryAttempts.value[retryKey] = 0
+      return result
+    } catch (err) {
+      if (retryAttempts.value[retryKey] < maxRetries) {
+        retryAttempts.value[retryKey]++
+        const backoffMs = exponentialBackoff(retryAttempts.value[retryKey] - 1)
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+        
+        // Recursive retry
+        return retryAction(actionFn, campaignId, maxRetries)
+      }
+      
+      throw err
+    }
+  }
+
+  // Get retry attempts for a campaign action
+  const getRetryAttempts = (campaignId, actionName) => {
+    return retryAttempts.value[`${campaignId}_${actionName}`] || 0
+  }
+
   // Computed: Active campaigns
   const activeCampaigns = computed(() => {
     return campaigns.value.filter(c => c.status === 'sending' || c.status === 'paused')
@@ -321,11 +434,15 @@ export const useSMSCampaigns = () => {
     currentCampaign,
     loading,
     error,
+    retryAttempts,
     
     // Actions
     fetchCampaigns,
     fetchCampaign,
     createCampaign,
+    updateCampaign,
+    reuseCampaign,
+    resendCampaign,
     startCampaign,
     pauseCampaign,
     resumeCampaign,
@@ -335,6 +452,10 @@ export const useSMSCampaigns = () => {
     fetchCampaignRecipients,
     fetchCampaignLogs,
     sendTestSms,
+    
+    // Helpers
+    retryAction,
+    getRetryAttempts,
     
     // Computed
     activeCampaigns,

@@ -16,7 +16,7 @@ Open `nuxt.config.ts` and ensure you have:
 export default defineNuxtConfig({
   runtimeConfig: {
     public: {
-      apiBase: process.env.API_BASE_URL || 'http://localhost:3000'
+      apiBase: process.env.API_BASE_URL 
     }
   }
 })

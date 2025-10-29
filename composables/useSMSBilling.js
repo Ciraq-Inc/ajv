@@ -2,6 +2,9 @@ import { ref, computed } from 'vue'
 import billingService from '~/services/sms/billingService'
 
 export const useSMSBilling = () => {
+  const config = useRuntimeConfig()
+  const apiBase = config.public.apiBase
+  const service = billingService(apiBase)
   const balance = ref(null)
   const transactions = ref([])
   const billingHealth = ref([])
@@ -10,11 +13,17 @@ export const useSMSBilling = () => {
   const loading = ref(false)
   const error = ref(null)
 
-  // Get auth token from company store
+  // Get auth token from company store or admin store
   const getToken = () => {
     if (process.server) return null
     
-    // Try to get company token first
+    // Try to get admin token first (for admin pages)
+    const adminStore = useAdminStore()
+    if (adminStore.token) {
+      return adminStore.token
+    }
+    
+    // Try to get company token
     const companyStore = useCompanyStore()
     if (companyStore.companyAuthToken) {
       return companyStore.companyAuthToken
@@ -25,7 +34,8 @@ export const useSMSBilling = () => {
     const companyDomain = route.path.match(/\/([^\/]+)\/services/)?.[1]
     const storageKey = companyDomain ? `company_${companyDomain}` : 'company'
     
-    return localStorage.getItem(`${storageKey}_token`) || 
+    return localStorage.getItem('adminToken') || 
+           localStorage.getItem(`${storageKey}_token`) || 
            localStorage.getItem('token') || 
            sessionStorage.getItem('token')
   }
@@ -39,7 +49,7 @@ export const useSMSBilling = () => {
     
     try {
       const token = getToken()
-      const response = await billingService.getBalance(token)
+      const response = await service.getBalance(token)
       balance.value = response.data || response
       return response
     } catch (err) {
@@ -58,7 +68,7 @@ export const useSMSBilling = () => {
     
     try {
       const token = getToken()
-      const response = await billingService.getTransactions(filters, token)
+      const response = await service.getTransactions(filters, token)
       transactions.value = response.data || response.transactions || []
       return response
     } catch (err) {
@@ -79,7 +89,7 @@ export const useSMSBilling = () => {
     
     try {
       const token = getToken()
-      const response = await billingService.topUpCredits(topUpData, token)
+      const response = await service.topUpCredits(topUpData, token)
       return response
     } catch (err) {
       error.value = err.message
@@ -97,7 +107,7 @@ export const useSMSBilling = () => {
     
     try {
       const token = getToken()
-      const response = await billingService.topUpMoney(topUpData, token)
+      const response = await service.topUpMoney(topUpData, token)
       return response
     } catch (err) {
       error.value = err.message
@@ -118,12 +128,13 @@ export const useSMSBilling = () => {
       let response
       
       if (companyId) {
-        response = await billingService.getCompanyBillingHealth(companyId, token)
+        response = await service.getCompanyBillingHealth(companyId, token)
       } else {
-        response = await billingService.getBillingHealth(token)
+        response = await service.getBillingHealth(token)
       }
       
-      billingHealth.value = response.data || response.health || []
+      const healthData = response.data || response.health || response
+      billingHealth.value = Array.isArray(healthData) ? healthData : [healthData]
       return response
     } catch (err) {
       error.value = err.message
@@ -144,9 +155,9 @@ export const useSMSBilling = () => {
       let response
       
       if (companyId) {
-        response = await billingService.runCompanyReconciliation(companyId, token)
+        response = await service.runCompanyReconciliation(companyId, token)
       } else {
-        response = await billingService.runReconciliation(token)
+        response = await service.runReconciliation(token)
       }
       
       return response
@@ -166,7 +177,7 @@ export const useSMSBilling = () => {
     
     try {
       const token = getToken()
-      const response = await billingService.getBillingIssues(filters, token)
+      const response = await service.getBillingIssues(filters, token)
       billingIssues.value = response.data || response.issues || []
       return response
     } catch (err) {
@@ -185,7 +196,7 @@ export const useSMSBilling = () => {
     
     try {
       const token = getToken()
-      const response = await billingService.resolveIssue(issueId, resolutionData, token)
+      const response = await service.resolveIssue(issueId, resolutionData, token)
       
       // Update issue in list
       const index = billingIssues.value.findIndex(issue => issue.id === issueId)
@@ -214,7 +225,7 @@ export const useSMSBilling = () => {
     
     try {
       const token = getToken()
-      const response = await billingService.getAuditLog(filters, token)
+      const response = await service.getAuditLog(filters, token)
       auditLog.value = response.data || response.audit_log || []
       return response
     } catch (err) {
@@ -231,7 +242,7 @@ export const useSMSBilling = () => {
   // Available balance
   const availableBalance = computed(() => {
     if (!balance.value) return 0
-    return balance.value.available_balance || balance.value.sms_credit_balance || 0
+    return balance.value.available_balance || balance.value.sms_balance || 0
   })
 
   // Reserved credits
@@ -262,15 +273,16 @@ export const useSMSBilling = () => {
         .map(issue => issue.company_id)
     )
     return uniqueCompanies.size
-  })
+   })
 
   // Health status
   const overallHealthStatus = computed(() => {
-    if (!billingHealth.value || billingHealth.value.length === 0) {
+    const healthArray = Array.isArray(billingHealth.value) ? billingHealth.value : []
+    if (!healthArray || healthArray.length === 0) {
       return 'unknown'
     }
     
-    const hasIssues = billingHealth.value.some(health => 
+    const hasIssues = healthArray.some(health => 
       health.unbilled_sent_count > 0 || 
       health.billed_failed_count > 0 ||
       health.balance_discrepancy !== 0

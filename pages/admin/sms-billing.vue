@@ -445,6 +445,7 @@ const topUpError = ref('')
 const companySearch = ref('')
 const companySearchResults = ref([])
 const companySearchLoading = ref(false)
+const selectedCompany = ref(null)
 let companySearchTimeout = null
 
 const topUpForm = ref({
@@ -454,7 +455,8 @@ const topUpForm = ref({
 })
 
 const lowBalanceCount = computed(() => {
-  return billingHealth.value.filter(h => h.sms_balance < 100).length
+  const healthArray = Array.isArray(billingHealth.value) ? billingHealth.value : []
+  return healthArray.filter(h => h.sms_balance < 100).length
 })
 
 const availableCompanies = computed(() => {
@@ -558,18 +560,27 @@ const closeTopUpModal = () => {
   topUpError.value = ''
   companySearch.value = ''
   companySearchResults.value = []
+  selectedCompany.value = null
 }
 
 const getSelectedCompanyName = () => {
   if (!topUpForm.value.company_id) return ''
-  const company = companySearchResults.value.find(c => c.id == topUpForm.value.company_id)
-  return company ? company.name : ''
+  if (selectedCompany.value) return selectedCompany.value.name
+  const company = billingHealth.value.find(c => c.company_id == topUpForm.value.company_id)
+  return company ? company.company_name || company.name : ''
 }
 
 const getNewBalance = () => {
   if (!topUpForm.value.company_id) return topUpForm.value.amount || 0
-  const company = companySearchResults.value.find(c => c.id == topUpForm.value.company_id)
-  const currentBalance = company ? (company.sms_balance || 0) : 0
+  let currentBalance = 0
+  
+  if (selectedCompany.value) {
+    currentBalance = selectedCompany.value.sms_balance || 0
+  } else {
+    const company = billingHealth.value.find(c => c.company_id == topUpForm.value.company_id)
+    currentBalance = company ? (company.sms_balance || 0) : 0
+  }
+  
   return currentBalance + (topUpForm.value.amount || 0)
 }
 
@@ -584,27 +595,16 @@ const searchCompanies = async (query) => {
   companySearchLoading.value = true
   
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase || 'http://localhost:3000/api'
-    const response = await fetch(`${baseURL}/api/companies/search?q=${encodeURIComponent(query.trim())}`)
+    const { get } = useApi()
+    const response = await get(`/api/companies/search?q=${encodeURIComponent(query.trim())}`)
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const data = await response.json()
-    
-    if (data.success && Array.isArray(data.data)) {
-      // Map API response to expected format
-      companySearchResults.value = data.data.map(company => ({
-        id: company.id,
-        name: company.name,
-        location: company.location,
-        sms_balance: company.sms_balance || 0
-      }))
-    } else {
-      companySearchResults.value = []
-    }
+    // Map API response to expected format
+    companySearchResults.value = (response.data || response || []).slice(0, 10).map(company => ({
+      id: company.id,
+      name: company.name,
+      location: company.location || '',
+      sms_balance: company.sms_balance || 0
+    }))
   } catch (error) {
     console.error('Error searching companies:', error)
     companySearchResults.value = []
@@ -638,6 +638,7 @@ watch(companySearch, (newValue) => {
 // Select company from search results
 const selectCompanyFromSearch = (company) => {
   topUpForm.value.company_id = company.id
+  selectedCompany.value = company
   companySearch.value = '' // Clear search after selection
   companySearchResults.value = []
 }
@@ -645,6 +646,7 @@ const selectCompanyFromSearch = (company) => {
 // Clear company selection to search again
 const clearCompanySelection = () => {
   topUpForm.value.company_id = ''
+  selectedCompany.value = null
   companySearch.value = ''
   companySearchResults.value = []
 }

@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between mb-4">
         <div>
           <nuxt-link
-            to="/company/sms-campaigns"
+            :to="`/${route.params.pharmacy}/services/sms-campaigns`"
             class="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-2"
           >
             <Icon name="ArrowLeft" class="h-4 w-4" />
@@ -462,12 +462,12 @@
           <div class="mt-4 pt-4 border-t border-blue-400">
             <div class="flex items-center justify-between">
               <span class="text-sm">Your Current Balance:</span>
-              <span class="text-lg font-semibold">{{ balance?.available_balance || 0 }} credits</span>
+              <span class="text-lg font-semibold">{{ balance?.sms_balance || 0 }} credits</span>
             </div>
             <div class="flex items-center justify-between mt-2">
               <span class="text-sm">Balance After Campaign:</span>
               <span class="text-lg font-semibold">
-                {{ (balance?.available_balance || 0) - getTotalCost() }} credits
+                {{ (balance?.sms_balance || 0) - getTotalCost() }} credits
               </span>
             </div>
           </div>
@@ -483,7 +483,7 @@
             <div>
               <p class="text-sm font-medium text-red-900">Insufficient Balance</p>
               <p class="text-sm text-red-800 mt-1">
-                You need {{ getTotalCost() - (balance?.available_balance || 0) }} more credits to send this campaign.
+                You need {{ getTotalCost() - (balance?.sms_balance || 0) }} more credits to send this campaign.
                 Please contact admin to top up your balance.
               </p>
             </div>
@@ -551,12 +551,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import { useApi } from '~/composables/useApi'
 import { useCompanyStore } from '~/stores/company'
 import MessageComposer from '~/components/sms/campaign/MessageComposer.vue'
 import TestSmsModal from '~/components/sms/shared/TestSmsModal.vue'
+
+const route = useRoute()
 
 // Define page metadata
 definePageMeta({
@@ -824,7 +827,7 @@ const getTotalCost = () => {
 
 // Check sufficient balance
 const hasSufficientBalance = () => {
-  return (balance.value?.available_balance || 0) >= getTotalCost()
+  return (balance.value?.sms_balance || 0) >= getTotalCost()
 }
 
 // Save draft
@@ -841,7 +844,7 @@ const saveDraft = async () => {
 
     await createCampaign(campaignData)
     alert('Campaign saved as draft!')
-    router.push('/company/sms-campaigns')
+    router.push(`/${route.params.pharmacy}/services/sms-campaigns`)
   } catch (error) {
     alert('Failed to save draft: ' + error.message)
   }
@@ -865,7 +868,7 @@ const sendCampaign = async () => {
 
     const response = await createCampaign(campaignData)
     alert('Campaign created successfully! SMS messages are being sent.')
-    router.push('/company/sms-campaigns')
+    router.push(`/${route.params.pharmacy}/services/sms-campaigns`)
   } catch (error) {
     alert('Failed to create campaign: ' + error.message)
   }

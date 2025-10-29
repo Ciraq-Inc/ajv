@@ -305,7 +305,7 @@ const exportToJSON = async () => {
 const exportToCSV = async () => {
   try {
     const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase || 'http://localhost:3000'
+    const baseURL = config.public.apiBase 
     
     const params = new URLSearchParams()
     params.append('format', 'csv')

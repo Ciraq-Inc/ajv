@@ -118,6 +118,7 @@
               <th class="text-left py-3 px-6 text-xs font-medium text-gray-600 uppercase">Type</th>
               <th class="text-left py-3 px-6 text-xs font-medium text-gray-600 uppercase">Description</th>
               <th class="text-right py-3 px-6 text-xs font-medium text-gray-600 uppercase">Amount</th>
+              <!-- <th class="text-right py-3 px-6 text-xs font-medium text-gray-600 uppercase">SMS Count</th> -->
               <th class="text-right py-3 px-6 text-xs font-medium text-gray-600 uppercase">Balance</th>
             </tr>
           </thead>
@@ -143,13 +144,16 @@
               <td class="py-4 px-6 text-sm text-gray-600">
                 {{ transaction.description || '-' }}
               </td>
-              <td class="py-4 px-6 text-sm text-right font-medium">
+              <td class="py-4 px-6 text-sm text-gray-600">
+                {{ transaction.amount || '-' }}
+              </td>
+              <!-- <td class="py-4 px-6 text-sm text-right font-medium">
                 <span :class="transaction.sms_count > 0 ? 'text-green-600' : 'text-red-600'">
                   {{ transaction.sms_count > 0 ? '+' : '' }}{{ formatNumber(transaction.sms_count) }}
                 </span>
-              </td>
+              </td> -->
               <td class="py-4 px-6 text-sm text-right text-gray-900 font-medium">
-                {{ formatNumber(transaction.balance_after) }}
+                {{ formatNumber(transaction.money_balance_after) }}
               </td>
             </tr>
           </tbody>

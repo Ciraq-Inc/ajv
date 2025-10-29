@@ -39,10 +39,16 @@
               {{ message }}
             </p>
 
+            <!-- Error Message -->
+            <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p class="text-sm text-red-600 font-medium">Error occurred:</p>
+              <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+            </div>
+
             <!-- Actions -->
             <div class="flex gap-3">
               <button
-                v-if="showCancel"
+                v-if="showCancel && !canRetry"
                 @click="handleCancel"
                 type="button"
                 class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
@@ -51,6 +57,36 @@
               </button>
               
               <button
+                v-if="canRetry"
+                @click="handleRetry"
+                type="button"
+                :class="[
+                  'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
+                  'bg-blue-600 text-white hover:bg-blue-700'
+                ]"
+                :disabled="isRetrying"
+              >
+                <span v-if="isRetrying" class="flex items-center justify-center">
+                  <Icon name="Loader2" class="h-4 w-4 animate-spin mr-2" />
+                  Retrying...
+                </span>
+                <span v-else class="flex items-center justify-center">
+                  <Icon name="RotateCw" class="h-4 w-4 mr-2" />
+                  Retry
+                </span>
+              </button>
+
+              <button
+                v-if="canRetry"
+                @click="handleCancel"
+                type="button"
+                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              
+              <button
+                v-if="!canRetry"
                 @click="handleConfirm"
                 type="button"
                 :class="[
@@ -91,8 +127,8 @@ const props = defineProps({
   },
   type: {
     type: String,
-    default: 'warning', // 'warning', 'danger', 'info', 'success'
-    validator: (value) => ['warning', 'danger', 'info', 'success', null].includes(value)
+    default: 'warning', // 'warning', 'danger', 'info', 'success', 'error'
+    validator: (value) => ['warning', 'danger', 'info', 'success', 'error', null].includes(value)
   },
   confirmText: {
     type: String,
@@ -117,15 +153,28 @@ const props = defineProps({
   closeOnBackdrop: {
     type: Boolean,
     default: true
+  },
+  error: {
+    type: String,
+    default: null
+  },
+  canRetry: {
+    type: Boolean,
+    default: false
+  },
+  isRetrying: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['confirm', 'cancel', 'close'])
+const emit = defineEmits(['confirm', 'cancel', 'close', 'retry'])
 
 const iconName = computed(() => {
   const icons = {
     warning: 'AlertTriangle',
     danger: 'AlertCircle',
+    error: 'AlertCircle',
     info: 'Info',
     success: 'CheckCircle'
   }
@@ -136,6 +185,7 @@ const iconBgClass = computed(() => {
   const classes = {
     warning: 'bg-yellow-100',
     danger: 'bg-red-100',
+    error: 'bg-red-100',
     info: 'bg-blue-100',
     success: 'bg-green-100'
   }
@@ -146,6 +196,7 @@ const iconColorClass = computed(() => {
   const classes = {
     warning: 'text-yellow-600',
     danger: 'text-red-600',
+    error: 'text-red-600',
     info: 'text-blue-600',
     success: 'text-green-600'
   }
@@ -156,6 +207,7 @@ const confirmButtonClass = computed(() => {
   const classes = {
     warning: 'bg-yellow-600 text-white hover:bg-yellow-700',
     danger: 'bg-red-600 text-white hover:bg-red-700',
+    error: 'bg-red-600 text-white hover:bg-red-700',
     info: 'bg-blue-600 text-white hover:bg-blue-700',
     success: 'bg-green-600 text-white hover:bg-green-700'
   }
@@ -171,8 +223,12 @@ const handleCancel = () => {
   emit('close')
 }
 
+const handleRetry = () => {
+  emit('retry')
+}
+
 const handleBackdropClick = () => {
-  if (props.closeOnBackdrop && !props.loading) {
+  if (props.closeOnBackdrop && !props.loading && !props.isRetrying) {
     emit('close')
   }
 }

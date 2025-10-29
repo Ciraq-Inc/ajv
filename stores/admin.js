@@ -131,7 +131,7 @@ export const useAdminStore = defineStore('admin', {
 
       try {
         const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase || 'http://localhost:3000';
+        const baseURL = config.public.apiBase ;
         
         const response = await fetch(`${baseURL}/api/admin/profile`, {
           method: 'GET',
@@ -162,7 +162,7 @@ export const useAdminStore = defineStore('admin', {
       }
 
       const config = useRuntimeConfig();
-      const baseURL = config.public.apiBase || 'http://localhost:3000';
+      const baseURL = config.public.apiBase ;
 
       try {
         const response = await fetch(`${baseURL}${endpoint}`, {

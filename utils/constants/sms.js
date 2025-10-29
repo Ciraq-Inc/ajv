@@ -105,7 +105,13 @@ export const STATUS_COLORS = {
 
 // Helper function to get status label
 export function getStatusLabel(status) {
-  return status
+  // Defensive: handle undefined/null and non-string inputs
+  if (status === null || status === undefined) return 'Unknown'
+
+  const str = String(status).trim()
+  if (str.length === 0) return 'Unknown'
+
+  return str
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')

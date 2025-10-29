@@ -53,7 +53,7 @@
           </NuxtLink>
         </div>
 
-        <!-- <div class="nav-section">
+        <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">SMS Management</div>
           
           <NuxtLink 
@@ -82,7 +82,7 @@
             <span class="nav-icon">⚙️</span>
             <span v-if="!isSidebarCollapsed" class="nav-text">SMS Settings</span>
           </NuxtLink>
-        </div> -->
+        </div> 
 
         <!-- <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
@@ -114,7 +114,7 @@
             <span class="nav-icon">💊</span>
             <span v-if="!isSidebarCollapsed" class="nav-text">Products</span>
           </NuxtLink>
-        </div> -->
+        </div>  -->
 
         <!-- <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">System</div>
@@ -136,7 +136,7 @@
             <span class="nav-icon">📋</span>
             <span v-if="!isSidebarCollapsed" class="nav-text">Activity Logs</span>
           </NuxtLink>
-        </div> -->
+        </div>  -->
       </nav>
 
       <!-- Logout Button -->

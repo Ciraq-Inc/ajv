@@ -380,7 +380,7 @@ const exportToJSON = async () => {
 const exportToCSV = async () => {
   try {
     const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase || 'http://localhost:3000'
+    const baseURL = config.public.apiBase 
     
     const response = await fetch(`${baseURL}/api/insurance-payers/cross-tenant/export?format=csv`, {
       method: 'GET',

@@ -7,7 +7,7 @@
           {{ campaign.name }}
         </h3>
         <p class="text-sm text-gray-600 flex items-center gap-2">
-          <Icon name="Calendar" class="h-4 w-4" />
+          <CalendarIcon class="h-4 w-4" />
           {{ formatDate(campaign.created_at, 'short') }}
         </p>
       </div>
@@ -59,7 +59,7 @@
 
     <!-- Provider -->
     <div class="flex items-center gap-2 text-sm text-gray-600 mb-4">
-      <Icon name="Smartphone" class="h-4 w-4" />
+      <DevicePhoneMobileIcon class="h-4 w-4" />
       <span>{{ providerLabel }}</span>
     </div>
 
@@ -71,13 +71,13 @@
       >
         View Details
       </button>
-
+      
       <button
         v-if="campaign.status === 'draft'"
         @click="$emit('start', campaign.id)"
         class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
       >
-        <Icon name="Play" class="h-4 w-4 inline mr-1" />
+        <PlayIcon class="h-4 w-4 inline mr-1" />
         Start
       </button>
 
@@ -86,7 +86,7 @@
         @click="$emit('pause', campaign.id)"
         class="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
       >
-        <Icon name="Pause" class="h-4 w-4 inline mr-1" />
+        <PauseIcon class="h-4 w-4 inline mr-1" />
         Pause
       </button>
 
@@ -95,9 +95,62 @@
         @click="$emit('resume', campaign.id)"
         class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
       >
-        <Icon name="Play" class="h-4 w-4 inline mr-1" />
+        <PlayIcon class="h-4 w-4 inline mr-1" />
         Resume
       </button>
+
+      <!-- More Actions Menu -->
+      <div class="relative">
+        <button
+          @click="showMenu = !showMenu"
+          class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          title="More actions"
+        >
+          <EllipsisVerticalIcon class="h-4 w-4" />
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div
+          v-if="showMenu"
+          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+          @mouseleave="showMenu = false"
+        >
+          <button
+            v-if="canEdit"
+            @click="() => { $emit('update', campaign.id); showMenu = false }"
+            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 text-sm"
+          >
+            <PencilIcon class="h-4 w-4" />
+            <span>Edit Campaign</span>
+          </button>
+
+          <button
+            v-if="canReuse"
+            @click="() => { $emit('reuse', campaign.id); showMenu = false }"
+            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 text-sm"
+          >
+            <DocumentDuplicateIcon class="h-4 w-4" />
+            <span>Reuse Campaign</span>
+          </button>
+
+          <button
+            v-if="canResend"
+            @click="() => { $emit('resend', campaign.id); showMenu = false }"
+            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 text-sm"
+          >
+            <PaperAirplaneIcon class="h-4 w-4" />
+            <span>Resend Campaign</span>
+          </button>
+
+          <button
+            @click="() => { $emit('cancel', campaign.id); showMenu = false }"
+            class="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-red-600 text-sm"
+          >
+            <TrashIcon class="h-4 w-4" />
+            <span>Cancel Campaign</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Failed Count Warning -->
@@ -105,14 +158,24 @@
       v-if="campaign.failed_count > 0" 
       class="mt-3 flex items-center gap-2 text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded-lg"
     >
-      <Icon name="AlertTriangle" class="h-4 w-4 flex-shrink-0" />
+      <ExclamationTriangleIcon class="h-4 w-4 flex-shrink-0" />
       <span>{{ campaign.failed_count }} message(s) failed</span>
+    </div>
+
+    <!-- Completion Notification -->
+    <div 
+      v-if="showCompletionNotification" 
+      class="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-200 animate-pulse"
+    >
+      <CheckCircleIcon class="h-4 w-4 flex-shrink-0" />
+      <span>Campaign completed successfully!</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { CalendarIcon, DevicePhoneMobileIcon, PlayIcon, PauseIcon, PencilIcon, DocumentDuplicateIcon, PaperAirplaneIcon, TrashIcon, EllipsisVerticalIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
 import { SMS_PROVIDERS } from '~/utils/constants/sms'
@@ -124,7 +187,36 @@ const props = defineProps({
   }
 })
 
-defineEmits(['view', 'start', 'pause', 'resume', 'cancel'])
+const emit = defineEmits(['view', 'start', 'pause', 'resume', 'cancel', 'reuse', 'resend', 'update', 'completed', 'status-changed'])
+
+const showMenu = ref(false)
+const previousStatus = ref(props.campaign.status)
+const showCompletionNotification = ref(false)
+
+// Watch for status changes
+watch(() => props.campaign.status, (newStatus, oldStatus) => {
+  if (oldStatus && newStatus !== oldStatus) {
+    previousStatus.value = oldStatus
+    
+    // Emit status change event
+    emit('status-changed', {
+      campaignId: props.campaign.id,
+      oldStatus,
+      newStatus
+    })
+    
+    // Show completion notification
+    if (newStatus === 'completed' && oldStatus === 'sending') {
+      showCompletionNotification.value = true
+      emit('completed', props.campaign)
+      
+      // Auto-hide notification after 5 seconds
+      setTimeout(() => {
+        showCompletionNotification.value = false
+      }, 5000)
+    }
+  }
+})
 
 const progressPercentage = computed(() => {
   const total = props.campaign.total_recipients || 0
@@ -139,5 +231,17 @@ const providerLabel = computed(() => {
   if (provider === SMS_PROVIDERS.NALO) return 'Nalo Solutions'
   if (provider === SMS_PROVIDERS.MNOTIFY) return 'MNotify'
   return 'Auto-detect'
+})
+
+const canReuse = computed(() => {
+  return ['draft', 'completed', 'cancelled', 'paused'].includes(props.campaign.status)
+})
+
+const canResend = computed(() => {
+  return ['completed', 'paused'].includes(props.campaign.status)
+})
+
+const canEdit = computed(() => {
+  return ['draft', 'paused'].includes(props.campaign.status)
 })
 </script>

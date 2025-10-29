@@ -8,7 +8,7 @@
           <p class="text-gray-600 mt-1">Create and manage your SMS marketing campaigns</p>
         </div>
         <nuxt-link
-          to="/company/sms-create-campaign"
+          :to="`/${companyDomain.value}/services/sms-create-campaign`"
           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
         >
           <Icon name="Plus" class="h-5 w-5" />
@@ -136,7 +136,7 @@
       </p>
       <nuxt-link
         v-if="campaigns.length === 0"
-        to="/company/sms-create-campaign"
+        :to="`/${companyDomain.value}/services/sms-create-campaign`"
         class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
       >
         <Icon name="Plus" class="h-5 w-5" />
@@ -162,6 +162,12 @@
         @start="startCampaign"
         @pause="pauseCampaign"
         @resume="resumeCampaign"
+        @cancel="cancelCampaign"
+        @reuse="openReuseCampaignModal"
+        @resend="openResendCampaignModal"
+        @update="updateCampaign"
+        @completed="handleCampaignCompleted"
+        @status-changed="handleCampaignStatusChanged"
       />
     </div>
 
@@ -172,8 +178,23 @@
       :message="confirmDialog.message"
       :type="confirmDialog.type"
       :loading="confirmDialog.loading"
+      :error="confirmDialog.error"
+      :can-retry="confirmDialog.canRetry"
+      :is-retrying="confirmDialog.isRetrying"
       @confirm="handleConfirm"
+      @retry="retryFailedAction"
       @close="closeConfirmDialog"
+    />
+
+    <!-- Campaign Details Modal -->
+    <CampaignDetailsModal
+      :is-open="showDetailsModal"
+      :campaign-id="selectedCampaignId"
+      @close="closeDetailsModal"
+      @start="startCampaign"
+      @pause="pauseCampaign"
+      @resume="resumeCampaign"
+      @cancel="cancelCampaign"
     />
 
     <!-- Test SMS Modal -->
@@ -181,14 +202,116 @@
       :is-open="showTestModal"
       @close="showTestModal = false"
     />
+
+    <!-- Reuse Campaign Modal -->
+    <div v-if="showReuseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Reuse Campaign</h2>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Original Campaign</label>
+              <p class="text-gray-600">{{ reuseFormData.campaignName }}</p>
+            </div>
+            
+            <div>
+              <label for="newCampaignName" class="block text-sm font-medium text-gray-700 mb-2">New Campaign Name</label>
+              <input
+                id="newCampaignName"
+                v-model="reuseFormData.newName"
+                type="text"
+                placeholder="Enter campaign name"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <p class="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+              ℹ️ A copy of this campaign will be created as a draft. You can edit it before sending.
+            </p>
+          </div>
+        </div>
+        
+        <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3 justify-end">
+          <button
+            @click="showReuseModal = false"
+            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleReuseSubmit"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+          >
+            Reuse Campaign
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resend Campaign Modal -->
+    <div v-if="showResendModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Resend Campaign</h2>
+          
+          <div class="space-y-4">
+            <div class="bg-yellow-50 p-4 rounded border border-yellow-200">
+              <p class="text-sm text-yellow-800">
+                ⚠️ This will reset selected recipients to "pending" status and resend SMS messages.
+              </p>
+            </div>
+
+            <div class="space-y-3">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input
+                  v-model="resendFormData.toFailedOnly"
+                  :value="false"
+                  type="radio"
+                  class="w-4 h-4 text-blue-600"
+                />
+                <span class="text-gray-900">Resend to all recipients</span>
+              </label>
+              
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input
+                  v-model="resendFormData.toFailedOnly"
+                  :value="true"
+                  type="radio"
+                  class="w-4 h-4 text-blue-600"
+                />
+                <span class="text-gray-900">Resend to failed recipients only</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3 justify-end">
+          <button
+            @click="showResendModal = false"
+            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleResendSubmit"
+            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium"
+          >
+            Confirm Resend
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import CampaignCard from '~/components/sms/campaign/CampaignCard.vue'
+import CampaignDetailsModal from '~/components/sms/campaign/CampaignDetailsModal.vue'
 import BalanceCard from '~/components/sms/billing/BalanceCard.vue'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
 import TestSmsModal from '~/components/sms/shared/TestSmsModal.vue'
@@ -200,6 +323,9 @@ definePageMeta({
   title: 'SMS Campaigns'
 })
 
+// Get route
+const route = useRoute()
+
 const {
   campaigns,
   loading,
@@ -208,9 +334,15 @@ const {
   startCampaign: startCampaignAction,
   pauseCampaign: pauseCampaignAction,
   resumeCampaign: resumeCampaignAction,
+  cancelCampaign: cancelCampaignAction,
   activeCampaigns,
   completedCampaigns,
-  draftCampaigns
+  draftCampaigns,
+  retryAction,
+  getRetryAttempts,
+  updateCampaign: updateCampaignAction,
+  reuseCampaign: reuseCampaignAction,
+  resendCampaign: resendCampaignAction
 } = useSMSCampaigns()
 
 const { balance, fetchBalance } = useSMSBilling()
@@ -221,6 +353,8 @@ const filters = ref({
 })
 
 const showTestModal = ref(false)
+const showDetailsModal = ref(false)
+const selectedCampaignId = ref(null)
 
 const confirmDialog = ref({
   isOpen: false,
@@ -229,7 +363,23 @@ const confirmDialog = ref({
   type: 'warning',
   loading: false,
   action: null,
-  campaignId: null
+  campaignId: null,
+  error: null,
+  canRetry: false,
+  isRetrying: false
+})
+
+// State for reuse/resend modals
+const showReuseModal = ref(false)
+const showResendModal = ref(false)
+const reuseFormData = ref({
+  campaignId: null,
+  campaignName: '',
+  newName: ''
+})
+const resendFormData = ref({
+  campaignId: null,
+  toFailedOnly: false
 })
 
 // Filtered campaigns based on filters
@@ -248,11 +398,90 @@ const filteredCampaigns = computed(() => {
 })
 
 // Load data on mount
+let pollingInterval = null
+
 onMounted(async () => {
   await Promise.all([
     fetchCampaigns(),
     fetchBalance()
   ])
+  
+  // Start polling for active campaigns (every 10 seconds)
+  startCampaignPolling()
+})
+
+onUnmounted(() => {
+  // Clean up polling when component is destroyed
+  stopCampaignPolling()
+})
+
+// Polling mechanism for active campaigns
+const startCampaignPolling = () => {
+  pollingInterval = setInterval(async () => {
+    // Only poll if there are active campaigns (sending or paused)
+    const hasActiveCampaigns = campaigns.value.some(c => 
+      c.status === 'sending' || c.status === 'paused'
+    )
+    
+    if (hasActiveCampaigns && !loading.value) {
+      // Silent refresh - don't show loading state
+      try {
+        await fetchCampaigns(filters.value.status ? { status: filters.value.status } : {})
+      } catch (err) {
+        console.error('Polling error:', err)
+      }
+    }
+  }, 10000) // Poll every 10 seconds
+}
+
+const stopCampaignPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
+
+// Handle campaign completion notification
+const handleCampaignCompleted = async (campaign) => {
+  console.log('Campaign completed:', campaign)
+  
+  // Show toast notification
+  showSuccessToast(`Campaign "${campaign.name}" completed successfully!`)
+  
+  // Refresh balance (credits may have been used)
+  await fetchBalance()
+  
+  // Optionally refresh campaigns to get updated stats
+  await refreshCampaigns()
+}
+
+// Handle campaign status changes
+const handleCampaignStatusChanged = (event) => {
+  console.log('Campaign status changed:', event)
+  
+  // If campaign is no longer active, we can reduce polling frequency
+  const hasActiveCampaigns = campaigns.value.some(c => 
+    c.status === 'sending' || c.status === 'paused'
+  )
+  
+  if (!hasActiveCampaigns) {
+    // Optionally reduce polling or stop it
+    // For now, we'll keep polling in case new campaigns are started
+  }
+}
+
+// Toast notification helper (you can implement your own toast system)
+const showSuccessToast = (message) => {
+  // This is a simple implementation - you can replace with your toast library
+  if (process.client) {
+    alert(message)
+    // Or use a toast library like vue-toastification
+  }
+}
+
+const companyDomain = computed(() => {
+  const pathMatch = route.path.match(/\/([^\/]+)\/services/)
+  return pathMatch ? pathMatch[1] : 'company'
 })
 
 // Refresh campaigns
@@ -275,11 +504,26 @@ const clearFilters = () => {
 
 // View campaign details
 const viewCampaign = (campaignId) => {
-  navigateTo(`/company/sms-campaigns/${campaignId}`)
+  selectedCampaignId.value = campaignId
+  showDetailsModal.value = true
+}
+
+// Close details modal
+const closeDetailsModal = () => {
+  showDetailsModal.value = false
+  selectedCampaignId.value = null
+}
+
+// Edit campaign (redirect to edit page)
+const updateCampaign = (campaignId) => {
+  navigateTo(`/${companyDomain.value}/services/sms-campaigns/${campaignId}/edit`)
 }
 
 // Start campaign
 const startCampaign = (campaignId) => {
+  // Close details modal first
+  closeDetailsModal()
+  
   const campaign = campaigns.value.find(c => c.id === campaignId)
   
   confirmDialog.value = {
@@ -295,6 +539,9 @@ const startCampaign = (campaignId) => {
 
 // Pause campaign
 const pauseCampaign = (campaignId) => {
+  // Close details modal first
+  closeDetailsModal()
+  
   const campaign = campaigns.value.find(c => c.id === campaignId)
   
   confirmDialog.value = {
@@ -310,6 +557,9 @@ const pauseCampaign = (campaignId) => {
 
 // Resume campaign
 const resumeCampaign = (campaignId) => {
+  // Close details modal first
+  closeDetailsModal()
+  
   const campaign = campaigns.value.find(c => c.id === campaignId)
   
   confirmDialog.value = {
@@ -323,29 +573,149 @@ const resumeCampaign = (campaignId) => {
   }
 }
 
+// Cancel campaign
+const cancelCampaign = (campaignId) => {
+  // Close details modal first
+  closeDetailsModal()
+  
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Cancel Campaign?',
+    message: `Are you sure you want to cancel "${campaign?.name}"? This action cannot be undone.`,
+    type: 'error',
+    loading: false,
+    action: 'cancel',
+    campaignId
+  }
+}
+
+// Reuse campaign
+const openReuseCampaignModal = (campaignId) => {
+  closeDetailsModal()
+  
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  reuseFormData.value = {
+    campaignId,
+    campaignName: campaign?.name || '',
+    newName: `${campaign?.name} (Copy)`
+  }
+  showReuseModal.value = true
+}
+
+// Resend campaign
+const openResendCampaignModal = (campaignId) => {
+  closeDetailsModal()
+  
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  resendFormData.value = {
+    campaignId,
+    toFailedOnly: false
+  }
+  showResendModal.value = true
+}
+
+// Handle reuse submission
+const handleReuseSubmit = async () => {
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Reuse Campaign?',
+    message: `Create a new campaign copy of "${reuseFormData.value.campaignName}"? The new campaign will be created as a draft.`,
+    type: 'info',
+    loading: false,
+    action: 'reuse',
+    campaignId: reuseFormData.value.campaignId,
+    error: null,
+    canRetry: false,
+    isRetrying: false
+  }
+  showReuseModal.value = false
+}
+
+// Handle resend submission
+const handleResendSubmit = async () => {
+  const campaign = campaigns.value.find(c => c.id === resendFormData.value.campaignId)
+  const filterText = resendFormData.value.toFailedOnly ? 'to failed recipients only' : 'to all recipients'
+  
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Resend Campaign?',
+    message: `Resend SMS for "${campaign?.name}" ${filterText}?`,
+    type: 'info',
+    loading: false,
+    action: 'resend',
+    campaignId: resendFormData.value.campaignId,
+    error: null,
+    canRetry: false,
+    isRetrying: false
+  }
+  showResendModal.value = false
+}
+
 // Handle confirmation
 const handleConfirm = async () => {
   confirmDialog.value.loading = true
+  confirmDialog.value.error = null
 
   try {
     const { action, campaignId } = confirmDialog.value
 
     if (action === 'start') {
-      await startCampaignAction(campaignId)
-      // Show success notification
+      await retryAction(() => startCampaignAction(campaignId), campaignId)
     } else if (action === 'pause') {
       await pauseCampaignAction(campaignId)
     } else if (action === 'resume') {
       await resumeCampaignAction(campaignId)
+    } else if (action === 'cancel') {
+      await cancelCampaignAction(campaignId)
+    } else if (action === 'reuse') {
+      await reuseCampaignAction(campaignId, reuseFormData.value.newName)
+    } else if (action === 'resend') {
+      await resendCampaignAction(campaignId, { to_failed_only: resendFormData.value.toFailedOnly })
     }
 
     closeConfirmDialog()
     await refreshCampaigns()
   } catch (err) {
     console.error('Action failed:', err)
-    // Show error notification
-  } finally {
+    confirmDialog.value.error = err.message 
+    confirmDialog.value.canRetry = true
+    confirmDialog.value.type = 'error'
     confirmDialog.value.loading = false
+  }
+}
+
+// Retry failed action
+const retryFailedAction = async () => {
+  confirmDialog.value.isRetrying = true
+  confirmDialog.value.error = null
+  confirmDialog.value.canRetry = false
+  
+  try {
+    const { action, campaignId } = confirmDialog.value
+
+    if (action === 'start') {
+      await retryAction(() => startCampaignAction(campaignId), campaignId)
+    } else if (action === 'pause') {
+      await pauseCampaignAction(campaignId)
+    } else if (action === 'resume') {
+      await resumeCampaignAction(campaignId)
+    } else if (action === 'cancel') {
+      await cancelCampaignAction(campaignId)
+    } else if (action === 'reuse') {
+      await reuseCampaignAction(campaignId, reuseFormData.value.newName)
+    } else if (action === 'resend') {
+      await resendCampaignAction(campaignId, { to_failed_only: resendFormData.value.toFailedOnly })
+    }
+
+    closeConfirmDialog()
+    await refreshCampaigns()
+  } catch (err) {
+    console.error('Retry failed:', err)
+    confirmDialog.value.error = err.message
+    confirmDialog.value.canRetry = true
+    confirmDialog.value.isRetrying = false
   }
 }
 
@@ -358,7 +728,10 @@ const closeConfirmDialog = () => {
     type: 'warning',
     loading: false,
     action: null,
-    campaignId: null
+    campaignId: null,
+    error: null,
+    canRetry: false,
+    isRetrying: false
   }
 }
 </script>

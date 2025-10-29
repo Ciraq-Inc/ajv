@@ -6,7 +6,7 @@
       <div class="sidebar-header">
         <div class="flex items-center gap-3">
           <div class="company-logo">
-            <Icon name="Building2" class="h-6 w-6 text-blue-600" />
+            <BuildingOffice2Icon class="h-6 w-6 text-blue-600" />
           </div>
           <div v-if="!sidebarCollapsed" class="company-info">
             <h2 class="text-lg font-bold text-gray-900">{{ companyName }}</h2>
@@ -18,7 +18,8 @@
           class="toggle-btn"
           :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         >
-          <Icon :name="sidebarCollapsed ? 'ChevronRight' : 'ChevronLeft'" class="h-5 w-5" />
+          <ChevronRightIcon v-if="sidebarCollapsed" class="h-5 w-5" />
+          <ChevronLeftIcon v-else class="h-5 w-5" />
         </button>
       </div>
 
@@ -31,7 +32,7 @@
           class="nav-item"
           :title="sidebarCollapsed ? item.label : ''"
         >
-          <Icon :name="item.icon" class="nav-icon" />
+          <component :is="item.icon" class="nav-icon" />
           <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
           <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
         </NuxtLink>
@@ -41,7 +42,7 @@
       <div class="sidebar-footer">
         <div class="user-info">
           <div class="user-avatar">
-            <Icon name="User" class="h-5 w-5 text-gray-600" />
+            <UserIcon class="h-5 w-5 text-gray-600" />
           </div>
           <div v-if="!sidebarCollapsed" class="user-details">
             <p class="user-name">{{ userName }}</p>
@@ -54,7 +55,8 @@
           class="logout-btn"
           :disabled="isLoggingOut"
         >
-          <Icon :name="isLoggingOut ? 'Loader2' : 'LogOut'" :class="isLoggingOut ? 'animate-spin' : ''" class="h-4 w-4" />
+          <ArrowPathIcon v-if="isLoggingOut" class="h-4 w-4 animate-spin" />
+          <ArrowLeftOnRectangleIcon v-else class="h-4 w-4" />
           Logout
         </button>
       </div>
@@ -71,34 +73,34 @@
         <div class="flex items-center gap-4">
           <!-- Notifications -->
           <button class="icon-btn" title="Notifications">
-            <Icon name="Bell" class="h-5 w-5" />
+            <BellIcon class="h-5 w-5" />
           </button>
           
           <!-- Settings -->
           <button class="icon-btn" title="Settings">
-            <Icon name="Settings" class="h-5 w-5" />
+            <Cog6ToothIcon class="h-5 w-5" />
           </button>
           
           <!-- User Menu -->
           <div class="user-menu">
             <button @click="toggleUserMenu" class="user-menu-btn">
-              <Icon name="User" class="h-5 w-5" />
+              <UserIcon class="h-5 w-5" />
               <span>{{ userName }}</span>
-              <Icon name="ChevronDown" class="h-4 w-4" />
+              <ChevronDownIcon class="h-4 w-4" />
             </button>
             
             <div v-if="showUserMenu" class="user-menu-dropdown">
               <NuxtLink to="/profile" class="menu-item">
-                <Icon name="User" class="h-4 w-4" />
+                <UserIcon class="h-4 w-4" />
                 Profile
               </NuxtLink>
               <NuxtLink to="/settings" class="menu-item">
-                <Icon name="Settings" class="h-4 w-4" />
+                <Cog6ToothIcon class="h-4 w-4" />
                 Settings
               </NuxtLink>
               <hr class="my-2 border-gray-200" />
               <button @click="handleLogout" class="menu-item text-red-600">
-                <Icon name="LogOut" class="h-4 w-4" />
+                <ArrowLeftOnRectangleIcon class="h-4 w-4" />
                 Logout
               </button>
             </div>
@@ -118,6 +120,21 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
+import { 
+  BuildingOffice2Icon, 
+  UserIcon, 
+  BellIcon, 
+  Cog6ToothIcon, 
+  ChevronDownIcon, 
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowLeftOnRectangleIcon,
+  ChatBubbleLeftIcon,
+  PlusIcon,
+  BoltIcon,
+  CreditCardIcon,
+  ArrowPathIcon
+} from '@heroicons/vue/24/outline'
 
 const router = useRouter()
 const route = useRoute()
@@ -151,17 +168,22 @@ const navigationItems = computed(() => [
   {
     path: `/${companyDomain.value}/services/sms-campaigns`,
     label: 'SMS Campaigns',
-    icon: 'MessageSquare',
+    icon: ChatBubbleLeftIcon,
   },
   {
     path: `/${companyDomain.value}/services/sms-create-campaign`,
     label: 'Create Campaign',
-    icon: 'Plus',
+    icon: PlusIcon,
+  },
+  {
+    path: `/${companyDomain.value}/services/sms-credits`,
+    label: 'SMS Credits',
+    icon: BoltIcon,
   },
   {
     path: `/${companyDomain.value}/services/sms-billing`,
     label: 'Billing',
-    icon: 'CreditCard',
+    icon: CreditCardIcon,
   },
 ])
 
