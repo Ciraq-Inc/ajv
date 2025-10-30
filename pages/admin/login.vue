@@ -110,12 +110,6 @@
           </div>
         </form>
 
-        <!-- Demo Credentials -->
-        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p class="text-xs text-blue-800 font-semibold mb-2">Demo Credentials:</p>
-          <p class="text-xs text-blue-700">Username: <code class="bg-blue-100 px-1 rounded">super_admin</code></p>
-          <p class="text-xs text-blue-700">Password: <code class="bg-blue-100 px-1 rounded">Admin@123</code></p>
-        </div>
       </div>
     </div>
   </div>

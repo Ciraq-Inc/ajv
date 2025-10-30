@@ -17,7 +17,7 @@
     <!-- Stats Overview -->
     <div v-if="!loading" class="stats-grid">
       <div class="stat-card gradient-blue">
-        <div class="stat-icon">📊</div>
+        <ChartBarIcon class="stat-icon" />
         <div class="stat-content">
           <div class="stat-label">Total Campaigns</div>
           <div class="stat-value">{{ stats.totalCampaigns }}</div>
@@ -26,7 +26,7 @@
       </div>
 
       <div class="stat-card gradient-green">
-        <div class="stat-icon">✅</div>
+        <CheckCircleIcon class="stat-icon" />
         <div class="stat-content">
           <div class="stat-label">Active Campaigns</div>
           <div class="stat-value">{{ stats.activeCampaigns }}</div>
@@ -35,7 +35,7 @@
       </div>
 
       <div class="stat-card gradient-purple">
-        <div class="stat-icon">📱</div>
+        <DevicePhoneMobileIcon class="stat-icon" />
         <div class="stat-content">
           <div class="stat-label">Messages Sent Today</div>
           <div class="stat-value">{{ formatNumber(stats.messagesSentToday) }}</div>
@@ -44,7 +44,7 @@
       </div>
 
       <div class="stat-card gradient-orange">
-        <div class="stat-icon">💰</div>
+        <CurrencyDollarIcon class="stat-icon" />
         <div class="stat-content">
           <div class="stat-label">Credits Used Today</div>
           <div class="stat-value">{{ formatCurrency(stats.creditsUsedToday) }}</div>
@@ -215,7 +215,7 @@
 
     <!-- Empty State -->
     <div v-else class="empty-state">
-      <div class="empty-icon">📭</div>
+      <InboxIcon class="empty-icon" />
       <h3>No campaigns found</h3>
       <p v-if="hasActiveFilters">
         Try adjusting your filters or search criteria
@@ -356,10 +356,24 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import {
+  ChartBarIcon,
+  CheckCircleIcon,
+  DevicePhoneMobileIcon,
+  CurrencyDollarIcon,
+  InboxIcon,
+  BuildingOfficeIcon,
+  EyeIcon,
+  PlayIcon,
+  PauseIcon,
+  XMarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
-import { formatCurrency, formatDate, SMS_PROVIDERS } from '~/utils/constants/sms'
+import { formatCurrency, formatDate, SMS_PROVIDERS_LIST } from '~/utils/constants/sms'
 
 // Define page metadata
 definePageMeta({
@@ -539,7 +553,7 @@ const truncateMessage = (message) => {
 }
 
 const getProviderName = (provider) => {
-  const providerObj = SMS_PROVIDERS.find(p => p.value === provider)
+  const providerObj = SMS_PROVIDERS_LIST.find(p => p.value === provider)
   return providerObj?.name || provider || 'Unknown'
 }
 
@@ -612,6 +626,9 @@ onMounted(async () => {
 
 .stat-icon {
   font-size: 36px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
 }
 
 .stat-content {
@@ -894,8 +911,10 @@ onMounted(async () => {
 }
 
 .empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  color: #D1D5DB;
 }
 
 .empty-state h3 {

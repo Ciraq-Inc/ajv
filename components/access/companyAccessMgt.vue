@@ -47,7 +47,7 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon purple">📊</div>
+          <div class="stat-icon purple"><ChartBarIcon class="icon" /></div>
           <div class="stat-details">
             <div class="stat-value">{{ stats.used_recently || 0 }}</div>
             <div class="stat-label">Used Recently</div>
@@ -140,7 +140,7 @@
       </div>
 
       <!-- API Key Usage Guide -->
-      <div class="usage-guide">
+      <!-- <div class="usage-guide">
         <h3>🔧 How to Use API Keys</h3>
         <div class="guide-content">
           <div class="guide-section">
@@ -165,8 +165,8 @@
   body: JSON.stringify({ data: products })
 });</code></pre>
           </div>
-        </div>
-      </div>
+        </div> 
+      </div>-->
     </div>
 
     <div v-else class="empty-state">

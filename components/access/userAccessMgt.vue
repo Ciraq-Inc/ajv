@@ -7,35 +7,36 @@
         class="btn-primary"
         v-if="adminStore.isSuperAdmin"
       >
-        ➕ Add New Admin
+        <PlusIcon class="btn-icon-sm" />
+        Add New Admin
       </button>
     </div>
 
     <!-- Stats Cards -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon blue">👥</div>
+        <UserGroupIcon class="stat-icon blue" />
         <div class="stat-details">
           <div class="stat-value">{{ admins.length }}</div>
           <div class="stat-label">Total Admins</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon green">✓</div>
+        <CheckCircleIcon class="stat-icon green" />
         <div class="stat-details">
           <div class="stat-value">{{ activeAdmins }}</div>
           <div class="stat-label">Active Admins</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon purple">🔐</div>
+        <LockClosedIcon class="stat-icon purple" />
         <div class="stat-details">
           <div class="stat-value">{{ roleCount }}</div>
           <div class="stat-label">Roles</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon orange">📊</div>
+        <ChartBarIcon class="stat-icon orange" />
         <div class="stat-details">
           <div class="stat-value">{{ superAdminCount }}</div>
           <div class="stat-label">Super Admins</div>
@@ -46,7 +47,7 @@
     <!-- Filters -->
     <div class="filters-bar">
       <div class="search-box">
-        <span class="search-icon">🔍</span>
+        <MagnifyingGlassIcon class="search-icon" />
         <input 
           v-model="searchQuery" 
           type="text" 
@@ -76,7 +77,8 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="error-container">
-      <p>❌ {{ error }}</p>
+      <ExclamationTriangleIcon class="error-icon" />
+      <p>{{ error }}</p>
       <button @click="loadAdmins" class="btn-retry">Retry</button>
     </div>
 
@@ -135,7 +137,7 @@
                   class="btn-icon edit"
                   title="Edit"
                 >
-                  ✏️
+                  <PencilIcon />
                 </button>
                 <button 
                   @click="confirmDelete(admin)" 
@@ -143,7 +145,7 @@
                   title="Delete"
                   :disabled="admin.id === adminStore.admin?.id"
                 >
-                  🗑️
+                  <TrashIcon />
                 </button>
               </div>
             </td>
@@ -161,7 +163,9 @@
       <div class="modal">
         <div class="modal-header">
           <h2>{{ editingAdmin ? 'Edit Admin' : 'Add New Admin' }}</h2>
-          <button @click="closeModal" class="close-btn">✕</button>
+          <button @click="closeModal" class="close-btn">
+            <XMarkIcon />
+          </button>
         </div>
         <div class="modal-body">
           <form @submit.prevent="saveAdmin">
@@ -258,7 +262,9 @@
       <div class="modal modal-sm">
         <div class="modal-header">
           <h2>Confirm Delete</h2>
-          <button @click="deletingAdmin = null" class="close-btn">✕</button>
+          <button @click="deletingAdmin = null" class="close-btn">
+            <XMarkIcon />
+          </button>
         </div>
         <div class="modal-body">
           <p>Are you sure you want to delete <strong>{{ deletingAdmin.fname }} {{ deletingAdmin.lname }}</strong>?</p>
@@ -280,6 +286,18 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import {
+  UserGroupIcon,
+  CheckCircleIcon,
+  LockClosedIcon,
+  ChartBarIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  ExclamationTriangleIcon,
+  XMarkIcon,
+} from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 
 const adminStore = useAdminStore()
@@ -535,6 +553,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 24px;
+  flex-shrink: 0;
 }
 
 .stat-icon.blue { background: #dbeafe; }
@@ -573,7 +592,10 @@ onMounted(() => {
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+  flex-shrink: 0;
 }
 
 .search-input {
@@ -778,6 +800,11 @@ button:disabled {
   padding: 8px;
   border-radius: 6px;
   transition: all 0.2s;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon:hover:not(:disabled) {
@@ -789,6 +816,11 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.btn-icon-sm {
+  width: 18px;
+  height: 18px;
+}
+
 /* Loading/Error States */
 .loading-container,
 .error-container {
@@ -796,6 +828,13 @@ button:disabled {
   border-radius: 12px;
   padding: 60px;
   text-align: center;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: #ef4444;
 }
 
 .spinner {

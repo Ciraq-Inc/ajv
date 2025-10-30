@@ -13,21 +13,30 @@
             :disabled="loading"
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
           >
-            📥 JSON
+            <span class="flex items-center gap-2">
+              <ArrowDownTrayIcon class="export-icon" />
+              <span>JSON</span>
+            </span>
           </button>
           <button
             @click="exportToCSV"
             :disabled="loading"
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            📥 CSV
+            <span class="flex items-center gap-2">
+              <ArrowDownTrayIcon class="export-icon" />
+              <span>CSV</span>
+            </span>
           </button>
           <button
             @click="refreshData"
             :disabled="loading"
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {{ loading ? "Loading..." : "Refresh" }}
+            <span class="flex items-center gap-2">
+              <ArrowPathIcon class="refresh-icon" :class="{ 'animate-spin': loading }" />
+              <span>{{ loading ? "Loading..." : "Refresh" }}</span>
+            </span>
           </button>
         </div>
       </div>
@@ -205,7 +214,11 @@
       <!-- Info Banner -->
       <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p class="text-sm text-blue-800">
-          <strong>ℹ️ Info:</strong> This summary displays aggregated analytics data from inventory, products, and alerts across all companies.
+          <strong class="flex items-center gap-2">
+            <InformationCircleIcon class="w-5 h-5" />
+            <span>Info:</span>
+          </strong>
+          <span> This summary displays aggregated analytics data from inventory, products, and alerts across all companies.</span>
         </p>
       </div>
     </div>
@@ -215,6 +228,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
+import { ArrowDownTrayIcon, ArrowPathIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
 
 const adminStore = useAdminStore();
 const config = useRuntimeConfig();
@@ -408,5 +422,25 @@ onMounted(() => {
 .summary-section h3 {
   color: #1f2937;
   margin-bottom: 16px;
+}
+
+.export-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.refresh-icon {
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>

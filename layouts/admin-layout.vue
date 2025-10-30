@@ -5,7 +5,7 @@
       <!-- Logo/Brand -->
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-icon">🏥</span>
+          <BuildingOfficeIcon class="logo-icon" />
           <span v-if="!isSidebarCollapsed" class="logo-text">Rigel Portal</span>
         </div>
         <button 
@@ -13,8 +13,8 @@
           class="collapse-btn"
           :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
         >
-          <span v-if="isSidebarCollapsed">→</span>
-          <span v-else>←</span>
+          <ChevronRightIcon v-if="isSidebarCollapsed" class="collapse-icon" />
+          <ChevronLeftIcon v-else class="collapse-icon" />
         </button>
       </div>
 
@@ -39,17 +39,28 @@
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">📊</span>
+            <ChartBarIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Data</span>
           </NuxtLink>
+
 
           <NuxtLink 
             to="/admin/access" 
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">🔐</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Access Management</span>
+            <KeyIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Company Management</span>
+          </NuxtLink>
+
+          
+          <NuxtLink 
+            to="/admin/useraccess" 
+            class="nav-item"
+            active-class="active"
+          >
+            <UserGroupIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">User Access Management</span>
           </NuxtLink>
         </div>
 
@@ -61,7 +72,7 @@
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">📱</span>
+            <DevicePhoneMobileIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">SMS Campaigns</span>
           </NuxtLink>
 
@@ -70,7 +81,7 @@
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">💳</span>
+            <CreditCardIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">SMS Billing</span>
           </NuxtLink>
 
@@ -79,7 +90,7 @@
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">⚙️</span>
+            <Cog6ToothIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">SMS Settings</span>
           </NuxtLink>
         </div> 
@@ -142,7 +153,7 @@
       <!-- Logout Button -->
       <div class="sidebar-footer">
         <button @click="handleLogout" class="logout-btn">
-          <span class="nav-icon">🚪</span>
+          <ArrowLeftOnRectangleIcon class="nav-icon" />
           <span v-if="!isSidebarCollapsed" class="nav-text">Logout</span>
         </button>
       </div>
@@ -176,14 +187,14 @@
         <!-- Profile Dropdown -->
         <div v-if="showProfileMenu" class="profile-dropdown">
           <!-- <NuxtLink to="/admin/profile" class="dropdown-item">
-            <span>👤</span> My Profile
+            <UserIcon class="dropdown-icon-small" /> My Profile
           </NuxtLink> -->
           <NuxtLink to="/admin/settings" class="dropdown-item">
-            <span>⚙️</span> Settings
+            <Cog6ToothIcon class="dropdown-icon-small" /> Settings
           </NuxtLink>
           <hr class="dropdown-divider">
           <button @click="handleLogout" class="dropdown-item logout">
-            <span>🚪</span> Logout
+            <ArrowLeftOnRectangleIcon class="dropdown-icon-small" /> Logout
           </button>
         </div>
 
@@ -230,6 +241,18 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {
+  BuildingOfficeIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChartBarIcon,
+  KeyIcon,
+  UserGroupIcon,
+  DevicePhoneMobileIcon,
+  CreditCardIcon,
+  Cog6ToothIcon,
+  ArrowLeftOnRectangleIcon,
+} from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute } from 'vue-router'
 
@@ -268,8 +291,9 @@ const adminInitials = computed(() => {
 
 const pageTitle = computed(() => {
   const path = route.path
-  if (path.includes('/admin/data')) return 'Data Analytics'
-  if (path.includes('/admin/access')) return 'Access Management'
+  if (path.includes('/admin/data')) return 'Data Overview'
+  if (path.includes('/admin/user-access')) return 'User Access Management'
+  if (path.includes('/admin/access')) return 'Company Management'
   if (path.includes('/admin/sms-campaigns')) return 'SMS Campaign Management'
   if (path.includes('/admin/sms-billing')) return 'SMS Billing Management'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
@@ -390,6 +414,8 @@ onUnmounted(() => {
 
 .logo-icon {
   font-size: 28px;
+  width: 28px;
+  height: 28px;
 }
 
 .logo-text {
@@ -414,6 +440,11 @@ onUnmounted(() => {
 
 .collapse-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.collapse-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .admin-info {
@@ -497,6 +528,8 @@ onUnmounted(() => {
 .nav-icon {
   font-size: 18px; /* w-5 h-5 default */
   min-width: 20px; /* w-5 */
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -726,6 +759,11 @@ onUnmounted(() => {
   background: #FEF2F2; /* red-50 */
 }
 
+.dropdown-icon-small {
+  width: 16px;
+  height: 16px;
+}
+
 .dropdown-divider {
   margin: 8px 0; /* my-2 */
   border: none;
@@ -821,7 +859,7 @@ onUnmounted(() => {
 .content {
   flex: 1;
   padding: 24px; /* p-6 */
-  max-width: 1280px; /* max-w-7xl */
+  /* max-width: 1280px;  */
   margin: 0 auto;
   width: 100%;
 }

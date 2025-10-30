@@ -11,22 +11,33 @@ export const useSMSCampaigns = () => {
   const error = ref(null)
   const retryAttempts = ref({}) // Track retry attempts per campaign action
 
-  // Get auth token from company store
+  // Get auth token from company store or admin store
   const getToken = () => {
     if (process.server) return null
     
-    // Try to get company token first
+    const route = useRoute()
+    const isAdminPage = route.path.startsWith('/admin')
+    
+    // For admin pages, get token from admin store
+    if (isAdminPage) {
+      const adminStore = useAdminStore()
+      if (adminStore.token) {
+        return adminStore.token
+      }
+    }
+    
+    // For company pages, get token from company store
     const companyStore = useCompanyStore()
     if (companyStore.companyAuthToken) {
       return companyStore.companyAuthToken
     }
     
     // Fallback to checking localStorage directly
-    const route = useRoute()
     const companyDomain = route.path.match(/\/([^\/]+)\/services/)?.[1]
     const storageKey = companyDomain ? `company_${companyDomain}` : 'company'
     
     return localStorage.getItem(`${storageKey}_token`) || 
+           localStorage.getItem('adminToken') ||
            localStorage.getItem('token') || 
            sessionStorage.getItem('token')
   }
@@ -47,7 +58,17 @@ export const useSMSCampaigns = () => {
     
     try {
       const token = getToken()
-      const response = await service.getCampaigns(filters, token)
+      const route = useRoute()
+      const isAdminPage = route.path.startsWith('/admin')
+      
+      // Use admin endpoint for admin pages
+      let response
+      if (isAdminPage) {
+        response = await service.getAllCampaignsAdmin(filters, token)
+      } else {
+        response = await service.getCampaigns(filters, token)
+      }
+      
       campaigns.value = response.data || response.campaigns || []
       return response
     } catch (err) {

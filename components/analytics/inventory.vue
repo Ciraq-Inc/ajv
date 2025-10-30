@@ -366,9 +366,9 @@ const loadingProducts = ref(false)
 // Tabs
 const tabs = [
   { id: 'companies', label: 'Companies', icon: 'Building2' },
-  { id: 'top-products', label: 'Top Products', icon: 'Trophy' },
-  { id: 'alerts', label: 'Alerts', icon: 'AlertTriangle' },
-  { id: 'products', label: 'Products', icon: 'Package' }
+  // { id: 'top-products', label: 'Top Products', icon: 'Trophy' },
+  // { id: 'alerts', label: 'Alerts', icon: 'AlertTriangle' },
+  // { id: 'products', label: 'Products', icon: 'Package' }
 ]
 
 // Computed

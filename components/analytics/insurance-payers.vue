@@ -20,7 +20,10 @@
               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left text-gray-600"
               disabled
             >
-              ℹ️ All insurance payer data across companies (no filters available)
+              <span class="flex items-center gap-2">
+                <InformationCircleIcon class="w-5 h-5" />
+                <span>All insurance payer data across companies (no filters available)</span>
+              </span>
             </button>
           </div>
         </div>
@@ -33,7 +36,7 @@
             :disabled="loading"
           >
             <span class="flex items-center gap-2">
-              <span>📥</span>
+              <ArrowDownTrayIcon class="export-icon" />
               <span>JSON</span>
             </span>
           </button>
@@ -43,7 +46,7 @@
             :disabled="loading"
           >
             <span class="flex items-center gap-2">
-              <span>📥</span>
+              <ArrowDownTrayIcon class="export-icon" />
               <span>CSV</span>
             </span>
           </button>
@@ -53,7 +56,7 @@
             :disabled="loading"
           >
             <span class="flex items-center gap-2">
-              <span>🔄</span>
+              <ArrowPathIcon class="refresh-icon" :class="{ 'animate-spin': loading }" />
               <span>Refresh</span>
             </span>
           </button>
@@ -72,7 +75,7 @@
             </p>
           </div>
           <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <span class="text-2xl">🏥</span>
+            <BuildingOfficeIcon class="stat-icon text-blue-600" />
           </div>
         </div>
       </div>
@@ -85,7 +88,7 @@
             </p>
           </div>
           <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <span class="text-2xl">👥</span>
+            <UserGroupIcon class="stat-icon text-green-600" />
           </div>
         </div>
       </div>
@@ -100,8 +103,8 @@
           class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <span class="flex items-center gap-2">
-            <span>🏥</span>
-            <span>View Sample Records</span>
+            <BuildingOfficeIcon class="w-5 h-5" />
+            <span>View Payer Details</span>
           </span>
         </button>
       </div>
@@ -178,9 +181,9 @@
         </div>
 
         <!-- Empty State -->
-        <div v-if="!loading && payers.length === 0" class="text-center py-12">
-          <span class="text-4xl">🏥</span>
-          <p class="mt-2 text-gray-600">No insurance payers found</p>
+        <div v-if="!loading && payerDetails.length === 0" class="text-center py-12">
+          <BuildingOfficeIcon class="w-12 h-12 mx-auto text-gray-400" />
+          <p class="mt-2 text-gray-600">No payers found</p>
         </div>
 
         <!-- Loading State -->
@@ -239,7 +242,7 @@
     <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mt-6">
       <div class="flex">
         <div class="flex-shrink-0">
-          <span class="text-red-400">⚠️</span>
+          <ExclamationTriangleIcon class="w-6 h-6 text-red-400" />
         </div>
         <div class="ml-3">
           <h3 class="text-sm font-medium text-red-800">Error</h3>
@@ -256,6 +259,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, UserGroupIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
 const adminStore = useAdminStore()
 
@@ -418,5 +422,31 @@ onMounted(() => {
 <style scoped>
 .insurance-payers-analytics {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.export-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.refresh-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.stat-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>

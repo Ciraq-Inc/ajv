@@ -1,71 +1,76 @@
 <template>
-  <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
-    <div class="flex items-start justify-between mb-4">
+  <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
+    <!-- Main Balance Section -->
+    <div class="flex items-center justify-between mb-3">
       <div>
-        <p class="text-sm text-blue-100 mb-1">SMS Credits Balance</p>
-        <div class="flex items-baseline gap-2">
-          <p class="text-4xl font-bold">
-            {{ formatNumber(availableBalance) }}
-          </p>
-          <span class="text-lg text-blue-100">credits</span>
+        <p class="text-xs text-blue-100 mb-0.5">SMS Credits Balance</p>
+        <div class="flex items-baseline gap-1">
+          <p class="text-3xl font-bold">{{ formatNumber(availableBalance) }}</p>
+          <span class="text-sm text-blue-100">credits</span>
         </div>
       </div>
-      <div class="bg-white bg-opacity-20 p-3 rounded-lg">
-        <Icon name="MessageSquare" class="h-6 w-6" />
+      <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+        <ChatBubbleLeftIcon class="h-5 w-5" />
       </div>
     </div>
 
-    <div v-if="reservedCredits > 0" class="mb-4 pb-4 border-b border-blue-400">
-      <div class="flex items-center justify-between text-sm">
-        <span class="text-blue-100">Reserved for Active Campaigns:</span>
-        <span class="font-semibold">{{ formatNumber(reservedCredits) }} credits</span>
+    <!-- Reserved Credits (if any) -->
+    <div v-if="reservedCredits > 0" class="mb-3 pb-2 border-b border-blue-400">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-blue-100">Reserved:</span>
+        <span class="font-semibold">{{ formatNumber(reservedCredits) }}</span>
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4 mb-4">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 gap-3 mb-3 text-xs">
       <div>
-        <p class="text-xs text-blue-100 mb-1">Total Loaded</p>
-        <p class="text-xl font-semibold">{{ formatNumber(totalLoaded) }}</p>
+        <p class="text-blue-100 mb-0.5">Loaded</p>
+        <p class="font-semibold text-sm">{{ formatNumber(totalLoaded) }}</p>
       </div>
       <div>
-        <p class="text-xs text-blue-100 mb-1">Total Sent</p>
-        <p class="text-xl font-semibold">{{ formatNumber(totalSent) }}</p>
+        <p class="text-blue-100 mb-0.5">Sent</p>
+        <p class="font-semibold text-sm">{{ formatNumber(totalSent) }}</p>
       </div>
     </div>
 
-    <div v-if="balanceData?.money_balance !== undefined" class="pt-4 border-t border-blue-400">
-      <div class="flex items-center justify-between">
-        <span class="text-sm text-blue-100">Money Balance:</span>
-        <span class="text-lg font-semibold">{{ formatCurrency(balanceData.money_balance) }}</span>
+    <!-- Money Balance -->
+    <div v-if="balanceData?.money_balance !== undefined" class="mb-3 pb-2 border-t border-blue-400 pt-2">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-blue-100">Money:</span>
+        <span class="font-semibold">{{ formatCurrency(balanceData.money_balance) }}</span>
       </div>
     </div>
 
-    <div v-if="showActions" class="flex gap-2 mt-4">
+    <!-- Action Buttons -->
+    <div v-if="showActions" class="flex gap-2">
       <button
         @click="$emit('refresh')"
-        class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+        class="flex-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-1.5 px-3 rounded text-xs transition-colors flex items-center justify-center gap-1 font-medium"
       >
-        <Icon name="RefreshCw" class="h-4 w-4" />
-        Refresh
+        <ArrowPathIcon class="h-3.5 w-3.5" />
+        <span>Refresh</span>
       </button>
       <button
         v-if="showTopUp"
         @click="$emit('topup')"
-        class="flex-1 bg-white text-blue-600 hover:bg-blue-50 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
+        class="flex-1 bg-white text-blue-600 hover:bg-blue-50 py-1.5 px-3 rounded text-xs transition-colors flex items-center justify-center gap-1 font-medium"
       >
-        <Icon name="Plus" class="h-4 w-4" />
-        Top Up
+        <PlusIcon class="h-3.5 w-3.5" />
+        <span>Top Up</span>
       </button>
     </div>
 
-    <div v-if="lastUpdated" class="mt-4 text-xs text-blue-100 text-center">
-      Last updated: {{ formatRelativeTime(lastUpdated) }}
+    <!-- Last Updated -->
+    <div v-if="lastUpdated" class="mt-2 text-xs text-blue-100 text-center opacity-75">
+      {{ formatRelativeTime(lastUpdated) }}
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { ChatBubbleLeftIcon, ArrowPathIcon, PlusIcon } from '@heroicons/vue/20/solid'
 import { formatNumber, formatCurrency, formatRelativeTime } from '~/utils/constants/sms'
 
 const props = defineProps({

@@ -133,7 +133,8 @@ export const useSMSBilling = () => {
         response = await service.getBillingHealth(token)
       }
       
-      const healthData = response.data || response.health || response
+      // Extract companies array from response.data.companies
+      const healthData = response.data?.companies || response.companies || response.data || response.health || response
       billingHealth.value = Array.isArray(healthData) ? healthData : [healthData]
       return response
     } catch (err) {

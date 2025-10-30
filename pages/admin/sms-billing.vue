@@ -17,7 +17,7 @@
         <p class="text-sm text-blue-100">Add money balance to any company</p>
       </button>
 
-      <button
+      <!-- <button
         @click="runReconciliation()"
         :disabled="reconciling"
         class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg hover:from-green-600 hover:to-green-700 transition-all text-left disabled:opacity-50"
@@ -25,7 +25,7 @@
         <Icon :name="reconciling ? 'Loader2' : 'RefreshCw'" :class="reconciling ? 'animate-spin' : ''" class="h-8 w-8 mb-2" />
         <h3 class="text-lg font-semibold mb-1">Run Reconciliation</h3>
         <p class="text-sm text-green-100">Check billing integrity</p>
-      </button>
+      </button> -->
 
       <button
         @click="fetchBillingHealth()"
@@ -40,7 +40,7 @@
 
     <!-- System Health Overview -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white p-4 rounded-lg border-2" :class="overallHealthStatus === 'healthy' ? 'border-green-200' : 'border-yellow-200'">
+      <!-- <div class="bg-white p-4 rounded-lg border-2" :class="overallHealthStatus === 'healthy' ? 'border-green-200' : 'border-yellow-200'">
         <div class="flex items-center justify-between mb-2">
           <Icon 
             :name="overallHealthStatus === 'healthy' ? 'CheckCircle' : 'AlertTriangle'" 
@@ -59,9 +59,9 @@
         <p class="text-sm text-gray-600 mb-1">System Status</p>
         <p class="text-2xl font-bold text-gray-900">{{ billingHealth.length }}</p>
         <p class="text-xs text-gray-500">Companies monitored</p>
-      </div>
+      </div> -->
 
-      <div class="bg-white p-4 rounded-lg border border-gray-200">
+      <!-- <div class="bg-white p-4 rounded-lg border border-gray-200">
         <Icon name="AlertCircle" class="h-6 w-6 text-red-600 mb-2" />
         <p class="text-sm text-gray-600 mb-1">Active Issues</p>
         <p class="text-2xl font-bold text-gray-900">{{ activeIssuesCount }}</p>
@@ -73,14 +73,14 @@
         <p class="text-sm text-gray-600 mb-1">Companies</p>
         <p class="text-2xl font-bold text-gray-900">{{ companiesWithIssues }}</p>
         <p class="text-xs text-gray-500">With issues</p>
-      </div>
+      </div> -->
 
-      <div class="bg-white p-4 rounded-lg border border-gray-200">
+      <!-- <div class="bg-white p-4 rounded-lg border border-gray-200">
         <Icon name="TrendingDown" class="h-6 w-6 text-orange-600 mb-2" />
         <p class="text-sm text-gray-600 mb-1">Low Balance</p>
         <p class="text-2xl font-bold text-gray-900">{{ lowBalanceCount }}</p>
         <p class="text-xs text-gray-500">Companies (&lt;100)</p>
-      </div>
+      </div> -->
     </div>
 
     <!-- Tabs -->
@@ -111,7 +111,7 @@
             <Icon name="AlertCircle" class="h-4 w-4 inline mr-2" />
             Issues ({{ billingIssues.length }})
           </button>
-          <button
+          <!-- <button
             @click="activeTab = 'audit'"
             :class="[
               'px-6 py-3 border-b-2 font-medium text-sm',
@@ -122,7 +122,7 @@
           >
             <Icon name="FileText" class="h-4 w-4 inline mr-2" />
             Audit Log
-          </button>
+          </button> -->
         </nav>
       </div>
 
@@ -139,59 +139,98 @@
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full">
+          <table class="w-full text-sm">
             <thead class="bg-gray-50">
               <tr>
-                <th class="text-left py-3 px-4 text-xs font-medium text-gray-600 uppercase">Company</th>
-                <th class="text-right py-3 px-4 text-xs font-medium text-gray-600 uppercase">Balance</th>
-                <th class="text-right py-3 px-4 text-xs font-medium text-gray-600 uppercase">Unbilled Sent</th>
-                <th class="text-right py-3 px-4 text-xs font-medium text-gray-600 uppercase">Billed Failed</th>
-                <th class="text-center py-3 px-4 text-xs font-medium text-gray-600 uppercase">Status</th>
-                <th class="text-center py-3 px-4 text-xs font-medium text-gray-600 uppercase">Actions</th>
+                <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase sticky left-0 bg-gray-50 z-10">Company</th>
+                <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">SMS Balance</th>
+                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Reserved</th>
+                <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Available</th> -->
+                <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Money (GH₵)</th>
+                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Sent</th> -->
+                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Loaded</th> -->
+                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Unbilled</th> -->
+                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Failed</th> -->
+                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Refunded</th> -->
+                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Calculated</th> -->
+                <th class="text-center py-3 px-3 text-xs font-medium text-gray-600 uppercase">Status</th>
+                <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase">Last Activity</th>
+                <!-- <th class="text-center py-3 px-3 text-xs font-medium text-gray-600 uppercase">Actions</th> -->
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-gray-200 bg-white">
               <tr
                 v-for="health in billingHealth"
                 :key="health.company_id"
                 class="hover:bg-gray-50"
               >
-                <td class="py-3 px-4 text-sm font-medium text-gray-900">
-                  {{ health.company_name || `Company ${health.company_id}` }}
+                <td class="py-3 px-3 font-medium text-gray-900 sticky left-0 bg-white hover:bg-gray-50 z-10">
+                  <div class="flex flex-col">
+                    <span class="font-semibold">{{ health.company_name || `Company ${health.company_id}` }}</span>
+                    <span class="text-xs text-gray-500">ID: {{ health.company_id }}</span>
+                  </div>
                 </td>
-                <td class="py-3 px-4 text-sm text-right">
+                <td class="py-3 px-3 text-right">
                   <span :class="health.sms_balance < 100 ? 'text-orange-600 font-semibold' : 'text-gray-900'">
                     {{ formatNumber(health.sms_balance) }}
                   </span>
                 </td>
-                <td class="py-3 px-4 text-sm text-right">
+                <!-- <td class="py-3 px-3 text-right text-gray-600">
+                  {{ formatNumber(health.reserved_credits || 0) }}
+                </td> -->
+                <!-- <td class="py-3 px-3 text-right">
+                  <span class="font-medium text-green-600">
+                    {{ formatNumber(health.available_balance || 0) }}
+                  </span>
+                </td> -->
+                <td class="py-3 px-3 text-right text-gray-900 font-medium">
+                  {{ parseFloat(health.money_balance || 0).toFixed(2) }}
+                </td>
+                <!-- <td class="py-3 px-3 text-right text-gray-600">
+                  {{ formatNumber(health.total_sms_sent || 0) }}
+                </td>
+                <td class="py-3 px-3 text-right text-gray-600">
+                  {{ formatNumber(health.total_sms_loaded || 0) }}
+                </td>
+                <td class="py-3 px-3 text-right">
                   <span :class="health.unbilled_sent_count > 0 ? 'text-red-600 font-semibold' : 'text-gray-600'">
-                    {{ health.unbilled_sent_count || 0 }}
+                    {{ formatNumber(health.unbilled_sent_count || 0) }}
                   </span>
                 </td>
-                <td class="py-3 px-4 text-sm text-right">
+                <td class="py-3 px-3 text-right">
                   <span :class="health.billed_failed_count > 0 ? 'text-red-600 font-semibold' : 'text-gray-600'">
-                    {{ health.billed_failed_count || 0 }}
+                    {{ formatNumber(health.billed_failed_count || 0) }}
                   </span>
                 </td>
-                <td class="py-3 px-4 text-center">
+                <td class="py-3 px-3 text-right text-gray-600">
+                  {{ formatNumber(health.refunded_count || 0) }}
+                </td>
+                <td class="py-3 px-3 text-right">
+                  <span :class="health.calculated_balance !== health.sms_balance ? 'text-orange-600 font-semibold' : 'text-gray-600'">
+                    {{ formatNumber(health.calculated_balance || 0) }}
+                  </span>
+                </td> -->
+                <td class="py-3 px-3 text-center">
                   <span
                     :class="[
                       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                      getHealthStatusClass(health)
+                      health.balance_status === 'OK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     ]"
                   >
-                    {{ getHealthStatusLabel(health) }}
+                    {{ health.balance_status || 'UNKNOWN' }}
                   </span>
                 </td>
-                <td class="py-3 px-4 text-center">
+                <td class="py-3 px-3 text-gray-600 whitespace-nowrap">
+                  {{ health.last_activity ? formatDate(health.last_activity, 'short') : 'N/A' }}
+                </td>
+                <!-- <td class="py-3 px-3 text-center">
                   <button
                     @click="reconcileCompany(health.company_id)"
-                    class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    class="text-blue-600 hover:text-blue-800 font-medium"
                   >
                     Reconcile
                   </button>
-                </td>
+                </td> -->
               </tr>
             </tbody>
           </table>
@@ -321,7 +360,7 @@
                       <p class="font-medium text-gray-900">{{ company.name }}</p>
                       <p class="text-sm text-gray-500">{{ company.location || 'Location not provided' }}</p>
                     </div>
-                    <span class="text-sm font-medium text-blue-600">{{ formatNumber(company.sms_balance || 0) }}</span>
+                    <span class="text-sm font-medium text-blue-600">{{ company.id || ""}}</span>
                   </div>
                 </div>
               </div>

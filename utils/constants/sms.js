@@ -30,6 +30,12 @@ export const SMS_PROVIDERS = {
   MNOTIFY: 'mnotify'
 }
 
+// SMS Providers List (for dropdowns and lookups)
+export const SMS_PROVIDERS_LIST = [
+  { value: 'nalo', name: 'Nalo Solutions' },
+  { value: 'mnotify', name: 'MNotify' }
+]
+
 // Recipient Types
 export const RECIPIENT_TYPES = {
   ALL: 'all',

@@ -57,30 +57,6 @@
           <div class="card-subtitle">Consider purchasing more credits</div>
         </div>
       </div>
-
-      <!-- Quick Actions -->
-      <div class="quick-actions">
-        <div class="action-card">
-          <Icon name="Zap" size="32" />
-          <h3>Estimate Cost</h3>
-          <p>Calculate SMS campaign cost</p>
-          <button @click="showEstimateModal = true" class="btn-outline">Estimate</button>
-        </div>
-
-        <div class="action-card">
-          <Icon name="BarChart3" size="32" />
-          <h3>View Statistics</h3>
-          <p>See your SMS usage patterns</p>
-          <button @click="activeTab = 'statistics'" class="btn-outline">View</button>
-        </div>
-
-        <div class="action-card">
-          <Icon name="List" size="32" />
-          <h3>Transaction History</h3>
-          <p>View all your transactions</p>
-          <button @click="activeTab = 'transactions'" class="btn-outline">History</button>
-        </div>
-      </div>
     </div>
 
     <!-- Tabs -->
@@ -163,86 +139,6 @@
               <Icon name="MessageSquare" size="48" />
               <p>No transactions found</p>
             </div>
-          </div>
-        </div>
-
-        <!-- Statistics Tab -->
-        <div v-if="activeTab === 'statistics'" class="tab-pane">
-          <div class="section-header">
-            <h3>SMS Usage Statistics</h3>
-            <p>Analyze your SMS usage patterns</p>
-          </div>
-
-          <div v-if="statistics" class="statistics-grid">
-            <!-- By Type -->
-            <div class="stat-card">
-              <h4>Transactions by Type</h4>
-              <div class="stat-list">
-                <div v-for="stat in statistics.by_type" :key="stat.transaction_type" class="stat-item">
-                  <span class="stat-label">{{ formatTransactionType(stat.transaction_type) }}</span>
-                  <span class="stat-value">{{ stat.count }}</span>
-                  <span class="stat-detail">{{ stat.total_sms }} SMS</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Totals -->
-            <div class="stat-card">
-              <h4>Total Summary</h4>
-              <div class="stat-list">
-                <div class="stat-item">
-                  <span class="stat-label">Total Transactions</span>
-                  <span class="stat-value">{{ statistics.totals.total_transactions }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">SMS Received</span>
-                  <span class="stat-value">{{ statistics.totals.total_sms_in }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">SMS Sent</span>
-                  <span class="stat-value">{{ statistics.totals.total_sms_out }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Money In</span>
-                  <span class="stat-value">₵{{ formatCurrency(statistics.totals.total_money_in) }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Money Out</span>
-                  <span class="stat-value">₵{{ formatCurrency(statistics.totals.total_money_out) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Daily Summary -->
-            <div class="stat-card full-width">
-              <h4>Daily Activity</h4>
-              <div class="table-container">
-                <table class="daily-stats-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Transactions</th>
-                      <th>SMS Sent</th>
-                      <th>Money Spent</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="day in statistics.daily_summary" :key="day.date">
-                      <td>{{ formatDate(day.date) }}</td>
-                      <td>{{ day.transaction_count }}</td>
-                      <td>{{ day.sms_sent }}</td>
-                      <td>₵{{ formatCurrency(day.money_spent) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="empty-state">
-            <Icon name="BarChart3" size="48" />
-            <p>No statistics available</p>
-            <button @click="loadStatistics" class="btn-primary">Load Statistics</button>
           </div>
         </div>
 
@@ -447,7 +343,6 @@ const message = ref(null)
 const tabs = [
   { id: 'overview', label: 'Overview', icon: 'BarChart3' },
   { id: 'transactions', label: 'Transactions', icon: 'List' },
-  { id: 'statistics', label: 'Statistics', icon: 'TrendingUp' },
 ]
 
 const transactionFilters = ref({
@@ -625,7 +520,7 @@ definePageMeta({
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3b82f6;
   color: white;
   border: none;
   border-radius: 8px;
@@ -636,7 +531,7 @@ definePageMeta({
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .btn-primary:disabled {
@@ -688,64 +583,67 @@ definePageMeta({
 /* Balance Section */
 .balance-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
 }
 
 .balance-card {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem;
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .balance-card.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3b82f6;
   color: white;
-  border: none;
+  border: 1px solid #3b82f6;
 }
 
 .balance-card.secondary {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #3b82f6;
   color: white;
-  border: none;
+  border: 1px solid #3b82f6;
 }
 
 .balance-card.info {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #3b82f6;
   color: white;
-  border: none;
+  border: 1px solid #3b82f6;
 }
 
 .balance-card.warning {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: #3b82f6;
   color: white;
-  border: none;
+  border: 1px solid #3b82f6;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .card-label {
   font-weight: 600;
-  font-size: 0.875rem;
-  opacity: 0.9;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  color: white;
 }
 
 .card-value {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: white;
 }
 
 .card-subtitle {
-  font-size: 0.875rem;
-  opacity: 0.85;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  color: white;
 }
 
 /* Quick Actions */

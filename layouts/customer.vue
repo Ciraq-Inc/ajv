@@ -7,7 +7,7 @@
         <div class="header-content">
           <div class="logo-section">
             <div class="logo-icon">
-              <span>👤</span>
+              <UserCircleIcon class="icon-lg" />
             </div>
             <div v-if="!sidebarCollapsed" class="logo-text">
               <h3 class="text-lg font-medium text-white">Customer Portal</h3>
@@ -19,8 +19,8 @@
             class="toggle-btn"
             :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
           >
-            <span v-if="sidebarCollapsed">→</span>
-            <span v-else>←</span>
+            <ChevronRightIcon v-if="sidebarCollapsed" class="toggle-icon" />
+            <ChevronLeftIcon v-else class="toggle-icon" />
           </button>
         </div>
       </div>
@@ -35,7 +35,7 @@
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">👤</span>
+            <UserIcon class="nav-icon" />
             <span v-if="!sidebarCollapsed" class="nav-text">Profile</span>
           </NuxtLink>
 
@@ -44,7 +44,7 @@
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">📦</span>
+            <ShoppingCartIcon class="nav-icon" />
             <span v-if="!sidebarCollapsed" class="nav-text">Orders</span>
           </NuxtLink>
 
@@ -53,7 +53,7 @@
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">🏢</span>
+            <BuildingOfficeIcon class="nav-icon" />
             <span v-if="!sidebarCollapsed" class="nav-text">Linked Companies</span>
           </NuxtLink>
         </div>
@@ -76,17 +76,9 @@
           class="logout-btn"
           :disabled="isLoggingOut"
         >
-          <span v-if="isLoggingOut" class="flex items-center">
-            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-              viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-              </path>
-            </svg>
-            Logging out...
-          </span>
-          <span v-else>🚪 Logout</span>
+          <ArrowPathIcon v-if="isLoggingOut" class="spinner-icon" />
+          <ArrowLeftOnRectangleIcon v-else class="logout-icon" />
+          Logout
         </button>
       </div>
     </aside>
@@ -117,14 +109,14 @@
         <!-- Profile Dropdown -->
         <div v-if="showProfileMenu" class="profile-dropdown">
           <NuxtLink to="/customer/profile" class="dropdown-item">
-            <span>👤</span> My Profile
+            <UserIcon class="dropdown-icon-sm" /> My Profile
           </NuxtLink>
           <NuxtLink to="/customer/settings" class="dropdown-item">
-            <span>⚙️</span> Settings
+            <Cog6ToothIcon class="dropdown-icon-sm" /> Settings
           </NuxtLink>
           <hr class="dropdown-divider">
           <button @click="handleLogout" class="dropdown-item logout">
-            <span>🚪</span> Logout
+            <ArrowLeftOnRectangleIcon class="dropdown-icon-sm" /> Logout
           </button>
         </div>
       </header>
@@ -146,6 +138,17 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {
+  UserCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  UserIcon,
+  ShoppingCartIcon,
+  BuildingOfficeIcon,
+  ArrowLeftOnRectangleIcon,
+  ArrowPathIcon,
+  Cog6ToothIcon,
+} from '@heroicons/vue/24/outline'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
 
@@ -388,6 +391,8 @@ onUnmounted(() => {
 .nav-icon {
   font-size: 20px;
   min-width: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -475,6 +480,17 @@ onUnmounted(() => {
 .logout-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.spinner-icon {
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+.logout-icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* Main Content */
@@ -630,6 +646,11 @@ onUnmounted(() => {
 .dropdown-item.logout:hover {
   background: #fef2f2;
   color: #b91c1c;
+}
+
+.dropdown-icon-sm {
+  width: 16px;
+  height: 16px;
 }
 
 .dropdown-divider {

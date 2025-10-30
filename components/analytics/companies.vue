@@ -23,7 +23,7 @@
               @input="debouncedSearch"
             />
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span class="text-gray-400 text-lg">🔍</span>
+              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400" />
             </div>
           </div>
         </div>
@@ -36,7 +36,7 @@
             :disabled="loading"
           >
             <span class="flex items-center gap-2">
-              <span>🔄</span>
+              <ArrowPathIcon class="refresh-icon" :class="{ 'animate-spin': loading }" />
               <span>Refresh</span>
             </span>
           </button>
@@ -128,14 +128,14 @@
                     class="text-blue-500 hover:text-blue-600 transition-colors duration-150 p-1 rounded"
                     title="View Details"
                   >
-                    👁️
+                    <EyeIcon class="w-5 h-5" />
                   </button>
                   <button
                     @click="editCompany(company)"
                     class="text-green-500 hover:text-green-600 transition-colors duration-150 p-1 rounded"
                     title="Edit Contact Info"
                   >
-                    ✏️
+                    <PencilIcon class="w-5 h-5" />
                   </button>
                 </div>
               </td>
@@ -163,7 +163,7 @@
     >
       <div class="flex">
         <div class="flex-shrink-0">
-          <span class="text-red-400 text-lg">⚠️</span>
+          <ExclamationTriangleIcon class="w-6 h-6 text-red-400" />
         </div>
         <div class="ml-3">
           <h3 class="text-sm font-medium text-red-800">Error</h3>
@@ -298,17 +298,17 @@
               </div>
             </div>
 
-            <!-- Edit Modal - Only Domain Name, WhatsApp Number, Logo, and Shop Banner -->
+            <!-- Edit Modal - Only Domain Name, WhatsApp Number, Logo, Shop Banner, and SMS Sender ID -->
             <div v-if="showEditModal" class="space-y-4">
               <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
                 <div class="flex">
                   <div class="flex-shrink-0">
-                    <span class="text-blue-400 text-lg">ℹ️</span>
+                    <InformationCircleIcon class="w-6 h-6 text-blue-400" />
                   </div>
                   <div class="ml-3">
                     <h3 class="text-sm font-medium text-blue-800">Update Company Contact & Branding Information</h3>
                     <div class="mt-2 text-sm text-blue-700">
-                      You can only update the domain name, WhatsApp number, logo, and shop banner for this company.
+                      You can update the domain name, WhatsApp number, SMS sender ID, logo, and shop banner for this company.
                     </div>
                   </div>
                 </div>
@@ -334,6 +334,17 @@
                     placeholder="+233501234567"
                   />
                   <p class="text-xs text-gray-500 mt-1">WhatsApp contact number with country code</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">SMS Sender ID</label>
+                  <input
+                    v-model="companyForm.sender_id"
+                    type="text"
+                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="e.g., RigelOS"
+                    maxlength="11"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">Custom SMS sender ID (max 11 chars). Leave empty to use default (RigelOS)</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
@@ -429,6 +440,10 @@
                 <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.whatsapp_number || "N/A" }}</p>
               </div>
               <div>
+                <label class="block text-sm font-medium text-gray-700">SMS Sender ID</label>
+                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedCompany.sender_id || "Default (RigelOS)" }}</p>
+              </div>
+              <div>
                 <label class="block text-sm font-medium text-gray-700">Logo</label>
                 <div class="mt-1">
                   <p v-if="selectedCompany.logo" class="text-sm text-gray-900">
@@ -514,6 +529,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useAdminStore } from "~/stores/admin";
+import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/outline";
 
 const adminStore = useAdminStore();
 
@@ -546,6 +562,7 @@ const companyForm = ref({
   ddate: "",
   domain_name: "",
   whatsapp_number: "",
+  sender_id: "",
   logo: "",
   shop_banner: "",
 });
@@ -668,6 +685,7 @@ const createCompany = async () => {
         ddate: "",
         domain_name: "",
         whatsapp_number: "",
+        sender_id: "",
         logo: "",
         shop_banner: "",
       };
@@ -685,10 +703,11 @@ const createCompany = async () => {
 // Edit company
 const editCompany = (company) => {
   selectedCompany.value = company;
-  // Only populate domain_name, whatsapp_number, logo, and shop_banner for editing
+  // Only populate domain_name, whatsapp_number, sender_id, logo, and shop_banner for editing
   companyForm.value = {
     domain_name: company.domain_name || "",
     whatsapp_number: company.whatsapp_number || "",
+    sender_id: company.sender_id || "",
     logo: company.logo || "",
     shop_banner: company.shop_banner || "",
   };
@@ -705,10 +724,11 @@ const updateCompany = async () => {
     const config = useRuntimeConfig();
     const baseURL = config.public.apiBase;
 
-    // Only send domain_name, whatsapp_number, logo, and shop_banner for updates
+    // Only send domain_name, whatsapp_number, sender_id, logo, and shop_banner for updates
     const updateData = {
       domain_name: companyForm.value.domain_name,
       whatsapp_number: companyForm.value.whatsapp_number,
+      sender_id: companyForm.value.sender_id,
       logo: companyForm.value.logo,
       shop_banner: companyForm.value.shop_banner,
     };
@@ -819,6 +839,7 @@ const closeModals = () => {
     ddate: "",
     domain_name: "",
     whatsapp_number: "",
+    sender_id: "",
     logo: "",
     shop_banner: "",
   };
@@ -841,5 +862,20 @@ onMounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   max-width: 1280px; /* max-w-7xl */
   margin: 0 auto;
+}
+
+.refresh-icon {
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>

@@ -11,7 +11,7 @@
           :to="`/${companyDomain.value}/services/sms-create-campaign`"
           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
         >
-          <Icon name="Plus" class="h-5 w-5" />
+          <PlusIcon class="h-5 w-5" />
           Create Campaign
         </nuxt-link>
       </div>
@@ -30,7 +30,7 @@
       <div class="bg-white p-4 rounded-lg border border-gray-200">
         <div class="flex items-center gap-3">
           <div class="bg-blue-100 p-3 rounded-lg">
-            <Icon name="Inbox" class="h-6 w-6 text-blue-600" />
+            <InboxIcon class="h-6 w-6 text-blue-600" />
           </div>
           <div>
             <p class="text-sm text-gray-600">Total Campaigns</p>
@@ -42,7 +42,7 @@
       <div class="bg-white p-4 rounded-lg border border-gray-200">
         <div class="flex items-center gap-3">
           <div class="bg-green-100 p-3 rounded-lg">
-            <Icon name="CheckCircle" class="h-6 w-6 text-green-600" />
+            <CheckCircleIcon class="h-6 w-6 text-green-600" />
           </div>
           <div>
             <p class="text-sm text-gray-600">Completed</p>
@@ -54,7 +54,7 @@
       <div class="bg-white p-4 rounded-lg border border-gray-200">
         <div class="flex items-center gap-3">
           <div class="bg-yellow-100 p-3 rounded-lg">
-            <Icon name="Activity" class="h-6 w-6 text-yellow-600" />
+            <SparklesIcon class="h-6 w-6 text-yellow-600" />
           </div>
           <div>
             <p class="text-sm text-gray-600">Active</p>
@@ -66,7 +66,7 @@
       <div class="bg-white p-4 rounded-lg border border-gray-200">
         <div class="flex items-center gap-3">
           <div class="bg-gray-100 p-3 rounded-lg">
-            <Icon name="FileText" class="h-6 w-6 text-gray-600" />
+            <DocumentTextIcon class="h-6 w-6 text-gray-600" />
           </div>
           <div>
             <p class="text-sm text-gray-600">Drafts</p>
@@ -115,7 +115,7 @@
           :disabled="loading"
           class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
         >
-          <Icon :name="loading ? 'Loader2' : 'RefreshCw'" :class="loading ? 'animate-spin' : ''" class="h-4 w-4" />
+          <ArrowPathIcon :class="loading ? 'animate-spin' : ''" class="h-4 w-4" />
           Refresh
         </button>
       </div>
@@ -123,13 +123,13 @@
 
     <!-- Loading State -->
     <div v-if="loading && campaigns.length === 0" class="text-center py-12">
-      <Icon name="Loader2" class="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+      <ArrowPathIcon class="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
       <p class="text-gray-600">Loading campaigns...</p>
     </div>
 
     <!-- Empty State -->
     <div v-else-if="!loading && filteredCampaigns.length === 0" class="bg-white rounded-lg border border-gray-200 p-12 text-center">
-      <Icon name="Inbox" class="h-16 w-16 mx-auto mb-4 text-gray-400" />
+      <InboxIcon class="h-16 w-16 mx-auto mb-4 text-gray-400" />
       <h3 class="text-xl font-semibold text-gray-900 mb-2">No campaigns found</h3>
       <p class="text-gray-600 mb-6">
         {{ campaigns.length === 0 ? 'Get started by creating your first SMS campaign' : 'No campaigns match your filters' }}
@@ -139,7 +139,7 @@
         :to="`/${companyDomain.value}/services/sms-create-campaign`"
         class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
       >
-        <Icon name="Plus" class="h-5 w-5" />
+        <PlusIcon class="h-5 w-5" />
         Create Your First Campaign
       </nuxt-link>
       <button
@@ -147,7 +147,7 @@
         @click="clearFilters"
         class="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
       >
-        <Icon name="X" class="h-5 w-5" />
+        <XMarkIcon class="h-5 w-5" />
         Clear Filters
       </button>
     </div>
@@ -308,6 +308,15 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { 
+  PlusIcon, 
+  InboxIcon, 
+  CheckCircleIcon, 
+  SparklesIcon, 
+  DocumentTextIcon, 
+  ArrowPathIcon, 
+  XMarkIcon 
+} from '@heroicons/vue/20/solid'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import CampaignCard from '~/components/sms/campaign/CampaignCard.vue'

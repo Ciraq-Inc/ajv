@@ -44,6 +44,30 @@ export default (apiBase) => ({
     return await response.json()
   },
 
+  // Get all campaigns for admin (all companies)
+  async getAllCampaignsAdmin(filters = {}, token) {
+    const params = new URLSearchParams()
+
+    if (filters.status) params.append('status', filters.status)
+    if (filters.startDate) params.append('startDate', filters.startDate)
+    if (filters.endDate) params.append('endDate', filters.endDate)
+    if (filters.limit) params.append('limit', filters.limit)
+    if (filters.offset) params.append('offset', filters.offset)
+
+    const response = await fetch(`${apiBase}/api/sms-campaigns/admin/all?${params}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to fetch campaigns')
+    }
+
+    return await response.json()
+  },
+
   // Get campaign by ID
   async getCampaignById(campaignId, token) {
     const response = await fetch(`${apiBase}/api/sms-campaigns/${campaignId}`, {
