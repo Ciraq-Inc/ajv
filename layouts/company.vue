@@ -4,7 +4,7 @@
     <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <!-- Logo/Header -->
       <div class="sidebar-header">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3" :class="{ 'justify-center': sidebarCollapsed }">
           <div class="company-logo">
             <BuildingOffice2Icon class="h-6 w-6 text-blue-600" />
           </div>
@@ -13,6 +13,10 @@
             <p class="text-xs text-gray-600">Services Portal</p>
           </div>
         </div>
+      </div>
+
+      <!-- Toggle Button (Always Visible) -->
+      <div class="toggle-btn-container">
         <button 
           @click="toggleSidebar" 
           class="toggle-btn"
@@ -261,6 +265,22 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.sidebar-collapsed .sidebar-header {
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.toggle-btn-container {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-collapsed .toggle-btn-container {
+  padding: 0.5rem;
 }
 
 .company-logo {

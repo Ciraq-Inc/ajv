@@ -59,25 +59,11 @@
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs-section">
-      <div class="tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          @click="activeTab = tab.id"
-          :class="{ active: activeTab === tab.id }"
-          class="tab-button"
-        >
-          <Icon :name="tab.icon" size="18" />
-          <span>{{ tab.label }}</span>
-        </button>
-      </div>
 
       <!-- Tab Content -->
       <div class="tab-content">
         <!-- Transactions Tab -->
-        <div v-if="activeTab === 'transactions'" class="tab-pane">
+        <div  class="tab-pane">
           <div class="section-header">
             <h3>Transaction History</h3>
             <p>View all your SMS credit transactions</p>
@@ -88,10 +74,14 @@
             <div class="form-group">
               <label>Transaction Type</label>
               <select v-model="transactionFilters.type" class="form-control">
-                <option value="">All Types</option>
-                <option value="purchase">Purchase</option>
-                <option value="sent">Sent</option>
-                <option value="topup">Top Up</option>
+                <option value="">All SMS Transactions</option>
+                <option value="sms_deduction">SMS Sent (New)</option>
+                <option value="sent">SMS Sent (Legacy)</option>
+                <option value="sms_topup">SMS Top-up (New)</option>
+                <option value="topup">SMS Top-up (Legacy)</option>
+                <option value="sms_refund">SMS Refund (New)</option>
+                <option value="refund">SMS Refund (Legacy)</option>
+                <option value="deduction">SMS Deduction (Legacy)</option>
               </select>
             </div>
 
@@ -115,9 +105,10 @@
                 <tr>
                   <th>Date</th>
                   <th>Type</th>
-                  <th>SMS Count</th>
-                  <th>Amount</th>
                   <th>Description</th>
+                  <th>SMS Count</th>
+                  <th>Balance</th>
+                  <th>Cost</th>
                 </tr>
               </thead>
               <tbody>
@@ -128,9 +119,10 @@
                       {{ formatTransactionType(transaction.transaction_type) }}
                     </span>
                   </td>
-                  <td>{{ transaction.sms_count }}</td>
-                  <td>₵{{ formatCurrency(transaction.money_amount) }}</td>
                   <td>{{ transaction.description }}</td>
+                  <td>{{ transaction.sms_count }}</td>
+                  <td>{{ transaction.balance_after }}</td>
+                  <td>₵{{ formatCurrency(transaction.amount) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -142,37 +134,8 @@
           </div>
         </div>
 
-        <!-- Overview Tab -->
-        <div v-if="activeTab === 'overview'" class="tab-pane">
-          <div class="section-header">
-            <h3>Billing Overview</h3>
-            <p>Complete billing information</p>
-          </div>
-
-          <div v-if="overview" class="overview-grid">
-            <div class="overview-card">
-              <h4>Current Balance</h4>
-              <p class="value">{{ overview.current_balance }} SMS</p>
-            </div>
-
-            <div class="overview-card">
-              <h4>Money Balance</h4>
-              <p class="value">₵{{ formatCurrency(overview.money_balance) }}</p>
-            </div>
-
-            <div v-if="overview.recent_transactions" class="overview-card full-width">
-              <h4>Recent Transactions</h4>
-              <div class="small-table">
-                <div v-for="tx in overview.recent_transactions.slice(0, 5)" :key="tx.id" class="small-table-row">
-                  <span>{{ tx.description }}</span>
-                  <span class="value">{{ tx.sms_count }} SMS</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    
       </div>
-    </div>
 
     <!-- Purchase Modal -->
     <div v-if="showPurchaseModal" class="modal-overlay" @click="showPurchaseModal = false">
@@ -383,9 +346,14 @@ const formatDate = (dateString) => {
 
 const formatTransactionType = (type) => {
   const map = {
+    sms_deduction: 'SMS Sent',
+    sms_topup: 'SMS Top-up',
+    sms_refund: 'SMS Refund',
     purchase: 'Purchase',
-    sent: 'Sent',
+    sent: 'SMS Sent',
     topup: 'Top Up',
+    deduction: 'Deduction',
+    refund: 'Refund',
   }
   return map[type] || type
 }
@@ -420,7 +388,11 @@ const performEstimate = async () => {
 
 const applyFilters = async () => {
   try {
-    const filters = {}
+    const filters = {
+      // Only show SMS-related transactions (sms_deduction, sms_topup, sms_refund)
+      sms_only: true
+    }
+    
     if (transactionFilters.value.type) {
       filters.transaction_type = transactionFilters.value.type
     }
@@ -447,7 +419,12 @@ const loadStatistics = async () => {
 
 const refreshData = async () => {
   try {
-    await Promise.all([fetchBalance(), fetchOverview(), fetchTransactions(), fetchSmsRate()])
+    await Promise.all([
+      fetchBalance(), 
+      fetchOverview(), 
+      fetchTransactions({ sms_only: true }), // Only SMS credit transactions
+      fetchSmsRate()
+    ])
   } catch (err) {
     showMessage(err.message || 'Failed to refresh data', 'error')
   }
@@ -846,14 +823,27 @@ definePageMeta({
   color: #166534;
 }
 
-.badge-sent {
+.badge-sent,
+.badge-sms_deduction {
   background: #dbeafe;
   color: #0c4a6e;
 }
 
-.badge-topup {
+.badge-topup,
+.badge-sms_topup {
   background: #fef3c7;
   color: #92400e;
+}
+
+.badge-deduction {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-refund,
+.badge-sms_refund {
+  background: #e0e7ff;
+  color: #3730a3;
 }
 
 /* Empty State */

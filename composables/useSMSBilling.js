@@ -69,7 +69,27 @@ export const useSMSBilling = () => {
     try {
       const token = getToken()
       const response = await service.getTransactions(filters, token)
-      transactions.value = response.data || response.transactions || []
+      let fetchedTransactions = response.data || response.transactions || []
+      
+      // Client-side filtering for money-only transactions
+      if (filters.money_only) {
+        fetchedTransactions = fetchedTransactions.filter(t => 
+          t.transaction_type === 'money_deduction' || 
+          t.transaction_type === 'money_topup' || 
+          t.transaction_type === 'money_refund' ||
+          t.transaction_type === 'topup' ||
+          t.transaction_type === 'deduction' ||
+          t.transaction_type === 'refund'
+        )
+      } else if (filters.sms_only) {
+        fetchedTransactions = fetchedTransactions.filter(t => 
+          t.transaction_type === 'sms_deduction' || 
+          t.transaction_type === 'sms_topup' || 
+          t.transaction_type === 'sms_refund'
+        )
+      }
+      
+      transactions.value = fetchedTransactions
       return response
     } catch (err) {
       error.value = err.message

@@ -1,104 +1,14 @@
 <template>
   <div class="customer-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-      <!-- Header -->
-      <div class="sidebar-header">
-        <div class="header-content">
-          <div class="logo-section">
-            <div class="logo-icon">
-              <UserCircleIcon class="icon-lg" />
-            </div>
-            <div v-if="!sidebarCollapsed" class="logo-text">
-              <h3 class="text-lg font-medium text-white">Customer Portal</h3>
-              <p class="text-indigo-100 text-sm">Your Account</p>
-            </div>
-          </div>
-          <button
-            @click="toggleSidebar"
-            class="toggle-btn"
-            :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-          >
-            <ChevronRightIcon v-if="sidebarCollapsed" class="toggle-icon" />
-            <ChevronLeftIcon v-else class="toggle-icon" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Navigation -->
-      <nav class="sidebar-nav">
-        <div class="nav-section">
-          <div v-if="!sidebarCollapsed" class="nav-section-title">Account</div>
-
-          <NuxtLink
-            to="/customer/profile"
-            class="nav-item"
-            active-class="active"
-          >
-            <UserIcon class="nav-icon" />
-            <span v-if="!sidebarCollapsed" class="nav-text">Profile</span>
-          </NuxtLink>
-
-          <NuxtLink
-            to="/customer/orders"
-            class="nav-item"
-            active-class="active"
-          >
-            <ShoppingCartIcon class="nav-icon" />
-            <span v-if="!sidebarCollapsed" class="nav-text">Orders</span>
-          </NuxtLink>
-
-          <NuxtLink
-            to="/customer/linked-companies"
-            class="nav-item"
-            active-class="active"
-          >
-            <BuildingOfficeIcon class="nav-icon" />
-            <span v-if="!sidebarCollapsed" class="nav-text">Linked Companies</span>
-          </NuxtLink>
-        </div>
-      </nav>
-
-      <!-- Footer -->
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">
-            {{ userInitials }}
-          </div>
-          <div v-if="!sidebarCollapsed" class="user-details">
-            <p class="user-name">{{ userName }}</p>
-            <p class="user-email">{{ userEmail }}</p>
-          </div>
-        </div>
-        <button
-          v-if="!sidebarCollapsed"
-          @click="handleLogout"
-          class="logout-btn"
-          :disabled="isLoggingOut"
-        >
-          <ArrowPathIcon v-if="isLoggingOut" class="spinner-icon" />
-          <ArrowLeftOnRectangleIcon v-else class="logout-icon" />
-          Logout
-        </button>
-      </div>
-    </aside>
-
     <!-- Main Content -->
     <div class="main-content">
-      <!-- Top Bar -->
+      <!-- Top Bar / Navbar -->
       <header class="top-bar">
         <div class="top-bar-left">
-          <button
-            @click="toggleSidebar"
-            class="mobile-menu-btn"
-          >
-            ☰
-          </button>
           <h1 class="page-title">{{ pageTitle }}</h1>
         </div>
 
         <div class="top-bar-right">
-          <!-- User Profile -->
           <div class="user-profile" @click="toggleProfileMenu">
             <div class="profile-avatar">{{ userInitials }}</div>
             <span class="profile-name">{{ userName }}</span>
@@ -106,13 +16,9 @@
           </div>
         </div>
 
-        <!-- Profile Dropdown -->
         <div v-if="showProfileMenu" class="profile-dropdown">
-          <NuxtLink to="/customer/profile" class="dropdown-item">
+          <NuxtLink to="/customer" class="dropdown-item">
             <UserIcon class="dropdown-icon-sm" /> My Profile
-          </NuxtLink>
-          <NuxtLink to="/customer/settings" class="dropdown-item">
-            <Cog6ToothIcon class="dropdown-icon-sm" /> Settings
           </NuxtLink>
           <hr class="dropdown-divider">
           <button @click="handleLogout" class="dropdown-item logout">
@@ -126,28 +32,14 @@
         <slot />
       </main>
     </div>
-
-    <!-- Mobile Overlay -->
-    <div
-      v-if="!sidebarCollapsed && isMobile"
-      class="mobile-overlay"
-      @click="closeSidebar"
-    ></div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
-  UserCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   UserIcon,
-  ShoppingCartIcon,
-  BuildingOfficeIcon,
   ArrowLeftOnRectangleIcon,
-  ArrowPathIcon,
-  Cog6ToothIcon,
 } from '@heroicons/vue/24/outline'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
@@ -156,27 +48,23 @@ const userStore = useUserStore()
 const route = useRoute()
 
 // State
-const sidebarCollapsed = ref(false)
-const isMobile = ref(false)
 const showProfileMenu = ref(false)
 const isLoggingOut = ref(false)
 
 // Computed
 const userName = computed(() => {
-  if (userStore.user) {
-    return `${userStore.user.fname || ''} ${userStore.user.lname || ''}`.trim() || 'Customer'
+  const user = userStore.currentUser
+  if (user) {
+    return `${user.fname || ''} ${user.lname || ''}`.trim() || 'Customer'
   }
   return 'Customer'
 })
 
-const userEmail = computed(() => {
-  return userStore.user?.email || ''
-})
-
 const userInitials = computed(() => {
-  if (userStore.user) {
-    const fname = userStore.user.fname || ''
-    const lname = userStore.user.lname || ''
+  const user = userStore.currentUser
+  if (user) {
+    const fname = user.fname || ''
+    const lname = user.lname || ''
     return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase() || 'C'
   }
   return 'C'
@@ -186,23 +74,9 @@ const pageTitle = computed(() => {
   const path = route.path
   if (path.includes('/customer/profile')) return 'My Profile'
   if (path.includes('/customer/orders')) return 'My Orders'
-  if (path.includes('/customer/linked-companies')) return 'Linked Companies'
+  if (path.includes('/customer/companies')) return 'Linked Companies'
   return 'Dashboard'
 })
-
-// Methods
-const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value
-  if (process.client) {
-    localStorage.setItem('customerSidebarCollapsed', sidebarCollapsed.value)
-  }
-}
-
-const closeSidebar = () => {
-  if (isMobile.value) {
-    sidebarCollapsed.value = true
-  }
-}
 
 const toggleProfileMenu = () => {
   showProfileMenu.value = !showProfileMenu.value
@@ -213,20 +87,11 @@ const handleLogout = async () => {
     isLoggingOut.value = true
     try {
       await userStore.logout()
-      navigateTo('/customer/login')
+      navigateTo('/')
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
       isLoggingOut.value = false
-    }
-  }
-}
-
-const checkMobile = () => {
-  if (process.client) {
-    isMobile.value = window.innerWidth < 768
-    if (isMobile.value) {
-      sidebarCollapsed.value = true
     }
   }
 }
@@ -239,275 +104,29 @@ const handleClickOutside = (e) => {
 
 // Lifecycle
 onMounted(() => {
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
   document.addEventListener('click', handleClickOutside)
-
-  // Restore sidebar state
-  if (process.client) {
-    const savedState = localStorage.getItem('customerSidebarCollapsed')
-    if (savedState !== null && !isMobile.value) {
-      sidebarCollapsed.value = savedState === 'true'
-    }
-  }
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
   document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
 <style scoped>
 .customer-layout {
-  display: flex;
   min-height: 100vh;
   background: #f9fafb;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Sidebar */
-.sidebar {
-  width: 280px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  transition: all 0.3s ease;
-  z-index: 1000;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.sidebar-collapsed {
-  width: 80px;
-}
-
-.sidebar-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logo-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.logo-text h3 {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.logo-text p {
-  margin: 0;
-  font-size: 0.875rem;
-  opacity: 0.9;
-}
-
-.toggle-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: white;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 16px;
-}
-
-.toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Navigation */
-.sidebar-nav {
-  flex: 1;
-  padding: 1.5rem 0;
-  overflow-y: auto;
-}
-
-.nav-section {
-  margin-bottom: 2rem;
-}
-
-.nav-section-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
-  padding: 0 1.5rem 0.5rem;
-  letter-spacing: 0.5px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  transition: all 0.2s ease;
-  border-radius: 8px;
-  margin: 0.25rem 0.75rem;
-  cursor: pointer;
-}
-
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.nav-item.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border-left: 3px solid #60a5fa;
-}
-
-.nav-icon {
-  font-size: 20px;
-  min-width: 24px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-text {
-  margin-left: 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* Sidebar Footer */
-.sidebar-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1.5rem;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
-}
-
-.user-details {
-  flex: 1;
-  overflow: hidden;
-}
-
-.user-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: white;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-email {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.logout-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #fca5a5;
-  color: #fecaca;
-}
-
-.logout-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.spinner-icon {
-  width: 16px;
-  height: 16px;
-  animation: spin 1s linear infinite;
-}
-
-.logout-icon {
-  width: 16px;
-  height: 16px;
-}
-
 /* Main Content */
 .main-content {
-  flex: 1;
-  margin-left: 280px;
-  transition: margin-left 0.3s ease;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
-.sidebar-collapsed ~ .main-content {
-  margin-left: 80px;
-}
-
-/* Top Bar */
+/* Top Bar / Navbar */
 .top-bar {
   background: white;
   padding: 1rem 2rem;
@@ -527,17 +146,8 @@ onUnmounted(() => {
   gap: 1rem;
 }
 
-.mobile-menu-btn {
-  display: none;
-  background: transparent;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #6b7280;
-}
-
 .page-title {
-  font-size: 1.875rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #111827;
   margin: 0;
@@ -663,50 +273,13 @@ onUnmounted(() => {
 .page-content {
   flex: 1;
   padding: 2rem;
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Mobile Overlay */
-.mobile-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-  display: none;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-
-  .sidebar-collapsed {
-    transform: translateX(0);
-    width: 280px;
-  }
-
-  .main-content {
-    margin-left: 0;
-  }
-
-  .sidebar-collapsed ~ .main-content {
-    margin-left: 0;
-  }
-
-  .mobile-menu-btn {
-    display: block;
-  }
-
-  .mobile-overlay {
-    display: block;
-  }
-
   .page-title {
     font-size: 1.25rem;
   }
@@ -722,23 +295,5 @@ onUnmounted(() => {
   .page-content {
     padding: 1rem;
   }
-}
-
-/* Scrollbar Styling */
-.sidebar-nav::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar-nav::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 </style>

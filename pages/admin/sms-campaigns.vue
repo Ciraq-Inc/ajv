@@ -24,7 +24,7 @@
           <div class="stat-trend">All time</div>
         </div>
       </div>
-
+<!-- 
       <div class="stat-card gradient-green">
         <CheckCircleIcon class="stat-icon" />
         <div class="stat-content">
@@ -32,7 +32,7 @@
           <div class="stat-value">{{ stats.activeCampaigns }}</div>
           <div class="stat-trend">Currently running</div>
         </div>
-      </div>
+      </div> -->
 
       <div class="stat-card gradient-purple">
         <DevicePhoneMobileIcon class="stat-icon" />
@@ -43,11 +43,21 @@
         </div>
       </div>
 
-      <div class="stat-card gradient-orange">
+      <!-- <div class="stat-card gradient-orange">
         <CurrencyDollarIcon class="stat-icon" />
         <div class="stat-content">
           <div class="stat-label">Credits Used Today</div>
-          <div class="stat-value">{{ formatCurrency(stats.creditsUsedToday) }}</div>
+          <div class="stat-value">{{ stats.creditsUsedToday }}</div>
+          <div class="stat-trend">Total spent</div>
+        </div>
+      </div> -->
+
+      <!-- amount spent today -->
+      <div class="stat-card gradient-red">
+        <CurrencyDollarIcon class="stat-icon" />
+        <div class="stat-content">
+          <div class="stat-label">Amount Spent Today (GHS)</div>
+          <div class="stat-value">{{ formatCurrency(stats.amountSpentToday) }}</div>
           <div class="stat-trend">Total spent</div>
         </div>
       </div>
@@ -78,11 +88,6 @@
           <option value="cancelled">Cancelled</option>
         </select>
 
-        <select v-model="filters.provider" class="filter-select">
-          <option value="">All Providers</option>
-          <option value="nalo">Nalo Solutions</option>
-          <option value="mnotify">MNotify</option>
-        </select>
 
         <select v-model="filters.company" class="filter-select">
           <option value="">All Companies</option>
@@ -116,7 +121,6 @@
             <th>Campaign</th>
             <th>Company</th>
             <th>Status</th>
-            <th>Provider</th>
             <th>Recipients</th>
             <th>Progress</th>
             <th>Cost</th>
@@ -141,13 +145,6 @@
             <td>
               <StatusBadge :status="campaign.status" />
             </td>
-            <td>
-              <div class="provider-cell">
-                <span class="provider-badge" :class="campaign.provider">
-                  {{ getProviderName(campaign.provider) }}
-                </span>
-              </div>
-            </td>
             <td class="text-center">
               <div class="recipients-count">{{ formatNumber(campaign.total_recipients || 0) }}</div>
             </td>
@@ -160,12 +157,12 @@
                   ></div>
                 </div>
                 <div class="progress-text">
-                  {{ campaign.sent_count || 0 }} / {{ campaign.total_recipients || 0 }}
+                  {{ campaign.messages_sent || 0 }} / {{ campaign.total_recipients || 0 }}
                 </div>
               </div>
             </td>
             <td>
-              <div class="cost-cell">{{ formatCurrency(campaign.estimated_cost || 0) }}</div>
+              <div class="cost-cell">GHS {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}</div>
             </td>
             <td>
               <div class="date-cell">{{ formatDate(campaign.created_at) }}</div>
@@ -276,16 +273,8 @@
                 <StatusBadge :status="selectedCampaign.status" />
               </div>
               <div class="detail-item">
-                <span class="detail-label">Provider:</span>
-                <span class="detail-value">{{ getProviderName(selectedCampaign.provider) }}</span>
-              </div>
-              <div class="detail-item">
                 <span class="detail-label">Created:</span>
                 <span class="detail-value">{{ formatDate(selectedCampaign.created_at) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Sender ID:</span>
-                <span class="detail-value">{{ selectedCampaign.sender_id || 'Default' }}</span>
               </div>
             </div>
           </div>
@@ -306,15 +295,36 @@
               </div>
               <div class="stat-box">
                 <div class="stat-box-label">Sent</div>
-                <div class="stat-box-value text-green">{{ formatNumber(selectedCampaign.sent_count || 0) }}</div>
+                <div class="stat-box-value text-green">{{ formatNumber(selectedCampaign.messages_sent || 0) }}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-label">Delivered</div>
+                <div class="stat-box-value text-green">{{ formatNumber(selectedCampaign.messages_delivered || 0) }}</div>
               </div>
               <div class="stat-box">
                 <div class="stat-box-label">Failed</div>
-                <div class="stat-box-value text-red">{{ formatNumber(selectedCampaign.failed_count || 0) }}</div>
+                <div class="stat-box-value text-red">{{ formatNumber(selectedCampaign.messages_failed || 0) }}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-box-label">Estimated Cost</div>
-                <div class="stat-box-value">{{ formatCurrency(selectedCampaign.estimated_cost || 0) }}</div>
+                <div class="stat-box-label">Credits Charged</div>
+                <div class="stat-box-value">{{ formatNumber(selectedCampaign.sms_charged || selectedCampaign.actual_credits_used || 0) }}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-label">Actual Cost</div>
+                <div class="stat-box-value">GHS {{ formatCurrency(selectedCampaign.actual_cost || selectedCampaign.sms_cost || 0) }}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-label">Payment Status</div>
+                <div class="stat-box-value">
+                  <span :class="[
+                    'px-2 py-1 rounded text-xs font-medium',
+                    selectedCampaign.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                    selectedCampaign.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  ]">
+                    {{ selectedCampaign.payment_status || 'pending' }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -373,7 +383,7 @@ import {
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
-import { formatCurrency, formatDate, SMS_PROVIDERS_LIST } from '~/utils/constants/sms'
+import { formatCurrency, formatDate } from '~/utils/constants/sms'
 
 // Define page metadata
 definePageMeta({
@@ -388,7 +398,6 @@ const { campaigns, loading, error, fetchCampaigns, pauseCampaign: pauseCampaignA
 const filters = ref({
   search: '',
   status: '',
-  provider: '',
   company: '',
 })
 
@@ -413,18 +422,21 @@ const stats = computed(() => {
 
   return {
     totalCampaigns: campaigns.value.length,
-    activeCampaigns: campaigns.value.filter(c => c.status === 'active' || c.status === 'processing').length,
+    activeCampaigns: campaigns.value.filter(c => c.status === 'active' || c.status === 'processing' || c.status === 'sending').length,
     messagesSentToday: campaigns.value
       .filter(c => new Date(c.created_at) >= todayStart)
-      .reduce((sum, c) => sum + (c.sent_count || 0), 0),
+      .reduce((sum, c) => sum + (c.messages_sent || 0), 0),
     creditsUsedToday: campaigns.value
       .filter(c => new Date(c.created_at) >= todayStart)
-      .reduce((sum, c) => sum + (c.estimated_cost || 0), 0),
+      .reduce((sum, c) => sum + (c.sms_charged || 0), 0),
+    amountSpentToday: campaigns.value
+      .filter(c => new Date(c.created_at) >= todayStart)
+      .reduce((sum, c) => sum + (c.actual_cost || c.sms_cost || 0), 0),
   }
 })
 
 const hasActiveFilters = computed(() => {
-  return filters.value.search || filters.value.status || filters.value.provider || filters.value.company
+  return filters.value.search || filters.value.status || filters.value.company
 })
 
 const filteredCampaigns = computed(() => {
@@ -443,11 +455,6 @@ const filteredCampaigns = computed(() => {
   // Status filter
   if (filters.value.status) {
     result = result.filter(c => c.status === filters.value.status)
-  }
-
-  // Provider filter
-  if (filters.value.provider) {
-    result = result.filter(c => c.provider === filters.value.provider)
   }
 
   // Company filter
@@ -480,7 +487,6 @@ const clearFilters = () => {
   filters.value = {
     search: '',
     status: '',
-    provider: '',
     company: '',
   }
   currentPage.value = 1
@@ -547,19 +553,19 @@ const formatNumber = (num) => {
   return new Intl.NumberFormat().format(num || 0)
 }
 
+// const formatCurrency = (value) => {
+//   const num = parseFloat(value) || 0
+//   return num.toFixed(2)
+// }
+
 const truncateMessage = (message) => {
   if (!message) return 'No message'
   return message.length > 60 ? message.substring(0, 60) + '...' : message
 }
 
-const getProviderName = (provider) => {
-  const providerObj = SMS_PROVIDERS_LIST.find(p => p.value === provider)
-  return providerObj?.name || provider || 'Unknown'
-}
-
 const calculateProgress = (campaign) => {
   if (!campaign.total_recipients || campaign.total_recipients === 0) return 0
-  return Math.round(((campaign.sent_count || 0) / campaign.total_recipients) * 100)
+  return Math.round(((campaign.messages_sent || 0) / campaign.total_recipients) * 100)
 }
 
 // Lifecycle
@@ -773,24 +779,6 @@ onMounted(async () => {
 
 .company-icon {
   color: #9CA3AF;
-}
-
-.provider-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.provider-badge.nalo {
-  background: #DBEAFE;
-  color: #1E40AF;
-}
-
-.provider-badge.mnotify {
-  background: #D1FAE5;
-  color: #065F46;
 }
 
 .recipients-count {

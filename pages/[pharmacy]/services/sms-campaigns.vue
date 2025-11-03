@@ -92,10 +92,11 @@
             <option value="completed">Completed</option>
             <option value="paused">Paused</option>
             <option value="cancelled">Cancelled</option>
+            <option value="archived">Archived</option>
           </select>
         </div>
 
-        <div>
+        <!-- <div>
           <label class="text-sm text-gray-600 mb-1 block">Provider</label>
           <select
             v-model="filters.provider"
@@ -106,9 +107,21 @@
             <option value="nalo">Nalo Solutions</option>
             <option value="mnotify">MNotify</option>
           </select>
-        </div>
+        </div> -->
 
         <div class="flex-1"></div>
+
+        <!-- Show Archived Toggle -->
+        <button
+          @click="toggleShowArchived"
+          class="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+          :class="showArchived 
+            ? 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200' 
+            : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'"
+        >
+          <ArchiveBoxIcon class="h-4 w-4" />
+          {{ showArchived ? 'Hide' : 'Show' }} Archived ({{ archivedCampaigns.length }})
+        </button>
 
         <button
           @click="refreshCampaigns"
@@ -163,6 +176,9 @@
         @pause="pauseCampaign"
         @resume="resumeCampaign"
         @cancel="cancelCampaign"
+        @archive="archiveCampaign"
+        @restore="restoreCampaign"
+        @delete="deleteCampaign"
         @reuse="openReuseCampaignModal"
         @resend="openResendCampaignModal"
         @update="updateCampaign"
@@ -195,6 +211,7 @@
       @pause="pauseCampaign"
       @resume="resumeCampaign"
       @cancel="cancelCampaign"
+      @delete="deleteCampaign"
     />
 
     <!-- Test SMS Modal -->
@@ -315,7 +332,8 @@ import {
   SparklesIcon, 
   DocumentTextIcon, 
   ArrowPathIcon, 
-  XMarkIcon 
+  XMarkIcon,
+  ArchiveBoxIcon
 } from '@heroicons/vue/20/solid'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
@@ -344,6 +362,9 @@ const {
   pauseCampaign: pauseCampaignAction,
   resumeCampaign: resumeCampaignAction,
   cancelCampaign: cancelCampaignAction,
+  archiveCampaign: archiveCampaignAction,
+  restoreCampaign: restoreCampaignAction,
+  deleteCampaign: deleteCampaignAction,
   activeCampaigns,
   completedCampaigns,
   draftCampaigns,
@@ -361,6 +382,7 @@ const filters = ref({
   provider: ''
 })
 
+const showArchived = ref(false)
 const showTestModal = ref(false)
 const showDetailsModal = ref(false)
 const selectedCampaignId = ref(null)
@@ -395,6 +417,11 @@ const resendFormData = ref({
 const filteredCampaigns = computed(() => {
   let filtered = [...campaigns.value]
 
+  // Filter out archived campaigns by default unless showArchived is true or archived filter is selected
+  if (!showArchived.value && filters.value.status !== 'archived') {
+    filtered = filtered.filter(c => c.status !== 'archived')
+  }
+
   if (filters.value.status) {
     filtered = filtered.filter(c => c.status === filters.value.status)
   }
@@ -404,6 +431,11 @@ const filteredCampaigns = computed(() => {
   }
 
   return filtered
+})
+
+// Archived campaigns count
+const archivedCampaigns = computed(() => {
+  return campaigns.value.filter(c => c.status === 'archived')
 })
 
 // Load data on mount
@@ -511,6 +543,17 @@ const clearFilters = () => {
   }
 }
 
+// Toggle show archived campaigns
+const toggleShowArchived = () => {
+  showArchived.value = !showArchived.value
+  // If turning on archived view and no specific filter is set, show only archived
+  if (showArchived.value && !filters.value.status) {
+    filters.value.status = 'archived'
+  } else if (!showArchived.value && filters.value.status === 'archived') {
+    filters.value.status = ''
+  }
+}
+
 // View campaign details
 const viewCampaign = (campaignId) => {
   selectedCampaignId.value = campaignId
@@ -525,7 +568,7 @@ const closeDetailsModal = () => {
 
 // Edit campaign (redirect to edit page)
 const updateCampaign = (campaignId) => {
-  navigateTo(`/${companyDomain.value}/services/sms-campaigns/${campaignId}/edit`)
+  navigateTo(`/${route.params.pharmacy}/services/sms-campaigns/${campaignId}/edit`)
 }
 
 // Start campaign
@@ -597,6 +640,74 @@ const cancelCampaign = (campaignId) => {
     loading: false,
     action: 'cancel',
     campaignId
+  }
+}
+
+// Archive campaign
+const archiveCampaign = (campaignId) => {
+  // Close details modal first
+  closeDetailsModal()
+  
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Archive Campaign?',
+    message: `Archive "${campaign?.name}"? The campaign data will be preserved but hidden from the main list. You can restore it later.`,
+    type: 'warning',
+    loading: false,
+    action: 'archive',
+    campaignId,
+    error: null,
+    canRetry: false,
+    isRetrying: false
+  }
+}
+
+// Restore campaign
+const restoreCampaign = (campaignId) => {
+  // Close details modal first
+  closeDetailsModal()
+  
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Restore Campaign?',
+    message: `Restore "${campaign?.name}" from archive? The campaign will be visible in your campaigns list again.`,
+    type: 'info',
+    loading: false,
+    action: 'restore',
+    campaignId,
+    error: null,
+    canRetry: false,
+    isRetrying: false
+  }
+}
+
+// Delete campaign
+const deleteCampaign = (campaignId) => {
+  // Close details modal first
+  closeDetailsModal()
+  
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  
+  const isDraft = campaign?.status === 'draft'
+  const message = isDraft 
+    ? `Permanently delete draft campaign "${campaign?.name}"? This action cannot be undone.`
+    : `Archive "${campaign?.name}"? The campaign will be moved to archives to preserve your analytics data.`
+  
+  confirmDialog.value = {
+    isOpen: true,
+    title: isDraft ? 'Delete Draft Campaign?' : 'Archive Campaign?',
+    message,
+    type: isDraft ? 'error' : 'warning',
+    loading: false,
+    action: 'delete',
+    campaignId,
+    error: null,
+    canRetry: false,
+    isRetrying: false
   }
 }
 
@@ -678,6 +789,12 @@ const handleConfirm = async () => {
       await resumeCampaignAction(campaignId)
     } else if (action === 'cancel') {
       await cancelCampaignAction(campaignId)
+    } else if (action === 'archive') {
+      await archiveCampaignAction(campaignId)
+    } else if (action === 'restore') {
+      await restoreCampaignAction(campaignId)
+    } else if (action === 'delete') {
+      await deleteCampaignAction(campaignId)
     } else if (action === 'reuse') {
       await reuseCampaignAction(campaignId, reuseFormData.value.newName)
     } else if (action === 'resend') {
@@ -712,6 +829,12 @@ const retryFailedAction = async () => {
       await resumeCampaignAction(campaignId)
     } else if (action === 'cancel') {
       await cancelCampaignAction(campaignId)
+    } else if (action === 'archive') {
+      await archiveCampaignAction(campaignId)
+    } else if (action === 'restore') {
+      await restoreCampaignAction(campaignId)
+    } else if (action === 'delete') {
+      await deleteCampaignAction(campaignId)
     } else if (action === 'reuse') {
       await reuseCampaignAction(campaignId, reuseFormData.value.newName)
     } else if (action === 'resend') {

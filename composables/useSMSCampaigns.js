@@ -281,6 +281,51 @@ export const useSMSCampaigns = () => {
     }
   }
 
+  // Archive campaign
+  const archiveCampaign = async (campaignId) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const token = getToken()
+      const response = await service.archiveCampaign(campaignId, token)
+      
+      // Update campaign status in list
+      updateCampaignInList(campaignId, { status: 'archived' })
+      
+      return response
+    } catch (err) {
+      error.value = err.message
+      console.error('Error archiving campaign:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Restore campaign
+  const restoreCampaign = async (campaignId) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const token = getToken()
+      const response = await service.restoreCampaign(campaignId, token)
+      
+      // Update campaign status in list based on response
+      const newStatus = response.data?.new_status || 'draft'
+      updateCampaignInList(campaignId, { status: newStatus, archived_at: null })
+      
+      return response
+    } catch (err) {
+      error.value = err.message
+      console.error('Error restoring campaign:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Delete campaign
   const deleteCampaign = async (campaignId) => {
     loading.value = true
@@ -468,6 +513,8 @@ export const useSMSCampaigns = () => {
     pauseCampaign,
     resumeCampaign,
     cancelCampaign,
+    archiveCampaign,
+    restoreCampaign,
     deleteCampaign,
     fetchCampaignStats,
     fetchCampaignRecipients,

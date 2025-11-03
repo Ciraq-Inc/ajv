@@ -29,8 +29,8 @@ export default (apiBase) => ({
     const params = new URLSearchParams()
 
     if (filters.transaction_type) params.append('transaction_type', filters.transaction_type)
-    if (filters.startDate) params.append('startDate', filters.startDate)
-    if (filters.endDate) params.append('endDate', filters.endDate)
+    if (filters.start_date) params.append('start_date', filters.start_date)
+    if (filters.end_date) params.append('end_date', filters.end_date)
     if (filters.limit) params.append('limit', filters.limit)
     if (filters.offset) params.append('offset', filters.offset)
 

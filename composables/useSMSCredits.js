@@ -109,7 +109,31 @@ export const useSMSCredits = () => {
       if (!token) throw new Error('No authentication token available')
 
       const response = await service.getTransactions(filters, token)
-      transactions.value = response.data || response.transactions || []
+      let fetchedTransactions = response.data || response.transactions || []
+      
+      // Client-side filtering for SMS-only or money-only transactions
+      if (filters.sms_only) {
+        fetchedTransactions = fetchedTransactions.filter(t => 
+          t.transaction_type === 'sms_deduction' || 
+          t.transaction_type === 'sms_topup' || 
+          t.transaction_type === 'sms_refund' ||
+          // Include legacy 'sent' type for SMS deductions
+          t.transaction_type === 'sent' ||
+          // Include transactions where sms_count > 0 but transaction_type is legacy
+          (t.sms_count > 0 && (t.transaction_type === 'topup' || t.transaction_type === 'refund' || t.transaction_type === 'deduction'))
+        )
+      } else if (filters.money_only) {
+        fetchedTransactions = fetchedTransactions.filter(t => 
+          t.transaction_type === 'money_deduction' || 
+          t.transaction_type === 'money_topup' || 
+          t.transaction_type === 'money_refund' ||
+          t.transaction_type === 'topup' ||
+          t.transaction_type === 'deduction' ||
+          t.transaction_type === 'refund'
+        )
+      }
+      
+      transactions.value = fetchedTransactions
 
       return response
     } catch (err) {

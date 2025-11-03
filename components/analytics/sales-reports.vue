@@ -5,7 +5,7 @@
         Sales Items 
       </h1>
       <p class="text-gray-600">
-        Comprehensive sales transaction insights across all companies
+         Sales transaction  across all companies
       </p>
     </div>
 
@@ -77,7 +77,7 @@
           <div>
             <p class="text-sm font-medium text-gray-600">Total Companies</p>
             <p class="text-2xl font-bold text-gray-900">
-              {{ summary.total_companies?.toLocaleString() || 0 }}
+              {{ summary?.total_companies || 0 }}
             </p>
           </div>
           <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -90,7 +90,7 @@
           <div>
             <p class="text-sm font-medium text-gray-600">Unique Products</p>
             <p class="text-2xl font-bold text-green-600">
-              {{ summary.unique_products?.toLocaleString() || 0 }}
+              {{ summary?.unique_products || 0 }}
             </p>
           </div>
           <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -103,7 +103,7 @@
           <div>
             <p class="text-sm font-medium text-gray-600">Total Transactions</p>
             <p class="text-2xl font-bold text-purple-600">
-              {{ summary.total_transactions?.toLocaleString() || 0 }}
+              {{ summary?.total_transactions?.toLocaleString() || 0 }}
             </p>
           </div>
           <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -111,7 +111,19 @@
           </div>
         </div>
       </div>
-     
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Value</p>
+            <p class="text-2xl font-bold text-orange-600">
+              ${{ parseFloat(summary?.total_value || 0).toFixed(2) }}
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+            <ChartBarIcon class="stat-icon text-orange-600" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Company Breakdown Table -->
@@ -149,8 +161,9 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total Quantity
               </th>
-             
-             
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Total Value
+              </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -182,7 +195,7 @@
                 {{ company.total_quantity || 0 }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">
-                {{ company.total_value || 0 }}
+                ${{ parseFloat(company.total_value || 0).toFixed(2) }}
               </td>
               
             </tr>
@@ -226,32 +239,32 @@
                   Company
                 </th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product
+                  Unique Products
                 </th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
+                  Unique Customers
                 </th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Quantity
+                  Transactions
                 </th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Selling Price
+                  Total Quantity
                 </th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Line Total
+                  Total Value
                 </th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                  Avg Price
                 </th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="item in salesItems" :key="item.id" class="hover:bg-gray-50">
+              <tr v-for="item in salesItems" :key="item.company_id" class="hover:bg-gray-50">
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                   {{ item.company_name }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                  {{ item.total_transactions || 0 }}
+                  {{ item.unique_products || 0 }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                   {{ item.unique_customers || 0 }}
@@ -260,13 +273,13 @@
                   {{ item.transaction_count || 0 }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                  ${{ item.total_quantity || 0 }}
+                  {{ item.total_quantity || 0 }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-semibold">
-                  ${{ item.line_total?.toLocaleString() || 0 }}
+                  ${{ parseFloat(item.total_value || 0).toFixed(2) }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                  {{ formatDate(item.actual_date) }}
+                  {{ item.avg_selling_price ? parseFloat(item.avg_selling_price).toFixed(2) : '0.00' }}
                 </td>
               </tr>
             </tbody>
@@ -332,7 +345,17 @@ const fetchSummary = async () => {
     
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items?${params}`)
     if (response.success) {
-      summary.value = response
+      // Normalize the response data
+      summary.value = {
+        total_companies: response.total_companies || 0,
+        unique_products: response.unique_products || 0,
+        unique_customers: response.unique_customers || 0,
+        total_transactions: response.total_transactions || 0,
+        total_quantity: parseFloat(response.total_quantity) || 0,
+        total_value: parseFloat(response.total_value) || 0,
+        total_profit: parseFloat(response.total_profit) || 0,
+        avg_selling_price: parseFloat(response.avg_selling_price) || 0
+      }
     } else {
       summary.value = null
     }
@@ -350,38 +373,18 @@ const fetchCompanyBreakdown = async () => {
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
     
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items/dataview?${params}`)
-    if (response.success && response.data) {
-      // Group by company from dataview
-      const grouped = {}
-      response.data.forEach(item => {
-        if (!grouped[item.company_name]) {
-          grouped[item.company_name] = {
-            company_id: item.company_id || 0,
-            company_name: item.company_name,
-            unique_products: 0,
-            unique_customers: new Set(),
-            transaction_count: 0,
-            total_quantity: 0,
-            total_value: 0,
-            total_profit: 0,
-            avg_selling_price: 0
-          }
-        }
-        grouped[item.company_name].transaction_count++
-        grouped[item.company_name].total_quantity += parseFloat(item.product_qty) || 0
-        grouped[item.company_name].total_value += parseFloat(item.line_total) || 0
-        grouped[item.company_name].unique_customers.add(item.customer_name)
-        grouped[item.company_name].unique_products = Math.max(
-          grouped[item.company_name].unique_products,
-          parseFloat(item.product_id) || 0
-        )
-      })
-      
-      // Convert to array and finalize calculations
-      summaryByCompany.value = Object.values(grouped).map(company => ({
-        ...company,
-        unique_customers: company.unique_customers.size,
-        avg_selling_price: company.transaction_count > 0 ? company.total_value / company.transaction_count : 0
+    if (response.success && response.data && Array.isArray(response.data)) {
+      // API already returns company-level aggregates, just normalize null values
+      summaryByCompany.value = response.data.map(item => ({
+        company_id: item.company_id || 0,
+        company_name: item.company_name || 'Unknown',
+        unique_products: item.unique_products || 0,
+        unique_customers: item.unique_customers || 0,
+        transaction_count: item.transaction_count || 0,
+        total_quantity: parseFloat(item.total_quantity) || 0,
+        total_value: parseFloat(item.total_value) || 0,
+        total_profit: parseFloat(item.total_profit) || 0,
+        avg_selling_price: parseFloat(item.avg_selling_price) || 0
       }))
     } else {
       summaryByCompany.value = []

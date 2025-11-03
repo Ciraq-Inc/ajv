@@ -152,6 +152,40 @@ export default (apiBase) => ({
     return await response.json()
   },
 
+  // Archive campaign
+  async archiveCampaign(campaignId, token) {
+    const response = await fetch(`${apiBase}/api/sms-campaigns/${campaignId}/archive`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to archive campaign')
+    }
+
+    return await response.json()
+  },
+
+  // Restore campaign
+  async restoreCampaign(campaignId, token) {
+    const response = await fetch(`${apiBase}/api/sms-campaigns/${campaignId}/restore`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to restore campaign')
+    }
+
+    return await response.json()
+  },
+
   // Get campaign statistics
   async getCampaignStats(campaignId, token) {
     const response = await fetch(`${apiBase}/api/sms-campaigns/${campaignId}/stats`, {

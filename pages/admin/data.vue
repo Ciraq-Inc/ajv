@@ -244,11 +244,11 @@ const tabs = [
     name: "Users",
     icon: "Users",
   },
-  // {
-  //   id: "sales-reports",
-  //   name: "Sales Reports",
-  //   icon: "TrendingUp",
-  // },
+  {
+    id: "sales-reports",
+    name: "Sales Reports",
+    icon: "TrendingUp",
+  },
 
   {
     id: "purchase-reports",

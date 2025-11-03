@@ -7,7 +7,8 @@
         class="btn-primary"
         v-if="selectedCompany"
       >
-        ➕ Generate New API Key
+        <PlusIcon class="icon-sm" />
+        Generate New API Key
       </button>
     </div>
 
@@ -26,21 +27,21 @@
       <!-- Stats Cards -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon blue">🔑</div>
+          <div class="stat-icon blue"><KeyIcon class="icon-lg" /></div>
           <div class="stat-details">
             <div class="stat-value">{{ stats.total || 0 }}</div>
             <div class="stat-label">Total Keys</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon green">✓</div>
+          <div class="stat-icon green"><CheckCircleIcon class="icon-lg" /></div>
           <div class="stat-details">
             <div class="stat-value">{{ stats.active || 0 }}</div>
             <div class="stat-label">Active Keys</div>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon orange">⏰</div>
+          <div class="stat-icon orange"><ClockIcon class="icon-lg" /></div>
           <div class="stat-details">
             <div class="stat-value">{{ stats.expired || 0 }}</div>
             <div class="stat-label">Expired</div>
@@ -62,7 +63,10 @@
       </div>
 
       <div v-else-if="error" class="error-container">
-        <p>❌ {{ error }}</p>
+        <div class="error-content">
+          <ExclamationCircleIcon class="icon-xl" />
+          <p>{{ error }}</p>
+        </div>
         <button @click="loadApiKeys" class="btn-retry">Retry</button>
       </div>
 
@@ -71,7 +75,6 @@
           <thead>
             <tr>
               <th>Key Name</th>
-              <th>API Key</th>
               <th>Status</th>
               <th>Last Used</th>
               <th>Expires</th>
@@ -83,18 +86,11 @@
             <tr v-for="key in apiKeys" :key="key.id">
               <td>
                 <div class="key-name">
-                  <span class="key-icon">🔐</span>
+                  <KeyIcon class="icon-sm" />
                   {{ key.key_name }}
                 </div>
               </td>
-              <td>
-                <div class="api-key-cell">
-                  <code class="api-key-display">{{ maskApiKey(key.api_key) }}</code>
-                  <button @click="copyToClipboard(key.api_key)" class="copy-btn" title="Copy">
-                    📋
-                  </button>
-                </div>
-              </td>
+           
               <td>
                 <span class="status-badge" :class="getStatusClass(key)">
                   {{ getStatusText(key) }}
@@ -123,7 +119,7 @@
                     title="Deactivate"
                     :disabled="!key.is_active"
                   >
-                    🗑️
+                    <TrashIcon class="icon-sm" />
                   </button>
                 </div>
               </td>
@@ -170,7 +166,9 @@
     </div>
 
     <div v-else class="empty-state">
-      <div class="empty-icon">🏢</div>
+      <div class="empty-icon">
+        <XMarkIcon class="icon-xl" />
+      </div>
       <h3>Select a Company</h3>
       <p>Choose a company from the dropdown above to manage their API keys</p>
     </div>
@@ -180,7 +178,9 @@
       <div class="modal">
         <div class="modal-header">
           <h2>Generate New API Key</h2>
-          <button @click="closeGenerateModal" class="close-btn">✕</button>
+          <button @click="closeGenerateModal" class="close-btn">
+            <XMarkIcon class="icon-sm" />
+          </button>
         </div>
         <div class="modal-body">
           <form @submit.prevent="generateApiKey">
@@ -224,11 +224,14 @@
     <div v-if="newGeneratedKey" class="modal-overlay">
       <div class="modal">
         <div class="modal-header success">
-          <h2>✅ API Key Generated Successfully</h2>
+          <h2>API Key Generated Successfully</h2>
         </div>
         <div class="modal-body">
           <div class="alert alert-warning">
-            <strong>⚠️ Important:</strong> This API key will only be shown once. Please copy it now and store it securely.
+            <ExclamationTriangleIcon class="icon-sm" />
+            <div>
+              <strong>Important:</strong> This API key will only be shown once. Please copy it now and store it securely.
+            </div>
           </div>
 
           <div class="generated-key-display">
@@ -236,7 +239,8 @@
             <div class="key-copy-box">
               <code>{{ newGeneratedKey.api_key }}</code>
               <button @click="copyToClipboard(newGeneratedKey.api_key)" class="copy-btn-large">
-                📋 Copy
+                <DocumentDuplicateIcon class="icon-sm" />
+                Copy
               </button>
             </div>
           </div>
@@ -270,7 +274,9 @@
       <div class="modal modal-sm">
         <div class="modal-header">
           <h2>Confirm Deactivation</h2>
-          <button @click="deactivatingKey = null" class="close-btn">✕</button>
+          <button @click="deactivatingKey = null" class="close-btn">
+            <XMarkIcon class="icon-sm" />
+          </button>
         </div>
         <div class="modal-body">
           <p>Are you sure you want to deactivate the API key <strong>{{ deactivatingKey.key_name }}</strong>?</p>
@@ -293,6 +299,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { PlusIcon, TrashIcon, DocumentDuplicateIcon, CheckCircleIcon, ClockIcon, KeyIcon, ExclamationTriangleIcon, XMarkIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 
 const adminStore = useAdminStore()
 
@@ -629,8 +636,19 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.key-icon {
-  font-size: 18px;
+.icon-sm {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-lg {
+  width: 28px;
+  height: 28px;
+}
+
+.icon-xl {
+  width: 48px;
+  height: 48px;
 }
 
 .api-key-cell {
@@ -776,8 +794,10 @@ onMounted(() => {
 }
 
 .empty-icon {
-  font-size: 64px;
+  display: flex;
+  justify-content: center;
   margin-bottom: 16px;
+  color: #cbd5e1;
 }
 
 .empty-state h3 {
@@ -804,6 +824,10 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
 
 .btn-primary {
@@ -852,6 +876,15 @@ button:disabled {
   padding: 60px;
   text-align: center;
   margin-bottom: 24px;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  color: #dc2626;
 }
 
 .spinner {
@@ -1016,6 +1049,9 @@ button:disabled {
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
 }
 
 .alert-warning {
@@ -1065,6 +1101,9 @@ button:disabled {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .copy-btn-large:hover {

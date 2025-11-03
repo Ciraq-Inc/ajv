@@ -23,11 +23,10 @@
           <h3 class="text-sm font-medium text-gray-600">This Month</h3>
           <Icon name="Calendar" class="h-5 w-5 text-gray-400" />
         </div>
-        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatNumber(monthlyStats.sent) }}</p>
-        <p class="text-sm text-gray-600">SMS Sent</p>
+        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(monthlyStats.topupAmount) }}</p>
+        <p class="text-sm text-gray-600">Money Topped Up</p>
         <div class="mt-3 flex items-center text-sm">
-          <span class="text-green-600 font-medium">{{ formatCurrency(monthlyStats.cost) }}</span>
-          <span class="text-gray-500 ml-1">spent</span>
+          <span class="text-green-600 font-medium">{{ monthlyStats.topups }} top-ups</span>
         </div>
       </div>
 
@@ -36,21 +35,20 @@
           <h3 class="text-sm font-medium text-gray-600">Today</h3>
           <Icon name="Activity" class="h-5 w-5 text-gray-400" />
         </div>
-        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatNumber(todayStats.sent) }}</p>
-        <p class="text-sm text-gray-600">SMS Sent</p>
+        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(todayStats.topupAmount) }}</p>
+        <p class="text-sm text-gray-600">Money Topped Up</p>
         <div class="mt-3 flex items-center text-sm">
-          <span class="text-blue-600 font-medium">{{ formatCurrency(todayStats.cost) }}</span>
-          <span class="text-gray-500 ml-1">spent</span>
+          <span class="text-blue-600 font-medium">{{ todayStats.topups }} top-ups</span>
         </div>
       </div>
 
       <div class="bg-white p-6 rounded-lg border border-gray-200">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-medium text-gray-600">Average Cost</h3>
+          <h3 class="text-sm font-medium text-gray-600">Average Top-up</h3>
           <Icon name="DollarSign" class="h-5 w-5 text-gray-400" />
         </div>
-        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(averageCost) }}</p>
-        <p class="text-sm text-gray-600">Per SMS</p>
+        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(averageTopup) }}</p>
+        <p class="text-sm text-gray-600">Per Transaction</p>
       </div>
     </div>
 
@@ -77,10 +75,12 @@
             @change="applyTransactionFilters"
             class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="">All Types</option>
-            <option value="deduction">Deductions</option>
-            <option value="topup">Top-ups</option>
-            <option value="refund">Refunds</option>
+            <option value="">All Money Transactions</option>
+            <option value="money_topup">Money Top-ups</option>
+            <option value="money_deduction">Money Deductions</option>
+            <option value="money_refund">Money Refunds</option>
+            <option value="topup">Legacy Top-ups</option>
+            <option value="deduction">Legacy Deductions</option>
           </select>
 
           <select
@@ -205,27 +205,33 @@ const transactionFilters = ref({
 })
 
 const monthlyStats = ref({
-  sent: 0,
-  cost: 0
+  topupAmount: 0,
+  deductionAmount: 0,
+  topups: 0
 })
 
 const todayStats = ref({
-  sent: 0,
-  cost: 0
+  topupAmount: 0,
+  deductionAmount: 0,
+  topups: 0
 })
 
-const averageCost = computed(() => {
-  const total = monthlyStats.value.sent
+const averageTopup = computed(() => {
+  const total = monthlyStats.value.topups
   if (total === 0) return 0
-  return monthlyStats.value.cost / total
+  return monthlyStats.value.topupAmount / total
 })
 
 // Load data on mount
 onMounted(async () => {
   await Promise.all([
     fetchBalance(),
-    fetchTransactions()
+    fetchTransactions({ money_only: true }) // Only money transactions
   ])
+  
+  console.log('=== INITIAL DATA LOADED ===')
+  console.log('Total transactions loaded:', transactions.value.length)
+  console.log('First 3 transactions:', transactions.value.slice(0, 3))
   
   // Calculate stats from transactions
   calculateStats()
@@ -233,7 +239,10 @@ onMounted(async () => {
 
 // Refresh transactions
 const refreshTransactions = async () => {
-  const filters = {}
+  const filters = {
+    // Only show money-related transactions (money_topup, money_deduction, money_refund, topup, deduction)
+    money_only: true
+  }
   
   if (transactionFilters.value.type) {
     filters.transaction_type = transactionFilters.value.type
@@ -243,7 +252,7 @@ const refreshTransactions = async () => {
     const days = parseInt(transactionFilters.value.period)
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
-    filters.startDate = startDate.toISOString()
+    filters.start_date = startDate.toISOString().split('T')[0] // Fix: use start_date and format as YYYY-MM-DD
   }
   
   await fetchTransactions(filters)
@@ -261,38 +270,99 @@ const calculateStats = () => {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   
-  let monthSent = 0
-  let monthCost = 0
-  let todaySent = 0
-  let todayCost = 0
+  let monthTopupAmount = 0
+  let monthDeductionAmount = 0
+  let monthTopups = 0
+  let todayTopupAmount = 0
+  let todayDeductionAmount = 0
+  let todayTopups = 0
+  
+  console.log('=== CALCULATING MONEY STATS ===')
+  console.log('Calculating stats from', transactions.value.length, 'transactions')
+  console.log('Start of month:', startOfMonth.toISOString())
+  console.log('Start of day:', startOfDay.toISOString())
+  console.log('Current time:', now.toISOString())
+  
+  if (transactions.value.length === 0) {
+    console.warn('⚠️ NO TRANSACTIONS FOUND! Stats will be zero.')
+  }
+  
+  const transactionTypes = {}
   
   transactions.value.forEach(t => {
     const transDate = new Date(t.created_at)
-    const amount = Math.abs(t.sms_count)
-    const cost = amount * 0.05 // Assuming 0.05 per SMS
     
-    if (transDate >= startOfMonth && t.transaction_type === 'deduction') {
-      monthSent += amount
-      monthCost += cost
+    // Count transaction types
+    transactionTypes[t.transaction_type] = (transactionTypes[t.transaction_type] || 0) + 1
+    
+    console.log('Transaction:', {
+      id: t.id,
+      type: t.transaction_type,
+      date: transDate.toISOString(),
+      amount: t.amount,
+      isThisMonth: transDate >= startOfMonth,
+      isToday: transDate >= startOfDay
+    })
+    
+    // Money top-up transactions
+    if (t.transaction_type === 'money_topup' || t.transaction_type === 'topup') {
+      const amount = parseFloat(t.amount || 0)
+      
+      console.log('  ✓ Money top-up transaction! Amount:', amount)
+      
+      if (transDate >= startOfMonth) {
+        monthTopupAmount += amount
+        monthTopups++
+        console.log('    → Added to MONTH stats')
+      }
+      
+      if (transDate >= startOfDay) {
+        todayTopupAmount += amount
+        todayTopups++
+        console.log('    → Added to TODAY stats')
+      }
     }
     
-    if (transDate >= startOfDay && t.transaction_type === 'deduction') {
-      todaySent += amount
-      todayCost += cost
+    // Money deduction transactions
+    if (t.transaction_type === 'money_deduction' || t.transaction_type === 'deduction') {
+      const amount = parseFloat(t.amount || 0)
+      
+      if (transDate >= startOfMonth) {
+        monthDeductionAmount += amount
+      }
+      
+      if (transDate >= startOfDay) {
+        todayDeductionAmount += amount
+      }
     }
   })
   
-  monthlyStats.value = { sent: monthSent, cost: monthCost }
-  todayStats.value = { sent: todaySent, cost: todayCost }
+  console.log('=== TRANSACTION TYPE SUMMARY ===')
+  console.log('Transaction types found:', transactionTypes)
+  console.log('=== FINAL MONEY STATS ===')
+  console.log('Month:', { topupAmount: monthTopupAmount, deductionAmount: monthDeductionAmount, topups: monthTopups })
+  console.log('Today:', { topupAmount: todayTopupAmount, deductionAmount: todayDeductionAmount, topups: todayTopups })
+  
+  if (monthTopupAmount === 0 && monthTopups === 0) {
+    console.warn('⚠️ No money activity found this month!')
+  }
+  
+  monthlyStats.value = { topupAmount: monthTopupAmount, deductionAmount: monthDeductionAmount, topups: monthTopups }
+  todayStats.value = { topupAmount: todayTopupAmount, deductionAmount: todayDeductionAmount, topups: todayTopups }
 }
 
 // Get transaction type label
 const getTransactionTypeLabel = (type) => {
   const labels = {
-    deduction: 'Deduction',
+    sms_deduction: 'SMS Sent',
+    sms_topup: 'SMS Top-up',
+    sms_refund: 'SMS Refund',
+    money_deduction: 'Money Deduction',
+    money_topup: 'Money Top-up',
+    money_refund: 'Money Refund',
     topup: 'Top-up',
-    refund: 'Refund',
-    purchase: 'Purchase'
+    deduction: 'Deduction',
+    refund: 'Refund'
   }
   return labels[type] || type
 }
@@ -300,10 +370,15 @@ const getTransactionTypeLabel = (type) => {
 // Get transaction type class
 const getTransactionTypeClass = (type) => {
   const classes = {
-    deduction: 'bg-red-100 text-red-800',
+    sms_deduction: 'bg-red-100 text-red-800',
+    sms_topup: 'bg-green-100 text-green-800',
+    sms_refund: 'bg-yellow-100 text-yellow-800',
+    money_deduction: 'bg-orange-100 text-orange-800',
+    money_topup: 'bg-emerald-100 text-emerald-800',
+    money_refund: 'bg-amber-100 text-amber-800',
     topup: 'bg-green-100 text-green-800',
-    refund: 'bg-yellow-100 text-yellow-800',
-    purchase: 'bg-blue-100 text-blue-800'
+    deduction: 'bg-orange-100 text-orange-800',
+    refund: 'bg-yellow-100 text-yellow-800'
   }
   return classes[type] || 'bg-gray-100 text-gray-800'
 }

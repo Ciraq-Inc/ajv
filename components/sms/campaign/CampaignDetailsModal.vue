@@ -68,7 +68,7 @@
                     </div>
                     <div>
                       <p class="text-xs text-gray-600">Sent</p>
-                      <p class="text-xl font-bold text-gray-900">{{ stats?.messages_sent || stats?.sent || 0 }}</p>
+                      <p class="text-xl font-bold text-gray-900">{{ stats?.messages_sent || campaign?.messages_sent || 0 }}</p>
                     </div>
                   </div>
                 </div>
@@ -80,7 +80,7 @@
                     </div>
                     <div>
                       <p class="text-xs text-gray-600">Delivered</p>
-                      <p class="text-xl font-bold text-gray-900">{{ stats?.messages_delivered || 0 }}</p>
+                      <p class="text-xl font-bold text-gray-900">{{ stats?.messages_delivered || campaign?.messages_delivered || 0 }}</p>
                     </div>
                   </div>
                 </div>
@@ -92,7 +92,7 @@
                     </div>
                     <div>
                       <p class="text-xs text-gray-600">Failed</p>
-                      <p class="text-xl font-bold text-gray-900">{{ stats?.messages_failed || 0 }}</p>
+                      <p class="text-xl font-bold text-gray-900">{{ stats?.messages_failed || campaign?.messages_failed || 0 }}</p>
                     </div>
                   </div>
                 </div>
@@ -111,13 +111,32 @@
 
                   <div class="space-y-3">
                     <div>
-                      <label class="text-sm text-gray-600 font-medium">SMS Provider</label>
-                      <p class="text-gray-900 mt-1 text-sm">{{ campaign.sms_provider }}</p>
+                      <label class="text-sm text-gray-600 font-medium">Cost</label>
+                      <p class="text-gray-900 mt-1 text-sm font-semibold">
+                        GHS {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}
+                      </p>
                     </div>
 
                     <div>
-                      <label class="text-sm text-gray-600 font-medium">Sender ID</label>
-                      <p class="text-gray-900 mt-1 text-sm">{{ campaign.sender_id || 'Default' }}</p>
+                      <label class="text-sm text-gray-600 font-medium">SMS Charged</label>
+                      <p class="text-gray-900 mt-1 text-sm">
+                        {{ campaign.sms_charged || campaign.actual_credits_used || 0 }} credits
+                      </p>
+                    </div>
+
+                    <div>
+                      <label class="text-sm text-gray-600 font-medium">Payment Status</label>
+                      <p class="text-gray-900 mt-1 text-sm">
+                        <span :class="[
+                          'px-2 py-1 rounded-full text-xs font-medium',
+                          campaign.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                          campaign.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          campaign.payment_status === 'failed' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        ]">
+                          {{ campaign.payment_status || 'pending' }}
+                        </span>
+                      </p>
                     </div>
 
                     <div>
@@ -274,6 +293,15 @@
                   <XMarkIcon class="h-4 w-4" />
                   Cancel
                 </button>
+
+                <button
+                  v-if="['draft', 'cancelled', 'completed'].includes(campaign.status)"
+                  @click="$emit('delete', campaign.id)"
+                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-sm"
+                >
+                  <TrashIcon class="h-4 w-4" />
+                  Delete
+                </button>
               </div>
               <div class="flex-1"></div>
               <button
@@ -292,7 +320,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { XMarkIcon, ArrowPathIcon, UsersIcon, CheckCircleIcon, ClockIcon, XCircleIcon, PlayIcon, PauseIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ArrowPathIcon, UsersIcon, CheckCircleIcon, ClockIcon, XCircleIcon, PlayIcon, PauseIcon, DocumentTextIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 
 const props = defineProps({
@@ -306,7 +334,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'start', 'pause', 'resume', 'cancel'])
+const emit = defineEmits(['close', 'start', 'pause', 'resume', 'cancel', 'delete'])
 
 const {
   campaigns,
@@ -430,6 +458,12 @@ const formatDate = (date) => {
   })
 }
 
+// Format currency
+const formatCurrency = (value) => {
+  const num = parseFloat(value) || 0
+  return num.toFixed(2)
+}
+
 // Get status class
 const getStatusClass = (status) => {
   const classes = {
@@ -437,7 +471,8 @@ const getStatusClass = (status) => {
     sending: 'bg-blue-100 text-blue-800',
     completed: 'bg-green-100 text-green-800',
     paused: 'bg-yellow-100 text-yellow-800',
-    cancelled: 'bg-red-100 text-red-800'
+    cancelled: 'bg-red-100 text-red-800',
+    failed: 'bg-red-100 text-red-800'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }

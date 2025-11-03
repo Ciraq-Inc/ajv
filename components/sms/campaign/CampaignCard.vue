@@ -32,13 +32,13 @@
       <div>
         <p class="text-xs text-gray-500 mb-1">Sent</p>
         <p class="text-lg font-semibold text-green-600">
-          {{ formatNumber(campaign.sent_count || 0) }}
+          {{ formatNumber(campaign.messages_sent || 0) }}
         </p>
       </div>
       <div>
         <p class="text-xs text-gray-500 mb-1">Cost</p>
         <p class="text-lg font-semibold text-blue-600">
-          {{ formatNumber(campaign.total_cost || 0) }}
+           {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}
         </p>
       </div>
     </div>
@@ -55,12 +55,6 @@
           :style="{ width: `${progressPercentage}%` }"
         ></div>
       </div>
-    </div>
-
-    <!-- Provider -->
-    <div class="flex items-center gap-2 text-sm text-gray-600 mb-4">
-      <DevicePhoneMobileIcon class="h-4 w-4" />
-      <span>{{ providerLabel }}</span>
     </div>
 
     <!-- Actions -->
@@ -143,11 +137,39 @@
           </button>
 
           <button
+            v-if="canCancel"
             @click="() => { $emit('cancel', campaign.id); showMenu = false }"
+            class="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 border-b border-gray-100 text-red-600 text-sm"
+          >
+            <XCircleIcon class="h-4 w-4" />
+            <span>Cancel Campaign</span>
+          </button>
+
+          <button
+            v-if="canArchive"
+            @click="() => { $emit('archive', campaign.id); showMenu = false }"
+            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 text-gray-700 text-sm"
+          >
+            <ArchiveBoxIcon class="h-4 w-4" />
+            <span>Archive Campaign</span>
+          </button>
+
+          <button
+            v-if="canRestore"
+            @click="() => { $emit('restore', campaign.id); showMenu = false }"
+            class="w-full text-left px-4 py-2 hover:bg-green-50 flex items-center gap-2 border-b border-gray-100 text-green-600 text-sm"
+          >
+            <ArrowUturnLeftIcon class="h-4 w-4" />
+            <span>Restore Campaign</span>
+          </button>
+
+          <button
+            v-if="canDelete"
+            @click="() => { $emit('delete', campaign.id); showMenu = false }"
             class="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-red-600 text-sm"
           >
             <TrashIcon class="h-4 w-4" />
-            <span>Cancel Campaign</span>
+            <span>Delete Campaign</span>
           </button>
         </div>
       </div>
@@ -155,11 +177,11 @@
 
     <!-- Failed Count Warning -->
     <div 
-      v-if="campaign.failed_count > 0" 
+      v-if="campaign.messages_failed > 0" 
       class="mt-3 flex items-center gap-2 text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded-lg"
     >
       <ExclamationTriangleIcon class="h-4 w-4 flex-shrink-0" />
-      <span>{{ campaign.failed_count }} message(s) failed</span>
+      <span>{{ campaign.messages_failed }} message(s) failed</span>
     </div>
 
     <!-- Completion Notification -->
@@ -175,10 +197,9 @@
 
 <script setup>
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import { CalendarIcon, DevicePhoneMobileIcon, PlayIcon, PauseIcon, PencilIcon, DocumentDuplicateIcon, PaperAirplaneIcon, TrashIcon, EllipsisVerticalIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { CalendarIcon, PlayIcon, PauseIcon, PencilIcon, DocumentDuplicateIcon, PaperAirplaneIcon, TrashIcon, XCircleIcon, ArchiveBoxIcon, ArrowUturnLeftIcon, EllipsisVerticalIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
-import { SMS_PROVIDERS } from '~/utils/constants/sms'
 
 const props = defineProps({
   campaign: {
@@ -187,7 +208,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view', 'start', 'pause', 'resume', 'cancel', 'reuse', 'resend', 'update', 'completed', 'status-changed'])
+const emit = defineEmits(['view', 'start', 'pause', 'resume', 'cancel', 'archive', 'restore', 'delete', 'reuse', 'resend', 'update', 'completed', 'status-changed'])
 
 const showMenu = ref(false)
 const previousStatus = ref(props.campaign.status)
@@ -220,18 +241,16 @@ watch(() => props.campaign.status, (newStatus, oldStatus) => {
 
 const progressPercentage = computed(() => {
   const total = props.campaign.total_recipients || 0
-  const sent = props.campaign.sent_count || 0
+  const sent = props.campaign.messages_sent || 0
   
   if (total === 0) return 0
   return Math.round((sent / total) * 100)
 })
 
-const providerLabel = computed(() => {
-  const provider = props.campaign.sms_provider
-  if (provider === SMS_PROVIDERS.NALO) return 'Nalo Solutions'
-  if (provider === SMS_PROVIDERS.MNOTIFY) return 'MNotify'
-  return 'Auto-detect'
-})
+const formatCurrency = (value) => {
+  const num = parseFloat(value) || 0
+  return num.toFixed(2)
+}
 
 const canReuse = computed(() => {
   return ['draft', 'completed', 'cancelled', 'paused'].includes(props.campaign.status)
@@ -243,5 +262,25 @@ const canResend = computed(() => {
 
 const canEdit = computed(() => {
   return ['draft', 'paused'].includes(props.campaign.status)
+})
+
+const canCancel = computed(() => {
+  return ['draft', 'sending', 'paused'].includes(props.campaign.status)
+})
+
+const canArchive = computed(() => {
+  // Can archive completed or cancelled campaigns (preserves data)
+  return ['completed', 'cancelled'].includes(props.campaign.status)
+})
+
+const canRestore = computed(() => {
+  // Can restore archived campaigns
+  return props.campaign.status === 'archived'
+})
+
+const canDelete = computed(() => {
+  // Can only delete draft campaigns (never sent, safe to remove)
+  // Archived campaigns can also be permanently deleted if needed
+  return ['draft', 'archived'].includes(props.campaign.status)
 })
 </script>

@@ -20,7 +20,9 @@
           <p>Manage your profile, orders, and linked companies</p>
         </div>
         <div class="company-badge" v-if="userStore.currentCompany">
-          <span class="company-icon">🏥</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="company-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
           <div class="company-info">
             <span class="company-label">Active Company</span>
             <span class="company-name">{{ userStore.currentCompany.company_name }}</span>
@@ -31,21 +33,33 @@
       <!-- Quick Stats -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon">📦</div>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
           <div class="stat-content">
             <h3>Total Orders</h3>
             <p class="stat-value">{{ userStore.currentUser?.total_orders || 0 }}</p>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">💰</div>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
           <div class="stat-content">
             <h3>Total Spent</h3>
             <p class="stat-value">${{ userStore.currentUser?.total_spent || 0 }}</p>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">🏢</div>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
           <div class="stat-content">
             <h3>Linked Companies</h3>
             <p class="stat-value">{{ userStore.currentUser?.linked_companies || 0 }}</p>
@@ -57,7 +71,7 @@
       <div class="tabs">
         <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
           :class="{ active: activeTab === tab.id }" class="tab-button">
-          <span class="tab-icon">{{ tab.icon }}</span>
+          <component :is="tab.icon" class="tab-icon" />
           <span class="tab-label">{{ tab.label }}</span>
         </button>
       </div>
@@ -84,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, h } from 'vue';
 import { useUserStore } from '~/stores/user';
 import Profile from '~/components/customers/profile.vue';
 import Orders from '~/components/customers/orders.vue';
@@ -92,18 +106,61 @@ import LinkedCompanies from '~/components/customers/linkedCompanies.vue';
 
 // Define layout
 definePageMeta({
-  layout: 'customer'
+  layout: 'customer',
 });
 
 const userStore = useUserStore();
 const activeTab = ref('profile');
 const isCheckingAuth = ref(true);
 
+// Icon components
+const UserIcon = () => h('svg', {
+  xmlns: 'http://www.w3.org/2000/svg',
+  fill: 'none',
+  viewBox: '0 0 24 24',
+  stroke: 'currentColor'
+}, [
+  h('path', {
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'stroke-width': '2',
+    d: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+  })
+]);
+
+const ShoppingBagIcon = () => h('svg', {
+  xmlns: 'http://www.w3.org/2000/svg',
+  fill: 'none',
+  viewBox: '0 0 24 24',
+  stroke: 'currentColor'
+}, [
+  h('path', {
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'stroke-width': '2',
+    d: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'
+  })
+]);
+
+const BuildingIcon = () => h('svg', {
+  xmlns: 'http://www.w3.org/2000/svg',
+  fill: 'none',
+  viewBox: '0 0 24 24',
+  stroke: 'currentColor'
+}, [
+  h('path', {
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'stroke-width': '2',
+    d: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
+  })
+]);
+
 // Tabs configuration
 const tabs = [
-  { id: 'profile', icon: '👤', label: 'My Profile' },
-  { id: 'orders', icon: '📦', label: 'Order History' },
-  { id: 'companies', icon: '🏢', label: 'Linked Companies' }
+  { id: 'profile', icon: UserIcon, label: 'My Profile' },
+  { id: 'orders', icon: ShoppingBagIcon, label: 'Order History' },
+  { id: 'companies', icon: BuildingIcon, label: 'Linked Companies' }
 ];
 
 // Format phone number for display
@@ -196,7 +253,9 @@ onMounted(async () => {
 }
 
 .company-icon {
-  font-size: 1.5rem;
+  width: 2rem;
+  height: 2rem;
+  color: white;
 }
 
 .company-info {
@@ -249,7 +308,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-icon .icon {
+  width: 24px;
+  height: 24px;
+  color: white;
 }
 
 .stat-content h3 {
@@ -305,7 +370,8 @@ onMounted(async () => {
 }
 
 .tab-icon {
-  font-size: 1.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .tab-label {

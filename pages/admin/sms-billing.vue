@@ -2,7 +2,7 @@
   <div class="admin-sms-billing-page">
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">SMS Billing Management</h1>
+      <!-- <h1 class="text-3xl font-bold text-gray-900 mb-2">SMS Billing Management</h1> -->
       <p class="text-gray-600">Monitor billing health, manage credits, and resolve issues</p>
     </div>
 
