@@ -319,7 +319,7 @@ const validatePhoneNumber = () => {
     return false;
   }
   
-  const validPrefixes = ['20', '23', '24', '25', '26', '27', '50', '53', '54', '55', '59'];
+  const validPrefixes = ['20', '23', '24', '25', '26', '27', '50', '53', '54', '55', '59', '57', '56', ]
   
   // 10 digits with leading 0
   if (digitsOnly.length === 10 && digitsOnly.startsWith('0')) {
