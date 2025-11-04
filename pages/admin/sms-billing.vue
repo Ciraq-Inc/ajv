@@ -33,7 +33,7 @@
         class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all text-left disabled:opacity-50"
       >
         <Icon :name="loading ? 'Loader2' : 'Activity'" :class="loading ? 'animate-spin' : ''" class="h-8 w-8 mb-2" />
-        <h3 class="text-lg font-semibold mb-1">Refresh Health</h3>
+        <h3 class="text-lg font-semibold mb-1">Refresh </h3>
         <p class="text-sm text-purple-100">Update billing status</p>
       </button>
     </div>
@@ -99,7 +99,7 @@
             <Icon name="Activity" class="h-4 w-4 inline mr-2" />
             Billing Health
           </button>
-          <button
+          <!-- <button
             @click="activeTab = 'issues'"
             :class="[
               'px-6 py-3 border-b-2 font-medium text-sm',
@@ -110,7 +110,7 @@
           >
             <Icon name="AlertCircle" class="h-4 w-4 inline mr-2" />
             Issues ({{ billingIssues.length }})
-          </button>
+          </button> -->
           <!-- <button
             @click="activeTab = 'audit'"
             :class="[
@@ -611,13 +611,12 @@ const getSelectedCompanyName = () => {
 
 const getNewBalance = () => {
   if (!topUpForm.value.company_id) return topUpForm.value.amount || 0
-  let currentBalance = 0
+  let currentBalance = 0;
   
-  if (selectedCompany.value) {
-    currentBalance = selectedCompany.value.sms_balance || 0
-  } else {
-    const company = billingHealth.value.find(c => c.company_id == topUpForm.value.company_id)
-    currentBalance = company ? (company.sms_balance || 0) : 0
+  // Always look up from billingHealth to get the most current money_balance
+  const company = billingHealth.value.find(c => c.company_id == topUpForm.value.company_id)
+  if (company) {
+    currentBalance = parseFloat(company.money_balance || 0)
   }
   
   return currentBalance + (topUpForm.value.amount || 0)
@@ -708,9 +707,15 @@ const handleTopUp = async () => {
     // Refresh billing health data
     await fetchBillingHealth()
     
-    // Close modal and show success
+    // Show success message before closing modal
+    const amount = topUpForm.value.amount
+    const companyName = getSelectedCompanyName()
+    
+    // Close modal
     closeTopUpModal()
-    alert(`Successfully added ${formatNumber(topUpForm.value.amount)} money balance to ${getSelectedCompanyName()}`)
+    
+    // Show success alert
+    alert(`Successfully added ${formatNumber(amount)} money balance to ${companyName}`)
     
   } catch (error) {
     topUpError.value = error.message || 'Failed to top up money. Please try again.'
