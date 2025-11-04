@@ -76,6 +76,25 @@
       </div>
     </div>
 
+    <!-- Failed Campaigns Alert (if any) -->
+    <!-- <div v-if="failedCampaigns.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+      <XMarkIcon class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold text-red-900 mb-1">
+          {{ failedCampaigns.length }} Campaign{{ failedCampaigns.length > 1 ? 's' : '' }} Failed
+        </h3>
+        <p class="text-sm text-red-700 mb-2">
+          Some campaigns have failed messages. You can resend them from the campaign actions menu.
+        </p>
+        <button
+          @click="filters.status = 'failed'; applyFilters()"
+          class="text-sm font-medium text-red-700 hover:text-red-800 underline"
+        >
+          View Failed Campaigns
+        </button>
+      </div>
+    </div> -->
+
     <!-- Filters -->
     <div class="bg-white p-4 rounded-lg border border-gray-200 mb-6">
       <div class="flex items-center gap-4 flex-wrap">
@@ -91,6 +110,7 @@
             <option value="sending">Sending</option>
             <option value="completed">Completed</option>
             <option value="paused">Paused</option>
+            <option value="failed">Failed</option>
             <option value="cancelled">Cancelled</option>
             <option value="archived">Archived</option>
           </select>
@@ -273,6 +293,27 @@
           <h2 class="text-xl font-bold text-gray-900 mb-4">Resend Campaign</h2>
           
           <div class="space-y-4">
+            <!-- Campaign Info -->
+            <div class="bg-blue-50 p-4 rounded border border-blue-200">
+              <p class="text-sm text-blue-900 font-medium mb-2">
+                {{ campaigns.find(c => c.id === resendFormData.campaignId)?.name }}
+              </p>
+              <div class="grid grid-cols-2 gap-2 text-xs text-blue-800">
+                <div>
+                  <span class="font-medium">Total Recipients:</span>
+                  <span class="ml-1">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.total_recipients || 0 }}</span>
+                </div>
+                <div>
+                  <span class="font-medium">Sent:</span>
+                  <span class="ml-1">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_sent || 0 }}</span>
+                </div>
+                <div v-if="campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed > 0" class="col-span-2">
+                  <span class="font-medium text-red-700">Failed Messages:</span>
+                  <span class="ml-1 text-red-700">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed || 0 }}</span>
+                </div>
+              </div>
+            </div>
+
             <div class="bg-yellow-50 p-4 rounded border border-yellow-200">
               <p class="text-sm text-yellow-800">
                 ⚠️ This will reset selected recipients to "pending" status and resend SMS messages.
@@ -280,24 +321,37 @@
             </div>
 
             <div class="space-y-3">
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="flex items-start gap-3 cursor-pointer p-3 rounded border-2 transition-all hover:bg-gray-50"
+                     :class="!resendFormData.toFailedOnly ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
                 <input
                   v-model="resendFormData.toFailedOnly"
                   :value="false"
                   type="radio"
-                  class="w-4 h-4 text-blue-600"
+                  class="w-4 h-4 text-blue-600 mt-0.5"
                 />
-                <span class="text-gray-900">Resend to all recipients</span>
+                <div class="flex-1">
+                  <span class="text-gray-900 font-medium">Resend to all recipients</span>
+                  <p class="text-xs text-gray-600 mt-1">Send SMS to all {{ campaigns.find(c => c.id === resendFormData.campaignId)?.total_recipients || 0 }} recipients again</p>
+                </div>
               </label>
               
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="flex items-start gap-3 cursor-pointer p-3 rounded border-2 transition-all hover:bg-gray-50"
+                     :class="resendFormData.toFailedOnly ? 'border-orange-500 bg-orange-50' : 'border-gray-200'">
                 <input
                   v-model="resendFormData.toFailedOnly"
                   :value="true"
                   type="radio"
-                  class="w-4 h-4 text-blue-600"
+                  class="w-4 h-4 text-orange-600 mt-0.5"
                 />
-                <span class="text-gray-900">Resend to failed recipients only</span>
+                <div class="flex-1">
+                  <span class="text-gray-900 font-medium">Resend to failed recipients only</span>
+                  <p class="text-xs text-gray-600 mt-1">
+                    Only resend to {{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed || 0 }} failed recipient(s)
+                    <span v-if="!(campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed > 0)" class="text-yellow-700 font-medium">
+                      (No failed messages)
+                    </span>
+                  </p>
+                </div>
               </label>
             </div>
           </div>
@@ -312,8 +366,9 @@
           </button>
           <button
             @click="handleResendSubmit"
-            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium"
+            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium flex items-center gap-2"
           >
+            <PaperAirplaneIcon class="h-4 w-4" />
             Confirm Resend
           </button>
         </div>
@@ -333,7 +388,8 @@ import {
   DocumentTextIcon, 
   ArrowPathIcon, 
   XMarkIcon,
-  ArchiveBoxIcon
+  ArchiveBoxIcon,
+  PaperAirplaneIcon
 } from '@heroicons/vue/20/solid'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
@@ -436,6 +492,13 @@ const filteredCampaigns = computed(() => {
 // Archived campaigns count
 const archivedCampaigns = computed(() => {
   return campaigns.value.filter(c => c.status === 'archived')
+})
+
+// Failed campaigns count (status is 'failed' or has failed messages)
+const failedCampaigns = computed(() => {
+  return campaigns.value.filter(c => 
+    c.status === 'failed' || (c.messages_failed > 0 && c.status !== 'archived')
+  )
 })
 
 // Load data on mount
@@ -729,9 +792,11 @@ const openResendCampaignModal = (campaignId) => {
   closeDetailsModal()
   
   const campaign = campaigns.value.find(c => c.id === campaignId)
+  // Default to failed only if the campaign has failed messages
+  const hasFailedMessages = campaign?.messages_failed > 0
   resendFormData.value = {
     campaignId,
-    toFailedOnly: false
+    toFailedOnly: hasFailedMessages // Smart default
   }
   showResendModal.value = true
 }

@@ -66,6 +66,16 @@
         View Details
       </button>
       
+      <!-- Edit Button (for draft/paused campaigns) -->
+      <!-- <button
+        @click="$emit('update', campaign.id)"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1"
+        title="Edit campaign"
+      >
+        <PencilIcon class="h-4 w-4" />
+        <span class="hidden sm:inline">Edit</span>
+      </button> -->
+      
       <button
         v-if="campaign.status === 'draft'"
         @click="$emit('start', campaign.id)"
@@ -257,7 +267,9 @@ const canReuse = computed(() => {
 })
 
 const canResend = computed(() => {
-  return ['completed', 'paused'].includes(props.campaign.status)
+  // Allow resend for completed/paused campaigns, or any campaign with failed messages
+  return ['completed', 'paused', 'failed'].includes(props.campaign.status) || 
+         (props.campaign.messages_failed > 0)
 })
 
 const canEdit = computed(() => {

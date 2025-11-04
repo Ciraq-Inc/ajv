@@ -24,15 +24,15 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6">
+    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
       <div class="flex items-start gap-3">
         <ExclamationTriangleIcon class="h-6 w-6 text-red-600 flex-shrink-0" />
-        <div>
+        <div class="flex-1">
           <h3 class="text-red-900 font-semibold">Error Loading Campaign</h3>
           <p class="text-red-700 mt-1">{{ error }}</p>
           <button
             @click="fetchCampaignData"
-            class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Try Again
           </button>
@@ -61,8 +61,44 @@
     </div>
 
     <!-- Edit Form -->
-    <div v-else-if="campaign" class="bg-white rounded-lg border border-gray-200 p-6">
-      <form @submit.prevent="saveCampaign" class="space-y-6">
+    <div v-else-if="campaign" class="space-y-6">
+      <!-- Campaign Status Info -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start gap-3">
+          <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-blue-900">Campaign Status: {{ campaign.status?.toUpperCase() }}</p>
+            <p class="text-xs text-blue-700 mt-1">
+              Created {{ new Date(campaign.created_at).toLocaleDateString() }}
+              {{ campaign.total_recipients ? `• ${campaign.total_recipients} recipients` : '' }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <!-- Save Error Alert -->
+        <div v-if="saveError" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div class="flex items-start gap-3">
+            <ExclamationTriangleIcon class="h-5 w-5 text-red-600 flex-shrink-0" />
+            <div class="flex-1">
+              <h4 class="text-red-900 font-semibold text-sm">Failed to Save Changes</h4>
+              <p class="text-red-700 text-sm mt-1">{{ saveError }}</p>
+            </div>
+            <button
+              @click="saveError = null"
+              class="text-red-400 hover:text-red-600"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <form @submit.prevent="saveCampaign" class="space-y-6">
         <!-- Campaign Name -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -72,9 +108,13 @@
             v-model="formData.name"
             type="text"
             required
+            maxlength="100"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="e.g., Monthly Promotion"
           />
+          <p class="mt-1 text-xs text-gray-500">
+            {{ formData.name?.length || 0 }}/100 characters
+          </p>
         </div>
 
         <!-- Message -->
@@ -86,18 +126,26 @@
             <textarea
               v-model="formData.message"
               required
-              rows="4"
-              maxlength="160"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows="6"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Type your message here..."
+              @input="validateMessage"
             ></textarea>
-            <div class="absolute bottom-3 right-3 text-sm text-gray-500">
-              {{ messageLength }}/160 characters
+            <div class="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 py-1 rounded">
+              {{ messageLength }} characters, {{ messageParts }} SMS
             </div>
           </div>
-          <p class="mt-1 text-sm text-gray-500">
-            Maximum 160 characters per SMS
-          </p>
+          <div class="mt-2 flex items-start gap-2">
+            <div class="flex-1">
+              <p class="text-sm text-gray-600">
+                {{ messageLength <= 160 ? 'Single SMS' : `${messageParts} SMS messages` }}
+                ({{ messageLength }} / {{ messageParts * 160 }} characters)
+              </p>
+              <p v-if="messageLength > 160" class="text-xs text-amber-600 mt-1">
+                ⚠️ Messages over 160 characters will be sent as {{ messageParts }} separate SMS
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- SMS Provider (if applicable) -->
@@ -161,6 +209,7 @@
           </nuxt-link>
         </div>
       </form>
+      </div>
     </div>
   </div>
 </template>
@@ -184,6 +233,7 @@ const campaign = ref(null)
 const loading = ref(true)
 const error = ref(null)
 const saving = ref(false)
+const saveError = ref(null)
 
 const formData = ref({
   name: '',
@@ -194,10 +244,26 @@ const formData = ref({
 
 const messageLength = computed(() => formData.value.message?.length || 0)
 
+const messageParts = computed(() => {
+  const length = messageLength.value
+  if (length === 0) return 0
+  if (length <= 160) return 1
+  return Math.ceil(length / 153) // Multi-part SMS uses 153 chars per part
+})
+
 const canEdit = computed(() => {
   if (!campaign.value) return false
   return ['draft', 'paused'].includes(campaign.value.status)
 })
+
+const validateMessage = () => {
+  // Additional validation can be added here
+  // For now, just ensure it's not empty
+  if (!formData.value.message || formData.value.message.trim().length === 0) {
+    return false
+  }
+  return true
+}
 
 const fetchCampaignData = async () => {
   loading.value = true
@@ -223,23 +289,38 @@ const fetchCampaignData = async () => {
 }
 
 const saveCampaign = async () => {
+  if (!formData.value.name || !formData.value.message) {
+    saveError.value = 'Please fill in all required fields'
+    scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+
   saving.value = true
-  error.value = null
+  saveError.value = null
   
   try {
     const updateData = {
-      name: formData.value.name,
-      message: formData.value.message
+      name: formData.value.name.trim(),
+      message: formData.value.message.trim()
     }
     
-    await updateCampaignAction(route.params.id, updateData)
+    const response = await updateCampaignAction(route.params.id, updateData)
     
-    // Navigate back to campaign details
-    router.push(`/${route.params.pharmacy}/services/sms-campaigns/${route.params.id}`)
+    if (response.success) {
+      // Show success message
+      alert('Campaign updated successfully!')
+      
+      // Navigate back to campaign details
+      await router.push(`/${route.params.pharmacy}/services/sms-campaigns/${route.params.id}`)
+    } else {
+      throw new Error(response.message || 'Failed to update campaign')
+    }
   } catch (err) {
-    error.value = err.message || 'Failed to save campaign'
+    saveError.value = err.message || 'Failed to save campaign'
     console.error('Error saving campaign:', err)
-    alert('Failed to save campaign: ' + error.value)
+    
+    // Scroll to top to show error
+    scrollTo({ top: 0, behavior: 'smooth' })
   } finally {
     saving.value = false
   }

@@ -431,7 +431,7 @@ const stats = computed(() => {
       .reduce((sum, c) => sum + (c.sms_charged || 0), 0),
     amountSpentToday: campaigns.value
       .filter(c => new Date(c.created_at) >= todayStart)
-      .reduce((sum, c) => sum + (c.actual_cost || c.sms_cost || 0), 0),
+      .reduce((sum, c) => sum + (Number(c.actual_cost) || Number(c.sms_cost) || 0), 0),
   }
 })
 

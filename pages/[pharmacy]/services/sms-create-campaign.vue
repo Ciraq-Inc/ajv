@@ -256,85 +256,96 @@
 
             <!-- Filtered Recipients -->
             <div v-else-if="selectedType === 'filtered'" class="space-y-4">
-              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-4">Filter Customers</h4>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <!-- Customer Type -->
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <Icon name="Info" class="h-5 w-5 text-blue-600 flex-shrink-0" />
                   <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-2">Customer Type</label>
-                    <select
-                      v-model="filters.customer_type"
-                      @change="updateFilters"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    >
-                      <option value="">All Types</option>
-                      <option value="retail">Retail</option>
-                      <option value="wholesale">Wholesale</option>
-                    </select>
+                    <p class="text-sm font-medium text-blue-900 mb-1">Select Specific Customers</p>
+                    <p class="text-sm text-blue-800">
+                      Choose individual customers to receive this campaign message.
+                    </p>
                   </div>
-
-                  <!-- City -->
-                  <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-2">City</label>
-                    <input
-                      v-model="filters.city"
-                      @input="updateFilters"
-                      type="text"
-                      placeholder="e.g., Accra"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
-
-                  <!-- Min Orders -->
-                  <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-2">Minimum Orders</label>
-                    <input
-                      v-model.number="filters.min_orders"
-                      @input="updateFilters"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
-
-                  <!-- Registration Date -->
-                  <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-2">Registered After</label>
-                    <input
-                      v-model="filters.registered_after"
-                      @input="updateFilters"
-                      type="date"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div class="mt-4 flex items-center justify-between">
-                  <button
-                    @click="clearFilters"
-                    class="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
-                  >
-                    <Icon name="X" class="h-4 w-4" />
-                    Clear Filters
-                  </button>
-                  <button
-                    @click="previewFiltered"
-                    class="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                  >
-                    <Icon name="Eye" class="h-4 w-4" />
-                    Preview Recipients
-                  </button>
                 </div>
               </div>
 
-              <!-- Filtered count -->
+              <!-- Search Bar -->
+              <div class="bg-white border border-gray-200 rounded-lg p-4">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="flex-1 relative">
+                    <Icon name="Search" class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      v-model="customerSearchQuery"
+                      type="text"
+                      placeholder="Search customers by name or phone..."
+                      class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                  <button
+                    @click="toggleSelectAllFiltered"
+                    class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50"
+                  >
+                    {{ selectedCustomers.length === filteredCustomersList.length ? 'Deselect All' : 'Select All' }}
+                  </button>
+                </div>
+
+                <!-- Loading State -->
+                <div v-if="isLoadingCustomers" class="flex items-center justify-center py-8">
+                  <div class="flex flex-col items-center gap-2">
+                    <Icon name="Loader2" class="h-6 w-6 text-blue-600 animate-spin" />
+                    <p class="text-sm text-gray-600">Loading customers...</p>
+                  </div>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="customersError" class="bg-red-50 border border-red-200 rounded p-3">
+                  <p class="text-sm text-red-800">{{ customersError }}</p>
+                  <button
+                    @click="fetchCustomersFromAPI"
+                    class="text-xs text-red-600 hover:text-red-700 font-medium mt-2"
+                  >
+                    Try Again
+                  </button>
+                </div>
+
+                <!-- Customer Selection List -->
+                <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+                  <div
+                    v-if="filteredCustomersList.length === 0"
+                    class="text-center py-4 text-gray-500"
+                  >
+                    <p class="text-sm">No customers found</p>
+                  </div>
+                  <div
+                    v-for="customer in filteredCustomersList"
+                    :key="customer.id"
+                    @click="toggleCustomerSelection(customer)"
+                    class="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="isCustomerSelected(customer)"
+                      @click.stop="toggleCustomerSelection(customer)"
+                      class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <div class="flex items-center gap-2 flex-1">
+                      <Icon name="User" class="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900">
+                          {{ customer.name || customer.fname + ' ' + customer.lname }}
+                        </p>
+                        <p class="text-xs text-gray-500">{{ customer.phone || customer.mobile }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Selected count -->
               <div class="bg-white border border-gray-200 rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm text-gray-600">Filtered Recipients</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ filteredCount }}</p>
+                    <p class="text-sm text-gray-600">Selected Recipients</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ selectedCustomers.length }}</p>
                   </div>
                   <div class="text-right">
                     <p class="text-sm text-gray-600">Estimated Cost</p>
@@ -529,7 +540,7 @@
             class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Icon :name="creating ? 'Loader2' : 'Send'" :class="creating ? 'animate-spin' : ''" class="h-4 w-4" />
-            {{ creating ? 'Sending...' : 'Send Campaign' }}
+            {{ creating ? 'Saving...' : 'Save Campaign' }}
           </button>
         </div>
       </div>
@@ -614,9 +625,13 @@ const allCustomers = ref([])
 const isLoadingCustomers = ref(false)
 const customersError = ref(null)
 
+// Customer selection for filtered type
+const selectedCustomers = ref([])
+const customerSearchQuery = ref('')
+
 // Recipient counts
 const estimatedCount = ref(0)
-const filteredCount = ref(0)
+const filteredCount = computed(() => selectedCustomers.value.length)
 const customCount = computed(() => {
   if (!customIds.value) return 0
   return customIds.value.split(',').filter(id => id.trim()).length
@@ -627,6 +642,19 @@ const messageParts = computed(() => messageValidation.value.messageInfo?.parts |
 const estimatedCost = computed(() => estimatedCount.value * messageParts.value)
 const filteredCost = computed(() => filteredCount.value * messageParts.value)
 const customCost = computed(() => customCount.value * messageParts.value)
+
+// Filtered customers list based on search
+const filteredCustomersList = computed(() => {
+  if (!customerSearchQuery.value) {
+    return allCustomers.value
+  }
+  const query = customerSearchQuery.value.toLowerCase()
+  return allCustomers.value.filter(customer => {
+    const name = (customer.name || customer.fname + ' ' + customer.lname || '').toLowerCase()
+    const phone = (customer.phone || customer.mobile || '').toLowerCase()
+    return name.includes(query) || phone.includes(query)
+  })
+})
 
 const totalRecipients = computed(() => {
   if (selectedType.value === 'all') return estimatedCount.value
@@ -688,6 +716,10 @@ const fetchCustomersFromAPI = async () => {
 // Select recipient type
 const selectType = (type) => {
   selectedType.value = type
+  // Clear selected customers when switching to filtered type
+  if (type === 'filtered') {
+    selectedCustomers.value = []
+  }
   updateRecipients()
 }
 
@@ -696,52 +728,28 @@ const toggleCustomerList = () => {
   showCustomerList.value = !showCustomerList.value
 }
 
-// Update filters
-const updateFilters = async () => {
-  try {
-    // Get company ID from store
-    const companyId = companyStore.currentCompany?.id || companyStore.selectedCompany?.id
-
-    if (!companyId) {
-      filteredCount.value = 0
-      updateRecipients()
-      return
-    }
-
-    // Call API to get filtered customer count
-    const response = await api.get(`/api/companies/${companyId}/customers`, {
-      params: {
-        filters: JSON.stringify(filters.value)
-      }
-    })
-
-    if (response.success && response.data) {
-      filteredCount.value = response.data.length || response.count || 0
-    } else {
-      filteredCount.value = 0
-    }
-  } catch (error) {
-    console.error('Error fetching filtered customers:', error)
-    filteredCount.value = 0
+// Customer selection functions for filtered type
+const toggleCustomerSelection = (customer) => {
+  const index = selectedCustomers.value.findIndex(c => c.id === customer.id)
+  if (index > -1) {
+    selectedCustomers.value.splice(index, 1)
+  } else {
+    selectedCustomers.value.push(customer)
   }
   updateRecipients()
 }
 
-// Clear filters
-const clearFilters = () => {
-  filters.value = {
-    customer_type: '',
-    city: '',
-    min_orders: 0,
-    registered_after: ''
-  }
-  updateFilters()
+const isCustomerSelected = (customer) => {
+  return selectedCustomers.value.some(c => c.id === customer.id)
 }
 
-// Preview filtered recipients
-const previewFiltered = () => {
-  // In production, show modal with recipient list
-  alert('Preview functionality will show a list of filtered recipients')
+const toggleSelectAllFiltered = () => {
+  if (selectedCustomers.value.length === filteredCustomersList.value.length) {
+    selectedCustomers.value = []
+  } else {
+    selectedCustomers.value = [...filteredCustomersList.value]
+  }
+  updateRecipients()
 }
 
 // Update custom IDs
@@ -769,7 +777,7 @@ const handleFileUpload = (event) => {
 const updateRecipients = () => {
   recipients.value = {
     type: selectedType.value,
-    filters: selectedType.value === 'filtered' ? filters.value : {},
+    filters: selectedType.value === 'filtered' ? { selected_customer_ids: selectedCustomers.value.map(c => c.id).join(',') } : {},
     customer_ids: selectedType.value === 'custom' ? customIds.value : '',
     totalRecipients: totalRecipients.value,
     totalCost: totalCost.value
