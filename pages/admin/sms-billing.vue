@@ -144,18 +144,11 @@
               <tr>
                 <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase sticky left-0 bg-gray-50 z-10">Company</th>
                 <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">SMS Balance</th>
-                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Reserved</th>
-                <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Available</th> -->
+               
                 <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Money (GH₵)</th>
-                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Sent</th> -->
-                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Loaded</th> -->
-                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Unbilled</th> -->
-                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Failed</th> -->
-                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Refunded</th> -->
-                <!-- <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Calculated</th> -->
+               
                 <th class="text-center py-3 px-3 text-xs font-medium text-gray-600 uppercase">Status</th>
                 <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase">Last Activity</th>
-                <!-- <th class="text-center py-3 px-3 text-xs font-medium text-gray-600 uppercase">Actions</th> -->
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">
