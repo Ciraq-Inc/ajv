@@ -634,7 +634,9 @@ const estimatedCount = ref(0)
 const filteredCount = computed(() => selectedCustomers.value.length)
 const customCount = computed(() => {
   if (!customIds.value) return 0
-  return customIds.value.split(',').filter(id => id.trim()).length
+  // Extract unique IDs (removes duplicates)
+  const ids = customIds.value.split(',').map(id => id.trim()).filter(id => id.length > 0)
+  return [...new Set(ids)].length
 })
 
 // Cost calculations (accounting for multi-part SMS messages)
@@ -764,24 +766,74 @@ const handleFileUpload = (event) => {
 
   const reader = new FileReader()
   reader.onload = (e) => {
-    const content = e.target.result
-    // Parse CSV and extract IDs/phone numbers
-    // For now, just show alert
-    alert(`File uploaded: ${file.name}\nCSV parsing will be implemented`)
-    customIds.value = '1, 2, 3, 4, 5' // Mock data
+    try {
+      const content = e.target.result
+      const lines = content.trim().split('\n')
+      
+      // Extract customer IDs/phone numbers
+      let extractedIds = []
+      
+      if (file.name.endsWith('.csv')) {
+        // Parse CSV: assume first line is header
+        if (lines.length > 1) {
+          // Remove header and extract first column or relevant ID column
+          const dataLines = lines.slice(1)
+          extractedIds = dataLines
+            .map(line => line.split(',')[0].trim())
+            .filter(id => id && id.length > 0)
+        }
+      } else {
+        // For TXT files, assume each line is an ID
+        extractedIds = lines.filter(line => line.trim().length > 0)
+      }
+      
+      if (extractedIds.length === 0) {
+        alert(`No valid IDs found in ${file.name}`)
+        return
+      }
+      
+      // Remove duplicates and convert to comma-separated string
+      const uniqueIds = [...new Set(extractedIds)]
+      customIds.value = uniqueIds.join(', ')
+      
+      // Show success message
+      alert(`Successfully imported ${uniqueIds.length} customer${uniqueIds.length !== 1 ? 's' : ''} from ${file.name}`)
+    } catch (error) {
+      alert(`Error parsing file: ${error.message}`)
+    } finally {
+      // Reset file input
+      event.target.value = ''
+    }
+  }
+  reader.onerror = () => {
+    alert('Error reading file')
+    event.target.value = ''
   }
   reader.readAsText(file)
 }
 
 // Update recipients object
 const updateRecipients = () => {
-  recipients.value = {
+  let recipientData = {
     type: selectedType.value,
-    filters: selectedType.value === 'filtered' ? { selected_customer_ids: selectedCustomers.value.map(c => c.id).join(',') } : {},
-    customer_ids: selectedType.value === 'custom' ? customIds.value : '',
+    filters: {},
+    customer_ids: '',
     totalRecipients: totalRecipients.value,
     totalCost: totalCost.value
   }
+
+  // Set recipient data based on type
+  if (selectedType.value === 'filtered') {
+    recipientData.customer_ids = selectedCustomers.value.map(c => c.id).join(',')
+    recipientData.filters = { type: 'filtered' }
+  } else if (selectedType.value === 'custom') {
+    recipientData.customer_ids = customIds.value
+    recipientData.filters = { type: 'custom' }
+  } else if (selectedType.value === 'all') {
+    recipientData.filters = { type: 'all' }
+  }
+
+  recipients.value = recipientData
 }
 
 // Handle message validation
@@ -795,7 +847,17 @@ const canProceed = () => {
     return campaign.value.name && campaign.value.message && messageValidation.value.isValid
   }
   if (currentStep.value === 2) {
-    return true // Recipients always valid
+    // Validate that at least one recipient is selected based on type
+    if (selectedType.value === 'all') {
+      return estimatedCount.value > 0
+    }
+    if (selectedType.value === 'filtered') {
+      return selectedCustomers.value.length > 0
+    }
+    if (selectedType.value === 'custom') {
+      return customCount.value > 0
+    }
+    return false
   }
   return false
 }
@@ -841,12 +903,29 @@ const hasSufficientBalance = () => {
 // Save draft
 const saveDraft = async () => {
   try {
+    // Validate campaign data
+    if (!campaign.value.name || !campaign.value.name.trim()) {
+      alert('Please enter a campaign name')
+      return
+    }
+    if (!campaign.value.message || !campaign.value.message.trim()) {
+      alert('Please enter a campaign message')
+      return
+    }
+    if (getTotalRecipients() === 0) {
+      alert('Please select at least one recipient')
+      return
+    }
+
+    // Ensure recipients data is up-to-date
+    updateRecipients()
+
     const campaignData = {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
-      filters: recipients.value.type === 'filtered' ? recipients.value.filters : null,
-      customer_ids: recipients.value.type === 'custom' ? recipients.value.customer_ids : null,
+      filters: recipients.value.filters,
+      customer_ids: recipients.value.customer_ids,
       status: 'draft'
     }
 
@@ -860,24 +939,49 @@ const saveDraft = async () => {
 
 // Send campaign
 const sendCampaign = async () => {
+  // Validate before sending
+  if (!campaign.value.name || !campaign.value.name.trim()) {
+    alert('Please enter a campaign name')
+    return
+  }
+  if (!campaign.value.message || !campaign.value.message.trim()) {
+    alert('Please enter a campaign message')
+    return
+  }
+  if (getTotalRecipients() === 0) {
+    alert('Please select at least one recipient')
+    return
+  }
   if (!hasSufficientBalance()) {
-    alert('Insufficient balance to send this campaign')
+    alert(`Insufficient balance. You need ${getTotalCost() - (balance.value?.sms_balance || 0)} more credits to send this campaign.`)
     return
   }
 
   try {
+    // Ensure recipients data is up-to-date before sending
+    updateRecipients()
+
     const campaignData = {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
-      filters: recipients.value.type === 'filtered' ? recipients.value.filters : null,
-      customer_ids: recipients.value.type === 'custom' ? recipients.value.customer_ids : null
+      filters: recipients.value.filters,
+      customer_ids: recipients.value.customer_ids
     }
+
+    // Debug logging
+    console.log('📤 Sending Campaign Data:', {
+      type: recipients.value.type,
+      customer_ids: recipients.value.customer_ids,
+      recipient_count: getTotalRecipients(),
+      filters: recipients.value.filters
+    })
 
     const response = await createCampaign(campaignData)
     alert('Campaign created successfully! SMS messages are being sent.')
     router.push(`/${route.params.pharmacy}/services/sms-campaigns`)
   } catch (error) {
+    console.error('❌ Campaign creation error:', error)
     alert('Failed to create campaign: ' + error.message)
   }
 }
