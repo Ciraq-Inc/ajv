@@ -184,9 +184,11 @@
 </template>
 
 <script setup>
-import { getDatabase, ref as dbRef, push, onValue, update, remove } from 'firebase/database'
 import { useImageUpload } from '@/composables/useImageUpload'
 import { usePharmacyStore } from '~/stores/pharmacy'
+
+const config = useRuntimeConfig();
+const baseURL = config.public.apiBase;
 
 // Get pharmacy store
 const pharmacyStore = usePharmacyStore()
@@ -200,9 +202,6 @@ const tabs = [
   { name: 'Products List', value: 'table' }
 ]
 const activeTab = ref('form')
-
-// Database setup
-const db = getDatabase()
 
 // Search state
 const searchQuery = ref('')
@@ -262,11 +261,14 @@ const submitProduct = async () => {
     }
 
     const newProduct = {
-      brandName: productForm.value.brandName,
+      id: `PROD_${Date.now()}`, // Generate a unique ID
+      company_id: parseInt(currentPharmacy.value),
+      brand_name: productForm.value.brandName,
       unit: productForm.value.unit,
-      sellingPrice: productForm.value.sellingPrice,
-      stockQty: productForm.value.stockQty || 0,
-      lastUpdated: new Date().toISOString()
+      sell_unit: productForm.value.unit,
+      selling_price: productForm.value.sellingPrice,
+      stock_qty: productForm.value.stockQty || 0,
+      is_active: true
     }
 
     // Add image if available
@@ -274,9 +276,23 @@ const submitProduct = async () => {
       newProduct.imageUrl = imageUrl.value
     }
 
-    // Add to Realtime Database under the current pharmacy's products
-    const productsRef = dbRef(db, `${currentPharmacy.value}/products`)
-    await push(productsRef, newProduct)
+    // Create product via REST API
+    const response = await fetch(`${baseURL}/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newProduct)
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to add product');
+    }
+
+    // Refresh products list in the store
+    await pharmacyStore.loadProducts();
 
     // Reset form
     productForm.value = {
@@ -340,16 +356,33 @@ const handleSave = async (productId) => {
       return
     }
 
-    // Update in Firebase
+    // Update via REST API
     const updates = {
-      brandName: editForm.value.brandName,
-      sellingPrice: editForm.value.sellingPrice,
+      id: productId,
+      company_id: parseInt(currentPharmacy.value),
+      brand_name: editForm.value.brandName,
+      selling_price: editForm.value.sellingPrice,
       unit: editForm.value.unit,
-      stockQty: editForm.value.stockQty,
-      lastUpdated: new Date().toISOString()
+      sell_unit: editForm.value.unit,
+      stock_qty: editForm.value.stockQty
     }
 
-    await update(dbRef(db, `${currentPharmacy.value}/products/${productId}`), updates)
+    const response = await fetch(`${baseURL}/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates)
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to update product');
+    }
+
+    // Refresh products list in the store
+    await pharmacyStore.loadProducts();
 
     // Reset edit state
     editingId.value = null

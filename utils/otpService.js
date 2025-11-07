@@ -130,14 +130,15 @@ export const otpService = {
             "Content-Type": "application/json",
           },
         });
-      console.log("🚀 ~ sendOtpViaMNotify ~ response:", response)
+      console.log("🚀 MNotify SMS Provider Response:", response)
 
       if (!response.ok) {
         const errorText = response.statusText || "Unknown error";
+        console.log("🚀 MNotify SMS Provider Error:", errorText);
         throw new Error(`Failed to send SMS: ${errorText}`);
       } else {
         const data = await response.text();
-        console.log("SMS sent successfully:", data);
+        console.log("🚀 MNotify SMS Provider Success:", data);
         return data;
       }
 

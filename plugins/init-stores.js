@@ -1,6 +1,8 @@
 // plugins/pharmacy-init.js
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useCartStore } from "~/stores/cart";
+import { useAdminStore } from "~/stores/admin";
+import { useUserStore } from "~/stores/user";
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Only run on client-side
@@ -11,6 +13,16 @@ export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.hook("app:created", async () => {
     const pharmacyStore = usePharmacyStore();
     const cartStore = useCartStore();
+    const adminStore = useAdminStore();
+    const userStore = useUserStore();
+    
+    // Initialize user store (customer authentication)
+    await userStore.checkAuthState();
+    
+    // Initialize admin store session if on admin pages
+    if (route.path.startsWith('/admin')) {
+      await adminStore.restoreSession();
+    }
     
     // Check if we have a pharmacy in the URL
     const pharmacySlug = route.params.pharmacy;

@@ -100,6 +100,10 @@ import { useRoute } from 'vue-router';
 const emit = defineEmits(['itemAddedToCart']);
 
 const props = defineProps({
+  products: {
+    type: Array,
+    default: () => []
+  },
   searchQuery: {
     type: String,
     default: ''
@@ -119,8 +123,13 @@ const isFetching = ref(false); // Prevent duplicate fetches
 const pharmacySlug = computed(() => route.params.pharmacy);
 
 const initializeProductItems = () => {
-  if (Array.isArray(pharmacyStore.products)) {
-    productItems.value = pharmacyStore.products.map(product => ({
+  // Use passed products prop if available, otherwise fall back to store
+  const sourceProducts = props.products && props.products.length > 0 
+    ? props.products 
+    : pharmacyStore.products;
+    
+  if (Array.isArray(sourceProducts)) {
+    productItems.value = sourceProducts.map(product => ({
       ...product,
       quantity: 1,
       justAdded: false
@@ -196,16 +205,22 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
 const filteredProducts = computed(() => {
   const query = props.searchQuery || '';
   
-  // Check if products is an array before filtering
-  if (!Array.isArray(pharmacyStore.products)) {
-    return [];
+  // If no search query, return all productItems
+  if (!query.trim()) {
+    return productItems.value;
   }
   
+  // Filter by search query
   return productItems.value.filter(product => 
     product.brandName && 
     product.brandName.toLowerCase().includes(query.toLowerCase())
   );
 });
+
+// Watch for changes in products prop
+watch(() => props.products, () => {
+  initializeProductItems();
+}, { deep: true });
 
 const formatPrice = (price) => {
   return Number(price || 0).toFixed(2);

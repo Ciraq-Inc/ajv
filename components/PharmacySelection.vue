@@ -138,7 +138,6 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { getDatabase, ref as dbRef, get } from 'firebase/database';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
 
@@ -146,6 +145,9 @@ const router = useRouter();
 const route = useRoute();
 const pharmacyStore = usePharmacyStore();
 const cartStore = useCartStore();
+
+const config = useRuntimeConfig();
+const baseURL = config.public.apiBase;
 
 const pharmacies = ref([]);
 const loading = ref(true);
@@ -171,28 +173,21 @@ const fetchPharmacies = async () => {
   error.value = null;
   
   try {
-    const db = getDatabase();
-    const pharmaciesRef = dbRef(db, 'pharmacies');
-    const snapshot = await get(pharmaciesRef);
+    // Fetch companies from REST API
+    const response = await fetch(`${baseURL}/api/companies`);
+    const data = await response.json();
     
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const pharmacyList = [];
-      
-      // Process pharmacy data
-      for (const [id, pharmacy] of Object.entries(data)) {
-        if (pharmacy.info) {
-          pharmacyList.push({
-            id,
-            name: pharmacy.info.name || 'Unknown Pharmacy',
-            location: pharmacy.info.location || 'Location not provided',
-            tel: pharmacy.info.phone || 'No contact information',
-            subdomain: pharmacy.info.subdomain || id 
-          });
-        }
-      }
-      
-      pharmacies.value = pharmacyList;
+    if (data.success && data.data) {
+      // Transform the API data to match the component's expected format
+      pharmacies.value = data.data
+        .filter(company => company.companytype === 0) // Only get pharmacies (type 0)
+        .map(company => ({
+          id: company.id.toString(),
+          name: company.name || 'Unknown Pharmacy',
+          location: company.location || 'Location not provided',
+          tel: company.tel1 || company.tel2 || 'No contact information',
+          subdomain: company.domain_name || company.id.toString()
+        }));
     } else {
       pharmacies.value = [];
     }

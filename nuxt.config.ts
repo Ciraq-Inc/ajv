@@ -25,7 +25,7 @@ export default defineNuxtConfig({
     pageTransition: { name: 'page', mode: 'out-in' }
   },
 
-  modules: ["@nuxtjs/tailwindcss", "@nuxt/icon", "@pinia/nuxt", "nuxt-vuefire", "nuxt-gtag"],
+  modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt", "nuxt-vuefire", "nuxt-gtag"],
 
   css: ["~/assets/css/tailwind.css"],
 
@@ -60,5 +60,17 @@ export default defineNuxtConfig({
 
   routeRules: {
     "/**": { prerender: false },
+  },
+
+  // Runtime configuration for API endpoints
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.API_BASE_URL
+    }
+  },
+
+  // Dev server configuration
+  devServer: {
+    port: 4000
   },
 });
