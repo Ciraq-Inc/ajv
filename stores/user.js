@@ -22,6 +22,9 @@ export const useUserStore = defineStore('user', {
     currentCompany: (state) => state.selectedCompany,
     hasMultipleCompanies: (state) => state.companies.length > 1,
     companyCount: (state) => state.companies.length,
+    totalOrders: (state) => state.masterCustomer?.total_orders || 0,
+    totalSpent: (state) => state.masterCustomer?.total_spent || 0,
+    linkedCompanies: (state) => state.companies.length || 0,
   },
 
   actions: {
@@ -108,6 +111,10 @@ export const useUserStore = defineStore('user', {
         this.authInitialized = true;
         this.phoneVerifying = null;
         this.otpSent = false;
+        
+        // Load user stats after setup
+        await this.loadUserStats();
+        
         return data.data;
       } catch (error) {
         console.error('Error setting up password:', error);
@@ -147,6 +154,10 @@ export const useUserStore = defineStore('user', {
         this.authInitialized = true;
         this.phoneVerifying = null;
         this.otpSent = false;
+        
+        // Load user stats after registration
+        await this.loadUserStats();
+        
         return data.data;
       } catch (error) {
         console.error('Error registering customer:', error);
@@ -177,6 +188,10 @@ export const useUserStore = defineStore('user', {
         this.persistAuthData();
         this.authInitialized = true;
         this.phoneVerifying = null;
+        
+        // Load user stats after login
+        await this.loadUserStats();
+        
         return data.data;
       } catch (error) {
         console.error('Error logging in:', error);
@@ -453,6 +468,9 @@ export const useUserStore = defineStore('user', {
           if (savedCompanies) this.companies = JSON.parse(savedCompanies);
           if (savedSelectedCompany) this.selectedCompany = JSON.parse(savedSelectedCompany);
           this.authInitialized = true;
+          
+          // Load fresh stats when restoring from storage
+          await this.loadUserStats();
         } else {
           this.clearAuthState();
         }
@@ -493,6 +511,73 @@ export const useUserStore = defineStore('user', {
         throw error;
       } finally {
         this.isLoading = false;
+      }
+    },
+
+    async loadUserStats() {
+      if (!this.isLoggedIn || !this.customerAuthToken) {
+        console.log('Cannot load stats: User not logged in');
+        return;
+      }
+      
+      try {
+        console.log('Loading user stats...');
+        
+        // Try to fetch orders using both endpoints
+        let orders = [];
+        
+        try {
+          // First try getAllOrders
+          orders = await this.getAllOrders({ limit: 100 });
+          console.log('Fetched from getAllOrders:', orders?.length || 0, 'orders');
+        } catch (error) {
+          console.log('getAllOrders failed, trying getOrderHistory:', error.message);
+          // If that fails, try getOrderHistory
+          try {
+            orders = await this.getOrderHistory({ limit: 100 });
+            console.log('Fetched from getOrderHistory:', orders?.length || 0, 'orders');
+          } catch (error2) {
+            console.error('Both order endpoints failed:', error2.message);
+          }
+        }
+        
+        if (Array.isArray(orders) && orders.length > 0) {
+          // Calculate total orders
+          const totalOrders = orders.length;
+          
+          // Calculate total spent by summing all order amounts
+          const totalSpent = orders.reduce((sum, order) => {
+            const amount = parseFloat(order.total_amount || order.amount || order.totalAmount || order.total || 0);
+            console.log('Order amount:', amount, 'from order ID:', order.id || order.order_id);
+            return sum + amount;
+          }, 0);
+          
+          console.log('Calculated stats - Orders:', totalOrders, 'Total Spent:', totalSpent);
+          
+          // Update masterCustomer with calculated stats
+          if (this.masterCustomer) {
+            this.masterCustomer.total_orders = totalOrders;
+            this.masterCustomer.total_spent = totalSpent;
+            this.persistAuthData();
+            console.log('Stats updated and persisted');
+          }
+        } else {
+          console.log('No orders found, setting stats to 0');
+          // Set to 0 if no orders
+          if (this.masterCustomer) {
+            this.masterCustomer.total_orders = 0;
+            this.masterCustomer.total_spent = 0;
+            this.persistAuthData();
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+        console.error('Error details:', error.message);
+        // Set to 0 on error
+        if (this.masterCustomer) {
+          this.masterCustomer.total_orders = 0;
+          this.masterCustomer.total_spent = 0;
+        }
       }
     },
   },
