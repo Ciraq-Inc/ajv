@@ -653,9 +653,9 @@ const goToPharmacySelection = () => {
 // Order handling
 const handleOrderSuccess = (orderData) => {
   // Set the order details for the success modal
-  successOrderId.value = orderData.orderId || "";
+  successOrderId.value = orderData.orderId || orderData.order_id || "";
   successOrderSummary.value = {
-    totalItems: orderData.totalItems || orderData.items?.length || 0,
+    totalItems: orderData.totalItems || 0,
     totalQuantity: orderData.totalQuantity || 0,
     totalAmount: orderData.totalAmount || 0,
   };

@@ -228,6 +228,13 @@ const processDirectOrder = async () => {
     isProcessingOrder.value = true;
     errorMessage.value = '';
     
+    // Calculate order summary from cart items before clearing
+    const orderSummary = {
+      totalItems: items.value.length,
+      totalQuantity: items.value.reduce((sum, item) => sum + item.quantity, 0),
+      totalAmount: items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    };
+    
     // Process the order through the user store
     const orderResult = await userStore.processDirectOrder(
       items.value,
@@ -238,8 +245,12 @@ const processDirectOrder = async () => {
     cartStore.clearCart();
     toggleCart();
     
-    // Emit order success event with full order data
-    emit('order-success', orderResult.orderData);
+    // Emit order success event with order data and summary
+    emit('order-success', {
+      ...orderResult.orderData,
+      orderId: orderResult.orderId,
+      ...orderSummary
+    });
   } catch (error) {
     console.error('Failed to process order:', error);
     errorMessage.value = error.message || 'Failed to process your order. Please try again.';

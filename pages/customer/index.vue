@@ -31,6 +31,20 @@
       </div>
 
       <!-- Quick Stats -->
+      <div class="stats-header">
+        <h2 class="stats-title">Quick Stats</h2>
+        <button @click="refreshStats" :disabled="isLoadingStats" class="refresh-button">
+          <svg v-if="!isLoadingStats" xmlns="http://www.w3.org/2000/svg" class="refresh-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <svg v-else class="spinner refresh-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span v-if="!isLoadingStats">Refresh</span>
+          <span v-else>Loading...</span>
+        </button>
+      </div>
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon">
@@ -40,7 +54,7 @@
           </div>
           <div class="stat-content">
             <h3>Total Orders</h3>
-            <p class="stat-value">{{ userStore.currentUser?.total_orders || 0 }}</p>
+            <p class="stat-value">{{ userStore.totalOrders }}</p>
           </div>
         </div>
         <div class="stat-card">
@@ -51,7 +65,7 @@
           </div>
           <div class="stat-content">
             <h3>Total Spent</h3>
-            <p class="stat-value">${{ userStore.currentUser?.total_spent || 0 }}</p>
+            <p class="stat-value">GHS{{ formatTotalSpent(userStore.totalSpent) }}</p>
           </div>
         </div>
         <div class="stat-card">
@@ -62,7 +76,7 @@
           </div>
           <div class="stat-content">
             <h3>Linked Companies</h3>
-            <p class="stat-value">{{ userStore.currentUser?.linked_companies || 0 }}</p>
+            <p class="stat-value">{{ userStore.linkedCompanies }}</p>
           </div>
         </div>
       </div>
@@ -112,6 +126,7 @@ definePageMeta({
 const userStore = useUserStore();
 const activeTab = ref('profile');
 const isCheckingAuth = ref(true);
+const isLoadingStats = ref(false);
 
 // Icon components
 const UserIcon = () => h('svg', {
@@ -175,6 +190,23 @@ const formatPhoneNumber = (phone) => {
   return formatted;
 };
 
+// Format total spent for display
+const formatTotalSpent = (amount) => {
+  return Number(amount || 0).toFixed(2);
+};
+
+// Refresh stats manually
+const refreshStats = async () => {
+  isLoadingStats.value = true;
+  try {
+    await userStore.loadUserStats();
+  } catch (error) {
+    console.error('Error refreshing stats:', error);
+  } finally {
+    isLoadingStats.value = false;
+  }
+};
+
 // Handle logout
 const handleLogout = async () => {
   if (confirm('Are you sure you want to log out?')) {
@@ -201,6 +233,10 @@ onMounted(async () => {
       navigateTo('/');
     } else {
       isCheckingAuth.value = false;
+      
+      // Load user stats after confirming user is logged in
+      console.log('Loading user stats on customer dashboard mount');
+      await userStore.loadUserStats();
     }
   } catch (error) {
     console.error('Error checking auth:', error);
@@ -276,6 +312,51 @@ onMounted(async () => {
 }
 
 /* Stats Grid */
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.stats-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
