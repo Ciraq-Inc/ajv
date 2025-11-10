@@ -103,6 +103,8 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to setup password');
+        
+        // Set user data (automatically logs user in)
         this.masterCustomer = data.data.master_customer;
         this.companies = data.data.companies || [];
         this.selectedCompany = data.data.current_company || this.companies[0];
@@ -111,6 +113,8 @@ export const useUserStore = defineStore('user', {
         this.authInitialized = true;
         this.phoneVerifying = null;
         this.otpSent = false;
+        
+        console.log('Password setup successful! User logged in:', this.masterCustomer);
         
         // Load user stats after setup
         await this.loadUserStats();
@@ -146,6 +150,8 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Registration failed');
+        
+        // Set user data (automatically logs user in)
         this.masterCustomer = data.data.master_customer;
         this.companies = [data.data.customer];
         this.selectedCompany = data.data.customer;
@@ -154,6 +160,8 @@ export const useUserStore = defineStore('user', {
         this.authInitialized = true;
         this.phoneVerifying = null;
         this.otpSent = false;
+        
+        console.log('Registration successful! User logged in:', this.masterCustomer);
         
         // Load user stats after registration
         await this.loadUserStats();

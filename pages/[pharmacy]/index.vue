@@ -696,9 +696,13 @@ const closeLoginModal = () => {
   showLoginModal.value = false;
 };
 
-const handleLoginSuccess = () => {
+const handleLoginSuccess = async () => {
   closeLoginModal();
   // User state will be updated automatically by the store
+  // Load user stats to ensure fresh data
+  if (userStore.isLoggedIn) {
+    await userStore.loadUserStats();
+  }
 };
 
 // Lifecycle hooks
