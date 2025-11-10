@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-layout">
+  <div v-if="isReady" class="admin-layout">
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ collapsed: isSidebarCollapsed }">
       <!-- Logo/Brand -->
@@ -240,7 +240,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   BuildingOfficeIcon,
   ChevronLeftIcon,
@@ -260,6 +260,7 @@ const adminStore = useAdminStore()
 const route = useRoute()
 
 // State
+const isReady = ref(false)
 const isSidebarCollapsed = ref(false)
 const isMobile = ref(false)
 const showProfileMenu = ref(false)
@@ -351,7 +352,7 @@ const handleClickOutside = (e) => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
   document.addEventListener('click', handleClickOutside)
@@ -363,6 +364,10 @@ onMounted(() => {
       isSidebarCollapsed.value = savedState === 'true'
     }
   }
+  
+  // Wait for store to be ready
+  await nextTick()
+  isReady.value = true
 })
 
 onUnmounted(() => {

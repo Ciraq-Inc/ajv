@@ -444,7 +444,10 @@ const handleSetupPassword = async () => {
   isLoading.value = true;
   
   try {
+    console.log('Setting up password and logging in...');
     await userStore.setupPassword(phoneNumber.value, otp.value, password.value);
+    
+    console.log('Password setup completed, user is now logged in');
     emit('login-success');
     closeModal();
   } catch (error) {
@@ -492,6 +495,7 @@ const handleRegister = async () => {
   isLoading.value = true;
   
   try {
+    console.log('Attempting registration...');
     await userStore.register({
       company_id: pharmacyStore.currentPharmacy,
       fname: firstName.value,
@@ -502,6 +506,7 @@ const handleRegister = async () => {
       otp: otp.value
     });
     
+    console.log('Registration completed, user is now logged in');
     emit('login-success');
     closeModal();
   } catch (error) {
