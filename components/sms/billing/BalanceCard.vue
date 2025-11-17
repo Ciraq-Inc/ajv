@@ -23,7 +23,7 @@
     </div>
 
     <!-- Stats Row -->
-    <div class="grid grid-cols-2 gap-3 mb-3 text-xs">
+    <!-- <div class="grid grid-cols-2 gap-3 mb-3 text-xs">
       <div>
         <p class="text-blue-100 mb-0.5">Loaded</p>
         <p class="font-semibold text-sm">{{ formatNumber(totalLoaded) }}</p>
@@ -32,7 +32,7 @@
         <p class="text-blue-100 mb-0.5">Sent</p>
         <p class="font-semibold text-sm">{{ formatNumber(totalSent) }}</p>
       </div>
-    </div>
+    </div> -->
 
     <!-- Money Balance -->
     <div v-if="balanceData?.money_balance !== undefined" class="mb-3 pb-2 border-t border-blue-400 pt-2">
