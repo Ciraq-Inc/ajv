@@ -547,7 +547,6 @@ const stopCampaignPolling = () => {
 
 // Handle campaign completion notification
 const handleCampaignCompleted = async (campaign) => {
-  console.log('Campaign completed:', campaign)
   
   // Show toast notification
   showSuccessToast(`Campaign "${campaign.name}" completed successfully!`)
@@ -561,7 +560,6 @@ const handleCampaignCompleted = async (campaign) => {
 
 // Handle campaign status changes
 const handleCampaignStatusChanged = (event) => {
-  console.log('Campaign status changed:', event)
   
   // If campaign is no longer active, we can reduce polling frequency
   const hasActiveCampaigns = campaigns.value.some(c => 
