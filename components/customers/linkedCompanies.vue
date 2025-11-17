@@ -145,6 +145,7 @@ onMounted(() => {
 <style scoped>
 .linked-companies-component {
   max-width: 1000px;
+  padding: 10px;
 }
 
 .section-header {
