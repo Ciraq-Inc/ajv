@@ -30,13 +30,13 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
           </div>
-          <div class="text-gray-700 font-medium">(+233) 30 255-4857</div>
+          <div class="text-gray-700 font-medium">(+233) 55-258-7974</div>
         </div>
         
         <!-- Contact Button -->
         <a 
           target="_blank" 
-          href="https://wa.me/+233537291557"
+          href="https://wa.me/+233552587974"
           class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-x-2 w-[240px] mx-auto lg:w-auto lg:mx-0"
         >
         <i class="ri-whatsapp-line mr-1 text-2xl"></i>

@@ -254,6 +254,7 @@ onMounted(() => {
 <style scoped>
 .profile-component {
   max-width: 800px;
+  padding: 10px;
 }
 
 .section-header {

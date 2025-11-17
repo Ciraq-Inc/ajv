@@ -280,6 +280,7 @@ onMounted(() => {
 <style scoped>
 .orders-component {
   max-width: 1000px;
+  padding: 10px;
 }
 
 .section-header {

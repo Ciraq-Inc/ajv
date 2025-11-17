@@ -477,7 +477,7 @@ const formatCartTotal = computed(() => {
 });
 
 const whatsappLink = computed(() => {
-  let formattedPhone = pharmacyStore.pharmacyData?.phone || "+233543424014";
+  let formattedPhone = pharmacyStore.pharmacyData?.whatsapp_number ;
 
   // Extract the first phone number if multiple are provided with a separator
   if (formattedPhone.includes("/")) {
