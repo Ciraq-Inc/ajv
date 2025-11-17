@@ -142,8 +142,9 @@ const toggleCart = () => {
 };
 
 const sendWhatsAppMessage = () => {
-  let phoneNumber = pharmacyStore.pharmacyData?.phone || '+233503793513';
+  let phoneNumber = pharmacyStore.pharmacyData?.whatsapp_number 
 
+  console.log("phoneNumber", phoneNumber)
   // Extract the first phone number if multiple are provided with a separator
   if (phoneNumber.includes('/')) {
     phoneNumber = phoneNumber.split('/')[0];
