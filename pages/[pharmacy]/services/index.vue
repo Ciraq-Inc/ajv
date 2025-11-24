@@ -127,7 +127,7 @@
                 placeholder="Enter your password" required minlength="6" :disabled="loading">
             </div>
 
-            <div class="mb-4 flex items-center justify-between">
+            <!-- <div class="mb-4 flex items-center justify-between">
               <div class="flex items-center">
                 <input id="remember-me" v-model="rememberMe" type="checkbox"
                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
@@ -138,7 +138,7 @@
               <button type="button" @click="forgotPassword" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
                 Forgot password?
               </button>
-            </div>
+            </div> -->
 
             <div class="mt-6 flex justify-end space-x-3">
               <button type="button" @click="goBack"

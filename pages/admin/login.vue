@@ -75,7 +75,7 @@
             />
           </div>
 
-          <div class="mb-4">
+          <!-- <div class="mb-4">
             <div class="flex items-center">
               <input
                 id="remember-me"
@@ -87,7 +87,7 @@
                 Keep me logged in
               </label>
             </div>
-          </div>
+          </div> -->
 
           <div class="mt-6">
             <button
