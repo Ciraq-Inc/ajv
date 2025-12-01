@@ -49,9 +49,9 @@
         <div>
           <div class="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-2xl p-6 lg:p-8 text-white">
             <div class="text-center mb-6">
-              <div class="inline-block bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full font-bold text-xs mb-3">
+              <!-- <div class="inline-block bg-yellow-400 text-indigo-900 px-3 py-1 rounded-full font-bold text-xs mb-3">
                 🚀 LAUNCH ALERT
-              </div>
+              </div> -->
               <h2 class="text-2xl lg:text-3xl font-bold mb-3">
                 Say Goodbye to Pharmacy Runs.
               </h2>
