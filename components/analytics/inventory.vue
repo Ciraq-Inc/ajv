@@ -63,6 +63,7 @@
             <table class="data-table">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Company</th>
                   <th>Products</th>
                   <th>Units</th>
@@ -73,7 +74,8 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="company in filteredCompanies" :key="company.company_id">
+                <tr v-for="(company, index) in filteredCompanies" :key="company.company_id">
+                  <td class="row-number">{{ index + 1 }}</td>
                   <td class="company-name">{{ company.company_name }}</td>
                   <td>{{ formatNumber(company.inventory.total_products) }}</td>
                   <td>{{ formatNumber(company.inventory.total_units) }}</td>
