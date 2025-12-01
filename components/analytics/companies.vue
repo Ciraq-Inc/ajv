@@ -46,13 +46,19 @@
 
     <!-- Companies Table -->
     <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h2 class="text-xl font-bold text-gray-800">Companies</h2>
+        <span class="text-sm font-medium text-gray-600">
+          Total: <span class="font-bold text-gray-900">{{ companies.length }}</span>
+        </span>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50">
             <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                #
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Company
               </th>
@@ -75,19 +81,22 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr
-              v-for="company in companies"
+              v-for="(company, index) in companies"
               :key="company.id"
               class="hover:bg-gray-50 transition-colors duration-150"
             >
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+                {{ index + 1 }}
+              </td>
+              <td class="px-6 py-4 ">
                 <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
+                  <!-- <div class="flex-shrink-0 h-10 w-10">
                     <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                       <span class="text-sm font-medium text-gray-700">{{
                         getCompanyInitials(company.name)
                       }}</span>
                     </div>
-                  </div>
+                  </div> -->
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900">
                       {{ company.name }}
@@ -96,7 +105,7 @@
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4">
                 <span
                   class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
                   :class="getTypeClass(company.companytype)"
@@ -110,11 +119,11 @@
                   Subsidiary
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td class="px-6 py-4 text-sm text-gray-500">
                 <div>{{ company.email || "N/A" }}</div>
                 <div>{{ company.tel1 || company.tel2 || "N/A" }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td class="px-6 py-4 text-sm text-gray-500">
                 <div>{{ company.location || "N/A" }}</div>
                 <div class="text-xs">{{ company.address1 || "" }}</div>
               </td>
@@ -367,6 +376,91 @@
                   <p class="text-xs text-gray-500 mt-1">URL to shop banner/header image</p>
                 </div>
               </div>
+
+              <!-- Toggle More Section -->
+              <div class="border-t border-gray-200 pt-4">
+                <button
+                  @click="showMoreFields = !showMoreFields"
+                  type="button"
+                  class="flex items-center justify-between w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors duration-150"
+                >
+                  <span class="text-sm font-medium text-gray-700">More Fields (Optional)</span>
+                  <svg
+                    :class="{ 'rotate-180': showMoreFields }"
+                    class="w-5 h-5 text-gray-500 transition-transform duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                <div v-show="showMoreFields" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Alternate Company ID</label>
+                    <input
+                      v-model="companyForm.alternate_company_id"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="Alternative identifier"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">Secondary company identifier</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                    <input
+                      v-model="companyForm.country"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="e.g., Ghana"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">Country name</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Region</label>
+                    <input
+                      v-model="companyForm.region"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="e.g., Greater Accra"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">Region or state</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input
+                      v-model="companyForm.location_detail"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="e.g., Accra"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">City or locality</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                    <input
+                      v-model="companyForm.latitude"
+                      type="number"
+                      step="any"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="e.g., 5.6037"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">Geographic latitude coordinate</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                    <input
+                      v-model="companyForm.longitude"
+                      type="number"
+                      step="any"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      placeholder="e.g., -0.1870"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">Geographic longitude coordinate</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="flex justify-end space-x-3 pt-4">
@@ -545,6 +639,7 @@ const subsidiaryCount = ref(0);
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const showViewModal = ref(false);
+const showMoreFields = ref(false);
 const selectedCompany = ref(null);
 
 // Company form
@@ -565,6 +660,12 @@ const companyForm = ref({
   sender_id: "",
   logo: "",
   shop_banner: "",
+  alternate_company_id: "",
+  country: "",
+  region: "",
+  location_detail: "",
+  latitude: "",
+  longitude: "",
 });
 
 // Debounced search
@@ -688,6 +789,12 @@ const createCompany = async () => {
         sender_id: "",
         logo: "",
         shop_banner: "",
+        alternate_company_id: "",
+        country: "",
+        region: "",
+        location_detail: "",
+        latitude: "",
+        longitude: "",
       };
     } else {
       alert(data.message || "Failed to create company");
@@ -710,7 +817,14 @@ const editCompany = (company) => {
     sender_id: company.sender_id || "",
     logo: company.logo || "",
     shop_banner: company.shop_banner || "",
+    alternate_company_id: company.alternate_company_id || "",
+    country: company.country || "",
+    region: company.region || "",
+    location_detail: company.location_detail || "",
+    latitude: company.latitude || "",
+    longitude: company.longitude || "",
   };
+  showMoreFields.value = false;
   showEditModal.value = true;
 };
 
@@ -824,6 +938,7 @@ const closeModals = () => {
   showCreateModal.value = false;
   showEditModal.value = false;
   showViewModal.value = false;
+  showMoreFields.value = false;
   selectedCompany.value = null;
   companyForm.value = {
     uiid: "",
@@ -842,6 +957,12 @@ const closeModals = () => {
     sender_id: "",
     logo: "",
     shop_banner: "",
+    alternate_company_id: "",
+    country: "",
+    region: "",
+    location_detail: "",
+    latitude: "",
+    longitude: "",
   };
 };
 
