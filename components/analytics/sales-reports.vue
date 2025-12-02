@@ -190,9 +190,9 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total Quantity
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
-              </th>
+              </th> -->
               <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total Value
               </th> -->
@@ -229,7 +229,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                 {{ company.total_quantity || 0 }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <!-- <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <button
                   @click.stop="exportCompanyData(company)"
                   class="text-blue-600 hover:text-blue-800 font-semibold"
@@ -237,7 +237,7 @@
                 >
                   Export
                 </button>
-              </td>
+              </td> -->
               <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">
                 ${{ parseFloat(company.total_value || 0).toFixed(2) }}
               </td>
