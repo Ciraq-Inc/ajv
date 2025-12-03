@@ -72,7 +72,10 @@
                 Location
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                UIID
+                UUID
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ID
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -129,6 +132,9 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                 {{ company.uiid }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+                {{ company.id }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex items-center space-x-2">
@@ -572,6 +578,30 @@
                 <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.location || "N/A" }}</p>
               </div>
               <div>
+                <label class="block text-sm font-medium text-gray-700">Alternate Company ID</label>
+                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedCompany.alternate_company_id || "N/A" }}</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Country</label>
+                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.country || "N/A" }}</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Region</label>
+                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.region || "N/A" }}</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Location Detail</label>
+                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.location_detail || "N/A" }}</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Coordinates</label>
+                <p class="mt-1 text-sm text-gray-900">
+                  {{ selectedCompany.latitude && selectedCompany.longitude 
+                    ? `${selectedCompany.latitude}, ${selectedCompany.longitude}` 
+                    : "N/A" }}
+                </p>
+              </div>
+              <div>
                 <label class="block text-sm font-medium text-gray-700">Registration Date</label>
                 <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedCompany.ddate) }}</p>
               </div>
@@ -838,13 +868,19 @@ const updateCompany = async () => {
     const config = useRuntimeConfig();
     const baseURL = config.public.apiBase;
 
-    // Only send domain_name, whatsapp_number, sender_id, logo, and shop_banner for updates
+    // Send all editable fields including the "more fields"
     const updateData = {
       domain_name: companyForm.value.domain_name,
       whatsapp_number: companyForm.value.whatsapp_number,
       sender_id: companyForm.value.sender_id,
       logo: companyForm.value.logo,
       shop_banner: companyForm.value.shop_banner,
+      alternate_company_id: companyForm.value.alternate_company_id,
+      country: companyForm.value.country,
+      region: companyForm.value.region,
+      location_detail: companyForm.value.location_detail,
+      latitude: companyForm.value.latitude ? parseFloat(companyForm.value.latitude) : null,
+      longitude: companyForm.value.longitude ? parseFloat(companyForm.value.longitude) : null
     };
 
     const response = await fetch(`${baseURL}/api/companies/${selectedCompany.value.id}`, {

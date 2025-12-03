@@ -15,12 +15,37 @@
     <!-- Company Selection -->
     <div class="company-selector">
       <label>Select Company:</label>
-      <select v-model="selectedCompany" @change="loadApiKeys" class="company-select">
-        <option :value="null">-- Select a Company --</option>
-        <option v-for="company in companies" :key="company.id" :value="company.id">
-          {{ company.name }}
-        </option>
-      </select>
+      <div class="search-dropdown" ref="dropdownRef">
+        <div class="search-input-wrapper" @click="toggleDropdown">
+          <input 
+            v-model="companySearch" 
+            type="text" 
+            placeholder="Search and select a company..." 
+            class="search-input"
+            @focus="showDropdown = true"
+            @input="showDropdown = true"
+          />
+          <span class="dropdown-arrow" :class="{ 'open': showDropdown }">▼</span>
+        </div>
+        <div v-if="showDropdown" class="dropdown-menu">
+          <div 
+            v-if="filteredCompanies.length === 0" 
+            class="dropdown-item no-results"
+          >
+            No companies found
+          </div>
+          <div 
+            v-for="company in filteredCompanies" 
+            :key="company.id"
+            @click="selectCompany(company)"
+            class="dropdown-item"
+            :class="{ 'selected': selectedCompany === company.id }"
+          >
+            <CheckCircleIcon v-if="selectedCompany === company.id" class="icon-sm check-icon" />
+            {{ company.name }}
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-if="selectedCompany">
@@ -75,6 +100,7 @@
           <thead>
             <tr>
               <th>Key Name</th>
+              <th>API Key</th>
               <th>Status</th>
               <th>Last Used</th>
               <th>Expires</th>
@@ -90,7 +116,21 @@
                   {{ key.key_name }}
                 </div>
               </td>
-           
+              <td>
+                <div class="api-key-cell">
+                  <div class="api-key-display">
+                    {{ maskApiKey(key.api_key) }}
+                  </div>
+                  <button 
+                    @click="copyToClipboard(key.api_key)" 
+                    class="copy-btn"
+                    title="Copy API Key"
+                    v-if="key.api_key"
+                  >
+                    <DocumentDuplicateIcon class="icon-sm" />
+                  </button>
+                </div>
+              </td>
               <td>
                 <span class="status-badge" :class="getStatusClass(key)">
                   {{ getStatusText(key) }}
@@ -297,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import { PlusIcon, TrashIcon, DocumentDuplicateIcon, CheckCircleIcon, ClockIcon, KeyIcon, ExclamationTriangleIcon, XMarkIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 
@@ -306,6 +346,9 @@ const adminStore = useAdminStore()
 // State
 const companies = ref([])
 const selectedCompany = ref(null)
+const companySearch = ref('')
+const showDropdown = ref(false)
+const dropdownRef = ref(null)
 const apiKeys = ref([])
 const stats = ref({})
 const loading = ref(false)
@@ -332,6 +375,16 @@ const minDate = computed(() => {
   return tomorrow.toISOString().split('T')[0]
 })
 
+const filteredCompanies = computed(() => {
+  if (!companySearch.value.trim()) {
+    return companies.value
+  }
+  const searchLower = companySearch.value.toLowerCase()
+  return companies.value.filter(company => 
+    company.name.toLowerCase().includes(searchLower)
+  )
+})
+
 // Methods
 const loadCompanies = async () => {
   try {
@@ -341,6 +394,23 @@ const loadCompanies = async () => {
     }
   } catch (err) {
     console.error('Error loading companies:', err)
+  }
+}
+
+const selectCompany = (company) => {
+  selectedCompany.value = company.id
+  companySearch.value = company.name
+  showDropdown.value = false
+  loadApiKeys()
+}
+
+const toggleDropdown = () => {
+  showDropdown.value = !showDropdown.value
+}
+
+const handleClickOutside = (event) => {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+    showDropdown.value = false
   }
 }
 
@@ -496,6 +566,11 @@ const getStatusText = (key) => {
 // Lifecycle
 onMounted(() => {
   loadCompanies()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -533,6 +608,110 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   color: #1e293b;
+}
+
+.search-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.search-input-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  cursor: text;
+}
+
+.dropdown-arrow {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 12px;
+  transition: transform 0.2s;
+  pointer-events: none;
+}
+
+.dropdown-arrow.open {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.dropdown-item:hover {
+  background: #f8fafc;
+}
+
+.dropdown-item.selected {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.dropdown-item.no-results {
+  color: #94a3b8;
+  cursor: default;
+  text-align: center;
+}
+
+.dropdown-item.no-results:hover {
+  background: white;
+}
+
+.check-icon {
+  color: #2563eb;
+  flex-shrink: 0;
 }
 
 .company-select {
