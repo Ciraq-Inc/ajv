@@ -56,7 +56,7 @@
               <span>JSON</span>
             </span>
           </button> -->
-          <!-- <button
+           <button
             @click="exportToCSV"
             class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             :disabled="loading"
@@ -77,7 +77,7 @@
               <ArrowDownTrayIcon v-else class="export-icon" />
               <span>{{ exportingRaw ? 'Exporting...' : 'Full Export' }}</span>
             </span>
-          </button> -->
+          </button> 
           <button
             @click="refreshData"
             class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
@@ -120,7 +120,7 @@
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <!-- <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Unique Products</p>
@@ -132,7 +132,7 @@
             <ShoppingBagIcon class="stat-icon text-green-600" />
           </div>
         </div>
-      </div>
+      </div> -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between">
           <div>
@@ -179,11 +179,14 @@
                 Company
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Unique Products
+                Company ID
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Unique Customers
+                Unique Products
               </th>
+              <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Unique Customers
+              </th> -->
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Transactions
               </th>
@@ -218,11 +221,14 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                {{ company.unique_products || 0 }}
+                {{ company.company_id || "" }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                {{ company.unique_customers || 0 }}
+                {{ company.unique_products || 0 }}
               </td>
+              <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                {{ company.unique_customers || 0 }}
+              </td> -->
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                 {{ company.transaction_count || 0 }}
               </td>

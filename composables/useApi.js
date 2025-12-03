@@ -13,8 +13,11 @@ export const useApi = () => {
    */
   const apiRequest = async (endpoint, options = {}) => {
     try {
-      // Get the auth token from localStorage
-      const token = process.client ? localStorage.getItem('customerAuthToken') : null;
+      // Get the auth token from localStorage (check both customer and admin tokens)
+      let token = null;
+      if (process.client) {
+        token = localStorage.getItem('adminToken') || localStorage.getItem('customerAuthToken');
+      }
 
       // Set up headers
       const headers = {

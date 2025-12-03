@@ -43,6 +43,14 @@
             <span v-if="!isSidebarCollapsed" class="nav-text">Data</span>
           </NuxtLink>
 
+          <NuxtLink 
+            to="/admin/reports" 
+            class="nav-item"
+            active-class="active"
+          >
+            <DocumentTextIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Exports</span>
+          </NuxtLink>
 
           <NuxtLink 
             to="/admin/access" 
@@ -246,6 +254,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChartBarIcon,
+  DocumentTextIcon,
   KeyIcon,
   UserGroupIcon,
   DevicePhoneMobileIcon,
@@ -293,6 +302,7 @@ const adminInitials = computed(() => {
 const pageTitle = computed(() => {
   const path = route.path
   if (path.includes('/admin/data')) return 'Data Overview'
+  if (path.includes('/admin/reports')) return 'Reports'
   if (path.includes('/admin/user-access')) return 'User Access Management'
   if (path.includes('/admin/access')) return 'Company Management'
   if (path.includes('/admin/sms-campaigns')) return 'SMS Campaign Management'
