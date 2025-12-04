@@ -2,37 +2,69 @@
   <div class="sales-items-analytics p-6 bg-gray-50 min-h-screen">
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-800 mb-2">
-        Sales Items 
+        Sales Analytics & Reports
       </h1>
       <p class="text-gray-600">
-         Sales transaction across all companies
+        Comprehensive sales data and pharmacy transaction summaries
       </p>
     </div>
 
+    <!-- View Tabs -->
+    <div class="bg-white rounded-lg shadow-md mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex">
+          <button
+            @click="activeView = 'sales'"
+            :class="[
+              'py-4 px-6 text-sm font-medium border-b-2 transition-colors',
+              activeView === 'sales'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            Sales Items Analysis
+          </button>
+          <button
+            @click="activeView = 'pharmacy'"
+            :class="[
+              'py-4 px-6 text-sm font-medium border-b-2 transition-colors',
+              activeView === 'pharmacy'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            Pharmacy Transaction Summary
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Sales Items View -->
+    <div v-show="activeView === 'sales'">
     <!-- Filters and Controls -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <!-- Date Range Error Message -->
+      <div v-if="dateRangeError" class="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
+        <div class="flex items-center">
+          <ExclamationTriangleIcon class="w-5 h-5 text-red-400 mr-2" />
+          <span class="text-sm text-red-700">{{ dateRangeError }}</span>
+        </div>
+      </div>
+      
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <!-- Filters -->
         <div class="flex flex-col sm:flex-row gap-4 flex-1">
           <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              v-model="filters.start_date"
-              type="date"
-              @change="fetchData"
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date Field</label>
+            <select
+              v-model="filters.date_field"
               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="actual_date">Actual Date</option>
+              <option value="ddate">Transaction Date (ddate)</option>
+            </select>
           </div>
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              v-model="filters.end_date"
-              type="date"
-              @change="fetchData"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div class="flex-1">
+           <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">Search Company</label>
             <input
               v-model="searchQuery"
@@ -42,10 +74,46 @@
               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-        </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <input
+              v-model="filters.start_date"
+              type="date"
+              @change="validateDateRange"
+              :class="[
+                'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2',
+                dateRangeError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+              ]"
+            />
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <input
+              v-model="filters.end_date"
+              type="date"
+              @change="validateDateRange"
+              :class="[
+                'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2',
+                dateRangeError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+              ]"
+            />
+          </div>
+         
+          <div class="flex items-end gap-2">
+            <button
+              @click="fetchData"
+              class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
+              :disabled="loading || !!dateRangeError"
+            >
+              <span class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+                <span>Search</span>
+              </span>
+            </button>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-2">
+               <!-- Action Buttons -->
           <!-- <button
             @click="exportToJSON"
             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
@@ -70,12 +138,14 @@
             @click="exportRawDataCSV"
             class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
             :disabled="loading || exportingRaw"
-            title="Export ALL raw transaction data (no limit)"
+            :title="filters.start_date || filters.end_date ? 
+              `Export raw data from ${filters.start_date || 'start'} to ${filters.end_date || 'end'}` : 
+              'Export ALL raw transaction data'"
           >
             <span class="flex items-center gap-2">
               <ArrowPathIcon v-if="exportingRaw" class="export-icon animate-spin" />
               <ArrowDownTrayIcon v-else class="export-icon" />
-              <span>{{ exportingRaw ? 'Exporting...' : 'Full Export' }}</span>
+              <span>{{ exportingRaw ? 'Exporting...' : 'Raw Data' }}</span>
             </span>
           </button> 
           <button
@@ -88,7 +158,11 @@
               <span>Refresh</span>
             </span>
           </button>
+          </div>
+          
         </div>
+
+     
       </div>
     </div>
 
@@ -433,6 +507,154 @@
         </div>
       </div>
     </div>
+    </div>
+
+    <!-- Pharmacy Transaction Summary View -->
+    <div v-show="activeView === 'pharmacy'">
+      <!-- Pharmacy Filters -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Date Field
+            </label>
+            <select
+              v-model="pharmacyFilters.date_field"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="actual_date">Actual Date</option>
+              <option value="ddate">Transaction Date (ddate)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Pharmacy IDs (optional)
+            </label>
+            <input
+              v-model="pharmacyFilters.company_input"
+              type="text"
+              placeholder="e.g., 99, 100, 101 (leave empty for all)"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Start Date
+            </label>
+            <input
+              v-model="pharmacyFilters.start_date"
+              type="date"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              End Date
+            </label>
+            <input
+              v-model="pharmacyFilters.end_date"
+              type="date"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+        <div class="mt-4 flex gap-3">
+          <button
+            @click="fetchPharmacyReports"
+            :disabled="pharmacyLoading"
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          >
+            <span v-if="pharmacyLoading">Loading...</span>
+            <span v-else>Load Data</span>
+          </button>
+          <button
+            @click="exportPharmacyToCSV"
+            :disabled="!pharmacySummary || pharmacySummary.length === 0"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <DocumentArrowDownIcon class="w-5 h-5" />
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Pharmacy Error Message -->
+      <div v-if="pharmacyError" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        {{ pharmacyError }}
+      </div>
+
+      <!-- Pharmacy Summary Stats -->
+      <div v-if="pharmacySummary && pharmacySummary.length > 0" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-4">
+          <div class="text-sm text-gray-600">Total Pharmacies</div>
+          <div class="text-2xl font-bold text-gray-900">{{ pharmacySummary.length }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-4">
+          <div class="text-sm text-gray-600">Total Transactions</div>
+          <div class="text-2xl font-bold text-blue-600">{{ totalPharmacyTransactions.toLocaleString() }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-4">
+          <div class="text-sm text-gray-600">Avg Transactions/Pharmacy</div>
+          <div class="text-2xl font-bold text-green-600">{{ avgPharmacyTransactions }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-4">
+          <div class="text-sm text-gray-600">Date Range</div>
+          <div class="text-sm font-semibold text-gray-900">{{ formatDate(pharmacyFilters.start_date) }} - {{ formatDate(pharmacyFilters.end_date) }}</div>
+        </div>
+      </div>
+
+      <!-- Pharmacy Transaction Table -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Pharmacy Activity Report</h2>
+        </div>
+
+        <div v-if="pharmacyLoading" class="text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-gray-600">Loading data...</p>
+        </div>
+
+        <div v-else-if="pharmacySummary && pharmacySummary.length > 0" class="overflow-x-auto">
+          <div class="mb-4 text-sm text-gray-600">
+            Showing {{ pharmacySummary.length }} pharmacies
+          </div>
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pharmacy ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alternate ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pharmacy Name</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Number of Transactions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Transaction Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Transaction Date</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Days Active</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="pharmacy in pharmacySummary" :key="pharmacy.pharmacy_id" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ pharmacy.pharmacy_id }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ pharmacy.alternate_pharmacy_id || 'N/A' }}</td>
+                <td class="px-6 py-4 text-sm text-gray-900">{{ pharmacy.pharmacy_name || 'N/A' }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-blue-600">
+                  {{ pharmacy.number_of_transactions.toLocaleString() }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDateShort(pharmacy.first_transaction_date) }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDateShort(pharmacy.last_transaction_date) }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    {{ pharmacy.days_between_inclusive }} days
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-else class="text-center py-8 text-gray-500">
+          No data available. Select date range and click "Load Data" to fetch pharmacy transaction summary.
+        </div>
+      </div>
+    </div>
 
     <!-- Error State -->
     <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mt-6">
@@ -453,11 +675,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAdminStore } from '~/stores/admin'
-import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentArrowDownIcon } from '@heroicons/vue/24/outline'
 
 const adminStore = useAdminStore()
+
+// Active view
+const activeView = ref('sales')
 
 // Reactive data
 const loading = ref(false)
@@ -469,6 +694,18 @@ const selectedCompanyDetails = ref(null)
 const companyDetailedData = ref([])
 const loadingCompanyDetails = ref(false)
 const exportingRaw = ref(false)
+const dateRangeError = ref(null)
+
+// Pharmacy-related state
+const pharmacyLoading = ref(false)
+const pharmacyError = ref('')
+const pharmacySummary = ref([])
+const pharmacyFilters = ref({
+  company_input: '',
+  start_date: '2025-07-01',
+  end_date: '2025-10-01',
+  date_field: 'ddate'
+})
 
 // Analytics data
 const summary = ref(null)
@@ -478,7 +715,8 @@ const salesItems = ref([])
 // Filters
 const filters = ref({
   start_date: '',
-  end_date: ''
+  end_date: '',
+  date_field: 'ddate'
 })
 
 // Debounced search
@@ -490,12 +728,27 @@ const debouncedSearch = () => {
   }, 500)
 }
 
+// Validate date range
+const validateDateRange = () => {
+  if (filters.value.start_date && filters.value.end_date) {
+    const startDate = new Date(filters.value.start_date)
+    const endDate = new Date(filters.value.end_date)
+    if (startDate > endDate) {
+      dateRangeError.value = 'Start date cannot be after end date. Please swap the dates.'
+      return false
+    }
+  }
+  dateRangeError.value = null
+  return true
+}
+
 // Fetch summary data from the cross-tenant summary API
 const fetchSummary = async () => {
   try {
     const params = new URLSearchParams()
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
+    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items?${params}`)
     if (response.success) {
@@ -526,6 +779,7 @@ const fetchCompanyBreakdown = async () => {
     params.append('limit', '5000') // Increased limit
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
+    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     if (searchQuery.value && searchQuery.value.trim()) params.append('search', searchQuery.value.trim())
     
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items/dataview?${params}`)
@@ -568,6 +822,11 @@ const fetchSalesItems = async () => {
 
 // Fetch all data
 const fetchData = async () => {
+  // Validate date range first
+  if (!validateDateRange()) {
+    return
+  }
+  
   loading.value = true
   error.value = null
 
@@ -606,6 +865,7 @@ const viewCompanyDetails = async (company) => {
     params.append('limit', '100') // Get recent 100 transactions
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
+    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     
     const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
       method: 'GET',
@@ -639,6 +899,7 @@ const exportCompanyData = async (company) => {
     params.append('company_ids', company.company_id)
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
+    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     
     loading.value = true
     const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
@@ -723,6 +984,12 @@ const exportToJSON = async () => {
 
 const exportToCSV = async () => {
   try {
+    // Validate date range first
+    if (!validateDateRange()) {
+      alert('Please fix the date range before exporting.')
+      return
+    }
+    
     const config = useRuntimeConfig()
     const baseURL = config.public.apiBase 
     
@@ -730,6 +997,7 @@ const exportToCSV = async () => {
     params.append('format', 'csv')
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
+    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     
     const response = await fetch(`${baseURL}/api/reports/cross-tenant/sales-items/export?${params}`, {
       method: 'GET',
@@ -760,6 +1028,12 @@ const exportToCSV = async () => {
 
 const exportRawDataCSV = async () => {
   try {
+    // Validate date range first
+    if (!validateDateRange()) {
+      alert('Please fix the date range before exporting.')
+      return
+    }
+    
     const config = useRuntimeConfig()
     const baseURL = config.public.apiBase 
     
@@ -767,7 +1041,7 @@ const exportRawDataCSV = async () => {
     params.append('format', 'csv')
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    // No limit parameter - will export ALL records
+    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     
     exportingRaw.value = true
     const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
@@ -779,16 +1053,42 @@ const exportRawDataCSV = async () => {
 
     if (response.ok) {
       const csvContent = await response.text()
+      
+      // Check if we got actual data
+      const lines = csvContent.trim().split('\n')
+      if (lines.length <= 1) {
+        alert('No data available for the selected date range')
+        return
+      }
+      
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `raw-sales-items-full_${new Date().toISOString().split('T')[0]}.csv`
+      
+      // Create filename with date range if applicable
+      let filename = 'raw-sales-items'
+      if (filters.value.start_date || filters.value.end_date) {
+        const startDate = filters.value.start_date || 'start'
+        const endDate = filters.value.end_date || 'end'
+        filename += `_${startDate}_to_${endDate}`
+      } else {
+        filename += '_full'
+      }
+      filename += `_${new Date().toISOString().split('T')[0]}.csv`
+      
+      link.download = filename
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
+      
+      // Show success message
+      const recordCount = lines.length - 1 // Subtract header row
+      alert(`Successfully exported ${recordCount.toLocaleString()} records`)
     } else {
+      const errorData = await response.text()
+      console.error('Export error:', errorData)
       alert('No data available for export')
     }
   } catch (error) {
@@ -799,10 +1099,117 @@ const exportRawDataCSV = async () => {
   }
 }
 
-// Initialize
-onMounted(() => {
-  fetchData()
+// Pharmacy computed properties
+const totalPharmacyTransactions = computed(() => {
+  return pharmacySummary.value.reduce((sum, pharmacy) => sum + pharmacy.number_of_transactions, 0)
 })
+
+const avgPharmacyTransactions = computed(() => {
+  if (pharmacySummary.value.length === 0) return 0
+  return Math.round(totalPharmacyTransactions.value / pharmacySummary.value.length)
+})
+
+// Format date short
+const formatDateShort = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// Fetch pharmacy reports
+const fetchPharmacyReports = async () => {
+  pharmacyLoading.value = true
+  pharmacyError.value = ''
+  pharmacySummary.value = []
+
+  try {
+    const config = useRuntimeConfig()
+    const baseURL = config.public.apiBase
+
+    const params = new URLSearchParams({
+      format: 'json',
+    })
+
+    if (pharmacyFilters.value.start_date) {
+      params.append('start_date', pharmacyFilters.value.start_date)
+    }
+    if (pharmacyFilters.value.end_date) {
+      params.append('end_date', pharmacyFilters.value.end_date)
+    }
+    if (pharmacyFilters.value.company_input) {
+      params.append('company_ids', pharmacyFilters.value.company_input)
+    }
+    if (pharmacyFilters.value.date_field) {
+      params.append('date_field', pharmacyFilters.value.date_field)
+    }
+
+    const response = await fetch(
+      `${baseURL}/api/reports/cross-tenant/pharmacy-transaction-summary?${params}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${adminStore.token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    const data = await response.json()
+
+    if (data.success) {
+      pharmacySummary.value = data.data
+    } else {
+      throw new Error(data.message || 'Failed to fetch pharmacy transaction summary')
+    }
+  } catch (err) {
+    console.error('Error fetching pharmacy reports:', err)
+    pharmacyError.value = err.message || 'Failed to fetch reports. Please try again.'
+  } finally {
+    pharmacyLoading.value = false
+  }
+}
+
+// Export pharmacy to CSV helper
+const convertArrayToCSV = (data, headers) => {
+  const headerRow = headers.join(',')
+  const rows = data.map(row => 
+    headers.map(header => {
+      const value = row[header]
+      if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+        return `"${value.replace(/"/g, '""')}"`
+      }
+      return value !== null && value !== undefined ? value : ''
+    }).join(',')
+  )
+  return [headerRow, ...rows].join('\n')
+}
+
+// Export pharmacy to CSV
+const exportPharmacyToCSV = () => {
+  if (!pharmacySummary.value || pharmacySummary.value.length === 0) return
+
+  const headers = [
+    'pharmacy_id',
+    'alternate_pharmacy_id',
+    'pharmacy_name',
+    'number_of_transactions',
+    'first_transaction_date',
+    'last_transaction_date',
+    'days_between_inclusive'
+  ]
+  
+  const csv = convertArrayToCSV(pharmacySummary.value, headers)
+  
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const companyLabel = pharmacyFilters.value.company_input ? pharmacyFilters.value.company_input.replace(/,/g, '-') : 'all-pharmacies'
+  a.download = `pharmacy-transaction-summary-${companyLabel}-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
+
+
 </script>
 
 <style scoped>
