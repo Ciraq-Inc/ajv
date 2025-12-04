@@ -11,28 +11,18 @@
 
     <!-- Filters and Controls -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <!-- Date Range Error Message -->
+      <div v-if="dateRangeError" class="mb-4 bg-red-50 border border-red-200 rounded-md p-3">
+        <div class="flex items-center">
+          <ExclamationTriangleIcon class="w-5 h-5 text-red-400 mr-2" />
+          <span class="text-sm text-red-700">{{ dateRangeError }}</span>
+        </div>
+      </div>
+      
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <!-- Filters -->
         <div class="flex flex-col sm:flex-row gap-4 flex-1">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              v-model="filters.start_date"
-              type="date"
-              @change="fetchData"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              v-model="filters.end_date"
-              type="date"
-              @change="fetchData"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div class="flex-1">
+           <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">Search Company</label>
             <input
               v-model="searchQuery"
@@ -42,10 +32,46 @@
               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-        </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <input
+              v-model="filters.start_date"
+              type="date"
+              @change="validateDateRange"
+              :class="[
+                'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2',
+                dateRangeError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+              ]"
+            />
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <input
+              v-model="filters.end_date"
+              type="date"
+              @change="validateDateRange"
+              :class="[
+                'w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2',
+                dateRangeError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+              ]"
+            />
+          </div>
+         
+          <div class="flex items-end gap-2">
+            <button
+              @click="fetchData"
+              class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
+              :disabled="loading || !!dateRangeError"
+            >
+              <span class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+                <span>Search</span>
+              </span>
+            </button>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-2">
+               <!-- Action Buttons -->
           <!-- <button
             @click="exportToJSON"
             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
@@ -70,12 +96,14 @@
             @click="exportRawDataCSV"
             class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
             :disabled="loading || exportingRaw"
-            title="Export ALL raw transaction data (no limit)"
+            :title="filters.start_date || filters.end_date ? 
+              `Export raw data from ${filters.start_date || 'start'} to ${filters.end_date || 'end'}` : 
+              'Export ALL raw transaction data'"
           >
             <span class="flex items-center gap-2">
               <ArrowPathIcon v-if="exportingRaw" class="export-icon animate-spin" />
               <ArrowDownTrayIcon v-else class="export-icon" />
-              <span>{{ exportingRaw ? 'Exporting...' : 'Full Export' }}</span>
+              <span>{{ exportingRaw ? 'Exporting...' : 'Raw Data' }}</span>
             </span>
           </button> 
           <button
@@ -88,7 +116,11 @@
               <span>Refresh</span>
             </span>
           </button>
+          </div>
+          
         </div>
+
+     
       </div>
     </div>
 
@@ -469,6 +501,7 @@ const selectedCompanyDetails = ref(null)
 const companyDetailedData = ref([])
 const loadingCompanyDetails = ref(false)
 const exportingRaw = ref(false)
+const dateRangeError = ref(null)
 
 // Analytics data
 const summary = ref(null)
@@ -488,6 +521,20 @@ const debouncedSearch = () => {
   searchTimeout = setTimeout(() => {
     fetchCompanyBreakdown()
   }, 500)
+}
+
+// Validate date range
+const validateDateRange = () => {
+  if (filters.value.start_date && filters.value.end_date) {
+    const startDate = new Date(filters.value.start_date)
+    const endDate = new Date(filters.value.end_date)
+    if (startDate > endDate) {
+      dateRangeError.value = 'Start date cannot be after end date. Please swap the dates.'
+      return false
+    }
+  }
+  dateRangeError.value = null
+  return true
 }
 
 // Fetch summary data from the cross-tenant summary API
@@ -568,6 +615,11 @@ const fetchSalesItems = async () => {
 
 // Fetch all data
 const fetchData = async () => {
+  // Validate date range first
+  if (!validateDateRange()) {
+    return
+  }
+  
   loading.value = true
   error.value = null
 
@@ -723,6 +775,12 @@ const exportToJSON = async () => {
 
 const exportToCSV = async () => {
   try {
+    // Validate date range first
+    if (!validateDateRange()) {
+      alert('Please fix the date range before exporting.')
+      return
+    }
+    
     const config = useRuntimeConfig()
     const baseURL = config.public.apiBase 
     
@@ -760,6 +818,12 @@ const exportToCSV = async () => {
 
 const exportRawDataCSV = async () => {
   try {
+    // Validate date range first
+    if (!validateDateRange()) {
+      alert('Please fix the date range before exporting.')
+      return
+    }
+    
     const config = useRuntimeConfig()
     const baseURL = config.public.apiBase 
     
@@ -767,7 +831,6 @@ const exportRawDataCSV = async () => {
     params.append('format', 'csv')
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    // No limit parameter - will export ALL records
     
     exportingRaw.value = true
     const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
@@ -779,16 +842,42 @@ const exportRawDataCSV = async () => {
 
     if (response.ok) {
       const csvContent = await response.text()
+      
+      // Check if we got actual data
+      const lines = csvContent.trim().split('\n')
+      if (lines.length <= 1) {
+        alert('No data available for the selected date range')
+        return
+      }
+      
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `raw-sales-items-full_${new Date().toISOString().split('T')[0]}.csv`
+      
+      // Create filename with date range if applicable
+      let filename = 'raw-sales-items'
+      if (filters.value.start_date || filters.value.end_date) {
+        const startDate = filters.value.start_date || 'start'
+        const endDate = filters.value.end_date || 'end'
+        filename += `_${startDate}_to_${endDate}`
+      } else {
+        filename += '_full'
+      }
+      filename += `_${new Date().toISOString().split('T')[0]}.csv`
+      
+      link.download = filename
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
+      
+      // Show success message
+      const recordCount = lines.length - 1 // Subtract header row
+      alert(`Successfully exported ${recordCount.toLocaleString()} records`)
     } else {
+      const errorData = await response.text()
+      console.error('Export error:', errorData)
       alert('No data available for export')
     }
   } catch (error) {
@@ -799,10 +888,7 @@ const exportRawDataCSV = async () => {
   }
 }
 
-// Initialize
-onMounted(() => {
-  fetchData()
-})
+
 </script>
 
 <style scoped>
