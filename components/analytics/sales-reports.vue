@@ -135,7 +135,7 @@
             </span>
           </button>
           <button
-            @click="exportRawDataCSV"
+            @click="showColumnSelector = true"
             class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
             :disabled="loading || exportingRaw"
             :title="filters.start_date || filters.end_date ? 
@@ -256,6 +256,9 @@
                 Company ID
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Alternate ID
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Unique Products
               </th>
               <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -296,6 +299,9 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                 {{ company.company_id || "" }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                {{ company.alternate_company_id || "N/A" }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                 {{ company.unique_products || 0 }}
@@ -414,6 +420,66 @@
         <div class="flex justify-end mt-4 pt-4 border-t border-gray-200">
           <button @click="showSalesItemsModal = false" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
             Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column Selector Modal -->
+    <div v-if="showColumnSelector" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="showColumnSelector = false">
+      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white" @click.stop>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">Select Columns to Export</h3>
+          <button @click="showColumnSelector = false" class="text-gray-400 hover:text-gray-600">
+            <span class="text-2xl">&times;</span>
+          </button>
+        </div>
+
+        <div class="mb-4">
+          <div class="flex gap-2 mb-3">
+            <button
+              @click="availableColumns.forEach(col => col.selected = true)"
+              class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+            >
+              Select All
+            </button>
+            <button
+              @click="availableColumns.forEach(col => col.selected = false)"
+              class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              Deselect All
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto p-2">
+            <label
+              v-for="column in availableColumns"
+              :key="column.key"
+              class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                v-model="column.selected"
+                class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <span class="text-sm text-gray-700">{{ column.label }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button
+            @click="showColumnSelector = false"
+            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Cancel
+          </button>
+          <button
+            @click="exportRawDataCSV"
+            :disabled="!availableColumns.some(col => col.selected)"
+            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Export Selected Columns
           </button>
         </div>
       </div>
@@ -695,6 +761,29 @@ const companyDetailedData = ref([])
 const loadingCompanyDetails = ref(false)
 const exportingRaw = ref(false)
 const dateRangeError = ref(null)
+const showColumnSelector = ref(false)
+const availableColumns = ref([
+  { key: 'id', label: 'ID', selected: true },
+  { key: 'company_id', label: 'Company ID', selected: true },
+  { key: 'company_name', label: 'Company Name', selected: true },
+  { key: 'alternate_company_id', label: 'Alternate Company ID', selected: true },
+  { key: 'sale_id', label: 'Sale ID', selected: true },
+  { key: 'sale_date', label: 'Sale Date', selected: true },
+  { key: 'product_id', label: 'Product ID', selected: true },
+  { key: 'product_name', label: 'Product Name', selected: true },
+  { key: 'strength', label: 'Strength', selected: true },
+  { key: 'unit', label: 'Unit', selected: true },
+  { key: 'quantity', label: 'Quantity', selected: true },
+  { key: 'unit_cost', label: 'Unit Cost', selected: true },
+  { key: 'unit_price', label: 'Unit Price', selected: true },
+  { key: 'total_cost', label: 'Total Cost', selected: true },
+  { key: 'total_price', label: 'Total Price', selected: true },
+  { key: 'profit', label: 'Profit', selected: true },
+  { key: 'profit_margin_percent', label: 'Profit Margin %', selected: true },
+  { key: 'customer_name', label: 'Customer Name', selected: true },
+  { key: 'created_at', label: 'Created At', selected: false },
+  { key: 'updated_at', label: 'Updated At', selected: false }
+])
 
 // Pharmacy-related state
 const pharmacyLoading = ref(false)
@@ -788,6 +877,7 @@ const fetchCompanyBreakdown = async () => {
       summaryByCompany.value = response.data.map(item => ({
         company_id: item.company_id || 0,
         company_name: item.company_name || 'Unknown',
+        alternate_company_id: item.alternate_company_id || '',
         unique_products: item.unique_products || 0,
         unique_customers: item.unique_customers || 0,
         transaction_count: item.transaction_count || 0,
@@ -1034,6 +1124,13 @@ const exportRawDataCSV = async () => {
       return
     }
     
+    // Check if at least one column is selected
+    const selectedColumns = availableColumns.value.filter(col => col.selected)
+    if (selectedColumns.length === 0) {
+      alert('Please select at least one column to export')
+      return
+    }
+    
     const config = useRuntimeConfig()
     const baseURL = config.public.apiBase 
     
@@ -1043,6 +1140,11 @@ const exportRawDataCSV = async () => {
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
     if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     
+    // Add selected columns to params
+    const selectedColumnKeys = selectedColumns.map(col => col.key).join(',')
+    params.append('columns', selectedColumnKeys)
+    
+    showColumnSelector.value = false
     exportingRaw.value = true
     const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
       method: 'GET',
