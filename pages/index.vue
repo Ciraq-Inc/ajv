@@ -1,7 +1,7 @@
 <!-- pages/index.vue -->
 <template>
-  <div class="h-screen max-h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-    <div class="container mx-auto px-4 h-full max-h-screen flex items-center overflow-y-auto">
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-20 pb-8">
+    <div class="container mx-auto px-4 flex items-center">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 w-full items-center">
         <!-- Left Side - Content -->
         <div class="space-y-6 lg:space-y-8">
@@ -17,7 +17,7 @@
           <div class="bg-white rounded-xl shadow-lg p-6 lg:p-8 border border-indigo-100">
             <p class="text-base lg:text-lg text-gray-700 leading-relaxed mb-4">
               Tired of calling every pharmacy only to find out they don't have what you need? 
-              <span class="font-semibold text-indigo-600">The RigelOS Delivery Portal</span> is making life easier.
+              <span class="font-semibold text-indigo-600">The RigelOS Online Pharmacy Portal</span> is making life easier.
             </p>
             <div class="space-y-3">
               <div class="flex items-start">
@@ -86,7 +86,7 @@
                 Join the Waitlist
               </h2>
               <p class="text-xs text-white/90">
-                Be first when we launch!
+                Be first the first to know when we launch!
               </p>
             </div>
 
