@@ -44,6 +44,15 @@
           </NuxtLink>
 
           <NuxtLink 
+            to="/admin/signups" 
+            class="nav-item"
+            active-class="active"
+          >
+            <UserGroupIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Waitlist Signups</span>
+          </NuxtLink>
+
+          <NuxtLink 
             to="/admin/access" 
             class="nav-item"
             active-class="active"
@@ -292,6 +301,7 @@ const adminInitials = computed(() => {
 const pageTitle = computed(() => {
   const path = route.path
   if (path.includes('/admin/data')) return 'Data Overview'
+  if (path.includes('/admin/signups')) return 'Waitlist Signups'
   if (path.includes('/admin/user-access')) return 'User Access Management'
   if (path.includes('/admin/access')) return 'Company Management'
   if (path.includes('/admin/sms-campaigns')) return 'SMS Campaign Management'

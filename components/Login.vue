@@ -147,11 +147,56 @@
           <form @submit.prevent="handleSetupPassword">
             <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
               <p>Setting up password for: <strong>{{ formattedPhoneNumber }}</strong></p>
-              <p class="text-xs mt-1">We'll send you a verification code</p>
+              <p class="text-xs mt-1">Complete your profile and we'll send you a verification code</p>
             </div>
 
             <div class="mb-4" v-if="!otpSent">
-              <button type="button" @click="sendOTP" :disabled="isLoading"
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label for="setupFirstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <input v-model="firstName" type="text" id="setupFirstName"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="John" required>
+                </div>
+                <div>
+                  <label for="setupLastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <input v-model="lastName" type="text" id="setupLastName"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Doe" required>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label for="setupEmail" class="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+                <input v-model="email" type="email" id="setupEmail"
+                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="john@example.com">
+              </div>
+
+              <div class="mb-4">
+                <label for="setupGender" class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <select v-model="gender" id="setupGender"
+                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+                  required>
+                  <option value="">Select your gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+
+              <div class="mb-4">
+                <div class="flex items-start">
+                  <input id="ageVerification" v-model="isOver18" type="checkbox"
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-1" required>
+                  <label for="ageVerification" class="ml-2 block text-sm text-gray-700">
+                    I confirm that I am 18 years or older <span class="text-red-500">*</span>
+                  </label>
+                </div>
+              </div>
+
+              <button type="button" @click="sendOTP" :disabled="isLoading || !firstName || !lastName || !gender || !isOver18"
                 class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50">
                 <span v-if="isLoading">Sending OTP...</span>
                 <span v-else>Send Verification Code</span>
@@ -292,6 +337,8 @@ const otp = ref('');
 const firstName = ref('');
 const lastName = ref('');
 const email = ref('');
+const gender = ref('');
+const isOver18 = ref(false);
 const otpSent = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref('');
@@ -523,6 +570,10 @@ const backToPhone = () => {
   password.value = '';
   confirmPassword.value = '';
   otp.value = '';
+  firstName.value = '';
+  lastName.value = '';
+  gender.value = '';
+  isOver18.value = false;
   otpSent.value = false;
   errorMessage.value = '';
 };
@@ -539,6 +590,8 @@ const closeModal = () => {
     firstName.value = '';
     lastName.value = '';
     email.value = '';
+    gender.value = '';
+    isOver18.value = false;
     otpSent.value = false;
     errorMessage.value = '';
     phoneNumberError.value = '';
