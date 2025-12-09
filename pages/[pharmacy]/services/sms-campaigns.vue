@@ -7,13 +7,13 @@
           <h1 class="text-3xl font-bold text-gray-900">SMS Campaigns</h1>
           <p class="text-gray-600 mt-1">Create and manage your SMS marketing campaigns</p>
         </div>
-        <nuxt-link
-          :to="`/${companyDomain.value}/services/sms-create-campaign`"
+        <button
+          @click="showCreateModal = true"
           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
         >
           <PlusIcon class="h-5 w-5" />
           Create Campaign
-        </nuxt-link>
+        </button>
       </div>
 
       <!-- Balance Card -->
@@ -167,14 +167,14 @@
       <p class="text-gray-600 mb-6">
         {{ campaigns.length === 0 ? 'Get started by creating your first SMS campaign' : 'No campaigns match your filters' }}
       </p>
-      <nuxt-link
+      <button
         v-if="campaigns.length === 0"
-        :to="`/${companyDomain.value}/services/sms-create-campaign`"
+        @click="showCreateModal = true"
         class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
       >
         <PlusIcon class="h-5 w-5" />
         Create Your First Campaign
-      </nuxt-link>
+      </button>
       <button
         v-else
         @click="clearFilters"
@@ -201,7 +201,7 @@
         @delete="deleteCampaign"
         @reuse="openReuseCampaignModal"
         @resend="openResendCampaignModal"
-        @update="updateCampaign"
+        @update="openEditModal"
         @completed="handleCampaignCompleted"
         @status-changed="handleCampaignStatusChanged"
       />
@@ -232,6 +232,22 @@
       @resume="resumeCampaign"
       @cancel="cancelCampaign"
       @delete="deleteCampaign"
+      @edit="openEditModal"
+    />
+
+    <!-- Edit Campaign Modal -->
+    <EditCampaignModal
+      :is-open="showEditModal"
+      :campaign-id="editingCampaignId"
+      @close="showEditModal = false"
+      @updated="handleCampaignUpdated"
+    />
+
+    <!-- Create Campaign Modal -->
+    <CreateCampaignModal
+      :is-open="showCreateModal"
+      @close="showCreateModal = false"
+      @created="handleCampaignCreated"
     />
 
     <!-- Test SMS Modal -->
@@ -285,6 +301,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Create Campaign Modal -->
+    <CreateCampaignModal
+      :is-open="showCreateModal"
+      @close="showCreateModal = false"
+      @created="handleCampaignCreated"
+    />
 
     <!-- Resend Campaign Modal -->
     <div v-if="showResendModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -395,6 +418,8 @@ import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import CampaignCard from '~/components/sms/campaign/CampaignCard.vue'
 import CampaignDetailsModal from '~/components/sms/campaign/CampaignDetailsModal.vue'
+import CreateCampaignModal from '~/components/sms/campaign/CreateCampaignModal.vue'
+import EditCampaignModal from '~/components/sms/campaign/EditCampaignModal.vue'
 import BalanceCard from '~/components/sms/billing/BalanceCard.vue'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
 import TestSmsModal from '~/components/sms/shared/TestSmsModal.vue'
@@ -441,7 +466,10 @@ const filters = ref({
 const showArchived = ref(false)
 const showTestModal = ref(false)
 const showDetailsModal = ref(false)
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
 const selectedCampaignId = ref(null)
+const editingCampaignId = ref(null)
 
 const confirmDialog = ref({
   isOpen: false,
@@ -928,6 +956,25 @@ const closeConfirmDialog = () => {
     canRetry: false,
     isRetrying: false
   }
+}
+
+// Handle campaign created from modal
+const handleCampaignCreated = async () => {
+  await refreshCampaigns()
+  await fetchBalance()
+}
+
+// Open edit modal
+const openEditModal = (campaignId) => {
+  closeDetailsModal()
+  editingCampaignId.value = campaignId
+  showEditModal.value = true
+}
+
+// Handle campaign updated
+const handleCampaignUpdated = async () => {
+  await refreshCampaigns()
+  await fetchBalance()
 }
 </script>
 

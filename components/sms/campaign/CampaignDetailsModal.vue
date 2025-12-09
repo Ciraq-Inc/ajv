@@ -259,9 +259,18 @@
             <div class="flex items-center justify-between">
               <div v-if="campaign" class="flex items-center gap-3">
                 <button
+                  v-if="['draft', 'paused'].includes(campaign.status)"
+                  @click="$emit('edit', campaign.id)"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+                >
+                  <PencilIcon class="h-4 w-4" />
+                  Edit Campaign
+                </button>
+
+                <button
                   v-if="campaign.status === 'draft'"
                   @click="$emit('start', campaign.id)"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm"
                 >
                   <PlayIcon class="h-4 w-4" />
                   Start Campaign
@@ -320,7 +329,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { XMarkIcon, ArrowPathIcon, UsersIcon, CheckCircleIcon, ClockIcon, XCircleIcon, PlayIcon, PauseIcon, DocumentTextIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ArrowPathIcon, UsersIcon, CheckCircleIcon, ClockIcon, XCircleIcon, PlayIcon, PauseIcon, DocumentTextIcon, TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 
 const props = defineProps({
@@ -334,7 +343,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'start', 'pause', 'resume', 'cancel', 'delete'])
+const emit = defineEmits(['close', 'start', 'pause', 'resume', 'cancel', 'delete', 'edit'])
 
 const {
   campaigns,

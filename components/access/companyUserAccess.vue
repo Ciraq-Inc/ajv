@@ -3,40 +3,41 @@
     <div class="section-header">
       <h2>User Access Management</h2>
       <button @click="exportUsers" class="btn-secondary" v-if="users.length > 0">
-        📥 Export Users
+        <ArrowDownTrayIcon class="btn-icon-sm" />
+        Export Users
       </button>
     </div>
 
     <div class="info-banner">
-      <span class="info-icon">ℹ️</span>
+      <InformationCircleIcon class="info-icon" />
       <p>Enable online access for users to allow them to login to the SMS campaigns and services portal.</p>
     </div>
 
     <!-- Stats Cards -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon blue">👥</div>
+        <UserGroupIcon class="stat-icon blue" />
         <div class="stat-details">
           <div class="stat-value">{{ users.length }}</div>
           <div class="stat-label">Total Users</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon green">✓</div>
+        <CheckCircleIcon class="stat-icon green" />
         <div class="stat-details">
           <div class="stat-value">{{ usersWithAccess }}</div>
           <div class="stat-label">Access Enabled</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon orange">⏸️</div>
+        <PauseCircleIcon class="stat-icon orange" />
         <div class="stat-details">
           <div class="stat-value">{{ usersWithoutAccess }}</div>
           <div class="stat-label">Access Disabled</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon purple">🔐</div>
+        <LockClosedIcon class="stat-icon purple" />
         <div class="stat-details">
           <div class="stat-value">{{ usersWithPassword }}</div>
           <div class="stat-label">Has Password</div>
@@ -47,7 +48,7 @@
     <!-- Search -->
     <div class="filters-bar">
       <div class="search-box">
-        <span class="search-icon">🔍</span>
+        <MagnifyingGlassIcon class="search-icon" />
         <input 
           v-model="searchQuery" 
           type="text" 
@@ -77,7 +78,8 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="error-container">
-      <p>❌ {{ error }}</p>
+      <ExclamationTriangleIcon class="error-icon" />
+      <p>{{ error }}</p>
       <button @click="loadUsers" class="btn-retry">Retry</button>
     </div>
 
@@ -116,8 +118,14 @@
             </td>
             <td>
               <div class="contact-cell">
-                <div v-if="user.tel" class="contact-item">📱 {{ user.tel }}</div>
-                <div v-if="user.email" class="contact-item">📧 {{ user.email }}</div>
+                <div v-if="user.tel" class="contact-item">
+                  <PhoneIcon class="contact-icon" />
+                  {{ user.tel }}
+                </div>
+                <div v-if="user.email" class="contact-item">
+                  <EnvelopeIcon class="contact-icon" />
+                  {{ user.email }}
+                </div>
               </div>
             </td>
             <td>
@@ -147,7 +155,9 @@
             </td>
             <td>
               <span class="password-badge" :class="user.password_hash ? 'has-password' : 'no-password'">
-                {{ user.password_hash ? '✓ Yes' : '✗ No' }}
+                <CheckIcon v-if="user.password_hash" class="badge-icon" />
+                <XMarkIcon v-else class="badge-icon" />
+                {{ user.password_hash ? 'Yes' : 'No' }}
               </span>
             </td>
             <td>
@@ -168,6 +178,20 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import {
+  UserGroupIcon,
+  CheckCircleIcon,
+  PauseCircleIcon,
+  LockClosedIcon,
+  MagnifyingGlassIcon,
+  ExclamationTriangleIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  ArrowDownTrayIcon,
+  CheckIcon,
+  XMarkIcon,
+  InformationCircleIcon
+} from '@heroicons/vue/24/outline'
 import { useCompanyStore } from '~/stores/company'
 
 const companyStore = useCompanyStore()
@@ -229,7 +253,7 @@ const loadUsers = async () => {
   error.value = null
   
   try {
-    const response = await companyStore.makeAuthRequest('/api/company-auth/users/access')
+    const response = await companyStore.makeAuthRequest('/api/company/users/access')
     
     if (response.success) {
       users.value = response.data.users || []
@@ -250,7 +274,7 @@ const toggleUserAccess = async (user) => {
 
   try {
     const response = await companyStore.makeAuthRequest(
-      `/api/company-auth/users/${user.id}/access`,
+      `/api/company/users/${user.id}/access`,
       {
         method: 'PUT',
         body: JSON.stringify({
@@ -358,7 +382,10 @@ onMounted(() => {
 }
 
 .info-icon {
-  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  color: #2563eb;
+  flex-shrink: 0;
 }
 
 .info-banner p {
@@ -388,17 +415,30 @@ onMounted(() => {
 .stat-icon {
   width: 56px;
   height: 56px;
+  padding: 12px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  flex-shrink: 0;
 }
 
-.stat-icon.blue { background: #dbeafe; }
-.stat-icon.green { background: #d1fae5; }
-.stat-icon.orange { background: #fed7aa; }
-.stat-icon.purple { background: #e9d5ff; }
+.stat-icon.blue { 
+  background: #dbeafe;
+  color: #1e40af;
+}
+.stat-icon.green { 
+  background: #d1fae5;
+  color: #065f46;
+}
+.stat-icon.orange { 
+  background: #fed7aa;
+  color: #92400e;
+}
+.stat-icon.purple { 
+  background: #e9d5ff;
+  color: #6b21a8;
+}
 
 .stat-value {
   font-size: 28px;
@@ -431,7 +471,9 @@ onMounted(() => {
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 18px;
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
 }
 
 .search-input {
@@ -540,6 +582,15 @@ onMounted(() => {
 .contact-item {
   color: #64748b;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contact-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .role-badge {
@@ -577,6 +628,12 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.password-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .password-badge.has-password {
   background: #d1fae5;
   color: #065f46;
@@ -585,6 +642,11 @@ onMounted(() => {
 .password-badge.no-password {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.badge-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .access-toggle {
@@ -691,10 +753,18 @@ input:disabled + .slider {
 .btn-secondary {
   background: #f1f5f9;
   color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-secondary:hover {
   background: #e2e8f0;
+}
+
+.btn-icon-sm {
+  width: 18px;
+  height: 18px;
 }
 
 .btn-retry {
@@ -715,6 +785,13 @@ button:disabled {
   border-radius: 12px;
   padding: 60px;
   text-align: center;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: #ef4444;
 }
 
 .spinner {

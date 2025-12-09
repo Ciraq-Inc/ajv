@@ -149,17 +149,17 @@
         </a>
 
         <!-- Mobile Login/Profile -->
-        <button 
-          v-if="!userStore.isLoggedIn"
+        <!-- <button 
+         
           @click="showLoginModal = true; showMobileMenu = false"
           class="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-4 py-2.5 rounded-lg transition-colors duration-200"
         >
           <i class="ri-user-line text-xl"></i>
           Login
-        </button>
+        </button> -->
 
         <!-- Mobile Profile Menu -->
-        <div v-else class="space-y-2">
+        <div  v-if="userStore.isLoggedIn" class="space-y-2">
           <!-- User Info -->
           <div class="px-3 py-2 bg-gray-50 rounded-lg">
             <p class="text-sm font-semibold text-gray-900">

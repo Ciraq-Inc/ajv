@@ -431,5 +431,26 @@ export const useCompanyStore = defineStore('company', {
         this.isLoading = false;
       }
     },
+
+    async makeAuthRequest(url, options = {}) {
+      const config = useRuntimeConfig();
+      const headers = this.getApiHeaders();
+      
+      const response = await fetch(`${config.public.apiBase}${url}`, {
+        ...options,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Request failed');
+      }
+      
+      return data;
+    },
   },
 });

@@ -137,7 +137,8 @@ import {
   PlusIcon,
   BoltIcon,
   CreditCardIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  UserGroupIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -175,11 +176,6 @@ const navigationItems = computed(() => [
     icon: ChatBubbleLeftIcon,
   },
   {
-    path: `/${companyDomain.value}/services/sms-create-campaign`,
-    label: 'Create Campaign',
-    icon: PlusIcon,
-  },
-  {
     path: `/${companyDomain.value}/services/sms-credits`,
     label: 'SMS Credits',
     icon: BoltIcon,
@@ -188,6 +184,11 @@ const navigationItems = computed(() => [
     path: `/${companyDomain.value}/services/sms-billing`,
     label: 'Billing',
     icon: CreditCardIcon,
+  },
+  {
+    path: `/${companyDomain.value}/services/user-access`,
+    label: 'User Access',
+    icon: UserGroupIcon,
   },
 ])
 
