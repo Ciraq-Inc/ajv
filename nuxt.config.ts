@@ -65,7 +65,9 @@ export default defineNuxtConfig({
   // Runtime configuration for API endpoints
   runtimeConfig: {
     public: {
-      apiBase: process.env.API_BASE_URL
+      apiBase: process.env.API_BASE_URL,
+      paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
+      paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || ''
     }
   },
 

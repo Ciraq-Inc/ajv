@@ -140,9 +140,7 @@ const close = () => {
 // Go to order history
 const viewOrderHistory = () => {
   close();
-  if (pharmacyStore.pharmacySlug) {
-  router.push(`/${pharmacyStore.pharmacySlug}/orders`);
-  }
+  router.push('/customer');
 };
 
 // Continue shopping

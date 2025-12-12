@@ -1,18 +1,19 @@
 <template>
   <div class="sms-campaigns-page">
     <!-- Header -->
-    <div class="mb-6">
-      <div class="flex items-center justify-between mb-4">
+    <div class="mb-4 md:mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">SMS Campaigns</h1>
-          <p class="text-gray-600 mt-1">Create and manage your SMS marketing campaigns</p>
+          <h1 class="text-2xl md:text-3xl font-bold text-gray-900">SMS Campaigns</h1>
+          <p class="text-sm md:text-base text-gray-600 mt-1">Create and manage your SMS marketing campaigns</p>
         </div>
         <button
           @click="showCreateModal = true"
-          class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+          class="px-4 md:px-6 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium text-sm md:text-base whitespace-nowrap"
         >
           <PlusIcon class="h-5 w-5" />
-          Create Campaign
+          <span class="hidden xs:inline">Create Campaign</span>
+          <span class="xs:hidden">Create</span>
         </button>
       </div>
 
@@ -26,51 +27,51 @@
     </div>
 
     <!-- Stats Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white p-4 rounded-lg border border-gray-200">
-        <div class="flex items-center gap-3">
-          <div class="bg-blue-100 p-3 rounded-lg">
-            <InboxIcon class="h-6 w-6 text-blue-600" />
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+      <div class="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+        <div class="flex items-center gap-2 md:gap-3">
+          <div class="bg-blue-100 p-2 md:p-3 rounded-lg">
+            <InboxIcon class="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
           </div>
           <div>
-            <p class="text-sm text-gray-600">Total Campaigns</p>
-            <p class="text-2xl font-bold text-gray-900">{{ campaigns.length }}</p>
+            <p class="text-xs md:text-sm text-gray-600">Total Campaigns</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900">{{ campaigns.length }}</p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-lg border border-gray-200">
-        <div class="flex items-center gap-3">
-          <div class="bg-green-100 p-3 rounded-lg">
-            <CheckCircleIcon class="h-6 w-6 text-green-600" />
+      <div class="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+        <div class="flex items-center gap-2 md:gap-3">
+          <div class="bg-green-100 p-2 md:p-3 rounded-lg">
+            <CheckCircleIcon class="h-5 w-5 md:h-6 md:w-6 text-green-600" />
           </div>
           <div>
-            <p class="text-sm text-gray-600">Completed</p>
-            <p class="text-2xl font-bold text-gray-900">{{ completedCampaigns.length }}</p>
+            <p class="text-xs md:text-sm text-gray-600">Completed</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900">{{ completedCampaigns.length }}</p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-lg border border-gray-200">
-        <div class="flex items-center gap-3">
-          <div class="bg-yellow-100 p-3 rounded-lg">
-            <SparklesIcon class="h-6 w-6 text-yellow-600" />
+      <div class="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+        <div class="flex items-center gap-2 md:gap-3">
+          <div class="bg-yellow-100 p-2 md:p-3 rounded-lg">
+            <SparklesIcon class="h-5 w-5 md:h-6 md:w-6 text-yellow-600" />
           </div>
           <div>
-            <p class="text-sm text-gray-600">Active</p>
-            <p class="text-2xl font-bold text-gray-900">{{ activeCampaigns.length }}</p>
+            <p class="text-xs md:text-sm text-gray-600">Active</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900">{{ activeCampaigns.length }}</p>
           </div>
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-lg border border-gray-200">
-        <div class="flex items-center gap-3">
-          <div class="bg-gray-100 p-3 rounded-lg">
-            <DocumentTextIcon class="h-6 w-6 text-gray-600" />
+      <div class="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
+        <div class="flex items-center gap-2 md:gap-3">
+          <div class="bg-gray-100 p-2 md:p-3 rounded-lg">
+            <DocumentTextIcon class="h-5 w-5 md:h-6 md:w-6 text-gray-600" />
           </div>
           <div>
-            <p class="text-sm text-gray-600">Drafts</p>
-            <p class="text-2xl font-bold text-gray-900">{{ draftCampaigns.length }}</p>
+            <p class="text-xs md:text-sm text-gray-600">Drafts</p>
+            <p class="text-xl md:text-2xl font-bold text-gray-900">{{ draftCampaigns.length }}</p>
           </div>
         </div>
       </div>
@@ -96,14 +97,14 @@
     </div> -->
 
     <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-      <div class="flex items-center gap-4 flex-wrap">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">Status</label>
+    <div class="bg-white p-3 md:p-4 rounded-lg border border-gray-200 mb-4 md:mb-6">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
+        <div class="flex-1 sm:flex-none">
+          <label class="text-xs md:text-sm text-gray-600 mb-1 block">Status</label>
           <select
             v-model="filters.status"
             @change="applyFilters"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
           >
             <option value="">All Statuses</option>
             <option value="draft">Draft</option>
@@ -129,27 +130,28 @@
           </select>
         </div> -->
 
-        <div class="flex-1"></div>
+        <div class="hidden sm:block sm:flex-1"></div>
 
         <!-- Show Archived Toggle -->
         <button
           @click="toggleShowArchived"
-          class="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium"
+          class="px-3 md:px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm md:text-base"
           :class="showArchived 
             ? 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200' 
             : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'"
         >
           <ArchiveBoxIcon class="h-4 w-4" />
-          {{ showArchived ? 'Hide' : 'Show' }} Archived ({{ archivedCampaigns.length }})
+          <span class="hidden sm:inline">{{ showArchived ? 'Hide' : 'Show' }} Archived ({{ archivedCampaigns.length }})</span>
+          <span class="sm:hidden">Archived ({{ archivedCampaigns.length }})</span>
         </button>
 
         <button
           @click="refreshCampaigns"
           :disabled="loading"
-          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+          class="px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
         >
           <ArrowPathIcon :class="loading ? 'animate-spin' : ''" class="h-4 w-4" />
-          Refresh
+          <span class="hidden sm:inline">Refresh</span>
         </button>
       </div>
     </div>
@@ -186,7 +188,7 @@
     </div>
 
     <!-- Campaigns Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
       <CampaignCard
         v-for="campaign in filteredCampaigns"
         :key="campaign.id"
@@ -257,44 +259,44 @@
     />
 
     <!-- Reuse Campaign Modal -->
-    <div v-if="showReuseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div class="p-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">Reuse Campaign</h2>
+    <div v-if="showReuseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-4 md:p-6">
+          <h2 class="text-lg md:text-xl font-bold text-gray-900 mb-4">Reuse Campaign</h2>
           
-          <div class="space-y-4">
+          <div class="space-y-3 md:space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Original Campaign</label>
-              <p class="text-gray-600">{{ reuseFormData.campaignName }}</p>
+              <label class="block text-xs md:text-sm font-medium text-gray-700 mb-2">Original Campaign</label>
+              <p class="text-sm md:text-base text-gray-600">{{ reuseFormData.campaignName }}</p>
             </div>
             
             <div>
-              <label for="newCampaignName" class="block text-sm font-medium text-gray-700 mb-2">New Campaign Name</label>
+              <label for="newCampaignName" class="block text-xs md:text-sm font-medium text-gray-700 mb-2">New Campaign Name</label>
               <input
                 id="newCampaignName"
                 v-model="reuseFormData.newName"
                 type="text"
                 placeholder="Enter campaign name"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
               />
             </div>
 
-            <p class="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+            <p class="text-xs md:text-sm text-gray-600 bg-blue-50 p-3 rounded">
               ℹ️ A copy of this campaign will be created as a draft. You can edit it before sending.
             </p>
           </div>
         </div>
         
-        <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3 justify-end">
+        <div class="px-4 md:px-6 py-3 md:py-4 bg-gray-50 rounded-b-lg flex gap-2 md:gap-3 justify-end">
           <button
             @click="showReuseModal = false"
-            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+            class="px-3 md:px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm md:text-base"
           >
             Cancel
           </button>
           <button
             @click="handleReuseSubmit"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            class="px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm md:text-base"
           >
             Reuse Campaign
           </button>
@@ -310,15 +312,15 @@
     />
 
     <!-- Resend Campaign Modal -->
-    <div v-if="showResendModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div class="p-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">Resend Campaign</h2>
+    <div v-if="showResendModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-4 md:p-6">
+          <h2 class="text-lg md:text-xl font-bold text-gray-900 mb-4">Resend Campaign</h2>
           
-          <div class="space-y-4">
+          <div class="space-y-3 md:space-y-4">
             <!-- Campaign Info -->
-            <div class="bg-blue-50 p-4 rounded border border-blue-200">
-              <p class="text-sm text-blue-900 font-medium mb-2">
+            <div class="bg-blue-50 p-3 md:p-4 rounded border border-blue-200">
+              <p class="text-xs md:text-sm text-blue-900 font-medium mb-2">
                 {{ campaigns.find(c => c.id === resendFormData.campaignId)?.name }}
               </p>
               <div class="grid grid-cols-2 gap-2 text-xs text-blue-800">
@@ -337,8 +339,8 @@
               </div>
             </div>
 
-            <div class="bg-yellow-50 p-4 rounded border border-yellow-200">
-              <p class="text-sm text-yellow-800">
+            <div class="bg-yellow-50 p-3 md:p-4 rounded border border-yellow-200">
+              <p class="text-xs md:text-sm text-yellow-800">
                 ⚠️ This will reset selected recipients to "pending" status and resend SMS messages.
               </p>
             </div>
@@ -380,16 +382,16 @@
           </div>
         </div>
         
-        <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3 justify-end">
+        <div class="px-4 md:px-6 py-3 md:py-4 bg-gray-50 rounded-b-lg flex flex-col sm:flex-row gap-2 md:gap-3 sm:justify-end">
           <button
             @click="showResendModal = false"
-            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+            class="px-3 md:px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm md:text-base order-2 sm:order-1"
           >
             Cancel
           </button>
           <button
             @click="handleResendSubmit"
-            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium flex items-center gap-2"
+            class="px-3 md:px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium flex items-center justify-center gap-2 text-sm md:text-base order-1 sm:order-2"
           >
             <PaperAirplaneIcon class="h-4 w-4" />
             Confirm Resend
@@ -982,6 +984,6 @@ const handleCampaignUpdated = async () => {
 .sms-campaigns-page {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
 }
 </style>

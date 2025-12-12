@@ -72,8 +72,8 @@ const userInitials = computed(() => {
 
 const pageTitle = computed(() => {
   const path = route.path
-  if (path.includes('/customer/profile')) return 'My Profile'
   if (path.includes('/customer/orders')) return 'My Orders'
+  if (path.includes('/customer/profile')) return 'My Profile'
   if (path.includes('/customer/companies')) return 'Linked Companies'
   return 'Dashboard'
 })

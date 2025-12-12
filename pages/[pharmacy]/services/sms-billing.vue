@@ -1,79 +1,101 @@
 <template>
   <div class="sms-billing-page">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">SMS Billing</h1>
-      <p class="text-gray-600">Manage your SMS credits and view transaction history</p>
+    <div class="mb-4 md:mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">SMS Billing</h1>
+      <p class="text-sm md:text-base text-gray-600">Manage your SMS credits and view transaction history</p>
     </div>
 
-    <!-- Balance Section -->
-    <div class="mb-6">
-      <BalanceCard
-        :balance-data="balance"
-        :show-actions="true"
-        :show-top-up="false"
-        @refresh="fetchBalance"
-      />
+    <!-- Balance Section with Top-Up Button -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+      <div class="lg:col-span-2">
+        <BalanceCard
+          :balance-data="balance"
+          :show-actions="true"
+          :show-top-up="false"
+          @refresh="fetchBalance"
+        />
+      </div>
+      
+      <!-- Quick Top-Up Action Card -->
+      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 md:p-6 text-white shadow-lg">
+        <div class="flex flex-col h-full justify-between">
+          <div>
+            <Icon name="CreditCard" class="h-8 w-8 md:h-10 md:w-10 mb-3 md:mb-4 opacity-90" />
+            <h3 class="text-lg md:text-xl font-bold mb-2">Top Up Money</h3>
+            <p class="text-blue-100 text-xs md:text-sm mb-3 md:mb-4">
+              Add money to your account instantly with Paystack
+            </p>
+          </div>
+          <button
+            @click="showTopUpModal = true"
+            class="w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors shadow-md flex items-center justify-center gap-2"
+          >
+            <Icon name="Plus" class="h-5 w-5" />
+            Top Up Now
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Usage Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-      <div class="bg-white p-6 rounded-lg border border-gray-200">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-medium text-gray-600">This Month</h3>
-          <Icon name="Calendar" class="h-5 w-5 text-gray-400" />
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+      <div class="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
+        <div class="flex items-center justify-between mb-3 md:mb-4">
+          <h3 class="text-xs md:text-sm font-medium text-gray-600">This Month</h3>
+          <Icon name="Calendar" class="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
         </div>
-        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(monthlyStats.topupAmount) }}</p>
-        <p class="text-sm text-gray-600">Money Topped Up</p>
-        <div class="mt-3 flex items-center text-sm">
+        <p class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(monthlyStats.topupAmount) }}</p>
+        <p class="text-xs md:text-sm text-gray-600">Money Topped Up</p>
+        <div class="mt-2 md:mt-3 flex items-center text-xs md:text-sm">
           <span class="text-green-600 font-medium">{{ monthlyStats.topups }} top-ups</span>
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-lg border border-gray-200">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-medium text-gray-600">Today</h3>
-          <Icon name="Activity" class="h-5 w-5 text-gray-400" />
+      <div class="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
+        <div class="flex items-center justify-between mb-3 md:mb-4">
+          <h3 class="text-xs md:text-sm font-medium text-gray-600">Today</h3>
+          <Icon name="Activity" class="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
         </div>
-        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(todayStats.topupAmount) }}</p>
-        <p class="text-sm text-gray-600">Money Topped Up</p>
-        <div class="mt-3 flex items-center text-sm">
+        <p class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(todayStats.topupAmount) }}</p>
+        <p class="text-xs md:text-sm text-gray-600">Money Topped Up</p>
+        <div class="mt-2 md:mt-3 flex items-center text-xs md:text-sm">
           <span class="text-blue-600 font-medium">{{ todayStats.topups }} top-ups</span>
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-lg border border-gray-200">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-medium text-gray-600">Average Top-up</h3>
-          <Icon name="DollarSign" class="h-5 w-5 text-gray-400" />
+      <div class="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
+        <div class="flex items-center justify-between mb-3 md:mb-4">
+          <h3 class="text-xs md:text-sm font-medium text-gray-600">Average Top-up</h3>
+          <Icon name="DollarSign" class="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
         </div>
-        <p class="text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(averageTopup) }}</p>
-        <p class="text-sm text-gray-600">Per Transaction</p>
+        <p class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(averageTopup) }}</p>
+        <p class="text-xs md:text-sm text-gray-600">Per Transaction</p>
       </div>
     </div>
 
     <!-- Transaction History -->
     <div class="bg-white rounded-lg border border-gray-200">
       <!-- Header -->
-      <div class="p-6 border-b border-gray-200">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-gray-900">Transaction History</h2>
+      <div class="p-4 md:p-6 border-b border-gray-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <h2 class="text-lg md:text-xl font-semibold text-gray-900">Transaction History</h2>
           <button
             @click="refreshTransactions"
             :disabled="loading"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+            class="px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
           >
             <Icon :name="loading ? 'Loader2' : 'RefreshCw'" :class="loading ? 'animate-spin' : ''" class="h-4 w-4" />
-            Refresh
+            <span class="hidden sm:inline">Refresh</span>
           </button>
         </div>
 
         <!-- Filters -->
-        <div class="flex items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
           <select
             v-model="transactionFilters.type"
             @change="applyTransactionFilters"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base w-full sm:w-auto"
           >
             <option value="">All Money Transactions</option>
             <option value="money_topup">Money Top-ups</option>
@@ -86,7 +108,7 @@
           <select
             v-model="transactionFilters.period"
             @change="applyTransactionFilters"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base w-full sm:w-auto"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -110,16 +132,16 @@
       </div>
 
       <!-- Transactions Table -->
-      <div v-else class="overflow-x-auto">
-        <table class="w-full">
+      <div v-else class="overflow-x-auto -mx-4 md:mx-0">
+        <table class="w-full min-w-[640px]">
           <thead class="bg-gray-50">
             <tr>
-              <th class="text-left py-3 px-6 text-xs font-medium text-gray-600 uppercase">Date</th>
-              <th class="text-left py-3 px-6 text-xs font-medium text-gray-600 uppercase">Type</th>
-              <th class="text-left py-3 px-6 text-xs font-medium text-gray-600 uppercase">Description</th>
-              <th class="text-right py-3 px-6 text-xs font-medium text-gray-600 uppercase">Amount</th>
-              <!-- <th class="text-right py-3 px-6 text-xs font-medium text-gray-600 uppercase">SMS Count</th> -->
-              <th class="text-right py-3 px-6 text-xs font-medium text-gray-600 uppercase">Balance</th>
+              <th class="text-left py-2 md:py-3 px-3 md:px-6 text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Date</th>
+              <th class="text-left py-2 md:py-3 px-3 md:px-6 text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Type</th>
+              <th class="text-left py-2 md:py-3 px-3 md:px-6 text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Description</th>
+              <th class="text-right py-2 md:py-3 px-3 md:px-6 text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Amount</th>
+              <!-- <th class="text-right py-2 md:py-3 px-3 md:px-6 text-xs font-medium text-gray-600 uppercase whitespace-nowrap">SMS Count</th> -->
+              <th class="text-right py-2 md:py-3 px-3 md:px-6 text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Balance</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
@@ -128,31 +150,31 @@
               :key="transaction.id"
               class="hover:bg-gray-50"
             >
-              <td class="py-4 px-6 text-sm text-gray-900">
+              <td class="py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm text-gray-900 whitespace-nowrap">
                 {{ formatDate(transaction.created_at, 'long') }}
               </td>
-              <td class="py-4 px-6">
+              <td class="py-3 md:py-4 px-3 md:px-6">
                 <span
                   :class="[
-                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                    'inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap',
                     getTransactionTypeClass(transaction.transaction_type)
                   ]"
                 >
                   {{ getTransactionTypeLabel(transaction.transaction_type) }}
                 </span>
               </td>
-              <td class="py-4 px-6 text-sm text-gray-600">
+              <td class="py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm text-gray-600">
                 {{ transaction.description || '-' }}
               </td>
-              <td class="py-4 px-6 text-sm text-gray-600">
+              <td class="py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm text-gray-600 whitespace-nowrap">
                 {{ transaction.amount || '-' }}
               </td>
-              <!-- <td class="py-4 px-6 text-sm text-right font-medium">
+              <!-- <td class="py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm text-right font-medium whitespace-nowrap">
                 <span :class="transaction.sms_count > 0 ? 'text-green-600' : 'text-red-600'">
                   {{ transaction.sms_count > 0 ? '+' : '' }}{{ formatNumber(transaction.sms_count) }}
                 </span>
               </td> -->
-              <td class="py-4 px-6 text-sm text-right text-gray-900 font-medium">
+              <td class="py-3 md:py-4 px-3 md:px-6 text-xs md:text-sm text-right text-gray-900 font-medium whitespace-nowrap">
                 {{ formatNumber(transaction.money_balance_after) }}
               </td>
             </tr>
@@ -161,19 +183,19 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="transactions.length > 0" class="p-4 border-t border-gray-200 flex items-center justify-between">
-        <p class="text-sm text-gray-600">
+      <div v-if="transactions.length > 0" class="p-3 md:p-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-xs md:text-sm text-gray-600">
           Showing {{ transactions.length }} transactions
         </p>
         <div class="flex items-center gap-2">
           <button
-            class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled
           >
             Previous
           </button>
           <button
-            class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled
           >
             Next
@@ -181,6 +203,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Paystack Top-Up Modal -->
+    <PaystackTopUpModal
+      :is-open="showTopUpModal"
+      :current-balance="balance?.money_balance || 0"
+      @close="showTopUpModal = false"
+      @success="handleTopUpSuccess"
+    />
   </div>
 </template>
 
@@ -188,6 +218,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import BalanceCard from '~/components/sms/billing/BalanceCard.vue'
+import PaystackTopUpModal from '~/components/sms/billing/PaystackTopUpModal.vue'
 import { formatDate, formatNumber, formatCurrency, getStatusLabel } from '~/utils/constants/sms'
 
 // Define page metadata
@@ -198,6 +229,9 @@ definePageMeta({
 })
 
 const { balance, transactions, loading, fetchBalance, fetchTransactions } = useSMSBilling()
+
+// Top-up modal state
+const showTopUpModal = ref(false)
 
 const transactionFilters = ref({
   type: '',
@@ -221,6 +255,26 @@ const averageTopup = computed(() => {
   if (total === 0) return 0
   return monthlyStats.value.topupAmount / total
 })
+
+// Handle successful top-up
+const handleTopUpSuccess = async (data) => {
+  console.log('Top-up successful:', data)
+  
+  // Close modal
+  showTopUpModal.value = false
+  
+  // Show success message
+  alert(`Successfully added GH₵${data.amount_credited.toFixed(2)} to your account!`)
+  
+  // Refresh balance and transactions
+  await Promise.all([
+    fetchBalance(),
+    fetchTransactions({ money_only: true })
+  ])
+  
+  // Recalculate stats
+  calculateStats()
+}
 
 // Load data on mount
 onMounted(async () => {
@@ -388,6 +442,12 @@ const getTransactionTypeClass = (type) => {
 .sms-billing-page {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .sms-billing-page {
+    padding: 0;
+  }
 }
 </style>

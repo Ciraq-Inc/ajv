@@ -124,7 +124,7 @@ definePageMeta({
 });
 
 const userStore = useUserStore();
-const activeTab = ref('profile');
+const activeTab = ref('orders');
 const isCheckingAuth = ref(true);
 const isLoadingStats = ref(false);
 
@@ -173,9 +173,9 @@ const BuildingIcon = () => h('svg', {
 
 // Tabs configuration
 const tabs = [
-  { id: 'profile', icon: UserIcon, label: 'My Profile' },
   { id: 'orders', icon: ShoppingBagIcon, label: 'Order History' },
-  { id: 'companies', icon: BuildingIcon, label: 'Linked Companies' }
+  { id: 'companies', icon: BuildingIcon, label: 'Linked Companies' },
+  { id: 'profile', icon: UserIcon, label: 'My Profile' },
 ];
 
 // Format phone number for display
@@ -419,6 +419,14 @@ onMounted(async () => {
   margin-bottom: 1.5rem;
   border-bottom: 2px solid #e5e7eb;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .tab-button {
@@ -437,6 +445,8 @@ onMounted(async () => {
   margin-bottom: -2px;
   white-space: nowrap;
   border-radius: 8px 8px 0 0;
+  flex-shrink: 0;
+  min-height: 44px; /* Better touch target */
 }
 
 .tab-button:hover {
@@ -543,15 +553,26 @@ onMounted(async () => {
 
   .tabs {
     gap: 0.25rem;
+    padding-bottom: 0;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   .tab-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    min-height: 48px; /* Larger touch target on mobile */
   }
 
   .tab-icon {
-    font-size: 1rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+  
+  .tab-label {
+    font-size: 0.875rem;
   }
 }
 </style>
