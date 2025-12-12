@@ -64,14 +64,14 @@
         </div>
       </div>
 
-      <div class="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
+      <!-- <div class="bg-white p-4 md:p-6 rounded-lg border border-gray-200">
         <div class="flex items-center justify-between mb-3 md:mb-4">
           <h3 class="text-xs md:text-sm font-medium text-gray-600">Average Top-up</h3>
           <Icon name="DollarSign" class="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
         </div>
         <p class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(averageTopup) }}</p>
         <p class="text-xs md:text-sm text-gray-600">Per Transaction</p>
-      </div>
+      </div> -->
     </div>
 
     <!-- Transaction History -->
