@@ -120,7 +120,7 @@
           </div>
 
           <!-- Preview After Top-up -->
-          <div v-if="form.amount && form.amount > 0" class="bg-green-50 border border-green-200 rounded-lg p-3 md:p-4">
+          <!-- <div v-if="form.amount && form.amount > 0" class="bg-green-50 border border-green-200 rounded-lg p-3 md:p-4">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-xs md:text-sm text-green-600 font-medium mb-1">Balance After Top-up</p>
@@ -128,7 +128,7 @@
               </div>
               <Icon name="TrendingUp" class="h-6 w-6 md:h-8 md:w-8 text-green-400" />
             </div>
-          </div>
+          </div> -->
 
           <!-- Error Message -->
           <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-2.5 md:p-3">
@@ -208,6 +208,11 @@ const totalAmount = computed(() => {
 })
 
 const balanceAfterTopup = computed(() => {
+  // If auto-purchase SMS is enabled, balance stays the same (money converted to SMS)
+  // If disabled, balance increases by the amount
+  if (form.value.autoPurchaseSMS) {
+    return props.currentBalance
+  }
   return props.currentBalance + (form.value.amount || 0)
 })
 
