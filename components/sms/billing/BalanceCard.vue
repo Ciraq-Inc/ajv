@@ -35,12 +35,12 @@
     </div> -->
 
     <!-- Money Balance -->
-    <div v-if="balanceData?.money_balance !== undefined" class="mb-3 pb-2 border-t border-blue-400 pt-2">
+    <!-- <div v-if="balanceData?.money_balance !== undefined" class="mb-3 pb-2 border-t border-blue-400 pt-2">
       <div class="flex items-center justify-between text-xs">
         <span class="text-blue-100">Money:</span>
         <span class="font-semibold">{{ formatCurrency(balanceData.money_balance) }}</span>
       </div>
-    </div>
+    </div> -->
 
     <!-- Action Buttons -->
     <div v-if="showActions" class="flex gap-2">

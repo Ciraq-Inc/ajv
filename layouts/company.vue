@@ -1,7 +1,14 @@
 <template>
   <div class="company-layout">
+    <!-- Mobile Overlay -->
+    <div 
+      v-if="mobileMenuOpen" 
+      class="mobile-overlay"
+      @click="closeMobileMenu"
+    ></div>
+
     <!-- Sidebar -->
-    <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed, 'sidebar-open': mobileMenuOpen }">
       <!-- Logo/Header -->
       <div class="sidebar-header">
         <div class="flex items-center gap-3" :class="{ 'justify-center': sidebarCollapsed }">
@@ -9,7 +16,7 @@
             <BuildingOffice2Icon class="h-6 w-6 text-blue-600" />
           </div>
           <div v-if="!sidebarCollapsed" class="company-info">
-            <h2 class="text-lg font-bold text-gray-900">{{ companyName }}</h2>
+            <!-- <h2 class="text-lg font-bold text-gray-900">{{ companyName }}</h2> -->
             <p class="text-xs text-gray-600">Services Portal</p>
           </div>
         </div>
@@ -71,7 +78,11 @@
       <!-- Top Bar -->
       <header class="top-bar">
         <div class="flex items-center gap-4">
-          <h1 class="page-title">{{ pageTitle }}</h1>
+          <!-- Mobile Menu Toggle -->
+          <button @click="toggleMobileMenu" class="mobile-menu-btn">
+            <Bars3Icon class="h-6 w-6" />
+          </button>
+          <!-- <h1 class="page-title">{{ pageTitle }}</h1> -->
         </div>
         
         <div class="flex items-center gap-4">
@@ -89,8 +100,8 @@
           <div class="user-menu">
             <button @click="toggleUserMenu" class="user-menu-btn">
               <UserIcon class="h-5 w-5" />
-              <span>{{ userName }}</span>
-              <ChevronDownIcon class="h-4 w-4" />
+              <span class="user-menu-text">{{ userName }}</span>
+              <ChevronDownIcon class="h-4 w-4 user-menu-chevron" />
             </button>
             
             <div v-if="showUserMenu" class="user-menu-dropdown">
@@ -138,7 +149,8 @@ import {
   BoltIcon,
   CreditCardIcon,
   ArrowPathIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  Bars3Icon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -148,6 +160,7 @@ const companyStore = useCompanyStore()
 const sidebarCollapsed = ref(false)
 const showUserMenu = ref(false)
 const isLoggingOut = ref(false)
+const mobileMenuOpen = ref(false)
 
 // Get company domain from route
 const companyDomain = computed(() => {
@@ -205,6 +218,16 @@ const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
 }
 
+// Toggle mobile menu
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+// Close mobile menu
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false
+}
+
 // Handle logout
 const handleLogout = async () => {
   isLoggingOut.value = true
@@ -235,6 +258,25 @@ onMounted(() => {
       }
     })
   }
+})
+
+// Watch for mobile menu changes to handle body scroll
+import { watch } from 'vue'
+watch(mobileMenuOpen, (isOpen) => {
+  if (typeof document !== 'undefined') {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+  }
+})
+
+// Close mobile menu on navigation
+import { watchEffect } from 'vue'
+watchEffect(() => {
+  route.path // trigger on route change
+  closeMobileMenu()
 })
 </script>
 
@@ -569,8 +611,43 @@ onMounted(() => {
   padding: 2rem;
 }
 
+/* Mobile Overlay */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 39;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  background: #f3f4f6;
+}
+
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .mobile-overlay {
+    display: block;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .sidebar {
     position: fixed;
     left: 0;
@@ -578,14 +655,21 @@ onMounted(() => {
     height: 100vh;
     z-index: 40;
     transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 280px;
   }
   
   .sidebar.sidebar-open {
     transform: translateX(0);
   }
   
+  .sidebar.sidebar-collapsed {
+    width: 280px;
+  }
+  
   .main-content {
     margin-left: 0;
+    width: 100%;
   }
   
   .top-bar {
@@ -594,6 +678,44 @@ onMounted(() => {
   
   .page-content {
     padding: 1rem;
+  }
+
+  .user-menu-text,
+  .user-menu-chevron {
+    display: none;
+  }
+
+  .user-menu-btn {
+    padding: 0.5rem;
+    border: none;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  /* Hide desktop toggle in mobile view */
+  .toggle-btn-container {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .top-bar {
+    padding: 0.75rem;
+  }
+  
+  .page-content {
+    padding: 0.75rem;
+  }
+
+  .icon-btn span {
+    display: none;
+  }
+
+  .sidebar {
+    width: 85vw;
+    max-width: 320px;
   }
 }
 </style>

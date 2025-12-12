@@ -13,11 +13,41 @@ export const useApi = () => {
    */
   const apiRequest = async (endpoint, options = {}) => {
     try {
-      // Get the auth token from localStorage (check both customer and admin tokens)
+      // Get the auth token from localStorage or store
       let token = null;
       if (process.client) {
-        token = localStorage.getItem('adminToken') || localStorage.getItem('customerAuthToken');
+        // First, check localStorage for company-specific tokens
+        const companyDomain = window.location.pathname.match(/\/([^\/]+)\/services/)?.[1];
+        if (companyDomain) {
+          token = localStorage.getItem(`company_${companyDomain}_token`);
+          console.log('Checking company token for domain:', companyDomain, 'Found:', !!token);
+        }
+
+        // Try to get token from store (for company users)
+        if (!token) {
+          try {
+            const companyStore = useCompanyStore();
+            if (companyStore && companyStore.companyAuthToken) {
+              token = companyStore.companyAuthToken;
+              console.log('Found token in company store:', !!token);
+            }
+          } catch (e) {
+            // Store might not be available, continue
+            console.log('Company store not available:', e.message);
+          }
+        }
+
+        // Fallback to other token types (admin and customer tokens)
+        if (!token) {
+          token = localStorage.getItem('adminToken') || 
+                  localStorage.getItem('customerAuthToken') ||
+                  localStorage.getItem('token') ||
+                  localStorage.getItem('companyAuthToken');
+          console.log('Checked fallback tokens, found:', !!token);
+        }
       }
+
+      console.log('Final token for request:', endpoint, '- Token present:', !!token);
 
       // Set up headers
       const headers = {
