@@ -7,8 +7,11 @@
       
       <!-- Textarea -->
       <textarea
+        ref="textareaRef"
         v-model="localMessage"
         @input="handleInput"
+        @click="updateCursorPosition"
+        @keyup="updateCursorPosition"
         rows="6"
         placeholder="Type your message here... Use variables like [name], [phone], [customer_code]"
         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -140,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { DYNAMIC_VARIABLES, validateMessageTemplate, replaceVariables, getSmsLengthInfo } from '~/utils/constants/sms'
 
 const props = defineProps({
@@ -167,6 +170,8 @@ const emit = defineEmits(['update:modelValue', 'validation'])
 const localMessage = ref(props.modelValue)
 const isVariablePickerOpen = ref(false)
 const useCustomPreviewData = ref(false)
+const textareaRef = ref(null)
+const cursorPosition = ref(0)
 
 const previewData = ref({
   name: 'John Doe',
@@ -208,21 +213,31 @@ const handleInput = () => {
   })
 }
 
+// Update cursor position
+const updateCursorPosition = () => {
+  if (textareaRef.value) {
+    cursorPosition.value = textareaRef.value.selectionStart
+  }
+}
+
 // Insert variable at cursor position
 const insertVariable = (variableKey) => {
-  const textarea = document.querySelector('.message-composer textarea')
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
+  if (!textareaRef.value) return
+  
+  const start = cursorPosition.value
   const text = localMessage.value
   
-  localMessage.value = text.substring(0, start) + variableKey + text.substring(end)
+  localMessage.value = text.substring(0, start) + variableKey + text.substring(start)
   
   // Move cursor after inserted variable
-  setTimeout(() => {
-    textarea.focus()
-    const newPos = start + variableKey.length
-    textarea.setSelectionRange(newPos, newPos)
-  }, 0)
+  nextTick(() => {
+    if (textareaRef.value) {
+      textareaRef.value.focus()
+      const newPos = start + variableKey.length
+      textareaRef.value.setSelectionRange(newPos, newPos)
+      cursorPosition.value = newPos
+    }
+  })
   
   handleInput()
   isVariablePickerOpen.value = false
