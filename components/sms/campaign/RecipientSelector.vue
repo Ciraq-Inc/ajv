@@ -524,19 +524,28 @@ const handleFileUpload = (event) => {
               // firstname, lastname, contact format
               return {
                 name: `${parts[0]} ${parts[1]}`.trim(),
-                phone: parts[2]
+                firstname: parts[0],
+                lastname: parts[1],
+                phone: parts[2],
+                contact: parts[2]
               }
             } else if (parts.length === 2) {
               // name, phone format
               return {
                 name: parts[0],
-                phone: parts[1]
+                firstname: parts[0],
+                lastname: '',
+                phone: parts[1],
+                contact: parts[1]
               }
             } else if (parts.length === 1 && parts[0]) {
               // phone only format
               return {
                 name: parts[0],
-                phone: parts[0]
+                firstname: '',
+                lastname: '',
+                phone: parts[0],
+                contact: parts[0]
               }
             }
             return null
@@ -555,19 +564,28 @@ const handleFileUpload = (event) => {
               // firstname, lastname, contact format
               return {
                 name: `${parts[0]} ${parts[1]}`.trim(),
-                phone: parts[2]
+                firstname: parts[0],
+                lastname: parts[1],
+                phone: parts[2],
+                contact: parts[2]
               }
             } else if (parts.length === 2) {
               // name, phone format
               return {
                 name: parts[0],
-                phone: parts[1]
+                firstname: parts[0],
+                lastname: '',
+                phone: parts[1],
+                contact: parts[1]
               }
             } else if (parts.length === 1 && parts[0]) {
               // phone only format
               return {
                 name: parts[0],
-                phone: parts[0]
+                firstname: '',
+                lastname: '',
+                phone: parts[0],
+                contact: parts[0]
               }
             }
             return null
