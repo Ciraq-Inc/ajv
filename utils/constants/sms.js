@@ -69,15 +69,10 @@ export const ISSUE_STATUS = {
 
 // Dynamic Variables for Message Templates
 export const DYNAMIC_VARIABLES = [
-  { key: '[name]', label: 'Customer Name', description: 'Full customer name' },
-  { key: '[customer_name]', label: 'Customer Name', description: 'Full customer name (alias)' },
+  { key: '[name]', label: 'Full Name', description: 'Full customer name' },
   { key: '[fname]', label: 'First Name', description: 'Customer first name' },
   { key: '[lname]', label: 'Last Name', description: 'Customer last name' },
-  { key: '[customer_code]', label: 'Customer Code', description: 'Customer ID/code' },
-  { key: '[phone]', label: 'Phone Number', description: 'Customer phone number' },
-  { key: '[email]', label: 'Email', description: 'Customer email address' },
-  { key: '[city]', label: 'City', description: 'Customer city' },
-  { key: '[customer_type]', label: 'Customer Type', description: 'retail or wholesale' }
+  { key: '[phone]', label: 'Contact', description: 'Customer phone number' }
 ]
 
 // Status Badge Colors
