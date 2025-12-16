@@ -226,6 +226,16 @@
           </div>
         </div>
 
+        <!-- Multi-Tenant Products Tab -->
+        <div v-if="activeTab === 'multi-tenant-products'" class="multi-tenant-products-view">
+          <ProductsTable 
+            title="All Products Across Companies"
+            :showTitle="true"
+            :showCompanyFilter="true"
+            :pageSize="50"
+          />
+        </div>
+
         <!-- Products Search Tab -->
         <div v-if="activeTab === 'products'" class="products-view">
           <div class="table-header">
@@ -332,6 +342,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import ProductsTable from './ProductsTable.vue'
 
 // Use admin store
 const adminStore = useAdminStore()
@@ -368,6 +379,7 @@ const loadingProducts = ref(false)
 // Tabs
 const tabs = [
   { id: 'companies', label: 'Companies', icon: 'Building2' },
+  { id: 'multi-tenant-products', label: 'All Products', icon: 'Package' },
   // { id: 'top-products', label: 'Top Products', icon: 'Trophy' },
   // { id: 'alerts', label: 'Alerts', icon: 'AlertTriangle' },
   // { id: 'products', label: 'Products', icon: 'Package' }
@@ -1167,6 +1179,22 @@ onMounted(() => {
 
   .search-input {
     width: 100%;
+  }
+}
+
+/* Multi-Tenant Products View */
+.multi-tenant-products-view {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>
