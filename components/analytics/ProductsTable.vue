@@ -315,7 +315,7 @@ defineExpose({
 
 // Lifecycle
 onMounted(() => {
-  loadProducts()
+  // Load companies for filter dropdown only, don't auto-load products
   if (props.showCompanyFilter) {
     loadCompanies()
   }
