@@ -11,7 +11,7 @@
         </button>
         <button @click="refreshData" class="btn-refresh" :disabled="loading">
           <Icon v-if="!loading" name="RefreshCw" size="16" />
-          <span v-if="!loading">Refresh</span>
+          <span v-if="!loading">Load</span>
           <span v-else>Loading...</span>
         </button>
       </div>
@@ -351,7 +351,7 @@ const adminStore = useAdminStore()
 const API_BASE = '/api/inventory-analytics'
 
 // State
-const loading = ref(true)
+const loading = ref(false)
 const error = ref(null)
 const exporting = ref(false)
 
@@ -578,7 +578,7 @@ const getExpiryClass = (days) => {
 
 // Lifecycle
 onMounted(() => {
-  refreshData()
+  // Data loading is triggered manually or by tab selection
 })
 </script>
 
