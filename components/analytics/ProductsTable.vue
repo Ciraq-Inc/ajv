@@ -6,15 +6,18 @@
       <div class="filters">
         <input 
           v-model="searchInput"
-          @input="debouncedSearch"
+          @keyup.enter="handleSearch"
           type="text" 
           placeholder="Search products or companies..."
           class="search-input"
         >
+        <button @click="handleSearch" class="btn-search" :disabled="loading">
+          <Icon name="Search" size="16" />
+          Search
+        </button>
         <select 
           v-if="showCompanyFilter && companies.length > 0" 
           v-model="selectedCompany"
-          @change="onCompanyChange"
           class="company-filter"
         >
           <option value="">All Companies</option>
@@ -169,16 +172,10 @@ const pagination = ref({
   has_more: false
 })
 
-// Debounce timer
-let debounceTimer = null
-
 // Methods
-const debouncedSearch = () => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    pagination.value.offset = 0
-    loadProducts()
-  }, 300)
+const handleSearch = () => {
+  pagination.value.offset = 0
+  loadProducts()
 }
 
 const onCompanyChange = () => {
@@ -374,6 +371,39 @@ watch(() => props.initialCompanyId, (newVal) => {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-search {
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-search:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-search:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-search:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .company-filter {
@@ -637,6 +667,7 @@ watch(() => props.initialCompanyId, (newVal) => {
   }
 
   .search-input,
+  .btn-search,
   .company-filter {
     width: 100%;
   }
