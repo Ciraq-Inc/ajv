@@ -103,6 +103,19 @@
           </NuxtLink>
         </div> 
 
+        <div class="nav-section">
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Products</div>
+          
+          <NuxtLink 
+            to="/admin/masterlist" 
+            class="nav-item"
+            active-class="active"
+          >
+            <CubeIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Master Products</span>
+          </NuxtLink>
+        </div> 
+
         <!-- <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
           
@@ -260,6 +273,7 @@ import {
   CreditCardIcon,
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
+  CubeIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute } from 'vue-router'
@@ -307,6 +321,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/sms-campaigns')) return 'SMS Campaign Management'
   if (path.includes('/admin/sms-billing')) return 'SMS Billing Management'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
+  if (path.includes('/admin/masterlist')) return 'Master Products Management'
   if (path.includes('/admin/orders')) return 'Orders Management'
   if (path.includes('/admin/companies')) return 'Companies'
   if (path.includes('/admin/products')) return 'Products'
