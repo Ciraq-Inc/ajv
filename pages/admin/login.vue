@@ -8,10 +8,10 @@
       <!-- Modal Header -->
       <div class="bg-indigo-600 text-white py-4 px-6">
         <h3 class="text-lg font-medium">
-          Rigelis Admin Portal
+          {{ currentView === 'login' ? 'Rigelis Admin Portal' : 'Reset Password' }}
         </h3>
         <p class="text-indigo-100 text-sm mt-1">
-          Sign in to access the admin dashboard
+          {{ currentView === 'login' ? 'Sign in to access the admin dashboard' : 'Reset your admin password' }}
         </p>
       </div>
 
@@ -48,7 +48,7 @@
         </div>
 
         <!-- Login Form -->
-        <form @submit.prevent="handleLogin">
+        <form v-if="currentView === 'login'" @submit.prevent="handleLogin">
           <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
             <input
@@ -75,19 +75,11 @@
             />
           </div>
 
-          <!-- <div class="mb-4">
-            <div class="flex items-center">
-              <input
-                id="remember-me"
-                v-model="rememberMe"
-                type="checkbox"
-                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label for="remember-me" class="ml-2 block text-sm text-gray-700">
-                Keep me logged in
-              </label>
-            </div>
-          </div> -->
+          <div class="mb-4 flex items-center justify-end">
+            <button type="button" @click="showResetForm" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+              Forgot password?
+            </button>
+          </div>
 
           <div class="mt-6">
             <button
@@ -110,6 +102,54 @@
           </div>
         </form>
 
+        <!-- Password Reset Form -->
+        <form v-else-if="currentView === 'reset'" @submit.prevent="handlePasswordReset">
+          <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
+            <p>Enter your admin username or email to receive reset instructions</p>
+          </div>
+
+          <div class="mb-4">
+            <label for="resetIdentifier" class="block text-sm font-medium text-gray-700 mb-1">Username or Email</label>
+            <input
+              v-model="resetIdentifier"
+              type="text"
+              id="resetIdentifier"
+              class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Enter your username or email"
+              required
+              :disabled="isLoading"
+            />
+          </div>
+
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              @click="showLoginForm"
+              :disabled="isLoading"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+            >
+              Back to Login
+            </button>
+            <button
+              type="submit"
+              :disabled="isLoading"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center"
+            >
+              <span v-if="isLoading" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                  </path>
+                </svg>
+                Sending...
+              </span>
+              <span v-else>Send Reset Instructions</span>
+            </button>
+          </div>
+        </form>
+
       </div>
     </div>
   </div>
@@ -128,8 +168,10 @@ const adminStore = useAdminStore();
 const router = useRouter();
 
 // Form state
+const currentView = ref('login'); // 'login' or 'reset'
 const username = ref('');
 const password = ref('');
+const resetIdentifier = ref('');
 const rememberMe = ref(true);
 const isLoading = ref(false);
 const errorMessage = ref('');
@@ -141,6 +183,23 @@ onMounted(() => {
     navigateTo('/admin/data');
   }
 });
+
+// Show reset password form
+const showResetForm = () => {
+  currentView.value = 'reset';
+  errorMessage.value = '';
+  successMessage.value = '';
+  resetIdentifier.value = '';
+};
+
+// Show login form
+const showLoginForm = () => {
+  currentView.value = 'login';
+  errorMessage.value = '';
+  successMessage.value = '';
+  username.value = '';
+  password.value = '';
+};
 
 // Handle login
 const handleLogin = async () => {
@@ -171,6 +230,33 @@ const handleLogin = async () => {
   } catch (error) {
     errorMessage.value = 'An error occurred. Please try again.';
     console.error('Login error:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Handle password reset
+const handlePasswordReset = async () => {
+  errorMessage.value = '';
+  successMessage.value = '';
+  isLoading.value = true;
+
+  try {
+    const result = await adminStore.requestPasswordReset(resetIdentifier.value);
+
+    if (result.success) {
+      successMessage.value = result.message || 'Reset instructions sent! Please check your email.';
+      
+      // Wait and return to login
+      setTimeout(() => {
+        showLoginForm();
+      }, 3000);
+    } else {
+      errorMessage.value = result.message || 'Failed to send reset instructions';
+    }
+  } catch (error) {
+    errorMessage.value = error.message || 'An error occurred. Please try again.';
+    console.error('Password reset error:', error);
   } finally {
     isLoading.value = false;
   }

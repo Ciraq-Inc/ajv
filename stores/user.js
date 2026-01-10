@@ -103,7 +103,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to setup password');
-        
+
         // Set user data (automatically logs user in)
         this.masterCustomer = data.data.master_customer;
         this.companies = data.data.companies || [];
@@ -113,12 +113,12 @@ export const useUserStore = defineStore('user', {
         this.authInitialized = true;
         this.phoneVerifying = null;
         this.otpSent = false;
-        
+
         console.log('Password setup successful! User logged in:', this.masterCustomer);
-        
+
         // Load user stats after setup
         await this.loadUserStats();
-        
+
         return data.data;
       } catch (error) {
         console.error('Error setting up password:', error);
@@ -150,7 +150,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Registration failed');
-        
+
         // Set user data (automatically logs user in)
         this.masterCustomer = data.data.master_customer;
         this.companies = [data.data.customer];
@@ -160,12 +160,12 @@ export const useUserStore = defineStore('user', {
         this.authInitialized = true;
         this.phoneVerifying = null;
         this.otpSent = false;
-        
+
         console.log('Registration successful! User logged in:', this.masterCustomer);
-        
+
         // Load user stats after registration
         await this.loadUserStats();
-        
+
         return data.data;
       } catch (error) {
         console.error('Error registering customer:', error);
@@ -196,10 +196,10 @@ export const useUserStore = defineStore('user', {
         this.persistAuthData();
         this.authInitialized = true;
         this.phoneVerifying = null;
-        
+
         // Load user stats after login
         await this.loadUserStats();
-        
+
         return data.data;
       } catch (error) {
         console.error('Error logging in:', error);
@@ -327,6 +327,62 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    async sendResetOTP(phone) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const config = useRuntimeConfig();
+        const formattedPhone = this.formatPhoneNumber(phone);
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: formattedPhone })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to send reset code');
+        this.otpSent = true;
+        this.phoneVerifying = formattedPhone;
+        return data.data;
+      } catch (error) {
+        console.error('Error sending reset OTP:', error);
+        this.error = error.message || 'Failed to send reset code';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async resetPassword(phone, otp, newPassword) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const config = useRuntimeConfig();
+        const formattedPhone = this.formatPhoneNumber(phone);
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            phone: formattedPhone, 
+            otp: otp, 
+            new_password: newPassword 
+          })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to reset password');
+        
+        this.phoneVerifying = null;
+        this.otpSent = false;
+        
+        return data.data;
+      } catch (error) {
+        console.error('Error resetting password:', error);
+        this.error = error.message || 'Failed to reset password';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async processDirectOrder(cartItems, pharmacyId) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in to place an order');
       this.isLoading = true;
@@ -345,10 +401,18 @@ export const useUserStore = defineStore('user', {
             'Authorization': `Bearer ${this.customerAuthToken}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ items, notes: `Order from pharmacy ${pharmacyId}` })
+          body: JSON.stringify({
+            company_id: pharmacyId,
+            items,
+            notes: `Order from pharmacy ${pharmacyId}`
+          })
         });
         const data = await response.json();
-        if (!data.success) throw new Error(data.message || 'Failed to create order');
+        if (!data.success) {
+          const error = new Error(data.message || 'Failed to create order');
+          error.errorCode = data.error_code;
+          throw error;
+        }
         return { success: true, orderId: data.data.order_id, orderData: data.data };
       } catch (error) {
         console.error('Error processing order:', error);
@@ -357,15 +421,22 @@ export const useUserStore = defineStore('user', {
         this.isLoading = false;
       }
     },
-
     async getOrderHistory(filters = {}) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       try {
         const config = useRuntimeConfig();
+        const pharmacyStore = usePharmacyStore();
         const params = new URLSearchParams();
+
+        // Add company_id from current pharmacy
+        if (pharmacyStore.currentPharmacy) {
+          params.append('company_id', pharmacyStore.currentPharmacy);
+        }
+
         if (filters.status) params.append('status', filters.status);
         if (filters.limit) params.append('limit', filters.limit);
         if (filters.offset) params.append('offset', filters.offset);
+
         const response = await fetch(`${config.public.apiBase}/api/orders?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${this.customerAuthToken}`,
@@ -380,6 +451,7 @@ export const useUserStore = defineStore('user', {
         throw error;
       }
     },
+
 
     async getAllOrders(filters = {}) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
@@ -404,11 +476,21 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    async getOrderDetails(orderId) {
+    async getOrderDetails(orderId, companyId = null) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       try {
         const config = useRuntimeConfig();
-        const response = await fetch(`${config.public.apiBase}/api/orders/${orderId}`, {
+        const pharmacyStore = usePharmacyStore();
+
+        // Use provided companyId or fallback to current pharmacy
+        const company_id = companyId || pharmacyStore.currentPharmacy;
+
+        const params = new URLSearchParams();
+        if (company_id) {
+          params.append('company_id', company_id);
+        }
+
+        const response = await fetch(`${config.public.apiBase}/api/orders/${orderId}?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${this.customerAuthToken}`,
             'Content-Type': 'application/json'
@@ -423,17 +505,24 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    async cancelOrder(orderId) {
+
+    async cancelOrder(orderId, companyId = null) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
       try {
         const config = useRuntimeConfig();
+        const pharmacyStore = usePharmacyStore();
+
+        // Use provided companyId or fallback to current pharmacy
+        const company_id = companyId || pharmacyStore.currentPharmacy;
+
         const response = await fetch(`${config.public.apiBase}/api/orders/${orderId}/cancel`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${this.customerAuthToken}`,
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({ company_id })
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to cancel order');
@@ -476,7 +565,7 @@ export const useUserStore = defineStore('user', {
           if (savedCompanies) this.companies = JSON.parse(savedCompanies);
           if (savedSelectedCompany) this.selectedCompany = JSON.parse(savedSelectedCompany);
           this.authInitialized = true;
-          
+
           // Load fresh stats when restoring from storage
           await this.loadUserStats();
         } else {
@@ -527,13 +616,13 @@ export const useUserStore = defineStore('user', {
         console.log('Cannot load stats: User not logged in');
         return;
       }
-      
+
       try {
         console.log('Loading user stats...');
-        
+
         // Try to fetch orders using both endpoints
         let orders = [];
-        
+
         try {
           // First try getAllOrders
           orders = await this.getAllOrders({ limit: 100 });
@@ -548,20 +637,20 @@ export const useUserStore = defineStore('user', {
             console.error('Both order endpoints failed:', error2.message);
           }
         }
-        
+
         if (Array.isArray(orders) && orders.length > 0) {
           // Calculate total orders
           const totalOrders = orders.length;
-          
+
           // Calculate total spent by summing all order amounts
           const totalSpent = orders.reduce((sum, order) => {
             const amount = parseFloat(order.total_amount || order.amount || order.totalAmount || order.total || 0);
             console.log('Order amount:', amount, 'from order ID:', order.id || order.order_id);
             return sum + amount;
           }, 0);
-          
+
           console.log('Calculated stats - Orders:', totalOrders, 'Total Spent:', totalSpent);
-          
+
           // Update masterCustomer with calculated stats
           if (this.masterCustomer) {
             this.masterCustomer.total_orders = totalOrders;
