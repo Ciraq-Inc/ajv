@@ -11,12 +11,14 @@
           {{ currentStep === 'phone' ? 'Login to Continue' : 
              currentStep === 'password' ? 'Enter Password' :
              currentStep === 'setup' ? 'Setup Your Password' :
+             currentStep === 'reset' ? 'Reset Password' :
              'Register' }}
         </h3>
         <p class="text-indigo-100 text-sm mt-1">
           {{ currentStep === 'phone' ? 'Enter your phone number' : 
              currentStep === 'password' ? 'Enter your password to login' :
              currentStep === 'setup' ? 'Create a password for your account' :
+             currentStep === 'reset' ? 'Reset your password with OTP' :
              'Complete your registration' }}
         </p>
       </div>
@@ -109,7 +111,7 @@
                 placeholder="Enter your password" required minlength="6">
             </div>
 
-            <div class="mb-4">
+            <div class="mb-4 flex items-center justify-between">
               <div class="flex items-center">
                 <input id="remember-me" v-model="rememberMe" type="checkbox"
                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
@@ -117,6 +119,9 @@
                   Keep me logged in
                 </label>
               </div>
+              <button type="button" @click="forgotPassword" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                Forgot password?
+              </button>
             </div>
 
             <div class="mt-6 flex justify-end space-x-3">
@@ -309,6 +314,62 @@
             </div>
           </form>
         </div>
+
+        <!-- Step 2d: Reset Password -->
+        <div v-else-if="currentStep === 'reset'">
+          <form @submit.prevent="handleResetPassword">
+            <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
+              <p>Resetting password for: <strong>{{ formattedPhoneNumber }}</strong></p>
+              <p class="text-xs mt-1">We'll send you a verification code</p>
+            </div>
+
+            <div class="mb-4" v-if="!otpSent">
+              <button type="button" @click="sendResetOTP" :disabled="isLoading"
+                class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50">
+                <span v-if="isLoading">Sending Reset Code...</span>
+                <span v-else>Send Reset Code</span>
+              </button>
+            </div>
+
+            <div v-if="otpSent">
+              <div class="mb-4">
+                <label for="resetOtp" class="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+                <input v-model="otp" type="text" id="resetOtp"
+                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+              </div>
+
+              <div class="mb-4">
+                <label for="resetPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input v-model="password" type="password" id="resetPassword"
+                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Enter new password (min. 6 characters)" required minlength="6">
+              </div>
+
+              <div class="mb-4">
+                <label for="resetConfirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input v-model="confirmPassword" type="password" id="resetConfirmPassword"
+                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Re-enter new password" required minlength="6">
+                <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
+                  Passwords do not match
+                </p>
+              </div>
+
+              <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" @click="backToPhone"
+                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                  Cancel
+                </button>
+                <button type="submit" :disabled="isLoading || !otp || password !== confirmPassword"
+                  class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50">
+                  <span v-if="isLoading">Resetting...</span>
+                  <span v-else>Reset Password</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -329,7 +390,7 @@ const userStore = useUserStore();
 const pharmacyStore = usePharmacyStore();
 
 // State management
-const currentStep = ref('phone'); // 'phone' | 'password' | 'setup' | 'register'
+const currentStep = ref('phone'); // 'phone' | 'password' | 'setup' | 'register' | 'reset'
 const phoneNumber = ref('');
 const password = ref('');
 const confirmPassword = ref('');
@@ -559,6 +620,66 @@ const handleRegister = async () => {
   } catch (error) {
     console.error('Registration error:', error);
     errorMessage.value = error.message || 'Registration failed. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Forgot password - navigate to reset step
+const forgotPassword = () => {
+  currentStep.value = 'reset';
+  otpSent.value = false;
+  otp.value = '';
+  password.value = '';
+  confirmPassword.value = '';
+  errorMessage.value = '';
+};
+
+// Send OTP for password reset
+const sendResetOTP = async () => {
+  errorMessage.value = '';
+  isLoading.value = true;
+  
+  try {
+    await userStore.sendResetOTP(phoneNumber.value);
+    otpSent.value = true;
+  } catch (error) {
+    console.error('Error sending reset OTP:', error);
+    errorMessage.value = error.message || 'Failed to send reset code. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Handle password reset
+const handleResetPassword = async () => {
+  if (password.value !== confirmPassword.value) {
+    errorMessage.value = 'Passwords do not match';
+    return;
+  }
+  
+  errorMessage.value = '';
+  isLoading.value = true;
+  
+  try {
+    await userStore.resetPassword(phoneNumber.value, otp.value, password.value);
+    
+    // Show success and redirect to password login
+    errorMessage.value = '';
+    currentStep.value = 'password';
+    password.value = '';
+    confirmPassword.value = '';
+    otp.value = '';
+    otpSent.value = false;
+    
+    // Show a temporary success message
+    const tempSuccess = 'Password reset successful! Please login with your new password.';
+    setTimeout(() => {
+      alert(tempSuccess);
+    }, 100);
+  } catch (error) {
+    console.error('Reset password error:', error);
+    errorMessage.value = error.message || 'Failed to reset password. Please try again.';
   } finally {
     isLoading.value = false;
   }

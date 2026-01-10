@@ -1,9 +1,9 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto bg-gray-200 p-4">
+  <div class="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
     <!-- Modal Container -->
     <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md mx-4 overflow-hidden">
       <!-- Modal Header -->
-      <div class="bg-purple-600 text-white py-4 px-6">
+      <div class="bg-indigo-600 text-white py-4 px-6">
         <div class="flex items-center gap-3 mb-2">
           <div class="bg-white/20 p-2 rounded-lg">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +127,7 @@
                 placeholder="Enter your password" required minlength="6" :disabled="loading">
             </div>
 
-            <!-- <div class="mb-4 flex items-center justify-between">
+            <div class="mb-4 flex items-center justify-between">
               <div class="flex items-center">
                 <input id="remember-me" v-model="rememberMe" type="checkbox"
                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
@@ -138,7 +138,7 @@
               <button type="button" @click="forgotPassword" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
                 Forgot password?
               </button>
-            </div> -->
+            </div>
 
             <div class="mt-6 flex justify-end space-x-3">
               <button type="button" @click="goBack"

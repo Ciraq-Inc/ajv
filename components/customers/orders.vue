@@ -124,10 +124,13 @@
             <div v-for="(item, index) in selectedOrder.items" :key="index" class="item-row">
               <div class="item-info">
                 <p class="item-name">{{ item.brand_name || item.product_name }}</p>
-                <p class="item-qty">Qty: {{ item.qty }}</p>
+                <span class="items_details">
+                  <p class="item-qty">Qty: {{ item.qty }}</p>
+                  <p class="item-qty">Price: {{ item.selling_price }}</p>
+                </span>
               </div>
               <div class="item-price">
-                <p>GHS {{ formatAmount(item.price) }}</p>
+                <p>GHS {{ formatAmount(item.line_total) }}</p>
               </div>
             </div>
           </div>
@@ -227,8 +230,8 @@ const viewOrder = async (order) => {
   try {
     const userStore = useUserStore();
 
-    // Fetch order details
-    const details = await userStore.getOrderDetails(order.order_id);
+    // Fetch order details with company_id
+    const details = await userStore.getOrderDetails(order.order_id, order.company_id);
     selectedOrder.value = details;
 
   } catch (error) {
@@ -249,21 +252,11 @@ const cancelOrder = async (orderId, companyId) => {
   try {
     const userStore = useUserStore();
 
-    // Switch to the correct company if needed
-    const originalCompany = userStore.selectedCompany;
-    if (userStore.selectedCompany?.id !== companyId) {
-      await userStore.switchCompany(companyId);
-    }
-
-    // Cancel the order
-    await userStore.cancelOrder(orderId);
+    // Cancel the order with the specific company_id
+    await userStore.cancelOrder(orderId, companyId);
     alert('Order cancelled successfully');
 
-    // Switch back to original company
-    if (originalCompany?.id !== companyId) {
-      await userStore.switchCompany(originalCompany.id);
-    }
-
+    // Reload orders
     loadOrders();
   } catch (error) {
     console.error('Error cancelling order:', error);
@@ -630,6 +623,11 @@ onMounted(() => {
   font-size: 12px;
   color: #64748b;
   margin: 0;
+}
+
+.items_details {
+  display: flex;
+  gap: 10px;
 }
 
 .item-price p {

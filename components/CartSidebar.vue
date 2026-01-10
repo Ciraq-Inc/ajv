@@ -254,7 +254,11 @@ const processDirectOrder = async () => {
     });
   } catch (error) {
     console.error('Failed to process order:', error);
-    errorMessage.value = error.message || 'Failed to process your order. Please try again.';
+    if (error.errorCode === 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY') {
+      errorMessage.value = error.message;
+    } else {
+      errorMessage.value = error.message || 'Failed to process your order. Please try again.';
+    }
   } finally {
     isProcessingOrder.value = false;
   }

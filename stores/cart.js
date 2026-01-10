@@ -167,7 +167,7 @@ export const useCartStore = defineStore("cart", {
       
       try {
         localStorage.setItem('cartItems', JSON.stringify(this.items));
-        console.log('Cart saved to storage:', this.items.length, 'items');
+        console.log('Cart saved to storage:', this.items.length, 'items', this.items);
       } catch (error) {
         console.error('Failed to save cart to localStorage:', error);
       }

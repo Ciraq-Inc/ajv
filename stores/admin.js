@@ -240,5 +240,59 @@ export const useAdminStore = defineStore('admin', {
         throw error;
       }
     },
+
+    // Request password reset
+    async requestPasswordReset(identifier) {
+      try {
+        const config = useRuntimeConfig();
+        const baseURL = config.public.apiBase;
+
+        const response = await fetch(`${baseURL}/api/admin/forgot-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ identifier }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          return { success: true, message: data.message };
+        } else {
+          return { success: false, message: data.message };
+        }
+      } catch (error) {
+        console.error('Password reset request error:', error);
+        return { success: false, message: 'Failed to send reset instructions. Please try again.' };
+      }
+    },
+
+    // Reset password with token
+    async resetPassword(token, newPassword) {
+      try {
+        const config = useRuntimeConfig();
+        const baseURL = config.public.apiBase;
+
+        const response = await fetch(`${baseURL}/api/admin/reset-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token, new_password: newPassword }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          return { success: true, message: data.message };
+        } else {
+          return { success: false, message: data.message };
+        }
+      } catch (error) {
+        console.error('Password reset error:', error);
+        return { success: false, message: 'Failed to reset password. Please try again.' };
+      }
+    },
   },
 });
