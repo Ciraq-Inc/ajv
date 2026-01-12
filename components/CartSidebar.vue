@@ -89,7 +89,9 @@
               Processing...
             </span>
             <span v-else class="flex items-center justify-center">
-              <i class="ri-wallet-line text-xl mr-2"></i>Order Directly
+              <span>
+                <i class="ri-wallet-line text-xl mr-2"></i>Order Directly &nbsp;(Free Trial)
+              </span>
             </span>
           </button>
         </div>
