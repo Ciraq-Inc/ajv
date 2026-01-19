@@ -348,7 +348,7 @@
     <div v-if="showAutoUploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900">Auto Upload Product Images</h3>
+          <h3 class="text-lg font-semibold text-gray-900">Bulk Upload Product Images</h3>
           <button @click="closeAutoUploadModal" :disabled="autoUploading"
             class="text-gray-400 hover:text-gray-600 disabled:opacity-50">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,18 +361,69 @@
           <div v-if="!autoUploadResults" class="space-y-4">
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p class="text-sm text-blue-800">
-                <strong>Note:</strong> This will upload images from the specified folder on the server.
-                Images should be named as <code class="bg-blue-100 px-1 rounded">{productId}.jpg</code>
+                <strong>Note:</strong> Select a folder or individual images from your computer.
+                Images must be named as <code class="bg-blue-100 px-1 rounded">{productId}.jpg</code> (e.g., <code
+                  class="bg-blue-100 px-1 rounded">1045.jpg</code>, <code
+                  class="bg-blue-100 px-1 rounded">1046.png</code>)
               </p>
             </div>
 
-            <div>
-              <label for="folderPath" class="block text-sm font-medium text-gray-700 mb-1">Folder Path</label>
-              <input type="text" id="folderPath" v-model="folderPath"
-                placeholder="C:\Users\r\Desktop\Directory\masterproducts"
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
-              <p class="mt-1 text-xs text-gray-500">Enter the full path to the folder containing product images on the
-                server</p>
+            <!-- Folder/File Selection -->
+            <div class="space-y-3">
+              <label class="block text-sm font-medium text-gray-700">Select Images</label>
+
+              <!-- Selection Buttons -->
+              <div class="flex space-x-3">
+                <button type="button" @click="$refs.folderInput.click()"
+                  class="flex-1 px-4 py-3 border-2 border-dashed border-indigo-300 rounded-lg text-center hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
+                  <svg class="mx-auto h-8 w-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+                  <p class="mt-1 text-sm font-medium text-indigo-600">Select Folder</p>
+                  <p class="text-xs text-gray-500">Choose entire folder</p>
+                </button>
+
+                <button type="button" @click="$refs.bulkFileInput.click()"
+                  class="flex-1 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-gray-400 hover:bg-gray-50 transition-colors">
+                  <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p class="mt-1 text-sm font-medium text-gray-600">Select Files</p>
+                  <p class="text-xs text-gray-500">Choose individual images</p>
+                </button>
+              </div>
+
+              <!-- Hidden File Inputs -->
+              <input ref="folderInput" type="file" webkitdirectory directory multiple class="hidden"
+                @change="handleBulkFileSelect" />
+              <input ref="bulkFileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden"
+                @change="handleBulkFileSelect" />
+            </div>
+
+            <!-- Selected Files List -->
+            <div v-if="selectedBulkFiles.length > 0" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="block text-sm font-medium text-gray-700">Selected Files ({{ selectedBulkFiles.length
+                }})</label>
+                <button @click="clearSelectedFiles" class="text-sm text-red-600 hover:text-red-800">Clear All</button>
+              </div>
+              <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                <div v-for="(file, index) in selectedBulkFiles" :key="index"
+                  class="flex items-center justify-between px-3 py-2 text-sm">
+                  <div class="flex items-center space-x-2">
+                    <span class="font-medium text-indigo-600">{{ getProductIdFromFile(file.name) }}</span>
+                    <span class="text-gray-500">{{ file.name }}</span>
+                    <span class="text-gray-400 text-xs">({{ formatFileSize(file.size) }})</span>
+                  </div>
+                  <button @click="removeFileFromSelection(index)" class="text-red-500 hover:text-red-700">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="flex items-center">
@@ -385,15 +436,20 @@
 
           <!-- Upload Progress -->
           <div v-if="autoUploading" class="space-y-4">
-            <div class="flex items-center justify-center py-8">
-              <svg class="animate-spin h-10 w-10 text-indigo-600" fill="none" viewBox="0 0 24 24">
+            <div class="text-center">
+              <svg class="animate-spin h-10 w-10 text-indigo-600 mx-auto" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor"
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                 </path>
               </svg>
+              <p class="mt-4 text-gray-600">Uploading {{ uploadProgressCount }} of {{ selectedBulkFiles.length }}
+                images...</p>
+              <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-indigo-600 h-2 rounded-full transition-all"
+                  :style="{ width: `${(uploadProgressCount / selectedBulkFiles.length) * 100}%` }"></div>
+              </div>
             </div>
-            <p class="text-center text-gray-600">Uploading images... This may take a while.</p>
           </div>
 
           <!-- Results -->
@@ -446,7 +502,8 @@
             class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             {{ autoUploadResults ? 'Close' : 'Cancel' }}
           </button>
-          <button v-if="!autoUploadResults" @click="startAutoUpload" :disabled="autoUploading"
+          <button v-if="!autoUploadResults" @click="startAutoUpload"
+            :disabled="autoUploading || selectedBulkFiles.length === 0"
             class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center">
             <svg v-if="autoUploading" class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -454,7 +511,7 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
               </path>
             </svg>
-            {{ autoUploading ? 'Uploading...' : 'Start Upload' }}
+            {{ autoUploading ? 'Uploading...' : `Upload ${selectedBulkFiles.length} Images` }}
           </button>
         </div>
       </div>
@@ -501,7 +558,10 @@ const showAutoUploadModal = ref(false);
 const autoUploading = ref(false);
 const autoUploadResults = ref(null);
 const forceUpdate = ref(false);
-const folderPath = ref('C:\\Users\\r\\Desktop\\Directory\\masterproducts');
+const selectedBulkFiles = ref([]);
+const uploadProgressCount = ref(0);
+const bulkFileInput = ref(null);
+const folderInput = ref(null);
 
 // Computed
 const imagePercentage = computed(() => {
@@ -742,39 +802,159 @@ const openAutoUploadModal = () => {
   showAutoUploadModal.value = true;
   autoUploadResults.value = null;
   forceUpdate.value = false;
+  selectedBulkFiles.value = [];
+  uploadProgressCount.value = 0;
 };
 
 const closeAutoUploadModal = () => {
   if (autoUploading.value) return;
   showAutoUploadModal.value = false;
   autoUploadResults.value = null;
+  selectedBulkFiles.value = [];
+  uploadProgressCount.value = 0;
+};
 
-  // Refresh data if uploads were made
-  if (autoUploadResults.value?.summary?.uploaded > 0) {
-    refreshData();
-  }
+const handleBulkFileSelect = (event) => {
+  const files = Array.from(event.target.files || []);
+  addFilesToSelection(files);
+};
+
+const handleFileDrop = (event) => {
+  const files = Array.from(event.dataTransfer.files || []);
+  addFilesToSelection(files);
+};
+
+const addFilesToSelection = (files) => {
+  const validFiles = files.filter(file => {
+    // Check file type
+    if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
+      return false;
+    }
+    // Check file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      return false;
+    }
+    // Check if filename is a valid product ID pattern
+    const productId = getProductIdFromFile(file.name);
+    if (!productId || isNaN(parseInt(productId))) {
+      return false;
+    }
+    return true;
+  });
+
+  // Add to selection (avoid duplicates)
+  validFiles.forEach(file => {
+    const exists = selectedBulkFiles.value.some(f => f.name === file.name);
+    if (!exists) {
+      selectedBulkFiles.value.push(file);
+    }
+  });
+};
+
+const getProductIdFromFile = (filename) => {
+  // Extract product ID from filename (e.g., "1045.jpg" -> "1045")
+  const match = filename.match(/^(\d+)\./);
+  return match ? match[1] : null;
+};
+
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
+const removeFileFromSelection = (index) => {
+  selectedBulkFiles.value.splice(index, 1);
+};
+
+const clearSelectedFiles = () => {
+  selectedBulkFiles.value = [];
 };
 
 const startAutoUpload = async () => {
+  if (selectedBulkFiles.value.length === 0) return;
+
   try {
     autoUploading.value = true;
+    uploadProgressCount.value = 0;
 
-    const response = await api.post('/api/master-products/auto-upload-from-folder', {
-      forceUpdate: forceUpdate.value,
-      folderPath: folderPath.value
-    });
+    const results = {
+      success: [],
+      failed: [],
+      skipped: []
+    };
 
-    if (response.success) {
-      autoUploadResults.value = response;
-      // Refresh stats after upload
-      await loadStats();
-      await loadProducts();
-    } else {
-      alert('Auto upload failed: ' + (response.error || 'Unknown error'));
+    const config = useRuntimeConfig();
+
+    // Upload each file one by one
+    for (const file of selectedBulkFiles.value) {
+      const productId = getProductIdFromFile(file.name);
+
+      try {
+        // Create FormData for this file
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('productId', productId);
+        formData.append('forceUpdate', forceUpdate.value.toString());
+
+        // Upload using fetch
+        const response = await fetch(`${config.public.apiBase}/api/master-products/upload-image`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          results.success.push({
+            productId,
+            fileName: file.name,
+            imageUrl: data.imageUrl
+          });
+        } else if (data.error && data.error.includes('not found')) {
+          results.skipped.push({
+            productId,
+            fileName: file.name,
+            reason: 'Product not found in database'
+          });
+        } else {
+          results.failed.push({
+            productId,
+            fileName: file.name,
+            error: data.error || 'Upload failed'
+          });
+        }
+      } catch (error) {
+        results.failed.push({
+          productId,
+          fileName: file.name,
+          error: error.message || 'Network error'
+        });
+      }
+
+      uploadProgressCount.value++;
     }
+
+    // Set results
+    autoUploadResults.value = {
+      success: true,
+      summary: {
+        totalFiles: selectedBulkFiles.value.length,
+        uploaded: results.success.length,
+        failed: results.failed.length,
+        skipped: results.skipped.length
+      },
+      results,
+      message: `Processed ${selectedBulkFiles.value.length} images: ${results.success.length} uploaded, ${results.failed.length} failed, ${results.skipped.length} skipped`
+    };
+
+    // Refresh data
+    await loadStats();
+    await loadProducts();
+
   } catch (error) {
-    console.error('Auto upload error:', error);
-    alert('Auto upload failed: ' + (error.message || 'Network error'));
+    console.error('Bulk upload error:', error);
+    alert('Bulk upload failed: ' + (error.message || 'Unknown error'));
   } finally {
     autoUploading.value = false;
   }
