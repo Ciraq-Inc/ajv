@@ -39,10 +39,10 @@ export const useApi = () => {
 
         // Fallback to other token types (admin and customer tokens)
         if (!token) {
-          token = localStorage.getItem('adminToken') || 
-                  localStorage.getItem('customerAuthToken') ||
-                  localStorage.getItem('token') ||
-                  localStorage.getItem('companyAuthToken');
+          token = localStorage.getItem('adminToken') ||
+            localStorage.getItem('customerAuthToken') ||
+            localStorage.getItem('token') ||
+            localStorage.getItem('companyAuthToken');
           console.log('Checked fallback tokens, found:', !!token);
         }
       }
@@ -85,7 +85,27 @@ export const useApi = () => {
    * GET request
    */
   const get = (endpoint, options = {}) => {
-    return apiRequest(endpoint, {
+    // Handle query parameters
+    let url = endpoint;
+    if (options.params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url = `${endpoint}?${queryString}`;
+      }
+      // Remove params from options so it doesn't get passed to fetch
+      const { params, ...fetchOptions } = options;
+      return apiRequest(url, {
+        method: 'GET',
+        ...fetchOptions,
+      });
+    }
+    return apiRequest(url, {
       method: 'GET',
       ...options,
     });
