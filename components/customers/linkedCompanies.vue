@@ -1,10 +1,25 @@
 <template>
   <div class="linked-companies-component">
     <div class="section-header">
-      <h2>Linked Companies</h2>
-      <p class="section-description">
-        Manage your company accounts. You can switch between companies to place orders.
-      </p>
+      <div class="header-content">
+        <h2>Linked Companies</h2>
+        <p class="section-description">
+          Manage your company accounts. You can switch between companies to place orders.
+        </p>
+      </div>
+      <button @click="triggerLinking" class="btn btn-link-accounts" :disabled="isLinking">
+        <svg v-if="isLinking" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+        {{ isLinking ? 'Linking...' : 'Link Accounts' }}
+      </button>
     </div>
 
     <!-- Loading State -->
@@ -101,6 +116,8 @@ const userStore = useUserStore();
 
 // State
 const isLoading = ref(false);
+const isLinking = ref(false);
+const linkingMessage = ref('');
 const companies = computed(() => userStore.companies || []);
 
 // Check if company is active
@@ -122,6 +139,28 @@ const generateCompanySlug = (companyName) => {
 const goToCompanyStore = (company) => {
   const slug = generateCompanySlug(company.domain_name);
   navigateTo(`/${slug}`);
+};
+
+// Trigger customer linking
+const triggerLinking = async () => {
+  try {
+    isLinking.value = true;
+    linkingMessage.value = '';
+    const result = await userStore.triggerCustomerLinking();
+    linkingMessage.value = result.message;
+
+    // Refresh companies list
+    await loadCompanies();
+  } catch (error) {
+    console.error('Error triggering linking:', error);
+    linkingMessage.value = error.message || 'Failed to link accounts';
+  } finally {
+    isLinking.value = false;
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      linkingMessage.value = '';
+    }, 5000);
+  }
 };
 
 // Load companies
@@ -150,6 +189,15 @@ onMounted(() => {
 
 .section-header {
   margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-content {
+  flex: 1;
 }
 
 .section-header h2 {
@@ -164,6 +212,37 @@ onMounted(() => {
   font-size: 14px;
   margin: 0;
   line-height: 1.6;
+}
+
+.btn-link-accounts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-link-accounts:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-link-accounts:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-link-accounts svg {
+  width: 20px;
+  height: 20px;
 }
 
 .loading-state {
