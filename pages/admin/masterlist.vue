@@ -14,6 +14,17 @@
             Total Products
           </div>
 
+          <button @click="syncMasterProducts" :disabled="loading || autoUploading || syncingMasterProducts"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 flex items-center disabled:opacity-50">
+            <svg xmlns="http://www.w3.org/2000/svg"
+              :class="['h-5 w-5 mr-1.5', syncingMasterProducts ? 'animate-spin' : '']" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {{ syncingMasterProducts ? 'Syncing...' : 'Sync Products' }}
+          </button>
+
           <button @click="openAutoUploadModal" :disabled="loading || autoUploading"
             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 flex items-center disabled:opacity-50">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24"
@@ -35,6 +46,27 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <div v-if="syncError" class="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      {{ syncError }}
+    </div>
+
+    <div v-if="syncResult" class="mb-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+      <p class="font-semibold">Master products sync completed</p>
+      <p class="mt-1">
+        Run #{{ syncResult.run_id }}:
+        inserted {{ formatNumber(syncResult.inserted_count) }},
+        updated {{ formatNumber(syncResult.updated_count) }},
+        unchanged {{ formatNumber(syncResult.unchanged_count) }},
+        failed {{ formatNumber(syncResult.failed_count) }}.
+      </p>
+      <p class="mt-1">
+        Classifications:
+        catalog {{ formatNumber(syncResult.classifications_upserted || 0) }},
+        links inserted {{ formatNumber(syncResult.classification_links_inserted || 0) }},
+        links removed {{ formatNumber(syncResult.classification_links_deleted || 0) }}.
+      </p>
     </div>
 
     <!-- Stats Cards -->
@@ -88,41 +120,94 @@
 
     <!-- Filter and Search Section -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-      <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-        <div class="flex-1">
-          <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+      <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+          <div class="flex-1">
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input type="text" id="search" v-model="searchQuery" @input="debouncedSearch"
+                placeholder="Search by product name, strength, or unit..."
+                class="pl-10 px-4 py-2 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
             </div>
-            <input type="text" id="search" v-model="searchQuery" @input="debouncedSearch"
-              placeholder="Search by product name, strength, or unit..."
-              class="pl-10 px-4 py-2 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+          </div>
+
+          <div class="w-full sm:w-48">
+            <label for="image-filter" class="block text-sm font-medium text-gray-700 mb-1">Image Status</label>
+            <select id="image-filter" v-model="filterImageStatus" @change="handleImageStatusChange"
+              class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="all">All Products</option>
+              <option value="with-image">With Image</option>
+              <option value="without-image">Without Image</option>
+            </select>
+          </div>
+
+          <div class="w-full sm:w-48">
+            <label for="page-size" class="block text-sm font-medium text-gray-700 mb-1">Per Page</label>
+            <select id="page-size" v-model="pageSize" @change="handlePageSizeChange"
+              class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+              <option :value="25">25 per page</option>
+              <option :value="50">50 per page</option>
+              <option :value="100">100 per page</option>
+            </select>
           </div>
         </div>
 
-        <div class="w-full sm:w-48">
-          <label for="image-filter" class="block text-sm font-medium text-gray-700 mb-1">Image Status</label>
-          <select id="image-filter" v-model="filterImageStatus" @change="loadProducts"
-            class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="all">All Products</option>
-            <option value="with-image">With Image</option>
-            <option value="without-image">Without Image</option>
-          </select>
-        </div>
+        <div ref="classificationDropdownRef" class="w-full relative">
+          <div class="flex items-center justify-between mb-1">
+            <label for="classification-filter-trigger" class="block text-sm font-medium text-gray-700">Classifications</label>
+            <button v-if="selectedClassificationIds.length > 0" @click="clearClassificationFilter"
+              class="text-xs text-indigo-600 hover:text-indigo-800">
+              Clear
+            </button>
+          </div>
+          <button id="classification-filter-trigger" type="button" @click.stop="toggleClassificationDropdown"
+            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 flex items-center justify-between">
+            <span>{{ classificationFilterLabel }}</span>
+            <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        <div class="w-full sm:w-48">
-          <label for="page-size" class="block text-sm font-medium text-gray-700 mb-1">Per Page</label>
-          <select id="page-size" v-model="pageSize" @change="loadProducts"
-            class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <option :value="25">25 per page</option>
-            <option :value="50">50 per page</option>
-            <option :value="100">100 per page</option>
-          </select>
+          <div v-if="classificationDropdownOpen"
+            class="absolute z-20 mt-2 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+            <div class="max-h-56 overflow-y-auto p-2 space-y-1">
+              <label v-for="classification in classificationOptions" :key="classification.id"
+                class="flex items-center justify-between rounded px-2 py-1.5 hover:bg-gray-50 cursor-pointer">
+                <span class="flex items-center space-x-2">
+                  <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    :checked="isDraftClassificationSelected(classification.id)"
+                    @change="toggleDraftClassification(classification.id)" />
+                  <span class="text-sm text-gray-700">{{ classification.name }}</span>
+                </span>
+                <span class="text-xs text-gray-500">{{ classification.product_count }}</span>
+              </label>
+              <p v-if="classificationOptions.length === 0" class="px-2 py-2 text-sm text-gray-500">
+                No classifications available.
+              </p>
+            </div>
+            <div class="flex items-center justify-between border-t border-gray-200 px-3 py-2 bg-gray-50">
+              <button @click="clearClassificationDraft" class="text-xs text-indigo-600 hover:text-indigo-800">
+                Clear Selection
+              </button>
+              <div class="flex items-center space-x-2">
+                <button @click="closeClassificationDropdown(true)"
+                  class="px-2.5 py-1.5 text-xs font-medium text-gray-700 border border-gray-300 rounded hover:bg-white">
+                  Cancel
+                </button>
+                <button @click="applyClassificationFilter"
+                  class="px-2.5 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -155,6 +240,9 @@
               </th>
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Unit
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Classifications
               </th>
               <!-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Linked
@@ -191,6 +279,9 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">{{ product.unit || '-' }}</div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">{{ product.classification_names || '-' }}</div>
               </td>
               <!-- <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -521,7 +612,7 @@
 
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useApi } from '~/composables/useApi';
 
 definePageMeta({
@@ -537,10 +628,18 @@ const products = ref([]);
 const stats = ref(null);
 const searchQuery = ref('');
 const filterImageStatus = ref('all');
+const classificationOptions = ref([]);
+const selectedClassificationIds = ref([]);
+const draftClassificationIds = ref([]);
+const classificationDropdownOpen = ref(false);
+const classificationDropdownRef = ref(null);
 const currentPage = ref(1);
 const pageSize = ref(50);
 const totalProducts = ref(0);
 const totalPages = ref(0);
+const syncingMasterProducts = ref(false);
+const syncResult = ref(null);
+const syncError = ref('');
 
 // Upload Modal State
 const showUploadModal = ref(false);
@@ -586,6 +685,21 @@ const paginationPages = computed(() => {
   return pages;
 });
 
+const classificationFilterLabel = computed(() => {
+  const selectedCount = selectedClassificationIds.value.length;
+  if (selectedCount === 0) {
+    return 'All classifications';
+  }
+
+  if (selectedCount === 1) {
+    const selectedId = Number(selectedClassificationIds.value[0]);
+    const matched = classificationOptions.value.find((item) => Number(item.id) === selectedId);
+    return matched ? matched.name : '1 classification selected';
+  }
+
+  return `${selectedCount} classifications selected`;
+});
+
 // Methods
 const formatNumber = (num) => {
   return new Intl.NumberFormat().format(num || 0);
@@ -602,6 +716,17 @@ const loadStats = async () => {
   }
 };
 
+const loadClassificationOptions = async () => {
+  try {
+    const response = await api.get('/api/master-products/classifications');
+    if (response.success) {
+      classificationOptions.value = Array.isArray(response.data) ? response.data : [];
+    }
+  } catch (error) {
+    console.error('Error loading classification options:', error);
+  }
+};
+
 const loadProducts = async () => {
   try {
     loading.value = true;
@@ -611,6 +736,10 @@ const loadProducts = async () => {
       search: searchQuery.value,
       imageStatus: filterImageStatus.value
     };
+
+    if (selectedClassificationIds.value.length > 0) {
+      params.classificationIds = selectedClassificationIds.value.join(',');
+    }
 
     const response = await api.get('/api/master-products', { params });
 
@@ -635,6 +764,78 @@ const debouncedSearch = () => {
   }, 500);
 };
 
+const handleImageStatusChange = () => {
+  currentPage.value = 1;
+  loadProducts();
+};
+
+const handlePageSizeChange = () => {
+  currentPage.value = 1;
+  loadProducts();
+};
+
+const toggleClassificationDropdown = () => {
+  if (classificationDropdownOpen.value) {
+    closeClassificationDropdown(true);
+    return;
+  }
+
+  draftClassificationIds.value = [...selectedClassificationIds.value];
+  classificationDropdownOpen.value = true;
+};
+
+const closeClassificationDropdown = (discardChanges = false) => {
+  if (discardChanges) {
+    draftClassificationIds.value = [...selectedClassificationIds.value];
+  }
+  classificationDropdownOpen.value = false;
+};
+
+const isDraftClassificationSelected = (classificationId) => {
+  const target = Number(classificationId);
+  return draftClassificationIds.value.some((id) => Number(id) === target);
+};
+
+const toggleDraftClassification = (classificationId) => {
+  const target = Number(classificationId);
+  const next = draftClassificationIds.value.filter((id) => Number(id) !== target);
+  if (next.length === draftClassificationIds.value.length) {
+    next.push(target);
+  }
+  draftClassificationIds.value = next;
+};
+
+const clearClassificationDraft = () => {
+  draftClassificationIds.value = [];
+};
+
+const applyClassificationFilter = () => {
+  selectedClassificationIds.value = [...new Set(
+    draftClassificationIds.value
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0)
+  )];
+
+  classificationDropdownOpen.value = false;
+  currentPage.value = 1;
+  loadProducts();
+};
+
+const clearClassificationFilter = () => {
+  selectedClassificationIds.value = [];
+  draftClassificationIds.value = [];
+  classificationDropdownOpen.value = false;
+  currentPage.value = 1;
+  loadProducts();
+};
+
+const handleDocumentClick = (event) => {
+  if (!classificationDropdownOpen.value) return;
+  if (classificationDropdownRef.value && !classificationDropdownRef.value.contains(event.target)) {
+    closeClassificationDropdown(true);
+  }
+};
+
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page;
@@ -643,7 +844,31 @@ const changePage = (page) => {
 };
 
 const refreshData = async () => {
-  await Promise.all([loadStats(), loadProducts()]);
+  await Promise.all([loadStats(), loadClassificationOptions(), loadProducts()]);
+};
+
+const syncMasterProducts = async () => {
+  try {
+    syncingMasterProducts.value = true;
+    syncError.value = '';
+    syncResult.value = null;
+
+    const response = await api.post('/api/sync/admin/master-products', {
+      dryRun: false
+    });
+
+    if (!response.success) {
+      throw new Error(response.message || 'Master products sync failed');
+    }
+
+    syncResult.value = response.data;
+    await refreshData();
+  } catch (error) {
+    console.error('Error syncing master products:', error);
+    syncError.value = error.message || 'Failed to sync master products';
+  } finally {
+    syncingMasterProducts.value = false;
+  }
 };
 
 // Image Upload Methods
@@ -965,7 +1190,12 @@ const handleImageError = (event) => {
 };
 
 onMounted(async () => {
-  await Promise.all([loadStats(), loadProducts()]);
+  await Promise.all([loadStats(), loadClassificationOptions(), loadProducts()]);
+  document.addEventListener('click', handleDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick);
 });
 
 </script>

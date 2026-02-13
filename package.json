@@ -3,8 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean": "node -e \"['.nuxt','.output'].forEach((d)=>require('fs').rmSync(d,{ recursive: true, force: true }))\"",
+    "clean-build": "npm run clean && nuxt build",
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "nuxi dev --no-fork --port 4000 --host 0.0.0.0",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"

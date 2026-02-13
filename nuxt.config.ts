@@ -67,7 +67,9 @@ export default defineNuxtConfig({
     public: {
       apiBase: process.env.API_BASE_URL,
       paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
-      paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || ''
+      paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || '',
+      accessControlUsername: process.env.ACCESS_CONTROL_USERNAME || 'admin',
+      accessControlPassword: process.env.ACCESS_CONTROL_PASSWORD || ''
     }
   },
 

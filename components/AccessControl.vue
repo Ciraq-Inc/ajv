@@ -49,6 +49,7 @@
   <script setup>
   const isAuthenticated = ref(false)
   const error = ref('')
+  const config = useRuntimeConfig()
   
   const credentials = ref({
     username: '',
@@ -56,13 +57,18 @@
   })
   
   const authenticate = () => {
+    const validUsername = String(config.public.accessControlUsername || '').trim()
+    const validPassword = String(config.public.accessControlPassword || '')
 
-    const VALID_USERNAME = "accra"
-    const VALID_PASSWORD = "12294168+"
+    if (!validUsername || !validPassword) {
+      error.value = 'Access control credentials are not configured.'
+      isAuthenticated.value = false
+      return
+    }
   
     if (
-      credentials.value.username === VALID_USERNAME && 
-      credentials.value.password === VALID_PASSWORD
+      credentials.value.username === validUsername && 
+      credentials.value.password === validPassword
     ) {
       isAuthenticated.value = true
       error.value = ''
