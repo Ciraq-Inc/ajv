@@ -233,6 +233,36 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    async triggerCustomerLinking() {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      this.isLoading = true;
+      try {
+        const config = useRuntimeConfig();
+        const response = await fetch(`${config.public.apiBase}/api/auth/customer/trigger-linking`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.customerAuthToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to trigger linking');
+
+        // Update companies list from response
+        if (data.data?.companies) {
+          this.companies = data.data.companies;
+          this.persistAuthData();
+        }
+
+        return data;
+      } catch (error) {
+        console.error('Error triggering customer linking:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async switchCompany(companyId) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
@@ -361,18 +391,18 @@ export const useUserStore = defineStore('user', {
         const response = await fetch(`${config.public.apiBase}/api/auth/customer/reset-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            phone: formattedPhone, 
-            otp: otp, 
-            new_password: newPassword 
+          body: JSON.stringify({
+            phone: formattedPhone,
+            otp: otp,
+            new_password: newPassword
           })
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to reset password');
-        
+
         this.phoneVerifying = null;
         this.otpSent = false;
-        
+
         return data.data;
       } catch (error) {
         console.error('Error resetting password:', error);

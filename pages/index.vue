@@ -14,27 +14,34 @@
             </p>
           </div>
 
-          <div class="bg-white rounded-xl shadow-lg p-6 lg:p-8 border border-indigo-100">
+          <div class="bg-white rounded-xl  p-6 lg:p-8 border border-indigo-100">
             <p class="text-base lg:text-lg text-gray-700 leading-relaxed mb-4">
-              Tired of calling every pharmacy only to find out they don't have what you need? 
-              <span class="font-semibold text-indigo-600">The RigelOS Online Pharmacy Portal</span> is making life easier.
+              Tired of calling every pharmacy only to find out they don't have what you need?
+              <span class="font-semibold text-indigo-600">The RigelOS Online Pharmacy Portal</span> is making life
+              easier.
             </p>
             <div class="space-y-3">
               <div class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd" />
                 </svg>
                 <p class="text-gray-700 text-sm lg:text-base">Check what's in stock at all partner pharmacies nearby</p>
               </div>
               <div class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd" />
                 </svg>
                 <p class="text-gray-700 text-sm lg:text-base">See it, buy it—right from your phone</p>
               </div>
               <div class="flex items-start">
                 <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd" />
                 </svg>
                 <p class="text-gray-700 text-sm lg:text-base">Get it dropped off quickly at your home or office</p>
               </div>
@@ -59,7 +66,8 @@
                 🎉 Congratulations!
               </h3>
               <p class="text-base text-gray-700 mb-4">
-                Your account has been successfully created, <span class="font-semibold text-indigo-600">{{ customerName }}</span>!
+                Your account has been successfully created, <span class="font-semibold text-indigo-600">{{ customerName
+                }}</span>!
               </p>
               <div class="bg-indigo-50 rounded-lg p-4 mb-4">
                 <p class="text-sm text-gray-700 mb-2">
@@ -69,17 +77,15 @@
                   You'll be the first to know when we launch in your area!
                 </p>
               </div>
-              <button 
-                @click="resetForm"
-                class="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-              >
+              <button @click="resetForm"
+                class="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors">
                 Got it, thanks!
               </button>
             </div>
           </div>
 
           <!-- Signup Form -->
-          <div v-else class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div v-else class="bg-white rounded-2xl  overflow-hidden">
             <!-- Header Section -->
             <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-6 py-3 text-center text-white">
               <h2 class="text-xl lg:text-2xl font-extrabold drop-shadow-lg">
@@ -94,11 +100,13 @@
             <div class="px-6 py-3">
               <div class="mb-3">
                 <div class="flex items-center justify-center gap-2 mb-2">
-                  <div class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" :class="!otpSent ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'">
+                  <div class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+                    :class="!otpSent ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'">
                     1
                   </div>
                   <div class="w-8 h-0.5" :class="otpSent ? 'bg-indigo-600' : 'bg-gray-200'"></div>
-                  <div class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" :class="otpSent ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'">
+                  <div class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+                    :class="otpSent ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'">
                     2
                   </div>
                 </div>
@@ -106,7 +114,7 @@
                   {{ !otpSent ? 'Your Information' : 'Verify & Secure' }}
                 </h3>
               </div>
-              
+
               <form @submit.prevent="handleSignUp" class="space-y-2">
                 <!-- Step 1: Personal Information -->
                 <div v-if="!otpSent">
@@ -116,27 +124,17 @@
                       <label for="firstName" class="block text-xs font-semibold text-gray-700 mb-1">
                         First Name <span class="text-red-500">*</span>
                       </label>
-                      <input 
-                        type="text" 
-                        id="firstName" 
-                        v-model="signUpForm.firstName"
-                        required
+                      <input type="text" id="firstName" v-model="signUpForm.firstName" required
                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                        placeholder="John"
-                      />
+                        placeholder="John" />
                     </div>
                     <div>
                       <label for="lastName" class="block text-xs font-semibold text-gray-700 mb-1">
                         Last Name <span class="text-red-500">*</span>
                       </label>
-                      <input 
-                        type="text" 
-                        id="lastName" 
-                        v-model="signUpForm.lastName"
-                        required
+                      <input type="text" id="lastName" v-model="signUpForm.lastName" required
                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                        placeholder="Doe"
-                      />
+                        placeholder="Doe" />
                     </div>
                   </div>
 
@@ -145,18 +143,15 @@
                     <label for="phone" class="block text-xs font-semibold text-gray-700 mb-1">
                       Phone Number <span class="text-red-500">*</span>
                     </label>
-                    <div class="flex rounded-lg overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
-                      <span class="inline-flex items-center px-2 text-xs font-medium text-gray-700 bg-gray-50 border-r border-gray-300">
+                    <div
+                      class="flex rounded-lg overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+                      <span
+                        class="inline-flex items-center px-2 text-xs font-medium text-gray-700 bg-gray-50 border-r border-gray-300">
                         +233
                       </span>
-                      <input 
-                        type="tel" 
-                        id="phone" 
-                        v-model="signUpForm.phone"
-                        required
+                      <input type="tel" id="phone" v-model="signUpForm.phone" required
                         class="flex-1 px-3 py-1.5 text-sm border-0 focus:ring-0 text-gray-900"
-                        placeholder="24 123 4567"
-                      />
+                        placeholder="24 123 4567" />
                     </div>
                   </div>
 
@@ -165,13 +160,9 @@
                     <label for="email" class="block text-xs font-semibold text-gray-700 mb-1">
                       Email
                     </label>
-                    <input 
-                      type="email" 
-                      id="email" 
-                      v-model="signUpForm.email"
+                    <input type="email" id="email" v-model="signUpForm.email"
                       class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                      placeholder="john@example.com"
-                    />
+                      placeholder="john@example.com" />
                   </div>
 
                   <!-- Gender & City Row -->
@@ -180,12 +171,8 @@
                       <label for="gender" class="block text-xs font-semibold text-gray-700 mb-1">
                         Gender <span class="text-red-500">*</span>
                       </label>
-                      <select 
-                        id="gender" 
-                        v-model="signUpForm.gender"
-                        required
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                      >
+                      <select id="gender" v-model="signUpForm.gender" required
+                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900">
                         <option value="">Select</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
@@ -198,46 +185,36 @@
                       <label for="city" class="block text-xs font-semibold text-gray-700 mb-1">
                         City <span class="text-red-500">*</span>
                       </label>
-                      <input 
-                        type="text" 
-                        id="city" 
-                        v-model="signUpForm.city"
-                        required
+                      <input type="text" id="city" v-model="signUpForm.city" required
                         class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                        placeholder="Accra"
-                      />
+                        placeholder="Accra" />
                     </div>
                   </div>
 
                   <!-- Age Verification -->
                   <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-2 mb-2">
                     <div class="flex items-start">
-                      <input 
-                        id="ageVerification" 
-                        v-model="signUpForm.isOver18" 
-                        type="checkbox"
-                        required
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-0.5 cursor-pointer"
-                      />
+                      <input id="ageVerification" v-model="signUpForm.isOver18" type="checkbox" required
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-0.5 cursor-pointer" />
                       <label for="ageVerification" class="ml-2 block text-xs text-gray-800 cursor-pointer">
                         I'm <strong>18+</strong> and agree to receive SMS updates
                       </label>
                     </div>
                   </div>
 
-                  <button 
-                    type="button"
-                    @click="sendOTP"
-                    :disabled="!isFormValid || isSubmitting"
-                    class="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-2.5 px-4 rounded-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  >
+                  <button type="button" @click="sendOTP" :disabled="!isFormValid || isSubmitting"
+                    class="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-2.5 px-4 rounded-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                     <span v-if="!isSubmitting" class="flex items-center justify-center">
                       Get Verification Code
                     </span>
                     <span v-else class="flex items-center justify-center">
-                      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+                        fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
                       </svg>
                       Sending Code...
                     </span>
@@ -256,72 +233,54 @@
                     <label for="otp" class="block text-xs font-semibold text-gray-700 mb-1">
                       Code <span class="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
-                      id="otp" 
-                      v-model="signUpForm.otp"
-                      required
-                      maxlength="6"
+                    <input type="text" id="otp" v-model="signUpForm.otp" required maxlength="6"
                       class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 text-center text-lg tracking-widest font-mono"
-                      placeholder="000000"
-                    />
+                      placeholder="000000" />
                   </div>
 
                   <div class="mb-2">
                     <label for="password" class="block text-xs font-semibold text-gray-700 mb-1">
                       Password <span class="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="password" 
-                      id="password" 
-                      v-model="signUpForm.password"
-                      required
-                      minlength="6"
+                    <input type="password" id="password" v-model="signUpForm.password" required minlength="6"
                       class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                      placeholder="Min 6 characters"
-                    />
+                      placeholder="Min 6 characters" />
                   </div>
 
                   <div class="mb-2">
                     <label for="confirmPassword" class="block text-xs font-semibold text-gray-700 mb-1">
                       Confirm <span class="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="password" 
-                      id="confirmPassword" 
-                      v-model="signUpForm.confirmPassword"
-                      required
+                    <input type="password" id="confirmPassword" v-model="signUpForm.confirmPassword" required
                       minlength="6"
                       class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
                       :class="signUpForm.password && signUpForm.confirmPassword && signUpForm.password !== signUpForm.confirmPassword ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''"
-                      placeholder="Re-enter password"
-                    />
-                    <p v-if="signUpForm.password && signUpForm.confirmPassword && signUpForm.password !== signUpForm.confirmPassword" 
-                       class="mt-1 text-xs text-red-600">
+                      placeholder="Re-enter password" />
+                    <p v-if="signUpForm.password && signUpForm.confirmPassword && signUpForm.password !== signUpForm.confirmPassword"
+                      class="mt-1 text-xs text-red-600">
                       Passwords don't match
                     </p>
                   </div>
 
                   <div class="flex gap-2">
-                    <button 
-                      type="button"
-                      @click="otpSent = false"
-                      class="px-4 py-2 text-xs bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors border border-gray-300"
-                    >
+                    <button type="button" @click="otpSent = false"
+                      class="px-4 py-2 text-xs bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors border border-gray-300">
                       ← Back
                     </button>
-                    <button 
-                      type="submit"
+                    <button type="submit"
                       :disabled="isSubmitting || !signUpForm.otp || signUpForm.password !== signUpForm.confirmPassword"
-                      class="flex-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-2.5 px-4 rounded-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    >
+                      class="flex-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-2.5 px-4 rounded-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                       <span v-if="!isSubmitting" class="flex items-center justify-center">
                         🎉 Create My Account
                       </span>
                       <span v-else class="flex items-center justify-center">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+                          fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                          </circle>
+                          <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                          </path>
                         </svg>
                         Creating Account...
                       </span>
@@ -368,31 +327,31 @@ const customerName = ref('');
 const customerPhone = ref('');
 
 const isFormValid = computed(() => {
-  return signUpForm.value.firstName && 
-         signUpForm.value.lastName && 
-         signUpForm.value.phone && 
-         signUpForm.value.gender && 
-         signUpForm.value.city && 
-         signUpForm.value.isOver18;
+  return signUpForm.value.firstName &&
+    signUpForm.value.lastName &&
+    signUpForm.value.phone &&
+    signUpForm.value.gender &&
+    signUpForm.value.city &&
+    signUpForm.value.isOver18;
 });
 
 const sendOTP = async () => {
   errorMessage.value = '';
   isSubmitting.value = true;
-  
+
   try {
     const formattedPhone = userStore.formatPhoneNumber(signUpForm.value.phone);
     const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         phone: formattedPhone,
         email: signUpForm.value.email || null
       })
     });
-    
+
     const data = await response.json();
-    
+
     // Handle case where phone or email already exists
     if (!data.success) {
       if (data.exists) {
@@ -402,7 +361,7 @@ const sendOTP = async () => {
       }
       return;
     }
-    
+
     otpSent.value = true;
   } catch (error) {
     console.error('Error sending OTP:', error);
@@ -420,10 +379,10 @@ const handleSignUp = async () => {
 
   errorMessage.value = '';
   isSubmitting.value = true;
-  
+
   try {
     const formattedPhone = userStore.formatPhoneNumber(signUpForm.value.phone);
-    
+
     // Register the user
     const response = await fetch(`${config.public.apiBase}/api/auth/customer/register`, {
       method: 'POST',
@@ -441,20 +400,20 @@ const handleSignUp = async () => {
         customer_type: 'retail'
       })
     });
-    
+
     const data = await response.json();
     if (!data.success) throw new Error(data.message || 'Registration failed');
-    
+
     // Store customer info for congratulations message
     customerName.value = `${signUpForm.value.firstName} ${signUpForm.value.lastName}`;
     customerPhone.value = formattedPhone;
-    
+
     // Send congratulations SMS
     await sendCongratulationsSMS(formattedPhone, signUpForm.value.firstName);
-    
+
     // Show congratulations
     showCongratulations.value = true;
-    
+
   } catch (error) {
     console.error('Sign up error:', error);
     errorMessage.value = error.message || 'Something went wrong. Please try again.';
@@ -466,7 +425,7 @@ const handleSignUp = async () => {
 const sendCongratulationsSMS = async (phone, firstName) => {
   try {
     const message = `Congratulations ${firstName}! Welcome to RigelOS Online Pharmacy Portal. You're now on our priority list and will be the first to know when we launch in your area. Get ready for stress-free medicine delivery!`;
-    
+
     await fetch(`${config.public.apiBase}/api/sms/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
