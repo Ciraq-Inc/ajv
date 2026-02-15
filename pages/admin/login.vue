@@ -1,5 +1,6 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div
+    class="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black opacity-10"></div>
 
@@ -38,7 +39,9 @@
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                <path fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd" />
               </svg>
             </div>
             <div class="ml-3">
@@ -51,42 +54,27 @@
         <form v-if="currentView === 'login'" @submit.prevent="handleLogin">
           <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-            <input
-              v-model="username"
-              type="text"
-              id="username"
+            <input v-model="username" type="text" id="username"
               class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter your username"
-              required
-              :disabled="isLoading"
-            />
+              placeholder="Enter your username" required :disabled="isLoading" />
           </div>
 
           <div class="mb-4">
             <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              v-model="password"
-              type="password"
-              id="password"
+            <input v-model="password" type="password" id="password"
               class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter your password"
-              required
-              :disabled="isLoading"
-            />
+              placeholder="Enter your password" required :disabled="isLoading" />
           </div>
 
-          <div class="mb-4 flex items-center justify-end">
+          <!-- <div class="mb-4 flex items-center justify-end">
             <button type="button" @click="showResetForm" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
               Forgot password?
             </button>
-          </div>
+          </div> -->
 
           <div class="mt-6">
-            <button
-              type="submit"
-              :disabled="isLoading"
-              class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center justify-center"
-            >
+            <button type="submit" :disabled="isLoading"
+              class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center justify-center">
               <span v-if="isLoading" class="flex items-center">
                 <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24">
@@ -110,31 +98,18 @@
 
           <div class="mb-4">
             <label for="resetIdentifier" class="block text-sm font-medium text-gray-700 mb-1">Username or Email</label>
-            <input
-              v-model="resetIdentifier"
-              type="text"
-              id="resetIdentifier"
+            <input v-model="resetIdentifier" type="text" id="resetIdentifier"
               class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter your username or email"
-              required
-              :disabled="isLoading"
-            />
+              placeholder="Enter your username or email" required :disabled="isLoading" />
           </div>
 
           <div class="mt-6 flex justify-end space-x-3">
-            <button
-              type="button"
-              @click="showLoginForm"
-              :disabled="isLoading"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-            >
+            <button type="button" @click="showLoginForm" :disabled="isLoading"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
               Back to Login
             </button>
-            <button
-              type="submit"
-              :disabled="isLoading"
-              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center"
-            >
+            <button type="submit" :disabled="isLoading"
+              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center">
               <span v-if="isLoading" class="flex items-center">
                 <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24">
@@ -246,7 +221,7 @@ const handlePasswordReset = async () => {
 
     if (result.success) {
       successMessage.value = result.message || 'Reset instructions sent! Please check your email.';
-      
+
       // Wait and return to login
       setTimeout(() => {
         showLoginForm();
