@@ -31,6 +31,21 @@
                 <h3 class="step-title">What do you need?</h3>
                 <p class="step-desc">Add each medicine or product you'd like us to find.</p>
 
+                <!-- Location Prompt -->
+                <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-4"
+                    :class="{ set: customerLat }">
+                    <div class="location-icon-wrap" :class="{ set: customerLat }">
+                        <MapPinIconSolid v-if="customerLat" class="loc-svg" />
+                        <ArrowPathIcon v-else-if="gettingLocation" class="loc-svg spin" />
+                        <MapPinIcon v-else class="loc-svg" />
+                    </div>
+                    <div class="location-text">
+                        <strong>{{ locationLabel }}</strong>
+                        <span>{{ locationSublabel }}</span>
+                    </div>
+                    <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
+                </button>
+
                 <div class="items-list">
                     <div v-for="(item, index) in requestItems" :key="index" class="item-row">
                         <span class="item-num">{{ index + 1 }}</span>
@@ -46,11 +61,15 @@
                                     <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
                                 </div>
                                 <template v-else>
-                                    <div v-for="res in item.searchResults" :key="res.id"
+                                    <div v-for="(res, idx) in item.searchResults" :key="res.id || idx"
                                         @mousedown.prevent="selectProduct(item, res)" class="search-item">
                                         <div class="font-medium text-gray-900">{{ res.product_description }}</div>
                                         <div class="text-xs text-gray-500">
                                             {{ [res.strength, res.unit].filter(Boolean).join(' • ') }}
+                                        </div>
+                                        <div v-if="res.available_at" class="text-xs text-green-600 mt-1 font-medium">
+                                            In stock nearby
+                                            <!-- • From GHS {{ Number(res.min_price).toFixed(2) }} -->
                                         </div>
                                     </div>
                                     <div v-if="item.searchResults.length === 0 && item.product_name.length > 2"
@@ -93,20 +112,6 @@
             <div v-if="currentStep === 1" class="step-content">
                 <h3 class="step-title">Delivery Details</h3>
                 <p class="step-desc">Tell us where to deliver your order.</p>
-
-                <button @click="getLocation" :disabled="gettingLocation" class="location-btn"
-                    :class="{ set: customerLat }">
-                    <div class="location-icon-wrap" :class="{ set: customerLat }">
-                        <MapPinIconSolid v-if="customerLat" class="loc-svg" />
-                        <ArrowPathIcon v-else-if="gettingLocation" class="loc-svg spin" />
-                        <MapPinIcon v-else class="loc-svg" />
-                    </div>
-                    <div class="location-text">
-                        <strong>{{ locationLabel }}</strong>
-                        <span>{{ locationSublabel }}</span>
-                    </div>
-                    <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
-                </button>
 
                 <div class="form-group">
                     <label>Delivery Address</label>
@@ -373,11 +378,11 @@ const selectedRequest = ref(null)
 
 const validItems = computed(() => requestItems.value.filter(i => i.product_name.trim()))
 const canProceed = computed(() => {
-    if (currentStep.value === 0) return validItems.value.length > 0
-    if (currentStep.value === 1) return customerLat.value && deliveryAddress.value.trim()
+    if (currentStep.value === 0) return validItems.value.length > 0 && customerLat.value
+    if (currentStep.value === 1) return !!deliveryAddress.value.trim()
     return true
 })
-const canSubmit = computed(() => validItems.value.length > 0 && customerLat.value)
+const canSubmit = computed(() => validItems.value.length > 0 && customerLat.value && deliveryAddress.value.trim())
 
 const locationLabel = computed(() => {
     if (customerLat.value) return '📍 Location Set'
@@ -472,7 +477,12 @@ const onProductInput = (item) => {
 const searchProducts = async (item) => {
     item.loading = true
     try {
-        const res = await apiCall('GET', `/api/master-products?search=${encodeURIComponent(item.product_name)}&limit=5`)
+        let res;
+        if (customerLat.value && customerLng.value) {
+            res = await apiCall('GET', `/api/products/nearby-search?lat=${customerLat.value}&lng=${customerLng.value}&search=${encodeURIComponent(item.product_name)}&limit=5`)
+        } else {
+            res = await apiCall('GET', `/api/master-products?search=${encodeURIComponent(item.product_name)}&limit=5`)
+        }
         item.searchResults = res.data || []
     } catch (e) {
         console.error(e) // silent fail

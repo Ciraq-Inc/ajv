@@ -226,7 +226,12 @@
 
           <!-- Admin Notes -->
           <div class="notes-section mt-4 border-t pt-4">
-            <h4 class="text-sm font-semibold text-gray-700 mb-2">Admin Notes</h4>
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-semibold text-gray-700 m-0">Admin Notes</h4>
+              <button @click="saveNotes" class="btn-secondary btn-sm" :disabled="loading">
+                Save Notes
+              </button>
+            </div>
             <textarea v-model="adminNotes" class="form-control w-full" rows="3"
               placeholder="Internal notes for this request..."></textarea>
           </div>
@@ -364,10 +369,11 @@ const processRequest = async (req) => {
   try {
     const res = await apiCall('POST', `/api/order-requests/admin/${req.id}/process`)
 
-    // Set selected request so modal opens
-    selectedRequest.value = { ...req, status: res.data.status || req.status }
-    selectedStatus.value = res.data.status || req.status || ''
-    adminNotes.value = req.admin_notes || ''
+    // Set selected request so modal opens - use the full returned request object if available
+    const fullRequest = res.data.request || req;
+    selectedRequest.value = { ...fullRequest, status: res.data.status || fullRequest.status }
+    selectedStatus.value = res.data.status || fullRequest.status || ''
+    adminNotes.value = fullRequest.admin_notes || ''
 
     // Set nearby pharmacies for the manager component
     nearbyPharmacies.value = res.data.nearby_pharmacies || []
@@ -456,6 +462,22 @@ const updateStatus = async () => {
     showMessage('Status updated and fulfillment data refreshed', 'success')
   } catch (e) {
     showMessage('Failed to update status', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const saveNotes = async () => {
+  if (!selectedRequest.value) return
+  loading.value = true
+  try {
+    await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/notes`, {
+      admin_notes: adminNotes.value
+    })
+    selectedRequest.value.admin_notes = adminNotes.value
+    showMessage('Admin notes saved successfully', 'success')
+  } catch (e) {
+    showMessage('Failed to save notes', 'error')
   } finally {
     loading.value = false
   }
