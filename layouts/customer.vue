@@ -1,299 +1,680 @@
 <template>
-  <div class="customer-layout">
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Top Bar / Navbar -->
-      <header class="top-bar">
-        <div class="top-bar-left">
-          <h1 class="page-title">{{ pageTitle }}</h1>
+  <div class="app-shell">
+    <!-- Sidebar (desktop) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <PlusCircleIconSolid class="brand-svg" />
         </div>
-
-        <div class="top-bar-right">
-          <div class="user-profile" @click="toggleProfileMenu">
-            <div class="profile-avatar">{{ userInitials }}</div>
-            <span class="profile-name">{{ userName }}</span>
-            <span class="dropdown-icon">▼</span>
+        <span class="brand-name">MedsGH</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button @click="goTo('home')" class="side-btn" :class="{ active: activeNav === 'home' }">
+          <component :is="activeNav === 'home' ? HomeIconSolid : HomeIcon" class="side-icon" />
+          <span>Home</span>
+        </button>
+        <button @click="goTo('new')" class="side-btn accent">
+          <PlusCircleIconSolid class="side-icon" />
+          <span>New Request</span>
+        </button>
+        <button @click="goTo('requests')" class="side-btn" :class="{ active: activeNav === 'requests' }">
+          <component :is="activeNav === 'requests' ? ClipDocListSolid : ClipDocList" class="side-icon" />
+          <span>My Requests</span>
+        </button>
+        <button @click="goTo('wallet')" class="side-btn" :class="{ active: activeNav === 'wallet' }">
+          <component :is="activeNav === 'wallet' ? CreditCardSolid : CreditCardIcon" class="side-icon" />
+          <span>Wallet</span>
+        </button>
+        <button @click="goTo('orders')" class="side-btn" :class="{ active: activeNav === 'orders' }">
+          <component :is="activeNav === 'orders' ? ShoppingBagSolid : ShoppingBagIcon" class="side-icon" />
+          <span>Orders</span>
+        </button>
+        <div class="side-divider"></div>
+        <button @click="goTo('companies')" class="side-btn" :class="{ active: activeNav === 'companies' }">
+          <component :is="activeNav === 'companies' ? BuildingSolid : BuildingStorefrontIcon" class="side-icon" />
+          <span>Pharmacies</span>
+        </button>
+        <button @click="goTo('profile')" class="side-btn" :class="{ active: activeNav === 'profile' }">
+          <component :is="activeNav === 'profile' ? UserIconSolid : UserIcon" class="side-icon" />
+          <span>Profile</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="avatar-sm">{{ userInitials }}</div>
+          <div class="user-meta">
+            <span class="user-name-sm">{{ userName }}</span>
+            <span class="user-phone-sm">{{ userStore.currentUser?.phone || '' }}</span>
           </div>
         </div>
+        <button @click="handleLogout" class="side-btn logout-btn">
+          <ArrowLeftOnRectangleIcon class="side-icon" /><span>Log Out</span>
+        </button>
+      </div>
+    </aside>
 
-        <div v-if="showProfileMenu" class="profile-dropdown">
-          <NuxtLink to="/customer" class="dropdown-item">
-            <UserIcon class="dropdown-icon-sm" /> My Profile
-          </NuxtLink>
-          <hr class="dropdown-divider">
-          <button @click="handleLogout" class="dropdown-item logout">
-            <ArrowLeftOnRectangleIcon class="dropdown-icon-sm" /> Logout
+    <div class="main-area">
+      <header class="app-header">
+        <div class="header-left">
+          <button v-if="canGoBack" @click="goTo('home')" class="back-btn">
+            <ChevronLeftIcon class="back-icon" />
+          </button>
+          <h1 class="header-title">{{ pageTitle }}</h1>
+        </div>
+        <div class="header-right">
+          <button @click="toggleMenu" class="avatar-btn">
+            <span class="avatar">{{ userInitials }}</span>
           </button>
         </div>
       </header>
 
-      <!-- Page Content -->
-      <main class="page-content">
+      <Transition name="slide-up">
+        <div v-if="showMenu" class="sheet-overlay" @click="showMenu = false">
+          <div class="sheet" @click.stop>
+            <div class="sheet-handle"></div>
+            <div class="sheet-profile">
+              <div class="sheet-avatar">{{ userInitials }}</div>
+              <div>
+                <p class="sheet-name">{{ userName }}</p>
+                <p class="sheet-phone">{{ userStore.currentUser?.phone || '' }}</p>
+              </div>
+            </div>
+            <div class="sheet-actions">
+              <button @click="showMenu = false; goTo('home')" class="sheet-item">
+                <HomeIcon class="sheet-icon" /> Home
+              </button>
+              <button @click="showMenu = false; goTo('profile')" class="sheet-item">
+                <Cog6ToothIcon class="sheet-icon" /> Edit Profile
+              </button>
+              <button @click="showMenu = false; goTo('companies')" class="sheet-item">
+                <BuildingStorefrontIcon class="sheet-icon" /> Linked Pharmacies
+              </button>
+              <hr class="sheet-divider">
+              <button @click="handleLogout" class="sheet-item danger">
+                <ArrowLeftOnRectangleIcon class="sheet-icon" /> Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <main class="app-content">
         <slot />
       </main>
+
+      <nav class="bottom-nav">
+        <button @click="goTo('home')" class="nav-btn" :class="{ active: activeNav === 'home' }">
+          <component :is="activeNav === 'home' ? HomeIconSolid : HomeIcon" class="nav-icon" /><span>Home</span>
+        </button>
+        <button @click="goTo('requests')" class="nav-btn" :class="{ active: activeNav === 'requests' }">
+          <component :is="activeNav === 'requests' ? ClipDocListSolid : ClipDocList" class="nav-icon" />
+          <span>Requests</span>
+        </button>
+        <button @click="goTo('new')" class="nav-fab">
+          <PlusIcon class="fab-icon" />
+        </button>
+        <button @click="goTo('wallet')" class="nav-btn" :class="{ active: activeNav === 'wallet' }">
+          <component :is="activeNav === 'wallet' ? CreditCardSolid : CreditCardIcon" class="nav-icon" />
+          <span>Wallet</span>
+        </button>
+        <button @click="goTo('orders')" class="nav-btn" :class="{ active: activeNav === 'orders' }">
+          <component :is="activeNav === 'orders' ? ShoppingBagSolid : ShoppingBagIcon" class="nav-icon" />
+          <span>Orders</span>
+        </button>
+      </nav>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import {
-  UserIcon,
-  ArrowLeftOnRectangleIcon,
-} from '@heroicons/vue/24/outline'
+import { ref, computed } from 'vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
 
+import {
+  HomeIcon, ClipboardDocumentListIcon as ClipDocList, CreditCardIcon,
+  ShoppingBagIcon, BuildingStorefrontIcon, UserIcon, ChevronLeftIcon,
+  PlusIcon, ArrowLeftOnRectangleIcon, Cog6ToothIcon
+} from '@heroicons/vue/24/outline'
+
+import {
+  HomeIcon as HomeIconSolid, ClipboardDocumentListIcon as ClipDocListSolid,
+  CreditCardIcon as CreditCardSolid, ShoppingBagIcon as ShoppingBagSolid,
+  BuildingStorefrontIcon as BuildingSolid, UserIcon as UserIconSolid,
+  PlusCircleIcon as PlusCircleIconSolid
+} from '@heroicons/vue/24/solid'
+
 const userStore = useUserStore()
 const route = useRoute()
+const showMenu = ref(false)
 
-// State
-const showProfileMenu = ref(false)
-const isLoggingOut = ref(false)
-
-// Computed
 const userName = computed(() => {
-  const user = userStore.currentUser
-  if (user) {
-    return `${user.fname || ''} ${user.lname || ''}`.trim() || 'Customer'
-  }
-  return 'Customer'
+  const u = userStore.currentUser
+  return u ? `${u.fname || ''} ${u.lname || ''}`.trim() || 'Customer' : 'Customer'
 })
-
 const userInitials = computed(() => {
-  const user = userStore.currentUser
-  if (user) {
-    const fname = user.fname || ''
-    const lname = user.lname || ''
-    return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase() || 'C'
-  }
-  return 'C'
+  const u = userStore.currentUser
+  return u ? `${(u.fname || '')[0] || ''}${(u.lname || '')[0] || ''}`.toUpperCase() || 'C' : 'C'
 })
-
+const activeNav = computed(() => route.query.tab || 'home')
+const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home')
 const pageTitle = computed(() => {
-  const path = route.path
-  if (path.includes('/customer/orders')) return 'My Orders'
-  if (path.includes('/customer/profile')) return 'My Profile'
-  if (path.includes('/customer/companies')) return 'Linked Companies'
-  return 'Dashboard'
+  const map = { requests: 'My Requests', new: 'New Request', wallet: 'Wallet', orders: 'Order History', profile: 'Profile', companies: 'Pharmacies' }
+  return map[route.query.tab] || 'MedsGH'
 })
-
-const toggleProfileMenu = () => {
-  showProfileMenu.value = !showProfileMenu.value
-}
-
+const goTo = (tab) => navigateTo({ path: '/customer', query: { tab } })
+const toggleMenu = () => { showMenu.value = !showMenu.value }
 const handleLogout = async () => {
-  if (confirm('Are you sure you want to logout?')) {
-    isLoggingOut.value = true
-    try {
-      await userStore.logout()
-      navigateTo('/')
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      isLoggingOut.value = false
-    }
+  if (confirm('Log out?')) {
+    try { await userStore.logout(); navigateTo('/') } catch (e) { console.error(e) }
   }
 }
-
-const handleClickOutside = (e) => {
-  if (!e.target.closest('.user-profile') && !e.target.closest('.profile-dropdown')) {
-    showProfileMenu.value = false
-  }
-}
-
-// Lifecycle
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 </script>
 
 <style scoped>
-.customer-layout {
-  min-height: 100vh;
-  background: #f9fafb;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+* {
+  box-sizing: border-box;
 }
 
-/* Main Content */
-.main-content {
+.app-shell {
+  min-height: 100vh;
+  background: #f8f9fc;
   display: flex;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sidebar */
+.sidebar {
+  display: none;
+  width: 240px;
+  background: white;
+  border-right: 1px solid #eef0f4;
   flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Top Bar / Navbar */
-.top-bar {
-  background: white;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  padding: 20px 12px;
 }
 
-.top-bar-left {
+.sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 10px;
+  padding: 4px 12px 20px;
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid #e5e7eb;
-  background: white;
-}
-
-.user-profile:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.profile-avatar {
+.brand-icon {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
   color: white;
 }
 
-.profile-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
+.brand-svg {
+  width: 20px;
+  height: 20px;
 }
 
-.dropdown-icon {
-  font-size: 12px;
-  color: #9ca3af;
+.brand-name {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #1a1a2e;
 }
 
-/* Profile Dropdown */
-.profile-dropdown {
-  position: absolute;
-  top: 60px;
-  right: 2rem;
-  background: white;
-  border-radius: 12px;
-  min-width: 200px;
-  z-index: 1000;
-  animation: slideDown 0.2s ease;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dropdown-item {
+.side-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  color: #374151;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  border-radius: 8px;
-  margin: 0.25rem;
-  cursor: pointer;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
   border: none;
-  background: transparent;
-  width: calc(100% - 0.5rem);
-  text-align: left;
+  background: none;
   font-size: 0.875rem;
   font-weight: 500;
-}
-
-.dropdown-item:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.dropdown-item.logout {
-  color: #dc2626;
-}
-
-.dropdown-item.logout:hover {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.dropdown-icon-sm {
-  width: 16px;
-  height: 16px;
-}
-
-.dropdown-divider {
-  margin: 0.5rem 0;
-  border: none;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* Page Content */
-.page-content {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
   width: 100%;
+  text-align: left;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1.25rem;
+.side-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.side-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.side-btn.active {
+  background: #eef2ff;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.side-btn.accent {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-weight: 600;
+  margin: 4px 0 8px;
+}
+
+.side-btn.accent:hover {
+  opacity: 0.9;
+}
+
+.side-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 8px 14px;
+}
+
+.sidebar-footer {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 10px;
+}
+
+.avatar-sm {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.user-meta {
+  min-width: 0;
+}
+
+.user-name-sm {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-phone-sm {
+  display: block;
+  font-size: 0.6875rem;
+  color: #94a3b8;
+}
+
+.logout-btn {
+  color: #ef4444 !important;
+}
+
+.logout-btn:hover {
+  background: #fef2f2 !important;
+}
+
+/* Main */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+}
+
+/* Header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(248, 249, 252, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #667eea;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.back-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.header-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.avatar-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+}
+
+/* Content */
+.app-content {
+  flex: 1;
+  padding: 0 0 88px 0;
+  overflow-y: auto;
+}
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+  z-index: 99;
+}
+
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 12px;
+  transition: all 0.2s;
+  min-width: 56px;
+}
+
+.nav-btn span {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #a0a3bd;
+  transition: color 0.2s;
+}
+
+.nav-icon {
+  width: 22px;
+  height: 22px;
+  color: #a0a3bd;
+  transition: color 0.2s;
+}
+
+.nav-btn.active .nav-icon {
+  color: #667eea;
+}
+
+.nav-btn.active span {
+  color: #667eea;
+}
+
+.nav-btn:active {
+  transform: scale(0.92);
+}
+
+.nav-fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -16px;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+  transition: all 0.2s;
+}
+
+.fab-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.nav-fab:active {
+  transform: scale(0.92) translateY(1px);
+}
+
+/* Sheet */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: #d1d5db;
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+.sheet-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sheet-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.sheet-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.sheet-phone {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin: 2px 0 0;
+}
+
+.sheet-actions {
+  padding-top: 8px;
+}
+
+.sheet-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 8px;
+  background: none;
+  border: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.sheet-item:active {
+  background: #f3f4f6;
+}
+
+.sheet-icon {
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.sheet-item.danger {
+  color: #ef4444;
+}
+
+.sheet-item.danger .sheet-icon {
+  color: #ef4444;
+}
+
+.sheet-divider {
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  margin: 4px 0;
+}
+
+/* Transitions */
+.slide-up-enter-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-leave-active {
+  transition: all 0.25s ease;
+}
+
+.slide-up-enter-from .sheet {
+  transform: translateY(100%);
+}
+
+.slide-up-leave-to .sheet {
+  transform: translateY(100%);
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+}
+
+@media (min-width: 768px) {
+  .sidebar {
+    display: flex;
   }
 
-  .profile-name {
+  .main-area {
+    margin-left: 240px;
+  }
+
+  .bottom-nav {
     display: none;
   }
 
-  .top-bar {
-    padding: 1rem;
+  .sheet-overlay {
+    display: none !important;
   }
 
-  .page-content {
-    padding: 1rem;
+  .app-header {
+    padding: 16px 32px;
+  }
+
+  .header-right {
+    display: none;
+  }
+
+  .header-title {
+    font-size: 1.375rem;
+  }
+
+  .app-content {
+    padding: 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  .sidebar {
+    width: 260px;
+  }
+
+  .main-area {
+    margin-left: 260px;
+  }
+
+  .app-header {
+    padding: 18px 40px;
   }
 }
 </style>

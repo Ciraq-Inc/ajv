@@ -114,6 +114,37 @@
             <CubeIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Master Products</span>
           </NuxtLink>
+        </div>
+
+        <div class="nav-section">
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Order Management</div>
+          
+          <NuxtLink 
+            to="/admin/order-requests" 
+            class="nav-item"
+            active-class="active"
+          >
+            <ClipboardDocumentListIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Order Requests</span>
+          </NuxtLink>
+
+          <NuxtLink 
+            to="/admin/deliveries" 
+            class="nav-item"
+            active-class="active"
+          >
+            <TruckIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Deliveries</span>
+          </NuxtLink>
+
+          <NuxtLink 
+            to="/admin/platform-settings" 
+            class="nav-item"
+            active-class="active"
+          >
+            <Cog6ToothIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Platform Settings</span>
+          </NuxtLink>
         </div> 
 
         <!-- <div class="nav-section">
@@ -274,6 +305,8 @@ import {
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
   CubeIcon,
+  ClipboardDocumentListIcon,
+  TruckIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute } from 'vue-router'
@@ -322,6 +355,9 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/sms-billing')) return 'SMS Billing Management'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
   if (path.includes('/admin/masterlist')) return 'Master Products Management'
+  if (path.includes('/admin/order-requests')) return 'Order Requests'
+  if (path.includes('/admin/deliveries')) return 'Delivery Management'
+  if (path.includes('/admin/platform-settings')) return 'Platform Settings'
   if (path.includes('/admin/orders')) return 'Orders Management'
   if (path.includes('/admin/companies')) return 'Companies'
   if (path.includes('/admin/products')) return 'Products'
