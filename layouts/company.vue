@@ -1,11 +1,7 @@
 <template>
   <div class="company-layout">
     <!-- Mobile Overlay -->
-    <div 
-      v-if="mobileMenuOpen" 
-      class="mobile-overlay"
-      @click="closeMobileMenu"
-    ></div>
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="closeMobileMenu"></div>
 
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed, 'sidebar-open': mobileMenuOpen }">
@@ -24,11 +20,8 @@
 
       <!-- Toggle Button (Always Visible) -->
       <div class="toggle-btn-container">
-        <button 
-          @click="toggleSidebar" 
-          class="toggle-btn"
-          :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        >
+        <button @click="toggleSidebar" class="toggle-btn"
+          :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
           <ChevronRightIcon v-if="sidebarCollapsed" class="h-5 w-5" />
           <ChevronLeftIcon v-else class="h-5 w-5" />
         </button>
@@ -36,13 +29,8 @@
 
       <!-- Navigation -->
       <nav class="sidebar-nav">
-        <NuxtLink 
-          v-for="item in navigationItems" 
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :title="sidebarCollapsed ? item.label : ''"
-        >
+        <NuxtLink v-for="item in navigationItems" :key="item.path" :to="item.path" class="nav-item"
+          :title="sidebarCollapsed ? item.label : ''">
           <component :is="item.icon" class="nav-icon" />
           <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
           <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
@@ -60,12 +48,7 @@
             <p class="user-role">{{ userRole }}</p>
           </div>
         </div>
-        <button 
-          v-if="!sidebarCollapsed"
-          @click="handleLogout" 
-          class="logout-btn"
-          :disabled="isLoggingOut"
-        >
+        <button v-if="!sidebarCollapsed" @click="handleLogout" class="logout-btn" :disabled="isLoggingOut">
           <ArrowPathIcon v-if="isLoggingOut" class="h-4 w-4 animate-spin" />
           <ArrowLeftOnRectangleIcon v-else class="h-4 w-4" />
           Logout
@@ -84,18 +67,18 @@
           </button>
           <!-- <h1 class="page-title">{{ pageTitle }}</h1> -->
         </div>
-        
+
         <div class="flex items-center gap-4">
           <!-- Notifications -->
           <button class="icon-btn" title="Notifications">
             <BellIcon class="h-5 w-5" />
           </button>
-          
+
           <!-- Settings -->
           <button class="icon-btn" title="Settings">
             <Cog6ToothIcon class="h-5 w-5" />
           </button>
-          
+
           <!-- User Menu -->
           <div class="user-menu">
             <button @click="toggleUserMenu" class="user-menu-btn">
@@ -103,7 +86,7 @@
               <span class="user-menu-text">{{ userName }}</span>
               <ChevronDownIcon class="h-4 w-4 user-menu-chevron" />
             </button>
-            
+
             <div v-if="showUserMenu" class="user-menu-dropdown">
               <NuxtLink to="/profile" class="menu-item">
                 <UserIcon class="h-4 w-4" />
@@ -135,12 +118,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
-import { 
-  BuildingOffice2Icon, 
-  UserIcon, 
-  BellIcon, 
-  Cog6ToothIcon, 
-  ChevronDownIcon, 
+import {
+  BuildingOffice2Icon,
+  UserIcon,
+  BellIcon,
+  Cog6ToothIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowLeftOnRectangleIcon,
@@ -202,6 +185,11 @@ const navigationItems = computed(() => [
     path: `/${companyDomain.value}/services/user-access`,
     label: 'User Access',
     icon: UserGroupIcon,
+  },
+  {
+    path: `/${companyDomain.value}/services/store-settings`,
+    label: 'Store Settings',
+    icon: Cog6ToothIcon,
   },
 ])
 
@@ -658,24 +646,24 @@ watchEffect(() => {
     transition: transform 0.3s ease;
     width: 280px;
   }
-  
+
   .sidebar.sidebar-open {
     transform: translateX(0);
   }
-  
+
   .sidebar.sidebar-collapsed {
     width: 280px;
   }
-  
+
   .main-content {
     margin-left: 0;
     width: 100%;
   }
-  
+
   .top-bar {
     padding: 1rem;
   }
-  
+
   .page-content {
     padding: 1rem;
   }
@@ -704,7 +692,7 @@ watchEffect(() => {
   .top-bar {
     padding: 0.75rem;
   }
-  
+
   .page-content {
     padding: 0.75rem;
   }

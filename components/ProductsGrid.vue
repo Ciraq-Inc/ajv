@@ -27,12 +27,8 @@
           <!-- Image Section -->
           <div class="flex flex-col">
             <!-- Use product image or a placeholder with lazy loading -->
-            <img 
-              :src="getImageURL(product) || '/placeholder-med.svg'"
-              :alt="product.brandName"
-              loading="lazy"
-              :onerror="handleImageError"
-              class="w-[90px] h-[80px] rounded object-cover cursor-pointer" />
+            <img :src="getImageURL(product) || '/placeholder-med.svg'" :alt="product.brandName" loading="lazy"
+              :onerror="handleImageError" class="w-[90px] h-[80px] rounded object-cover cursor-pointer" />
           </div>
 
           <!-- Content Section -->
@@ -45,10 +41,11 @@
             </h3> -->
 
             <div class="text-xs text-gray-800 font-semibold flex justify-between">
-              <div>
+              <div v-if="!props.hidePrices">
                 GHS {{ formatPrice(product.sellingPrice) }}
                 <span class="text-gray-500 text-xs ml-1">/ {{ product.unit || 'unit' }}</span>
               </div>
+              <div v-else class="text-gray-400 text-xs italic">Price on request</div>
               <div class="flex items-center">
                 <button @click="decreaseQuantity(product)" :disabled="product.quantity <= 1"
                   class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-l disabled:opacity-50">
@@ -99,6 +96,10 @@ const props = defineProps({
   searchQuery: {
     type: String,
     default: ''
+  },
+  hidePrices: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -119,13 +120,13 @@ const imageUrlCache = new Map();
 
 const getImageURL = (product) => {
   if (!product || !product.uniqid || product.uniqid == 0) return '/placeholder-med.svg';
-  
+
   // Check cache first
   const cacheKey = product.uniqid;
   if (imageUrlCache.has(cacheKey)) {
     return imageUrlCache.get(cacheKey);
   }
-  
+
   // Generate URL and cache it
   const imageUrl = `https://firebasestorage.googleapis.com/v0/b/referral-system-5cebe.appspot.com/o/masterproducts%2F${product.uniqid}.jpg?alt=media`;
   imageUrlCache.set(cacheKey, imageUrl);
@@ -140,17 +141,17 @@ const handleImageError = (event) => {
 
 const initializeProductItems = () => {
   // Use passed products prop if available, otherwise fall back to store
-  const sourceProducts = props.products && props.products.length > 0 
-    ? props.products 
+  const sourceProducts = props.products && props.products.length > 0
+    ? props.products
     : pharmacyStore.products;
-    
+
   if (Array.isArray(sourceProducts)) {
     productItems.value = sourceProducts.map(product => ({
       ...product,
       quantity: 1,
       justAdded: false
     }));
-    
+
     // Clear image cache when products change to free memory
     if (imageUrlCache.size > 100) {
       imageUrlCache.clear();
@@ -161,7 +162,7 @@ const initializeProductItems = () => {
 // Fetch products if not already loaded
 onMounted(async () => {
   if (isFetching.value) return; // Prevent duplicate fetches
-  
+
   if (pharmacyStore.isLoading) {
     // If the main store is already loading, wait for it
     watch(() => pharmacyStore.isLoading, (newVal) => {
@@ -174,15 +175,15 @@ onMounted(async () => {
   } else {
     try {
       // If products aren't loaded yet and we're not already loading, fetch them
-      if ((!pharmacyStore.products || pharmacyStore.products.length === 0) && 
-          pharmacyStore.currentPharmacy && !isFetching.value) {
+      if ((!pharmacyStore.products || pharmacyStore.products.length === 0) &&
+        pharmacyStore.currentPharmacy && !isFetching.value) {
 
         isFetching.value = true;
         // Call the explicit fetchProducts method
         await pharmacyStore.fetchProducts();
       }
-            // Initialize productItems
-            initializeProductItems();
+      // Initialize productItems
+      initializeProductItems();
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -210,8 +211,8 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
     try {
       // Explicitly fetch products when pharmacy changes
       await pharmacyStore.fetchProducts();
-            // Reinitialize productItems
-            initializeProductItems();
+      // Reinitialize productItems
+      initializeProductItems();
     } catch (error) {
       console.error('Error fetching products for pharmacy:', error);
     } finally {
@@ -224,15 +225,15 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
 // Enhanced computed property with safety checks
 const filteredProducts = computed(() => {
   const query = props.searchQuery || '';
-  
+
   // If no search query, return all productItems
   if (!query.trim()) {
     return productItems.value;
   }
-  
+
   // Filter by search query
-  return productItems.value.filter(product => 
-    product.brandName && 
+  return productItems.value.filter(product =>
+    product.brandName &&
     product.brandName.toLowerCase().includes(query.toLowerCase())
   );
 });
@@ -254,7 +255,7 @@ const decreaseQuantity = (product) => {
 
 const handleAddToCart = (product) => {
   if (product.stockQty <= 0) return;
-  
+
   // Format the product data to match cart store expectations
   cartStore.addToCart({
     id: product.id,
@@ -265,10 +266,10 @@ const handleAddToCart = (product) => {
     pharmacyId: pharmacyStore.currentPharmacy,
     unit: product.unit || 'unit'
   });
-  
+
   // Set justAdded to true
   product.justAdded = true;
-  
+
   // Reset justAdded after 2 seconds
   setTimeout(() => {
     product.justAdded = false;

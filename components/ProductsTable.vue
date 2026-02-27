@@ -8,7 +8,7 @@
       </div>
       <p class="mt-2 text-gray-600">Loading products...</p>
     </div>
-    
+
     <!-- Empty state -->
     <div v-else-if="!filteredProducts.length" class="p-8 text-center bg-white rounded-lg shadow-md">
       <div class="mb-3 text-gray-400">
@@ -19,14 +19,15 @@
         {{ searchQuery ? 'Try adjusting your search query' : 'This pharmacy has no products listed yet' }}
       </p>
     </div>
-    
+
     <!-- Products table -->
     <div v-else class="bg-white rounded-lg shadow-md overflow-x-auto w-full">
       <table class="w-full min-w-full table-fixed">
         <thead class="bg-gray-600 border-b">
           <tr>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
-            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Price</th>
+            <th v-if="!props.hidePrices" class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">
+              Price</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Unit</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Stock Status</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Quantity</th>
@@ -38,7 +39,7 @@
             <td class="p-3 text-sm font-medium text-gray-900">
               {{ product.brandName }}
             </td>
-            <td class="p-3 text-sm text-gray-900">
+            <td v-if="!props.hidePrices" class="p-3 text-sm text-gray-900">
               GHS {{ formatPrice(product.sellingPrice) }}
             </td>
             <td class="p-3 text-sm text-gray-900">
@@ -51,8 +52,7 @@
                   ? 'bg-red-100 text-red-800'
                   : 'bg-green-100 text-green-800'
               ]">
-                {{ product.stockQty <= 0 ? 'Out of Stock' : 'In Stock' }}
-              </span>
+                {{ product.stockQty <= 0 ? 'Out of Stock' : 'In Stock' }} </span>
             </td>
             <td class="p-3">
               <div class="flex items-center">
@@ -70,16 +70,14 @@
               </div>
             </td>
             <td class="p-3">
-              <button @click="handleAddToCart(product)" 
-                :disabled="product.stockQty <= 0"
-                :class="[
-                  'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
-                  {
-                    'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400': !product.justAdded,
-                    'bg-green-700 text-white transform scale-95 cursor-default': product.justAdded,
-                    'cursor-not-allowed': product.stockQty <= 0
-                  }
-                ]">
+              <button @click="handleAddToCart(product)" :disabled="product.stockQty <= 0" :class="[
+                'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
+                {
+                  'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400': !product.justAdded,
+                  'bg-green-700 text-white transform scale-95 cursor-default': product.justAdded,
+                  'cursor-not-allowed': product.stockQty <= 0
+                }
+              ]">
                 <i class="ri-shopping-cart-line text-xs mr-1"></i>
                 {{ product.justAdded ? 'Added!' : 'Add to cart' }}
               </button>
@@ -107,6 +105,10 @@ const props = defineProps({
   searchQuery: {
     type: String,
     default: ''
+  },
+  hidePrices: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -124,10 +126,10 @@ const pharmacySlug = computed(() => route.params.pharmacy);
 
 const initializeProductItems = () => {
   // Use passed products prop if available, otherwise fall back to store
-  const sourceProducts = props.products && props.products.length > 0 
-    ? props.products 
+  const sourceProducts = props.products && props.products.length > 0
+    ? props.products
     : pharmacyStore.products;
-    
+
   if (Array.isArray(sourceProducts)) {
     productItems.value = sourceProducts.map(product => ({
       ...product,
@@ -140,7 +142,7 @@ const initializeProductItems = () => {
 // Fetch products if not already loaded
 onMounted(async () => {
   if (isFetching.value) return; // Prevent duplicate fetches
-  
+
   if (pharmacyStore.isLoading) {
     // If the main store is already loading, wait for it
     watch(() => pharmacyStore.isLoading, (newVal) => {
@@ -153,8 +155,8 @@ onMounted(async () => {
   } else {
     try {
       // If products aren't loaded yet and we're not already loading, fetch them
-      if ((!pharmacyStore.products || pharmacyStore.products.length === 0) && 
-          pharmacyStore.currentPharmacy && !isFetching.value) {
+      if ((!pharmacyStore.products || pharmacyStore.products.length === 0) &&
+        pharmacyStore.currentPharmacy && !isFetching.value) {
 
         isFetching.value = true;
         // Call the explicit fetchProducts method
@@ -204,15 +206,15 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
 // Enhanced computed property with safety checks
 const filteredProducts = computed(() => {
   const query = props.searchQuery || '';
-  
+
   // If no search query, return all productItems
   if (!query.trim()) {
     return productItems.value;
   }
-  
+
   // Filter by search query
-  return productItems.value.filter(product => 
-    product.brandName && 
+  return productItems.value.filter(product =>
+    product.brandName &&
     product.brandName.toLowerCase().includes(query.toLowerCase())
   );
 });
@@ -249,7 +251,7 @@ const getCartQuantity = (productId) => {
 
 const handleAddToCart = (product) => {
   if (product.stockQty <= 0) return;
-  
+
   // Format the product data to match cart store expectations
   cartStore.addToCart({
     id: product.id,
@@ -260,10 +262,10 @@ const handleAddToCart = (product) => {
     pharmacyId: pharmacyStore.currentPharmacy,
     unit: product.unit || 'unit'
   });
-  
+
   // Set justAdded to true
   product.justAdded = true;
-  
+
   // Reset justAdded after 2 seconds
   setTimeout(() => {
     product.justAdded = false;

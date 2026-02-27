@@ -37,7 +37,8 @@
               <img v-if="item.image" :src="item.image" :alt="item.name" class="w-12 h-12 mr-3 object-cover rounded" />
               <div>
                 <h3 class="font-semibold text-sm">{{ item.name }}</h3>
-                <p class="text-sm text-gray-500">GHS {{ formatPrice(item.price) }}</p>
+                <p v-if="!pharmacyStore.pharmacyData?.hide_prices" class="text-sm text-gray-500">GHS {{
+                  formatPrice(item.price) }}</p>
               </div>
             </div>
 
@@ -63,11 +64,10 @@
       <!-- Sticky footer with total and checkout -->
       <div v-if="items.length > 0" class="border-t border-gray-200 p-4 sm:p-5 bg-white">
         <div class="flex justify-between items-center mb-4">
-          <button @click="toggleCart"
-            class="text-blue-600 hover:text-blue-800 transition-colors flex items-center">
+          <button @click="toggleCart" class="text-blue-600 hover:text-blue-800 transition-colors flex items-center">
             <i class="ri-arrow-left-line mr-1"></i>Continue Shopping
           </button>
-          <div class="flex items-center">
+          <div v-if="!pharmacyStore.pharmacyData?.hide_prices" class="flex items-center">
             <span class="font-semibold mr-2">Total:</span>
             <span class="font-bold">GHS{{ formatPrice(cartTotal) }}</span>
           </div>
@@ -82,9 +82,12 @@
             class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
             :disabled="isProcessingOrder">
             <span v-if="isProcessingOrder" class="flex items-center justify-center">
-              <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
               </svg>
               Processing...
             </span>
@@ -101,11 +104,8 @@
 
   <!-- Login Modal -->
   <ClientOnly>
-    <Login
-      v-if="showLoginModal" 
-      :is-open="showLoginModal"
-      @close="closeLoginModal"
-      @login-success="handleLoginSuccess"/>
+    <Login v-if="showLoginModal" :is-open="showLoginModal" @close="closeLoginModal"
+      @login-success="handleLoginSuccess" />
   </ClientOnly>
 
 </template>
@@ -144,7 +144,7 @@ const toggleCart = () => {
 };
 
 const sendWhatsAppMessage = () => {
-  let phoneNumber = pharmacyStore.pharmacyData?.whatsapp_number 
+  let phoneNumber = pharmacyStore.pharmacyData?.whatsapp_number
 
   console.log("phoneNumber", phoneNumber)
   // Extract the first phone number if multiple are provided with a separator
@@ -177,9 +177,13 @@ const sendWhatsAppMessage = () => {
 };
 
 const generateWhatsAppMessage = () => {
+  const hidePrices = pharmacyStore.pharmacyData?.hide_prices;
+
   // Format each item with proper spacing and alignment
   const itemDetails = items.value.map((item, index) =>
-    `${index + 1}. ${item.name} - *${item.quantity}*`
+    hidePrices
+      ? `${index + 1}. ${item.name} - *${item.quantity}*`
+      : `${index + 1}. ${item.name} - *${item.quantity}* (GHS ${formatPrice(item.price * item.quantity)})`
   ).join('\n');
 
   // Get pharmacy name and location
@@ -191,15 +195,15 @@ const generateWhatsAppMessage = () => {
   const dateString = now.toLocaleDateString('en-GB');
   const timeString = now.toLocaleTimeString('en-GB');
 
+  const totalLine = hidePrices ? '' : `\n*Total Amount: GHS${formatPrice(cartTotal.value)}*`;
+
   // Generate a more structured message
   return `*ORDER REQUEST*
 Date: ${dateString} | Time: ${timeString}
 
 Hello, I would like to order the following items from *${pharmacyName}*${pharmacyLocation}:
 
-${itemDetails}
-
-*Total Amount: GHS${formatPrice(cartTotal.value)}*
+${itemDetails}${totalLine}
 
 Please confirm if these items are available for delivery or pickup.
 Thank you!`;
@@ -208,7 +212,7 @@ Thank you!`;
 // Handle direct order
 const handleDirectOrder = () => {
   errorMessage.value = ''; // Clear any previous errors
-  
+
   // Check if user is logged in
   if (!userStore.isLoggedIn) {
     // Show login modal if not logged in
@@ -225,29 +229,29 @@ const processDirectOrder = async () => {
     errorMessage.value = 'Pharmacy information is missing. Please try again.';
     return;
   }
-  
+
   try {
     // Show loading state
     isProcessingOrder.value = true;
     errorMessage.value = '';
-    
+
     // Calculate order summary from cart items before clearing
     const orderSummary = {
       totalItems: items.value.length,
       totalQuantity: items.value.reduce((sum, item) => sum + item.quantity, 0),
       totalAmount: items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     };
-    
+
     // Process the order through the user store
     const orderResult = await userStore.processDirectOrder(
       items.value,
       pharmacyStore.currentPharmacy
     );
-    
+
     // After successful order, clear cart and close sidebar
     cartStore.clearCart();
     toggleCart();
-    
+
     // Emit order success event with order data and summary
     emit('order-success', {
       ...orderResult.orderData,

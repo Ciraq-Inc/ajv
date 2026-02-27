@@ -130,7 +130,8 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    <span class="font-medium">GHS{{ formatCartTotal }}</span>
+                    <span v-if="!pharmacyStore.pharmacyData?.hide_prices" class="font-medium">GHS{{ formatCartTotal
+                      }}</span>
 
                     <span v-if="cartStore.cartItemCount > 0"
                       class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -366,10 +367,11 @@
         <!-- Products display -->
         <template v-else>
           <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="''"
-            class="hidden lg:flex" @item-added-to-cart="clearSearchAfterAddToCart" />
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex"
+            @item-added-to-cart="clearSearchAfterAddToCart" />
 
           <ProductsGrid v-else :products="displayProducts" :search-query="''"
-            @item-added-to-cart="clearSearchAfterAddToCart" />
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" @item-added-to-cart="clearSearchAfterAddToCart" />
         </template>
       </div>
     </div>
@@ -477,7 +479,7 @@ const formatCartTotal = computed(() => {
 });
 
 const whatsappLink = computed(() => {
-  let formattedPhone = pharmacyStore.pharmacyData?.whatsapp_number ;
+  let formattedPhone = pharmacyStore.pharmacyData?.whatsapp_number;
 
   // Extract the first phone number if multiple are provided with a separator
   if (formattedPhone.includes("/")) {
