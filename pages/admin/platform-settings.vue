@@ -24,7 +24,7 @@
           <div class="section-icon">📋</div>
           <div>
             <h3>Order Processing</h3>
-            <p>Configure request fees, markup rates, and pharmacy search</p>
+            <p>Configure request fees, markup rates, pharmacy search, and automatic refund timing</p>
           </div>
         </div>
         <div class="settings-grid">
@@ -114,7 +114,7 @@ const message = ref(null)
 const originalSettings = reactive({})
 const editedSettings = reactive({})
 
-const orderKeys = ['request_submission_fee', 'order_markup_rate', 'max_pharmacy_retries', 'max_pharmacy_search_radius_km']
+const orderKeys = ['request_submission_fee', 'request_no_response_refund_minutes', 'order_markup_rate', 'max_pharmacy_retries', 'max_pharmacy_search_radius_km']
 const paymentKeys = ['paystack_public_key', 'paystack_secret_key']
 const deliveryKeys = ['delivery_fee_per_km', 'openrouteservice_api_key']
 const systemKeys = ['require_login_to_browse']
@@ -179,7 +179,7 @@ const saveAll = async () => {
 
 const formatLabel = (key) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 const getInputType = (key) => {
-  if (key.includes('fee') || key.includes('rate') || key.includes('radius') || key.includes('retries') || key.includes('per_km')) return 'number'
+  if (key.includes('fee') || key.includes('rate') || key.includes('radius') || key.includes('retries') || key.includes('per_km') || key.includes('minutes')) return 'number'
   return 'text'
 }
 const isDecimal = (key) => key.includes('fee') || key.includes('rate') || key.includes('per_km')

@@ -426,11 +426,22 @@
 
     <!-- Login Modal -->
     <Login :is-open="showLoginModal" @close="closeLoginModal" @login-success="handleLoginSuccess" />
+    <ConfirmDialog
+      :is-open="showLogoutConfirm"
+      title="Log out?"
+      message="You will return to the home page and will need to sign in again to continue."
+      confirm-text="Log Out"
+      cancel-text="Stay Here"
+      variant="danger"
+      @close="showLogoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </div>
 </template>
 
 <script setup>
 import { useRouter, useRoute } from "vue-router";
+import ConfirmDialog from "~/components/ConfirmDialog.vue";
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useCartStore } from "~/stores/cart";
 import { useUserStore } from "~/stores/user";
@@ -458,6 +469,7 @@ const isSearching = ref(false);
 const searchResults = ref([]);
 const searchDebounceTimer = ref(null);
 const showLoginModal = ref(false);
+const showLogoutConfirm = ref(false);
 
 // Order success state
 const orderSuccessMessage = ref("");
@@ -679,9 +691,15 @@ const refreshData = async () => {
   }
 };
 
-const handleLogout = async () => {
+const handleLogout = () => {
+  showLogoutConfirm.value = true;
+};
+
+const confirmLogout = async () => {
   try {
     await userStore.logout();
+    showLogoutConfirm.value = false;
+    navigateTo({ path: '/', query: { logged_out: Date.now().toString() } });
   } catch (error) {
     console.error("Logout failed:", error);
   }
@@ -696,8 +714,14 @@ const closeLoginModal = () => {
   showLoginModal.value = false;
 };
 
-const handleLoginSuccess = async () => {
+const handleLoginSuccess = async (payload = {}) => {
   closeLoginModal();
+
+  if (payload.destination === 'new') {
+    await navigateTo('/customer?tab=new');
+    return;
+  }
+
   // User state will be updated automatically by the store
   // Load user stats to ensure fresh data
   if (userStore.isLoggedIn) {

@@ -422,7 +422,11 @@ const goShopping = () => {
 };
 
 // Handle login success
-const handleLoginSuccess = async () => {
+const handleLoginSuccess = async (payload = {}) => {
+  if (payload.destination === 'new') {
+    navigateTo('/customer?tab=new');
+    return;
+  }
   showLoginModal.value = false;
   await fetchOrders();
 };

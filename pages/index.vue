@@ -1,464 +1,322 @@
-<!-- pages/index.vue - Customer Order Request Page -->
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-    <!-- <Navbar /> -->
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(186,230,253,0.72),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(125,211,252,0.55),_transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef6ff_44%,#f8fafc_100%)]">
+    <div class="container mx-auto max-w-6xl px-4 pb-12 pt-20">
+      <div v-if="!authResolved" class="space-y-6">
+        <section class="rounded-[32px] border border-sky-100 bg-white/90 p-5 shadow-[0_28px_80px_rgba(14,116,144,0.10)] backdrop-blur sm:p-8">
+          <div class="grid gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-stretch">
+            <div class="rounded-3xl bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(135deg,#0f172a_0%,#1d4ed8_54%,#0891b2_100%)] p-6 text-white sm:p-8">
+              <div class="h-7 w-24 animate-pulse rounded-full bg-white/15"></div>
+              <div class="mt-5 h-10 w-3/4 animate-pulse rounded-2xl bg-white/15"></div>
+              <div class="mt-3 h-5 w-5/6 animate-pulse rounded-xl bg-white/10"></div>
+              <div class="mt-2 h-5 w-2/3 animate-pulse rounded-xl bg-white/10"></div>
+              <div class="mt-6 grid gap-3 sm:grid-cols-3">
+                <div class="h-20 animate-pulse rounded-2xl bg-white/10"></div>
+                <div class="h-20 animate-pulse rounded-2xl bg-white/10"></div>
+                <div class="h-20 animate-pulse rounded-2xl bg-white/10"></div>
+              </div>
+            </div>
 
-    <div class="container mx-auto px-4 pt-24 pb-12 max-w-5xl">
+            <div class="grid gap-4">
+              <div class="h-36 animate-pulse rounded-3xl border border-sky-100 bg-white"></div>
+              <div class="h-36 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
+            </div>
+          </div>
+        </section>
 
-      <!-- Hero Section -->
-      <div class="text-center mb-8">
-        <h1 class="text-3xl lg:text-5xl font-bold text-gray-900 mb-3 leading-tight">
-          Need Meds? Get Them Delivered, <span class="text-indigo-600">Fast.</span>
-        </h1>
-        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-          Tell us what you need — we'll find it at the nearest pharmacy and arrange delivery to your door.
-        </p>
+        <section class="rounded-[30px] border border-sky-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(240,249,255,0.94))] p-6 shadow-[0_20px_60px_rgba(14,116,144,0.08)]">
+          <div class="grid gap-4 md:grid-cols-3">
+            <div class="h-24 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
+            <div class="h-24 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
+            <div class="h-24 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
+          </div>
+        </section>
       </div>
 
-      <!-- Wallet Banner (if logged in) -->
-      <div v-if="userStore.isLoggedIn"
-        class="bg-white rounded-2xl shadow-sm border border-indigo-100 p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-            <i class="ri-wallet-3-line text-indigo-600 text-xl"></i>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500 font-medium">Wallet Balance</p>
-            <p class="text-xl font-bold text-gray-900">GHS {{ walletBalance.toFixed(2) }}</p>
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <button @click="showTopUpModal = true"
-            class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-1.5">
-            <i class="ri-add-line"></i> Top Up
-          </button>
-          <button @click="activeView = 'requests'"
-            class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5">
-            <i class="ri-file-list-3-line"></i> My Requests
-          </button>
-        </div>
-      </div>
-
-      <!-- Tab Navigation -->
-      <div class="flex gap-2 mb-6">
-        <button @click="activeView = 'new'"
-          class="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-all"
-          :class="activeView === 'new' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'">
-          <i class="ri-add-circle-line"></i> New Request
-        </button>
-        <button v-if="userStore.isLoggedIn" @click="activeView = 'requests'; fetchMyRequests()"
-          class="flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-all"
-          :class="activeView === 'requests' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'">
-          <i class="ri-history-line"></i> My Requests
-          <span v-if="myRequests.length" class="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{{ myRequests.length
-          }}</span>
+      <div v-else>
+      <div v-if="!userStore.isLoggedIn" class="mb-4 flex justify-end sm:hidden">
+        <button
+          @click="showLoginModal = true"
+          class="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50"
+        >
+          <i class="ri-user-line text-base"></i> Sign In
         </button>
       </div>
+      <section class="mb-8 rounded-[32px] border border-sky-100 bg-white/90 p-5 shadow-[0_28px_80px_rgba(14,116,144,0.10)] backdrop-blur sm:p-8">
+        <div class="grid gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-stretch">
+          <div class="rounded-3xl bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_34%),linear-gradient(135deg,#0f172a_0%,#1d4ed8_54%,#0891b2_100%)] p-6 text-white sm:p-8">
+            <div class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+              {{ userStore.isLoggedIn ? 'MedsGH' : '215+ pharmacy partners' }}
+            </div>
+            <h1 class="mt-4 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+              Search 215+ pharmacy shelves in under 60 seconds.
+            </h1>
+            <p class="mt-4 max-w-2xl text-sm leading-7 text-sky-100 sm:text-base">
+              Stop calling around. One request alerts nearby pharmacies to confirm stock, quote clearly, and get your medicines moving.
+            </p>
 
-      <!-- ============= NEW REQUEST VIEW ============= -->
-      <div v-if="activeView === 'new'">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <!-- Step indicator -->
-          <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-6 py-4">
-            <div class="flex items-center justify-center gap-3">
-              <div v-for="(step, i) in steps" :key="i" class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all"
-                  :class="currentStep === i ? 'bg-white text-indigo-600 scale-110' : currentStep > i ? 'bg-white/80 text-indigo-600' : 'bg-white/20 text-white/70'">
-                  <i v-if="currentStep > i" class="ri-check-line"></i>
-                  <span v-else>{{ i + 1 }}</span>
-                </div>
-                <span v-if="i < steps.length - 1" class="hidden sm:inline text-sm text-white/50 font-medium">{{ step
-                }}</span>
-                <div v-if="i < steps.length - 1" class="w-6 sm:w-10 h-0.5 rounded-full"
-                  :class="currentStep > i ? 'bg-white/80' : 'bg-white/20'"></div>
+            <div v-if="!userStore.isLoggedIn" class="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-100">
+              <span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">Licensed pharmacy network</span>
+              <span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">Secure Paystack payments</span>
+              <span class="rounded-full border border-white/10 bg-white/10 px-3 py-1">Protected customer data</span>
+            </div>
+
+            <div class="mt-6 grid gap-3 sm:grid-cols-3">
+              <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">{{ userStore.isLoggedIn ? 'Requests' : 'Pharmacies' }}</p>
+                <p class="mt-1 text-xl font-bold">{{ userStore.isLoggedIn ? myRequests.length : '215+' }}</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">{{ userStore.isLoggedIn ? 'Active' : 'Response time' }}</p>
+                <p class="mt-1 text-xl font-bold">{{ userStore.isLoggedIn ? activeRequestCount : '< 60s' }}</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">{{ userStore.isLoggedIn ? 'Access' : 'Payments' }}</p>
+                <p class="mt-1 text-sm font-semibold">{{ userStore.isLoggedIn ? 'Signed in' : 'Paystack secure' }}</p>
               </div>
             </div>
-          </div>
 
-          <div class="p-6 lg:p-8">
-            <!-- STEP 0: Items List -->
-            <div v-if="currentStep === 0">
-              <h3 class="text-xl font-bold text-gray-900 mb-1">What do you need?</h3>
-              <p class="text-sm text-gray-500 mb-5">Add each medicine or product you'd like us to find.</p>
-
-              <!-- Items -->
-              <div class="space-y-3 mb-4">
-                <div v-for="(item, index) in requestItems" :key="index"
-                  class="flex items-center gap-3 bg-gray-50 rounded-xl p-3 border border-gray-100 group relative">
-                  <div
-                    class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
-                    {{ index + 1 }}
-                  </div>
-                  <div class="flex-1 relative">
-                    <input v-model="item.product_name" type="text" placeholder="e.g. Paracetamol 500mg"
-                      class="w-full bg-transparent border-0 text-gray-900 text-sm font-medium placeholder-gray-400 focus:ring-0 focus:outline-none"
-                      @input="onProductInput(item)" @focus="onProductInput(item)" @blur="closeDropdown(item)" />
-
-                    <!-- Search Dropdown -->
-                    <div v-if="item.showDropdown && (item.searchResults.length || item.loading)"
-                      class="absolute top-full left-0 right-0 bg-white border border-gray-100 rounded-lg shadow-lg z-50 mt-1 max-h-48 overflow-y-auto">
-                      <div v-if="item.loading" class="p-3 text-xs text-gray-500 flex items-center gap-2">
-                        <i class="ri-loader-4-line animate-spin"></i> Searching...
-                      </div>
-                      <template v-else>
-                        <div v-for="res in item.searchResults" :key="res.id"
-                          @mousedown.prevent="selectProduct(item, res)"
-                          class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors">
-                          <div class="font-medium text-gray-900 text-sm">{{ res.product_description }}</div>
-                          <div class="text-xs text-gray-500 mt-0.5">
-                            {{ [res.strength, res.unit].filter(Boolean).join(' • ') }}
-                          </div>
-                        </div>
-                        <div v-if="item.searchResults.length === 0 && item.product_name.length > 2"
-                          class="p-3 text-xs text-gray-500 italic">
-                          No matches found. Using custom entry.
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                  <input v-model.number="item.quantity" type="number" min="1" placeholder="Qty"
-                    class="w-16 text-center bg-white border border-gray-200 rounded-lg py-1.5 text-sm font-medium text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-                  <button v-if="requestItems.length > 1" @click="removeItem(index)"
-                    class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all p-1">
-                    <i class="ri-delete-bin-line text-lg"></i>
-                  </button>
-                </div>
-              </div>
-
-              <button @click="addItem"
-                class="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                <i class="ri-add-line text-lg"></i> Add Another Item
+            <div class="mt-6 flex flex-wrap gap-3">
+              <button @click="handlePrimaryAction" class="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-sky-800 transition hover:bg-sky-50">
+                <i class="ri-layout-grid-line text-lg"></i> {{ userStore.isLoggedIn ? 'Open My Requests' : 'Start Your First Request' }}
               </button>
-
-              <!-- Prescription Upload -->
-              <div class="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <div class="flex items-start gap-3">
-                  <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <i class="ri-camera-line text-blue-600 text-xl"></i>
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-sm font-semibold text-gray-900 mb-1">Have a prescription?</p>
-                    <p class="text-xs text-gray-600 mb-2">Upload a photo and we'll process the items for you</p>
-                    <label
-                      class="cursor-pointer inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700">
-                      <i class="ri-upload-2-line"></i>
-                      {{ prescriptionFile ? prescriptionFile.name : 'Choose Photo' }}
-                      <input type="file" accept="image/*" @change="handlePrescription" class="hidden" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- STEP 1: Location & Delivery -->
-            <div v-if="currentStep === 1">
-              <h3 class="text-xl font-bold text-gray-900 mb-1">Delivery Details</h3>
-              <p class="text-sm text-gray-500 mb-5">Tell us where to deliver your order.</p>
-
-              <div class="space-y-4">
-                <!-- Get Current Location -->
-                <div>
-                  <button @click="getLocation" :disabled="gettingLocation"
-                    class="w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all"
-                    :class="customerLat ? 'border-green-200 bg-green-50' : 'border-gray-200 hover:border-indigo-300 bg-white'">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                      :class="customerLat ? 'bg-green-100' : 'bg-gray-100'">
-                      <i :class="customerLat ? 'ri-map-pin-fill text-green-600' : gettingLocation ? 'ri-loader-4-line text-gray-400 animate-spin' : 'ri-crosshair-2-line text-gray-500'"
-                        class="text-xl"></i>
-                    </div>
-                    <div class="text-left flex-1">
-                      <p class="text-sm font-semibold" :class="customerLat ? 'text-green-700' : 'text-gray-900'">{{
-                        locationLabel }}</p>
-                      <p class="text-xs" :class="customerLat ? 'text-green-600' : 'text-gray-500'">{{ locationSublabel
-                      }}</p>
-                    </div>
-                    <span v-if="customerLat" class="text-green-500"><i
-                        class="ri-checkbox-circle-fill text-2xl"></i></span>
-                  </button>
-                </div>
-
-                <!-- Delivery Address -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-1.5">Delivery Address</label>
-                  <div class="relative">
-                    <i class="ri-map-pin-line absolute left-3 top-3 text-gray-400"></i>
-                    <textarea v-model="deliveryAddress" rows="2"
-                      placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
-                      class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                  </div>
-                </div>
-
-                <!-- Additional Notes -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-1.5">Notes <span
-                      class="text-gray-400 font-normal">(optional)</span></label>
-                  <textarea v-model="customerNotes" rows="2"
-                    placeholder="Any special instructions, e.g. brand preference, dosage form..."
-                    class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                </div>
-              </div>
-            </div>
-
-            <!-- STEP 2: Review & Submit -->
-            <div v-if="currentStep === 2">
-              <h3 class="text-xl font-bold text-gray-900 mb-1">Review Your Request</h3>
-              <p class="text-sm text-gray-500 mb-5">Please confirm everything looks good.</p>
-
-              <!-- Login Prompt -->
-              <div v-if="!userStore.isLoggedIn"
-                class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex items-start gap-3">
-                <i class="ri-error-warning-line text-amber-500 text-xl mt-0.5"></i>
-                <div>
-                  <p class="text-sm font-semibold text-amber-800">Login required to submit</p>
-                  <p class="text-xs text-amber-700 mt-0.5">You need to be logged in so we can track your order and
-                    notify you.</p>
-                </div>
-              </div>
-
-              <!-- Summary -->
-              <div class="bg-gray-50 rounded-xl p-5 mb-5 space-y-4">
-                <div>
-                  <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Items ({{
-                    requestItems.length }})</p>
-                  <div class="space-y-1.5">
-                    <div v-for="(item, i) in validItems" :key="i" class="flex items-center justify-between">
-                      <span class="text-sm text-gray-800">{{ item.product_name }}</span>
-                      <span class="text-sm text-gray-500">× {{ item.quantity }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="prescriptionFile" class="flex items-center gap-2 text-sm text-blue-600">
-                  <i class="ri-attachment-2"></i> Prescription: {{ prescriptionFile.name }}
-                </div>
-                <div class="border-t border-gray-200 pt-3 space-y-1.5">
-                  <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">📍 Location</span>
-                    <span class="text-gray-800">{{ customerLat ? 'Set' : 'Not set' }}</span>
-                  </div>
-                  <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">🏠 Address</span>
-                    <span class="text-gray-800 text-right max-w-[60%]">{{ deliveryAddress || 'Not provided' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Fee info -->
-              <div class="bg-indigo-50 rounded-xl p-4 flex items-center gap-3">
-                <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <i class="ri-money-cny-circle-line text-indigo-600 text-xl"></i>
-                </div>
-                <div>
-                  <p class="text-sm font-semibold text-gray-900">A small request fee may be deducted from your wallet
-                  </p>
-                  <p class="text-xs text-gray-500 mt-0.5">Prices will be shared with you before any payment is taken</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Navigation Buttons -->
-            <div class="flex items-center justify-between mt-8 pt-5 border-t border-gray-100">
-              <button v-if="currentStep > 0" @click="currentStep--"
-                class="text-sm font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1">
-                <i class="ri-arrow-left-s-line text-lg"></i> Back
-              </button>
-              <div v-else></div>
-
-              <button v-if="currentStep < 2" @click="nextStep" :disabled="!canProceed"
-                class="px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5 shadow-sm shadow-indigo-200">
-                Continue <i class="ri-arrow-right-s-line text-lg"></i>
-              </button>
-
-              <button v-else @click="submitRequest" :disabled="!canSubmit || isSubmitting"
-                class="px-8 py-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold rounded-xl hover:shadow-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-2">
-                <span v-if="isSubmitting" class="flex items-center gap-2">
-                  <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                  </svg>
-                  Submitting...
-                </span>
-                <span v-else>
-                  <i class="ri-send-plane-fill"></i> Submit Request
-                </span>
+              <button v-if="userStore.isLoggedIn" @click="fetchMyRequests" class="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15">
+                <i class="ri-refresh-line text-lg"></i> Refresh Activity
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ============= MY REQUESTS VIEW ============= -->
-      <div v-if="activeView === 'requests'">
-        <div v-if="loadingRequests" class="text-center py-16">
-          <svg class="animate-spin h-8 w-8 mx-auto text-indigo-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none"
-            viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-            </path>
-          </svg>
-          <p class="text-gray-500 text-sm">Loading your requests...</p>
-        </div>
+          <div class="grid gap-4">
+            <div v-if="userStore.isLoggedIn" class="rounded-3xl border border-sky-100 bg-slate-950 p-5 text-white shadow-sm">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-200">Wallet</p>
+              <p class="mt-2 text-3xl font-bold">GHS {{ walletBalance.toFixed(2) }}</p>
+              <p class="mt-2 text-sm text-slate-300">Top up here, then continue with your requests and payments in one place.</p>
+              <div class="mt-5 flex gap-2">
+                <button @click="showTopUpModal = true" class="flex-1 rounded-2xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-400">
+                  Top Up
+                </button>
+                <button @click="goToCustomerPortal" class="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:bg-white/10">
+                  Open Requests
+                </button>
+              </div>
+            </div>
 
-        <div v-else-if="myRequests.length === 0" class="text-center py-16">
-          <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="ri-file-list-3-line text-3xl text-gray-400"></i>
+            <div v-else class="rounded-3xl border border-amber-100 bg-amber-50 p-5 shadow-sm">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700">Trusted by patients</p>
+              <p class="mt-2 text-lg font-bold text-slate-900">Join 5,000+ Ghanaians using MedsGH to skip the pharmacy queue.</p>
+              <p class="mt-2 text-sm leading-6 text-slate-600">Sign in once, send one request, and keep your updates, quotes, and payments in one place.</p>
+            </div>
+
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Why it works</p>
+              <div class="mt-4 space-y-3 text-sm text-slate-700">
+                <p>One request can reach licensed pharmacies faster than calling around yourself.</p>
+                <p>You see clear responses, delivery progress, and payment history without juggling multiple chats.</p>
+                <p>You sign in once, then move straight into your first medicine request.</p>
+              </div>
+            </div>
           </div>
-          <p class="text-gray-600 font-semibold mb-1">No requests yet</p>
-          <p class="text-sm text-gray-400 mb-4">Submit your first order request to get started</p>
-          <button @click="activeView = 'new'"
-            class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
-            <i class="ri-add-line"></i> New Request
-          </button>
+        </div>
+      </section>
+
+      <section v-if="userStore.isLoggedIn" class="space-y-5">
+        <div class="grid gap-4 md:grid-cols-3">
+          <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Total requests</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900">{{ myRequests.length }}</p>
+          </div>
+          <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Active requests</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900">{{ activeRequestCount }}</p>
+          </div>
+          <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Completed</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900">{{ completedRequestCount }}</p>
+          </div>
         </div>
 
-        <div v-else class="space-y-4">
-          <div v-for="req in myRequests" :key="req.id"
-            class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-            @click="viewRequestDetail(req)">
-            <div class="p-5">
-              <div class="flex items-start justify-between mb-3">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Recent requests</p>
+              <h2 class="mt-2 text-xl font-bold text-slate-900">Latest request activity</h2>
+            </div>
+            <button @click="fetchMyRequests" class="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200">
+              <i class="ri-refresh-line"></i> Refresh
+            </button>
+          </div>
+
+          <div v-if="loadingRequests" class="py-12 text-center text-sm text-slate-500">
+            Loading your request activity...
+          </div>
+
+          <div v-else-if="myRequests.length === 0" class="py-12 text-center">
+            <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
+              <i class="ri-file-list-3-line text-3xl text-slate-400"></i>
+            </div>
+            <p class="font-semibold text-slate-700">No request activity yet</p>
+            <p class="mt-1 text-sm text-slate-500">Open the customer portal when you are ready to create your first request.</p>
+            <button @click="goToCustomerPortal" class="mt-4 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-700">
+              Open My Requests
+            </button>
+          </div>
+
+          <div v-else class="mt-5 space-y-4">
+            <button
+              v-for="req in myRequests.slice(0, 6)"
+              :key="req.id"
+              class="w-full rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-left transition hover:border-sky-200 hover:bg-white hover:shadow-sm"
+              @click="viewRequestDetail(req)"
+            >
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p class="text-lg font-bold text-gray-900">#{{ req.request_number }}</p>
-                  <p class="text-xs text-gray-400">{{ formatDate(req.created_at) }}</p>
+                  <p class="text-base font-bold text-slate-900">#{{ req.request_number }}</p>
+                  <p class="mt-1 text-xs text-slate-500">{{ formatDate(req.created_at) }}</p>
+                  <div class="mt-3 flex flex-wrap gap-3 text-sm text-slate-500">
+                    <span><i class="ri-capsule-line mr-1"></i>{{ req.item_count || 0 }} items</span>
+                    <span><i class="ri-money-dollar-circle-line mr-1"></i>GHS {{ parseMoney(req.request_fee) }}</span>
+                  </div>
                 </div>
-                <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
-                  :class="statusClass(req.status)">
+                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide" :class="statusClass(req.status)">
                   {{ formatStatus(req.status) }}
                 </span>
               </div>
-              <div class="flex items-center gap-4 text-sm text-gray-500">
-                <span><i class="ri-capsule-line mr-1"></i>{{ req.item_count || '—' }} items</span>
-                <span v-if="req.request_fee"><i class="ri-money-cny-circle-line mr-1"></i>GHS {{
-                  parseFloat(req.request_fee).toFixed(2) }}</span>
-                <span v-if="req.fulfillment_type"><i class="ri-truck-line mr-1"></i>{{ req.fulfillment_type }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section v-else class="rounded-[30px] border border-sky-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(240,249,255,0.94))] p-6 shadow-[0_20px_60px_rgba(14,116,144,0.08)]">
+        <div class="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
+          <div class="rounded-3xl bg-slate-950 p-6 text-white">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-200">What happens next</p>
+            <h2 class="mt-3 text-2xl font-bold leading-tight sm:text-3xl">
+              A fast path from sign-in to your first request.
+            </h2>
+            <p class="mt-4 max-w-xl text-sm leading-7 text-slate-300">
+              We capture your details first, then move you straight into the request flow so you can describe the medicine you need without delay.
+            </p>
+
+            <div class="mt-6 grid gap-3 sm:grid-cols-3">
+              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-200">1</p>
+                <p class="mt-2 text-sm font-semibold">Sign in fast</p>
+                <p class="mt-1 text-xs leading-5 text-slate-300">Name, phone, and password get you in quickly.</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-200">2</p>
+                <p class="mt-2 text-sm font-semibold">Create the request</p>
+                <p class="mt-1 text-xs leading-5 text-slate-300">Upload a prescription or type the medicine name you need.</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-200">3</p>
+                <p class="mt-2 text-sm font-semibold">Get real responses</p>
+                <p class="mt-1 text-xs leading-5 text-slate-300">Nearby pharmacies confirm stock and help you move forward.</p>
               </div>
             </div>
-            <!-- Progress bar -->
-            <div class="h-1 bg-gray-100">
-              <div class="h-full rounded-r-full transition-all duration-500" :class="statusBarColor(req.status)"
-                :style="{ width: statusProgress(req.status) + '%' }">
+
+          </div>
+
+          <div class="grid gap-4">
+            <div class="rounded-3xl border border-white/80 bg-white px-5 py-5 shadow-sm">
+              <div class="flex items-start gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                  <i class="ri-wallet-3-line text-xl"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-900">Pay when you're ready</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-500">Keep your balance ready for request holds and confirmed payments.</p>
+                </div>
               </div>
+            </div>
+
+            <div class="rounded-3xl border border-white/80 bg-white px-5 py-5 shadow-sm">
+              <div class="flex items-start gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                  <i class="ri-file-list-3-line text-xl"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-900">Clear updates</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-500">See when a pharmacy responds, confirms, or moves your request forward.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-3xl border border-dashed border-sky-200 bg-sky-50 px-5 py-5">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700">Why customers use this</p>
+              <p class="mt-2 text-sm leading-6 text-slate-600">
+                It is a simpler way to request medicines, compare availability, and keep everything organised from one account.
+              </p>
             </div>
           </div>
         </div>
+      </section>
       </div>
 
-      <!-- ============= REQUEST DETAIL MODAL ============= -->
-      <div v-if="selectedRequest" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-        @click.self="selectedRequest = null">
-        <div class="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
-          <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+      <div v-if="selectedRequest" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="selectedRequest = null">
+        <div class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
+          <div class="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
             <div>
               <h3 class="text-lg font-bold text-gray-900">Request #{{ selectedRequest.request_number }}</h3>
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase"
-                :class="statusClass(selectedRequest.status)">{{ formatStatus(selectedRequest.status) }}</span>
+              <span class="rounded-full px-2.5 py-0.5 text-xs font-bold uppercase" :class="statusClass(selectedRequest.status)">
+                {{ formatStatus(selectedRequest.status) }}
+              </span>
             </div>
-            <button @click="selectedRequest = null" class="text-gray-400 hover:text-gray-600 p-1"><i
-                class="ri-close-line text-2xl"></i></button>
+            <button @click="selectedRequest = null" class="p-1 text-gray-400 transition hover:text-gray-600">
+              <i class="ri-close-line text-2xl"></i>
+            </button>
           </div>
 
-          <div class="px-6 py-5 space-y-5">
-            <!-- Items -->
+          <div class="space-y-5 px-6 py-5">
             <div>
-              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Items</p>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Items</p>
               <div class="space-y-2">
-                <div v-for="item in selectedRequest.items" :key="item.id"
-                  class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                <div v-for="item in selectedRequest.items" :key="item.id" class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                   <div>
                     <p class="text-sm font-medium text-gray-900">{{ item.product_name }}</p>
                     <p class="text-xs text-gray-400">Qty: {{ item.quantity }}</p>
                   </div>
-                  <div class="text-right">
-                    <p v-if="item.marked_up_price" class="text-sm font-bold text-gray-900">GHS {{
-                      parseFloat(item.marked_up_price).toFixed(2) }}</p>
-                    <p v-else class="text-xs text-gray-400 italic">Price pending</p>
-                    <span class="text-xs px-1.5 py-0.5 rounded-full font-semibold"
-                      :class="statusClass(item.item_status || 'pending')">
-                      {{ item.item_status || 'pending' }}
-                    </span>
-                  </div>
+                  <p class="text-sm font-bold text-gray-900">{{ item.marked_up_price ? `GHS ${parseMoney(item.marked_up_price)}` : 'Pending' }}</p>
                 </div>
               </div>
             </div>
 
-            <!-- Totals (if calculated) -->
-            <div v-if="selectedRequest.estimated_total" class="bg-indigo-50 rounded-xl p-4">
-              <div class="flex justify-between text-sm mb-1">
+            <div v-if="selectedRequest.estimated_total" class="rounded-xl bg-indigo-50 p-4">
+              <div class="mb-1 flex justify-between text-sm">
                 <span class="text-gray-600">Items total</span>
-                <span class="font-semibold">GHS {{ parseFloat(selectedRequest.items_total || 0).toFixed(2) }}</span>
+                <span class="font-semibold">GHS {{ parseMoney(selectedRequest.items_total || 0) }}</span>
               </div>
-              <div v-if="selectedRequest.delivery_fee" class="flex justify-between text-sm mb-1">
+              <div v-if="selectedRequest.delivery_fee" class="mb-1 flex justify-between text-sm">
                 <span class="text-gray-600">Delivery fee</span>
-                <span class="font-semibold">GHS {{ parseFloat(selectedRequest.delivery_fee).toFixed(2) }}</span>
+                <span class="font-semibold">GHS {{ parseMoney(selectedRequest.delivery_fee) }}</span>
               </div>
-              <div class="flex justify-between text-base font-bold border-t border-indigo-200 pt-2 mt-2">
+              <div class="mt-2 flex justify-between border-t border-indigo-200 pt-2 text-base font-bold">
                 <span>Estimated Total</span>
-                <span class="text-indigo-600">GHS {{ parseFloat(selectedRequest.estimated_total).toFixed(2) }}</span>
+                <span class="text-indigo-600">GHS {{ parseMoney(selectedRequest.estimated_total) }}</span>
               </div>
             </div>
 
-            <!-- Fulfillment Choice -->
-            <div v-if="selectedRequest.status === 'awaiting_customer' || selectedRequest.status === 'items_sourced'">
-              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Choose Fulfillment</p>
-              <div class="grid grid-cols-2 gap-3">
-                <button @click="chooseFulfillment(selectedRequest.id, 'delivery')"
-                  class="p-4 rounded-xl border-2 text-center transition-all"
-                  :class="selectedRequest.fulfillment_type === 'delivery' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'">
-                  <i class="ri-truck-line text-2xl text-indigo-600 mb-1"></i>
-                  <p class="text-sm font-semibold text-gray-900">Delivery</p>
-                  <p class="text-xs text-gray-500">To your door</p>
-                </button>
-                <button @click="chooseFulfillment(selectedRequest.id, 'pickup')"
-                  class="p-4 rounded-xl border-2 text-center transition-all"
-                  :class="selectedRequest.fulfillment_type === 'pickup' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'">
-                  <i class="ri-store-2-line text-2xl text-indigo-600 mb-1"></i>
-                  <p class="text-sm font-semibold text-gray-900">Pickup</p>
-                  <p class="text-xs text-gray-500">From pharmacy</p>
-                </button>
-              </div>
-            </div>
-
-            <!-- Info -->
-            <div class="space-y-2 text-sm">
-              <div v-if="selectedRequest.delivery_address" class="flex gap-2">
-                <i class="ri-map-pin-line text-gray-400 mt-0.5"></i>
-                <span class="text-gray-700">{{ selectedRequest.delivery_address }}</span>
-              </div>
-              <div v-if="selectedRequest.admin_notes" class="flex gap-2">
-                <i class="ri-message-2-line text-gray-400 mt-0.5"></i>
-                <span class="text-gray-700">{{ selectedRequest.admin_notes }}</span>
-              </div>
+            <div v-if="selectedRequest.delivery_address" class="flex gap-2 text-sm">
+              <i class="ri-map-pin-line mt-0.5 text-gray-400"></i>
+              <span class="text-gray-700">{{ selectedRequest.delivery_address }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ============= WALLET TOP-UP MODAL ============= -->
-      <div v-if="showTopUpModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-        @click.self="showTopUpModal = false">
-        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+      <div v-if="showTopUpModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="showTopUpModal = false">
+        <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
           <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-white">
             <h3 class="text-lg font-bold">Top Up Wallet</h3>
             <p class="text-sm text-white/80">Add funds via Paystack</p>
           </div>
           <div class="p-6">
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Amount (GHS)</label>
-            <input v-model.number="topUpAmount" type="number" min="1" step="0.01" placeholder="50.00"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl text-lg font-bold text-gray-900 text-center focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-2" />
-            <div class="flex gap-2 mb-4">
-              <button v-for="amt in [10, 20, 50, 100]" :key="amt" @click="topUpAmount = amt"
-                class="flex-1 py-2 text-sm font-semibold rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all"
-                :class="topUpAmount === amt ? 'border-indigo-500 bg-indigo-50 text-indigo-600' : 'text-gray-600'">
-                {{ amt }}
-              </button>
-            </div>
+            <label class="mb-1.5 block text-sm font-semibold text-gray-700">Amount (GHS)</label>
+            <input v-model.number="topUpAmount" type="number" min="1" step="0.01" placeholder="50.00" class="mb-4 w-full rounded-xl border border-gray-300 px-4 py-3 text-center text-lg font-bold text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500" />
             <div class="flex gap-3">
-              <button @click="showTopUpModal = false"
-                class="flex-1 py-2.5 border border-gray-300 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm">Cancel</button>
-              <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0"
-                class="flex-1 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors text-sm disabled:opacity-40">
+              <button @click="showTopUpModal = false" class="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50">
+                Cancel
+              </button>
+              <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0" class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40">
                 Pay GHS {{ (topUpAmount || 0).toFixed(2) }}
               </button>
             </div>
@@ -466,184 +324,62 @@
         </div>
       </div>
 
-      <!-- ============= SUCCESS MODAL ============= -->
-      <div v-if="showSuccess" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-        @click.self="showSuccess = false">
-        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-8 text-center">
-          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="ri-check-double-line text-3xl text-green-600"></i>
-          </div>
-          <h3 class="text-2xl font-bold text-gray-900 mb-2">Request Submitted! 🎉</h3>
-          <p class="text-sm text-gray-600 mb-2">We'll find the best prices from nearby pharmacies and get back to you
-            shortly.</p>
-          <p v-if="submittedRequestNumber" class="text-sm text-gray-500 mb-5">Request #<strong
-              class="text-indigo-600">{{
-              submittedRequestNumber }}</strong></p>
-          <button @click="showSuccess = false; activeView = 'requests'; fetchMyRequests()"
-            class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors text-sm">
-            View My Requests
-          </button>
+      <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-bounce-in">
+        <div class="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg" :class="toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'">
+          <i :class="toast.type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'" class="text-lg"></i>
+          {{ toast.text }}
         </div>
       </div>
 
-    </div>
-
-    <!-- Toast -->
-    <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-bounce-in">
-      <div class="px-5 py-3 rounded-xl text-white font-semibold text-sm shadow-lg flex items-center gap-2"
-        :class="toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'">
-        <i :class="toast.type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'" class="text-lg"></i>
-        {{ toast.text }}
-      </div>
+      <Login :is-open="showLoginModal" @close="showLoginModal = false" @login-success="handleLoginSuccess" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import Login from '~/components/Login.vue'
 import { useUserStore } from '~/stores/user'
 
 const userStore = useUserStore()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
+const route = useRoute()
 
-// State
-const activeView = ref('new')
-const currentStep = ref(0)
-const isSubmitting = ref(false)
+const authResolved = ref(false)
 const loadingRequests = ref(false)
-const gettingLocation = ref(false)
 const toast = ref(null)
 const showTopUpModal = ref(false)
-const showSuccess = ref(false)
-const submittedRequestNumber = ref('')
-
-const steps = ['Items', 'Delivery', 'Review']
-
-// New Request State
-const requestItems = ref([
-  { product_name: '', quantity: 1, searchResults: [], loading: false, showDropdown: false }
-])
-const prescriptionFile = ref(null)
-const customerLat = ref(null)
-const customerLng = ref(null)
-const deliveryAddress = ref('')
-const customerNotes = ref('')
-const walletBalance = ref(0)
+const showLoginModal = ref(false)
 const topUpAmount = ref(50)
-
-// My Requests State
+const walletBalance = ref(0)
 const myRequests = ref([])
 const selectedRequest = ref(null)
 
-// Computed
-const validItems = computed(() => requestItems.value.filter(i => i.product_name.trim()))
+const terminalStatuses = ['completed', 'cancelled', 'returned', 'delivered']
 
-const canProceed = computed(() => {
-  if (currentStep.value === 0) return validItems.value.length > 0
-  if (currentStep.value === 1) return customerLat.value && deliveryAddress.value.trim()
-  return true
-})
+const activeRequestCount = computed(() => myRequests.value.filter((req) => !terminalStatuses.includes((req.status || '').toLowerCase())).length)
+const completedRequestCount = computed(() => myRequests.value.filter((req) => terminalStatuses.includes((req.status || '').toLowerCase())).length)
 
-const canSubmit = computed(() => {
-  return userStore.isLoggedIn && validItems.value.length > 0 && customerLat.value
-})
-
-const locationLabel = computed(() => {
-  if (customerLat.value) return '📍 Location Set'
-  if (gettingLocation.value) return 'Getting location...'
-  return 'Use My Current Location'
-})
-
-const locationSublabel = computed(() => {
-  if (customerLat.value) return `${customerLat.value.toFixed(4)}, ${customerLng.value.toFixed(4)}`
-  return 'We need this to find nearby pharmacies'
-})
-
-// Methods
-const newItem = () => ({
-  product_name: '',
-  quantity: 1,
-  searchResults: [],
-  loading: false,
-  showDropdown: false
-})
-const addItem = () => requestItems.value.push(newItem())
-const removeItem = (i) => requestItems.value.splice(i, 1)
-
-// Search Logic
-let debounceTimer = null
-const onProductInput = (item) => {
-  item.showDropdown = true
-  if (!item.product_name || item.product_name.length < 2) {
-    item.searchResults = []
-    return
-  }
-
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => searchProducts(item), 300)
-}
-
-const searchProducts = async (item) => {
-  item.loading = true
-  try {
-    const res = await customerApiCall('GET', `/api/master-products?search=${encodeURIComponent(item.product_name)}&limit=5`)
-    item.searchResults = res.data || []
-  } catch (e) {
-    // silent fail
-  } finally {
-    item.loading = false
-  }
-}
-
-const selectProduct = (item, res) => {
-  let name = res.product_description
-  if (res.strength) name += ` ${res.strength}`
-  item.product_name = name
-  item.showDropdown = false
-  // Optionally focus quantity input here if desired
-}
-
-const closeDropdown = (item) => {
-  setTimeout(() => { item.showDropdown = false }, 200)
-}
-
-const nextStep = () => {
-  if (canProceed.value && currentStep.value < 2) currentStep.value++
-}
-
-const handlePrescription = (e) => {
-  prescriptionFile.value = e.target.files[0] || null
-}
-
-const getLocation = () => {
-  if (!navigator.geolocation) return showToast('Geolocation not supported', 'error')
-  gettingLocation.value = true
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      customerLat.value = pos.coords.latitude
-      customerLng.value = pos.coords.longitude
-      gettingLocation.value = false
-      showToast('Location set!')
-    },
-    (err) => {
-      gettingLocation.value = false
-      showToast('Could not get location. Please enable GPS.', 'error')
-    },
-    { enableHighAccuracy: true, timeout: 15000 }
-  )
-}
-
-// API helpers
 const customerApiCall = async (method, url, data = null) => {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userStore.customerAuthToken}` }
-  }
+  const headers = {}
+  if (data) headers['Content-Type'] = 'application/json'
+  if (userStore.customerAuthToken) headers.Authorization = `Bearer ${userStore.customerAuthToken}`
+
+  const opts = { method, headers }
   if (data) opts.body = JSON.stringify(data)
+
   const response = await fetch(`${apiBase}${url}`, opts)
   const json = await response.json()
-  if (!response.ok || !json.success) throw new Error(json.message || `API error ${response.status}`)
+
+  if (!response.ok || !json.success) {
+    if (response.status === 401 || response.status === 403) {
+      userStore.clearAuthState()
+      throw new Error('Session expired. Please log in again.')
+    }
+    throw new Error(json.message || `API error ${response.status}`)
+  }
+
   return json
 }
 
@@ -652,8 +388,7 @@ const fetchWalletBalance = async () => {
   try {
     const res = await customerApiCall('GET', '/api/wallet')
     walletBalance.value = parseFloat(res.data?.balance || 0)
-  } catch (e) {
-    // Wallet might not exist yet — that's ok
+  } catch {
     walletBalance.value = 0
   }
 }
@@ -663,9 +398,9 @@ const fetchMyRequests = async () => {
   loadingRequests.value = true
   try {
     const res = await customerApiCall('GET', '/api/order-requests/customer')
-    myRequests.value = res.data || []
-  } catch (e) {
-    showToast('Failed to load requests', 'error')
+    myRequests.value = Array.isArray(res.data) ? res.data : []
+  } catch (error) {
+    showToast(error.message || 'Failed to load requests', 'error')
   } finally {
     loadingRequests.value = false
   }
@@ -675,51 +410,8 @@ const viewRequestDetail = async (req) => {
   try {
     const res = await customerApiCall('GET', `/api/order-requests/customer/${req.id}`)
     selectedRequest.value = res.data
-  } catch (e) {
-    showToast('Failed to load request', 'error')
-  }
-}
-
-const submitRequest = async () => {
-  if (!canSubmit.value) return
-  isSubmitting.value = true
-  try {
-    const payload = {
-      items: validItems.value.map(i => ({ product_name: i.product_name.trim(), quantity: i.quantity || 1 })),
-      customer_latitude: customerLat.value,
-      customer_longitude: customerLng.value,
-      delivery_address: deliveryAddress.value.trim(),
-      customer_notes: customerNotes.value.trim(),
-    }
-
-    const res = await customerApiCall('POST', '/api/order-requests/customer', payload)
-    submittedRequestNumber.value = res.data?.request_number || ''
-    showSuccess.value = true
-
-    // Reset form
-    // Reset form
-    requestItems.value = [newItem()]
-    prescriptionFile.value = null
-    deliveryAddress.value = ''
-    customerNotes.value = ''
-    currentStep.value = 0
-
-    // Refresh wallet
-    await fetchWalletBalance()
-  } catch (e) {
-    showToast(e.message || 'Failed to submit request', 'error')
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const chooseFulfillment = async (requestId, type) => {
-  try {
-    await customerApiCall('PUT', `/api/order-requests/customer/${requestId}/fulfillment`, { fulfillment_type: type })
-    selectedRequest.value.fulfillment_type = type
-    showToast(`${type === 'delivery' ? 'Delivery' : 'Pickup'} selected!`)
-  } catch (e) {
-    showToast(e.message || 'Failed to update', 'error')
+  } catch (error) {
+    showToast(error.message || 'Failed to load request', 'error')
   }
 }
 
@@ -728,22 +420,37 @@ const initiateTopUp = async () => {
   try {
     const res = await customerApiCall('POST', '/api/wallet/topup', { amount: topUpAmount.value })
     if (res.data?.authorization_url) {
-      window.open(res.data.authorization_url, '_blank')
+      window.location.assign(res.data.authorization_url)
+      return
     }
     showTopUpModal.value = false
-    showToast('Redirecting to payment...')
-    // Poll for balance update after a delay
-    setTimeout(fetchWalletBalance, 10000)
-  } catch (e) {
-    showToast(e.message || 'Failed to initiate payment', 'error')
+    showToast('Top up initiated.')
+  } catch (error) {
+    showToast(error.message || 'Failed to initiate payment', 'error')
   }
 }
 
-// Formatting
-const formatStatus = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
+const handlePrimaryAction = () => {
+  if (userStore.isLoggedIn) {
+    goToCustomerPortal()
+    return
+  }
 
-const statusClass = (s) => {
+  showLoginModal.value = true
+}
+
+const handleLoginSuccess = async (payload = {}) => {
+  showLoginModal.value = false
+  const destinationTab = payload?.destination === 'new' ? 'new' : 'home'
+  await navigateTo({ path: '/customer', query: { tab: destinationTab } })
+}
+
+const goToCustomerPortal = () => navigateTo('/customer')
+const parseMoney = (value) => parseFloat(value || 0).toFixed(2)
+const formatStatus = (status) => (status || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+const formatDate = (date) => (date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
+
+const statusClass = (status) => {
   const map = {
     pending: 'bg-amber-100 text-amber-700',
     processing: 'bg-blue-100 text-blue-700',
@@ -752,34 +459,41 @@ const statusClass = (s) => {
     confirmed: 'bg-cyan-100 text-cyan-700',
     completed: 'bg-green-100 text-green-700',
     cancelled: 'bg-red-100 text-red-700',
-    sourced: 'bg-purple-100 text-purple-700',
-    unavailable: 'bg-red-100 text-red-700',
+    delivered: 'bg-emerald-100 text-emerald-700',
+    returned: 'bg-slate-200 text-slate-700',
   }
-  return map[s] || 'bg-gray-100 text-gray-600'
-}
-
-const statusBarColor = (s) => {
-  const map = { pending: 'bg-amber-400', processing: 'bg-blue-500', items_sourced: 'bg-purple-500', awaiting_customer: 'bg-orange-500', confirmed: 'bg-cyan-500', completed: 'bg-green-500', cancelled: 'bg-red-400' }
-  return map[s] || 'bg-gray-300'
-}
-
-const statusProgress = (s) => {
-  const map = { pending: 15, processing: 35, items_sourced: 55, awaiting_customer: 65, confirmed: 80, completed: 100, cancelled: 100 }
-  return map[s] || 10
+  return map[status] || 'bg-gray-100 text-gray-600'
 }
 
 const showToast = (text, type = 'success') => {
   toast.value = { text, type }
-  setTimeout(() => { toast.value = null }, 4000)
+  setTimeout(() => {
+    toast.value = null
+  }, 4000)
 }
 
-// Init
+const handleLoggedOutNotice = async (flag) => {
+  if (!flag) return
+  showToast('You have been logged out.', 'success')
+  await navigateTo({ path: '/', query: {} }, { replace: true })
+}
+
+const redirectLoggedInUsers = async () => {
+  if (!userStore.isLoggedIn) return false
+  await navigateTo('/customer', { replace: true })
+  return true
+}
+
 onMounted(async () => {
   await userStore.checkAuthState()
-  if (userStore.isLoggedIn) {
-    fetchWalletBalance()
-    fetchMyRequests()
-  }
+  if (await redirectLoggedInUsers()) return
+  authResolved.value = true
+})
+
+watch(() => route.query.logged_out, handleLoggedOutNotice, { immediate: true })
+watch(() => userStore.isLoggedIn, async (isLoggedIn) => {
+  if (!isLoggedIn) return
+  await redirectLoggedInUsers()
 })
 </script>
 

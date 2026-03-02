@@ -28,6 +28,17 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
+    applyCustomerAuthPayload(payload) {
+      this.masterCustomer = payload?.master_customer || null;
+      this.companies = payload?.companies || [];
+      this.selectedCompany = payload?.selected_company || this.companies[0] || null;
+      this.customerAuthToken = payload?.token || null;
+      this.persistAuthData();
+      this.authInitialized = true;
+      this.phoneVerifying = null;
+      this.otpSent = false;
+    },
+
     formatPhoneNumber(phone) {
       if (!phone) return '';
       let digits = phone.replace(/\D/g, '');
@@ -103,16 +114,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to setup password');
-
-        // Set user data (automatically logs user in)
-        this.masterCustomer = data.data.master_customer;
-        this.companies = data.data.companies || [];
-        this.selectedCompany = data.data.current_company || this.companies[0];
-        this.customerAuthToken = data.data.token;
-        this.persistAuthData();
-        this.authInitialized = true;
-        this.phoneVerifying = null;
-        this.otpSent = false;
+        this.applyCustomerAuthPayload(data.data);
 
         console.log('Password setup successful! User logged in:', this.masterCustomer);
 
@@ -139,7 +141,7 @@ export const useUserStore = defineStore('user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            company_id: registrationData.company_id,
+            ...(registrationData.company_id ? { company_id: registrationData.company_id } : {}),
             fname: registrationData.fname,
             lname: registrationData.lname,
             phone: formattedPhone,
@@ -150,16 +152,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Registration failed');
-
-        // Set user data (automatically logs user in)
-        this.masterCustomer = data.data.master_customer;
-        this.companies = [data.data.customer];
-        this.selectedCompany = data.data.customer;
-        this.customerAuthToken = data.data.token;
-        this.persistAuthData();
-        this.authInitialized = true;
-        this.phoneVerifying = null;
-        this.otpSent = false;
+        this.applyCustomerAuthPayload(data.data);
 
         console.log('Registration successful! User logged in:', this.masterCustomer);
 
@@ -189,13 +182,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Login failed');
-        this.masterCustomer = data.data.master_customer;
-        this.companies = data.data.companies || [];
-        this.selectedCompany = data.data.selected_company || this.companies[0];
-        this.customerAuthToken = data.data.token;
-        this.persistAuthData();
-        this.authInitialized = true;
-        this.phoneVerifying = null;
+        this.applyCustomerAuthPayload(data.data);
 
         // Load user stats after login
         await this.loadUserStats();
@@ -278,9 +265,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to switch company');
-        this.customerAuthToken = data.data.token;
-        this.selectedCompany = data.data.company;
-        this.persistAuthData();
+        this.applyCustomerAuthPayload(data.data);
         return this.selectedCompany;
       } catch (error) {
         console.error('Error switching company:', error);
@@ -596,8 +581,18 @@ export const useUserStore = defineStore('user', {
           if (savedSelectedCompany) this.selectedCompany = JSON.parse(savedSelectedCompany);
           this.authInitialized = true;
 
-          // Load fresh stats when restoring from storage
-          await this.loadUserStats();
+          try {
+            // Validate the stored token before treating the session as active.
+            await this.getProfile();
+
+            // Load fresh stats when restoring from storage
+            await this.loadUserStats();
+          } catch (error) {
+            console.error('Stored customer session is no longer valid:', error);
+            this.clearAuthState();
+            this.isLoading = false;
+            return null;
+          }
         } else {
           this.clearAuthState();
         }

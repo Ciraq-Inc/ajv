@@ -218,35 +218,55 @@
       @close="showLoginModal = false"
       @login-success="handleLoginSuccess"
     />
+
+    <ConfirmDialog
+      :is-open="showLogoutConfirm"
+      title="Log out?"
+      message="You will need to sign in again to view your requests, wallet, and account details."
+      confirm-text="Log Out"
+      cancel-text="Stay Here"
+      variant="danger"
+      @close="showLogoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </header>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useUserStore } from '~/stores/user'
+import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import Login from '~/components/Login.vue'
 
 const userStore = useUserStore()
 const showLoginModal = ref(false)
 const showProfileMenu = ref(false)
 const showMobileMenu = ref(false)
+const showLogoutConfirm = ref(false)
 
-const handleLoginSuccess = () => {
+const handleLoginSuccess = (payload = {}) => {
   showLoginModal.value = false
+  if (payload.destination === 'new') {
+    navigateTo('/customer?tab=new')
+    return
+  }
   // Redirect to customer account page after successful login
   navigateTo('/customer')
 }
 
-const handleLogout = async () => {
-  if (confirm('Are you sure you want to log out?')) {
-    try {
-      await userStore.logout()
-      showProfileMenu.value = false
-      showMobileMenu.value = false
-      navigateTo('/')
-    } catch (error) {
-      console.error('Error logging out:', error)
-    }
+const handleLogout = () => {
+  showProfileMenu.value = false
+  showMobileMenu.value = false
+  showLogoutConfirm.value = true
+}
+
+const confirmLogout = async () => {
+  try {
+    await userStore.logout()
+    showLogoutConfirm.value = false
+    navigateTo({ path: '/', query: { logged_out: Date.now().toString() } })
+  } catch (error) {
+    console.error('Error logging out:', error)
   }
 }
 

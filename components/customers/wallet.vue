@@ -1,11 +1,25 @@
 <template>
     <div class="wallet-panel">
+        <div class="wallet-head">
+            <div>
+                <p class="wallet-eyebrow">Customer Wallet</p>
+                <h2 class="wallet-title">Manage your balance</h2>
+                <p class="wallet-copy">Top up your account, review deductions, and track credits in one place.</p>
+            </div>
+            <div class="wallet-stat-chip">
+                <span>Transactions</span>
+                <strong>{{ transactions.length }}</strong>
+            </div>
+        </div>
+
         <!-- Balance Card -->
         <div class="balance-card">
+            <div class="balance-glow"></div>
             <div class="balance-icon">
                 <CreditCardIcon class="bal-svg" />
             </div>
             <div class="balance-info">
+                <span class="balance-eyebrow">Wallet Overview</span>
                 <span class="balance-label">Available Balance</span>
                 <span class="balance-amount">GHS {{ balance.toFixed(2) }}</span>
             </div>
@@ -14,37 +28,55 @@
             </button>
         </div>
 
+        <div class="wallet-summary-grid">
+            <div class="summary-card credit-card-lite">
+                <span class="summary-label">Credits</span>
+                <strong>{{ creditTransactions.length }}</strong>
+                <small>Top ups and refunds</small>
+            </div>
+            <div class="summary-card debit-card-lite">
+                <span class="summary-label">Debits</span>
+                <strong>{{ debitTransactions.length }}</strong>
+                <small>Fees and deductions</small>
+            </div>
+        </div>
+
         <!-- Transactions -->
-        <div class="section-header">
-            <h3>Recent Transactions</h3>
-            <button @click="fetchTransactions" :disabled="loading" class="refresh-link">
-                <ArrowPathIcon class="btn-svg" :class="{ spin: loading }" /> Refresh
-            </button>
-        </div>
-
-        <div v-if="loading" class="loading-state">
-            <ArrowPathIcon class="spin-svg spin" /> Loading...
-        </div>
-
-        <div v-else-if="transactions.length === 0" class="empty-state">
-            <ArrowsRightLeftIcon class="empty-icon-svg" />
-            <p class="empty-title">No transactions yet</p>
-            <p class="empty-desc">Top up your wallet to get started</p>
-        </div>
-
-        <div v-else class="transactions-list">
-            <div v-for="tx in transactions" :key="tx.id" class="tx-row">
-                <div class="tx-icon-wrap" :class="tx.transaction_type">
-                    <component :is="tx.transaction_type === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="tx-svg" />
+        <div class="transactions-shell">
+            <div class="section-header">
+                <div>
+                    <p class="section-eyebrow">Activity</p>
+                    <h3>Recent Transactions</h3>
                 </div>
-                <div class="tx-info">
-                    <span class="tx-desc">{{ tx.description || (tx.transaction_type === 'credit' ? 'Wallet Top Up' :
-                        'Request Fee') }}</span>
-                    <span class="tx-date">{{ formatDate(tx.created_at) }}</span>
+                <button @click="fetchTransactions" :disabled="loading" class="refresh-link">
+                    <ArrowPathIcon class="btn-svg" :class="{ spin: loading }" /> Refresh
+                </button>
+            </div>
+
+            <div v-if="loading" class="loading-state">
+                <ArrowPathIcon class="spin-svg spin" /> Loading...
+            </div>
+
+            <div v-else-if="transactions.length === 0" class="empty-state">
+                <ArrowsRightLeftIcon class="empty-icon-svg" />
+                <p class="empty-title">No transactions yet</p>
+                <p class="empty-desc">Top up your wallet to get started</p>
+            </div>
+
+            <div v-else class="transactions-list">
+                <div v-for="tx in transactions" :key="tx.id" class="tx-row">
+                    <div class="tx-icon-wrap" :class="tx.transaction_type">
+                        <component :is="tx.transaction_type === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="tx-svg" />
+                    </div>
+                    <div class="tx-info">
+                        <span class="tx-desc">{{ tx.description || (tx.transaction_type === 'credit' ? 'Wallet Top Up' :
+                            'Request Fee') }}</span>
+                        <span class="tx-date">{{ formatDate(tx.created_at) }}</span>
+                    </div>
+                    <span class="tx-amount" :class="tx.transaction_type">
+                        {{ tx.transaction_type === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
+                    </span>
                 </div>
-                <span class="tx-amount" :class="tx.transaction_type">
-                    {{ tx.transaction_type === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
-                </span>
             </div>
         </div>
 
@@ -84,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute, useRouter } from 'vue-router'
 import { CreditCardIcon, PlusIcon, ArrowPathIcon, ArrowDownIcon, ArrowUpIcon, ArrowsRightLeftIcon, ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
@@ -101,6 +133,11 @@ const loading = ref(false)
 const showTopUp = ref(false)
 const topUpAmount = ref(50)
 const toast = ref(null)
+let topUpRefreshTimer = null
+let topUpRefreshTicks = 0
+
+const creditTransactions = computed(() => transactions.value.filter(tx => tx.transaction_type === 'credit'))
+const debitTransactions = computed(() => transactions.value.filter(tx => tx.transaction_type === 'debit'))
 
 const apiCall = async (method, url, data = null) => {
     const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userStore.customerAuthToken}` } }
@@ -127,16 +164,40 @@ const fetchTransactions = async () => {
     finally { loading.value = false }
 }
 
+const stopTopUpRefreshPolling = () => {
+    if (topUpRefreshTimer) {
+        clearInterval(topUpRefreshTimer)
+        topUpRefreshTimer = null
+    }
+    topUpRefreshTicks = 0
+}
+
+const refreshWalletData = async () => {
+    await Promise.allSettled([fetchBalance(), fetchTransactions()])
+}
+
+const startTopUpRefreshPolling = () => {
+    stopTopUpRefreshPolling()
+    topUpRefreshTicks = 0
+    topUpRefreshTimer = setInterval(async () => {
+        topUpRefreshTicks += 1
+        await refreshWalletData()
+        if (topUpRefreshTicks >= 6) {
+            stopTopUpRefreshPolling()
+        }
+    }, 5000)
+}
+
 const initiateTopUp = async () => {
     if (!topUpAmount.value || topUpAmount.value <= 0) return
     try {
         const res = await apiCall('POST', '/api/wallet/topup', { amount: topUpAmount.value })
         if (res.data?.authorization_url) {
-            window.open(res.data.authorization_url, '_blank')
+            window.location.assign(res.data.authorization_url)
         }
         showTopUp.value = false
         showToast('Redirecting to payment...')
-        setTimeout(() => { fetchBalance(); fetchTransactions() }, 10000)
+        startTopUpRefreshPolling()
     } catch (e) { showToast(e.message || 'Failed to initiate payment', 'error') }
 }
 
@@ -151,8 +212,9 @@ const verifyPayment = async () => {
     try {
         const res = await apiCall('GET', `/api/wallet/topup/verify/${trxRef}`)
         if (res.success) {
+            stopTopUpRefreshPolling()
             showToast('Wallet topped up successfully!')
-            balance.value = parseFloat(res.data?.balance || balance.value)
+            balance.value = parseFloat(res.data?.balance ?? res.data?.balance_after ?? balance.value)
             fetchTransactions() // refresh list
             // Clear query params
             router.replace({ query: { tab: 'wallet' } })
@@ -164,10 +226,33 @@ const verifyPayment = async () => {
     }
 }
 
+const handleWindowFocus = () => {
+    fetchBalance()
+    fetchTransactions()
+    if (route.query.trxref || route.query.reference) {
+        verifyPayment()
+    }
+}
+
 onMounted(() => {
     fetchBalance()
     fetchTransactions()
-    if (route.query.trxref) verifyPayment()
+    if (route.query.trxref || route.query.reference) verifyPayment()
+    window.addEventListener('focus', handleWindowFocus)
+})
+
+watch(
+    () => [route.query.trxref, route.query.reference],
+    ([trxref, reference]) => {
+        if (trxref || reference) {
+            verifyPayment()
+        }
+    }
+)
+
+onUnmounted(() => {
+    stopTopUpRefreshPolling()
+    window.removeEventListener('focus', handleWindowFocus)
 })
 
 defineExpose({ fetchBalance, fetchTransactions })
@@ -175,21 +260,95 @@ defineExpose({ fetchBalance, fetchTransactions })
 
 <style scoped>
 .wallet-panel {
-    padding: 1.5rem;
+    padding: 1.25rem;
+}
+
+.wallet-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.wallet-eyebrow {
+    margin: 0 0 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #2563eb;
+}
+
+.wallet-title {
+    margin: 0;
+    font-size: 1.6rem;
+    line-height: 1.1;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.wallet-copy {
+    margin: 0.4rem 0 0;
+    max-width: 34rem;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #64748b;
+}
+
+.wallet-stat-chip {
+    min-width: 6rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border: 1px solid #bfdbfe;
+    color: #1e3a8a;
+}
+
+.wallet-stat-chip span {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.wallet-stat-chip strong {
+    font-size: 1.1rem;
+    font-weight: 800;
 }
 
 /* Balance card */
 .balance-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 1.5rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 16px;
-    margin-bottom: 1.5rem;
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 32%),
+        linear-gradient(135deg, #0f766e, #2563eb 55%, #1e3a8a);
+    border-radius: 1.4rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: 0 22px 42px rgba(37, 99, 235, 0.18);
+}
+
+.balance-glow {
+    position: absolute;
+    width: 10rem;
+    height: 10rem;
+    right: -2rem;
+    top: -3rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.08);
+    z-index: 0;
 }
 
 .balance-icon {
+    position: relative;
+    z-index: 1;
     width: 48px;
     height: 48px;
     background: rgba(255, 255, 255, 0.2);
@@ -238,6 +397,18 @@ defineExpose({ fetchBalance, fetchTransactions })
 
 .balance-info {
     flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.balance-eyebrow {
+    display: block;
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
 }
 
 .balance-label {
@@ -249,15 +420,17 @@ defineExpose({ fetchBalance, fetchTransactions })
 
 .balance-amount {
     display: block;
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 800;
     color: white;
 }
 
 .topup-btn {
+    position: relative;
+    z-index: 1;
     padding: 0.625rem 1.25rem;
     background: white;
-    color: #667eea;
+    color: #1d4ed8;
     border: none;
     border-radius: 10px;
     font-weight: 700;
@@ -274,17 +447,84 @@ defineExpose({ fetchBalance, fetchTransactions })
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.wallet-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.summary-card {
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.summary-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.summary-card strong {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.summary-card small {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.credit-card-lite {
+    border-color: #bbf7d0;
+    background: linear-gradient(180deg, #ffffff, #f0fdf4);
+}
+
+.debit-card-lite {
+    border-color: #fecaca;
+    background: linear-gradient(180deg, #ffffff, #fff1f2);
+}
+
+.transactions-shell {
+    padding: 1rem;
+    border-radius: 1.25rem;
+    border: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.05);
+}
+
 /* Section header */
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    gap: 0.75rem;
+}
+
+.section-eyebrow {
+    margin: 0 0 0.25rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #2563eb;
 }
 
 .section-header h3 {
     font-size: 1.1rem;
-    font-weight: 600;
+    font-weight: 800;
     color: #111827;
     margin: 0;
 }
@@ -309,7 +549,7 @@ defineExpose({ fetchBalance, fetchTransactions })
 .transactions-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.65rem;
 }
 
 .tx-row {
@@ -317,9 +557,10 @@ defineExpose({ fetchBalance, fetchTransactions })
     align-items: center;
     gap: 0.75rem;
     padding: 0.875rem;
-    background: #f9fafb;
-    border-radius: 10px;
-    border: 1px solid #f3f4f6;
+    background: #ffffff;
+    border-radius: 0.9rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.03);
 }
 
 .tx-icon-wrap {
@@ -519,11 +760,17 @@ defineExpose({ fetchBalance, fetchTransactions })
     padding: 2rem;
     color: #6b7280;
     font-size: 0.875rem;
+    border-radius: 1rem;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
 }
 
 .empty-state {
     text-align: center;
     padding: 2rem;
+    border-radius: 1rem;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
 }
 
 .empty-icon {
@@ -591,6 +838,34 @@ defineExpose({ fetchBalance, fetchTransactions })
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@media (max-width: 640px) {
+    .wallet-panel {
+        padding: 1rem;
+    }
+
+    .wallet-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wallet-title {
+        font-size: 1.3rem;
+    }
+
+    .wallet-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .balance-card {
+        flex-wrap: wrap;
+    }
+
+    .topup-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 </style>

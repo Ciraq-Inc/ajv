@@ -50,8 +50,15 @@
                         </button>
 
                         <!-- WhatsApp -->
-                        <button v-if="pharm.whatsapp_url" @click="$emit('contact', pharm)" class="btn-whatsapp-sm">
-                            <ChatBubbleLeftRightIcon class="icon-sm" /> WhatsApp
+                        <button
+                            @click="handleWhatsAppClick(pharm)"
+                            class="btn-whatsapp-sm"
+                            :class="{ 'disabled': !hasWhatsApp(pharm) }"
+                            :title="hasWhatsApp(pharm) ? 'Contact on WhatsApp' : 'WhatsApp not available for this pharmacy'"
+                            :disabled="!hasWhatsApp(pharm)"
+                        >
+                            <ChatBubbleLeftRightIcon class="icon-sm" />
+                            <span>{{ hasWhatsApp(pharm) ? 'WhatsApp' : 'No WhatsApp' }}</span>
                         </button>
 
                         <!-- Status Actions -->
@@ -122,6 +129,18 @@ const getPharmacyItemClass = (pharm) => {
 const isConfirmedElsewhere = (pharm) => {
     if (pharm.is_confirmed) return false
     return props.pharmacies.some(p => p.is_confirmed)
+}
+
+const hasWhatsApp = (pharm) => {
+    return Boolean(pharm?.whatsapp_url && String(pharm.whatsapp_url).trim())
+}
+
+const handleWhatsAppClick = (pharm) => {
+    if (!hasWhatsApp(pharm)) {
+        showToast(`No WhatsApp number for ${pharm?.name || 'this pharmacy'}`, 'error')
+        return
+    }
+    emit('contact', pharm)
 }
 
 const formatRequestDetails = () => {
@@ -210,11 +229,23 @@ const copyFullRequest = () => {
     font-size: 0.875rem;
     font-weight: 600;
     transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .btn-whatsapp-sm:hover {
     background: #128c7e;
     transform: translateY(-1px);
+}
+
+.btn-whatsapp-sm:disabled,
+.btn-whatsapp-sm.disabled {
+    background: #e5e7eb;
+    color: #6b7280;
+    cursor: not-allowed;
+    transform: none;
+    opacity: 1;
 }
 
 .btn-icon-action {

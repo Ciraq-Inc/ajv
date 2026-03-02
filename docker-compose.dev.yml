@@ -1,0 +1,12 @@
+services:
+  app:
+    build: ./
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4000
+      NITRO_PORT: 4000
+      NITRO_HOST: 0.0.0.0
+      NUXT_PUBLIC_API_BASE: http://143.198.150.112:3010
+    ports:
+      - "4010:4000"

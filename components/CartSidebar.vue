@@ -272,8 +272,13 @@ const closeLoginModal = () => {
 };
 
 // Handle successful login
-const handleLoginSuccess = () => {
+const handleLoginSuccess = (payload = {}) => {
   console.log('User successfully logged in');
+  if (payload.destination === 'new') {
+    showLoginModal.value = false;
+    navigateTo('/customer?tab=new');
+    return;
+  }
   // Process the order after successful login
   processDirectOrder();
 };

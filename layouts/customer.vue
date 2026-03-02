@@ -2,48 +2,65 @@
   <div class="app-shell">
     <!-- Sidebar (desktop) -->
     <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-icon">
-          <PlusCircleIconSolid class="brand-svg" />
+      <div class="sidebar-brand-wrap">
+        <div class="sidebar-brand">
+          <div class="brand-icon">
+            <img :src="brandLogo" alt="MedsGH" class="brand-logo-image" />
+          </div>
+          <div class="brand-copy">
+            <span class="brand-name">MedsGH</span>
+            <span class="brand-tag">Customer portal</span>
+          </div>
         </div>
-        <span class="brand-name">MedsGH</span>
+        <div class="sidebar-highlight">
+          <span class="highlight-label">Current View</span>
+          <strong>{{ pageTitle }}</strong>
+        </div>
       </div>
       <nav class="sidebar-nav">
-        <button @click="goTo('home')" class="side-btn" :class="{ active: activeNav === 'home' }">
-          <component :is="activeNav === 'home' ? HomeIconSolid : HomeIcon" class="side-icon" />
-          <span>Home</span>
-        </button>
+        <p class="side-section-label">Workspace</p>
         <button @click="goTo('new')" class="side-btn accent">
           <PlusCircleIconSolid class="side-icon" />
           <span>New Request</span>
+          <small>Create and send a new order request</small>
         </button>
-        <button @click="goTo('requests')" class="side-btn" :class="{ active: activeNav === 'requests' }">
-          <component :is="activeNav === 'requests' ? ClipDocListSolid : ClipDocList" class="side-icon" />
-          <span>My Requests</span>
-        </button>
-        <button @click="goTo('wallet')" class="side-btn" :class="{ active: activeNav === 'wallet' }">
-          <component :is="activeNav === 'wallet' ? CreditCardSolid : CreditCardIcon" class="side-icon" />
-          <span>Wallet</span>
-        </button>
-        <button @click="goTo('orders')" class="side-btn" :class="{ active: activeNav === 'orders' }">
-          <component :is="activeNav === 'orders' ? ShoppingBagSolid : ShoppingBagIcon" class="side-icon" />
-          <span>Orders</span>
-        </button>
+        <div class="side-group">
+          <button @click="goTo('home')" class="side-btn" :class="{ active: activeNav === 'home' }">
+            <component :is="activeNav === 'home' ? HomeIconSolid : HomeIcon" class="side-icon" />
+            <span>Home</span>
+          </button>
+          <button @click="goTo('requests')" class="side-btn" :class="{ active: activeNav === 'requests' }">
+            <component :is="activeNav === 'requests' ? ClipDocListSolid : ClipDocList" class="side-icon" />
+            <span>My Requests</span>
+          </button>
+          <button @click="goTo('wallet')" class="side-btn" :class="{ active: activeNav === 'wallet' }">
+            <component :is="activeNav === 'wallet' ? CreditCardSolid : CreditCardIcon" class="side-icon" />
+            <span>Wallet</span>
+          </button>
+          <button @click="goTo('orders')" class="side-btn" :class="{ active: activeNav === 'orders' }">
+            <component :is="activeNav === 'orders' ? ShoppingBagSolid : ShoppingBagIcon" class="side-icon" />
+            <span>Orders</span>
+          </button>
+        </div>
         <div class="side-divider"></div>
-        <button @click="goTo('companies')" class="side-btn" :class="{ active: activeNav === 'companies' }">
-          <component :is="activeNav === 'companies' ? BuildingSolid : BuildingStorefrontIcon" class="side-icon" />
-          <span>Pharmacies</span>
-        </button>
-        <button @click="goTo('profile')" class="side-btn" :class="{ active: activeNav === 'profile' }">
-          <component :is="activeNav === 'profile' ? UserIconSolid : UserIcon" class="side-icon" />
-          <span>Profile</span>
-        </button>
+        <p class="side-section-label">Account</p>
+        <div class="side-group">
+          <button @click="goTo('companies')" class="side-btn" :class="{ active: activeNav === 'companies' }">
+            <component :is="activeNav === 'companies' ? BuildingSolid : BuildingStorefrontIcon" class="side-icon" />
+            <span>Pharmacies</span>
+          </button>
+          <button @click="goTo('profile')" class="side-btn" :class="{ active: activeNav === 'profile' }">
+            <component :is="activeNav === 'profile' ? UserIconSolid : UserIcon" class="side-icon" />
+            <span>Profile</span>
+          </button>
+        </div>
       </nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
           <div class="avatar-sm">{{ userInitials }}</div>
           <div class="user-meta">
             <span class="user-name-sm">{{ userName }}</span>
+            <span class="user-role-sm">Signed in customer</span>
             <span class="user-phone-sm">{{ userStore.currentUser?.phone || '' }}</span>
           </div>
         </div>
@@ -59,7 +76,11 @@
           <button v-if="canGoBack" @click="goTo('home')" class="back-btn">
             <ChevronLeftIcon class="back-icon" />
           </button>
-          <h1 class="header-title">{{ pageTitle }}</h1>
+          <div v-if="showHeaderBrand" class="header-brand">
+            <img :src="brandLogo" alt="MedsGH" class="header-brand-logo" />
+            <span class="header-brand-name">MedsGH</span>
+          </div>
+          <h1 v-if="showPageTitle" class="header-title">{{ pageTitle }}</h1>
         </div>
         <div class="header-right">
           <button @click="toggleMenu" class="avatar-btn">
@@ -123,11 +144,24 @@
         </button>
       </nav>
     </div>
+
+    <ConfirmDialog
+      :is-open="showLogoutConfirm"
+      title="Log out?"
+      message="You will be returned to the home page and will need to sign in again to continue."
+      confirm-text="Log Out"
+      cancel-text="Stay Here"
+      variant="danger"
+      @close="showLogoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import brandLogo from '~/assets/images/rigellogo.png'
+import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
 
@@ -147,6 +181,7 @@ import {
 const userStore = useUserStore()
 const route = useRoute()
 const showMenu = ref(false)
+const showLogoutConfirm = ref(false)
 
 const userName = computed(() => {
   const u = userStore.currentUser
@@ -158,15 +193,25 @@ const userInitials = computed(() => {
 })
 const activeNav = computed(() => route.query.tab || 'home')
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home')
+const showHeaderBrand = computed(() => activeNav.value === 'home')
+const showPageTitle = computed(() => activeNav.value !== 'home')
 const pageTitle = computed(() => {
-  const map = { requests: 'My Requests', new: 'New Request', wallet: 'Wallet', orders: 'Order History', profile: 'Profile', companies: 'Pharmacies' }
-  return map[route.query.tab] || 'MedsGH'
+  const map = { home: 'Home', requests: 'My Requests', new: 'New Request', wallet: 'Wallet', orders: 'Order History', profile: 'Profile', companies: 'Pharmacies' }
+  return map[route.query.tab] || 'Home'
 })
 const goTo = (tab) => navigateTo({ path: '/customer', query: { tab } })
 const toggleMenu = () => { showMenu.value = !showMenu.value }
-const handleLogout = async () => {
-  if (confirm('Log out?')) {
-    try { await userStore.logout(); navigateTo('/') } catch (e) { console.error(e) }
+const handleLogout = () => {
+  showMenu.value = false
+  showLogoutConfirm.value = true
+}
+const confirmLogout = async () => {
+  try {
+    await userStore.logout()
+    showLogoutConfirm.value = false
+    navigateTo({ path: '/', query: { logged_out: Date.now().toString() } })
+  } catch (e) {
+    console.error(e)
   }
 }
 </script>
@@ -188,68 +233,149 @@ const handleLogout = async () => {
 .sidebar {
   display: none;
   width: 240px;
-  background: white;
-  border-right: 1px solid #eef0f4;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
+    linear-gradient(180deg, #ffffff, #f8fafc);
+  border-right: 1px solid #e2e8f0;
   flex-direction: column;
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   z-index: 50;
-  padding: 20px 12px;
+  padding: 18px 14px;
+}
+
+.sidebar-brand-wrap {
+  padding: 6px 8px 18px;
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 12px 20px;
+  margin-bottom: 14px;
 }
 
 .brand-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #dbe5f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
 }
 
-.brand-svg {
-  width: 20px;
-  height: 20px;
+.brand-logo-image {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .brand-name {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #1a1a2e;
+  color: #0f172a;
+}
+
+.brand-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.sidebar-highlight {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+}
+
+.highlight-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.sidebar-highlight strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 800;
 }
 
 .sidebar-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
+  min-height: 0;
+}
+
+.side-section-label {
+  margin: 0;
+  padding: 0 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.side-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #e2e8f0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .side-btn {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
   border: none;
   background: none;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: #64748b;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s ease;
   width: 100%;
   text-align: left;
+}
+
+.side-btn span {
+  flex: 1;
+}
+
+.side-btn small {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .side-icon {
@@ -259,50 +385,62 @@ const handleLogout = async () => {
 }
 
 .side-btn:hover {
-  background: #f1f5f9;
+  background: #f8fafc;
   color: #334155;
+  transform: translateX(1px);
 }
 
 .side-btn.active {
-  background: #eef2ff;
-  color: #667eea;
-  font-weight: 600;
+  background: linear-gradient(135deg, #eff6ff, #e0e7ff);
+  color: #1d4ed8;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px #c7d2fe;
 }
 
 .side-btn.accent {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: block;
+  text-align: left;
+  padding: 14px 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0f766e, #2563eb);
   color: white;
-  font-weight: 600;
-  margin: 4px 0 8px;
+  font-weight: 700;
+  margin: 0;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
 }
 
 .side-btn.accent:hover {
-  opacity: 0.9;
+  opacity: 0.96;
+  transform: translateY(-1px);
 }
 
 .side-divider {
   height: 1px;
-  background: #f1f5f9;
-  margin: 8px 14px;
+  background: #e2e8f0;
+  margin: 2px 8px;
 }
 
 .sidebar-footer {
-  border-top: 1px solid #f1f5f9;
-  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 14px;
 }
 
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px 10px;
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 8px;
 }
 
 .avatar-sm {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #0f766e, #2563eb);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -318,9 +456,20 @@ const handleLogout = async () => {
 
 .user-name-sm {
   display: block;
-  font-size: 0.8125rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role-sm {
+  display: block;
+  font-size: 0.68rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: #2563eb;
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -328,16 +477,20 @@ const handleLogout = async () => {
 
 .user-phone-sm {
   display: block;
-  font-size: 0.6875rem;
+  font-size: 0.68rem;
   color: #94a3b8;
+  margin-top: 2px;
 }
 
 .logout-btn {
   color: #ef4444 !important;
+  background: #fff !important;
+  border: 1px solid #fee2e2 !important;
 }
 
 .logout-btn:hover {
   background: #fef2f2 !important;
+  transform: none;
 }
 
 /* Main */
@@ -368,6 +521,26 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-brand-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.header-brand-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .back-btn {
@@ -658,6 +831,11 @@ const handleLogout = async () => {
   .header-title {
     font-size: 1.375rem;
   }
+
+  .header-brand {
+    display: none;
+  }
+
 
   .app-content {
     padding: 0;

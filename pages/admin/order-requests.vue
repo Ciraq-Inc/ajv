@@ -35,7 +35,7 @@
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.processing || 0 }}</div>
-          <div class="stat-label">Processing</div>
+          <div class="stat-label">In Progress</div>
         </div>
       </div>
       <div class="stat-card">
@@ -44,7 +44,7 @@
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.completed || 0 }}</div>
-          <div class="stat-label">Completed</div>
+          <div class="stat-label">Fulfilled</div>
         </div>
       </div>
       <div class="stat-card">
@@ -68,12 +68,15 @@
       <select v-model="statusFilter" @change="fetchRequests" class="form-control filter-select">
         <option value="">All Statuses</option>
         <option value="pending">Pending</option>
-        <option value="processing">Processing</option>
-        <option value="items_sourced">Items Sourced</option>
-        <option value="awaiting_customer">Awaiting Customer</option>
-        <option value="confirmed">Confirmed</option>
-        <option value="completed">Completed</option>
+        <option value="confirming_with_pharm">Confirming With Pharm</option>
+        <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+        <option value="paid">Paid</option>
+        <option value="ready_for_pickup">Ready For Pickup</option>
+        <option value="picked_up">Picked Up</option>
+        <option value="out_for_delivery">Out For Delivery</option>
+        <option value="delivered">Delivered</option>
         <option value="cancelled">Cancelled</option>
+        <option value="returned">Returned</option>
       </select>
     </div>
 
@@ -123,14 +126,8 @@
             <td class="date-cell">{{ formatDate(req.created_at) }}</td>
             <td>
               <div class="action-btns">
-                <button @click="viewRequest(req)" class="btn-icon-text" title="View Details">
-                  <EyeIcon class="icon-sm" /> <span>View</span>
-                </button>
-                <button @click="processRequest(req)" class="btn-icon-text"
-                  :title="req.status === 'pending' ? 'Process' : 'Fulfillment'">
-                  <ArrowPathIcon v-if="req.status !== 'pending'" class="icon-sm" />
-                  <Cog6ToothIcon v-else class="icon-sm" />
-                  <span>{{ req.status === 'pending' ? 'Process' : 'Fulfillment' }}</span>
+                <button @click="viewRequest(req)" class="btn-icon-text" title="Open Request">
+                  <EyeIcon class="icon-sm" /> <span>Open</span>
                 </button>
               </div>
             </td>
@@ -141,50 +138,105 @@
 
     <!-- Request Detail Modal -->
     <div v-if="selectedRequest" class="modal-overlay" @click.self="selectedRequest = null">
-      <div class="modal-content modal-lg">
+      <div class="modal-content modal-lg modal-elevated">
         <div class="modal-header">
-          <h3>Request #{{ selectedRequest.request_number }}</h3>
+          <div class="modal-title-wrap">
+            <h3>Request #{{ selectedRequest.request_number }}</h3>
+            <p class="modal-subtitle">Review details, update item pricing, and manage fulfillment.</p>
+          </div>
+          <span class="status-badge" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
           <button @click="selectedRequest = null" class="modal-close">
             <XMarkIcon class="icon-sm" />
           </button>
         </div>
         <div class="modal-body">
-          <!-- New Fulfillment Manager component -->
-          <FulfillmentPharmacyManager :request="selectedRequest" :pharmacies="nearbyPharmacies"
-            @contact="contactPharmacy" @confirm="confirmPharmacy" @out-of-stock="markOutOfStock" />
-
-          <!-- Request Info -->
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="detail-label">Status</span>
-              <span class="status-badge" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status)
-              }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Customer</span>
-              <span>{{ selectedRequest.customer_name || 'N/A' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Phone</span>
-              <span>{{ selectedRequest.customer_phone || 'N/A' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Request Fee</span>
-              <span>GHS {{ parseFloat(selectedRequest.request_fee || 0).toFixed(2) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Fulfillment</span>
-              <span>{{ selectedRequest.fulfillment_type || 'Not chosen' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">Delivery Address</span>
-              <span>{{ selectedRequest.delivery_address || 'N/A' }}</span>
-            </div>
+          <div class="modal-action-bar">
+            <p class="text-sm text-gray-600 m-0">
+              Use fulfillment to source items from nearby pharmacies.
+            </p>
+            <button
+              @click="loadFulfillment"
+              class="btn-primary btn-sm"
+              :disabled="loading || !canRunFulfillment(selectedRequest.status)"
+            >
+              <ArrowPathIcon class="icon-sm" :class="{ 'animate-spin': loading }" />
+              <span>{{ selectedRequest.status === 'pending' ? 'Start Fulfillment' : 'Refresh Fulfillment' }}</span>
+            </button>
           </div>
 
+          <section class="section-card">
+            <div class="section-head">
+              <h4 class="section-title">Fulfillment</h4>
+            </div>
+            <FulfillmentPharmacyManager :request="selectedRequest" :pharmacies="nearbyPharmacies"
+              @contact="contactPharmacy" @confirm="confirmPharmacy" @out-of-stock="markOutOfStock" />
+          </section>
+
+          <!-- Request Info -->
+          <section class="section-card">
+            <div class="section-head">
+              <h4 class="section-title">Request Details</h4>
+            </div>
+            <div class="detail-grid nice">
+              <div class="detail-item nice">
+                <span class="detail-label">Status</span>
+                <span class="status-badge" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
+              </div>
+              <div class="detail-item nice">
+                <span class="detail-label">Customer</span>
+                <span class="detail-value">{{ selectedRequest.customer_name || 'N/A' }}</span>
+              </div>
+              <div class="detail-item nice">
+                <span class="detail-label">Phone</span>
+                <span class="detail-value">{{ selectedRequest.customer_phone || 'N/A' }}</span>
+              </div>
+              <div class="detail-item nice">
+                <span class="detail-label">Request Fee</span>
+                <span class="detail-value strong">GHS {{ parseFloat(selectedRequest.request_fee || 0).toFixed(2) }}</span>
+              </div>
+              <div class="detail-item nice">
+                <span class="detail-label">Fulfillment</span>
+                <span class="detail-value">{{ selectedRequest.fulfillment_type || 'Not chosen' }}</span>
+              </div>
+              <div class="detail-item nice wide">
+                <span class="detail-label">Delivery Address</span>
+                <span class="detail-value address">{{ selectedRequest.delivery_address || 'N/A' }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="selectedRequest.prescription_image_url" class="section-card">
+            <div class="section-head">
+              <h4 class="section-title">Attached Prescription</h4>
+            </div>
+            <div class="prescription-preview">
+              <a
+                :href="selectedRequest.prescription_image_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="prescription-link"
+              >
+                <img
+                  :src="selectedRequest.prescription_image_url"
+                  alt="Attached prescription"
+                  class="prescription-image"
+                />
+              </a>
+              <a
+                :href="selectedRequest.prescription_image_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-secondary prescription-open-btn"
+              >
+                Open Full Image
+              </a>
+            </div>
+          </section>
+
           <!-- Items -->
-          <div class="items-section">
+          <section class="items-section section-card">
             <h4>Request Items</h4>
+            <div class="items-table-wrap">
             <table class="items-table">
               <thead>
                 <tr>
@@ -222,10 +274,11 @@
                 </tr>
               </tbody>
             </table>
-          </div>
+            </div>
+          </section>
 
           <!-- Admin Notes -->
-          <div class="notes-section mt-4 border-t pt-4">
+          <section class="notes-section section-card">
             <div class="flex items-center justify-between mb-2">
               <h4 class="text-sm font-semibold text-gray-700 m-0">Admin Notes</h4>
               <button @click="saveNotes" class="btn-secondary btn-sm" :disabled="loading">
@@ -234,17 +287,20 @@
             </div>
             <textarea v-model="adminNotes" class="form-control w-full" rows="3"
               placeholder="Internal notes for this request..."></textarea>
-          </div>
+          </section>
         </div>
         <div class="modal-footer">
           <select v-model="selectedStatus" class="form-control" style="width: auto">
             <option value="">Change Status...</option>
-            <option value="processing">Processing</option>
-            <option value="items_sourced">Items Sourced</option>
-            <option value="awaiting_customer">Awaiting Customer</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="completed">Completed</option>
+            <option value="confirming_with_pharm">Confirming With Pharm</option>
+            <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+            <option value="paid">Paid</option>
+            <option value="ready_for_pickup">Ready For Pickup</option>
+            <option value="picked_up">Picked Up</option>
+            <option value="out_for_delivery">Out For Delivery</option>
+            <option value="delivered">Delivered</option>
             <option value="cancelled">Cancelled</option>
+            <option value="returned">Returned</option>
           </select>
           <button @click="updateStatus" class="btn-primary" :disabled="!selectedStatus || loading">
             Update Status
@@ -332,7 +388,14 @@ const fetchRequests = async () => {
 const fetchStats = async () => {
   try {
     const res = await apiCall('GET', '/api/order-requests/admin/stats')
-    stats.value = res.data
+    const raw = res.data || {}
+    stats.value = {
+      ...raw,
+      pending: Number(raw.pending ?? raw.pending_count ?? 0),
+      processing: Number(raw.processing ?? raw.processing_count ?? 0),
+      completed: Number(raw.completed ?? raw.completed_count ?? 0),
+      total: Number(raw.total ?? raw.total_requests ?? 0)
+    }
   } catch (e) {
     showMessage('Failed to load stats', 'error')
   }
@@ -344,48 +407,50 @@ const viewRequest = async (req) => {
     selectedRequest.value = res.data
     selectedStatus.value = res.data.status || ''
     adminNotes.value = res.data.admin_notes || ''
+    nearbyPharmacies.value = res.data.nearby_pharmacies || []
 
-    // If it's already in processing or similar, fetch fulfillment details
-    const fulfillmentStatuses = ['processing', 'items_sourced', 'awaiting_customer', 'confirmed', 'completed']
-    if (fulfillmentStatuses.includes(res.data.status)) {
-      try {
-        const procRes = await apiCall('POST', `/api/order-requests/admin/${req.id}/process`)
-        nearbyPharmacies.value = procRes.data.nearby_pharmacies || []
-      } catch (e) {
-        nearbyPharmacies.value = res.data.nearby_pharmacies || []
-      }
-    } else {
-      nearbyPharmacies.value = res.data.nearby_pharmacies || []
+    // Opening a request should immediately load the fulfillment context so the
+    // admin does not need to click "Start Fulfillment" first.
+    if (canRunFulfillment(selectedRequest.value.status)) {
+      loadFulfillment({ silent: true, refreshLists: false })
     }
   } catch (e) {
     showMessage('Failed to load request details', 'error')
   }
 }
 
-const processRequest = async (req) => {
-  // We still want to call the process endpoint even if it's not pending 
-  // to get/refresh the nearby pharmacies list
+const canRunFulfillment = (status) => {
+  const allowed = new Set([
+    'pending',
+    'confirming_with_pharm',
+    'confirmed_in_pharm',
+    // Legacy values kept to support older records.
+    'processing',
+    'items_sourced',
+    'awaiting_customer',
+    'confirmed'
+  ])
+  return allowed.has(status)
+}
+
+const loadFulfillment = async (options = {}) => {
+  const { silent = false, refreshLists = true } = options
+  if (!selectedRequest.value || !canRunFulfillment(selectedRequest.value.status)) return
   loading.value = true
   try {
-    const res = await apiCall('POST', `/api/order-requests/admin/${req.id}/process`)
-
-    // Set selected request so modal opens - use the full returned request object if available
-    const fullRequest = res.data.request || req;
+    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
+    const fullRequest = res.data.request || selectedRequest.value
     selectedRequest.value = { ...fullRequest, status: res.data.status || fullRequest.status }
-    selectedStatus.value = res.data.status || fullRequest.status || ''
-    adminNotes.value = fullRequest.admin_notes || ''
-
-    // Set nearby pharmacies for the manager component
+    selectedStatus.value = selectedRequest.value.status || ''
+    adminNotes.value = selectedRequest.value.admin_notes || ''
     nearbyPharmacies.value = res.data.nearby_pharmacies || []
-
-    if (req.status === 'pending') {
+    if (refreshLists) {
       await fetchRequests()
+      await fetchStats()
     }
-    showMessage('Fulfillment details loaded', 'success')
+    if (!silent) showMessage('Fulfillment details refreshed', 'success')
   } catch (e) {
-    // If process fails, fall back to simple view
-    await viewRequest(req)
-    showMessage('Loaded request details', 'info')
+    if (!silent) showMessage('Failed to load fulfillment details', 'error')
   } finally {
     loading.value = false
   }
@@ -444,22 +509,23 @@ const updateStatus = async () => {
   if (!selectedRequest.value || !selectedStatus.value) return
   loading.value = true
   try {
-    await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/status`, {
-      status: selectedStatus.value,
+    const newStatus = selectedStatus.value
+    const statusRes = await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/status`, {
+      status: newStatus,
       admin_notes: adminNotes.value
     })
-    selectedRequest.value.status = selectedStatus.value
+    selectedRequest.value.status = newStatus
     selectedStatus.value = ''
 
-    // Refresh pharmacies if needed
-    const fulfillmentStatuses = ['processing', 'items_sourced', 'awaiting_customer', 'confirmed', 'completed']
-    if (fulfillmentStatuses.includes(selectedRequest.value.status)) {
+    // Only load fulfillment context when explicitly entering the confirming phase.
+    if ((newStatus === 'confirming_with_pharm' || newStatus === 'processing') && canRunFulfillment(newStatus)) {
       const procRes = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
       nearbyPharmacies.value = procRes.data.nearby_pharmacies || []
     }
 
     await fetchRequests()
-    showMessage('Status updated and fulfillment data refreshed', 'success')
+    await fetchStats()
+    showMessage(statusRes?.message || 'Status updated and fulfillment data refreshed', 'success')
   } catch (e) {
     showMessage('Failed to update status', 'error')
   } finally {
@@ -500,11 +566,18 @@ const startEditItem = (item) => {
 
 const saveItemPrice = async (item) => {
   try {
-    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
+    const res = await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
       unit_price: item.edit_price,
       item_status: 'available'
     })
+    const pricing = res.data || {}
     item.unit_price = item.edit_price
+    if (pricing.markedUpPrice !== undefined && pricing.markedUpPrice !== null) {
+      item.marked_up_price = pricing.markedUpPrice
+    }
+    if (item.marked_up_price !== undefined && item.marked_up_price !== null) {
+      item.line_total = Number(item.marked_up_price) * Number(item.quantity || 0)
+    }
     item.item_status = 'available'
     item.editing = false
     showMessage('Item price updated', 'success')
@@ -669,6 +742,33 @@ definePageMeta({
 .form-control-sm {
   padding: 0.375rem 0.5rem;
   font-size: 0.8rem;
+}
+
+.prescription-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.prescription-link {
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.prescription-image {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
+.prescription-open-btn {
+  width: fit-content;
+  text-decoration: none;
 }
 
 /* Buttons */
@@ -871,6 +971,47 @@ definePageMeta({
   color: #1e40af;
 }
 
+.status-badge.confirming_with_pharm {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-badge.confirmed_in_pharm {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.status-badge.paid {
+  background: #ecfeff;
+  color: #155e75;
+}
+
+.status-badge.ready_for_pickup {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.status-badge.picked_up {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.out_for_delivery {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-badge.delivered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.returned {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .status-badge.items_sourced {
   background: #e0e7ff;
   color: #3730a3;
@@ -945,6 +1086,11 @@ definePageMeta({
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
+.modal-elevated {
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
 .modal-lg {
   max-width: 900px;
 }
@@ -955,6 +1101,18 @@ definePageMeta({
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(180deg, #fafbff 0%, #ffffff 100%);
+}
+
+.modal-title-wrap {
+  min-width: 0;
+}
+
+.modal-subtitle {
+  margin: 0.25rem 0 0;
+  color: #6b7280;
+  font-size: 0.825rem;
 }
 
 .modal-header h3 {
@@ -979,6 +1137,8 @@ definePageMeta({
 
 .modal-body {
   padding: 1.5rem;
+  display: grid;
+  gap: 0.9rem;
 }
 
 .modal-footer {
@@ -988,20 +1148,36 @@ definePageMeta({
   justify-content: flex-end;
   gap: 0.75rem;
   align-items: center;
+  background: #fcfcfd;
 }
 
-/* Detail Grid */
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+.section-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #ffffff;
 }
 
-.detail-item {
+.section-head {
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+.modal-action-bar {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
 }
 
 .detail-label {
@@ -1009,6 +1185,49 @@ definePageMeta({
   color: #6b7280;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.detail-value {
+  color: #111827;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.detail-value.strong {
+  color: #1f2937;
+}
+
+.detail-value.address {
+  max-width: 100%;
+  text-align: left;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.detail-grid.nice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.detail-item.nice {
+  background: #fbfcfe;
+  border: 1px solid #eef2f7;
+  border-radius: 9px;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.detail-item.nice.wide {
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  flex-direction: column;
 }
 
 /* Items Table */
@@ -1031,6 +1250,12 @@ definePageMeta({
   overflow: hidden;
 }
 
+.items-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 8px;
+}
+
 .items-table th {
   text-align: left;
   padding: 0.625rem 0.75rem;
@@ -1039,6 +1264,12 @@ definePageMeta({
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
+}
+
+.items-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .items-table td {
@@ -1108,6 +1339,18 @@ definePageMeta({
   font-weight: 600;
   margin: 0 0 0.5rem 0;
   color: #111827;
+}
+
+@media (max-width: 860px) {
+  .detail-grid.nice {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .detail-grid.nice {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Toast */

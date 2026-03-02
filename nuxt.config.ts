@@ -1,5 +1,28 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  vite: {
+    plugins: [
+      {
+        name: 'fix-plugin-vue-export-helper-windows',
+        enforce: 'pre',
+        resolveId(id: string) {
+          if (id === 'plugin-vue:export-helper') {
+            return '\0plugin-vue:export-helper'
+          }
+        },
+        load(id: string) {
+          if (id === '\0plugin-vue:export-helper') {
+            return `export default (sfc, props) => {
+  const target = sfc.__vccOpts || sfc;
+  for (const [key, val] of props) { target[key] = val; }
+  return target;
+}`
+          }
+        }
+      }
+    ]
+  },
+
   compatibilityDate: "2024-04-03",
   devtools: { enabled: true },
   app: {
@@ -65,11 +88,11 @@ export default defineNuxtConfig({
   // Runtime configuration for API endpoints
   runtimeConfig: {
     public: {
-      apiBase: process.env.API_BASE_URL,
-      paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.API_BASE_URL,
+      paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
       paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || '',
-      accessControlUsername: process.env.ACCESS_CONTROL_USERNAME || 'admin',
-      accessControlPassword: process.env.ACCESS_CONTROL_PASSWORD || ''
+      accessControlUsername: process.env.NUXT_PUBLIC_ACCESS_CONTROL_USERNAME || process.env.ACCESS_CONTROL_USERNAME || 'admin',
+      accessControlPassword: process.env.NUXT_PUBLIC_ACCESS_CONTROL_PASSWORD || process.env.ACCESS_CONTROL_PASSWORD || ''
     }
   },
 
