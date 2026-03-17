@@ -2,7 +2,7 @@
   <div class="profile-component">
     <div class="section-header">
       <h2>Profile Information</h2>
-      <p class="section-description">Update your personal information and password</p>
+      <p class="section-description">Update your personal information and saved home location</p>
     </div>
 
     <!-- Success Alert -->
@@ -55,11 +55,45 @@
           </div>
         </div>
 
-        <!-- Address -->
-        <div class="form-group">
-          <label for="address">Delivery Address</label>
-          <textarea v-model="profile.address" id="address" rows="3" class="form-input"
-            placeholder="Enter your delivery address"></textarea>
+        <div class="home-location-card">
+          <div class="home-location-head">
+            <div>
+              <label class="home-location-label">Home Address</label>
+              <p class="field-hint">Used by default for delivery requests until you change it for a specific request.</p>
+            </div>
+            <div class="home-location-actions">
+              <button type="button" class="btn btn-ghost" :disabled="isLocating" @click="captureHomeLocation">
+                <svg v-if="isLocating" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                  </path>
+                </svg>
+                <span>{{ isLocating ? 'Finding...' : (profile.latitude && profile.longitude ? 'Update From Current Location' : 'Set From Current Location') }}</span>
+              </button>
+              <button
+                v-if="profile.latitude || profile.longitude || profile.address"
+                type="button"
+                class="btn btn-subtle"
+                :disabled="isLoading || isLocating"
+                @click="clearHomeLocation"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div class="home-location-body">
+            <div class="home-location-status" :class="{ set: !!profile.address }">
+              <strong>{{ profile.address ? 'Home location saved' : 'No home location saved yet' }}</strong>
+              <span v-if="profile.address">{{ profile.address }}</span>
+              <span v-else>Use your current location once, then we will use it for future delivery requests.</span>
+            </div>
+            <div v-if="profile.latitude && profile.longitude" class="location-coordinates">
+              <span>Lat: {{ Number(profile.latitude).toFixed(6) }}</span>
+              <span>Lng: {{ Number(profile.longitude).toFixed(6) }}</span>
+            </div>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -132,10 +166,12 @@ import { ref, reactive, onMounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 
 const userStore = useUserStore();
+const config = useRuntimeConfig();
 
 // State
 const isLoading = ref(false);
 const isChangingPassword = ref(false);
+const isLocating = ref(false);
 const updateSuccess = ref(false);
 const passwordSuccess = ref(false);
 const error = ref(null);
@@ -145,7 +181,9 @@ const profile = reactive({
   fname: '',
   lname: '',
   email: '',
-  address: ''
+  address: '',
+  latitude: null,
+  longitude: null
 });
 
 // Password form
@@ -175,11 +213,69 @@ const loadProfile = async () => {
       profile.fname = profileData?.fname || userStore.currentUser?.fname || '';
       profile.lname = profileData?.lname || userStore.currentUser?.lname || '';
       profile.email = profileData?.email || userStore.currentUser?.email || '';
-      profile.address = profileData?.address || '';
+      profile.address = profileData?.home_address || profileData?.address || '';
+      profile.latitude = profileData?.home_latitude ?? profileData?.latitude ?? null;
+      profile.longitude = profileData?.home_longitude ?? profileData?.longitude ?? null;
     }
   } catch (err) {
     console.error('Error loading profile:', err);
   }
+};
+
+const reverseGeocode = async (latitude, longitude) => {
+  const response = await fetch(`${config.public.apiBase}/api/auth/customer/reverse-geocode?lat=${latitude}&lng=${longitude}`, {
+    headers: {
+      'Authorization': `Bearer ${userStore.customerAuthToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data.message || 'Failed to look up your address');
+  }
+  return data.data;
+};
+
+const captureHomeLocation = () => {
+  if (!navigator.geolocation) {
+    error.value = 'Location is not available in this browser';
+    return;
+  }
+
+  isLocating.value = true;
+  error.value = null;
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      try {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const result = await reverseGeocode(latitude, longitude);
+        profile.latitude = latitude;
+        profile.longitude = longitude;
+        profile.address = result.address || '';
+      } catch (err) {
+        error.value = err.message || 'Failed to generate your home address';
+      } finally {
+        isLocating.value = false;
+      }
+    },
+    (geoError) => {
+      isLocating.value = false;
+      if (geoError?.code === geoError.PERMISSION_DENIED) {
+        error.value = 'Location permission was denied. Allow location access and try again.';
+        return;
+      }
+      error.value = 'Could not get your location right now. Check GPS and try again.';
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
+  );
+};
+
+const clearHomeLocation = () => {
+  profile.address = '';
+  profile.latitude = null;
+  profile.longitude = null;
 };
 
 // Save profile
@@ -192,7 +288,9 @@ const saveProfile = async () => {
       fname: profile.fname,
       lname: profile.lname,
       email: profile.email,
-      address: profile.address
+      home_address: profile.address || null,
+      home_latitude: profile.latitude,
+      home_longitude: profile.longitude
     });
 
     updateSuccess.value = true;
@@ -354,6 +452,77 @@ onMounted(() => {
   margin-top: 4px;
 }
 
+.home-location-card {
+  display: grid;
+  gap: 14px;
+  margin-top: 4px;
+  padding: 18px;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff, #ffffff);
+}
+
+.home-location-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.home-location-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.home-location-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.home-location-body {
+  display: grid;
+  gap: 10px;
+}
+
+.home-location-status {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.home-location-status.set {
+  background: #ecfeff;
+  border-color: #99f6e4;
+}
+
+.home-location-status strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.home-location-status span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.location-coordinates {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -402,6 +571,28 @@ onMounted(() => {
   box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3);
 }
 
+.btn-ghost {
+  min-width: auto;
+  padding: 10px 16px;
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-subtle {
+  min-width: auto;
+  padding: 10px 16px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.btn-subtle:hover:not(:disabled) {
+  background: #e0e7ff;
+}
+
 .spinner {
   width: 20px;
   height: 20px;
@@ -425,6 +616,15 @@ onMounted(() => {
 
   .card {
     padding: 16px;
+  }
+
+  .home-location-head {
+    flex-direction: column;
+  }
+
+  .home-location-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 </style>

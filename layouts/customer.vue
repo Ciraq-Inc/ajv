@@ -19,25 +19,25 @@
       </div>
       <nav class="sidebar-nav">
         <p class="side-section-label">Workspace</p>
-        <button @click="goTo('new')" class="side-btn accent">
+        <button @click="goTo('new')" class="side-btn accent" title="New Request">
           <PlusCircleIconSolid class="side-icon" />
           <span>New Request</span>
           <small>Create and send a new order request</small>
         </button>
         <div class="side-group">
-          <button @click="goTo('home')" class="side-btn" :class="{ active: activeNav === 'home' }">
+          <button @click="goTo('home')" class="side-btn" :class="{ active: activeNav === 'home' }" title="Home">
             <component :is="activeNav === 'home' ? HomeIconSolid : HomeIcon" class="side-icon" />
             <span>Home</span>
           </button>
-          <button @click="goTo('requests')" class="side-btn" :class="{ active: activeNav === 'requests' }">
+          <button @click="goTo('requests')" class="side-btn" :class="{ active: activeNav === 'requests' }" title="My Requests">
             <component :is="activeNav === 'requests' ? ClipDocListSolid : ClipDocList" class="side-icon" />
             <span>My Requests</span>
           </button>
-          <button @click="goTo('wallet')" class="side-btn" :class="{ active: activeNav === 'wallet' }">
+          <button @click="goTo('wallet')" class="side-btn" :class="{ active: activeNav === 'wallet' }" title="Wallet">
             <component :is="activeNav === 'wallet' ? CreditCardSolid : CreditCardIcon" class="side-icon" />
             <span>Wallet</span>
           </button>
-          <button @click="goTo('orders')" class="side-btn" :class="{ active: activeNav === 'orders' }">
+          <button @click="goTo('orders')" class="side-btn" :class="{ active: activeNav === 'orders' }" title="Orders">
             <component :is="activeNav === 'orders' ? ShoppingBagSolid : ShoppingBagIcon" class="side-icon" />
             <span>Orders</span>
           </button>
@@ -45,11 +45,11 @@
         <div class="side-divider"></div>
         <p class="side-section-label">Account</p>
         <div class="side-group">
-          <button @click="goTo('companies')" class="side-btn" :class="{ active: activeNav === 'companies' }">
+          <button @click="goTo('companies')" class="side-btn" :class="{ active: activeNav === 'companies' }" title="Pharmacies">
             <component :is="activeNav === 'companies' ? BuildingSolid : BuildingStorefrontIcon" class="side-icon" />
             <span>Pharmacies</span>
           </button>
-          <button @click="goTo('profile')" class="side-btn" :class="{ active: activeNav === 'profile' }">
+          <button @click="goTo('profile')" class="side-btn" :class="{ active: activeNav === 'profile' }" title="Profile">
             <component :is="activeNav === 'profile' ? UserIconSolid : UserIcon" class="side-icon" />
             <span>Profile</span>
           </button>
@@ -57,14 +57,14 @@
       </nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
-          <div class="avatar-sm">{{ userInitials }}</div>
+          <div class="avatar-sm">{{ displayUserInitials }}</div>
           <div class="user-meta">
-            <span class="user-name-sm">{{ userName }}</span>
+            <span class="user-name-sm">{{ displayUserName }}</span>
             <span class="user-role-sm">Signed in customer</span>
-            <span class="user-phone-sm">{{ userStore.currentUser?.phone || '' }}</span>
+            <span class="user-phone-sm">{{ displayUserPhone }}</span>
           </div>
         </div>
-        <button @click="handleLogout" class="side-btn logout-btn">
+        <button @click="handleLogout" class="side-btn logout-btn" title="Log Out">
           <ArrowLeftOnRectangleIcon class="side-icon" /><span>Log Out</span>
         </button>
       </div>
@@ -83,8 +83,12 @@
           <h1 v-if="showPageTitle" class="header-title">{{ pageTitle }}</h1>
         </div>
         <div class="header-right">
+          <button class="header-wallet-chip" @click="goTo('wallet')">
+            <CreditCardSolid class="header-wallet-icon" />
+            <span>GHS {{ walletBalance.toFixed(2) }}</span>
+          </button>
           <button @click="toggleMenu" class="avatar-btn">
-            <span class="avatar">{{ userInitials }}</span>
+            <span class="avatar">{{ displayUserInitials }}</span>
           </button>
         </div>
       </header>
@@ -94,10 +98,10 @@
           <div class="sheet" @click.stop>
             <div class="sheet-handle"></div>
             <div class="sheet-profile">
-              <div class="sheet-avatar">{{ userInitials }}</div>
+              <div class="sheet-avatar">{{ displayUserInitials }}</div>
               <div>
-                <p class="sheet-name">{{ userName }}</p>
-                <p class="sheet-phone">{{ userStore.currentUser?.phone || '' }}</p>
+                <p class="sheet-name">{{ displayUserName }}</p>
+                <p class="sheet-phone">{{ displayUserPhone }}</p>
               </div>
             </div>
             <div class="sheet-actions">
@@ -159,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import brandLogo from '~/assets/images/rigellogo.png'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useUserStore } from '~/stores/user'
@@ -182,6 +186,8 @@ const userStore = useUserStore()
 const route = useRoute()
 const showMenu = ref(false)
 const showLogoutConfirm = ref(false)
+const hasMounted = ref(false)
+const walletBalance = useState('walletBalance', () => 0)
 
 const userName = computed(() => {
   const u = userStore.currentUser
@@ -191,6 +197,9 @@ const userInitials = computed(() => {
   const u = userStore.currentUser
   return u ? `${(u.fname || '')[0] || ''}${(u.lname || '')[0] || ''}`.toUpperCase() || 'C' : 'C'
 })
+const displayUserName = computed(() => hasMounted.value ? userName.value : 'Customer')
+const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
+const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
 const activeNav = computed(() => route.query.tab || 'home')
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home')
 const showHeaderBrand = computed(() => activeNav.value === 'home')
@@ -214,6 +223,10 @@ const confirmLogout = async () => {
     console.error(e)
   }
 }
+
+onMounted(() => {
+  hasMounted.value = true
+})
 </script>
 
 <style scoped>
@@ -223,7 +236,9 @@ const confirmLogout = async () => {
 
 .app-shell {
   min-height: 100vh;
-  background: #f8f9fc;
+  background:
+    radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 24%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   display: flex;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -244,6 +259,8 @@ const confirmLogout = async () => {
   bottom: 0;
   z-index: 50;
   padding: 18px 14px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .sidebar-brand-wrap {
@@ -507,14 +524,17 @@ const confirmLogout = async () => {
   position: sticky;
   top: 0;
   z-index: 100;
-  padding: 12px 20px;
+  margin: 12px 12px 0;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(248, 249, 252, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
 }
 
 .header-left {
@@ -563,6 +583,40 @@ const confirmLogout = async () => {
   margin: 0;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 20px;
+  padding: 6px 12px 6px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.header-wallet-chip:hover {
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.header-wallet-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 .avatar-btn {
   background: none;
   border: none;
@@ -586,23 +640,26 @@ const confirmLogout = async () => {
 /* Content */
 .app-content {
   flex: 1;
-  padding: 0 0 88px 0;
+  padding: 12px 0 94px 0;
   overflow-y: auto;
 }
 
 /* Bottom Nav */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
-  background: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 22px;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.1);
   z-index: 99;
 }
 
@@ -806,10 +863,12 @@ const confirmLogout = async () => {
 @media (min-width: 768px) {
   .sidebar {
     display: flex;
+    width: 92px;
+    padding: 16px 10px;
   }
 
   .main-area {
-    margin-left: 240px;
+    margin-left: 92px;
   }
 
   .bottom-nav {
@@ -821,11 +880,12 @@ const confirmLogout = async () => {
   }
 
   .app-header {
-    padding: 16px 32px;
+    margin: 18px 24px 0;
+    padding: 16px 20px;
   }
 
   .header-right {
-    display: none;
+    gap: 10px;
   }
 
   .header-title {
@@ -836,23 +896,103 @@ const confirmLogout = async () => {
     display: none;
   }
 
+  .sidebar-brand-wrap {
+    padding: 4px 0 18px;
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+
+  .brand-copy,
+  .sidebar-highlight,
+  .side-section-label,
+  .side-btn span,
+  .side-btn small,
+  .user-meta {
+    display: none;
+  }
+
+  .side-group {
+    padding: 6px 4px;
+  }
+
+  .side-btn,
+  .side-btn.accent,
+  .logout-btn {
+    justify-content: center;
+    padding: 12px 10px;
+  }
+
+  .side-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .sidebar-user {
+    justify-content: center;
+    padding: 10px;
+  }
 
   .app-content {
-    padding: 0;
+    padding: 18px 0 0;
   }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1100px) {
   .sidebar {
     width: 260px;
+    padding: 18px 14px;
   }
 
   .main-area {
     margin-left: 260px;
   }
 
+  .sidebar-brand-wrap {
+    padding: 6px 8px 18px;
+  }
+
+  .sidebar-brand {
+    justify-content: flex-start;
+    margin-bottom: 14px;
+  }
+
+  .brand-copy,
+  .sidebar-highlight,
+  .side-section-label,
+  .side-btn span,
+  .user-meta {
+    display: block;
+  }
+
+  .side-btn small {
+    display: block;
+  }
+
+  .side-group {
+    padding: 6px;
+  }
+
+  .side-btn,
+  .side-btn.accent,
+  .logout-btn {
+    justify-content: flex-start;
+    padding: 11px 12px;
+  }
+
+  .side-btn.accent {
+    padding: 14px 14px;
+  }
+
+  .sidebar-user {
+    justify-content: flex-start;
+    padding: 10px 12px 12px;
+  }
+
   .app-header {
-    padding: 18px 40px;
+    margin: 24px 40px 0;
+    padding: 18px 28px;
   }
 }
 </style>

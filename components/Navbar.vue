@@ -1,23 +1,23 @@
 <template>
-  <header class="bg-white shadow-sm py-3 border-b border-gray-100 sticky top-0 z-40">
+  <header class="py-3 fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-slate-950/75 to-transparent border-none">
     <div class="container mx-auto px-4 max-w-7xl">
       <div class="flex items-center justify-between gap-4">
         <!-- Logo and Brand -->
         <nuxt-link to="/" class="flex items-center cursor-pointer flex-shrink-0">
           <img src="../assets/images/rigellogo.png" alt="Rigelis" width="50" height="50" class="mr-1" />
-          <h1 class="text-xl md:text-2xl font-bold text-black">MedsGh</h1>
+          <h1 class="text-xl md:text-2xl font-bold text-white">MedsGh</h1>
         </nuxt-link>
 
         <!-- Desktop Navigation -->
         <div class="hidden lg:flex items-center gap-4 xl:gap-6">
           <!-- Phone -->
-          <a href="tel:+233552587974" class="flex items-center gap-2 text-gray-700 hover:text-indigo-600 transition-colors">
-            <div class="w-9 h-9 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+          <a href="tel:+233552587974" class="flex items-center gap-2 text-slate-200 hover:text-white transition-colors">
+            <div class="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-sky-400">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
             </div>
-            <span class="hidden xl:inline text-sm font-medium">(+233) 55-258-7974</span>
+            <span class="hidden xl:inline text-sm font-medium text-slate-200">(+233) 55-258-7974</span>
           </a>
           
           <!-- WhatsApp Contact Button -->
@@ -34,7 +34,7 @@
           <button 
             v-if="!userStore.isLoggedIn"
             @click="showLoginModal = true"
-            class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+            class="bg-white/10 hover:bg-white/20 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
           >
             <i class="ri-user-line text-xl"></i>
             <span>Login</span>
@@ -44,7 +44,7 @@
           <div v-else class="relative profile-menu-container">
             <button 
               @click.stop="showProfileMenu = !showProfileMenu"
-              class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+              class="bg-white/10 hover:bg-white/20 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
             >
               <i class="ri-user-line text-xl"></i>
               <span class="truncate max-w-[100px]">{{ userStore.currentUser?.fname || 'Account' }}</span>
@@ -111,13 +111,32 @@
         </div>
         </div>
 
-        <!-- Mobile Menu Button -->
-        <button 
-          @click="showMobileMenu = !showMobileMenu"
-          class="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <i :class="[showMobileMenu ? 'ri-close-line' : 'ri-menu-line', 'text-2xl']"></i>
-        </button>
+        <!-- Mobile Actions -->
+        <div class="lg:hidden ml-auto flex items-center gap-2">
+          <button
+            v-if="!userStore.isLoggedIn"
+            @click="showLoginModal = true; showMobileMenu = false"
+            class="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm backdrop-blur-sm transition hover:bg-white/20"
+          >
+            <i class="ri-login-box-line text-base"></i>
+            <span>Login</span>
+          </button>
+          <nuxt-link
+            v-else
+            to="/customer"
+            class="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm backdrop-blur-sm transition hover:bg-white/20"
+          >
+            <i class="ri-user-star-line text-base"></i>
+            <span>My Hub</span>
+          </nuxt-link>
+
+          <button 
+            @click="showMobileMenu = !showMobileMenu"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
+          >
+            <i :class="[showMobileMenu ? 'ri-close-line' : 'ri-menu-line', 'text-xl']"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Mobile Navigation -->
@@ -147,16 +166,6 @@
           <i class="ri-whatsapp-line text-xl"></i>
           Contact Us on WhatsApp
         </a>
-
-        <!-- Mobile Login/Profile -->
-        <!-- <button 
-         
-          @click="showLoginModal = true; showMobileMenu = false"
-          class="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-4 py-2.5 rounded-lg transition-colors duration-200"
-        >
-          <i class="ri-user-line text-xl"></i>
-          Login
-        </button> -->
 
         <!-- Mobile Profile Menu -->
         <div  v-if="userStore.isLoggedIn" class="space-y-2">

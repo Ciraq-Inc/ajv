@@ -1,99 +1,149 @@
 <template>
-  <div v-if="isOpenSidebar" class="fixed inset-0 bg-black/30 z-50 flex justify-end sm:justify-end">
-    <!-- Cart container - full width on mobile, fixed width on desktop -->
-    <div class="bg-white w-full sm:w-96 flex flex-col h-full shadow-lg">
-      <!-- Header -->
-      <div class="p-4 sm:p-6 border-b flex justify-between items-center">
-        <h2 class="text-xl font-semibold">Your Cart</h2>
-        <button @click="toggleCart" class="text-gray-600 hover:text-gray-900 p-2">
+  <div v-if="isOpenSidebar" class="fixed inset-0 z-50 flex justify-end bg-slate-950/35 backdrop-blur-[2px]">
+    <div class="flex h-full w-full flex-col bg-white shadow-2xl sm:w-[430px]">
+      <div class="border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6 sm:py-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-500">Cart</p>
+            <h2 class="mt-1 text-xl font-semibold text-slate-900">Review your order</h2>
+            <p class="mt-1 text-sm text-slate-500">{{ cartSummaryText }}</p>
+          </div>
+          <button @click="toggleCart" class="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
           <i class="ri-close-line text-2xl"></i>
         </button>
+        </div>
       </div>
 
-      <!-- Scrollable content area -->
-      <div class="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div v-if="items.length === 0" class="text-center text-gray-500 py-8">
-          Your cart is empty
+      <div class="flex-1 overflow-y-auto bg-slate-50/80 px-4 py-4 sm:px-6 sm:py-5">
+        <div v-if="items.length === 0"
+          class="flex h-full min-h-[320px] flex-col items-center justify-center rounded-[24px] border border-dashed border-slate-300 bg-white px-6 text-center shadow-sm">
+          <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+            <i class="ri-shopping-basket-line text-3xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-slate-900">Your cart is empty</h3>
+          <p class="mt-2 max-w-xs text-sm leading-6 text-slate-500">
+            Add products from this pharmacy and they will appear here for checkout or WhatsApp ordering.
+          </p>
+          <button @click="toggleCart"
+            class="mt-5 inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+            Continue shopping
+          </button>
         </div>
 
         <div v-else class="space-y-4">
-          <!-- Pharmacy Name -->
-          <div v-if="pharmacyStore.pharmacyData" class="mb-4 bg-gray-100 p-3 rounded-lg">
-            <p class="text-sm text-gray-700">
-              Order from: <span class="font-semibold">{{ pharmacyStore.pharmacyData.name }}</span>
+          <div v-if="pharmacyStore.pharmacyData" class="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Ordering from</p>
+            <p class="mt-2 text-sm font-semibold text-slate-900">
+              {{ pharmacyStore.pharmacyData.name }}
             </p>
-            <p class="text-xs text-gray-500">{{ pharmacyStore.pharmacyData.location }}</p>
+            <p class="mt-1 text-xs leading-5 text-slate-500">{{ pharmacyStore.pharmacyData.location }}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                {{ totalItemCount }} item{{ totalItemCount === 1 ? "" : "s" }}
+              </span>
+              <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                GHS {{ formatPrice(cartTotal) }}
+              </span>
+            </div>
           </div>
 
-          <!-- Error message area (if any) -->
-          <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded">
+          <div v-if="errorMessage" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
             {{ errorMessage }}
           </div>
 
-          <!-- Cart items -->
-          <div v-for="item in items" :key="item.id"
-            class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3">
-            <div class="flex items-center mb-2 sm:mb-0 w-full sm:w-auto">
-              <img v-if="item.image" :src="item.image" :alt="item.name" class="w-12 h-12 mr-3 object-cover rounded" />
-              <div>
-                <h3 class="font-semibold text-sm">{{ item.name }}</h3>
-                <p class="text-sm text-gray-500">GHS {{ formatPrice(item.price) }}</p>
-              </div>
-            </div>
+          <div class="space-y-3">
+            <div v-for="item in items" :key="item.id"
+              class="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
+              <div class="flex items-start gap-3">
+                <img v-if="item.image" :src="item.image" :alt="item.name"
+                  class="h-14 w-14 rounded-2xl border border-slate-100 object-cover" />
+                <div v-else
+                  class="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-300">
+                  <i class="ri-capsule-line text-2xl"></i>
+                </div>
 
-            <div class="flex items-center justify-between w-full sm:w-auto">
-              <div class="flex items-center border rounded overflow-hidden">
-                <button @click="updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1"
-                  class="px-3 py-1 bg-gray-100 disabled:opacity-50">
-                  -
-                </button>
-                <span class="px-3 py-1 border-x">{{ item.quantity }}</span>
-                <button @click="updateQuantity(item.id, item.quantity + 1)" class="px-3 py-1 bg-gray-100">
-                  +
-                </button>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="truncate text-sm font-semibold text-slate-900">{{ item.name }}</h3>
+                      <p class="mt-1 text-xs text-slate-500">
+                        GHS {{ formatPrice(item.price) }} each
+                      </p>
+                    </div>
+
+                    <button @click="removeFromCart(item.id)"
+                      class="rounded-full p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600">
+                      <i class="ri-delete-bin-line text-lg"></i>
+                    </button>
+                  </div>
+
+                  <div class="mt-4 flex items-center justify-between gap-3">
+                    <div class="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+                      <button @click="updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1"
+                        class="rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40">
+                        -
+                      </button>
+                      <span class="min-w-[2.25rem] px-2 py-1 text-center text-sm font-semibold text-slate-700">{{ item.quantity }}</span>
+                      <button @click="updateQuantity(item.id, item.quantity + 1)"
+                        class="rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-white">
+                        +
+                      </button>
+                    </div>
+
+                    <div class="text-right">
+                      <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Line total</p>
+                      <p class="mt-1 text-sm font-semibold text-slate-900">GHS {{ formatPrice(item.price * item.quantity) }}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <button @click="removeFromCart(item.id)" class="ml-4 text-red-500 hover:text-red-700 p-1">
-                <i class="ri-delete-bin-line text-lg"></i>
-              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Sticky footer with total and checkout -->
-      <div v-if="items.length > 0" class="border-t border-gray-200 p-4 sm:p-5 bg-white">
-        <div class="flex justify-between items-center mb-4">
-          <button @click="toggleCart"
-            class="text-blue-600 hover:text-blue-800 transition-colors flex items-center">
-            <i class="ri-arrow-left-line mr-1"></i>Continue Shopping
-          </button>
-          <div class="flex items-center">
-            <span class="font-semibold mr-2">Total:</span>
-            <span class="font-bold">GHS{{ formatPrice(cartTotal) }}</span>
+      <div v-if="items.length > 0" class="border-t border-slate-200 bg-white px-4 py-4 shadow-[0_-12px_30px_-24px_rgba(15,23,42,0.45)] sm:px-6 sm:py-5">
+        <div class="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Order total</p>
+              <p class="mt-1 text-xl font-bold text-slate-900">GHS{{ formatPrice(cartTotal) }}</p>
+              <p class="text-xs text-slate-500">{{ totalItemCount }} item{{ totalItemCount === 1 ? "" : "s" }} in cart</p>
+            </div>
+
+            <button @click="toggleCart"
+              class="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 transition hover:bg-indigo-50">
+              <i class="ri-arrow-left-line mr-1"></i>Continue shopping
+            </button>
           </div>
-        </div>
-        <div class="space-y-3">
-          <button @click="sendWhatsAppMessage"
-            class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-            :disabled="isProcessingOrder">
-            <i class="ri-whatsapp-line text-xl mr-2"></i>Send Order via WhatsApp
-          </button>
-          <button @click="handleDirectOrder"
-            class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-            :disabled="isProcessingOrder">
-            <span v-if="isProcessingOrder" class="flex items-center justify-center">
-              <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </span>
-            <span v-else class="flex items-center justify-center">
-              <span>
-                <i class="ri-wallet-line text-xl mr-2"></i>Order Directly &nbsp;(Free Trial)
+
+          <div class="mt-4 space-y-3">
+            <button @click="sendWhatsAppMessage"
+              class="flex w-full items-center justify-center rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isProcessingOrder">
+              <i class="ri-whatsapp-line text-xl mr-2"></i>Send Order via WhatsApp
+            </button>
+            <button @click="handleDirectOrder"
+              class="flex w-full items-center justify-center rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isProcessingOrder">
+              <span v-if="isProcessingOrder" class="flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
               </span>
-            </span>
-          </button>
+              <span v-else class="flex items-center justify-center">
+                <span>
+                  <i class="ri-wallet-line text-xl mr-2"></i>Order Directly&nbsp;(Free Trial)
+                </span>
+              </span>
+            </button>
+          </div>
+
+          <p class="mt-3 text-center text-xs leading-5 text-slate-500">
+            Use WhatsApp to enquire first, or place the order directly from your customer account.
+          </p>
         </div>
       </div>
     </div>
@@ -131,6 +181,17 @@ const userStore = useUserStore();
 // Get reactive store state
 const { items, cartTotal } = storeToRefs(cartStore);
 const { removeFromCart, updateQuantity } = cartStore;
+const totalItemCount = computed(() =>
+  items.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+);
+const cartSummaryText = computed(() => {
+  if (!items.value.length) {
+    return "Add products and review them here before checkout.";
+  }
+
+  const label = totalItemCount.value === 1 ? "item" : "items";
+  return `${totalItemCount.value} ${label} ready for checkout`;
+});
 
 // Emits
 const emit = defineEmits(['close', 'order-success']);
@@ -144,9 +205,16 @@ const toggleCart = () => {
 };
 
 const sendWhatsAppMessage = () => {
-  let phoneNumber = pharmacyStore.pharmacyData?.whatsapp_number 
+  let phoneNumber =
+    pharmacyStore.pharmacyData?.whatsapp_number ||
+    pharmacyStore.pharmacyData?.phone ||
+    '';
 
-  console.log("phoneNumber", phoneNumber)
+  if (!phoneNumber) {
+    errorMessage.value = 'This pharmacy does not have a WhatsApp number available yet.';
+    return;
+  }
+
   // Extract the first phone number if multiple are provided with a separator
   if (phoneNumber.includes('/')) {
     phoneNumber = phoneNumber.split('/')[0];

@@ -1,17 +1,19 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  buildDir: process.env.NUXT_BUILD_DIR || '.nuxt',
   vite: {
+    warmupEntry: false,
     plugins: [
       {
         name: 'fix-plugin-vue-export-helper-windows',
         enforce: 'pre',
         resolveId(id: string) {
-          if (id === 'plugin-vue:export-helper') {
-            return '\0plugin-vue:export-helper'
+          if (id === 'plugin-vue:export-helper' || id === '\0plugin-vue:export-helper') {
+            return 'virtual:plugin-vue-export-helper'
           }
         },
         load(id: string) {
-          if (id === '\0plugin-vue:export-helper') {
+          if (id === 'virtual:plugin-vue-export-helper' || id === '\0plugin-vue:export-helper') {
             return `export default (sfc, props) => {
   const target = sfc.__vccOpts || sfc;
   for (const [key, val] of props) { target[key] = val; }
@@ -24,7 +26,7 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: "2024-04-03",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   app: {
     head: {
       link: [

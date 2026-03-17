@@ -39,6 +39,18 @@ export const useUserStore = defineStore('user', {
       this.otpSent = false;
     },
 
+    applyProfileData(profile) {
+      if (!profile) return;
+      this.masterCustomer = {
+        ...(this.masterCustomer || {}),
+        ...profile,
+        address: profile.home_address ?? profile.address ?? this.masterCustomer?.address ?? null,
+        latitude: profile.home_latitude ?? profile.latitude ?? this.masterCustomer?.latitude ?? null,
+        longitude: profile.home_longitude ?? profile.longitude ?? this.masterCustomer?.longitude ?? null
+      };
+      this.persistAuthData();
+    },
+
     formatPhoneNumber(phone) {
       if (!phone) return '';
       let digits = phone.replace(/\D/g, '');
@@ -287,6 +299,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to fetch profile');
+        this.applyProfileData(data.data);
         return data.data;
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -309,6 +322,7 @@ export const useUserStore = defineStore('user', {
         });
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to update profile');
+        this.applyProfileData(data.data);
         return data.data;
       } catch (error) {
         console.error('Error updating profile:', error);

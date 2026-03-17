@@ -125,19 +125,27 @@ const isActiveCompany = (company) => {
   return userStore.currentCompany?.company_id === company.company_id;
 };
 
-// Generate slug from company name
+// Resolve store slug using the persisted pharmacy domain when available
 const generateCompanySlug = (companyName) => {
-  return companyName
+  return String(companyName || '')
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/(^-|-$)/g, '')
     .trim();
+};
+
+const getCompanyStoreSlug = (company) => {
+  const explicitSlug = String(company?.domain_name || company?.company_slug || company?.slug || '').trim().toLowerCase();
+  if (explicitSlug) return explicitSlug;
+  return generateCompanySlug(company?.company_name || '');
 };
 
 // Navigate to company store
 const goToCompanyStore = (company) => {
-  const slug = generateCompanySlug(company.domain_name);
+  const slug = getCompanyStoreSlug(company);
+  if (!slug) return;
   navigateTo(`/${slug}`);
 };
 

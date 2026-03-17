@@ -341,6 +341,8 @@ const POLL_INTERVAL_MS = 15000;
 let pollTimer = null;
 const paidRequestStatuses = new Set([
   'paid',
+  'logistics_pending',
+  'driver_unavailable',
   'ready_for_pickup',
   'picked_up',
   'out_for_delivery',
@@ -413,6 +415,8 @@ const formatRequestStatus = (status) => {
   const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
   const statusMap = {
     paid: 'Paid',
+    logistics_pending: 'Logistics Pending',
+    driver_unavailable: 'Driver Unavailable',
     ready_for_pickup: 'Ready For Pickup',
     out_for_delivery: 'Out For Delivery',
     completed: 'Completed',
@@ -426,6 +430,8 @@ const getRequestStatusClass = (status) => {
   const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
   const classes = {
     paid: 'status-processing',
+    logistics_pending: 'status-processing',
+    driver_unavailable: 'status-cancelled',
     ready_for_pickup: 'status-shipped',
     out_for_delivery: 'status-shipped',
     completed: 'status-delivered',
@@ -812,15 +818,15 @@ onUnmounted(() => {
 .orders-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .order-card {
   background: white;
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 16px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
   transition: all 0.2s;
 }
 
@@ -837,26 +843,26 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .order-info h3 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
 }
 
 .order-date {
-  font-size: 14px;
+  font-size: 13px;
   color: #64748b;
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
 }
 
 .order-company {
-  font-size: 12px;
+  font-size: 11px;
   color: #059669;
   font-weight: 500;
   margin: 0;
@@ -864,9 +870,9 @@ onUnmounted(() => {
 
 .status-badge {
   display: inline-block;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -904,36 +910,36 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .items-summary {
-  font-size: 14px;
+  font-size: 13px;
   color: #64748b;
   margin: 0;
 }
 
 .items-summary strong {
-  font-size: 18px;
+  font-size: 16px;
   color: #0f172a;
 }
 
 .request-meta-line {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
-  margin: 6px 0 0 0;
+  margin: 4px 0 0 0;
 }
 
 .total-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .total-amount {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
   color: #1e293b;
   margin: 0;
@@ -941,7 +947,7 @@ onUnmounted(() => {
 
 .order-footer {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -949,10 +955,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 7px 13px;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -1152,31 +1158,231 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
+  .orders-component {
+    padding: 0;
+  }
+
   .section-header {
     flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .section-header h2 {
-    font-size: 24px;
+    font-size: 20px;
+  }
+
+  .section-description {
+    font-size: 12px;
+  }
+
+  .summary-strip {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .summary-pill {
+    min-width: 0;
+    padding: 8px 9px;
+    border-radius: 11px;
+  }
+
+  .summary-pill strong {
+    font-size: 16px;
   }
 
   .orders-tabs {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    padding: 3px;
+    border-radius: 13px;
+    margin-bottom: 10px;
+  }
+
+  .tab-btn {
+    min-width: 0;
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+
+  .tab-count {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  .filters {
+    margin-bottom: 12px;
+  }
+
+  .filter-select {
+    max-width: none;
+    padding: 10px 11px;
+    font-size: 12px;
+  }
+
+  .orders-sections {
+    gap: 12px;
+  }
+
+  .orders-block {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .block-head {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+
+  .block-title {
+    font-size: 15px;
+  }
+
+  .block-description {
+    font-size: 11px;
+  }
+
+  .orders-list {
+    gap: 8px;
+  }
+
+  .order-card {
+    padding: 12px;
+    border-radius: 13px;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+  }
+
+  .order-header {
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .order-info h3 {
+    font-size: 13px;
+  }
+
+  .order-date {
+    font-size: 11px;
+  }
+
+  .order-company {
+    font-size: 10px;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    padding: 4px 9px;
+  }
+
+  .order-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+  }
+
+  .items-summary {
+    font-size: 12px;
+  }
+
+  .items-summary strong {
+    font-size: 15px;
+  }
+
+  .request-meta-line,
+  .total-label {
+    font-size: 10px;
+  }
+
+  .order-company {
+    margin-top: 2px;
+  }
+
+  .request-order-card .order-company {
+    display: none;
+  }
+
+  .order-total {
+    text-align: right;
+  }
+
+  .total-amount {
+    font-size: 16px;
   }
 
   .order-footer {
-    flex-direction: column;
+    gap: 0;
   }
 
   .btn {
     width: 100%;
     justify-content: center;
+    padding: 6px 11px;
+    font-size: 12px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    max-width: none;
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .modal-header,
+  .modal-body {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .tab-btn {
+    padding: 8px 9px;
+    font-size: 11px;
+  }
+
+  .summary-pill {
+    padding: 7px 8px;
+  }
+
+  .order-card {
+    padding: 11px;
+  }
+
+  .order-header {
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
   }
 
   .order-body {
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .order-total {
+    text-align: left;
+  }
+
+  .items_details {
     flex-direction: column;
-    gap: 12px;
+    gap: 4px;
+  }
+
+  .item-row {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 </style>

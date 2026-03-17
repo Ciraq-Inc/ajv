@@ -1,339 +1,914 @@
 <template>
-    <div class="fulfillment-manager bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-        <div class="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-            <h4 class="text-lg font-bold text-gray-800 m-0">Order Fulfillment Manager</h4>
-            <button @click="copyFullRequest" class="btn-copy-all">
-                <ClipboardDocumentIcon class="icon-sm" /> Copy Full Request Info
-            </button>
-        </div>
-
-        <div class="p-4">
-            <div v-if="!pharmacies || pharmacies.length === 0" class="text-center py-8 text-gray-500">
-                <div class="flex justify-center mb-2">
-                    <BuildingOfficeIcon class="icon-lg text-gray-300" />
-                </div>
-                <p>No pharmacies found nearby. Enter processing mode to find pharmacies.</p>
-            </div>
-
-            <div v-else class="pharmacy-list space-y-4">
-                <div v-for="pharm in pharmacies" :key="pharm.id"
-                    class="pharmacy-item flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-xl transition-all duration-200"
-                    :class="getPharmacyItemClass(pharm)">
-
-                    <div class="flex-1 mb-4 md:mb-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <strong class="text-gray-900 text-lg">{{ pharm.name }}</strong>
-                            <span class="distance-tag">{{ pharm.distance_km?.toFixed(1) }} km</span>
-                            <span v-if="pharm.is_confirmed" class="confirmed-tag">CONFIRMED</span>
-                        </div>
-
-                        <div class="flex flex-wrap gap-4 text-sm text-gray-600">
-                            <span class="flex items-center gap-1">
-                                <MapPinIcon class="icon-xs opacity-70" /> {{ pharm.location || 'No location' }}
-                            </span>
-                            <span v-if="pharm.tel1" class="flex items-center gap-1">
-                                <PhoneIcon class="icon-xs opacity-70" /> {{ pharm.tel1 }}
-                            </span>
-                        </div>
-
-                        <div v-if="pharm.contacted_at"
-                            class="mt-2 text-xs flex items-center gap-1 font-medium text-emerald-600">
-                            <CheckIcon class="icon-xs" /> Contacted {{ formatDate(pharm.contacted_at) }}
-                        </div>
-                    </div>
-
-                    <div class="actions-group flex flex-wrap items-center gap-2">
-                        <!-- Copy Text for this pharmacy -->
-                        <button @click="copyRequestText(pharm)" class="btn-icon-action"
-                            title="Copy text for this pharmacy">
-                            <DocumentTextIcon class="icon-sm" />
-                        </button>
-
-                        <!-- WhatsApp -->
-                        <button
-                            @click="handleWhatsAppClick(pharm)"
-                            class="btn-whatsapp-sm"
-                            :class="{ 'disabled': !hasWhatsApp(pharm) }"
-                            :title="hasWhatsApp(pharm) ? 'Contact on WhatsApp' : 'WhatsApp not available for this pharmacy'"
-                            :disabled="!hasWhatsApp(pharm)"
-                        >
-                            <ChatBubbleLeftRightIcon class="icon-sm" />
-                            <span>{{ hasWhatsApp(pharm) ? 'WhatsApp' : 'No WhatsApp' }}</span>
-                        </button>
-
-                        <!-- Status Actions -->
-                        <div class="flex items-center gap-1 ml-2 border-l pl-3">
-                            <button @click="$emit('confirm', pharm)" :disabled="isConfirmedElsewhere(pharm)"
-                                class="btn-status btn-confirm" :class="{ 'active': pharm.is_confirmed }">
-                                {{ pharm.is_confirmed ? 'Confirmed' : 'Confirm' }}
-                            </button>
-                            <button @click="$emit('out-of-stock', pharm)" class="btn-status btn-cancel"
-                                :class="{ 'active': pharm.pharmacy_status === 'out_of_stock' }">
-                                {{ pharm.pharmacy_status === 'out_of_stock' ? 'No Stock' : 'Out of Stock' }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Notification Toast (Internal) -->
-        <div v-if="toast" class="internal-toast" :class="toast.type">
-            {{ toast.text }}
-        </div>
+  <div class="fpm">
+    <!-- Header -->
+    <div class="fpm-header">
+      <div class="fpm-header-left">
+        <h4 class="fpm-title">Nearby Sources</h4>
+        <span class="fpm-count">{{ filteredPharmacies.length }} found</span>
+      </div>
+      <div class="fpm-header-actions">
+        <p v-if="hasHiddenPharmacies" class="fpm-summary-copy">
+          Showing the 3 closest first so the workspace stays focused.
+        </p>
+        <button @click="copyFullRequest" class="btn-copy-all">
+          <ClipboardDocumentIcon class="fpm-icon-sm" />
+          Copy Request Info
+        </button>
+      </div>
     </div>
+
+    <!-- Empty state -->
+    <div v-if="filteredPharmacies.length === 0" class="fpm-empty">
+      <BuildingOfficeIcon class="fpm-empty-icon" />
+      <p class="fpm-empty-title">No pharmacies found nearby</p>
+      <p class="fpm-empty-sub">Run fulfillment processing to discover nearby pharmacies.</p>
+    </div>
+
+    <!-- Pharmacy list -->
+    <div v-else class="fpm-list">
+        <article
+          v-for="(pharm, index) in visiblePharmacies"
+          :key="pharm.id"
+          class="pharm-row"
+          :class="{
+            'pharm-row--full': pharm.fully_covers_request,
+            'pharm-row--contacted': pharm.contacted_at
+          }"
+        >
+          <div class="pharm-card-top">
+            <div class="pharm-identity">
+              <span class="pharm-rank-label">Source {{ index + 1 }}</span>
+              <h3 class="pharm-name">{{ pharm.name }}</h3>
+            </div>
+            <div class="pharm-top-badge">
+              <span v-if="getPrimaryPlan(pharm)?.priority_rank" class="pharm-badge fit">Plan {{ getPrimaryPlan(pharm).priority_rank }}</span>
+              <span v-else-if="pharm.contacted_at" class="pharm-badge contacted">Contacted</span>
+            </div>
+          </div>
+
+          <div class="pharm-meta-row">
+            <span class="pharm-meta-chip">
+              <MapPinIcon class="fpm-icon-xs" />
+              {{ pharm.distance_km?.toFixed(1) }} km away
+            </span>
+            <span v-if="formatLastSync(pharm)" class="pharm-meta-chip subtle pharm-meta-chip-sync">
+              {{ formatLastSync(pharm) }}
+            </span>
+          </div>
+
+          <div class="pharm-summary-row">
+            <p class="pharm-coverage-copy">
+              <strong>{{ getMatchedCount(pharm) }}/{{ getRequestedCount() }}</strong>
+              item<span v-if="getRequestedCount() !== 1">s</span> found
+              <span v-if="getMissingCount(pharm) > 0"> • {{ getMissingCount(pharm) }} missing</span>
+            </p>
+          </div>
+
+          <div v-if="props.request?.items?.length" class="pharm-item-list">
+            <div
+              v-for="status in getItemStatuses(pharm)"
+              :key="status.name"
+              class="pharm-item-row"
+            >
+              <span class="pharm-item-row-name">{{ status.name }}</span>
+              <span class="pharm-item-row-state" :class="status.found ? 'is-found' : 'is-missing'">
+                {{ status.found ? 'Available' : 'Unavailable' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="pharm-card-footer">
+            <div class="pharm-footer-actions">
+              <button
+                v-if="getPrimaryPlan(pharm)"
+                @click="$emit('use-plan', { plan: getPrimaryPlan(pharm), pharmacy: pharm })"
+                class="btn-use-plan"
+                :disabled="loading"
+              >
+                Use Plan
+              </button>
+              <button
+                @click="copyRequestText(pharm)"
+                class="btn-footer-ghost"
+                title="Copy request text"
+              >
+                <DocumentTextIcon class="fpm-icon-sm" />
+                Copy
+              </button>
+              <button
+                @click="handleWhatsAppClick(pharm)"
+                class="btn-footer-whatsapp"
+                :class="{ disabled: !hasWhatsApp(pharm) }"
+                :disabled="!hasWhatsApp(pharm)"
+                :title="hasWhatsApp(pharm) ? 'Send via WhatsApp' : 'No WhatsApp available'"
+              >
+                <i class="ri-whatsapp-line fpm-icon-sm-ri" aria-hidden="true"></i>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="btn-footer-toggle"
+              @click="togglePharmacyDetails(pharm.id)"
+            >
+              {{ isExpanded(pharm.id) ? 'Hide' : 'Details' }}
+              <ChevronUpIcon v-if="isExpanded(pharm.id)" class="fpm-icon-sm" />
+              <ChevronDownIcon v-else class="fpm-icon-sm" />
+            </button>
+          </div>
+
+          <div v-if="isExpanded(pharm.id)" class="pharm-row-details">
+            <div v-if="getPlanSupportCopy(pharm)" class="pharm-plan-support">
+              {{ getPlanSupportCopy(pharm) }}
+            </div>
+            <div class="pharm-detail-meta">
+              <span class="pharm-meta-chip">Qty matched {{ Number(pharm.matched_quantity_total || 0) }}</span>
+              <span v-if="pharm.location" class="pharm-meta-chip">{{ pharm.location }}</span>
+              <span v-if="pharm.tel1" class="pharm-meta-chip">
+                <PhoneIcon class="fpm-icon-xs" />
+                {{ pharm.tel1 }}
+              </span>
+              <span v-if="pharm.contacted_at" class="pharm-contacted-row">
+                <CheckIcon class="fpm-icon-xs" />
+                Contacted at {{ formatDate(pharm.contacted_at) }}
+              </span>
+            </div>
+          </div>
+        </article>
+      <button
+        v-if="hasHiddenPharmacies"
+        type="button"
+        class="btn-show-more"
+        @click="showAllPharmacies = !showAllPharmacies"
+      >
+        {{ showAllPharmacies ? `Show Top 3` : `Show ${filteredPharmacies.length - 3} More Pharmacies` }}
+      </button>
+    </div>
+
+    <!-- Toast -->
+    <div v-if="toast" class="fpm-toast" :class="toast.type">{{ toast.text }}</div>
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
-    ClipboardDocumentIcon,
-    BuildingOfficeIcon,
-    MapPinIcon,
-    PhoneIcon,
-    CheckIcon,
-    DocumentTextIcon,
-    ChatBubbleLeftRightIcon
+  ClipboardDocumentIcon,
+  BuildingOfficeIcon,
+  MapPinIcon,
+  PhoneIcon,
+  CheckIcon,
+  DocumentTextIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
-    request: {
-        type: Object,
-        required: true
-    },
-    pharmacies: {
-        type: Array,
-        default: () => []
-    }
+  request: { type: Object, required: true },
+  pharmacies: { type: Array, default: () => [] },
+  candidatePlans: { type: Array, default: () => [] },
+  allocationSummary: { type: Object, default: null },
+  loading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['contact', 'confirm', 'out-of-stock'])
-
+const emit = defineEmits(['contact', 'use-plan'])
 const toast = ref(null)
+const showAllPharmacies = ref(false)
+const expandedPharmacyIds = ref([])
+
+const filteredPharmacies = computed(() => (
+  Array.isArray(props.pharmacies)
+    ? props.pharmacies.filter((pharm) => getMatchedCount(pharm) > 0)
+    : []
+))
+
+const visiblePharmacies = computed(() => (
+  showAllPharmacies.value ? filteredPharmacies.value : filteredPharmacies.value.slice(0, 3)
+))
+
+const hasHiddenPharmacies = computed(() => filteredPharmacies.value.length > 3)
+
+const isExpanded = (pharmacyId) => expandedPharmacyIds.value.includes(Number(pharmacyId))
+
+const togglePharmacyDetails = (pharmacyId) => {
+  const normalizedId = Number(pharmacyId)
+  if (expandedPharmacyIds.value.includes(normalizedId)) {
+    expandedPharmacyIds.value = expandedPharmacyIds.value.filter((id) => id !== normalizedId)
+    return
+  }
+  expandedPharmacyIds.value = [...expandedPharmacyIds.value, normalizedId]
+}
 
 const showToast = (text, type = 'success') => {
-    toast.value = { text, type }
-    setTimeout(() => { toast.value = null }, 3000)
+  toast.value = { text, type }
+  setTimeout(() => { toast.value = null }, 3000)
 }
 
-const formatDate = (d) => {
-    return new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+const formatDate = (d) =>
+  new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+
+const getRequestedCount = () => {
+  const total = Array.isArray(props.request?.items) ? props.request.items.length : 0
+  return total > 0 ? total : 1
 }
 
-const getPharmacyItemClass = (pharm) => {
-    if (pharm.is_confirmed) return 'border-emerald-500 bg-emerald-50 shadow-sm'
-    if (pharm.pharmacy_status === 'out_of_stock') return 'border-gray-200 bg-gray-50 opacity-60'
-    return 'border-gray-100 bg-white hover:border-indigo-200 hover:shadow-md'
+const getMatchedCount = (pharm) => {
+  const matched = Number(pharm?.matched_item_count || 0)
+  if (!Number.isFinite(matched) || matched < 0) return 0
+  return matched
 }
 
-const isConfirmedElsewhere = (pharm) => {
-    if (pharm.is_confirmed) return false
-    return props.pharmacies.some(p => p.is_confirmed)
+const getCoveragePercent = (pharm) => {
+  const requested = getRequestedCount()
+  const matched = getMatchedCount(pharm)
+  const pct = Math.round((matched / requested) * 100)
+  return Math.max(0, Math.min(100, pct))
 }
 
-const hasWhatsApp = (pharm) => {
-    return Boolean(pharm?.whatsapp_url && String(pharm.whatsapp_url).trim())
+const getMissingCount = (pharm) => {
+  const missing = Number(pharm?.missing_item_count)
+  if (Number.isFinite(missing) && missing >= 0) return missing
+  return Math.max(0, getRequestedCount() - getMatchedCount(pharm))
 }
+
+const getCoverageSummary = (pharm) => {
+  const matched = getMatchedCount(pharm)
+  const requested = getRequestedCount()
+  const missing = getMissingCount(pharm)
+
+  if (pharm?.fully_covers_request) {
+    return `Can cover all ${requested} requested item${requested !== 1 ? 's' : ''}.`
+  }
+
+  if (matched === 0) {
+    return 'No confirmed product match yet from this source.'
+  }
+
+  const parts = [`Can cover ${matched} of ${requested} item${requested !== 1 ? 's' : ''}`]
+  if (missing > 0) parts.push(`${missing} still missing`)
+  return `${parts.join(' • ')}.`
+}
+
+const formatLastSync = (pharm) => {
+  const days = Number(pharm?.days_since_last_sync)
+  if (!Number.isFinite(days) || days < 0) return ''
+  if (days === 0) return 'Synced today'
+  if (days === 1) return 'Synced 1 day ago'
+  return `Synced ${days} days ago`
+}
+
+const getPrimaryPlan = (pharm) => {
+  const pharmacyId = Number(pharm?.id || pharm?.pharmacy_id || 0)
+  if (!pharmacyId || !Array.isArray(props.candidatePlans)) return null
+
+  return props.candidatePlans
+    .filter((plan) =>
+      Array.isArray(plan?.pharmacies)
+      && plan.pharmacies.some((entry) => Number(entry?.pharmacy_id || 0) === pharmacyId)
+    )
+    .sort((a, b) => {
+      if (Number(a.priority_rank || 999) !== Number(b.priority_rank || 999)) {
+        return Number(a.priority_rank || 999) - Number(b.priority_rank || 999)
+      }
+      return Number(a.stop_count || 0) - Number(b.stop_count || 0)
+    })[0] || null
+}
+
+const getFoundItems = (pharm) => {
+  const pharmacyId = Number(pharm?.id || pharm?.pharmacy_id || 0)
+  const plan = getPrimaryPlan(pharm)
+  if (Array.isArray(plan?.items) && plan.items.length) {
+    return plan.items.filter((item) => {
+      if (Array.isArray(item?.allocations) && item.allocations.length) {
+        return item.allocations.some((allocation) => Number(allocation?.pharmacy_id || 0) === pharmacyId && Number(allocation?.matched_quantity || 0) > 0)
+      }
+      return Number(item?.source_pharmacy_id || 0) === pharmacyId && Number(item?.matched_quantity || 0) > 0
+    })
+  }
+
+  if (Array.isArray(pharm?.coverage_items) && pharm.coverage_items.length) {
+    return pharm.coverage_items.filter((item) => Number(item?.matched_quantity || 0) > 0)
+  }
+
+  return []
+}
+
+const getPlanSupportCopy = (pharm) => {
+  const plan = getPrimaryPlan(pharm)
+  if (!plan) return ''
+
+  if (Number(plan.stop_count || 0) <= 1) {
+    return `${plan.label}. This source alone likely covers ${plan.likely_covered_item_count || 0} of ${getRequestedCount()} requested items.`
+  }
+
+  const extraSources = Math.max(Number(plan.stop_count || 0) - 1, 0)
+  return `${plan.label}. This sourcing option adds ${extraSources} more source${extraSources !== 1 ? 's' : ''} to cover ${plan.likely_covered_item_count || 0} of ${getRequestedCount()} requested items.`
+}
+
+const getItemStatuses = (pharm) => {
+  const requested = Array.isArray(props.request?.items) ? props.request.items : []
+  if (!requested.length) return []
+
+  const foundItems = getFoundItems(pharm)
+  const foundIds = new Set(foundItems.map((f) => Number(f.item_id || 0)).filter(Boolean))
+  const foundNames = new Set(foundItems.map((f) => String(f.product_name || '').toLowerCase().trim()))
+
+  return requested.map((item) => {
+    const byId = Number(item.id || item.item_id || 0) > 0 && foundIds.has(Number(item.id || item.item_id))
+    const byName = foundNames.has(String(item.product_name || '').toLowerCase().trim())
+    return {
+      name: item.product_name || item.name || 'Item',
+      found: byId || byName
+    }
+  })
+}
+
+const hasWhatsApp = (pharm) =>
+  Boolean(pharm?.whatsapp_url && String(pharm.whatsapp_url).trim())
 
 const handleWhatsAppClick = (pharm) => {
-    if (!hasWhatsApp(pharm)) {
-        showToast(`No WhatsApp number for ${pharm?.name || 'this pharmacy'}`, 'error')
-        return
-    }
-    emit('contact', pharm)
+  if (!hasWhatsApp(pharm)) {
+    showToast(`No WhatsApp number for ${pharm?.name || 'this pharmacy'}`, 'error')
+    return
+  }
+  emit('contact', pharm)
 }
 
 const formatRequestDetails = () => {
-    const items = props.request.items.map(item => `- ${item.product_name} x${item.quantity}`).join('\n')
-    return `*Order Request #${props.request.request_number}*\n\n*Items:*\n${items}\n\n*Delivery Address:*\n${props.request.delivery_address || 'Not set'}\n\n*Customer Notes:*\n${props.request.customer_notes || 'None'}`
+  const items = props.request.items
+    .map(item => `- ${item.product_name} x${item.quantity}`)
+    .join('\n')
+  return `*Order Request #${props.request.request_number}*\n\n*Items:*\n${items}\n\n*Delivery Address:*\n${props.request.delivery_address || 'Not set'}\n\n*Customer Notes:*\n${props.request.customer_notes || 'None'}`
 }
 
 const copyRequestText = (pharm) => {
-    const text = formatRequestDetails()
-    navigator.clipboard.writeText(text)
-    showToast(`Copied items for ${pharm.name}`, 'success')
+  navigator.clipboard.writeText(formatRequestDetails())
+  showToast(`Copied items for ${pharm.name}`)
 }
 
 const copyFullRequest = () => {
-    const text = formatRequestDetails()
-    navigator.clipboard.writeText(text)
-    showToast('Full request info copied to clipboard', 'success')
+  navigator.clipboard.writeText(formatRequestDetails())
+  showToast('Full request info copied to clipboard')
 }
 </script>
 
 <style scoped>
-.fulfillment-manager {
-    margin-top: 1.5rem;
+.fpm {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.icon-xs {
-    width: 14px;
-    height: 14px;
+.fpm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.icon-sm {
-    width: 18px;
-    height: 18px;
+.fpm-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
 }
 
-.icon-lg {
-    width: 48px;
-    height: 48px;
+.fpm-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.7rem;
 }
 
-.distance-tag {
-    background: #f3f4f6;
-    color: #4b5563;
-    padding: 0.125rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
+.fpm-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
-.confirmed-tag {
-    background: #d1fae5;
-    color: #065f46;
-    padding: 0.125rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 700;
+.fpm-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.fpm-summary-copy {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.fpm-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1rem;
+}
+
+.fpm-icon-sm {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.fpm-icon-xs {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 
 .btn-copy-all {
-    background: white;
-    border: 1px solid #d1d5db;
-    padding: 0.5rem 0.875rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  min-height: 38px;
+  padding: 0.65rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid #dbe4ee;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .btn-copy-all:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
 }
 
-.btn-whatsapp-sm {
-    background: #25d366;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
+.btn-show-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 0.65rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.btn-whatsapp-sm:hover {
-    background: #128c7e;
-    transform: translateY(-1px);
+.btn-show-more:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
-.btn-whatsapp-sm:disabled,
-.btn-whatsapp-sm.disabled {
-    background: #e5e7eb;
-    color: #6b7280;
-    cursor: not-allowed;
-    transform: none;
-    opacity: 1;
+.fpm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.8rem 1rem;
+  border-radius: 16px;
+  border: 1px dashed #cbd5e1;
+  background: linear-gradient(180deg, #fcfdff 0%, #f8fafc 100%);
+  text-align: center;
 }
 
-.btn-icon-action {
-    background: white;
-    border: 1px solid #e5e7eb;
-    padding: 0.5rem;
-    border-radius: 8px;
-    transition: all 0.2s;
+.fpm-empty-icon {
+  width: 34px;
+  height: 34px;
+  color: #94a3b8;
 }
 
-.btn-icon-action:hover {
-    background: #f3f4f6;
-    border-color: #d1d5db;
+.fpm-empty-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.btn-status {
-    padding: 0.5rem 0.875rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+.fpm-empty-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #64748b;
 }
 
-.btn-confirm {
-    background: white;
-    border: 1px solid #10b981;
-    color: #10b981;
+.pharm-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  transition: box-shadow 0.18s, border-color 0.18s, transform 0.18s, background 0.18s;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
-.btn-confirm:hover:not(:disabled) {
-    background: #10b981;
-    color: white;
+.pharm-row:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.08);
 }
 
-.btn-confirm.active {
-    background: #10b981;
-    color: white;
+.pharm-row--full {
+  border-color: #c7d2fe;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
 }
 
-.btn-cancel {
-    background: white;
-    border: 1px solid #ef4444;
-    color: #ef4444;
+.pharm-row--contacted:not(.pharm-row--full) {
+  border-color: #ddd6fe;
 }
 
-.btn-cancel:hover:not(:disabled) {
-    background: #ef4444;
-    color: white;
+.pharm-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.btn-cancel.active {
-    background: #ef4444;
-    color: white;
+.pharm-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  flex: 1;
 }
 
-.btn-status:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-    filter: grayscale(1);
+.pharm-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid #eef2f7;
 }
 
-.internal-toast {
-    position: absolute;
-    bottom: 1rem;
-    right: 1rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 10;
-    animation: slideIn 0.3s ease-out;
+.pharm-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.internal-toast.success {
-    background: #10b981;
+/* Use Plan — primary solid */
+.btn-use-plan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 0.85rem;
+  border-radius: 7px;
+  background: #1d4ed8;
+  border: 1px solid #1d4ed8;
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.btn-use-plan:hover:not(:disabled) {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+.btn-use-plan:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
+/* Copy + WhatsApp — ghost outlined */
+.btn-footer-ghost,
+.btn-footer-whatsapp,
+.btn-footer-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  height: 32px;
+  padding: 0 0.65rem;
+  border-radius: 7px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
 
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
+.btn-footer-ghost {
+  background: #f8fafc;
+  border: 1px solid #dbe4ee;
+  color: #475569;
+}
+.btn-footer-ghost:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.btn-footer-whatsapp {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+.btn-footer-whatsapp:hover:not(:disabled):not(.disabled) {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.btn-footer-whatsapp.disabled,
+.btn-footer-whatsapp:disabled {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.fpm-icon-sm-ri {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+/* Details toggle — muted text style */
+.btn-footer-toggle {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  font-size: 0.71rem;
+  padding: 0 0.4rem;
+}
+.btn-footer-toggle:hover {
+  color: #475569;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.pharm-rank-label {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  height: 22px;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pharm-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pharm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+}
+
+.pharm-badge.fit       { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.pharm-badge.contacted { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.pharm-badge.pending   { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+
+.pharm-meta-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.pharm-summary-row,
+.pharm-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.pharm-top-badge {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.pharm-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  font-size: 0.73rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 999px;
+  padding: 0.18rem 0.48rem;
+}
+
+.pharm-meta-chip.subtle {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.pharm-meta-chip-sync {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.pharm-meta-chip.warn {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.pharm-item-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.4rem 0.55rem;
+}
+
+.pharm-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.42rem 0.58rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+
+.pharm-item-row-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.pharm-item-row-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.16rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #dbe4ee;
+  background: #ffffff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pharm-item-row-state.is-found {
+  color: #0f172a;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.pharm-item-row-state.is-missing {
+  color: #64748b;
+  border-style: dashed;
+  background: #ffffff;
+}
+
+.pharm-meta-chip.alt {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.pharm-row-details {
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pharm-coverage-copy {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.pharm-plan-support {
+  margin: 0 0 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #dbe4ef;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #334155;
+}
+
+.pharm-contacted-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+}
+
+@media (max-width: 920px) {
+  .fpm-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fpm-header-actions {
+    justify-content: flex-start;
+  }
+
+  .fpm-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .fpm-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-copy-all,
+  .btn-show-more {
+    width: 100%;
+  }
+
+  .pharm-card-top {
+    align-items: flex-start;
+  }
+
+  .pharm-top-badge {
+    align-self: flex-start;
+  }
+
+  .pharm-name {
+    white-space: normal;
+  }
+
+  .pharm-card-footer {
+    flex-wrap: wrap;
+  }
+
+  .pharm-footer-actions {
+    flex: 1;
+  }
+
+  .btn-use-plan {
+    flex: 1;
+  }
+}
+
+/* ── Toast ─────────────────────────────────────── */
+.fpm-toast {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  background: #10b981;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+  z-index: 10;
+  animation: fpmSlideIn 0.22s ease-out;
+}
+
+.fpm-toast.error { background: #ef4444; }
+
+@keyframes fpmSlideIn {
+  from { transform: translateY(6px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
 }
 </style>

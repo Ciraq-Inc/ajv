@@ -17,6 +17,7 @@
     "browser-image-compression": "^2.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "esbuild": "^0.24.0",
     "firebase": "^10.14.1",
     "firebase-admin": "^12.7.0",
     "firebaseui": "^6.1.0",
@@ -28,6 +29,11 @@
     "vue-router": "latest"
   },
   "devDependencies": {
-    "@nuxtjs/tailwindcss": "^6.12.2"
+    "@nuxtjs/tailwindcss": "^6.12.2",
+    "@playwright/test": "^1.58.2",
+    "playwright": "^1.58.2"
+  },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "0.24.0"
   }
 }

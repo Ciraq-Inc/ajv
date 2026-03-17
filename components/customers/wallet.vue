@@ -32,12 +32,12 @@
             <div class="summary-card credit-card-lite">
                 <span class="summary-label">Credits</span>
                 <strong>{{ creditTransactions.length }}</strong>
-                <small>Top ups and refunds</small>
+                <small>Top ups and hold returns</small>
             </div>
             <div class="summary-card debit-card-lite">
                 <span class="summary-label">Debits</span>
                 <strong>{{ debitTransactions.length }}</strong>
-                <small>Fees and deductions</small>
+                <small>Holds and order payments</small>
             </div>
         </div>
 
@@ -65,16 +65,15 @@
 
             <div v-else class="transactions-list">
                 <div v-for="tx in transactions" :key="tx.id" class="tx-row">
-                    <div class="tx-icon-wrap" :class="tx.transaction_type">
-                        <component :is="tx.transaction_type === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="tx-svg" />
+                    <div class="tx-icon-wrap" :class="getTransactionDirection(tx)">
+                        <component :is="getTransactionDirection(tx) === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="tx-svg" />
                     </div>
                     <div class="tx-info">
-                        <span class="tx-desc">{{ tx.description || (tx.transaction_type === 'credit' ? 'Wallet Top Up' :
-                            'Request Fee') }}</span>
+                        <span class="tx-desc">{{ formatTransactionDescription(tx) }}</span>
                         <span class="tx-date">{{ formatDate(tx.created_at) }}</span>
                     </div>
-                    <span class="tx-amount" :class="tx.transaction_type">
-                        {{ tx.transaction_type === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
+                    <span class="tx-amount" :class="getTransactionDirection(tx)">
+                        {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
                     </span>
                 </div>
             </div>
@@ -136,8 +135,85 @@ const toast = ref(null)
 let topUpRefreshTimer = null
 let topUpRefreshTicks = 0
 
-const creditTransactions = computed(() => transactions.value.filter(tx => tx.transaction_type === 'credit'))
-const debitTransactions = computed(() => transactions.value.filter(tx => tx.transaction_type === 'debit'))
+const CREDIT_TYPES = new Set(['topup', 'refund', 'fee_credit'])
+const DEBIT_TYPES = new Set(['request_fee', 'order_payment'])
+
+const getTransactionDirection = (tx) => {
+    const type = String(tx?.transaction_type || '').toLowerCase()
+    if (CREDIT_TYPES.has(type)) return 'credit'
+    if (DEBIT_TYPES.has(type)) return 'debit'
+
+    const description = String(tx?.description || '').toLowerCase()
+    if (description.includes('returned') || description.includes('refund') || description.includes('top-up') || description.includes('top up')) {
+        return 'credit'
+    }
+    return 'debit'
+}
+
+const formatTransactionDescription = (tx) => {
+    const type = String(tx?.transaction_type || '').toLowerCase()
+    const description = String(tx?.description || '').trim()
+
+    if (description) {
+        return description
+            .replace(/^Request submission fee/i, 'Priority Search hold')
+            .replace(/^Request fee credited back/i, 'Priority Search hold returned')
+    }
+
+    const labels = {
+        topup: 'Wallet top-up',
+        request_fee: 'Priority Search hold placed',
+        fee_credit: 'Priority Search hold returned',
+        refund: 'Priority Search hold refunded',
+        order_payment: 'Order payment'
+    }
+
+    return labels[type] || 'Wallet activity'
+}
+
+const extractRequestNumber = (tx) => {
+    const description = String(tx?.description || '')
+    const match = description.match(/REQ-\d{8}-\d{4}/i)
+    return match ? match[0].toUpperCase() : ''
+}
+
+const sortWalletTransactions = (entries = []) => {
+    return [...entries].sort((left, right) => {
+        const leftRef = String(left?.paystack_reference || '').trim()
+        const rightRef = String(right?.paystack_reference || '').trim()
+        const leftType = String(left?.transaction_type || '').toLowerCase()
+        const rightType = String(right?.transaction_type || '').toLowerCase()
+        const leftRequestNumber = extractRequestNumber(left)
+        const rightRequestNumber = extractRequestNumber(right)
+        const leftAmount = Number(left?.amount || 0)
+        const rightAmount = Number(right?.amount || 0)
+
+        const isSamePaystackPair = leftRef && rightRef && leftRef === rightRef
+        const isSameLegacyRequestPair = !isSamePaystackPair
+            && leftRequestNumber
+            && rightRequestNumber
+            && leftRequestNumber === rightRequestNumber
+            && Math.abs(leftAmount - rightAmount) < 0.01
+
+        if (isSamePaystackPair || isSameLegacyRequestPair) {
+            const pairOrder = { topup: 0, order_payment: 1 }
+            const leftRank = pairOrder[leftType]
+            const rightRank = pairOrder[rightType]
+            if (leftRank !== undefined && rightRank !== undefined && leftRank !== rightRank) {
+                return leftRank - rightRank
+            }
+        }
+
+        const rightTime = new Date(right?.created_at || 0).getTime()
+        const leftTime = new Date(left?.created_at || 0).getTime()
+        if (rightTime !== leftTime) return rightTime - leftTime
+
+        return Number(right?.id || 0) - Number(left?.id || 0)
+    })
+}
+
+const creditTransactions = computed(() => transactions.value.filter(tx => getTransactionDirection(tx) === 'credit'))
+const debitTransactions = computed(() => transactions.value.filter(tx => getTransactionDirection(tx) === 'debit'))
 
 const apiCall = async (method, url, data = null) => {
     const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userStore.customerAuthToken}` } }
@@ -159,7 +235,7 @@ const fetchTransactions = async () => {
     loading.value = true
     try {
         const res = await apiCall('GET', '/api/wallet/transactions')
-        transactions.value = res.data || []
+        transactions.value = sortWalletTransactions(res.data || [])
     } catch (e) { showToast('Failed to load transactions', 'error') }
     finally { loading.value = false }
 }
@@ -843,16 +919,124 @@ defineExpose({ fetchBalance, fetchTransactions })
 
 @media (max-width: 640px) {
     .wallet-panel {
-        padding: 1rem;
+        padding: 0.9rem;
     }
 
     .wallet-head {
         flex-direction: column;
         align-items: stretch;
+        gap: 0.75rem;
     }
 
     .wallet-title {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
+    }
+
+    .wallet-copy {
+        font-size: 0.8rem;
+        margin-top: 0.3rem;
+    }
+
+    .wallet-stat-chip {
+        min-width: 0;
+        padding: 0.7rem 0.8rem;
+        border-radius: 0.85rem;
+    }
+
+    .wallet-stat-chip span {
+        font-size: 0.64rem;
+    }
+
+    .wallet-stat-chip strong {
+        font-size: 1rem;
+    }
+
+    .wallet-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+    }
+
+    .balance-card {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 1.1rem;
+        border-radius: 1.15rem;
+    }
+
+    .balance-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+    }
+
+    .balance-amount {
+        font-size: 1.7rem;
+    }
+
+    .summary-card {
+        padding: 0.82rem;
+        border-radius: 0.9rem;
+    }
+
+    .summary-card strong {
+        font-size: 1.05rem;
+    }
+
+    .summary-card small {
+        font-size: 0.72rem;
+    }
+
+    .transactions-shell {
+        padding: 0.85rem;
+        border-radius: 1rem;
+    }
+
+    .section-header {
+        margin-bottom: 0.8rem;
+    }
+
+    .section-header h3 {
+        font-size: 1rem;
+    }
+
+    .transactions-list {
+        gap: 0.5rem;
+    }
+
+    .tx-row {
+        gap: 0.65rem;
+        padding: 0.72rem;
+        border-radius: 0.78rem;
+    }
+
+    .tx-icon-wrap {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+    }
+
+    .tx-desc {
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    .tx-date {
+        font-size: 0.66rem;
+    }
+
+    .tx-amount {
+        font-size: 0.8rem;
+    }
+
+    .topup-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 420px) {
+    .wallet-panel {
+        padding: 0.82rem;
     }
 
     .wallet-summary-grid {
@@ -860,12 +1044,12 @@ defineExpose({ fetchBalance, fetchTransactions })
     }
 
     .balance-card {
-        flex-wrap: wrap;
+        padding: 0.95rem;
     }
 
-    .topup-btn {
-        width: 100%;
-        justify-content: center;
+    .tx-row {
+        padding: 0.66rem;
+        align-items: flex-start;
     }
 }
 </style>

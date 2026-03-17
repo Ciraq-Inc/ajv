@@ -15,41 +15,18 @@
 
         <!-- ====== NEW REQUEST FORM ====== -->
         <div v-if="subTab === 'new'" class="form-section">
-            <div class="request-shell-head">
-                <div>
-                    <p class="shell-eyebrow">Create Request</p>
-                    <h2 class="shell-title">Tell us what you need</h2>
-                    <p class="shell-copy">Build a request in a few steps, choose delivery or pickup, then submit it for sourcing.</p>
-                </div>
-                <div class="shell-stats">
-                    <div class="shell-pill">
-                        <span>Items</span>
-                        <strong>{{ validItems.length }}</strong>
-                    </div>
-                    <div class="shell-pill muted">
-                        <span>Step</span>
-                        <strong>{{ currentStep + 1 }}/3</strong>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Step Indicator -->
-            <div class="step-bar">
-                <div v-for="(step, i) in ['Items', 'Fulfillment', 'Review']" :key="i" class="step-item"
-                    :class="{ active: currentStep === i, done: currentStep > i }">
-                    <div class="step-dot">
-                        <CheckIcon v-if="currentStep > i" class="step-svg" />
-                        <span v-else>{{ i + 1 }}</span>
-                    </div>
-                    <span class="step-label">{{ step }}</span>
-                    <div v-if="i < 2" class="step-line" :class="{ filled: currentStep > i }"></div>
-                </div>
-            </div>
-
-            <!-- STEP 0: Items -->
-            <div v-if="currentStep === 0" class="step-content">
+            <div class="step-content">
                 <h3 class="step-title">What do you need?</h3>
-                <p class="step-desc">Add each medicine or product you'd like us to find.</p>
+                <p class="step-desc">Add your items or send clear prescription photos, confirm your location, choose delivery or pickup, and send the request from this page.</p>
+                <div v-if="!canSearchProducts" class="search-lock-card">
+                    <div class="search-lock-copy">
+                        <strong>Top up your wallet to start a Priority Search.</strong>
+                        <span>You need at least GHS {{ requestFee.toFixed(2) }} in your wallet before product search becomes available. Current wallet balance: GHS {{ walletBalance.toFixed(2) }}.</span>
+                    </div>
+                    <button type="button" class="location-help-btn" @click="openWalletTab">
+                        Top Up Wallet
+                    </button>
+                </div>
 
                 <!-- Location Prompt -->
                 <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-4"
@@ -65,50 +42,126 @@
                     </div>
                     <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
                 </button>
+                <div class="location-help-card" :class="{ error: !!locationIssue }">
+                    <p class="location-help-copy">
+                        {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery or pickup.' }}
+                    </p>
+                    <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="location-help-actions">
+                        <button type="button" class="location-help-btn" @click="getLocation">
+                            Use Different Location For This Request
+                        </button>
+                    </div>
+                    <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="location-help-actions">
+                        <button type="button" class="location-help-btn secondary" @click="restoreSavedHomeLocation">
+                            Use Saved Home Address
+                        </button>
+                        <button type="button" class="location-help-btn" @click="getLocation">
+                            Refresh Request Location
+                        </button>
+                    </div>
+                    <div v-if="locationIssue" class="location-help-actions">
+                        <button type="button" class="location-help-btn" @click="getLocation">Try Again</button>
+                        <button type="button" class="location-help-btn secondary" @click="openLocationSettings">
+                            Open Settings
+                        </button>
+                    </div>
+                    <p v-if="locationIssue" class="location-help-note">{{ locationIssue.instructions }}</p>
+                </div>
 
                 <div class="items-list">
                     <div v-for="(item, index) in requestItems" :key="index" class="item-row">
                         <span class="item-num">{{ index + 1 }}</span>
-                        <div class="input-wrap relative clickable-input-wrap" @click="$event.currentTarget.querySelector('input')?.focus()">
-                            <input v-model="item.product_name" type="text" placeholder="e.g. Paracetamol 500mg"
-                                class="item-input" @input="onProductInput(item)" @focus="onProductInput(item)"
-                                @blur="closeDropdown(item)" />
-
-                            <!-- Search Dropdown -->
-                            <div v-if="item.showDropdown && (item.searchResults.length || item.loading)"
-                                class="search-dropdown">
-                                <div v-if="item.loading" class="search-item loading">
-                                    <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
+                        <div class="item-main">
+                            <div class="item-search-shell" :class="{ locked: !canSearchProducts }">
+                                <div class="item-search-head">
+                                    <strong>Search for a medicine</strong>
+                                    <span>Type a name, brand, or strength. You can still enter it manually.</span>
                                 </div>
-                                <template v-else>
-                                    <div v-for="(res, idx) in item.searchResults" :key="res.id || idx"
-                                        @mousedown.prevent="selectProduct(item, res)" class="search-item">
-                                        <div class="font-medium text-gray-900">{{ res.product_description }}</div>
-                                        <div class="text-xs text-gray-500">
-                                            {{ [res.strength, res.unit].filter(Boolean).join(' • ') }}
+                                <div class="input-wrap relative clickable-input-wrap" @click="$event.currentTarget.querySelector('input')?.focus()">
+                                    <MagnifyingGlassIcon class="item-search-icon" />
+                                    <input v-model="item.product_name" type="text" placeholder="Search medicine name, brand, or strength"
+                                        :disabled="!canSearchProducts"
+                                        class="item-input" @input="onProductInput(item)" @focus="onProductInput(item)"
+                                        @blur="closeDropdown(item)" />
+
+                                    <!-- Search Dropdown -->
+                                    <div v-if="item.showDropdown && (item.searchResults.length || item.loading)"
+                                        class="search-dropdown">
+                                        <div v-if="item.loading" class="search-item loading">
+                                            <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
                                         </div>
-                                        <div v-if="res.available_at" class="text-xs text-green-600 mt-1 font-medium">
-                                            In stock nearby
-                                            <!-- • From GHS {{ Number(res.min_price).toFixed(2) }} -->
-                                        </div>
+                                        <template v-else>
+                                            <div v-for="(res, idx) in item.searchResults" :key="res.id || idx"
+                                                @mousedown.prevent="selectProduct(item, res)" class="search-item">
+                                                <div class="font-medium text-gray-900">{{ res.product_description }}</div>
+                                                <div class="text-xs text-gray-500">
+                                                    {{ [res.strength, res.unit].filter(Boolean).join(' - ') }}
+                                                </div>
+                                                <div v-if="res.available_at" class="text-xs text-green-600 mt-1 font-medium">
+                                                    In stock nearby
+                                                </div>
+                                            </div>
+                                            <div v-if="item.searchResults.length === 0 && item.product_name.length > 2"
+                                                class="search-item no-results">
+                                                No matches found. Using custom entry.
+                                            </div>
+                                        </template>
                                     </div>
-                                    <div v-if="item.searchResults.length === 0 && item.product_name.length > 2"
-                                        class="search-item no-results">
-                                        No matches found. Using custom entry.
+                                </div>
+                            </div>
+                            <div class="item-upload-row">
+                                <label class="item-upload-btn">
+                                    <CameraIcon class="upload-svg" />
+                                    <span>{{ item.imageFiles.length ? `Add photos (${item.imageFiles.length})` : 'Add item photo' }}</span>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        class="hidden-input"
+                                        @change="onItemImagesSelected($event, item)"
+                                    />
+                                </label>
+                                <span v-if="item.imageFiles.length" class="item-upload-note">Attached only to this product.</span>
+                            </div>
+                            <div v-if="item.imageFiles.length" class="item-image-grid">
+                                <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="item-image-card">
+                                    <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="item-image-preview" />
+                                    <div class="item-image-actions">
+                                        <label class="preview-action-btn">
+                                            Replace
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                class="hidden-input"
+                                                @change="replaceItemImage($event, item, imageIndex)"
+                                            />
+                                        </label>
+                                        <button type="button" class="preview-action-btn danger" @click="removeItemImage(item, imageIndex)">Delete</button>
                                     </div>
-                                </template>
+                                </div>
                             </div>
                         </div>
-                        <input v-model.number="item.quantity" type="number" min="1" placeholder="Qty"
-                            class="qty-input" />
-                        <button v-if="requestItems.length > 1" @click="requestItems.splice(index, 1)" class="remove-btn"
+                        <div class="qty-picker">
+                            <span class="qty-label">Qty</span>
+                            <div class="qty-controls">
+                                <button type="button" class="qty-btn" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">
+                                    <MinusSmallIcon class="qty-svg" />
+                                </button>
+                                <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
+                                    class="qty-input" />
+                                <button type="button" class="qty-btn" @click="incrementQty(item)">
+                                    <PlusSmallIcon class="qty-svg" />
+                                </button>
+                            </div>
+                        </div>
+                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="remove-btn"
                             title="Remove">
                             <XMarkIcon class="rm-svg" />
                         </button>
                     </div>
                 </div>
 
-                <button @click="addItem" class="add-item-btn">
+                <button @click="addItem" class="add-item-btn" :disabled="!canSearchProducts">
                     <PlusIcon class="add-svg" /> Add Another Item
                 </button>
 
@@ -117,77 +170,122 @@
                     <CameraIcon class="prescription-svg" />
                     <div class="prescription-text">
                         <strong>Have a prescription?</strong>
-                        <span>Upload a photo and we'll process the items for you</span>
+                        <span>Add clear photos of each page. Front and back pages can be uploaded together.</span>
                     </div>
                     <label class="upload-label">
                         <ArrowUpTrayIcon class="upload-svg" />
-                        {{ prescriptionFile ? prescriptionFile.name : 'Choose Photo' }}
-                        <input type="file" accept="image/*" @change="prescriptionFile = $event.target.files[0] || null"
-                            class="hidden-input" />
+                        {{ prescriptionFiles.length ? `Add More Photos (${prescriptionFiles.length})` : 'Choose Photos' }}
+                        <input
+                            ref="prescriptionPicker"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            @change="onPrescriptionFilesSelected"
+                            class="hidden-input"
+                        />
                     </label>
-                </div>
-            </div>
-
-            <!-- STEP 1: Fulfillment -->
-            <div v-if="currentStep === 1" class="step-content">
-                <h3 class="step-title">How should we fulfill this request?</h3>
-                <p class="step-desc">Choose delivery or pickup before submitting.</p>
-
-                <div class="fulfillment-section">
-                    <div class="fulfillment-grid">
-                        <button @click="fulfillmentType = 'delivery'" type="button" class="fulfillment-btn"
-                            :class="{ selected: fulfillmentType === 'delivery' }">
-                            <TruckIcon class="ful-svg" />
-                            <strong>Delivery</strong>
-                            <span>Bring it to me</span>
-                        </button>
-                        <button @click="fulfillmentType = 'pickup'" type="button" class="fulfillment-btn"
-                            :class="{ selected: fulfillmentType === 'pickup' }">
-                            <BuildingStorefrontIcon class="ful-svg" />
-                            <strong>Pickup</strong>
-                            <span>I will collect it</span>
-                        </button>
+                    <input
+                        ref="prescriptionReplacePicker"
+                        type="file"
+                        accept="image/*"
+                        class="hidden-input"
+                        @change="onReplacePrescriptionFile"
+                    />
+                    <div v-if="prescriptionFiles.length" class="prescription-preview-grid">
+                        <div v-for="(image, index) in prescriptionFiles" :key="image.id" class="prescription-preview-card">
+                            <img :src="image.previewUrl" :alt="image.file.name" class="prescription-preview-image" />
+                            <div class="prescription-preview-copy">
+                                <strong>Page {{ index + 1 }}</strong>
+                                <span>{{ image.file.name }}</span>
+                            </div>
+                            <div class="prescription-preview-actions">
+                                <button type="button" class="preview-action-btn" @click="queuePrescriptionReplace(index)">Retake</button>
+                                <button type="button" class="preview-action-btn danger" @click="removePrescriptionFile(index)">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="isUploading" class="upload-progress-card">
+                        <div class="upload-progress-head">
+                            <strong>Uploading prescription photos</strong>
+                            <span>{{ Math.round(uploadProgress) }}%</span>
+                        </div>
+                        <div class="upload-progress-track">
+                            <span class="upload-progress-fill" :style="{ width: `${uploadProgress}%` }"></span>
+                        </div>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label>{{ fulfillmentType === 'delivery' ? 'Delivery Address' : 'Pickup Notes (optional)' }}</label>
-                    <textarea v-model="deliveryAddress" rows="2"
-                        :placeholder="fulfillmentType === 'delivery'
-                            ? 'e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon'
-                            : 'e.g. preferred pickup area or landmark'"
-                        class="form-textarea"></textarea>
-                    <p v-if="fulfillmentType === 'delivery'" class="field-hint">Required for delivery requests.</p>
-                </div>
-
-                <div class="form-group">
-                    <label>Notes <span class="optional">(optional)</span></label>
-                    <textarea v-model="customerNotes" rows="2" placeholder="e.g. brand preference, dosage form..."
-                        class="form-textarea"></textarea>
-                </div>
             </div>
 
-            <!-- STEP 2: Review -->
-            <div v-if="currentStep === 2" class="step-content">
-                <h3 class="step-title">Review Your Request</h3>
-                <p class="step-desc">Confirm everything looks good before submitting.</p>
+            <div class="request-builder-grid">
+                <section class="builder-card">
+                    <div class="builder-card-head">
+                        <div>
+                            <h4 class="builder-title">How should we fulfill this request?</h4>
+                            <p class="builder-copy">Choose delivery or pickup before sending the request.</p>
+                        </div>
+                    </div>
+
+                    <div class="fulfillment-section">
+                        <div class="fulfillment-grid">
+                            <button @click="selectFulfillment('delivery')" type="button" class="fulfillment-btn"
+                                :class="{ selected: fulfillmentType === 'delivery' }">
+                                <TruckIcon class="ful-svg" />
+                                <strong>Delivery</strong>
+                                <span>Bring it to me</span>
+                            </button>
+                            <button @click="selectFulfillment('pickup')" type="button" class="fulfillment-btn"
+                                :class="{ selected: fulfillmentType === 'pickup' }">
+                                <BuildingStorefrontIcon class="ful-svg" />
+                                <strong>Pickup</strong>
+                                <span>I will collect it</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" v-if="fulfillmentType === 'delivery'">
+                        <label>Delivery Address</label>
+                        <textarea v-model="deliveryAddress" rows="2"
+                            placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
+                            class="form-textarea"></textarea>
+                        <p class="field-hint">Required for delivery requests.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes <span class="optional">(optional)</span></label>
+                        <textarea v-model="customerNotes" rows="2" placeholder="e.g. brand preference, dosage form..."
+                            class="form-textarea"></textarea>
+                    </div>
+                </section>
+
+            <section class="builder-card review-card">
+                <div class="builder-card-head">
+                    <div>
+                        <h4 class="builder-title">Ready to send</h4>
+                        <p class="builder-copy">This is the summary pharmacies will receive when you submit the request.</p>
+                    </div>
+                </div>
 
                 <div class="review-box">
                     <div class="review-section">
-                        <span class="review-label">Items ({{ validItems.length }})</span>
-                        <div v-for="(item, i) in validItems" :key="i" class="review-item">
-                            <span>{{ item.product_name }}</span>
-                            <span class="review-qty">× {{ item.quantity }}</span>
-                        </div>
+                        <span class="review-label">{{ validItems.length ? `Items (${validItems.length})` : 'Prescription review' }}</span>
+                        <template v-if="validItems.length">
+                            <div v-for="(item, i) in validItems" :key="i" class="review-item">
+                                <span>{{ item.product_name }}</span>
+                                <span class="review-qty">&times; {{ item.quantity }}</span>
+                            </div>
+                        </template>
+                        <p v-else-if="prescriptionFiles.length" class="review-prescription-only">
+                            No typed items yet. Nearby pharmacies will review the prescription images you attached.
+                        </p>
                     </div>
-                    <div v-if="prescriptionFile" class="review-attach">
-                        <PaperClipIcon class="attach-svg" /> {{ prescriptionFile.name }}
+                    <div v-if="prescriptionFiles.length" class="review-attach">
+                        <PaperClipIcon class="attach-svg" /> {{ prescriptionFiles.length }} prescription image<span v-if="prescriptionFiles.length !== 1">s</span> attached
                     </div>
                     <div class="review-meta">
-                        <div class="review-row"><span>Location</span><span>{{ customerLat ? 'Set' : 'Not set' }}</span></div>
+                        <div class="review-row"><span>Location</span><span class="review-addr">{{ reviewLocationLabel }}</span></div>
                         <div class="review-row"><span>Fulfillment</span><span>{{ fulfillmentType ? formatStatus(fulfillmentType) : 'Not selected' }}</span></div>
                         <div class="review-row" v-if="fulfillmentType === 'delivery'">
-                            <span>Address</span><span class="review-addr">{{ deliveryAddress || 'Not provided' }}</span>
+                            <span>Address</span><span class="review-addr">{{ compactAddress(deliveryAddress) || 'Not provided' }}</span>
                         </div>
                     </div>
                 </div>
@@ -195,32 +293,27 @@
                 <div class="fee-notice priority-note">
                     <InformationCircleIcon class="info-svg" />
                     <div>
-                        <strong>Priority Search requires a GHS {{ requestFee.toFixed(2) }} commitment</strong>
-                        <span>We only charge the hold when you send the request. If no pharmacy responds within {{ requestRefundMinutes }} minutes, the hold returns to your wallet automatically.</span>
+                        <strong>Priority Search includes a GHS {{ requestFee.toFixed(2) }} charge</strong>
+                        <span>The charge is deducted when you send the request. Keep at least GHS {{ requestFee.toFixed(2) }} in your wallet before you start searching.</span>
                     </div>
                 </div>
-            </div>
+            </section>
+        </div>
 
-            <!-- Navigation -->
-            <div class="step-nav">
-                <button v-if="currentStep > 0" @click="currentStep--" class="nav-back">
-                    <ChevronLeftIcon class="nav-svg" /> Back
-                </button>
-                <div v-else></div>
-
-                <button v-if="currentStep < 2" @click="currentStep++" :disabled="!canProceed" class="nav-next">
-                    Continue
-                    <ChevronRightIcon class="nav-svg" />
-                </button>
-                <button v-else @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" class="nav-submit">
-                    <template v-if="isSubmitting">
-                        <ArrowPathIcon class="nav-svg spin" /> Submitting...
-                    </template>
-                    <template v-else>
-                        <PaperAirplaneIconSolid class="nav-svg" /> Review Priority Search
-                    </template>
-                </button>
+        <div class="request-submit-bar">
+            <div class="request-submit-copy">
+                <strong>Send this request when everything looks right.</strong>
+                <span>Nearby pharmacies will see it immediately after the Priority Search charge is applied.</span>
             </div>
+            <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" class="nav-submit request-submit-btn">
+                <template v-if="isSubmitting">
+                    <ArrowPathIcon class="nav-svg spin" /> Submitting...
+                </template>
+                <template v-else>
+                    <PaperAirplaneIconSolid class="nav-svg" /> Review Priority Search
+                </template>
+            </button>
+        </div>
         </div>
 
         <!-- ====== REQUESTS LIST ====== -->
@@ -230,12 +323,6 @@
                     <p class="shell-eyebrow">Request History</p>
                     <h2 class="shell-title">My Requests</h2>
                     <p class="shell-copy">Track sourcing, payment, pickup, and delivery updates in one place.</p>
-                </div>
-                <div class="shell-stats">
-                    <div class="shell-pill">
-                        <span>Total</span>
-                        <strong>{{ myRequests.length }}</strong>
-                    </div>
                 </div>
             </div>
 
@@ -289,21 +376,36 @@
                             <span class="request-num">#{{ req.request_number }}</span>
                             <span class="request-date">{{ formatDate(req.created_at) }}</span>
                         </div>
-                        <span class="status-badge" :class="getCustomerStatus(req.status)">{{ formatStatus(req.status) }}</span>
+                        <span class="status-badge" :class="getRequestStatus(req)">{{ formatStatus(getRequestStatus(req)) }}</span>
                     </div>
                     <div class="request-card-copy">
-                        <p>{{ req.item_count || 0 }} item<span v-if="(req.item_count || 0) !== 1">s</span> in this request</p>
+                        <p>{{ getRequestCardSummary(req) }}</p>
                         <ChevronRightIcon class="request-arrow" />
+                    </div>
+                    <div v-if="shouldShowPrescriptionPreview(req)" class="request-prescription-preview">
+                        <a
+                            :href="req.prescription_images[0]"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="request-prescription-thumb-link"
+                            @click.stop
+                        >
+                            <img :src="req.prescription_images[0]" alt="Prescription preview" class="request-prescription-thumb" />
+                        </a>
+                        <div class="request-prescription-copy">
+                            <strong>Prescription</strong>
+                            <span>{{ getPrescriptionImageCount(req) }} image<span v-if="getPrescriptionImageCount(req) !== 1">s</span></span>
+                        </div>
                     </div>
                     <div class="request-meta">
                         <span>
-                            <CubeIcon class="meta-svg" /> {{ req.item_count || '—' }} items
+                            <CubeIcon class="meta-svg" /> {{ getRequestContentCount(req) }}
                         </span>
                         <span v-if="getRequestTotal(req) !== null">
                             <CurrencyDollarIcon class="meta-svg" /> Total: GHS {{ formatMoney(getRequestTotal(req)) }}
                         </span>
                         <span v-if="req.request_fee">
-                            <CurrencyDollarIcon class="meta-svg" /> Fee: GHS {{
+                            <CurrencyDollarIcon class="meta-svg" /> Hold: GHS {{
                                 parseFloat(req.request_fee).toFixed(2) }}
                         </span>
                         <span v-if="req.fulfillment_type">
@@ -312,8 +414,8 @@
                         </span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" :class="getCustomerStatus(req.status)"
-                            :style="{ width: statusProgress(getCustomerStatus(req.status)) + '%' }">
+                        <div class="progress-fill" :class="getRequestStatus(req)"
+                            :style="{ width: statusProgress(getRequestStatus(req)) + '%' }">
                         </div>
                     </div>
                 </div>
@@ -327,8 +429,8 @@
                 <div class="modal-header">
                     <div>
                         <h3>Request #{{ selectedRequest.request_number }}</h3>
-                        <span class="status-badge" :class="getCustomerStatus(selectedRequest.status)">{{
-                            formatStatus(selectedRequest.status)
+                        <span class="status-badge" :class="getRequestStatus(selectedRequest)">{{
+                            formatStatus(getRequestStatus(selectedRequest))
                             }}</span>
                     </div>
                     <button @click="selectedRequest = null" class="modal-close">
@@ -337,13 +439,41 @@
                 </div>
 
                 <div class="modal-body">
+                    <div v-if="selectedRequest.prescription_images?.length" class="detail-section">
+                        <span class="detail-label">Prescription Images</span>
+                        <div class="detail-prescription-grid">
+                            <a
+                                v-for="(imageUrl, imageIndex) in selectedRequest.prescription_images"
+                                :key="`prescription-${imageIndex}`"
+                                :href="imageUrl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="detail-prescription-link"
+                            >
+                                <img :src="imageUrl" :alt="`Prescription image ${imageIndex + 1}`" class="detail-prescription-image" />
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Items -->
-                    <div class="detail-section">
+                    <div v-if="selectedRequest.items?.length" class="detail-section">
                         <span class="detail-label">Items</span>
                         <div v-for="item in selectedRequest.items" :key="item.id" class="detail-item">
                             <div>
                                 <strong>{{ item.product_name }}</strong>
                                 <span class="item-qty">Qty: {{ item.quantity }}</span>
+                                <div v-if="item.item_images?.length" class="detail-item-images">
+                                    <a
+                                        v-for="(imageUrl, imageIndex) in item.item_images"
+                                        :key="`${item.id}-img-${imageIndex}`"
+                                        :href="imageUrl"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="detail-item-image-link"
+                                    >
+                                        <img :src="imageUrl" :alt="`${item.product_name} photo ${imageIndex + 1}`" class="detail-item-image" />
+                                    </a>
+                                </div>
                             </div>
                             <div class="item-price-info">
                                 <span v-if="item.marked_up_price" class="item-price">GHS {{
@@ -367,13 +497,181 @@
                             parseFloat(selectedRequest.estimated_total).toFixed(2) }}</span></div>
                     </div>
 
+                    <div v-if="canLeaveFeedback(selectedRequest)" class="feedback-card">
+                        <div class="feedback-head">
+                            <div>
+                                <span class="detail-label">Your Feedback</span>
+                                <p class="feedback-copy">How did this request feel from start to finish?</p>
+                            </div>
+                            <span v-if="selectedRequest.feedback?.created_at" class="feedback-date">
+                                {{ formatDate(selectedRequest.feedback.created_at) }}
+                            </span>
+                        </div>
+
+                        <div class="feedback-stars" role="radiogroup" aria-label="Rate this request">
+                            <button
+                                v-for="star in 5"
+                                :key="`feedback-star-${star}`"
+                                type="button"
+                                class="feedback-star-btn"
+                                :class="{ active: star <= feedbackForm.rating }"
+                                @click="feedbackForm.rating = star"
+                            >
+                                <StarIcon class="feedback-star-icon" />
+                                <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
+                            </button>
+                        </div>
+
+                        <textarea
+                            v-model="feedbackForm.comment"
+                            rows="3"
+                            maxlength="1000"
+                            class="form-textarea feedback-textarea"
+                            placeholder="Optional: tell us what worked well or what felt difficult."
+                        ></textarea>
+
+                        <div class="feedback-actions">
+                            <span v-if="selectedRequest.feedback?.rating" class="feedback-saved-note">
+                                Saved rating: {{ selectedRequest.feedback.rating }}/5
+                            </span>
+                            <button
+                                type="button"
+                                class="nav-submit feedback-submit-btn"
+                                :disabled="savingFeedback"
+                                @click="submitFeedback"
+                            >
+                                <ArrowPathIcon v-if="savingFeedback" class="nav-svg spin" />
+                                <span>{{ savingFeedback ? 'Saving...' : (selectedRequest.feedback ? 'Update Feedback' : 'Submit Feedback') }}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div v-if="selectedRequest.pending_decisions?.length" class="decision-panel">
+                        <span class="detail-label">Customer Decision</span>
+                        <div v-for="decision in selectedRequest.pending_decisions" :key="decision.id" class="decision-card">
+                            <span class="decision-eyebrow" :class="getDecisionVariantClass(decision)">{{ getDecisionEyebrow(decision) }}</span>
+                            <div class="decision-copy">
+                                <strong>{{ decision.title }}</strong>
+                                <p>{{ decision.message }}</p>
+                            </div>
+                            <p v-if="getDecisionConciseSummary(decision)" class="decision-flow-headline">
+                                {{ getDecisionConciseSummary(decision) }}
+                            </p>
+
+                            <div v-if="getDecisionItems(decision).length" class="decision-item-list">
+                                <div
+                                    v-for="decisionItem in getDecisionItems(decision)"
+                                    :key="`${decision.id}-${decisionItem.item_id}`"
+                                    class="decision-item-row"
+                                >
+                                    <div class="decision-item-copy">
+                                        <strong>{{ decisionItem.product_name }}</strong>
+                                        <span class="decision-item-meta">Qty: {{ decisionItem.quantity }}</span>
+                                        <span v-if="shouldShowDecisionItemPrice(decisionItem)" class="decision-item-meta">
+                                            GHS {{ formatMoney(decisionItem.unit_price) }} each
+                                        </span>
+                                        <span v-if="getDecisionItemRouteText(decision, decisionItem)" class="decision-item-meta source">
+                                            {{ getDecisionItemRouteText(decision, decisionItem) }}
+                                        </span>
+                                        <span v-if="decisionItem.status === 'unavailable'" class="decision-item-meta unavailable">
+                                            Unavailable right now
+                                        </span>
+                                        <div v-if="decisionItem.substitute_option" class="decision-substitute">
+                                            <span class="decision-item-meta substitute-label">Suggested alternative</span>
+                                            <strong>{{ decisionItem.substitute_option.name }}</strong>
+                                            <span v-if="decisionItem.substitute_option.marked_up_price !== null" class="decision-item-meta">
+                                                GHS {{ formatMoney(decisionItem.substitute_option.marked_up_price) }} each
+                                            </span>
+                                            <span v-if="getDecisionSubstituteRouteText(decision, decisionItem)" class="decision-item-meta source">
+                                                {{ getDecisionSubstituteRouteText(decision, decisionItem) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="decision-item-actions">
+                                        <button
+                                            v-for="choice in getDecisionItemChoices(decisionItem)"
+                                            :key="`${decision.id}-${decisionItem.item_id}-${choice.value}`"
+                                            type="button"
+                                            class="decision-item-btn"
+                                            :class="{ active: getDecisionChoice(decision, decisionItem) === choice.value }"
+                                            @click="setDecisionChoice(decision, decisionItem, choice.value)"
+                                        >
+                                            {{ choice.label }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="decision-preview-total">
+                                    <span>Updated total</span>
+                                    <strong>GHS {{ formatMoney(getDecisionPreviewTotal(decision)) }}</strong>
+                                </div>
+                            </div>
+                            <div class="decision-actions">
+                                <button
+                                    class="decision-btn secondary"
+                                    :disabled="respondingDecisionId === decision.id"
+                                    @click="respondToDecision(decision, 'declined')"
+                                >
+                                    {{ getDecisionDeclineLabel(decision) }}
+                                </button>
+                                <button
+                                    class="decision-btn primary"
+                                    :disabled="respondingDecisionId === decision.id"
+                                    @click="respondToDecision(decision, 'approved')"
+                                >
+                                    {{ respondingDecisionId === decision.id ? 'Saving...' : getDecisionApproveLabel(decision) }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div v-if="canPayRequest(selectedRequest)" class="payment-action">
-                        <button @click="payForRequest(selectedRequest.id)" class="pay-request-btn" :disabled="payingRequest">
-                            <ArrowPathIcon v-if="payingRequest" class="pay-svg spin" />
-                            <CurrencyDollarIcon v-else class="pay-svg" />
-                            <span>{{ payingRequest ? 'Processing payment...' : `Pay GHS ${formatMoney(getPayableAmount(selectedRequest))}` }}</span>
-                        </button>
-                        <p class="payment-note">Payment is deducted from your wallet balance.</p>
+                        <div class="payment-method-grid">
+                            <button
+                                @click="payForRequest(selectedRequest.id, 'wallet')"
+                                class="pay-request-btn"
+                                :disabled="payingRequest"
+                            >
+                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
+                                <CurrencyDollarIcon v-else class="pay-svg" />
+                                <span>{{ payingRequest && payingMethod === 'wallet' ? 'Processing wallet payment...' : `Pay with Wallet` }}</span>
+                            </button>
+                            <button
+                                @click="payForRequest(selectedRequest.id, 'paystack')"
+                                class="pay-request-btn secondary-pay-btn"
+                                :disabled="payingRequest"
+                            >
+                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="pay-svg spin" />
+                                <i v-else class="ri-bank-card-line pay-svg"></i>
+                                <span>{{ payingRequest && payingMethod === 'paystack' ? 'Redirecting to Paystack...' : 'Pay with Paystack' }}</span>
+                            </button>
+                        </div>
+                        <p class="payment-note">Choose wallet or Paystack. Direct Paystack payments are also recorded in your wallet history.</p>
+                        <div
+                            v-if="paymentShortfall.requestId === selectedRequest.id && paymentShortfall.amount > 0"
+                            class="payment-shortfall"
+                        >
+                            <div class="payment-shortfall-head">
+                                <div class="payment-shortfall-icon">
+                                    <ExcTriIcon class="payment-shortfall-svg" />
+                                </div>
+                                <div class="payment-shortfall-copy">
+                                    <strong>Add funds to continue</strong>
+                                    <span>Your wallet balance is below the amount needed for this payment.</span>
+                                </div>
+                                <div class="payment-shortfall-amount">
+                                    GHS {{ paymentShortfall.amount.toFixed(2) }}
+                                </div>
+                            </div>
+                            <div class="payment-shortfall-actions">
+                                <span class="payment-shortfall-note">Top up this amount to complete the payment from your wallet.</span>
+                                <button @click="openWalletTab" class="priority-topup payment-topup-btn">
+                                    Top Up Wallet
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else-if="isPaymentPendingRequest(selectedRequest)" class="payment-action payment-action--pending">
+                        <p class="payment-note">Payment will appear here once item pricing is confirmed for this request.</p>
                     </div>
 
                     <div v-if="canCancelRequest(selectedRequest)" class="cancel-action">
@@ -391,7 +689,7 @@
 
                     <!-- Address / Notes -->
                     <div v-if="selectedRequest.customer_address || selectedRequest.delivery_address" class="detail-info">
-                        <MapPinIcon class="detail-svg" /> {{ selectedRequest.customer_address || selectedRequest.delivery_address }}
+                        <MapPinIcon class="detail-svg" /> {{ compactAddress(selectedRequest.customer_address || selectedRequest.delivery_address) }}
                     </div>
                     <div v-if="selectedRequest.admin_notes" class="detail-info">
                         <ChatBubbleLeftIcon class="detail-svg" /> {{ selectedRequest.admin_notes }}
@@ -406,7 +704,7 @@
                 <div class="modal-header">
                     <div>
                         <h3>Activate Priority Search</h3>
-                        <span class="status-badge confirming_with_pharm">GHS {{ requestFee.toFixed(2) }} commitment</span>
+                        <span class="status-badge confirming_with_pharm">GHS {{ requestFee.toFixed(2) }} charge</span>
                     </div>
                     <button @click="showPriorityModal = false" class="modal-close">
                         <XMarkIcon class="close-svg" />
@@ -415,30 +713,26 @@
 
                 <div class="modal-body">
                     <div class="priority-hero">
-                        <p class="priority-kicker">Why this hold exists</p>
+                        <p class="priority-kicker">Why this charge exists</p>
                         <p class="priority-copy">
-                            Your request reaches the front of the queue because it is backed by a small commitment. That tells nearby pharmacies to check stock immediately instead of treating it like a casual enquiry.
+                            Your request reaches the front of the queue because it is backed by a GHS {{ requestFee.toFixed(2) }} Priority Search charge. That tells nearby pharmacies to check stock immediately instead of treating it like a casual enquiry.
                         </p>
                     </div>
 
                     <div class="priority-points">
                         <div class="priority-point">
-                            <strong>If you buy</strong>
-                            <span>The same GHS {{ requestFee.toFixed(2) }} is credited back after you complete payment for the request.</span>
+                            <strong>Before you search</strong>
+                            <span>Your wallet must have at least GHS {{ requestFee.toFixed(2) }} available before product search becomes available.</span>
                         </div>
                         <div class="priority-point">
-                            <strong>If you do not continue</strong>
-                            <span>The GHS {{ requestFee.toFixed(2) }} covers the pharmacist's time spent checking their shelves and confirming availability.</span>
-                        </div>
-                        <div class="priority-point muted">
-                            <strong>No response protection</strong>
-                            <span>If no pharmacy responds within {{ requestRefundMinutes }} minutes, the hold is refunded automatically to your MedsGH wallet.</span>
+                            <strong>When you send the request</strong>
+                            <span>The GHS {{ requestFee.toFixed(2) }} covers the pharmacist's time spent checking shelves and confirming availability for you.</span>
                         </div>
                     </div>
 
                     <div v-if="submitShortfall > 0" class="priority-shortfall">
                         <strong>You need GHS {{ submitShortfall.toFixed(2) }} more in your wallet.</strong>
-                        <span>Top up first, then return here and send the request.</span>
+                        <span>Top up first, then come back to pay the Priority Search charge and send the request.</span>
                     </div>
 
                     <div class="priority-actions">
@@ -453,7 +747,7 @@
                                 <ArrowPathIcon class="nav-svg spin" /> Sending...
                             </template>
                             <template v-else>
-                                Pay GHS {{ requestFee.toFixed(2) }} &amp; Send Request
+                                Charge GHS {{ requestFee.toFixed(2) }} &amp; Send Request
                             </template>
                         </button>
                     </div>
@@ -467,29 +761,11 @@
                 <div class="success-icon">
                     <CheckBadgeIcon class="success-svg" />
                 </div>
-                <h3>Request Submitted! 🎉</h3>
-                <p>Your Priority Search is active. If no pharmacy responds within {{ requestRefundMinutes }} minutes, the hold is refunded automatically.</p>
+                <h3>Request Submitted</h3>
+                <p>Your Priority Search charge has been applied and nearby pharmacies can now review your request.</p>
                 <p v-if="submittedNumber" class="success-num">Request #<strong>{{ submittedNumber }}</strong></p>
                 <button @click="showSuccess = false; subTab = 'list'; fetchMyRequests()" class="nav-submit"
                     style="width:100%">View My Requests</button>
-            </div>
-        </div>
-
-        <div v-if="showReimbursementModal" class="modal-overlay" @click.self="showReimbursementModal = false">
-            <div class="success-modal reimbursement-modal">
-                <div class="success-icon reimbursement-icon">
-                    <CheckBadgeIcon class="success-svg" />
-                </div>
-                <h3>Your GHS {{ reimbursementSummary.feeCreditAmount.toFixed(2) }} deposit is back.</h3>
-                <p>
-                    The priority hold for request <strong>#{{ reimbursementSummary.requestNumber }}</strong> has been returned to your wallet after payment.
-                </p>
-                <div class="reimbursement-summary">
-                    <div><span>Order total</span><strong>GHS {{ reimbursementSummary.amountPaid.toFixed(2) }}</strong></div>
-                    <div><span>Deposit returned</span><strong>GHS {{ reimbursementSummary.feeCreditAmount.toFixed(2) }}</strong></div>
-                    <div class="net"><span>Net spend</span><strong>GHS {{ reimbursementSummary.effectiveAmountPaid.toFixed(2) }}</strong></div>
-                </div>
-                <button @click="closeReimbursementModal" class="nav-submit" style="width:100%">Continue</button>
             </div>
         </div>
 
@@ -503,12 +779,15 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
+import { formatCompactAddress } from '~/utils/addressFormat'
 import {
     PlusCircleIcon, ClipboardDocumentListIcon as ClipDocList, CheckIcon, PlusIcon, XMarkIcon,
     CameraIcon, ArrowUpTrayIcon, MapPinIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon,
-    PaperClipIcon, InformationCircleIcon, CubeIcon, CurrencyDollarIcon, TruckIcon,
-    BuildingStorefrontIcon, ChatBubbleLeftIcon, CheckBadgeIcon,
+    PaperClipIcon, InformationCircleIcon, CubeIcon, CurrencyDollarIcon, TruckIcon, StarIcon,
+    BuildingStorefrontIcon, ChatBubbleLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon,
+    MinusSmallIcon, PlusSmallIcon,
     ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
@@ -519,80 +798,111 @@ const props = defineProps({
 })
 
 const userStore = useUserStore()
+const route = useRoute()
+const router = useRouter()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
 
 const subTab = ref(props.defaultSubTab)
-const currentStep = ref(0)
 const isSubmitting = ref(false)
 const loadingRequests = ref(false)
 const gettingLocation = ref(false)
 const payingRequest = ref(false)
+const payingMethod = ref('')
 const cancelingRequest = ref(false)
 const toast = ref(null)
 const showSuccess = ref(false)
 const showPriorityModal = ref(false)
-const showReimbursementModal = ref(false)
 const submittedNumber = ref('')
 const requestFee = ref(5)
 const requestRefundMinutes = ref(30)
+const walletBalance = ref(0)
 const submitShortfall = ref(0)
-const reimbursementSummary = ref({
-    requestNumber: '',
-    amountPaid: 0,
-    feeCreditAmount: 0,
-    effectiveAmountPaid: 0
+const paymentShortfall = ref({
+    requestId: null,
+    amount: 0
 })
-
-
 
 const newItem = () => ({
     product_name: '',
     quantity: 1,
     searchResults: [],
     loading: false,
-    showDropdown: false
+    showDropdown: false,
+    imageFiles: []
 })
 
 const requestItems = ref([newItem()])
-const prescriptionFile = ref(null)
+const prescriptionPicker = ref(null)
+const prescriptionReplacePicker = ref(null)
+const prescriptionFiles = ref([])
+const prescriptionReplaceIndex = ref(null)
 const customerLat = ref(null)
 const customerLng = ref(null)
+const savedHomeLocation = ref(null)
+const locationMode = ref('none')
 const fulfillmentType = ref('')
+const customerAddress = ref('')
 const deliveryAddress = ref('')
 const customerNotes = ref('')
+const locationIssue = ref(null)
+const uploadProgress = ref(0)
 
 const myRequests = ref([])
 const selectedRequest = ref(null)
 const requestListTab = ref('active')
+const respondingDecisionId = ref(null)
+const decisionSelections = ref({})
+const savingFeedback = ref(false)
+const feedbackForm = ref({
+    rating: 0,
+    comment: ''
+})
 const POLL_INTERVAL_MS = 15000
 let pollTimer = null
 const payableStatuses = new Set(['confirmed_in_pharm', 'awaiting_customer', 'items_sourced', 'confirmed'])
 
 const validItems = computed(() => requestItems.value.filter(i => i.product_name.trim()))
-const canProceed = computed(() => {
-    if (currentStep.value === 0) return validItems.value.length > 0 && customerLat.value
-    if (currentStep.value === 1) {
-        if (!fulfillmentType.value) return false
-        if (fulfillmentType.value === 'delivery') return !!deliveryAddress.value.trim()
-        return true
-    }
-    return true
-})
+const hasPrescriptionFiles = computed(() => prescriptionFiles.value.length > 0)
+const hasItemImageFiles = computed(() => requestItems.value.some((item) => Array.isArray(item.imageFiles) && item.imageFiles.length > 0))
+const hasMultipartUploads = computed(() => hasPrescriptionFiles.value || hasItemImageFiles.value)
+const isUploading = computed(() => isSubmitting.value && uploadProgress.value > 0)
+const homeLocationAvailable = computed(() => !!(savedHomeLocation.value?.latitude && savedHomeLocation.value?.longitude))
+const canSearchProducts = computed(() => Number(walletBalance.value || 0) >= Number(requestFee.value || 5))
 const canSubmit = computed(() => {
-    if (!(validItems.value.length > 0 && customerLat.value && fulfillmentType.value)) return false
+    const hasRequestContent = validItems.value.length > 0 || prescriptionFiles.value.length > 0
+    if (!(hasRequestContent && customerLat.value && fulfillmentType.value)) return false
     if (fulfillmentType.value === 'delivery') return !!deliveryAddress.value.trim()
     return true
 })
 
 const locationLabel = computed(() => {
-    if (customerLat.value) return '📍 Location Set'
+    if (locationMode.value === 'home' && homeLocationAvailable.value) return 'Home location ready'
+    if (locationMode.value === 'current-request' && customerLat.value) return 'Request location updated'
+    if (customerLat.value) return 'Location set'
     if (gettingLocation.value) return 'Getting location...'
+    if (homeLocationAvailable.value) return 'Use current location for this request'
     return 'Use My Current Location'
 })
 const locationSublabel = computed(() => {
+    if (locationMode.value === 'home' && savedHomeLocation.value?.address) {
+        return formatCompactAddress(savedHomeLocation.value.address, { primaryCount: 3, fallback: savedHomeLocation.value.address })
+    }
+    if (locationMode.value === 'current-request' && customerAddress.value) {
+        return formatCompactAddress(customerAddress.value, { primaryCount: 3, fallback: customerAddress.value })
+    }
     if (customerLat.value) return `${customerLat.value.toFixed(4)}, ${customerLng.value.toFixed(4)}`
     return 'We need this to find nearby pharmacies'
+})
+
+const compactAddress = (value) => formatCompactAddress(value, { primaryCount: 3, fallback: value || '' })
+
+const reviewLocationLabel = computed(() => {
+    if (customerAddress.value) {
+        return compactAddress(customerAddress.value)
+    }
+    if (customerLat.value) return 'Location set'
+    return 'Not set'
 })
 
 const isCompletedRequest = (request) => {
@@ -606,20 +916,284 @@ const filteredRequests = computed(() => (
     requestListTab.value === 'completed' ? completedRequests.value : activeRequests.value
 ))
 
+const buildLocationIssue = (message, instructions) => ({ message, instructions })
+
+const applySavedHomeLocation = (homeLocation, { force = false } = {}) => {
+    if (!homeLocation?.latitude || !homeLocation?.longitude) return
+    if (!force && (customerLat.value || customerLng.value || locationMode.value === 'current-request')) return
+
+    customerLat.value = Number(homeLocation.latitude)
+    customerLng.value = Number(homeLocation.longitude)
+    customerAddress.value = homeLocation.address || ''
+    if (fulfillmentType.value === 'delivery' && (!deliveryAddress.value.trim() || force || locationMode.value !== 'current-request')) {
+        deliveryAddress.value = homeLocation.address || ''
+    }
+    locationMode.value = 'home'
+}
+
+const loadSavedHomeLocation = async () => {
+    try {
+        const profile = await userStore.getProfile()
+        const address = profile?.home_address || profile?.address || ''
+        const latitude = profile?.home_latitude ?? profile?.latitude ?? null
+        const longitude = profile?.home_longitude ?? profile?.longitude ?? null
+
+        if (latitude && longitude) {
+            savedHomeLocation.value = {
+                address,
+                latitude: Number(latitude),
+                longitude: Number(longitude)
+            }
+            applySavedHomeLocation(savedHomeLocation.value)
+        } else {
+            savedHomeLocation.value = null
+        }
+    } catch (error) {
+        savedHomeLocation.value = null
+    }
+}
+
+const restoreSavedHomeLocation = () => {
+    if (!savedHomeLocation.value) return
+    applySavedHomeLocation(savedHomeLocation.value, { force: true })
+    locationIssue.value = null
+    showToast('Saved home location restored')
+}
+
+const selectFulfillment = (type) => {
+    fulfillmentType.value = type
+    if (type === 'delivery' && !deliveryAddress.value.trim()) {
+        deliveryAddress.value = customerAddress.value || ''
+    }
+}
+
+const isFeedbackEligibleStatus = (status) => ['picked_up', 'delivered', 'completed'].includes(getCustomerStatus(status))
+
+const canLeaveFeedback = (request) => isFeedbackEligibleStatus(request?.status)
+
+const syncFeedbackForm = () => {
+    const feedback = selectedRequest.value?.feedback || null
+    feedbackForm.value = {
+        rating: Number(feedback?.rating || 0),
+        comment: feedback?.comment || ''
+    }
+}
+
+const getPlatformLocationSettingsLink = () => {
+    if (typeof window === 'undefined') return null
+    const ua = window.navigator.userAgent.toLowerCase()
+    if (/iphone|ipad|ipod/.test(ua)) return 'app-settings:'
+    if (/android/.test(ua)) return 'intent:#Intent;action=android.settings.LOCATION_SOURCE_SETTINGS;end'
+    return null
+}
+
+const openLocationSettings = () => {
+    const deepLink = getPlatformLocationSettingsLink()
+    if (deepLink) {
+        window.location.href = deepLink
+        return
+    }
+    showToast('Open your browser site settings and allow location access for this page.', 'info')
+}
+
+const createPrescriptionPreview = (file) => ({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    file,
+    previewUrl: URL.createObjectURL(file)
+})
+
+const compressRequestImage = async (file) => {
+    const options = {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
+    }
+
+    try {
+        const compressedFile = await imageCompression(file, options)
+        return new File(
+            [compressedFile],
+            compressedFile.name || file.name,
+            {
+                type: compressedFile.type || file.type,
+                lastModified: Date.now()
+            }
+        )
+    } catch (error) {
+        console.error('Failed to compress request image:', error)
+        return file
+    }
+}
+
+const buildItemPayload = (item) => ({
+    product_name: item.product_name.trim(),
+    quantity: item.quantity || 1
+})
+
+const resetPickerInput = (pickerRef) => {
+    if (pickerRef?.value) pickerRef.value.value = ''
+}
+
+const revokePrescriptionPreview = (image) => {
+    if (image?.previewUrl) {
+        URL.revokeObjectURL(image.previewUrl)
+    }
+}
+
+const appendPrescriptionFiles = async (files = []) => {
+    const accepted = Array.from(files).slice(0, Math.max(0, 6 - prescriptionFiles.value.length))
+    if (!accepted.length) return
+    const compressedFiles = await Promise.all(accepted.map(compressRequestImage))
+    const nextFiles = compressedFiles.map(createPrescriptionPreview)
+    prescriptionFiles.value = [...prescriptionFiles.value, ...nextFiles]
+}
+
+const onPrescriptionFilesSelected = async (event) => {
+    await appendPrescriptionFiles(event.target.files || [])
+    resetPickerInput(prescriptionPicker)
+}
+
+const queuePrescriptionReplace = (index) => {
+    prescriptionReplaceIndex.value = index
+    prescriptionReplacePicker.value?.click()
+}
+
+const onReplacePrescriptionFile = async (event) => {
+    const replacement = event.target.files?.[0]
+    const index = prescriptionReplaceIndex.value
+    if (!replacement || index === null || !prescriptionFiles.value[index]) {
+        resetPickerInput(prescriptionReplacePicker)
+        prescriptionReplaceIndex.value = null
+        return
+    }
+
+    const compressedReplacement = await compressRequestImage(replacement)
+    revokePrescriptionPreview(prescriptionFiles.value[index])
+    prescriptionFiles.value.splice(index, 1, createPrescriptionPreview(compressedReplacement))
+    resetPickerInput(prescriptionReplacePicker)
+    prescriptionReplaceIndex.value = null
+}
+
+const removePrescriptionFile = (index) => {
+    const current = prescriptionFiles.value[index]
+    revokePrescriptionPreview(current)
+    prescriptionFiles.value.splice(index, 1)
+}
+
+const appendItemImages = async (item, files = []) => {
+    const accepted = Array.from(files).slice(0, Math.max(0, 6 - (item.imageFiles?.length || 0)))
+    if (!accepted.length) return
+    const compressedFiles = await Promise.all(accepted.map(compressRequestImage))
+    const nextFiles = compressedFiles.map(createPrescriptionPreview)
+    item.imageFiles = [...(item.imageFiles || []), ...nextFiles]
+}
+
+const onItemImagesSelected = async (event, item) => {
+    await appendItemImages(item, event.target.files || [])
+    resetPickerInput({ value: event.target })
+}
+
+const replaceItemImage = async (event, item, imageIndex) => {
+    const replacement = event.target.files?.[0]
+    if (!replacement || !item?.imageFiles?.[imageIndex]) {
+        resetPickerInput({ value: event.target })
+        return
+    }
+
+    const compressedReplacement = await compressRequestImage(replacement)
+    revokePrescriptionPreview(item.imageFiles[imageIndex])
+    item.imageFiles.splice(imageIndex, 1, createPrescriptionPreview(compressedReplacement))
+    resetPickerInput({ value: event.target })
+}
+
+const removeItemImage = (item, imageIndex) => {
+    const current = item?.imageFiles?.[imageIndex]
+    if (!current) return
+    revokePrescriptionPreview(current)
+    item.imageFiles.splice(imageIndex, 1)
+}
+
+const cleanupItemImages = (item) => {
+    ;(item?.imageFiles || []).forEach(revokePrescriptionPreview)
+}
+
+const removeRequestItem = (index) => {
+    const item = requestItems.value[index]
+    cleanupItemImages(item)
+    requestItems.value.splice(index, 1)
+}
+
+const reverseGeocodeLocation = async (lat, lng) => {
+    const res = await apiCall('GET', `/api/auth/customer/reverse-geocode?lat=${lat}&lng=${lng}`)
+    return res.data || null
+}
+
 const getLocation = () => {
-    if (!navigator.geolocation) return showToast('Geolocation not supported', 'error')
+    if (!navigator.geolocation) {
+        locationIssue.value = buildLocationIssue(
+            'Location is not available in this browser.',
+            'Try a modern browser on your phone, then allow location access and try again.'
+        )
+        return showToast('Geolocation not supported', 'error')
+    }
     if (typeof window !== 'undefined' && !window.isSecureContext) {
+        locationIssue.value = buildLocationIssue(
+            'Location needs a secure page before it can work here.',
+            'Open the secure site, then allow location access for your browser and try again.'
+        )
         showToast('Location access requires HTTPS on staging. Use a secure URL to continue.', 'error')
         return
     }
     gettingLocation.value = true
+    locationIssue.value = null
     navigator.geolocation.getCurrentPosition(
-        (pos) => { customerLat.value = pos.coords.latitude; customerLng.value = pos.coords.longitude; gettingLocation.value = false; showToast('Location set!') },
+        async (pos) => {
+            customerLat.value = pos.coords.latitude
+            customerLng.value = pos.coords.longitude
+            locationMode.value = 'current-request'
+            try {
+                const locationData = await reverseGeocodeLocation(customerLat.value, customerLng.value)
+                if (locationData?.address) {
+                    customerAddress.value = locationData.address
+                    if (fulfillmentType.value === 'delivery') {
+                        deliveryAddress.value = locationData.address
+                    }
+                }
+            } catch (error) {
+                console.error('Reverse geocode failed:', error)
+            } finally {
+                gettingLocation.value = false
+                locationIssue.value = null
+                showToast('Location set!')
+            }
+        },
         (error) => {
             gettingLocation.value = false
-            if (error?.code === error.PERMISSION_DENIED) return showToast('Location permission was denied. Allow location access and try again.', 'error')
-            if (error?.code === error.POSITION_UNAVAILABLE) return showToast('Your location is unavailable right now. Check GPS and try again.', 'error')
-            if (error?.code === error.TIMEOUT) return showToast('Location request timed out. Try again.', 'error')
+            if (error?.code === error.PERMISSION_DENIED) {
+                locationIssue.value = buildLocationIssue(
+                    'Location permission is off for this page.',
+                    'Turn on GPS, then allow location access in your browser settings for this site.'
+                )
+                return showToast('Location permission was denied. Allow location access and try again.', 'error')
+            }
+            if (error?.code === error.POSITION_UNAVAILABLE) {
+                locationIssue.value = buildLocationIssue(
+                    'We could not read your location just now.',
+                    'Check that GPS is on, move to a clearer signal area, then try again.'
+                )
+                return showToast('Your location is unavailable right now. Check GPS and try again.', 'error')
+            }
+            if (error?.code === error.TIMEOUT) {
+                locationIssue.value = buildLocationIssue(
+                    'Location is taking too long to load.',
+                    'Check that GPS is on and try again. If it keeps failing, open browser settings and re-enable location access.'
+                )
+                return showToast('Location request timed out. Try again.', 'error')
+            }
+            locationIssue.value = buildLocationIssue(
+                'We could not get your location right now.',
+                'Check GPS and browser location permission, then try again.'
+            )
             showToast('Could not get your location right now. Try again.', 'error')
         },
         { enableHighAccuracy: true, timeout: 15000 }
@@ -675,6 +1249,8 @@ const viewDetail = async (req) => {
     try {
         const res = await apiCall('GET', `/api/order-requests/customer/${req.id}`)
         selectedRequest.value = res.data
+        syncDecisionSelections()
+        syncFeedbackForm()
     } catch (e) { showToast('Failed to load request', 'error') }
 }
 
@@ -691,6 +1267,8 @@ const openRequestById = async (requestId, options = {}) => {
         if (subTab.value !== 'list') subTab.value = 'list'
         const res = await apiCall('GET', `/api/order-requests/customer/${id}`)
         selectedRequest.value = res.data
+        syncDecisionSelections()
+        syncFeedbackForm()
     } catch (e) {
         if (!silent) showToast('Failed to load request', 'error')
     }
@@ -701,24 +1279,95 @@ const refreshSelectedRequest = async () => {
     try {
         const res = await apiCall('GET', `/api/order-requests/customer/${selectedRequest.value.id}`)
         selectedRequest.value = res.data
+        syncDecisionSelections()
+        syncFeedbackForm()
     } catch (e) { }
 }
+
+const submitFeedback = async () => {
+    if (!selectedRequest.value?.id || savingFeedback.value) return
+    const rating = Number(feedbackForm.value.rating || 0)
+    if (rating < 1 || rating > 5) {
+        showToast('Choose a star rating before saving feedback.', 'error')
+        return
+    }
+
+    savingFeedback.value = true
+    try {
+        const res = await apiCall('POST', `/api/order-requests/customer/${selectedRequest.value.id}/feedback`, {
+            rating,
+            comment: feedbackForm.value.comment?.trim() || ''
+        })
+
+        selectedRequest.value = {
+            ...selectedRequest.value,
+            feedback: res.data
+        }
+        syncFeedbackForm()
+        showToast(res.message || 'Thanks for sharing your feedback')
+        selectedRequest.value = null
+    } catch (e) {
+        showToast(e.message || 'Failed to save feedback', 'error')
+    } finally {
+        savingFeedback.value = false
+    }
+}
+
+const fetchWalletBalance = async () => {
+    try {
+        const res = await apiCall('GET', '/api/wallet')
+        walletBalance.value = Number(res.data?.balance || 0)
+    } catch (e) {
+        walletBalance.value = 0
+    }
+}
+
+const submitMultipartRequest = (formData) => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${apiBase}/api/order-requests/customer`)
+    xhr.setRequestHeader('Authorization', `Bearer ${userStore.customerAuthToken}`)
+
+    xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return
+        uploadProgress.value = (event.loaded / event.total) * 100
+    }
+
+    xhr.onload = () => {
+        try {
+            const json = JSON.parse(xhr.responseText || '{}')
+            if (xhr.status >= 200 && xhr.status < 300 && json.success) {
+                resolve(json)
+                return
+            }
+            const err = new Error(json.message || `Error ${xhr.status}`)
+            err.status = xhr.status
+            err.data = json.data
+            reject(err)
+        } catch (_error) {
+            reject(new Error('Failed to parse upload response'))
+        }
+    }
+
+    xhr.onerror = () => reject(new Error('Upload failed. Please try again.'))
+    xhr.send(formData)
+})
 
 const submitRequest = async () => {
     if (!canSubmit.value) return
     isSubmitting.value = true
+    uploadProgress.value = 0
     try {
         const payload = {
-            items: validItems.value.map(i => ({ product_name: i.product_name.trim(), quantity: i.quantity || 1 })),
+            items: validItems.value.map(buildItemPayload),
             customer_latitude: customerLat.value,
             customer_longitude: customerLng.value,
             fulfillment_type: fulfillmentType.value,
             delivery_address: deliveryAddress.value.trim(),
-            customer_address: deliveryAddress.value.trim(),
+            customer_address: (customerAddress.value || deliveryAddress.value).trim(),
             customer_notes: customerNotes.value.trim(),
         }
         let res
-        if (prescriptionFile.value) {
+        if (hasMultipartUploads.value) {
             const formData = new FormData()
             formData.append('items', JSON.stringify(payload.items))
             formData.append('customer_latitude', String(payload.customer_latitude))
@@ -727,21 +1376,11 @@ const submitRequest = async () => {
             formData.append('delivery_address', payload.delivery_address)
             formData.append('customer_address', payload.customer_address)
             formData.append('customer_notes', payload.customer_notes)
-            formData.append('prescription_image', prescriptionFile.value)
-
-            const response = await fetch(`${apiBase}/api/order-requests/customer`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${userStore.customerAuthToken}` },
-                body: formData
+            prescriptionFiles.value.forEach((image) => formData.append('prescription_images', image.file))
+            validItems.value.forEach((item, index) => {
+                item.imageFiles.forEach((image) => formData.append(`item_images_${index}`, image.file))
             })
-            const json = await response.json()
-            if (!response.ok || !json.success) {
-                const err = new Error(json.message || `Error ${response.status}`)
-                err.status = response.status
-                err.data = json.data
-                throw err
-            }
-            res = json
+            res = await submitMultipartRequest(formData)
         } else {
             res = await apiCall('POST', '/api/order-requests/customer', payload)
         }
@@ -749,21 +1388,32 @@ const submitRequest = async () => {
         submitShortfall.value = 0
         showPriorityModal.value = false
         showSuccess.value = true
+        requestItems.value.forEach(cleanupItemImages)
         requestItems.value = [newItem()]
-        prescriptionFile.value = null
+        prescriptionFiles.value.forEach(revokePrescriptionPreview)
+        prescriptionFiles.value = []
+        resetPickerInput(prescriptionPicker)
+        resetPickerInput(prescriptionReplacePicker)
         fulfillmentType.value = ''
+        customerAddress.value = ''
         deliveryAddress.value = ''
         customerNotes.value = ''
-        currentStep.value = 0
+        customerLat.value = null
+        customerLng.value = null
+        locationMode.value = 'none'
+        applySavedHomeLocation(savedHomeLocation.value, { force: true })
     } catch (e) {
         if (e.status === 402) {
             submitShortfall.value = Number(e.data?.shortfall || e.data?.required_fee || requestFee.value)
-            showToast(`Insufficient wallet balance for the GHS ${requestFee.value.toFixed(2)} priority hold. Top up and try again.`, 'error')
+            showToast(`Insufficient wallet balance for the GHS ${requestFee.value.toFixed(2)} Priority Search charge. Top up and try again.`, 'error')
         } else {
             showToast(e.message || 'Failed to submit', 'error')
         }
     }
-    finally { isSubmitting.value = false }
+    finally {
+        uploadProgress.value = 0
+        isSubmitting.value = false
+    }
 }
 
 const openPriorityGate = () => {
@@ -783,6 +1433,11 @@ const openWalletTab = async () => {
 // Search Logic
 let debounceTimer = null
 const onProductInput = (item) => {
+    if (!canSearchProducts.value) {
+        item.showDropdown = false
+        item.searchResults = []
+        return
+    }
     item.showDropdown = true
     if (!item.product_name || item.product_name.length < 2) {
         item.searchResults = []
@@ -805,7 +1460,13 @@ const searchProducts = async (item) => {
         }
         item.searchResults = res.data || []
     } catch (e) {
-        console.error(e) // silent fail
+        item.searchResults = []
+        if (e.status === 402) {
+            walletBalance.value = Number(e.data?.wallet_balance || 0)
+            showToast(`You need at least GHS ${requestFee.value.toFixed(2)} in your wallet before Priority Search is available.`, 'error')
+        } else {
+            console.error(e)
+        }
     } finally {
         item.loading = false
     }
@@ -825,6 +1486,14 @@ const closeDropdown = (item) => {
 }
 
 const addItem = () => requestItems.value.push(newItem())
+const decrementQty = (item) => {
+    const current = Number(item?.quantity || 1)
+    item.quantity = Math.max(1, current - 1)
+}
+const incrementQty = (item) => {
+    const current = Number(item?.quantity || 1)
+    item.quantity = Math.max(1, current + 1)
+}
 
 const getCustomerStatus = (s) => {
     if (s === 'picked_up' || s === 'delivered') return 'completed'
@@ -840,6 +1509,26 @@ const getRequestTotal = (req) => {
     if (Number.isFinite(itemsTotal) && itemsTotal > 0) return itemsTotal
     return null
 }
+const getPrescriptionImageCount = (req) => Array.isArray(req?.prescription_images) ? req.prescription_images.length : 0
+const shouldShowPrescriptionPreview = (req) => (Number(req?.item_count || 0) === 0) && getPrescriptionImageCount(req) > 0
+const getRequestCardSummary = (req) => {
+    if (shouldShowPrescriptionPreview(req)) {
+        return 'Prescription attached'
+    }
+
+    const itemCount = Number(req?.item_count || 0)
+    return itemCount > 0 ? `${itemCount} item${itemCount !== 1 ? 's' : ''}` : '-'
+}
+const getRequestContentCount = (req) => {
+    if (shouldShowPrescriptionPreview(req)) {
+        return `${getPrescriptionImageCount(req)} image${getPrescriptionImageCount(req) !== 1 ? 's' : ''}`
+    }
+
+    const itemCount = Number(req?.item_count || 0)
+    if (itemCount > 0) return `${itemCount} item${itemCount === 1 ? '' : 's'}`
+    return '-'
+    return `${itemCount || '—'} item${itemCount === 1 ? '' : 's'}`
+}
 const getPayableAmount = (req) => {
     if (!req) return 0
     const estimated = Number(req.estimated_total)
@@ -849,52 +1538,452 @@ const getPayableAmount = (req) => {
     const amount = itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
     return Number.isFinite(amount) && amount > 0 ? amount : 0
 }
+const getRequestStatus = (req) => {
+    const rawStatus = getCustomerStatus(req?.status || '')
+    if (payableStatuses.has(rawStatus) && getPayableAmount(req) <= 0) {
+        return 'confirming_with_pharm'
+    }
+    return rawStatus
+}
 const canPayRequest = (req) => {
     if (!req) return false
     if (!payableStatuses.has(req.status)) return false
     return getPayableAmount(req) > 0
 }
+const isPaymentPendingRequest = (req) => {
+    if (!req) return false
+    return payableStatuses.has(req.status) && getPayableAmount(req) <= 0
+}
 const canCancelRequest = (req) => !!req && req.status === 'pending'
-const payForRequest = async (id) => {
+const clearRequestPaymentQuery = async (requestId = null) => {
+    const nextQuery = { ...route.query, tab: 'requests' }
+    delete nextQuery.reference
+    delete nextQuery.trxref
+    delete nextQuery.requestPayment
+    if (requestId) nextQuery.requestId = String(requestId)
+    await router.replace({ query: nextQuery })
+}
+const payForRequest = async (id, method = 'wallet') => {
     if (!id || payingRequest.value) return
     payingRequest.value = true
+    payingMethod.value = method
     try {
+        paymentShortfall.value = { requestId: null, amount: 0 }
+
+        if (method === 'paystack') {
+            const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay/paystack/initialize`)
+            if (!res.data?.authorization_url) {
+                throw new Error('Paystack checkout could not be started')
+            }
+            window.location.assign(res.data.authorization_url)
+            return
+        }
+
         const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay`)
         await fetchMyRequests({ silent: true })
         if (selectedRequest.value?.id === id) {
             await refreshSelectedRequest()
         }
-        if (res.data?.fee_credited) {
-            reimbursementSummary.value = {
-                requestNumber: res.data.request_number || selectedRequest.value?.request_number || '',
-                amountPaid: Number(res.data.amount_paid || 0),
-                feeCreditAmount: Number(res.data.fee_credit_amount || requestFee.value),
-                effectiveAmountPaid: Number(res.data.effective_amount_paid || res.data.amount_paid || 0)
-            }
-            showReimbursementModal.value = true
-        } else {
-            showToast(res.message || 'Payment completed successfully')
-        }
+        showToast(res.message || 'Payment completed successfully')
     } catch (e) {
-        if (e.status === 402 && e.data) {
+        if (method === 'wallet' && e.status === 402 && e.data) {
             const shortfall = Number(e.data.shortfall || 0)
+            paymentShortfall.value = {
+                requestId: id,
+                amount: shortfall > 0 ? shortfall : Number(getPayableAmount(selectedRequest.value) || 0)
+            }
             showToast(`Insufficient wallet balance. Top up GHS ${shortfall.toFixed(2)} to continue.`, 'error')
         } else {
-            showToast(e.message || 'Failed to initialize payment', 'error')
+            showToast(e.message || `Failed to start ${method === 'paystack' ? 'Paystack' : 'wallet'} payment`, 'error')
         }
     } finally {
         payingRequest.value = false
+        payingMethod.value = ''
     }
 }
 
-const closeReimbursementModal = async () => {
-    showReimbursementModal.value = false
-    showToast('Payment completed and your priority deposit has been returned.')
-    await fetchMyRequests({ silent: true })
-    if (selectedRequest.value?.id) {
-        await refreshSelectedRequest()
+const verifyReturnedPaystackRequestPayment = async () => {
+    const paymentMarker = String(route.query.requestPayment || '').trim().toLowerCase()
+    const reference = String(route.query.reference || route.query.trxref || '').trim()
+    const requestId = normalizeRequestId(route.query.requestId || props.initialRequestId)
+
+    if (paymentMarker !== 'paystack' || !reference || !requestId || payingRequest.value) return
+
+    payingRequest.value = true
+    payingMethod.value = 'paystack'
+    try {
+        const res = await apiCall('POST', `/api/order-requests/customer/${requestId}/pay/paystack/verify`, {
+            reference
+        })
+        await fetchWalletBalance()
+        await fetchMyRequests({ silent: true })
+        await openRequestById(requestId, { silent: true })
+        showToast(res.message || 'Payment completed successfully')
+    } catch (e) {
+        await fetchWalletBalance()
+        await fetchMyRequests({ silent: true })
+        await openRequestById(requestId, { silent: true })
+        showToast(e.message || 'Failed to verify Paystack payment', 'error')
+    } finally {
+        await clearRequestPaymentQuery(requestId)
+        payingRequest.value = false
+        payingMethod.value = ''
     }
 }
+
+const respondToDecision = async (decision, response) => {
+    if (!selectedRequest.value?.id || !decision?.id || respondingDecisionId.value) return
+
+    respondingDecisionId.value = decision.id
+    try {
+        const res = await apiCall('POST', `/api/order-requests/customer/${selectedRequest.value.id}/decisions/${decision.id}/respond`, {
+            response,
+            selected_items: response === 'approved' ? (decisionSelections.value[decision.id] || {}) : {}
+        })
+        showToast(res.message || (response === 'approved' ? 'Decision approved' : 'Decision declined'))
+        await fetchMyRequests({ silent: true })
+        await refreshSelectedRequest()
+    } catch (e) {
+        showToast(e.message || 'Failed to respond to request decision', 'error')
+    } finally {
+        respondingDecisionId.value = null
+    }
+}
+
+const getDecisionContext = (decision) => {
+    return decision?.payload?.summary?.decision_context || null
+}
+
+const getDecisionItems = (decision) => {
+    return Array.isArray(decision?.payload?.decision_items) ? decision.payload.decision_items : []
+}
+
+const syncDecisionSelections = () => {
+    const pendingDecisions = Array.isArray(selectedRequest.value?.pending_decisions) ? selectedRequest.value.pending_decisions : []
+    const nextState = {}
+
+    pendingDecisions.forEach((decision) => {
+        const existing = decisionSelections.value[decision.id] || {}
+        const itemSelections = {}
+        getDecisionItems(decision).forEach((item) => {
+            const itemId = String(item.item_id)
+            itemSelections[itemId] = existing[itemId] || item.default_choice || 'keep'
+        })
+        nextState[decision.id] = itemSelections
+    })
+
+    decisionSelections.value = nextState
+}
+
+const getDecisionItemChoices = (item) => {
+    if (item?.status === 'substitute_available' && item?.substitute_option) {
+        return [
+            { value: 'substitute', label: 'Use Alternative' },
+            { value: 'remove', label: 'Remove Item' }
+        ]
+    }
+
+    if (item?.status === 'unavailable') {
+        return [
+            { value: 'remove', label: 'Remove Item' }
+        ]
+    }
+
+    return [
+        { value: 'keep', label: 'Keep Item' },
+        { value: 'remove', label: 'Remove Item' }
+    ]
+}
+
+const getDecisionChoice = (decision, item) => {
+    return decisionSelections.value?.[decision?.id]?.[String(item?.item_id)] || item?.default_choice || 'keep'
+}
+
+const setDecisionChoice = (decision, item, choice) => {
+    if (!decision?.id || !item?.item_id) return
+    if (!decisionSelections.value[decision.id]) {
+        decisionSelections.value[decision.id] = {}
+    }
+    decisionSelections.value[decision.id][String(item.item_id)] = choice
+}
+
+const getDecisionPreviewTotal = (decision) => {
+    return getDecisionItems(decision).reduce((sum, item) => {
+        const choice = getDecisionChoice(decision, item)
+        const quantity = Number(item.quantity || 0)
+
+        if (choice === 'remove') return sum
+
+        if (choice === 'substitute' && item.substitute_option?.marked_up_price != null) {
+            return sum + (Number(item.substitute_option.marked_up_price) * quantity)
+        }
+
+        if (item.unit_price != null) {
+            return sum + (Number(item.unit_price) * quantity)
+        }
+
+        return sum
+    }, 0)
+}
+
+const getDecisionDistanceText = (item) => {
+    if (!item) return ''
+    const primaryDistance = Number(item.distance_km)
+    if (Number.isFinite(primaryDistance) && primaryDistance > 0) {
+        return `${primaryDistance.toFixed(1)} km away`
+    }
+
+    const distances = Array.isArray(item.source_distances_km)
+        ? item.source_distances_km
+            .map((distance) => Number(distance))
+            .filter((distance) => Number.isFinite(distance) && distance > 0)
+        : []
+
+    if (distances.length) {
+        const nearest = [...new Set(distances.map((distance) => Number(distance.toFixed(1))))].sort((a, b) => a - b)[0]
+        return `${nearest.toFixed(1)} km away`
+    }
+
+    return ''
+}
+
+const getPrimaryDecisionSourceId = (item) => {
+    const directId = Number(item?.source_pharmacy_id || 0)
+    if (Number.isInteger(directId) && directId > 0) return directId
+
+    if (Array.isArray(item?.source_pharmacy_ids)) {
+        const fallback = item.source_pharmacy_ids
+            .map((id) => Number(id))
+            .find((id) => Number.isInteger(id) && id > 0)
+        if (fallback) return fallback
+    }
+
+    return null
+}
+
+const getDecisionSourceMap = (decision) => {
+    const items = getDecisionItems(decision)
+    const orderedSourceIds = []
+    const sourceSet = new Set()
+    const pushSourceId = (value) => {
+        const id = Number(value || 0)
+        if (!Number.isInteger(id) || id <= 0) return
+        if (sourceSet.has(id)) return
+        sourceSet.add(id)
+        orderedSourceIds.push(id)
+    }
+
+    // 1) Prioritize primary sources used by visible direct-available item rows.
+    items.forEach((item) => {
+        if (!isDecisionItemDirectlyAvailable(item)) return
+        pushSourceId(getPrimaryDecisionSourceId(item))
+    })
+
+    // 2) Then include remaining fallback/substitute sources.
+    items.forEach((item) => {
+        pushSourceId(getPrimaryDecisionSourceId(item))
+        const substituteId = Number(item?.substitute_option?.source_pharmacy_id || 0)
+        pushSourceId(substituteId)
+    })
+
+    const map = new Map()
+    orderedSourceIds.forEach((id, index) => {
+        map.set(id, `Source ${index + 1}`)
+    })
+    return map
+}
+
+const getDecisionSourceSummary = (decision) => {
+    const summaryCount = Number(decision?.payload?.summary?.source_pharmacy_count || 0)
+    const map = getDecisionSourceMap(decision)
+    const count = summaryCount > 0 ? summaryCount : map.size
+    return {
+        count,
+        isSplit: count > 1
+    }
+}
+
+const getDecisionHumanSummary = (decision) => {
+    const items = getDecisionItems(decision)
+    if (!items.length) return []
+
+    const sourceSummary = getDecisionSourceSummary(decision)
+    const decisionContext = getDecisionContext(decision)
+    const availableCount = items.filter((item) => item?.status === 'available').length
+    const substituteCount = items.filter((item) => item?.status === 'substitute_available').length
+    const unavailableCount = items.filter((item) => item?.status === 'unavailable').length
+    const lines = []
+    const shouldIncludeSourceCountForAvailable = sourceSummary.count > 0
+        && ['partial_availability', 'mixed_availability'].includes(decisionContext)
+
+    if (availableCount > 0 && (sourceSummary.count > 1 || shouldIncludeSourceCountForAvailable)) {
+        lines.push(
+            `${availableCount} item${availableCount > 1 ? 's are' : ' is'} currently available from ${sourceSummary.count} nearby pharmac${sourceSummary.count === 1 ? 'y' : 'ies'}.`
+        )
+    } else if (availableCount > 0) {
+        lines.push(`${availableCount} item${availableCount > 1 ? 's are' : ' is'} currently available.`)
+    }
+
+    if (substituteCount > 0) {
+        lines.push(`${substituteCount} item${substituteCount > 1 ? 's have' : ' has'} alternative option${substituteCount > 1 ? 's' : ''} for you to review.`)
+    }
+
+    if (unavailableCount > 0) {
+        lines.push(`${unavailableCount} item${unavailableCount > 1 ? 's are' : ' is'} currently unavailable.`)
+    }
+
+    if (!lines.length) {
+        lines.push('Please review each item and confirm how you want to proceed.')
+    }
+
+    return lines
+}
+
+const getDecisionConciseSummary = (decision) => {
+    const items = getDecisionItems(decision)
+    if (!items.length) return ''
+
+    const total = items.length
+    const available = items.filter((item) => isDecisionItemDirectlyAvailable(item)).length
+    const withSubstitute = items.filter((item) => item?.status === 'substitute_available' && item?.substitute_option).length
+    const unavailable = items.filter((item) => item?.status === 'unavailable').length
+    const sourceSummary = getDecisionSourceSummary(decision)
+
+    const parts = []
+    if (available > 0) {
+        const sourcePart = sourceSummary.count > 1
+            ? `from ${sourceSummary.count} nearby pharmacies`
+            : 'from 1 nearby pharmacy'
+        parts.push(`${available}/${total} item${total > 1 ? 's' : ''} available ${sourcePart}`)
+    }
+    if (withSubstitute > 0) {
+        parts.push(`${withSubstitute} item${withSubstitute > 1 ? 's have' : ' has'} alternative options`)
+    }
+    if (unavailable > 0) {
+        parts.push(`${unavailable} item${unavailable > 1 ? 's are' : ' is'} unavailable`)
+    }
+
+    if (!parts.length) return 'Please review the items below and choose how you want to continue.'
+    return `${parts.join('. ')}.`
+}
+
+const isDecisionItemDirectlyAvailable = (item = {}) => {
+    const status = String(item?.status || '').toLowerCase()
+    if (status === 'unavailable' || status === 'substitute_available') return false
+    if (item?.unit_price != null) return true
+    return ['available', 'ready_to_order', 'ordered', 'allocated', 'partially_allocated'].includes(status)
+}
+
+const shouldShowDecisionItemPrice = (item = {}) => {
+    return isDecisionItemDirectlyAvailable(item) && item?.unit_price != null
+}
+
+const getDecisionFlowHeadline = (decision) => {
+    const items = getDecisionItems(decision)
+    if (!items.length) return ''
+
+    const available = items.filter((item) => isDecisionItemDirectlyAvailable(item)).length
+    const withSubstitute = items.filter((item) => item?.status === 'substitute_available' && item?.substitute_option).length
+    const unavailable = items.filter((item) => item?.status === 'unavailable').length
+    const total = items.length
+    const sourceSummary = getDecisionSourceSummary(decision)
+
+    if (sourceSummary.count > 1 && withSubstitute > 0) {
+        return `${available}/${total} items are available from ${sourceSummary.count} nearby pharmacies, and ${withSubstitute} item${withSubstitute > 1 ? 's have' : ' has'} alternative options to review.`
+    }
+
+    if (sourceSummary.count > 1 && unavailable > 0) {
+        return `${available}/${total} items are available from ${sourceSummary.count} nearby pharmacies, and ${unavailable} item${unavailable > 1 ? 's are' : ' is'} not available right now.`
+    }
+
+    if (sourceSummary.count > 1) {
+        return `Your request can be completed from ${sourceSummary.count} nearby pharmacies. Review each item below and confirm how you want to continue.`
+    }
+
+    if (withSubstitute > 0) {
+        return `${available}/${total} items are available now. ${withSubstitute} item${withSubstitute > 1 ? 's have' : ' has'} an alternative for you to review.`
+    }
+
+    if (unavailable > 0) {
+        return `${available}/${total} items are available now. ${unavailable} item${unavailable > 1 ? 's are' : ' is'} not available right now.`
+    }
+
+    return ''
+}
+
+const getDecisionItemSourceLabel = (decision, item) => {
+    const map = getDecisionSourceMap(decision)
+    const primaryId = getPrimaryDecisionSourceId(item)
+    return primaryId ? (map.get(primaryId) || '') : ''
+}
+
+const getDecisionItemRouteText = (decision, item) => {
+    if (!item || !isDecisionItemDirectlyAvailable(item)) return ''
+    const sourceText = getDecisionItemSourceLabel(decision, item) || 'Nearby source'
+    const distanceText = getDecisionDistanceText(item)
+    if (sourceText && distanceText) return `${sourceText} - ${distanceText}`
+    return sourceText || distanceText || ''
+}
+
+const getDecisionSubstituteSourceLabel = (decision, item) => {
+    const substituteId = Number(item?.substitute_option?.source_pharmacy_id || 0)
+    if (!Number.isInteger(substituteId) || substituteId <= 0) return ''
+    const map = getDecisionSourceMap(decision)
+    const label = map.get(substituteId)
+    return label ? `${label} (alternative)` : ''
+}
+
+const getDecisionSubstituteRouteText = (decision, item) => {
+    if (!item?.substitute_option) return ''
+    const sourceText = getDecisionSubstituteSourceLabel(decision, item) || 'Nearby source (alternative)'
+    const distance = Number(item.substitute_option.distance_km)
+    const distanceText = Number.isFinite(distance) && distance > 0
+        ? `${distance.toFixed(1)} km away`
+        : ''
+    if (sourceText && distanceText) return `${sourceText} - ${distanceText}`
+    return sourceText || distanceText || ''
+}
+
+const getDecisionVariantClass = (decision) => {
+    const context = getDecisionContext(decision)
+    if (context === 'mixed_availability') return 'warning'
+    if (context === 'partial_availability') return 'warning'
+    if (context === 'split_fulfillment') return 'info'
+    if (decision?.decision_type === 'substitute_approval') return 'success'
+    if (decision?.decision_type === 'quantity_split') return 'info'
+    return 'neutral'
+}
+
+const getDecisionEyebrow = (decision) => {
+    const context = getDecisionContext(decision)
+    if (context === 'mixed_availability') return 'Action Needed'
+    if (context === 'partial_availability') return 'Partial Availability'
+    if (context === 'split_fulfillment') return 'Split Fulfillment'
+    if (decision?.decision_type === 'substitute_approval') return 'Alternative Approval'
+    if (decision?.decision_type === 'quantity_split') return 'Quantity Split'
+    return 'Customer Decision'
+}
+
+const getDecisionApproveLabel = (decision) => {
+    const context = getDecisionContext(decision)
+    if (context === 'mixed_availability') return 'Apply My Choices'
+    if (context === 'partial_availability') return 'Continue with Available Items'
+    if (context === 'split_fulfillment') return 'Continue with Split Order'
+    if (decision?.decision_type === 'substitute_approval') return 'Approve Alternatives'
+    if (decision?.decision_type === 'quantity_split') return 'Approve Split'
+    return 'Approve'
+}
+
+const getDecisionDeclineLabel = (decision) => {
+    const context = getDecisionContext(decision)
+    if (context === 'mixed_availability') return 'Cancel Request'
+    if (context === 'partial_availability') return 'Cancel Request'
+    if (context === 'split_fulfillment') return 'Cancel Request'
+    if (decision?.decision_type === 'substitute_approval') return 'Reject Alternatives'
+    if (decision?.decision_type === 'quantity_split') return 'Reject Split'
+    return 'Decline'
+}
+
 const cancelRequest = async (id) => {
     if (!id || cancelingRequest.value) return
     const confirmed = window.confirm('Cancel this pending request?')
@@ -919,6 +2008,8 @@ const statusProgress = (s) => ({
     confirming_with_pharm: 25,
     confirmed_in_pharm: 40,
     paid: 70,
+    logistics_pending: 75,
+    driver_unavailable: 75,
     ready_for_pickup: 80,
     picked_up: 100,
     out_for_delivery: 85,
@@ -935,12 +2026,15 @@ const statusProgress = (s) => ({
 const showToast = (text, type = 'success') => { toast.value = { text, type }; setTimeout(() => { toast.value = null }, 4000) }
 
 onMounted(async () => {
+    await loadSavedHomeLocation()
     await fetchRequestSettings()
+    await fetchWalletBalance()
     if (props.defaultSubTab === 'list' || props.initialRequestId) {
         subTab.value = 'list'
         await fetchMyRequests()
         await openRequestById(props.initialRequestId, { silent: true })
     }
+    await verifyReturnedPaystackRequestPayment()
 
     pollTimer = setInterval(async () => {
         if (subTab.value !== 'list') return
@@ -948,6 +2042,15 @@ onMounted(async () => {
         await refreshSelectedRequest()
     }, POLL_INTERVAL_MS)
 })
+
+watch(
+    subTab,
+    async (nextTab) => {
+        if (nextTab === 'new') {
+            await fetchWalletBalance()
+        }
+    }
+)
 
 watch(
     () => props.initialRequestId,
@@ -959,8 +2062,17 @@ watch(
     }
 )
 
+watch(
+    () => `${route.query.requestPayment || ''}|${route.query.reference || route.query.trxref || ''}|${route.query.requestId || ''}`,
+    async () => {
+        await verifyReturnedPaystackRequestPayment()
+    }
+)
+
 onUnmounted(() => {
     if (pollTimer) clearInterval(pollTimer)
+    prescriptionFiles.value.forEach(revokePrescriptionPreview)
+    requestItems.value.forEach(cleanupItemImages)
 })
 
 defineExpose({ fetchMyRequests })
@@ -1324,6 +2436,120 @@ defineExpose({ fetchMyRequests })
     margin: 0 0 1.25rem;
 }
 
+.search-lock-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 14px;
+    border: 1px solid #fde68a;
+    background: linear-gradient(180deg, #fffbeb, #fef3c7);
+}
+
+.search-lock-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.search-lock-copy strong {
+    font-size: 0.88rem;
+    color: #92400e;
+}
+
+.search-lock-copy span {
+    font-size: 0.79rem;
+    line-height: 1.5;
+    color: #b45309;
+}
+
+.request-builder-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+    gap: 1rem;
+    margin-top: 1.25rem;
+    align-items: start;
+}
+
+.builder-card {
+    padding: 1.1rem;
+    border-radius: 16px;
+    border: 1px solid #dbe4f0;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+}
+
+.builder-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.builder-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.builder-copy {
+    margin: 0.35rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #64748b;
+}
+
+.review-card {
+    position: sticky;
+    top: 1rem;
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.98));
+}
+
+.request-submit-bar {
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid #cbd5e1;
+    background: linear-gradient(135deg, #0f172a, #1e293b 58%, #334155);
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.14);
+}
+
+.request-submit-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.request-submit-copy strong {
+    color: #f8fafc;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.request-submit-copy span {
+    color: rgba(226, 232, 240, 0.86);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.request-submit-btn {
+    flex-shrink: 0;
+    min-width: 220px;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+}
+
 /* Items list */
 .items-list {
     display: flex;
@@ -1334,12 +2560,49 @@ defineExpose({ fetchMyRequests })
 
 .item-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.5rem;
     background: #f9fafb;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
     padding: 0.625rem 0.75rem;
+}
+
+.item-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-search-shell {
+    background: #ffffff;
+    border: 1px solid #dbe4f0;
+    border-radius: 14px;
+    padding: 0.75rem 0.85rem;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.item-search-shell.locked {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.item-search-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-bottom: 0.45rem;
+}
+
+.item-search-head strong {
+    font-size: 0.8rem;
+    color: #1e293b;
+    letter-spacing: 0.02em;
+}
+
+.item-search-head span {
+    font-size: 0.73rem;
+    color: #64748b;
+    line-height: 1.35;
 }
 
 .item-num {
@@ -1360,25 +2623,93 @@ defineExpose({ fetchMyRequests })
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: #111827;
     outline: none;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .item-input::placeholder {
-    color: #9ca3af;
+    color: #94a3b8;
 }
 
 .input-wrap {
     flex: 1;
+    background: #f8fafc;
+    border: 1px solid #dbe4f0;
+    border-radius: 12px;
+    padding: 0.75rem 0.85rem;
+}
+
+.item-upload-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.55rem;
+}
+
+.item-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px dashed #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.item-upload-note {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.item-image-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+}
+
+.item-image-card {
+    width: 92px;
+    border: 1px solid #dbe4f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.item-image-preview {
+    width: 100%;
+    height: 72px;
+    object-fit: cover;
+    display: block;
+}
+
+.item-image-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.4rem;
 }
 
 .clickable-input-wrap {
     cursor: text;
-    min-height: 2.25rem;
+    min-height: 3rem;
     display: flex;
     align-items: center;
+    gap: 0.6rem;
+}
+
+.item-search-icon {
+    width: 1rem;
+    height: 1rem;
+    color: #64748b;
+    flex-shrink: 0;
 }
 
 .search-dropdown {
@@ -1424,20 +2755,81 @@ defineExpose({ fetchMyRequests })
     cursor: default;
 }
 
-.qty-input {
-    width: 56px;
+.qty-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 118px;
+}
+
+.qty-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     text-align: center;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    padding: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 600;
+}
+
+.qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem;
+    background: #ffffff;
+    border: 1px solid #dbe4f0;
+    border-radius: 12px;
+}
+
+.qty-btn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: #4f46e5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.qty-btn:hover:not(:disabled) {
+    background: #e0e7ff;
+    transform: translateY(-1px);
+}
+
+.qty-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.qty-svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.qty-input {
+    width: 42px;
+    text-align: center;
+    border: none;
+    background: transparent;
+    padding: 0.25rem 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+    -moz-appearance: textfield;
 }
 
 .qty-input:focus {
-    border-color: #667eea;
     outline: none;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .remove-btn {
@@ -1485,6 +2877,7 @@ defineExpose({ fetchMyRequests })
     border: 1px solid #bfdbfe;
     border-radius: 10px;
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 0.75rem;
 }
@@ -1520,6 +2913,103 @@ defineExpose({ fetchMyRequests })
     align-items: center;
     gap: 0.375rem;
     white-space: nowrap;
+}
+
+.prescription-preview-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.prescription-preview-card {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
+}
+
+.prescription-preview-image {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    background: #dbeafe;
+}
+
+.prescription-preview-copy {
+    padding: 0.75rem 0.75rem 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.prescription-preview-copy strong {
+    font-size: 0.8rem;
+    color: #0f172a;
+}
+
+.prescription-preview-copy span {
+    font-size: 0.72rem;
+    color: #64748b;
+    word-break: break-word;
+}
+
+.prescription-preview-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 0.75rem 0.75rem;
+}
+
+.preview-action-btn {
+    flex: 1;
+    border: 1px solid #bfdbfe;
+    background: #ffffff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.preview-action-btn.danger {
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.upload-progress-card {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+}
+
+.upload-progress-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: #1e3a8a;
+    margin-bottom: 0.55rem;
+}
+
+.upload-progress-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: #dbeafe;
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2563eb, #0ea5e9);
+    transition: width 0.2s ease;
 }
 
 .hidden-input {
@@ -1585,6 +3075,59 @@ defineExpose({ fetchMyRequests })
     font-size: 1.5rem;
 }
 
+.location-help-card {
+    margin: -0.25rem 0 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.location-help-card.error {
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.location-help-copy {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #1e3a8a;
+}
+
+.location-help-card.error .location-help-copy {
+    color: #9a3412;
+}
+
+.location-help-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.7rem;
+}
+
+.location-help-btn {
+    border: none;
+    background: #2563eb;
+    color: white;
+    border-radius: 999px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.location-help-btn.secondary {
+    background: white;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.location-help-note {
+    margin: 0.7rem 0 0;
+    font-size: 0.75rem;
+    color: #7c2d12;
+    line-height: 1.5;
+}
+
 /* Form */
 .form-group {
     margin-bottom: 1rem;
@@ -1648,6 +3191,9 @@ defineExpose({ fetchMyRequests })
 .review-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
     padding: 0.375rem 0;
     font-size: 0.875rem;
     color: #374151;
@@ -1655,6 +3201,19 @@ defineExpose({ fetchMyRequests })
 
 .review-qty {
     color: #9ca3af;
+}
+
+.review-item-images {
+    color: #2563eb;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.review-prescription-only {
+    margin-top: 0.5rem;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #4b5563;
 }
 
 .review-attach {
@@ -1714,16 +3273,6 @@ defineExpose({ fetchMyRequests })
 .priority-note {
     background: linear-gradient(135deg, #eef2ff, #e0f2fe);
     border: 1px solid #c7d2fe;
-}
-
-/* Nav buttons */
-.step-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid #e5e7eb;
 }
 
 .nav-back {
@@ -1893,6 +3442,51 @@ defineExpose({ fetchMyRequests })
     color: #475569;
 }
 
+.request-prescription-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 0.65rem;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #eff6ff, #f8fbff);
+    border: 1px solid #dbeafe;
+}
+
+.request-prescription-thumb-link {
+    display: inline-flex;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #bfdbfe;
+    background: #ffffff;
+}
+
+.request-prescription-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    display: block;
+}
+
+.request-prescription-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.request-prescription-copy strong {
+    font-size: 0.82rem;
+    color: #1e3a8a;
+}
+
+.request-prescription-copy span {
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: #475569;
+}
+
 .request-num {
     font-size: 1rem;
     font-weight: 700;
@@ -1961,6 +3555,14 @@ defineExpose({ fetchMyRequests })
 
 .progress-fill.paid {
     background: #0ea5e9;
+}
+
+.progress-fill.logistics_pending {
+    background: #3b82f6;
+}
+
+.progress-fill.driver_unavailable {
+    background: #ef4444;
 }
 
 .progress-fill.ready_for_pickup {
@@ -2042,6 +3644,16 @@ defineExpose({ fetchMyRequests })
 .status-badge.paid {
     background: #e0f2fe;
     color: #0c4a6e;
+}
+
+.status-badge.logistics_pending {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.status-badge.driver_unavailable {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .status-badge.ready_for_pickup {
@@ -2303,6 +3915,27 @@ defineExpose({ fetchMyRequests })
     margin-bottom: 1.25rem;
 }
 
+.detail-prescription-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.detail-prescription-link {
+    display: inline-flex;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #dbe4f0;
+    background: #ffffff;
+}
+
+.detail-prescription-image {
+    width: 118px;
+    height: 118px;
+    object-fit: cover;
+    display: block;
+}
+
 .detail-label {
     font-size: 0.7rem;
     font-weight: 700;
@@ -2332,6 +3965,25 @@ defineExpose({ fetchMyRequests })
     font-size: 0.75rem;
     color: #9ca3af;
     margin-left: 0.5rem;
+}
+
+.detail-item-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+}
+
+.detail-item-image-link {
+    display: inline-flex;
+}
+
+.detail-item-image {
+    width: 58px;
+    height: 58px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #dbe4f0;
 }
 
 .item-price-info {
@@ -2375,8 +4027,314 @@ defineExpose({ fetchMyRequests })
     color: #4f46e5;
 }
 
+.decision-panel {
+    margin-bottom: 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #fcd34d;
+    background: #fffdf4;
+}
+
+.decision-card {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.8rem 0;
+    border-top: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.decision-card:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+.decision-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.decision-eyebrow.warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.decision-eyebrow.info {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.decision-eyebrow.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.decision-eyebrow.neutral {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.decision-copy strong {
+    display: block;
+    font-size: 0.9rem;
+    color: #111827;
+    margin-bottom: 0.25rem;
+}
+
+.decision-copy p {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #475569;
+}
+
+.decision-human-summary {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    border: 1px solid #dbeafe;
+    background: #f8fbff;
+}
+
+.decision-human-summary p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #1e3a8a;
+    line-height: 1.45;
+}
+
+.decision-flow-headline {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.decision-split-note {
+    margin-top: 0.05rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+.decision-item-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.decision-item-row {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.85rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.decision-item-copy {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.decision-item-copy strong {
+    font-size: 0.88rem;
+    color: #0f172a;
+}
+
+.decision-item-meta {
+    font-size: 0.78rem;
+    color: #475569;
+}
+
+.decision-item-meta.unavailable {
+    color: #b45309;
+    font-weight: 700;
+}
+
+.decision-item-meta.source {
+    color: #0f766e;
+    font-weight: 700;
+}
+
+.decision-substitute {
+    margin-top: 0.3rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.5);
+    display: grid;
+    gap: 0.15rem;
+}
+
+.decision-item-meta.substitute-label {
+    font-weight: 800;
+    color: #0f766e;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.68rem;
+}
+
+.decision-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.decision-item-btn {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 999px;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.decision-item-btn.active {
+    border-color: #0f766e;
+    background: #0f766e;
+    color: #ffffff;
+}
+
+.decision-preview-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 0.9rem;
+    border-radius: 12px;
+    background: #ecfeff;
+    border: 1px solid #a5f3fc;
+    color: #0f172a;
+    font-size: 0.82rem;
+}
+
+.decision-actions {
+    display: flex;
+    gap: 0.65rem;
+}
+
+.decision-btn {
+    flex: 1;
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    font-weight: 700;
+    font-size: 0.82rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.decision-btn.primary {
+    background: #0f766e;
+    color: #ffffff;
+}
+
+.decision-btn.secondary {
+    background: #ffffff;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+.decision-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.feedback-card {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid #dbe4f0;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.feedback-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin-bottom: 0.85rem;
+}
+
+.feedback-copy {
+    margin: 0.3rem 0 0;
+    color: #526173;
+    font-size: 0.92rem;
+}
+
+.feedback-date {
+    color: #7a8699;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.feedback-stars {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.85rem;
+}
+
+.feedback-star-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    border: 1px solid #d7e0ec;
+    background: #fff;
+    color: #b7c2d0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feedback-star-btn.active {
+    background: #fff4d6;
+    border-color: #f1c65d;
+    color: #d99000;
+}
+
+.feedback-star-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.feedback-textarea {
+    margin-bottom: 0.85rem;
+}
+
+.feedback-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.feedback-saved-note {
+    color: #526173;
+    font-size: 0.9rem;
+}
+
+.feedback-submit-btn {
+    width: auto;
+    min-width: 12rem;
+}
+
 .payment-action {
     margin-bottom: 1rem;
+}
+
+.payment-method-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
 }
 
 .pay-request-btn {
@@ -2396,9 +4354,20 @@ defineExpose({ fetchMyRequests })
     transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
 }
 
+.secondary-pay-btn {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
 .pay-request-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 8px 16px rgba(2, 132, 199, 0.25);
+}
+
+.secondary-pay-btn:hover:not(:disabled) {
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
 }
 
 .pay-request-btn:disabled {
@@ -2415,6 +4384,129 @@ defineExpose({ fetchMyRequests })
     margin: 0.5rem 0 0;
     font-size: 0.75rem;
     color: #6b7280;
+}
+
+.payment-shortfall {
+    margin-top: 0.875rem;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid #f3d7a3;
+    background: linear-gradient(180deg, #fffaf0, #fff7e8);
+    display: grid;
+    gap: 0.9rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.payment-shortfall-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.85rem;
+    align-items: start;
+}
+
+.payment-shortfall-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #f2d6a4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.payment-shortfall-svg {
+    width: 18px;
+    height: 18px;
+    color: #b45309;
+}
+
+.payment-shortfall-copy {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.payment-shortfall strong {
+    font-size: 0.92rem;
+    color: #78350f;
+}
+
+.payment-shortfall span {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #92400e;
+}
+
+.payment-shortfall-amount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #f2d6a4;
+    color: #92400e;
+    font-size: 0.82rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.payment-shortfall-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    padding-top: 0.15rem;
+    border-top: 1px solid rgba(180, 83, 9, 0.12);
+}
+
+.payment-shortfall-note {
+    max-width: 24rem;
+}
+
+.payment-topup-btn {
+    width: fit-content;
+    min-height: 40px;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    background: #b45309;
+    color: #fff;
+    border: none;
+    font-size: 0.82rem;
+    font-weight: 800;
+    box-shadow: 0 10px 20px rgba(180, 83, 9, 0.16);
+}
+
+.payment-topup-btn:hover {
+    background: #9a3412;
+}
+
+@media (max-width: 640px) {
+    .payment-method-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-shortfall-head {
+        grid-template-columns: auto 1fr;
+    }
+
+    .payment-shortfall-amount {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
+    .payment-shortfall-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .payment-topup-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .cancel-action {
@@ -2648,13 +4740,18 @@ defineExpose({ fetchMyRequests })
 }
 
 @media (max-width: 640px) {
+    .requests-list {
+        gap: 0.45rem;
+    }
+
     .request-shell-head {
         flex-direction: column;
         align-items: stretch;
+        gap: 0.7rem;
     }
 
     .shell-title {
-        font-size: 1.2rem;
+        font-size: 1.12rem;
     }
 
     .shell-stats {
@@ -2663,18 +4760,43 @@ defineExpose({ fetchMyRequests })
 
     .shell-pill {
         flex: 1;
+        padding: 0.58rem 0.68rem;
     }
 
-    .step-label {
-        display: none;
+    .request-builder-grid {
+        grid-template-columns: 1fr;
     }
 
-    .step-bar {
-        padding: 0.9rem 0.75rem;
+    .step-desc {
+        margin-bottom: 0.8rem;
     }
 
-    .step-line {
-        width: 24px;
+    .search-lock-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .search-lock-card .location-help-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .location-btn {
+        align-items: flex-start;
+        padding: 0.88rem;
+    }
+
+    .location-help-card {
+        padding: 0.78rem 0.82rem;
+    }
+
+    .location-help-actions {
+        flex-direction: column;
+    }
+
+    .location-help-btn {
+        width: 100%;
+        text-align: center;
     }
 
     .fulfillment-grid {
@@ -2695,16 +4817,85 @@ defineExpose({ fetchMyRequests })
 
     .item-row {
         display: grid;
-        grid-template-columns: 28px 1fr auto;
-        gap: 0.5rem;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
+        grid-template-areas:
+            "num main remove"
+            "qty qty qty";
+        gap: 0.6rem 0.5rem;
+        padding: 0.68rem;
     }
 
-    .qty-input {
-        width: 64px;
+    .item-num {
+        grid-area: num;
+    }
+
+    .item-main {
+        grid-area: main;
+    }
+
+    .qty-picker {
+        grid-area: qty;
+        min-width: 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid #dbe4f0;
+        border-radius: 12px;
+        background: #ffffff;
+    }
+
+    .qty-label {
+        text-align: left;
+        margin-right: 0.75rem;
+    }
+
+    .qty-controls {
+        justify-content: flex-end;
+        margin-left: auto;
     }
 
     .remove-btn {
+        grid-area: remove;
         justify-self: end;
+        align-self: start;
+    }
+
+    .add-item-btn,
+    .upload-label {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .prescription-box {
+        padding: 0.88rem;
+        gap: 0.6rem;
+    }
+
+    .prescription-text {
+        width: 100%;
+    }
+
+    .prescription-preview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .prescription-preview-actions {
+        flex-direction: column;
+    }
+
+    .form-textarea {
+        font-size: 0.95rem;
+    }
+
+    .review-box {
+        padding: 0.88rem;
+    }
+
+    .review-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
     }
 
     .modal-overlay {
@@ -2726,7 +4917,8 @@ defineExpose({ fetchMyRequests })
     }
 
     .review-addr {
-        max-width: 68%;
+        max-width: none;
+        text-align: left;
     }
 
     .toast {
@@ -2735,44 +4927,250 @@ defineExpose({ fetchMyRequests })
         bottom: 1rem;
     }
 
-    .step-nav {
-        gap: 0.5rem;
-    }
-
     .nav-next,
     .nav-submit {
         padding-left: 1rem;
         padding-right: 1rem;
     }
 
+    .builder-card {
+        padding: 0.88rem;
+    }
+
+    .builder-card-head {
+        margin-bottom: 0.75rem;
+    }
+
+    .review-card {
+        position: static;
+    }
+
+    .request-submit-bar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.85rem 0.9rem;
+        border-radius: 13px;
+    }
+
+    .request-submit-btn {
+        width: 100%;
+        min-width: 0;
+        justify-content: center;
+    }
+
     .form-section,
     .list-section {
-        padding: 1rem;
-        border-radius: 14px;
+        padding: 0.88rem;
+        border-radius: 13px;
     }
 
     .sub-tabs {
-        padding: 0.3rem;
+        padding: 0.24rem;
     }
 
     .request-list-tabs {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.35rem;
+        padding: 0.24rem;
+    }
+
+    .request-list-tab {
+        min-width: 0;
+        padding: 0.58rem 0.62rem;
+        font-size: 0.76rem;
+    }
+
+    .request-list-count {
+        min-width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.68rem;
+    }
+
+    .request-card {
+        padding: 0.64rem 0.7rem;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .request-header {
+        gap: 0.45rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .request-header > div {
+        min-width: 0;
+    }
+
+    .request-num {
+        font-size: 0.86rem;
+        display: block;
+        line-height: 1.25;
+    }
+
+    .request-date {
+        display: block;
+        margin-left: 0;
+        margin-top: 0.1rem;
+        font-size: 0.69rem;
+    }
+
+    .request-card-copy {
+        gap: 0.35rem;
+        margin-bottom: 0.3rem;
     }
 
     .request-card-copy {
         align-items: flex-start;
-        flex-direction: column;
+        flex-direction: row;
+    }
+
+    .request-card-copy p {
+        font-size: 0.73rem;
+        line-height: 1.35;
+        min-width: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .request-arrow {
+        flex-shrink: 0;
+        width: 0.9rem;
+        height: 0.9rem;
+        margin-top: 0.1rem;
+    }
+
+    .request-prescription-preview {
+        gap: 0.35rem;
+        padding: 0.38rem 0.48rem;
+        border-radius: 999px;
+        margin-bottom: 0.35rem;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+    }
+
+    .request-prescription-thumb-link {
+        display: none;
+    }
+
+    .request-prescription-copy strong {
+        font-size: 0.69rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #475569;
+    }
+
+    .request-prescription-copy span {
+        font-size: 0.69rem;
+        line-height: 1.2;
     }
 
     .request-meta {
-        gap: 0.5rem;
-        flex-direction: column;
+        gap: 0.32rem;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: stretch;
+        margin-bottom: 0;
+    }
+
+    .request-meta span:first-child {
+        display: none;
     }
 
     .request-meta span {
-        width: 100%;
+        width: auto;
         justify-content: flex-start;
+        min-width: 0;
+        padding: 0.24rem 0.4rem;
+        font-size: 0.68rem;
+        line-height: 1.2;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
+
+    .status-badge {
+        font-size: 0.61rem;
+        padding: 0.18rem 0.46rem;
+        letter-spacing: 0.02em;
+    }
+
+    .progress-bar {
+        display: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .sub-tab {
+        padding: 0.72rem 0.78rem;
+        font-size: 0.79rem;
+    }
+
+    .step-title {
+        font-size: 1.1rem;
+    }
+
+    .item-search-shell {
+        padding: 0.7rem 0.75rem;
+    }
+
+    .input-wrap {
+        padding: 0.7rem 0.75rem;
+    }
+
+    .qty-picker {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .qty-label {
+        margin-right: 0;
+    }
+
+    .qty-controls {
+        width: 100%;
+        justify-content: space-between;
+        margin-left: 0;
+    }
+
+    .request-submit-copy strong {
+        font-size: 0.9rem;
+    }
+
+    .request-submit-copy span {
+        font-size: 0.78rem;
+    }
+
+    .request-list-tab {
+        padding: 0.56rem 0.54rem;
+        font-size: 0.73rem;
+    }
+
+    .request-card {
+        padding: 0.62rem 0.66rem;
+    }
+
+    .request-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .request-card-copy {
+        align-items: flex-start;
+    }
+
+    .request-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .request-prescription-preview {
+        align-items: flex-start;
+        border-radius: 12px;
     }
 }
 </style>
+
+

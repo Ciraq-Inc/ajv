@@ -9,7 +9,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!filteredProducts.length" class="p-8 text-center bg-white rounded-lg shadow-md">
+    <div v-else-if="!filteredProducts.length" class="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
       <div class="mb-3 text-gray-400">
         <i class="ri-shopping-basket-line text-4xl"></i>
       </div>
@@ -20,10 +20,10 @@
     </div>
 
     <!-- Products grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <div v-for="product in filteredProducts" :key="product.id"
-        class="bg-white rounded-lg shadow-md hover:shadow-lg p-2 md:p-4 transition-shadow duration-300 overflow-hidden">
-        <div class="flex space-x-3">
+        class="overflow-hidden rounded-[22px] border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md md:p-4">
+        <div class="flex gap-3">
           <!-- Image Section -->
           <div class="flex flex-col">
             <!-- Use product image or a placeholder with lazy loading -->
@@ -32,48 +32,68 @@
               :alt="product.brandName"
               loading="lazy"
               :onerror="handleImageError"
-              class="w-[90px] h-[80px] rounded object-cover cursor-pointer" />
+              class="h-[96px] w-[96px] rounded-2xl border border-slate-100 bg-slate-50 object-cover cursor-pointer" />
           </div>
 
           <!-- Content Section -->
-          <div class="space-y-2 flex-grow">
-            <h3 class="text-sm font-semibold text-gray-800">
-              {{ product.brandName.length > 25 ? product.brandName.slice(0, 25) + '...' : product.brandName }}
-            </h3>
-            <!-- <h3 class="text-sm font-semibold text-gray-800">
-              {{ product.uniqid }}
-            </h3> -->
+          <div class="min-w-0 flex-grow">
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="text-sm font-semibold leading-5 text-slate-900">
+                {{ product.brandName.length > 42 ? product.brandName.slice(0, 42) + '...' : product.brandName }}
+              </h3>
+              <span :class="[
+                'inline-flex shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium',
+                product.stockQty <= 0
+                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              ]">
+                {{ product.stockQty <= 0 ? 'Out' : 'In stock' }}
+              </span>
+            </div>
 
-            <div class="text-xs text-gray-800 font-semibold flex justify-between">
+            <p v-if="product.masterName && product.masterName !== product.brandName" class="mt-1 truncate text-xs text-slate-500">
+              {{ product.masterName }}
+            </p>
+
+            <div class="mt-4 flex items-end justify-between gap-3">
               <div>
-                GHS {{ formatPrice(product.sellingPrice) }}
-                <span class="text-gray-500 text-xs ml-1">/ {{ product.unit || 'unit' }}</span>
+                <div class="text-base font-semibold text-slate-900">
+                  GHS {{ formatPrice(product.sellingPrice) }}
+                </div>
+                <span class="mt-1 block text-xs text-slate-500">per {{ product.unit || 'unit' }}</span>
               </div>
-              <div class="flex items-center">
+
+              <div class="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
                 <button @click="decreaseQuantity(product)" :disabled="product.quantity <= 1"
-                  class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-l disabled:opacity-50">
+                  class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40">
                   -
                 </button>
-                <span class="bg-gray-100 px-2 py-1 text-xs">
+                <span class="min-w-[2rem] px-2 py-1 text-center text-xs font-semibold text-slate-700">
                   {{ product.quantity || 1 }}
                 </span>
                 <button @click="increaseQuantity(product)"
-                  class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-r disabled:opacity-50">
+                  class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40">
                   +
                 </button>
               </div>
             </div>
 
-            <!-- Add to Cart Section -->
-            <div class="flex justify-end">
+            <div class="mt-4 flex items-center justify-between gap-3">
+              <p v-if="isProductInCart(product.id)" class="text-xs font-medium text-slate-500">
+                In cart: {{ getCartQuantity(product.id) }}
+              </p>
+              <div v-else class="text-xs text-slate-400">
+                Ready to add
+              </div>
+
               <button @click="handleAddToCart(product)" :disabled="product.stockQty <= 0" :class="[
-                'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
-                product.stockQty <= 0 ? 'bg-gray-400 text-white cursor-not-allowed' :
-                  product.justAdded ? 'bg-green-600 text-white transform scale-95 cursor-default' :
-                    'bg-green-700 text-white hover:bg-green-600'
+                'inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-300 ease-in-out',
+                product.stockQty <= 0 ? 'bg-gray-300 text-white cursor-not-allowed' :
+                  product.justAdded ? 'bg-green-700 text-white transform scale-[0.98] cursor-default' :
+                    'bg-green-600 text-white hover:bg-green-700'
               ]">
-                <i class="ri-shopping-cart-line text-xs mr-1"></i>
-                {{ product.justAdded ? 'Added!' : 'Cart' }}
+                <i class="ri-shopping-cart-line mr-1 text-xs"></i>
+                {{ product.justAdded ? 'Added' : 'Add' }}
               </button>
             </div>
           </div>
@@ -250,6 +270,15 @@ const decreaseQuantity = (product) => {
   if (product.quantity > 1) {
     product.quantity -= 1;
   }
+};
+
+const isProductInCart = (productId) => {
+  return cartStore.items.some(item => item.id === productId);
+};
+
+const getCartQuantity = (productId) => {
+  const item = cartStore.items.find(item => item.id === productId);
+  return item ? item.quantity : 0;
 };
 
 const handleAddToCart = (product) => {
