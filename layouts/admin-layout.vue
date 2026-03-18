@@ -53,12 +53,21 @@
           </NuxtLink>
 
           <NuxtLink 
-            to="/admin/access" 
+            to="/admin/access?tab=companies" 
             class="nav-item"
-            active-class="active"
+            exact-active-class="active"
           >
             <KeyIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Company Management</span>
+          </NuxtLink>
+
+          <NuxtLink
+            to="/admin/access?tab=store-settings"
+            class="nav-item"
+            exact-active-class="active"
+          >
+            <Cog6ToothIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Store Settings</span>
           </NuxtLink>
 
           
@@ -347,8 +356,10 @@ const adminInitials = computed(() => {
 
 const pageTitle = computed(() => {
   const path = route.path
+  const tab = route.query.tab
   if (path.includes('/admin/data')) return 'Data Overview'
   if (path.includes('/admin/signups')) return 'Waitlist Signups'
+  if (path.includes('/admin/access') && tab === 'store-settings') return 'Store Settings'
   if (path.includes('/admin/user-access')) return 'User Access Management'
   if (path.includes('/admin/access')) return 'Company Management'
   if (path.includes('/admin/sms-campaigns')) return 'SMS Campaign Management'

@@ -219,6 +219,47 @@ export const useCompanyStore = defineStore('company', {
       }
     },
 
+    async recruiterSignup(payload) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const config = useRuntimeConfig();
+        const formattedPhone = this.formatPhoneNumber(payload.phone);
+
+        const response = await fetch(`${config.public.apiBase}/api/company-auth/recruiter-signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...payload,
+            phone: formattedPhone,
+          })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to create recruiter account');
+        }
+
+        this.user = data.data.user;
+        this.company = data.data.company;
+        this.companyAuthToken = data.data.token;
+        this.authInitialized = true;
+
+        this.persistAuthData(data.data.company?.domain || data.data.company?.domain_name || null);
+
+        return data.data;
+      } catch (error) {
+        console.error('Error creating recruiter account:', error);
+        this.error = error.message || 'Failed to create recruiter account';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async getProfile() {
       if (!this.isLoggedIn || !this.companyAuthToken) {
         throw new Error('User must be logged in');
@@ -347,11 +388,11 @@ export const useCompanyStore = defineStore('company', {
       }
     },
 
-    persistAuthData() {
+    persistAuthData(domainOverride = null) {
       if (typeof window === 'undefined') return;
       
       try {
-        const companyDomain = this.getCompanyDomain();
+        const companyDomain = domainOverride || this.getCompanyDomain();
         const storageKey = companyDomain ? `company_${companyDomain}` : 'company';
         
         localStorage.setItem(`${storageKey}_user`, JSON.stringify(this.user));

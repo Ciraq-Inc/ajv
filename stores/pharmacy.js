@@ -44,7 +44,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
 
         // Fetch pharmacy info via API
         const response = await fetch(`${baseURL}/api/companies/${this.currentPharmacy}`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             this.notFound = true;
@@ -78,8 +78,12 @@ export const usePharmacyStore = defineStore("pharmacy", {
           companytype: data.data.companytype,
           domain_name: data.data.domain_name,
           logo: data.data.logo,
+          logoUrl: data.data.logo,
           shop_banner: data.data.shop_banner,
           subdomain: data.data.domain_name, // Use domain_name as subdomain
+          hide_prices: data.data.hide_prices === 1 || data.data.hide_prices === true,
+          theme_preset: data.data.theme_preset || "indigo",
+          theme_color: data.data.theme_color || null,
         };
 
         // Update pharmacySlug from pharmacy data if available
@@ -295,7 +299,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
         console.log("No customers loaded in store");
         return null;
       }
-      
+
       if (!phone) {
         console.error("No phone number provided to find customer");
         return null;
@@ -305,7 +309,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
       const formattedInputPhone = otpService.formatPhoneNumber(phone);
 
       // First try to find an exact match
-      const exactMatch = this.customers.find(customer => 
+      const exactMatch = this.customers.find(customer =>
         customer.phone === formattedInputPhone
       );
 
@@ -313,12 +317,12 @@ export const usePharmacyStore = defineStore("pharmacy", {
         console.log(`Found exact phone match: ${exactMatch.id}`);
         return exactMatch;
       }
-      
+
       console.warn(`No customer found with phone number: ${formattedInputPhone}`);
       return null;
     },
 
-// Helper method to ensure customers are loaded
+    // Helper method to ensure customers are loaded
     async ensureCustomersLoaded() {
       // With REST API, customers are managed via authentication endpoints
       // This method is kept for backward compatibility
@@ -383,7 +387,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
       }
       return "";
     },
-    
+
     // Generate path with pharmacy slug prefixed
     getPharmacyPath: (state) => (path) => {
       if (state.pharmacySlug) {

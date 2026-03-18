@@ -3,7 +3,7 @@
 
 export const useApi = () => {
   const config = useRuntimeConfig();
-  const baseURL = config.public.apiBase;
+  const baseURL = config.public.apiBase || '';
 
   /**
    * Make an authenticated API request

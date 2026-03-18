@@ -309,6 +309,18 @@ const companyName = computed(() => {
   return companyDomain.value.charAt(0).toUpperCase() + companyDomain.value.slice(1)
 })
 
+const getPostLoginTarget = () => {
+  const redirect = typeof route.query?.redirect === 'string' ? route.query.redirect : ''
+  if (redirect) {
+    return decodeURIComponent(redirect)
+  }
+  // Route recruiters to rigel-boards, others to sms-campaigns
+  const defaultDashboard = companyStore.userRole === 'third_party_poster'
+    ? `/${companyDomain.value}/services/rigel-boards`
+    : `/${companyDomain.value}/services/sms-campaigns`
+  return defaultDashboard
+}
+
 // Form state
 const step = ref('phone') // 'phone', 'password', 'setup', 'reset'
 const phone = ref('')
@@ -433,7 +445,7 @@ const handleLogin = async () => {
     successMessage.value = 'Login successful!'
     
     setTimeout(() => {
-      router.push(`/${companyDomain.value}/services/sms-campaigns`)
+      router.push(getPostLoginTarget())
     }, 500)
   } catch (err) {
     error.value = err.message || 'Login failed'
@@ -477,7 +489,7 @@ const handleSetupPassword = async () => {
     successMessage.value = 'Password setup successful! Redirecting...'
     
     setTimeout(() => {
-      router.push(`/${companyDomain.value}/services/sms-campaigns`)
+      router.push(getPostLoginTarget())
     }, 1000)
   } catch (err) {
     error.value = err.message || 'Failed to setup password. Please try again.'

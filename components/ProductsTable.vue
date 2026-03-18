@@ -8,9 +8,9 @@
       </div>
       <p class="mt-2 text-gray-600">Loading products...</p>
     </div>
-    
+
     <!-- Empty state -->
-    <div v-else-if="!filteredProducts.length" class="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+    <div v-else-if="!filteredProducts.length" class="p-8 text-center bg-white rounded-lg shadow-md">
       <div class="mb-3 text-gray-400">
         <i class="ri-shopping-basket-line text-4xl"></i>
       </div>
@@ -19,85 +19,68 @@
         {{ searchQuery ? 'Try adjusting your search query' : 'This pharmacy has no products listed yet' }}
       </p>
     </div>
-    
+
     <!-- Products table -->
-    <div v-else class="w-full overflow-x-auto rounded-[22px] border border-slate-200 bg-white shadow-sm">
+    <div v-else class="bg-white rounded-lg shadow-md overflow-x-auto w-full">
       <table class="w-full min-w-full table-fixed">
-        <thead class="border-b border-slate-200 bg-slate-100/90">
+        <thead class="bg-gray-600 border-b">
           <tr>
-            <th class="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Product</th>
-            <th class="px-4 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Price</th>
-            <th class="px-4 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Unit</th>
-            <th class="px-4 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Availability</th>
-            <th class="px-4 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Quantity</th>
-            <th class="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Action</th>
+            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
+            <th v-if="!props.hidePrices" class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">
+              Price</th>
+            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Unit</th>
+            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Stock Status</th>
+            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Quantity</th>
+            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 bg-white">
-          <tr v-for="product in filteredProducts" :key="product.id" class="transition-colors hover:bg-slate-50/80">
-            <td class="px-5 py-4">
-              <div class="space-y-1">
-                <p class="text-sm font-semibold text-slate-900">
-                  {{ product.brandName }}
-                </p>
-                <p v-if="product.masterName && product.masterName !== product.brandName" class="truncate text-xs text-slate-500">
-                  {{ product.masterName }}
-                </p>
-              </div>
+        <tbody class="divide-y divide-gray-200">
+          <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-gray-50 transition-colors">
+            <td class="p-3 text-sm font-medium text-gray-900">
+              {{ product.brandName }}
             </td>
-            <td class="px-4 py-4">
-              <div class="text-sm font-semibold text-slate-900">
-                GHS {{ formatPrice(product.sellingPrice) }}
-              </div>
-              <div class="mt-1 text-xs text-slate-500">
-                Selling price
-              </div>
+            <td v-if="!props.hidePrices" class="p-3 text-sm text-gray-900">
+              GHS {{ formatPrice(product.sellingPrice) }}
             </td>
-            <td class="px-4 py-4 text-sm text-slate-700">
+            <td class="p-3 text-sm text-gray-900">
               {{ product.unit || 'Unit' }}
             </td>
-            <td class="px-4 py-4 text-sm">
+            <td class="p-3 text-sm">
               <span :class="[
-                'inline-flex rounded-full border px-2.5 py-1 text-xs font-medium',
+                'px-2 py-1 text-xs rounded-full',
                 product.stockQty <= 0
-                  ? 'border-rose-200 bg-rose-50 text-rose-700'
-                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-green-100 text-green-800'
               ]">
-                {{ product.stockQty <= 0 ? 'Out of Stock' : 'In Stock' }}
-              </span>
+                {{ product.stockQty <= 0 ? 'Out of Stock' : 'In Stock' }} </span>
             </td>
-            <td class="px-4 py-4">
-              <div class="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <td class="p-3">
+              <div class="flex items-center">
                 <button @click="decreaseQuantity(product)" :disabled="product.quantity <= 1"
-                  class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40">
+                  class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-l disabled:opacity-50">
                   -
                 </button>
-                <span class="min-w-[2rem] px-2 py-1 text-center text-xs font-semibold text-slate-700">
+                <span class="bg-gray-100 px-2 py-1 text-xs">
                   {{ product.quantity || 1 }}
                 </span>
                 <button @click="increaseQuantity(product)"
-                  class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40">
+                  class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-r disabled:opacity-50">
                   +
                 </button>
               </div>
             </td>
-            <td class="px-5 py-4">
-              <button @click="handleAddToCart(product)" 
-                :disabled="product.stockQty <= 0"
-                :class="[
-                  'inline-flex min-w-[134px] items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-300 ease-in-out',
-                  {
-                    'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-300': !product.justAdded,
-                    'bg-green-700 text-white transform scale-[0.98] cursor-default': product.justAdded,
-                    'cursor-not-allowed': product.stockQty <= 0
-                  }
-                ]">
-                <i class="ri-shopping-cart-line mr-1 text-xs"></i>
-                {{ product.justAdded ? 'Added' : 'Add to cart' }}
+            <td class="p-3">
+              <button @click="handleAddToCart(product)" :disabled="product.stockQty <= 0" :class="[
+                'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
+                {
+                  'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400': !product.justAdded,
+                  'bg-green-700 text-white transform scale-95 cursor-default': product.justAdded,
+                  'cursor-not-allowed': product.stockQty <= 0
+                }
+              ]">
+                <i class="ri-shopping-cart-line text-xs mr-1"></i>
+                {{ product.justAdded ? 'Added!' : 'Add to cart' }}
               </button>
-              <p v-if="isProductInCart(product.id)" class="mt-2 text-xs text-slate-500">
-                In cart: {{ getCartQuantity(product.id) }}
-              </p>
             </td>
           </tr>
         </tbody>
@@ -122,6 +105,10 @@ const props = defineProps({
   searchQuery: {
     type: String,
     default: ''
+  },
+  hidePrices: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -139,10 +126,10 @@ const pharmacySlug = computed(() => route.params.pharmacy);
 
 const initializeProductItems = () => {
   // Use passed products prop if available, otherwise fall back to store
-  const sourceProducts = props.products && props.products.length > 0 
-    ? props.products 
+  const sourceProducts = props.products && props.products.length > 0
+    ? props.products
     : pharmacyStore.products;
-    
+
   if (Array.isArray(sourceProducts)) {
     productItems.value = sourceProducts.map(product => ({
       ...product,
@@ -155,7 +142,7 @@ const initializeProductItems = () => {
 // Fetch products if not already loaded
 onMounted(async () => {
   if (isFetching.value) return; // Prevent duplicate fetches
-  
+
   if (pharmacyStore.isLoading) {
     // If the main store is already loading, wait for it
     watch(() => pharmacyStore.isLoading, (newVal) => {
@@ -168,8 +155,8 @@ onMounted(async () => {
   } else {
     try {
       // If products aren't loaded yet and we're not already loading, fetch them
-      if ((!pharmacyStore.products || pharmacyStore.products.length === 0) && 
-          pharmacyStore.currentPharmacy && !isFetching.value) {
+      if ((!pharmacyStore.products || pharmacyStore.products.length === 0) &&
+        pharmacyStore.currentPharmacy && !isFetching.value) {
 
         isFetching.value = true;
         // Call the explicit fetchProducts method
@@ -219,15 +206,15 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
 // Enhanced computed property with safety checks
 const filteredProducts = computed(() => {
   const query = props.searchQuery || '';
-  
+
   // If no search query, return all productItems
   if (!query.trim()) {
     return productItems.value;
   }
-  
+
   // Filter by search query
-  return productItems.value.filter(product => 
-    product.brandName && 
+  return productItems.value.filter(product =>
+    product.brandName &&
     product.brandName.toLowerCase().includes(query.toLowerCase())
   );
 });
@@ -264,7 +251,7 @@ const getCartQuantity = (productId) => {
 
 const handleAddToCart = (product) => {
   if (product.stockQty <= 0) return;
-  
+
   // Format the product data to match cart store expectations
   cartStore.addToCart({
     id: product.id,
@@ -275,10 +262,10 @@ const handleAddToCart = (product) => {
     pharmacyId: pharmacyStore.currentPharmacy,
     unit: product.unit || 'unit'
   });
-  
+
   // Set justAdded to true
   product.justAdded = true;
-  
+
   // Reset justAdded after 2 seconds
   setTimeout(() => {
     product.justAdded = false;

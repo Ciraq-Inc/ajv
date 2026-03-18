@@ -1,313 +1,247 @@
 <template>
-  <div class="min-h-screen bg-slate-950 font-sans antialiased">
-
-    <!-- skeleton -->
-    <div v-if="!authResolved" class="flex min-h-screen items-center justify-center bg-slate-950">
-      <div class="h-8 w-48 animate-pulse rounded-xl bg-white/10"></div>
+  <div class="min-h-screen bg-[#f6f1ff] text-slate-900">
+    <div v-if="!authResolved" class="flex min-h-screen items-center justify-center bg-[#f6f1ff]">
+      <div class="h-8 w-48 animate-pulse rounded-xl bg-slate-200"></div>
     </div>
 
-    <div v-else>
-
-    <!-- Full-screen hero -->
-    <div class="relative flex h-screen max-h-screen flex-col overflow-hidden text-white">
-
-      <!-- Pharmacy shelf background -->
-      <div class="absolute inset-0 z-0">
-        <img
-          src="https://images.unsplash.com/photo-1576602976047-174e57a47881?auto=format&fit=crop&w=2400&q=95"
-          alt=""
-          class="h-full w-full object-cover object-center"
-        />
-        <!-- deep uniform overlay for clean text rendering -->
-        <div class="absolute inset-0 bg-slate-950/70"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/20 to-slate-950/40"></div>
+    <div v-else class="relative overflow-hidden pb-20 pt-28 sm:pt-32">
+      <div class="pointer-events-none absolute inset-0">
+        <div class="absolute -top-16 left-[-120px] h-72 w-72 rounded-full bg-[#c8a1ff]/45 blur-3xl"></div>
+        <div class="absolute right-[-120px] top-16 h-80 w-80 rounded-full bg-[#b18af5]/40 blur-3xl"></div>
+        <div class="absolute bottom-[-120px] left-1/3 h-64 w-64 rounded-full bg-[#8650d5]/25 blur-3xl"></div>
       </div>
 
-      <!-- subtle glow accent -->
-      <div class="pointer-events-none absolute right-0 top-0 z-0 h-[400px] w-[400px] -translate-y-1/3 translate-x-1/3 rounded-full bg-sky-400/10 blur-3xl"></div>
-
-      <!-- Content -->
-      <div class="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-10 text-center sm:px-10">
-
-        <!-- text card -->
-        <div class="w-full max-w-lg rounded-3xl bg-slate-950/50 px-7 py-8 backdrop-blur-md ring-1 ring-white/5 sm:px-10">
-
-        <p class="text-[11px] font-semibold uppercase tracking-widest text-sky-400">215+ licensed pharmacies across Ghana</p>
-
-        <h1 class="mt-4 max-w-xl text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
-          Find your medicine<br /><span class="text-sky-400">without the calls.</span>
-        </h1>
-
-        <p class="mt-3 max-w-sm text-sm leading-6 text-slate-200 sm:max-w-md sm:text-base">
-          Describe what you need. Nearby pharmacies respond with stock, price, and delivery.
-        </p>
-
-        <!-- 3 steps -->
-        <div class="mt-6 flex w-full max-w-sm items-center justify-center gap-1.5 sm:max-w-none sm:gap-2">
-          <div class="flex flex-1 items-center justify-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-medium sm:w-36 sm:flex-none sm:px-3.5">
-            <i class="ri-file-text-line text-sky-400"></i>
-            <span class="hidden sm:inline">Describe it</span>
-            <span class="sm:hidden">Describe</span>
-          </div>
-          <i class="ri-arrow-right-line shrink-0 text-xs text-slate-600"></i>
-          <div class="flex flex-1 items-center justify-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-medium sm:w-36 sm:flex-none sm:px-3.5">
-            <i class="ri-store-2-line text-sky-400"></i>
-            <span class="hidden sm:inline">Pharmacies respond</span>
-            <span class="sm:hidden">Pharmacies</span>
-          </div>
-          <i class="ri-arrow-right-line shrink-0 text-xs text-slate-600"></i>
-          <div class="flex flex-1 items-center justify-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-medium sm:w-36 sm:flex-none sm:px-3.5">
-            <i class="ri-checkbox-circle-line text-sky-400"></i>
-            <span class="hidden sm:inline">Confirm &amp; receive</span>
-            <span class="sm:hidden">Confirm</span>
-          </div>
-        </div>
-
-        <!-- CTA -->
-        <button
-          @click="showLoginModal = true"
-          class="mt-7 inline-flex items-center gap-2 rounded-2xl bg-sky-500 px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-sky-900/50 transition hover:bg-sky-400 active:scale-95"
-        >
-          <i class="ri-send-plane-fill"></i>
-          Send My First Request
-        </button>
-
-        </div><!-- /text card -->
-
-        <!-- Trust strip -->
-        <div class="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-slate-300">
-          <span><i class="ri-shield-check-line mr-1 text-sky-400"></i>Verified &amp; licensed pharmacies</span>
-          <span class="text-slate-600">·</span>
-          <span><i class="ri-lock-line mr-1 text-sky-400"></i>Paystack secure</span>
-          <span class="text-slate-600">·</span>
-          <span><i class="ri-motorbike-line mr-1 text-sky-400"></i>Delivery available</span>
-        </div>
-
-      </div>
-
-    </div>
-
-    </div><!-- /v-else authResolved -->
-
-
-
-      <div v-if="selectedRequest" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="selectedRequest = null">
-        <div class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
-          <div class="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+      <div class="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
+        <section class="rounded-[2rem] border border-[#ddccff] bg-white/88 p-6 shadow-[0_30px_90px_-55px_rgba(92,39,180,0.7)] backdrop-blur-xl lg:p-10">
+          <div class="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <h3 class="text-lg font-bold text-gray-900">Request #{{ selectedRequest.request_number }}</h3>
-              <span class="rounded-full px-2.5 py-0.5 text-xs font-bold uppercase" :class="statusClass(selectedRequest.status)">
-                {{ formatStatus(selectedRequest.status) }}
-              </span>
+              <p class="inline-flex items-center gap-2 rounded-full bg-[#f1e9ff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#6f35cb]">
+                <i class="ri-shield-check-line"></i>
+                Request-to-Order Care Workflow
+              </p>
+
+              <h1 class="mt-4 text-4xl font-black leading-[0.95] text-slate-900 sm:text-5xl lg:text-6xl">
+                Request any medicine,
+                <span class="block text-[#6f35cb]">we verify before you pay.</span>
+              </h1>
+
+              <p class="mt-4 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+                Customers send drug requests, our team confirms stock availability and final pricing with pharmacies, then we create a clear order for approval and delivery.
+              </p>
+
+              <div class="mt-7 flex flex-wrap items-center gap-3">
+                <button
+                  @click="openOrderFlow"
+                  class="inline-flex items-center gap-2 rounded-full bg-[#6f35cb] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-16px_rgba(111,53,203,0.9)] transition hover:-translate-y-0.5 hover:bg-[#6029b4]"
+                >
+                  <i class="ri-capsule-line text-base"></i>
+                  Send Drug Request
+                </button>
+                <button
+                  @click="scrollToHowItWorks"
+                  class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#6f35cb] hover:text-[#6f35cb]"
+                >
+                  <i class="ri-flow-chart text-base"></i>
+                  See Workflow
+                </button>
+              </div>
+
+              <div class="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-slate-600">
+                <span class="inline-flex items-center gap-1"><i class="ri-store-2-line text-[#6f35cb]"></i>Licensed pharmacy sourcing</span>
+                <span class="inline-flex items-center gap-1"><i class="ri-price-tag-3-line text-[#6f35cb]"></i>Transparent final pricing</span>
+                <span class="inline-flex items-center gap-1"><i class="ri-truck-line text-[#6f35cb]"></i>Delivery or pickup</span>
+              </div>
             </div>
-            <button @click="selectedRequest = null" class="p-1 text-gray-400 transition hover:text-gray-600">
-              <i class="ri-close-line text-2xl"></i>
-            </button>
+
+            <div class="relative mx-auto flex w-full max-w-md items-center justify-center">
+              <img
+                src="https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&w=1000&q=80"
+                alt="Medicine packaging and capsules"
+                class="h-[320px] w-full rounded-[2rem] object-cover shadow-[0_30px_60px_-26px_rgba(15,23,42,0.55)] sm:h-[380px]"
+              />
+              <div class="absolute -bottom-5 right-4 rounded-2xl border border-white/70 bg-white/95 px-4 py-2 text-xs font-bold text-slate-700 shadow-lg">
+                <i class="ri-check-double-line mr-1 text-[#6f35cb]"></i>
+                Stock + price confirmed before checkout
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div class="space-y-5 px-6 py-5">
-            <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Items</p>
-              <div class="space-y-2">
-                <div v-for="item in selectedRequest.items" :key="item.id" class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-                  <div>
-                    <p class="text-sm font-medium text-gray-900">{{ item.product_name }}</p>
-                    <p class="text-xs text-gray-400">Qty: {{ item.quantity }}</p>
-                  </div>
-                  <p class="text-sm font-bold text-gray-900">{{ item.marked_up_price ? `GHS ${parseMoney(item.marked_up_price)}` : 'Pending' }}</p>
-                </div>
-              </div>
-            </div>
+        <section class="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 sm:grid-cols-3 sm:p-5">
+          <article class="rounded-2xl bg-slate-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Step 1</p>
+            <p class="mt-1 text-sm font-semibold text-slate-900">Customer submits request or prescription</p>
+          </article>
+          <article class="rounded-2xl bg-slate-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Step 2</p>
+            <p class="mt-1 text-sm font-semibold text-slate-900">Team confirms availability and marked-up price</p>
+          </article>
+          <article class="rounded-2xl bg-slate-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Step 3</p>
+            <p class="mt-1 text-sm font-semibold text-slate-900">Order is created for customer approval and fulfillment</p>
+          </article>
+        </section>
 
-            <div v-if="selectedRequest.estimated_total" class="rounded-xl bg-indigo-50 p-4">
-              <div class="mb-1 flex justify-between text-sm">
-                <span class="text-gray-600">Items total</span>
-                <span class="font-semibold">GHS {{ parseMoney(selectedRequest.items_total || 0) }}</span>
-              </div>
-              <div v-if="selectedRequest.delivery_fee" class="mb-1 flex justify-between text-sm">
-                <span class="text-gray-600">Delivery fee</span>
-                <span class="font-semibold">GHS {{ parseMoney(selectedRequest.delivery_fee) }}</span>
-              </div>
-              <div class="mt-2 flex justify-between border-t border-indigo-200 pt-2 text-base font-bold">
-                <span>Estimated Total</span>
-                <span class="text-indigo-600">GHS {{ parseMoney(selectedRequest.estimated_total) }}</span>
-              </div>
-            </div>
-
-            <div v-if="selectedRequest.delivery_address" class="flex gap-2 text-sm">
-              <i class="ri-map-pin-line mt-0.5 text-gray-400"></i>
-              <span class="text-gray-700">{{ selectedRequest.delivery_address }}</span>
-            </div>
+        <section class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-black text-slate-900 sm:text-2xl">What Customers Request</h2>
+            <nuxt-link to="/drugs" class="text-sm font-semibold text-[#6f35cb] transition hover:text-[#6029b4]">Browse examples</nuxt-link>
           </div>
-        </div>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <article v-for="category in categories" :key="category.name" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+              <div class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f1e9ff] text-[#6f35cb]">
+                <i :class="[category.icon, 'text-lg']"></i>
+              </div>
+              <h3 class="mt-3 text-sm font-bold text-slate-900">{{ category.name }}</h3>
+              <p class="mt-1 text-xs text-slate-500">{{ category.description }}</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="how-it-works" class="rounded-3xl border border-[#dbc6ff] bg-[#f8f3ff] p-5 sm:p-7">
+          <h2 class="text-xl font-black text-slate-900 sm:text-2xl">How It Works</h2>
+          <div class="mt-5 grid gap-4 md:grid-cols-3">
+            <article v-for="step in steps" :key="step.title" class="rounded-2xl border border-[#e5d6ff] bg-white p-4">
+              <div class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#f1e9ff] text-[#6f35cb]">
+                <i :class="[step.icon, 'text-base']"></i>
+              </div>
+              <h3 class="mt-3 text-sm font-bold text-slate-900">{{ step.title }}</h3>
+              <p class="mt-1 text-xs leading-5 text-slate-600">{{ step.description }}</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="text-xl font-black text-slate-900 sm:text-2xl">What We Confirm Before Order Creation</h2>
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <article v-for="item in featuredProducts" :key="item.name" class="rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-1 hover:shadow-md">
+              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{{ item.category }}</p>
+              <h3 class="mt-2 text-sm font-bold text-slate-900">{{ item.name }}</h3>
+              <p class="mt-1 text-xs text-slate-500">{{ item.note }}</p>
+              <div class="mt-4 flex items-center justify-between">
+                <p class="text-sm font-black text-[#6f35cb]">{{ item.price }}</p>
+                <span class="rounded-full bg-[#f1e9ff] px-2.5 py-1 text-[11px] font-semibold text-[#6f35cb]">Verified</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="support" class="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+          <article class="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 class="text-xl font-black text-slate-900 sm:text-2xl">What Customers Say</h2>
+            <div class="mt-4 space-y-3">
+              <blockquote v-for="testimonial in testimonials" :key="testimonial.name" class="rounded-2xl bg-slate-50 p-4">
+                <p class="text-sm text-slate-700">"{{ testimonial.quote }}"</p>
+                <footer class="mt-2 text-xs font-semibold text-slate-500">{{ testimonial.name }}</footer>
+              </blockquote>
+            </div>
+          </article>
+
+          <article class="rounded-3xl border border-[#7f4ac8] bg-[#6f35cb] p-6 text-white">
+            <h3 class="text-lg font-black">Need Help Right Now?</h3>
+            <p class="mt-2 text-sm text-[#f3e9ff]">Call or chat with our team to submit requests, verify prescriptions, and get order status updates.</p>
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://wa.me/+233552587974"
+              class="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#6f35cb] transition hover:bg-[#f4edff]"
+            >
+              <i class="ri-whatsapp-line"></i>
+              Chat on WhatsApp
+            </a>
+            <a href="tel:+233552587974" class="mt-3 block text-sm font-semibold text-white/90 underline underline-offset-4">(+233) 55-258-7974</a>
+          </article>
+        </section>
       </div>
 
-      <div v-if="showTopUpModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="showTopUpModal = false">
-        <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
-          <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-white">
-            <h3 class="text-lg font-bold">Top Up Wallet</h3>
-            <p class="text-sm text-white/80">Add funds via Paystack</p>
-          </div>
-          <div class="p-6">
-            <label class="mb-1.5 block text-sm font-semibold text-gray-700">Amount (GHS)</label>
-            <input v-model.number="topUpAmount" type="number" min="1" step="0.01" placeholder="50.00" class="mb-4 w-full rounded-xl border border-gray-300 px-4 py-3 text-center text-lg font-bold text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500" />
-            <div class="flex gap-3">
-              <button @click="showTopUpModal = false" class="flex-1 rounded-xl border border-gray-300 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50">
-                Cancel
-              </button>
-              <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0" class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-40">
-                Pay GHS {{ (topUpAmount || 0).toFixed(2) }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-bounce-in">
-        <div class="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg" :class="toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'">
+      <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-fade-up">
+        <div class="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg" :class="toast.type === 'error' ? 'bg-red-500' : 'bg-[#6f35cb]'">
           <i :class="toast.type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'" class="text-lg"></i>
           {{ toast.text }}
         </div>
       </div>
 
       <Login :is-open="showLoginModal" @close="showLoginModal = false" @login-success="handleLoginSuccess" />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import Login from '~/components/Login.vue'
 import { useUserStore } from '~/stores/user'
 
 const userStore = useUserStore()
-const config = useRuntimeConfig()
-const apiBase = config.public.apiBase
 const route = useRoute()
 
 const authResolved = ref(false)
-const loadingRequests = ref(false)
-const toast = ref(null)
-const showTopUpModal = ref(false)
 const showLoginModal = ref(false)
-const topUpAmount = ref(50)
-const walletBalance = ref(0)
-const myRequests = ref([])
-const selectedRequest = ref(null)
+const toast = ref(null)
 
-const terminalStatuses = ['completed', 'cancelled', 'returned', 'delivered']
+const categories = [
+  { name: 'Prescription Medicines', description: 'Upload scripts or request specific prescription products.', icon: 'ri-file-paper-2-line' },
+  { name: 'Chronic Care Refills', description: 'Maintenance requests for blood pressure and diabetes care.', icon: 'ri-heart-pulse-line' },
+  { name: 'Urgent Family Needs', description: 'Fever, pain, and essential household medicine requests.', icon: 'ri-capsule-line' },
+  { name: 'Wellness & Supplements', description: 'Daily vitamins and preventive care support products.', icon: 'ri-mental-health-line' },
+]
 
-const activeRequestCount = computed(() => myRequests.value.filter((req) => !terminalStatuses.includes((req.status || '').toLowerCase())).length)
-const completedRequestCount = computed(() => myRequests.value.filter((req) => terminalStatuses.includes((req.status || '').toLowerCase())).length)
+const steps = [
+  { title: '1. Submit Request', description: 'Customer sends requested drugs or prescription details.', icon: 'ri-file-list-3-line' },
+  { title: '2. We Confirm With Pharmacies', description: 'Our team checks stock availability and final customer pricing.', icon: 'ri-store-2-line' },
+  { title: '3. Order Is Created', description: 'Customer reviews the confirmed order, then chooses delivery or pickup.', icon: 'ri-checkbox-circle-line' },
+]
 
-const customerApiCall = async (method, url, data = null) => {
-  const headers = {}
-  if (data) headers['Content-Type'] = 'application/json'
-  if (userStore.customerAuthToken) headers.Authorization = `Bearer ${userStore.customerAuthToken}`
+const featuredProducts = [
+  { category: 'Availability Check', name: 'Live Pharmacy Confirmation', note: 'We contact partner pharmacies on your behalf.', price: 'Real-time updates' },
+  { category: 'Pricing Review', name: 'Marked-up Item Pricing', note: 'You see the confirmed customer price before payment.', price: 'No hidden fees' },
+  { category: 'Fulfillment Option', name: 'Delivery or Pickup Plans', note: 'Select your preferred fulfillment method per order.', price: 'Flexible choice' },
+  { category: 'Order Transparency', name: 'Status Tracking', note: 'Track pending, awaiting customer, confirmed, and delivered states.', price: 'Visible progress' },
+]
 
-  const opts = { method, headers }
-  if (data) opts.body = JSON.stringify(data)
-
-  const response = await fetch(`${apiBase}${url}`, opts)
-  const json = await response.json()
-
-  if (!response.ok || !json.success) {
-    if (response.status === 401 || response.status === 403) {
-      userStore.clearAuthState()
-      throw new Error('Session expired. Please log in again.')
-    }
-    throw new Error(json.message || `API error ${response.status}`)
-  }
-
-  return json
-}
-
-const fetchWalletBalance = async () => {
-  if (!userStore.isLoggedIn) return
-  try {
-    const res = await customerApiCall('GET', '/api/wallet')
-    walletBalance.value = parseFloat(res.data?.balance || 0)
-  } catch {
-    walletBalance.value = 0
-  }
-}
-
-const fetchMyRequests = async () => {
-  if (!userStore.isLoggedIn) return
-  loadingRequests.value = true
-  try {
-    const res = await customerApiCall('GET', '/api/order-requests/customer')
-    myRequests.value = Array.isArray(res.data) ? res.data : []
-  } catch (error) {
-    showToast(error.message || 'Failed to load requests', 'error')
-  } finally {
-    loadingRequests.value = false
-  }
-}
-
-const viewRequestDetail = async (req) => {
-  try {
-    const res = await customerApiCall('GET', `/api/order-requests/customer/${req.id}`)
-    selectedRequest.value = res.data
-  } catch (error) {
-    showToast(error.message || 'Failed to load request', 'error')
-  }
-}
-
-const initiateTopUp = async () => {
-  if (!topUpAmount.value || topUpAmount.value <= 0) return
-  try {
-    const res = await customerApiCall('POST', '/api/wallet/topup', { amount: topUpAmount.value })
-    if (res.data?.authorization_url) {
-      window.location.assign(res.data.authorization_url)
-      return
-    }
-    showTopUpModal.value = false
-    showToast('Top up initiated.')
-  } catch (error) {
-    showToast(error.message || 'Failed to initiate payment', 'error')
-  }
-}
-
-const handlePrimaryAction = () => {
-  if (userStore.isLoggedIn) {
-    goToCustomerPortal()
-    return
-  }
-
-  showLoginModal.value = true
-}
-
-const handleLoginSuccess = async (payload = {}) => {
-  showLoginModal.value = false
-  const destinationTab = payload?.destination === 'new' ? 'new' : 'home'
-  await navigateTo({ path: '/customer', query: { tab: destinationTab } })
-}
-
-const goToCustomerPortal = () => navigateTo('/customer')
-const parseMoney = (value) => parseFloat(value || 0).toFixed(2)
-const formatStatus = (status) => (status || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-const formatDate = (date) => (date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
-
-const statusClass = (status) => {
-  const map = {
-    pending: 'bg-amber-100 text-amber-700',
-    processing: 'bg-blue-100 text-blue-700',
-    items_sourced: 'bg-purple-100 text-purple-700',
-    awaiting_customer: 'bg-orange-100 text-orange-700',
-    confirmed: 'bg-cyan-100 text-cyan-700',
-    completed: 'bg-green-100 text-green-700',
-    cancelled: 'bg-red-100 text-red-700',
-    delivered: 'bg-emerald-100 text-emerald-700',
-    returned: 'bg-slate-200 text-slate-700',
-  }
-  return map[status] || 'bg-gray-100 text-gray-600'
-}
+const testimonials = [
+  { name: 'Ama K., Accra', quote: 'I requested my prescription drugs once, and they confirmed stock and pricing before creating my order.' },
+  { name: 'Kojo A., Tema', quote: 'The team handled pharmacy confirmation for me, and I only approved once everything was clear.' },
+]
 
 const showToast = (text, type = 'success') => {
   toast.value = { text, type }
   setTimeout(() => {
     toast.value = null
   }, 4000)
+}
+
+const openOrderFlow = () => {
+  if (userStore.isLoggedIn) {
+    navigateTo('/customer?tab=new')
+    return
+  }
+  showLoginModal.value = true
+}
+
+const scrollToHowItWorks = () => {
+  const target = document.getElementById('how-it-works')
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+  navigateTo('/#how-it-works')
+}
+
+const handlePrimaryAction = () => {
+  if (userStore.isLoggedIn) {
+    navigateTo('/customer?tab=new')
+    return
+  }
+  showLoginModal.value = true
+}
+
+const handleLoginSuccess = async (payload = {}) => {
+  showLoginModal.value = false
+  if (payload.destination === 'new') {
+    await navigateTo('/customer?tab=new')
+    return
+  }
+  await navigateTo('/customer')
 }
 
 const handleLoggedOutNotice = async (flag) => {
@@ -329,30 +263,29 @@ onMounted(async () => {
 })
 
 watch(() => route.query.logged_out, handleLoggedOutNotice, { immediate: true })
-watch(() => userStore.isLoggedIn, async (isLoggedIn) => {
-  if (!isLoggedIn) return
-  await redirectLoggedInUsers()
-})
+watch(
+  () => userStore.isLoggedIn,
+  async (isLoggedIn) => {
+    if (!isLoggedIn) return
+    await redirectLoggedInUsers()
+  }
+)
 </script>
 
 <style scoped>
-@keyframes bounce-in {
-  0% {
+@keyframes fade-up {
+  from {
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
+    transform: translateY(14px);
   }
 
-  50% {
-    transform: translateY(-4px) scale(1.02);
-  }
-
-  100% {
+  to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-.animate-bounce-in {
-  animation: bounce-in 0.4s ease-out;
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out;
 }
 </style>

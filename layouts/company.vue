@@ -1,11 +1,7 @@
 <template>
   <div class="company-layout">
     <!-- Mobile Overlay -->
-    <div 
-      v-if="mobileMenuOpen" 
-      class="mobile-overlay"
-      @click="closeMobileMenu"
-    ></div>
+    <div v-if="mobileMenuOpen" class="mobile-overlay" @click="closeMobileMenu"></div>
 
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed, 'sidebar-open': mobileMenuOpen }">
@@ -24,29 +20,30 @@
 
       <!-- Toggle Button (Always Visible) -->
       <div class="toggle-btn-container">
-        <button 
-          @click="toggleSidebar" 
-          class="toggle-btn"
-          :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        >
+        <button @click="toggleSidebar" class="toggle-btn"
+          :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
           <ChevronRightIcon v-if="sidebarCollapsed" class="h-5 w-5" />
           <ChevronLeftIcon v-else class="h-5 w-5" />
         </button>
       </div>
 
       <!-- Navigation -->
-      <nav class="sidebar-nav">
-        <NuxtLink 
-          v-for="item in navigationItems" 
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :title="sidebarCollapsed ? item.label : ''"
-        >
-          <component :is="item.icon" class="nav-icon" />
-          <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
-          <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
-        </NuxtLink>
+      <nav class="sidebar-nav" aria-label="Company navigation">
+        <div v-for="section in navigationSections" :key="section.title" class="nav-section">
+          <p v-if="!sidebarCollapsed" class="nav-section-title">{{ section.title }}</p>
+
+          <NuxtLink
+            v-for="item in section.items"
+            :key="item.path"
+            :to="item.path"
+            class="nav-item"
+            :title="sidebarCollapsed ? item.label : ''"
+          >
+            <component :is="item.icon" class="nav-icon" />
+            <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+            <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
+          </NuxtLink>
+        </div>
       </nav>
 
       <!-- Sidebar Footer (User Info) -->
@@ -60,12 +57,7 @@
             <p class="user-role">{{ userRole }}</p>
           </div>
         </div>
-        <button 
-          v-if="!sidebarCollapsed"
-          @click="handleLogout" 
-          class="logout-btn"
-          :disabled="isLoggingOut"
-        >
+        <button v-if="!sidebarCollapsed" @click="handleLogout" class="logout-btn" :disabled="isLoggingOut">
           <ArrowPathIcon v-if="isLoggingOut" class="h-4 w-4 animate-spin" />
           <ArrowLeftOnRectangleIcon v-else class="h-4 w-4" />
           Logout
@@ -84,18 +76,18 @@
           </button>
           <!-- <h1 class="page-title">{{ pageTitle }}</h1> -->
         </div>
-        
+
         <div class="flex items-center gap-4">
           <!-- Notifications -->
           <button class="icon-btn" title="Notifications">
             <BellIcon class="h-5 w-5" />
           </button>
-          
+
           <!-- Settings -->
           <button class="icon-btn" title="Settings">
             <Cog6ToothIcon class="h-5 w-5" />
           </button>
-          
+
           <!-- User Menu -->
           <div class="user-menu">
             <button @click="toggleUserMenu" class="user-menu-btn">
@@ -103,7 +95,7 @@
               <span class="user-menu-text">{{ userName }}</span>
               <ChevronDownIcon class="h-4 w-4 user-menu-chevron" />
             </button>
-            
+
             <div v-if="showUserMenu" class="user-menu-dropdown">
               <NuxtLink to="/profile" class="menu-item">
                 <UserIcon class="h-4 w-4" />
@@ -135,21 +127,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
-import { 
-  BuildingOffice2Icon, 
-  UserIcon, 
-  BellIcon, 
-  Cog6ToothIcon, 
-  ChevronDownIcon, 
+import {
+  BuildingOffice2Icon,
+  UserIcon,
+  BellIcon,
+  Cog6ToothIcon,
+  SwatchIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowLeftOnRectangleIcon,
   ChatBubbleLeftIcon,
-  PlusIcon,
   BoltIcon,
   CreditCardIcon,
   ArrowPathIcon,
   UserGroupIcon,
+  BriefcaseIcon,
   Bars3Icon
 } from '@heroicons/vue/24/outline'
 
@@ -174,6 +167,13 @@ const userRole = computed(() => {
   const role = companyStore.userRole || 'user'
   return role.charAt(0).toUpperCase() + role.slice(1)
 })
+const normalizedRole = computed(() =>
+  String(companyStore.userRole || 'user')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_')
+)
 const companyName = computed(() => companyStore.currentCompany?.name || 'Company')
 
 // Page title from route meta or default
@@ -182,28 +182,82 @@ const pageTitle = computed(() => {
 })
 
 // Navigation items
-const navigationItems = computed(() => [
+const servicePath = (slug = '') => {
+  return slug
+    ? `/${companyDomain.value}/services/${slug}`
+    : `/${companyDomain.value}/services`
+}
+
+const allNavigationSections = computed(() => [
   {
-    path: `/${companyDomain.value}/services/sms-campaigns`,
-    label: 'SMS Campaigns',
-    icon: ChatBubbleLeftIcon,
+    title: 'SMS',
+    items: [
+      {
+        path: servicePath('sms-campaigns'),
+        label: 'SMS Campaigns',
+        icon: ChatBubbleLeftIcon,
+      },
+      {
+        path: servicePath('sms-credits'),
+        label: 'SMS Credits',
+        icon: BoltIcon,
+      },
+    ],
   },
   {
-    path: `/${companyDomain.value}/services/sms-credits`,
-    label: 'SMS Credits',
-    icon: BoltIcon,
+    title: 'Billing',
+    items: [
+      {
+        path: servicePath('sms-billing'),
+        label: 'Billing',
+        icon: CreditCardIcon,
+      },
+    ],
   },
   {
-    path: `/${companyDomain.value}/services/sms-billing`,
-    label: 'Billing',
-    icon: CreditCardIcon,
+    title: 'Administration',
+    items: [
+      {
+        path: servicePath('user-access'),
+        label: 'User Access',
+        icon: UserGroupIcon,
+      },
+      {
+        path: servicePath('store-settings'),
+        label: 'Shopfront',
+        icon: SwatchIcon,
+      },
+    ],
   },
   {
-    path: `/${companyDomain.value}/services/user-access`,
-    label: 'User Access',
-    icon: UserGroupIcon,
+    title: 'Hiring',
+    items: [
+      {
+        path: servicePath('rigel-boards'),
+        label: 'Rigel Boards',
+        icon: BriefcaseIcon,
+      },
+    ],
   },
 ])
+
+const navigationSections = computed(() => {
+  if (normalizedRole.value !== 'third_party_poster') {
+    return allNavigationSections.value
+  }
+
+  return allNavigationSections.value
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        return (
+          item.path.endsWith('/services/rigel-boards') ||
+          item.path.endsWith('/services/sms-billing')
+        )
+      }),
+    }))
+    .filter((section) => section.items.length > 0)
+})
 
 // Toggle sidebar
 const toggleSidebar = () => {
@@ -374,6 +428,23 @@ watchEffect(() => {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+}
+
+.nav-section {
+  margin-bottom: 1rem;
+}
+
+.nav-section:last-child {
+  margin-bottom: 0;
+}
+
+.nav-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin: 0 0 0.5rem 0.75rem;
 }
 
 .nav-item {
@@ -658,24 +729,24 @@ watchEffect(() => {
     transition: transform 0.3s ease;
     width: 280px;
   }
-  
+
   .sidebar.sidebar-open {
     transform: translateX(0);
   }
-  
+
   .sidebar.sidebar-collapsed {
     width: 280px;
   }
-  
+
   .main-content {
     margin-left: 0;
     width: 100%;
   }
-  
+
   .top-bar {
     padding: 1rem;
   }
-  
+
   .page-content {
     padding: 1rem;
   }
@@ -704,7 +775,7 @@ watchEffect(() => {
   .top-bar {
     padding: 0.75rem;
   }
-  
+
   .page-content {
     padding: 0.75rem;
   }
