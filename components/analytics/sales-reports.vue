@@ -13,27 +13,40 @@
     <div class="bg-white rounded-lg shadow-md mb-6">
       <div class="border-b border-gray-200">
         <nav class="-mb-px flex">
+          <template v-if="!isDataConsumer">
+            <button
+              @click="activeView = 'sales'"
+              :class="[
+                'py-4 px-6 text-sm font-medium border-b-2 transition-colors',
+                activeView === 'sales'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              Sales Items Analysis
+            </button>
+            <button
+              @click="activeView = 'pharmacy'"
+              :class="[
+                'py-4 px-6 text-sm font-medium border-b-2 transition-colors',
+                activeView === 'pharmacy'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
+            >
+              Pharmacy Transaction Summary
+            </button>
+          </template>
           <button
-            @click="activeView = 'sales'"
+            @click="activeView = 'quarterly'"
             :class="[
               'py-4 px-6 text-sm font-medium border-b-2 transition-colors',
-              activeView === 'sales'
+              activeView === 'quarterly'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            Sales Items Analysis
-          </button>
-          <button
-            @click="activeView = 'pharmacy'"
-            :class="[
-              'py-4 px-6 text-sm font-medium border-b-2 transition-colors',
-              activeView === 'pharmacy'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            ]"
-          >
-            Pharmacy Transaction Summary
+            Quarterly Reports
           </button>
         </nav>
       </div>
@@ -722,6 +735,178 @@
       </div>
     </div>
 
+    <!-- Quarterly Reports View -->
+    <div v-show="activeView === 'quarterly'">
+      <!-- Quarterly Filters - Single Line -->
+      <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap items-center gap-2">
+        <select
+          v-model="quarterlyFilters.year"
+          @change="fetchQuarterlyData"
+          class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          title="Year"
+        >
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+        </select>
+
+        <select
+          v-model="quarterlyFilters.date_field"
+          @change="fetchQuarterlyData"
+          class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          title="Date Field"
+        >
+          <option value="actual_date">Actual Date</option>
+          <option value="ddate">Transaction Date</option>
+        </select>
+
+        <input
+          v-model="quarterlyFilters.pharmacy_search"
+          type="text"
+          placeholder="Pharmacies (e.g., 99, 100, 101)"
+          class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 min-w-60"
+        />
+
+        <button
+          @click="fetchQuarterlyData(true)"
+          :disabled="quarterlyLoading"
+          class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+        >
+          <span v-if="quarterlyLoading">Loading...</span>
+          <span v-else>Refresh</span>
+        </button>
+        <button
+          @click="sendViaWhatsApp"
+          :disabled="!canSendWhatsApp"
+          class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2 whitespace-nowrap"
+          title="Send quarterly report request via WhatsApp"
+        >
+          <ChatBubbleLeftIcon class="w-4 h-4" />
+          <span>WhatsApp</span>
+        </button>
+        <button
+          @click="exportQuarterlyToCSV"
+          :disabled="!quarterlyData || quarterlyLoading"
+          class="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2 whitespace-nowrap"
+        >
+          <DocumentArrowDownIcon class="w-4 h-4" />
+          <span>Export</span>
+        </button>
+      </div>
+
+      <!-- Error Message -->
+      <div v-if="quarterlyError" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        {{ quarterlyError }}
+      </div>
+
+      <!-- Quarterly Summary Cards with Selection -->
+      <div v-if="quarterlyData && !quarterlyLoading" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <label
+          v-for="(quarter, index) in [1, 2, 3, 4]"
+          :key="index"
+          class="bg-white rounded-lg shadow-md p-4 border-l-4 min-w-0 cursor-pointer hover:shadow-lg transition-shadow"
+          :class="getQuarterColor(index)"
+        >
+          <div class="flex items-start gap-2">
+            <input
+              type="checkbox"
+              :v-model="selectedQuarters[`q${index}`]"
+              @change="selectedQuarters[`q${index}`] = !selectedQuarters[`q${index}`]"
+              class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 flex-shrink-0"
+            />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-600 truncate">{{ getQuarterName(index) }}</p>
+              <p class="text-xs text-gray-500">{{ getQuarterDates(index) }}</p>
+              <div class="space-y-1 mt-2">
+                <div>
+                  <p class="text-xs text-gray-500">Transactions</p>
+                  <p class="text-lg font-bold text-gray-900">{{ quarterlyData[`q${index}`]?.transactions?.toLocaleString() || 0 }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="quarterlyLoading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p class="mt-2 text-gray-600">Loading quarterly data...</p>
+      </div>
+
+      <!-- Pharmacy Breakdown Table -->
+      <div v-if="quarterlyData && !quarterlyLoading && quarterlyPharmacies.length > 0" class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Pharmacy Breakdown</h3>
+          <p class="text-sm text-gray-600 mt-1">Total pharmacies: <span class="font-bold">{{ quarterlyPharmacies.length }}</span></p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 sticky top-0">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    :checked="quarterlyPharmacies.every(p => selectedPharmacies[p.company_id])"
+                    @change="quarterlyPharmacies.forEach(p => selectedPharmacies[p.company_id] = !quarterlyPharmacies.every(p2 => selectedPharmacies[p2.company_id]))"
+                    class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    title="Select/Deselect all"
+                  />
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pharmacy</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alternate ID</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q1</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q1 Dates</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q2</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q2 Dates</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q3</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q3 Dates</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q4</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Q4 Dates</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="(pharmacy, index) in quarterlyPharmacies" :key="pharmacy.company_id" class="hover:bg-gray-50" :class="{'bg-blue-50': selectedPharmacies[pharmacy.company_id]}">
+                <td class="px-4 py-3 whitespace-nowrap text-xs">
+                  <input
+                    type="checkbox"
+                    :checked="selectedPharmacies[pharmacy.company_id]"
+                    @change="selectedPharmacies[pharmacy.company_id] = !selectedPharmacies[pharmacy.company_id]"
+                    class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-500">{{ index + 1 }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900 max-w-xs truncate" :title="pharmacy.company_name">{{ pharmacy.company_name }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">{{ pharmacy.alternate_company_id || 'N/A' }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-semibold">{{ pharmacy.q1_transactions || 0 }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">{{ pharmacy.q1_date_range || '-' }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-semibold">{{ pharmacy.q2_transactions || 0 }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">{{ pharmacy.q2_date_range || '-' }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-semibold">{{ pharmacy.q3_transactions || 0 }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">{{ pharmacy.q3_date_range || '-' }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-semibold">{{ pharmacy.q4_transactions || 0 }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">{{ pharmacy.q4_date_range || '-' }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs font-semibold text-blue-600">
+                  {{ (pharmacy.q1_transactions || 0) + (pharmacy.q2_transactions || 0) + (pharmacy.q3_transactions || 0) + (pharmacy.q4_transactions || 0) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="!quarterlyLoading && (!quarterlyData || quarterlyPharmacies.length === 0)" class="text-center py-12 bg-white rounded-lg">
+        <div class="flex justify-center mb-4">
+          <ChartBarIcon class="w-12 h-12 text-gray-400" />
+        </div>
+        <p class="text-gray-600">Click "Refresh" to load quarterly reports</p>
+      </div>
+    </div>
+
     <!-- Error State -->
     <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mt-6">
       <div class="flex">
@@ -741,9 +926,11 @@
 </template>
 
 <script setup>
+// Only show Quarterly Reports for data_consumer
+const isDataConsumer = computed(() => adminStore.getRole === 'data_consumer')
 import { ref, onMounted, computed } from 'vue'
 import { useAdminStore } from '~/stores/admin'
-import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentArrowDownIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
 
 const adminStore = useAdminStore()
 
@@ -832,12 +1019,13 @@ const validateDateRange = () => {
 }
 
 // Fetch summary data from the cross-tenant summary API
-const fetchSummary = async () => {
+const fetchSummary = async (forceRefresh = false) => {
   try {
     const params = new URLSearchParams()
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
     if (filters.value.date_field) params.append('date_field', filters.value.date_field)
+    if (forceRefresh) params.append('refresh', 'true')
     
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items?${params}`)
     if (response.success) {
@@ -862,7 +1050,7 @@ const fetchSummary = async () => {
 }
 
 // Fetch company breakdown (using sales-items summary by company)
-const fetchCompanyBreakdown = async () => {
+const fetchCompanyBreakdown = async (forceRefresh = false) => {
   try {
     const params = new URLSearchParams()
     params.append('limit', '5000') // Increased limit
@@ -870,6 +1058,7 @@ const fetchCompanyBreakdown = async () => {
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
     if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     if (searchQuery.value && searchQuery.value.trim()) params.append('search', searchQuery.value.trim())
+    if (forceRefresh) params.append('refresh', 'true')
     
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items/dataview?${params}`)
     if (response.success && response.data && Array.isArray(response.data)) {
@@ -911,7 +1100,7 @@ const fetchSalesItems = async () => {
 }
 
 // Fetch all data
-const fetchData = async () => {
+const fetchData = async (forceRefresh = false) => {
   // Validate date range first
   if (!validateDateRange()) {
     return
@@ -922,9 +1111,8 @@ const fetchData = async () => {
 
   try {
     await Promise.all([
-      fetchSummary(),
-      fetchCompanyBreakdown(),
-      fetchSalesItems()
+      fetchSummary(forceRefresh),
+      fetchCompanyBreakdown(forceRefresh)
     ])
   } catch (err) {
     error.value = err.message || 'Failed to fetch sales items data'
@@ -934,9 +1122,9 @@ const fetchData = async () => {
   }
 }
 
-// Refresh data
+// Refresh data (bypass cache)
 const refreshData = () => {
-  fetchData()
+  fetchData(true)
 }
 
 // View company details
@@ -1311,6 +1499,204 @@ const exportPharmacyToCSV = () => {
   window.URL.revokeObjectURL(url)
 }
 
+// ============================================
+// QUARTERLY REPORTS SECTION
+// ============================================
+
+// Quarterly state
+const quarterlyLoading = ref(false)
+const quarterlyError = ref('')
+const quarterlyData = ref(null)
+const quarterlyPharmacies = ref([])
+const quarterlyFilters = ref({
+  year: String(new Date().getFullYear()),
+  date_field: 'actual_date',
+  pharmacy_search: ''
+})
+
+// Selected quarters and pharmacies for sending
+const selectedQuarters = ref({q1: false, q2: true, q3: true, q4: true})
+const selectedPharmacies = ref({})
+
+// Get quarter name
+const getQuarterName = (index) => {
+  const names = ['Q1', 'Q2', 'Q3', 'Q4']
+  return names[index - 1]
+}
+
+// Get quarter dates
+const getQuarterDates = (index) => {
+  const year = parseInt(quarterlyFilters.value.year)
+  let start, end
+  switch(index) {
+    case 1: start = `${year}-01-01`; end = `${year}-03-31`; break
+    case 2: start = `${year}-04-01`; end = `${year}-06-30`; break
+    case 3: start = `${year}-07-01`; end = `${year}-09-30`; break
+    case 4: start = `${year}-10-01`; end = `${year}-12-31`; break
+  }
+  return `${start} to ${end}`
+}
+
+// Get quarter color for styling
+const getQuarterColor = (index) => {
+  const colors = [
+    'border-blue-500',
+    'border-green-500',
+    'border-orange-500',
+    'border-purple-500'
+  ]
+  return colors[index - 1]
+}
+
+// Get quarter date range
+const getQuarterDateRange = (index) => {
+  const year = parseInt(quarterlyFilters.value.year)
+  let start, end
+  switch(index) {
+    case 1: start = `${year}-01-01`; end = `${year}-03-31`; break
+    case 2: start = `${year}-04-01`; end = `${year}-06-30`; break
+    case 3: start = `${year}-07-01`; end = `${year}-09-30`; break
+    case 4: start = `${year}-10-01`; end = `${year}-12-31`; break
+  }
+  return { start, end }
+}
+
+// Fetch quarterly data from API - single call to backend
+const fetchQuarterlyData = async (forceRefresh = false) => {
+  quarterlyLoading.value = true
+  quarterlyError.value = ''
+  quarterlyData.value = null
+  quarterlyPharmacies.value = []
+
+  try {
+    const config = useRuntimeConfig()
+    const baseURL = config.public.apiBase
+
+    const params = new URLSearchParams()
+    params.append('year', quarterlyFilters.value.year)
+    params.append('date_field', quarterlyFilters.value.date_field)
+
+    if (quarterlyFilters.value.pharmacy_search) {
+      params.append('company_ids', quarterlyFilters.value.pharmacy_search)
+    }
+    if (forceRefresh) params.append('refresh', 'true')
+
+    const response = await fetch(
+      `${baseURL}/api/reports/cross-tenant/quarterly-summary?${params}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${adminStore.token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success) {
+        quarterlyData.value = data.summary
+        quarterlyPharmacies.value = data.pharmacies || []
+      } else {
+        throw new Error(data.message || 'Failed to fetch quarterly data')
+      }
+    } else {
+      throw new Error(`Server returned ${response.status}`)
+    }
+
+  } catch (err) {
+    console.error('Error fetching quarterly data:', err)
+    quarterlyError.value = err.message || 'Failed to fetch quarterly data'
+  } finally {
+    quarterlyLoading.value = false
+  }
+}
+
+// Get selected quarters list
+const getSelectedQuartersText = () => {
+  const quarters = []
+  if (selectedQuarters.value.q1) quarters.push('Q1')
+  if (selectedQuarters.value.q2) quarters.push('Q2')
+  if (selectedQuarters.value.q3) quarters.push('Q3')
+  if (selectedQuarters.value.q4) quarters.push('Q4')
+  return quarters.length > 0 ? quarters.join(', ') : 'None selected'
+}
+
+// Get selected pharmacies list
+const getSelectedPharmaciesText = () => {
+  const pharmacies = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
+  if (pharmacies.length === 0) return 'No pharmacies selected'
+  return pharmacies.map(p => `${p.company_name} (${p.alternate_company_id || p.company_id})`).join(', ')
+}
+
+// Check if WhatsApp button should be enabled
+const canSendWhatsApp = computed(() => {
+  const hasSelectedQuarters = Object.values(selectedQuarters.value).some(v => v)
+  const hasSelectedPharmacies = Object.values(selectedPharmacies.value).some(v => v)
+  return quarterlyData.value && quarterlyPharmacies.value.length > 0 && hasSelectedQuarters && hasSelectedPharmacies
+})
+
+// Send via WhatsApp
+const sendViaWhatsApp = () => {
+  if (!canSendWhatsApp.value) return
+
+  const year = quarterlyFilters.value.year
+  const quarters = getSelectedQuartersText()
+  const pharmacies = getSelectedPharmaciesText()
+  
+  const message = `${year} Quarterly Report Request\n\nQuarters: ${quarters}\n\nPharmacies:\n${pharmacies}`
+  const encodedMessage = encodeURIComponent(message)
+  
+  window.open(`https://wa.me/?text=${encodedMessage}`, '_blank')
+}
+
+// Export quarterly to CSV
+const exportQuarterlyToCSV = () => {
+  const selectedPharmacyList = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
+  if (selectedPharmacyList.length === 0) return
+
+  let csv = 'Pharmacy Name,Alternate ID,Q1 Transactions,Q1 Dates,Q2 Transactions,Q2 Dates,Q3 Transactions,Q3 Dates,Q4 Transactions,Q4 Dates,Total Transactions\n'
+  
+  selectedPharmacyList.forEach(pharmacy => {
+    let total = 0
+    let row = `"${pharmacy.company_name}","${pharmacy.alternate_company_id || 'N/A'}"`
+    
+    if (selectedQuarters.value.q1) { 
+      row += `,${pharmacy.q1_transactions || 0},"${pharmacy.q1_date_range || '-'}"`
+      total += pharmacy.q1_transactions || 0
+    }
+    if (selectedQuarters.value.q2) { 
+      row += `,${pharmacy.q2_transactions || 0},"${pharmacy.q2_date_range || '-'}"`
+      total += pharmacy.q2_transactions || 0
+    }
+    if (selectedQuarters.value.q3) { 
+      row += `,${pharmacy.q3_transactions || 0},"${pharmacy.q3_date_range || '-'}"`
+      total += pharmacy.q3_transactions || 0
+    }
+    if (selectedQuarters.value.q4) { 
+      row += `,${pharmacy.q4_transactions || 0},"${pharmacy.q4_date_range || '-'}"`
+      total += pharmacy.q4_transactions || 0
+    }
+    row += `,${total}\n`
+    csv += row
+  })
+
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `quarterly-report-${quarterlyFilters.value.year}-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
+
+// Initialize on mount
+onMounted(() => {
+  // Set default dates for sales view
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+  filters.value.end_date = today.toISOString().split('T')[0]
+  filters.value.start_date = thirtyDaysAgo.toISOString().split('T')[0]
+})
 
 </script>
 

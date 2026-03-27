@@ -1,5 +1,5 @@
-// Admin Authentication Middleware
-// Protects admin routes and ensures valid admin session
+// Data Consumer Authentication Middleware
+// Protects /dataconsumer/* routes and ensures valid data_consumer session
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   // Only run on client side
@@ -12,11 +12,9 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // If no valid session, redirect to login
   if (!sessionRestored && !adminStore.isAuthenticated) {
-    // Store the intended destination
     if (process.client) {
       localStorage.setItem('adminIntendedRoute', to.fullPath);
     }
-    
     return navigateTo('/admin/login');
   }
 
@@ -36,20 +34,9 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     }
   }
 
-  // Check role-based access if route requires specific role
-  if (to.meta.requiredRole) {
-    const hasRequiredRole = adminStore.hasRole(to.meta.requiredRole);
-    
-    if (!hasRequiredRole) {
-      // Insufficient permissions
-      console.warn(`Access denied. Required role: ${to.meta.requiredRole}`);
-      return navigateTo('/admin/unauthorized');
-    }
-  }
-
-  // Reject data_consumer from admin portal
-  if (adminStore.getRole === 'data_consumer') {
-    console.warn('Data consumer cannot access admin portal');
-    return navigateTo(adminStore.getDashboardRoute);
+  // CRITICAL: Only data_consumer role allowed on /dataconsumer/* routes
+  if (adminStore.getRole !== 'data_consumer') {
+    console.warn('Access denied. This portal is for data consumers only.');
+    return navigateTo('/admin/login?error=access-denied');
   }
 });

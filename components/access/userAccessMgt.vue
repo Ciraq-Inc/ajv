@@ -61,6 +61,7 @@
         <option value="auditor">Auditor</option>
         <option value="support_agent">Support Agent</option>
         <option value="business_analyst">Business Analyst</option>
+        <option value="data_consumer">Data Consumer</option>
       </select>
       <select v-model="filterStatus" class="filter-select">
         <option value="">All Status</option>
@@ -222,6 +223,7 @@
                 <option value="auditor">Auditor</option>
                 <option value="support_agent">Support Agent</option>
                 <option value="business_analyst">Business Analyst</option>
+                <option value="data_consumer">Data Consumer</option>
               </select>
             </div>
 
@@ -485,7 +487,8 @@ const getRoleClass = (role) => {
     'super_admin': 'super-admin',
     'auditor': 'auditor',
     'support_agent': 'support',
-    'business_analyst': 'analyst'
+    'business_analyst': 'analyst',
+    'data_consumer': 'data-consumer'
   }
   return classes[role] || ''
 }
@@ -761,6 +764,11 @@ button:disabled {
 
 .role-badge.analyst {
   background: #e9d5ff;
+  color: #6b21a8;
+}
+
+.role-badge.data-consumer {
+  background: #f3e8ff;
   color: #6b21a8;
 }
 

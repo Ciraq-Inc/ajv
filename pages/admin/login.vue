@@ -186,7 +186,17 @@ const handleLogin = async () => {
     const result = await adminStore.login(username.value, password.value);
 
     if (result.success) {
-      successMessage.value = 'Login successful! Redirecting...';
+      // Determine dashboard based on role
+      const dashboardRoute = adminStore.getDashboardRoute;
+      let message = 'Login successful! Redirecting...';
+      
+      if (adminStore.getRole === 'data_consumer') {
+        message = 'Logging into Data Consumer Portal...';
+      } else {
+        message = 'Logging into Admin Portal...';
+      }
+      
+      successMessage.value = message;
 
       // Wait a moment to show success message
       setTimeout(() => {
@@ -196,7 +206,7 @@ const handleLogin = async () => {
           localStorage.removeItem('adminIntendedRoute');
           navigateTo(intendedRoute);
         } else {
-          navigateTo('/admin/data');
+          navigateTo(dashboardRoute);
         }
       }, 1000);
     } else {

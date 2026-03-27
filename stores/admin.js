@@ -22,9 +22,18 @@ export const useAdminStore = defineStore('admin', {
     // Check if admin has super_admin role
     isSuperAdmin: (state) => state.admin?.role === 'super_admin',
     
+    // Get dashboard route based on role
+    getDashboardRoute: (state) => {
+      if (state.admin?.role === 'data_consumer') {
+        return '/dataconsumer/dashboard'
+      }
+      return '/admin/data'
+    },
+    
     // Check if admin has at least a certain role level
     hasRole: (state) => (requiredRole) => {
       const roleHierarchy = {
+        'data_consumer': 0, // NEW: read-only data buyer
         'business_analyst': 1,
         'support_agent': 2,
         'auditor': 3,
