@@ -1579,7 +1579,7 @@ const fetchQuarterlyData = async (forceRefresh = false) => {
     if (quarterlyFilters.value.pharmacy_search) {
       params.append('company_ids', quarterlyFilters.value.pharmacy_search)
     }
-    if (forceRefresh) params.append('refresh', 'true')
+    if (forceRefresh === true) params.append('refresh', 'true')
 
     const response = await fetch(
       `${baseURL}/api/reports/cross-tenant/quarterly-summary?${params}`,
