@@ -63,6 +63,22 @@ export const phoneUtils = {
 
     return finalPhone1 === finalPhone2;
   },
+
+  /**
+   * Format a phone number for use in wa.me links.
+   * Returns digits only with Ghana country code (233), e.g. "233240000000".
+   * Returns empty string if phone is falsy.
+   */
+  formatWhatsApp(phone) {
+    if (!phone) return '';
+    let digits = phone.toString().trim().replace(/\D/g, '');
+    if (digits.startsWith('0')) {
+      digits = '233' + digits.substring(1);
+    } else if (!digits.startsWith('233')) {
+      digits = '233' + digits;
+    }
+    return digits;
+  },
 };
 
 export default phoneUtils;

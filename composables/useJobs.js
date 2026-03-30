@@ -10,17 +10,30 @@ export const useJobs = () => {
   const loading = ref(false)
   const error = ref('')
 
-  const openJobs = computed(() => jobs.value.filter((job) => job.status === 'open'))
+  const openJobs = computed(() => jobs.value.filter((job) => job.status === 'open' || job.itemType === 'seeker'))
 
   const fetchJobs = async (params = {}) => {
     loading.value = true
     error.value = ''
     try {
-      const response = await jobsService.list(params)
-      jobs.value = response.data || []
+      const [jobsResponse, seekersResponse] = await Promise.all([
+        jobsService.list(params),
+        jobsService.listSeekers({ search: params.search })
+      ])
+      
+      const jobsList = (jobsResponse.data || []).map(j => ({ ...j, itemType: 'job' }))
+      const seekersList = (seekersResponse.data || []).map(s => ({ ...s, itemType: 'seeker' }))
+      
+      const combined = [...jobsList, ...seekersList].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.created_at || 0)
+        const dateB = new Date(b.createdAt || b.created_at || 0)
+        return dateB - dateA
+      })
+      
+      jobs.value = combined
       return jobs.value
     } catch (err) {
-      error.value = err.message || 'Unable to fetch jobs'
+      error.value = err.message || 'Unable to fetch jobs and seekers'
       throw err
     } finally {
       loading.value = false

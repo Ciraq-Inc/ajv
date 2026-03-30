@@ -171,9 +171,14 @@
                   <input v-model="form.contactEmail" type="email" class="field" placeholder="recruit@company.com" />
                 </div>
                 <div>
+                  <label class="field-label">Contact phone <span class="text-slate-400 font-normal">(for WhatsApp)</span></label>
+                  <input v-model="form.contactPhone" type="tel" class="field" placeholder="e.g. 0240000000" />
+                </div>
+                <div>
                   <label class="field-label">Application deadline <span class="text-slate-400 font-normal">(optional)</span></label>
                   <input v-model="form.expiresAt" type="date" class="field" :min="today" />
                 </div>
+                <!-- Document requirements commented out — using direct WhatsApp instead
                 <div class="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Required applicant documents</p>
                   <div class="grid md:grid-cols-3 gap-3 text-sm text-slate-700">
@@ -191,6 +196,7 @@
                     </label>
                   </div>
                 </div>
+                -->
                 <div>
                   <label class="field-label">Min salary (GHS) <span class="text-slate-400 font-normal">(optional)</span></label>
                   <input v-model.number="form.salaryMin" type="number" class="field" placeholder="e.g. 2000" min="0" />
@@ -243,10 +249,10 @@
                 <p v-if="job.salaryMin || job.salaryMax" class="text-xs text-slate-400 mt-0.5">
                   GHS {{ job.salaryMin ?? '—' }} – {{ job.salaryMax ?? '—' }}
                 </p>
-                <p v-if="job.requireResume || job.requireCv || job.requireCertificates" class="text-xs text-slate-400 mt-0.5">
+                <!-- <p v-if="job.requireResume || job.requireCv || job.requireCertificates" class="text-xs text-slate-400 mt-0.5">
                   Requires:
                   {{ [job.requireResume ? 'Resume' : null, job.requireCv ? 'CV' : null, job.requireCertificates ? 'Certificates' : null].filter(Boolean).join(', ') }}
-                </p>
+                </p> -->
               </div>
 
               <div class="flex flex-wrap gap-2 shrink-0">
@@ -307,6 +313,7 @@ const form = reactive({
   salaryMin: null,
   salaryMax: null,
   contactEmail: '',
+  contactPhone: '',
   expiresAt: '',
   requireResume: false,
   requireCv: false,
@@ -420,6 +427,7 @@ const handleCreateJob = async () => {
       salaryMin: form.salaryMin || null,
       salaryMax: form.salaryMax || null,
       contactEmail: form.contactEmail || null,
+      contactPhone: form.contactPhone || null,
       expiresAt: form.expiresAt || null,
       requireResume: form.requireResume,
       requireCv: form.requireCv,
@@ -429,7 +437,7 @@ const handleCreateJob = async () => {
     })
 
     successMessage.value = 'Job published successfully!'
-    Object.assign(form, { title: '', description: '', location: '', employmentType: 'Full-time', salaryMin: null, salaryMax: null, contactEmail: '', expiresAt: '', requireResume: false, requireCv: false, requireCertificates: false })
+    Object.assign(form, { title: '', description: '', location: '', employmentType: 'Full-time', salaryMin: null, salaryMax: null, contactEmail: '', contactPhone: '', expiresAt: '', requireResume: false, requireCv: false, requireCertificates: false })
     showForm.value = false
   } catch (err) {
     formError.value = err?.data?.message || err?.message || 'Failed to publish job'

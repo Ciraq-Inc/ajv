@@ -18,4 +18,16 @@ export const createJobsService = (api) => ({
   update(jobId, payload) {
     return api.put(`/api/jobs/${jobId}`, payload)
   },
+
+  listSeekers(params = {}) {
+    return api.get('/api/jobs/seekers', { params })
+  },
+
+  getSeekerById(seekerId) {
+    return api.get(`/api/jobs/seekers/${seekerId}`)
+  },
+
+  createSeeker(payload) {
+    return api.post('/api/jobs/seekers', payload)
+  },
 })

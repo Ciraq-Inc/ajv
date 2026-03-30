@@ -29,6 +29,7 @@
       >
         View
       </button>
+      <!-- Application flow commented out — using direct WhatsApp instead
       <button
         v-if="showApply"
         class="px-3 py-2 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700"
@@ -36,6 +37,7 @@
       >
         Apply
       </button>
+      -->
       <button
         v-if="showManage"
         class="px-3 py-2 rounded-lg text-sm bg-amber-100 text-amber-800 hover:bg-amber-200"
