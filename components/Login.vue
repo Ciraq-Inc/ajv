@@ -1,47 +1,47 @@
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
     <!-- Backdrop -->
-    <div class="fixed inset-0 bg-slate-950/65 backdrop-blur-sm" @click="closeModal"></div>
+    <div class="fixed inset-0 bg-[#1e1a22]/50 backdrop-blur-md" @click="closeModal"></div>
 
-    <div class="min-h-full flex items-center justify-center p-4 sm:p-6">
+    <div style="font-family: 'Manrope', sans-serif;" class="min-h-full flex items-center justify-center p-4 sm:p-6">
       <!-- Modal Container -->
-      <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[28px] border border-slate-700/50 bg-slate-900 shadow-[0_32px_120px_rgba(0,0,0,0.7)]">
+      <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-[#fff7ff] border-none shadow-[0_24px_32px_rgba(30,26,34,0.06)]">
         <!-- Modal Header -->
-        <div class="bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.25),_transparent_35%),linear-gradient(135deg,#0f172a_0%,#0c4a6e_48%,#0284c7_100%)] px-6 py-5 text-white">
+        <div class="bg-[#faf0fd] border-b border-[#cec2d5]/15 px-6 py-5 text-[#1e1a22]">
           <div class="flex items-start justify-between gap-4">
             <div>
-              <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+              <span class="inline-flex items-center rounded-full border-none bg-[#efdbff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#520094]">
                 Customer Access
               </span>
               <h3 class="mt-3 text-2xl font-semibold tracking-tight">{{ stepTitle }}</h3>
-              <p class="mt-1 text-sm text-sky-100/90">{{ stepSubtitle }}</p>
+              <p class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
             </div>
-            <div class="hidden rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-right text-xs text-sky-100 sm:block">
-              <div class="font-semibold text-white">Secure Flow</div>
+            <div class="hidden rounded-2xl border-none bg-[#ffffff] px-3 py-2 text-right text-xs text-[#7d7484] sm:block">
+              <div class="font-semibold text-[#1e1a22]">Secure Flow</div>
               <div>{{ isSecondStep ? 'Step 2 of 2' : 'Step 1 of 2' }}</div>
             </div>
           </div>
         </div>
 
         <!-- Modal Body -->
-        <div class="bg-slate-900 p-6">
+        <div class="bg-[#ffffff] p-6">
         <!-- Progress indicator -->
-        <div class="mb-6 rounded-2xl border border-slate-700/50 bg-slate-800 p-4">
+        <div class="mb-6 rounded-2xl border-none bg-[#f4ebf7] p-4">
           <div class="flex items-center gap-3">
             <div :class="['inline-flex min-w-[108px] items-center justify-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em]',
-              isSecondStep ? 'bg-emerald-500 text-white' : 'bg-sky-500 text-white']">
+              isSecondStep ? 'bg-emerald-500 text-white' : 'bg-[#520094] text-white']">
               <span v-if="isSecondStep" class="mr-2">&#10003;</span>
               Phone
             </div>
-            <div :class="['h-px flex-1', isSecondStep ? 'bg-sky-600/60' : 'bg-slate-700']"></div>
+            <div :class="['h-px flex-1', isSecondStep ? 'bg-[#6c24b3]' : 'bg-[#cec2d5]']"></div>
             <div :class="['inline-flex min-w-[108px] items-center justify-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em]',
-              isSecondStep ? 'bg-sky-500 text-white' : 'bg-slate-700 text-slate-400']">
+              isSecondStep ? 'bg-[#520094] text-white' : 'bg-white text-[#7d7484] border border-[#cec2d5]']">
               {{ stepStageLabel }}
             </div>
           </div>
         </div>
 
-        <div v-if="errorMessage" class="mb-5 rounded-2xl border border-red-800/50 bg-red-950/40 p-4 text-red-400">
+        <div v-if="errorMessage" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
@@ -59,32 +59,32 @@
         <!-- Step 1: Phone Number Input -->
         <div v-if="currentStep === 'phone'">
           <form @submit.prevent="checkPhone">
-            <div class="mb-4 rounded-2xl border border-slate-700/50 bg-slate-800 px-4 py-3 text-sm text-slate-300">
+            <div :class="subtleCardClass">
               Enter your number once. We will route you to login, password setup, or registration based on your account status.
             </div>
 
             <div class="mb-4">
-              <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-slate-300">Phone Number</label>
+              <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
               <div class="flex">
                 <span
-                  class="inline-flex items-center rounded-l-xl border border-r-0 border-slate-600 bg-slate-700 px-3 text-sm font-medium text-slate-200">
+                  class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453]">
                   +233
                 </span>
                 <input v-model="phoneNumber" type="tel" id="phoneNumber"
-                  class="block w-full rounded-none rounded-r-xl border border-slate-700 bg-slate-800 px-3 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="phoneInputClass"
                   placeholder="eg. 24 123 4567" required @input="validatePhoneNumber">
               </div>
               <p v-if="phoneNumberError" class="mt-1 text-sm text-red-600">{{ phoneNumberError }}</p>
-              <p v-else class="mt-1 text-xs text-slate-400">Enter your registered phone number</p>
+              <p v-else class="mt-1 text-xs text-[#7d7484]">Enter your registered phone number</p>
             </div>
 
             <div class="mt-6 flex justify-end space-x-3">
               <button type="button" @click="closeModal"
-                class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700">
+                :class="secondaryButtonClass">
                 Cancel
               </button>
               <button type="submit" :disabled="isLoading"
-                class="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                :class="primaryButtonClass">
                 <span v-if="isLoading" class="flex items-center">
                   <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                     viewBox="0 0 24 24">
@@ -104,37 +104,37 @@
         <!-- Step 2a: Password Login (Registered Customer) -->
         <div v-else-if="currentStep === 'password'">
           <form @submit.prevent="handleLogin">
-            <div class="mb-4 rounded-2xl border border-slate-700/50 bg-slate-800 p-4 text-sm text-slate-300">
-              <p>Logging in as: <strong class="text-white">{{ formattedPhoneNumber }}</strong></p>
+            <div :class="subtleCardClass">
+              <p>Logging in as: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
             </div>
 
             <div class="mb-4">
-              <label for="password" class="mb-1 block text-sm font-semibold text-slate-300">Password</label>
+              <label for="password" class="mb-1 block text-sm font-semibold text-[#4c4453]">Password</label>
               <input v-model="password" type="password" id="password"
-                class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                :class="inputClass"
                 placeholder="Enter your password" required minlength="6">
             </div>
 
-            <div class="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-700/50 bg-slate-800 px-4 py-3 text-sm">
+            <div class="mb-4 flex items-center justify-between gap-3 rounded-2xl border-none bg-[#f4ebf7] px-4 py-3 text-sm">
               <div class="flex items-center">
                 <input id="remember-me" v-model="rememberMe" type="checkbox"
-                  class="h-4 w-4 text-sky-500 focus:ring-sky-500 border-slate-600 rounded bg-slate-800">
-                <label for="remember-me" class="ml-2 block text-sm text-slate-300">
+                  class="h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]">
+                <label for="remember-me" class="ml-2 block text-sm text-[#4c4453]">
                   Keep me logged in
                 </label>
               </div>
-              <button type="button" @click="forgotPassword" class="text-sm text-sky-400 hover:text-sky-300 font-medium">
+              <button type="button" @click="forgotPassword" class="text-sm font-medium text-[#520094] hover:text-[#6c24b3]">
                 Forgot password?
               </button>
             </div>
 
             <div class="mt-6 flex justify-end space-x-3">
               <button type="button" @click="backToPhone"
-                class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700">
+                :class="secondaryButtonClass">
                 Back
               </button>
               <button type="submit" :disabled="isLoading"
-                class="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                :class="primaryButtonClass">
                 <span v-if="isLoading" class="flex items-center">
                   <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                     viewBox="0 0 24 24">
@@ -154,38 +154,38 @@
         <!-- Step 2b: Setup Password (Existing Customer, No Password) -->
         <div v-else-if="currentStep === 'setup'">
           <form @submit.prevent="handleSetupPassword">
-            <div class="mb-4 rounded-2xl border border-slate-700/50 bg-slate-800 p-4 text-sm text-slate-300">
-              <p>Setting up password for: <strong class="text-white">{{ formattedPhoneNumber }}</strong></p>
-              <p class="text-xs mt-1 text-slate-400">Complete your profile and we'll send you a verification code</p>
+            <div :class="subtleCardClass">
+              <p>Setting up password for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
+              <p class="text-xs mt-1 text-[#7d7484]">Complete your profile and we'll send you a verification code</p>
             </div>
 
             <div class="mb-4" v-if="!otpSent">
               <div class="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label for="setupFirstName" class="block text-sm font-medium text-slate-300 mb-1">First Name</label>
+                  <label for="setupFirstName" class="block text-sm font-medium text-[#4c4453] mb-1">First Name</label>
                   <input v-model="firstName" type="text" id="setupFirstName"
-                    class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                    :class="inputClass"
                     placeholder="John" required>
                 </div>
                 <div>
-                  <label for="setupLastName" class="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
+                  <label for="setupLastName" class="block text-sm font-medium text-[#4c4453] mb-1">Last Name</label>
                   <input v-model="lastName" type="text" id="setupLastName"
-                    class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                    :class="inputClass"
                     placeholder="Doe" required>
                 </div>
               </div>
 
               <div class="mb-4">
-                <label for="setupEmail" class="block text-sm font-medium text-slate-300 mb-1">Email (Optional)</label>
+                <label for="setupEmail" class="block text-sm font-medium text-[#4c4453] mb-1">Email (Optional)</label>
                 <input v-model="email" type="email" id="setupEmail"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="john@example.com">
               </div>
 
               <div class="mb-4">
-                <label for="setupGender" class="block text-sm font-medium text-slate-300 mb-1">Gender</label>
+                <label for="setupGender" class="block text-sm font-medium text-[#4c4453] mb-1">Gender</label>
                 <select v-model="gender" id="setupGender"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   required>
                   <option value="">Select your gender</option>
                   <option value="male">Male</option>
@@ -198,15 +198,15 @@
               <div class="mb-4">
                 <div class="flex items-start">
                   <input id="ageVerification" v-model="isOver18" type="checkbox"
-                    class="h-4 w-4 text-sky-500 focus:ring-sky-500 border-slate-600 rounded bg-slate-800 mt-1" required>
-                  <label for="ageVerification" class="ml-2 block text-sm text-slate-300">
+                    class="mt-1 h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]" required>
+                  <label for="ageVerification" class="ml-2 block text-sm text-[#4c4453]">
                     I confirm that I am 18 years or older <span class="text-red-500">*</span>
                   </label>
                 </div>
               </div>
 
               <button type="button" @click="sendOTP" :disabled="isLoading || !firstName || !lastName || !gender || !isOver18"
-                class="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                :class="fullPrimaryButtonClass">
                 <span v-if="isLoading">Sending OTP...</span>
                 <span v-else>Send Verification Code</span>
               </button>
@@ -214,23 +214,23 @@
 
             <div v-if="otpSent">
               <div class="mb-4">
-                <label for="otp" class="block text-sm font-medium text-slate-300 mb-1">Verification Code</label>
+                <label for="otp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
                 <input v-model="otp" type="text" id="otp"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
               </div>
 
               <div class="mb-4">
-                <label for="newPassword" class="block text-sm font-medium text-slate-300 mb-1">New Password</label>
+                <label for="newPassword" class="block text-sm font-medium text-[#4c4453] mb-1">New Password</label>
                 <input v-model="password" type="password" id="newPassword"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Create a password (min. 6 characters)" required minlength="6">
               </div>
 
               <div class="mb-4">
-                <label for="confirmPassword" class="block text-sm font-medium text-slate-300 mb-1">Confirm Password</label>
+                <label for="confirmPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm Password</label>
                 <input v-model="confirmPassword" type="password" id="confirmPassword"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Re-enter your password" required minlength="6">
                 <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
                   Passwords do not match
@@ -239,11 +239,11 @@
 
               <div class="mt-6 flex justify-end space-x-3">
                 <button type="button" @click="backToPhone"
-                  class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700">
+                  :class="secondaryButtonClass">
                   Back
                 </button>
                 <button type="submit" :disabled="isLoading || !otp || password !== confirmPassword"
-                  class="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                  :class="primaryButtonClass">
                   <span v-if="isLoading">Setting up...</span>
                   <span v-else>Setup Password</span>
                 </button>
@@ -255,39 +255,39 @@
         <!-- Step 2c: Register (New Customer) -->
         <div v-else-if="currentStep === 'register'">
           <form @submit.prevent="handleRegister">
-            <div class="mb-4 rounded-2xl border border-slate-700/50 bg-slate-800 p-4 text-sm text-slate-300">
-              <p>Creating new account for: <strong class="text-white">{{ formattedPhoneNumber }}</strong></p>
-              <p class="mt-2 text-xs text-slate-400">{{ registrationHint }}</p>
-              <div v-if="registrationCompany" class="mt-3 inline-flex items-center rounded-full bg-sky-900/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-300">
+            <div :class="subtleCardClass">
+              <p>Creating new account for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
+              <p class="mt-2 text-xs text-[#7d7484]">{{ registrationHint }}</p>
+              <div v-if="registrationCompany" class="mt-3 inline-flex items-center rounded-full border border-[#cec2d5] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#520094]">
                 Linked at signup: {{ registrationCompany }}
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label for="fname" class="block text-sm font-medium text-slate-300 mb-1">First Name</label>
+                <label for="fname" class="block text-sm font-medium text-[#4c4453] mb-1">First Name</label>
                 <input v-model="firstName" type="text" id="fname"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="John" required>
               </div>
               <div>
-                <label for="lname" class="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
+                <label for="lname" class="block text-sm font-medium text-[#4c4453] mb-1">Last Name</label>
                 <input v-model="lastName" type="text" id="lname"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Doe" required>
               </div>
             </div>
 
             <div class="mb-4">
-                <label for="email" class="block text-sm font-medium text-slate-300 mb-1">Email (Optional)</label>
+                <label for="email" class="block text-sm font-medium text-[#4c4453] mb-1">Email (Optional)</label>
                 <input v-model="email" type="email" id="email"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                 placeholder="john@example.com">
             </div>
 
             <div class="mb-4" v-if="!otpSent">
               <button type="button" @click="sendRegistrationOTP" :disabled="isLoading"
-                class="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                :class="fullPrimaryButtonClass">
                 <span v-if="isLoading">Sending OTP...</span>
                 <span v-else>Continue</span>
               </button>
@@ -295,32 +295,32 @@
 
             <div v-if="otpSent">
               <div class="mb-4">
-                <label for="regOtp" class="block text-sm font-medium text-slate-300 mb-1">Verification Code</label>
+                <label for="regOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
                 <input v-model="otp" type="text" id="regOtp"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Enter 6-digit code" required maxlength="6">
               </div>
 
               <div class="mb-4">
-                <label for="regPassword" class="block text-sm font-medium text-slate-300 mb-1">Password</label>
+                <label for="regPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Password</label>
                 <input v-model="password" type="password" id="regPassword"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Create a password (min. 6 characters)" required minlength="6">
               </div>
 
               <div class="mt-6 flex justify-end space-x-3">
                 <button type="button" @click="backToPhone"
-                  class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700">
+                  :class="secondaryButtonClass">
                   Back
                 </button>
                 <button type="submit" :disabled="isLoading || !otp || !firstName || !lastName"
-                  class="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                  :class="primaryButtonClass">
                   <span v-if="isLoading">Registering...</span>
                   <span v-else>Create Account</span>
                 </button>
               </div>
             </div>
-            <div class="mt-5 rounded-2xl border border-emerald-800/40 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-400">
+            <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               Join 5,000+ Ghanaians using MedsGH to skip the pharmacy queue.
             </div>
           </form>
@@ -329,14 +329,14 @@
         <!-- Step 2d: Reset Password -->
         <div v-else-if="currentStep === 'reset'">
           <form @submit.prevent="handleResetPassword">
-            <div class="mb-4 rounded-2xl border border-slate-700/50 bg-slate-800 p-4 text-sm text-slate-300">
-              <p>Resetting password for: <strong class="text-white">{{ formattedPhoneNumber }}</strong></p>
-              <p class="text-xs mt-1 text-slate-400">We'll send you a verification code</p>
+            <div :class="subtleCardClass">
+              <p>Resetting password for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
+              <p class="text-xs mt-1 text-[#7d7484]">We'll send you a verification code</p>
             </div>
 
             <div class="mb-4" v-if="!otpSent">
               <button type="button" @click="sendResetOTP" :disabled="isLoading"
-                class="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                :class="fullPrimaryButtonClass">
                 <span v-if="isLoading">Sending Reset Code...</span>
                 <span v-else>Send Reset Code</span>
               </button>
@@ -344,23 +344,23 @@
 
             <div v-if="otpSent">
               <div class="mb-4">
-                <label for="resetOtp" class="block text-sm font-medium text-slate-300 mb-1">Verification Code</label>
+                <label for="resetOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
                 <input v-model="otp" type="text" id="resetOtp"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
               </div>
 
               <div class="mb-4">
-                <label for="resetPassword" class="block text-sm font-medium text-slate-300 mb-1">New Password</label>
+                <label for="resetPassword" class="block text-sm font-medium text-[#4c4453] mb-1">New Password</label>
                 <input v-model="password" type="password" id="resetPassword"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Enter new password (min. 6 characters)" required minlength="6">
               </div>
 
               <div class="mb-4">
-                <label for="resetConfirmPassword" class="block text-sm font-medium text-slate-300 mb-1">Confirm New Password</label>
+                <label for="resetConfirmPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm New Password</label>
                 <input v-model="confirmPassword" type="password" id="resetConfirmPassword"
-                  class="block w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-white placeholder:text-slate-500 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                  :class="inputClass"
                   placeholder="Re-enter new password" required minlength="6">
                 <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
                   Passwords do not match
@@ -369,11 +369,11 @@
 
               <div class="mt-6 flex justify-end space-x-3">
                 <button type="button" @click="backToPhone"
-                  class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700">
+                  :class="secondaryButtonClass">
                   Cancel
                 </button>
                 <button type="submit" :disabled="isLoading || !otp || password !== confirmPassword"
-                  class="rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)] transition hover:bg-sky-400 disabled:opacity-50">
+                  :class="primaryButtonClass">
                   <span v-if="isLoading">Resetting...</span>
                   <span v-else>Reset Password</span>
                 </button>
@@ -400,6 +400,13 @@ const emit = defineEmits(['close', 'login-success']);
 
 const userStore = useUserStore();
 const pharmacyStore = usePharmacyStore();
+
+const subtleCardClass = 'mb-4 rounded-2xl border-none bg-[#f4ebf7] p-4 text-sm text-[#4c4453]';
+const inputClass = 'w-full rounded-full border-none shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 transition-colors';
+const phoneInputClass = 'w-full rounded-r-full border-none shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 transition-colors';
+const secondaryButtonClass = 'rounded-full border-none bg-[#e9dfec] px-6 py-3 text-sm font-bold text-[#4c4453] hover:bg-[#e0d7e3] transition-all active:scale-95';
+const primaryButtonClass = 'rounded-xl bg-[#520094] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
+const fullPrimaryButtonClass = 'w-full rounded-xl bg-[#520094] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
 
 // State management
 const currentStep = ref('phone'); // 'phone' | 'password' | 'setup' | 'register' | 'reset'

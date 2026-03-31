@@ -1,153 +1,155 @@
 <template>
-  <div class="app-shell">
-    <!-- Sidebar (desktop) -->
-    <aside class="sidebar">
-      <div class="sidebar-brand-wrap">
-        <div class="sidebar-brand">
-          <div class="brand-icon">
-            <img :src="brandLogo" alt="MedsGH" class="brand-logo-image" />
-          </div>
-          <div class="brand-copy">
-            <span class="brand-name">MedsGH</span>
-            <span class="brand-tag">Customer portal</span>
-          </div>
-        </div>
-        <div class="sidebar-highlight">
-          <span class="highlight-label">Current View</span>
-          <strong>{{ pageTitle }}</strong>
+  <div class="text-[#1d1a20] antialiased overflow-x-hidden min-h-screen bg-[#f4f4f5]">
+    <!-- SideNavBar -->
+    <aside class="fixed left-0 top-0 h-full hidden lg:flex flex-col p-5 gap-2 bg-white border-r border-zinc-200 w-64 z-50 ">
+      <div class="flex items-center gap-3 mb-10 px-2 cursor-pointer" @click="goTo('home')">
+        <img src="~/assets/images/rigellogo.png" class="h-10 w-auto object-contain" alt="MedsGH Logo" />
+        <div>
+          <h1 class="text-[1.7rem] font-semibold text-zinc-900 leading-none tracking-tight">MedsGh</h1>
+          <p class="text-[10px] uppercase tracking-[0.18em] text-[#71717a] font-medium opacity-60">Clinical Sanctuary</p>
         </div>
       </div>
-      <nav class="sidebar-nav">
-        <p class="side-section-label">Workspace</p>
-        <button @click="goTo('new')" class="side-btn accent" title="New Request">
-          <PlusCircleIconSolid class="side-icon" />
-          <span>New Request</span>
-          <small>Create and send a new order request</small>
+
+      <nav class="flex-1 space-y-2">
+        <button @click="goTo('home')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'home' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'" >
+          <span class="material-symbols-outlined" :style="activeNav === 'home' ? 'font-variation-settings: \'FILL\' 1;' : ''">home</span>
+          Home
         </button>
-        <div class="side-group">
-          <button @click="goTo('home')" class="side-btn" :class="{ active: activeNav === 'home' }" title="Home">
-            <component :is="activeNav === 'home' ? HomeIconSolid : HomeIcon" class="side-icon" />
-            <span>Home</span>
-          </button>
-          <button @click="goTo('requests')" class="side-btn" :class="{ active: activeNav === 'requests' }" title="My Requests">
-            <component :is="activeNav === 'requests' ? ClipDocListSolid : ClipDocList" class="side-icon" />
-            <span>My Requests</span>
-          </button>
-          <button @click="goTo('wallet')" class="side-btn" :class="{ active: activeNav === 'wallet' }" title="Wallet">
-            <component :is="activeNav === 'wallet' ? CreditCardSolid : CreditCardIcon" class="side-icon" />
-            <span>Wallet</span>
-          </button>
-          <button @click="goTo('orders')" class="side-btn" :class="{ active: activeNav === 'orders' }" title="Orders">
-            <component :is="activeNav === 'orders' ? ShoppingBagSolid : ShoppingBagIcon" class="side-icon" />
-            <span>Orders</span>
-          </button>
-        </div>
-        <div class="side-divider"></div>
-        <p class="side-section-label">Account</p>
-        <div class="side-group">
-          <button @click="goTo('companies')" class="side-btn" :class="{ active: activeNav === 'companies' }" title="Pharmacies">
-            <component :is="activeNav === 'companies' ? BuildingSolid : BuildingStorefrontIcon" class="side-icon" />
-            <span>Pharmacies</span>
-          </button>
-          <button @click="goTo('profile')" class="side-btn" :class="{ active: activeNav === 'profile' }" title="Profile">
-            <component :is="activeNav === 'profile' ? UserIconSolid : UserIcon" class="side-icon" />
-            <span>Profile</span>
-          </button>
-        </div>
+        <button @click="goTo('requests')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'requests' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
+          <span class="material-symbols-outlined" :style="activeNav === 'requests' ? 'font-variation-settings: \'FILL\' 1;' : ''">description</span>
+          My Requests
+        </button>
+        <button @click="goTo('wallet')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'wallet' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
+          <span class="material-symbols-outlined" :style="activeNav === 'wallet' ? 'font-variation-settings: \'FILL\' 1;' : ''">account_balance_wallet</span>
+          Wallet
+        </button>
+        <button @click="goTo('orders')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'orders' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
+          <span class="material-symbols-outlined" :style="activeNav === 'orders' ? 'font-variation-settings: \'FILL\' 1;' : ''">shopping_bag</span>
+          Orders
+        </button>
+        <button @click="goTo('companies')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'companies' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
+          <span class="material-symbols-outlined" :style="activeNav === 'companies' ? 'font-variation-settings: \'FILL\' 1;' : ''">local_pharmacy</span>
+          Pharmacies
+        </button>
+        <button @click="goTo('profile')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'profile' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
+          <span class="material-symbols-outlined" :style="activeNav === 'profile' ? 'font-variation-settings: \'FILL\' 1;' : ''">person</span>
+          Profile
+        </button>
       </nav>
-      <div class="sidebar-footer">
-        <div class="sidebar-user">
-          <div class="avatar-sm">{{ displayUserInitials }}</div>
-          <div class="user-meta">
-            <span class="user-name-sm">{{ displayUserName }}</span>
-            <span class="user-role-sm">Signed in customer</span>
-            <span class="user-phone-sm">{{ displayUserPhone }}</span>
-          </div>
-        </div>
-        <button @click="handleLogout" class="side-btn logout-btn" title="Log Out">
-          <ArrowLeftOnRectangleIcon class="side-icon" /><span>Log Out</span>
+
+      <div class="mt-auto pt-6 border-t border-[#ede3f2]">
+        <button @click="goTo('new')" class="w-full bg-zinc-900 text-white py-3.5 rounded-xl flex items-center justify-center gap-2 font-semibold shadow-[0_15px_30px_-15px_rgba(53,0,98,0.5)] hover:scale-[0.98] transition-transform">
+          <span class="material-symbols-outlined">add</span>
+          New Request
+        </button>
+        <button @click="handleLogout" class="w-full flex items-center gap-3 px-4 py-4 mt-4 text-[#5d5564] hover:text-[#ba1a1a] transition-colors font-medium text-sm rounded-xl hover:bg-red-50">
+          <span class="material-symbols-outlined">logout</span>
+          Logout
         </button>
       </div>
     </aside>
 
-    <div class="main-area">
-      <header class="app-header">
-        <div class="header-left">
-          <button v-if="canGoBack" @click="goTo('home')" class="back-btn">
-            <ChevronLeftIcon class="back-icon" />
-          </button>
-          <div v-if="showHeaderBrand" class="header-brand">
-            <img :src="brandLogo" alt="MedsGH" class="header-brand-logo" />
-            <span class="header-brand-name">MedsGH</span>
+    <main class="lg:ml-64 min-h-screen bg-[#f4f4f5] pb-28 lg:pb-0">
+      <!-- TopAppBar -->
+      <header
+        class="sticky top-0 z-40 bg-[#f4f4f5]/92 backdrop-blur-md px-4 lg:px-8 flex justify-between items-center border-b border-zinc-200"
+        :class="activeNav === 'home' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
+      >
+        <div v-if="activeNav === 'home' || canGoBack" class="flex items-center gap-3">
+          <div v-if="activeNav === 'home' && !canGoBack" class="lg:hidden w-10 h-10 primary-gradient rounded-xl flex items-center justify-center text-white">
+            <span class="material-symbols-outlined">medical_services</span>
           </div>
-          <h1 v-if="showPageTitle" class="header-title">{{ pageTitle }}</h1>
+          <button v-else-if="canGoBack" @click="goTo('home')" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          
+          <div v-if="activeNav === 'home'">
+            <h2 class="text-xl lg:text-[2rem] font-bold text-zinc-900 tracking-tight leading-tight">
+              {{ `Good morning, ${displayUserName}` }}
+            </h2>
+            <div class="mt-1 flex items-center gap-1.5 text-[#7a7280]">
+              <span class="material-symbols-outlined text-[15px]">location_on</span>
+              <span class="text-[11px] font-semibold uppercase tracking-[0.12em]">{{ headerLocation }}</span>
+            </div>
+          </div>
         </div>
-        <div class="header-right">
-          <button class="header-wallet-chip" @click="goTo('wallet')">
-            <CreditCardSolid class="header-wallet-icon" />
-            <span>GHS {{ walletBalance.toFixed(2) }}</span>
+
+        <div class="flex items-center gap-3 lg:gap-5" :class="activeNav === 'home' ? '' : 'ml-auto'">
+          <button class="w-10 h-10 hidden lg:flex items-center justify-center rounded-xl text-[#71717a] hover:bg-[#e8e0e8] transition-colors">
+            <span class="material-symbols-outlined">notifications</span>
           </button>
-          <button @click="toggleMenu" class="avatar-btn">
-            <span class="avatar">{{ displayUserInitials }}</span>
-          </button>
+          <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-[#efdbff] bg-[#f08a5d] text-[#4F217A] flex items-center justify-center font-semibold cursor-pointer" @click="toggleMenu">
+            {{ displayUserInitials }}
+          </div>
         </div>
       </header>
 
-      <Transition name="slide-up">
-        <div v-if="showMenu" class="sheet-overlay" @click="showMenu = false">
-          <div class="sheet" @click.stop>
-            <div class="sheet-handle"></div>
-            <div class="sheet-profile">
-              <div class="sheet-avatar">{{ displayUserInitials }}</div>
-              <div>
-                <p class="sheet-name">{{ displayUserName }}</p>
-                <p class="sheet-phone">{{ displayUserPhone }}</p>
-              </div>
-            </div>
-            <div class="sheet-actions">
-              <button @click="showMenu = false; goTo('home')" class="sheet-item">
-                <HomeIcon class="sheet-icon" /> Home
-              </button>
-              <button @click="showMenu = false; goTo('profile')" class="sheet-item">
-                <Cog6ToothIcon class="sheet-icon" /> Edit Profile
-              </button>
-              <button @click="showMenu = false; goTo('companies')" class="sheet-item">
-                <BuildingStorefrontIcon class="sheet-icon" /> Linked Pharmacies
-              </button>
-              <hr class="sheet-divider">
-              <button @click="handleLogout" class="sheet-item danger">
-                <ArrowLeftOnRectangleIcon class="sheet-icon" /> Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-
-      <main class="app-content">
+      <!-- Slot Area -->
+      <div class="p-4 lg:p-8">
         <slot />
-      </main>
+      </div>
 
-      <nav class="bottom-nav">
-        <button @click="goTo('home')" class="nav-btn" :class="{ active: activeNav === 'home' }">
-          <component :is="activeNav === 'home' ? HomeIconSolid : HomeIcon" class="nav-icon" /><span>Home</span>
+      <!-- Mobile Bottom Nav -->
+      <nav class="lg:hidden fixed bottom-3 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-md -translate-x-1/2 items-center justify-around rounded-xl border border-[#e8dff0] bg-white/92 px-2 py-2 shadow-[0_20px_45px_-25px_rgba(53,0,98,0.4)] backdrop-blur-md pb-safe">
+        <button @click="goTo('home')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'home' ? 'text-[#4F217A]' : 'text-zinc-500'">
+          <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'home' ? 'bg-[#efdbff]' : ''">
+            <span class="material-symbols-outlined" :style="activeNav === 'home' ? 'font-variation-settings: \'FILL\' 1;' : ''">home</span>
+          </div>
+          <span class="text-[10px] font-semibold">Home</span>
         </button>
-        <button @click="goTo('requests')" class="nav-btn" :class="{ active: activeNav === 'requests' }">
-          <component :is="activeNav === 'requests' ? ClipDocListSolid : ClipDocList" class="nav-icon" />
-          <span>Requests</span>
+        <button @click="goTo('requests')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'requests' ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'requests' ? 'bg-[#efdbff]' : ''">
+             <span class="material-symbols-outlined" :style="activeNav === 'requests' ? 'font-variation-settings: \'FILL\' 1;' : ''">description</span>
+           </div>
+           <span class="text-[10px] font-semibold">Requests</span>
         </button>
-        <button @click="goTo('new')" class="nav-fab">
-          <PlusIcon class="fab-icon" />
+        <div class="relative -top-5">
+           <button @click="goTo('new')" class="w-14 h-14 primary-gradient text-white rounded-xl flex items-center justify-center shadow-[0_18px_34px_-18px_rgba(53,0,98,0.7)] hover:scale-95 transition-transform border-[4px] border-white">
+              <span class="material-symbols-outlined">add</span>
+           </button>
+        </div>
+        <button @click="goTo('wallet')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'wallet' ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'wallet' ? 'bg-[#efdbff]' : ''">
+             <span class="material-symbols-outlined" :style="activeNav === 'wallet' ? 'font-variation-settings: \'FILL\' 1;' : ''">account_balance_wallet</span>
+           </div>
+           <span class="text-[10px] font-semibold">Wallet</span>
         </button>
-        <button @click="goTo('wallet')" class="nav-btn" :class="{ active: activeNav === 'wallet' }">
-          <component :is="activeNav === 'wallet' ? CreditCardSolid : CreditCardIcon" class="nav-icon" />
-          <span>Wallet</span>
-        </button>
-        <button @click="goTo('orders')" class="nav-btn" :class="{ active: activeNav === 'orders' }">
-          <component :is="activeNav === 'orders' ? ShoppingBagSolid : ShoppingBagIcon" class="nav-icon" />
-          <span>Orders</span>
+        <button @click="goTo('orders')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'orders' ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'orders' ? 'bg-[#efdbff]' : ''">
+             <span class="material-symbols-outlined" :style="activeNav === 'orders' ? 'font-variation-settings: \'FILL\' 1;' : ''">shopping_bag</span>
+           </div>
+           <span class="text-[10px] font-semibold">Orders</span>
         </button>
       </nav>
-    </div>
+    </main>
+
+    <!-- Mobile profile sheet -->
+    <Transition name="slide-up">
+      <div v-if="showMenu" class="fixed inset-0 bg-black/20 z-[60] flex items-end justify-center backdrop-blur-sm lg:items-center" @click="showMenu = false">
+        <div class="bg-white w-full lg:w-96 rounded-t-3xl lg:rounded-[2rem] p-6 pb-safe shadow-2xl relative" @click.stop>
+          <div class="w-12 h-1.5 bg-[#e8e0e8] rounded-xl mx-auto mb-6 lg:hidden"></div>
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-14 h-14 bg-zinc-900 rounded-xl text-white font-semibold flex items-center justify-center text-xl">{{ displayUserInitials }}</div>
+            <div>
+              <p class="font-semibold text-[#1d1a20] text-lg leading-tight">{{ displayUserName }}</p>
+              <p class="text-[#71717a] text-sm">{{ displayUserPhone }}</p>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <button @click="showMenu = false; goTo('profile')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
+              <span class="material-symbols-outlined text-[#71717a]">person</span> View Profile
+            </button>
+            <button @click="showMenu = false; goTo('companies')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
+              <span class="material-symbols-outlined text-[#71717a]">local_pharmacy</span> Linked Pharmacies
+            </button>
+            <div class="h-px w-full bg-[#f3ebf3] my-2"></div>
+            <button @click="handleLogout" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-[#ffdad6] text-[#ba1a1a] transition-colors text-left font-semibold">
+              <span class="material-symbols-outlined">logout</span> Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <ConfirmDialog
       :is-open="showLogoutConfirm"
@@ -163,31 +165,28 @@
 </template>
 
 <script setup>
+import { useHead } from '#imports'
 import { ref, computed, onMounted } from 'vue'
 import brandLogo from '~/assets/images/rigellogo.png'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
+import { getCompactAddressLines } from '~/utils/addressFormat'
 
-import {
-  HomeIcon, ClipboardDocumentListIcon as ClipDocList, CreditCardIcon,
-  ShoppingBagIcon, BuildingStorefrontIcon, UserIcon, ChevronLeftIcon,
-  PlusIcon, ArrowLeftOnRectangleIcon, Cog6ToothIcon
-} from '@heroicons/vue/24/outline'
-
-import {
-  HomeIcon as HomeIconSolid, ClipboardDocumentListIcon as ClipDocListSolid,
-  CreditCardIcon as CreditCardSolid, ShoppingBagIcon as ShoppingBagSolid,
-  BuildingStorefrontIcon as BuildingSolid, UserIcon as UserIconSolid,
-  PlusCircleIcon as PlusCircleIconSolid
-} from '@heroicons/vue/24/solid'
+useHead({
+  link: [
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+    }
+  ]
+})
 
 const userStore = useUserStore()
 const route = useRoute()
 const showMenu = ref(false)
 const showLogoutConfirm = ref(false)
 const hasMounted = ref(false)
-const walletBalance = useState('walletBalance', () => 0)
 
 const userName = computed(() => {
   const u = userStore.currentUser
@@ -202,11 +201,10 @@ const displayUserInitials = computed(() => hasMounted.value ? userInitials.value
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
 const activeNav = computed(() => route.query.tab || 'home')
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home')
-const showHeaderBrand = computed(() => activeNav.value === 'home')
-const showPageTitle = computed(() => activeNav.value !== 'home')
-const pageTitle = computed(() => {
-  const map = { home: 'Home', requests: 'My Requests', new: 'New Request', wallet: 'Wallet', orders: 'Order History', profile: 'Profile', companies: 'Pharmacies' }
-  return map[route.query.tab] || 'Home'
+const headerLocation = computed(() => {
+  const address = userStore.currentUser?.address || ''
+  const compact = getCompactAddressLines(address, { primaryCount: 2 }).primary
+  return compact || 'Set your delivery location'
 })
 const goTo = (tab) => navigateTo({ path: '/customer', query: { tab } })
 const toggleMenu = () => { showMenu.value = !showMenu.value }
@@ -230,769 +228,70 @@ onMounted(() => {
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
-
-.app-shell {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 24%),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  display: flex;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+.primary-gradient {
+  background: linear-gradient(135deg, #4F217A 0%, #520094 100%);
 }
-
-/* Sidebar */
-.sidebar {
-  display: none;
-  width: 240px;
-  background:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%),
-    linear-gradient(180deg, #ffffff, #f8fafc);
-  border-right: 1px solid #e2e8f0;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 50;
-  padding: 18px 14px;
-  overflow-y: auto;
-  scrollbar-width: thin;
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
 }
-
-.sidebar-brand-wrap {
-  padding: 6px 8px 18px;
-}
-
-.sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.brand-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid #dbe5f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
-}
-
-.brand-logo-image {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.brand-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.brand-name {
-  font-size: 1.125rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.brand-tag {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.sidebar-highlight {
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
-}
-
-.highlight-label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
-
-.sidebar-highlight strong {
-  display: block;
-  font-size: 0.92rem;
-  font-weight: 800;
-}
-
-.sidebar-nav {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-}
-
-.side-section-label {
-  margin: 0;
-  padding: 0 12px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #94a3b8;
-}
-
-.side-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #e2e8f0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.side-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 12px;
-  border-radius: 12px;
-  border: none;
-  background: none;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  width: 100%;
-  text-align: left;
-}
-
-.side-btn span {
-  flex: 1;
-}
-
-.side-btn small {
-  display: block;
-  margin-top: 3px;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.side-icon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}
-
-.side-btn:hover {
-  background: #f8fafc;
-  color: #334155;
-  transform: translateX(1px);
-}
-
-.side-btn.active {
-  background: linear-gradient(135deg, #eff6ff, #e0e7ff);
-  color: #1d4ed8;
-  font-weight: 700;
-  box-shadow: inset 0 0 0 1px #c7d2fe;
-}
-
-.side-btn.accent {
-  display: block;
-  text-align: left;
-  padding: 14px 14px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #0f766e, #2563eb);
-  color: white;
-  font-weight: 700;
-  margin: 0;
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
-}
-
-.side-btn.accent:hover {
-  opacity: 0.96;
-  transform: translateY(-1px);
-}
-
-.side-divider {
-  height: 1px;
-  background: #e2e8f0;
-  margin: 2px 8px;
-}
-
-.sidebar-footer {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 14px;
-}
-
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px 12px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid #e2e8f0;
-  margin-bottom: 8px;
-}
-
-.avatar-sm {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0f766e, #2563eb);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-
-.user-meta {
-  min-width: 0;
-}
-
-.user-name-sm {
-  display: block;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #0f172a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-role-sm {
-  display: block;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: #2563eb;
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-phone-sm {
-  display: block;
-  font-size: 0.68rem;
-  color: #94a3b8;
-  margin-top: 2px;
-}
-
-.logout-btn {
-  color: #ef4444 !important;
-  background: #fff !important;
-  border: 1px solid #fee2e2 !important;
-}
-
-.logout-btn:hover {
-  background: #fef2f2 !important;
-  transform: none;
-}
-
-/* Main */
-.main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-width: 0;
-}
-
-/* Header */
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  margin: 12px 12px 0;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 20px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.header-brand-logo {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.header-brand-name {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.02em;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  color: #667eea;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.back-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.header-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.header-wallet-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  border-radius: 20px;
-  padding: 6px 12px 6px 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #1d4ed8;
-  cursor: pointer;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.header-wallet-chip:hover {
-  background: rgba(37, 99, 235, 0.14);
-  border-color: rgba(37, 99, 235, 0.3);
-}
-
-.header-wallet-icon {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-}
-
-.avatar-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: white;
-}
-
-/* Content */
-.app-content {
-  flex: 1;
-  padding: 12px 0 94px 0;
-  overflow-y: auto;
-}
-
-/* Bottom Nav */
-.bottom-nav {
-  position: fixed;
-  bottom: 8px;
-  left: 8px;
-  right: 8px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 22px;
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.1);
-  z-index: 99;
-}
-
-.nav-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 12px;
-  transition: all 0.2s;
-  min-width: 56px;
-}
-
-.nav-btn span {
-  font-size: 0.625rem;
-  font-weight: 600;
-  color: #a0a3bd;
-  transition: color 0.2s;
-}
-
-.nav-icon {
-  width: 22px;
-  height: 22px;
-  color: #a0a3bd;
-  transition: color 0.2s;
-}
-
-.nav-btn.active .nav-icon {
-  color: #667eea;
-}
-
-.nav-btn.active span {
-  color: #667eea;
-}
-
-.nav-btn:active {
-  transform: scale(0.92);
-}
-
-.nav-fab {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: -16px;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-  transition: all 0.2s;
-}
-
-.fab-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-fab:active {
-  transform: scale(0.92) translateY(1px);
-}
-
-/* Sheet */
-.sheet-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 200;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.sheet {
-  width: 100%;
-  max-width: 480px;
-  background: white;
-  border-radius: 20px 20px 0 0;
-  padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0px));
-}
-
-.sheet-handle {
-  width: 36px;
-  height: 4px;
-  background: #d1d5db;
-  border-radius: 2px;
-  margin: 0 auto 16px;
-}
-
-.sheet-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.sheet-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-
-.sheet-name {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0;
-}
-
-.sheet-phone {
-  font-size: 0.8rem;
-  color: #9ca3af;
-  margin: 2px 0 0;
-}
-
-.sheet-actions {
-  padding-top: 8px;
-}
-
-.sheet-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 8px;
-  background: none;
-  border: none;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  border-radius: 10px;
-  transition: background 0.15s;
-}
-
-.sheet-item:active {
-  background: #f3f4f6;
-}
-
-.sheet-icon {
-  width: 20px;
-  height: 20px;
-  color: #6b7280;
-  flex-shrink: 0;
-}
-
-.sheet-item.danger {
-  color: #ef4444;
-}
-
-.sheet-item.danger .sheet-icon {
-  color: #ef4444;
-}
-
-.sheet-divider {
-  border: none;
-  border-top: 1px solid #f3f4f6;
-  margin: 4px 0;
-}
-
-/* Transitions */
-.slide-up-enter-active {
-  transition: all 0.3s ease;
-}
-
+.slide-up-enter-active,
 .slide-up-leave-active {
-  transition: all 0.25s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
-
-.slide-up-enter-from .sheet {
-  transform: translateY(100%);
-}
-
-.slide-up-leave-to .sheet {
-  transform: translateY(100%);
-}
-
-.slide-up-enter-from {
-  opacity: 0;
-}
-
+.slide-up-enter-from,
 .slide-up-leave-to {
   opacity: 0;
 }
-
-@media (min-width: 768px) {
-  .sidebar {
-    display: flex;
-    width: 92px;
-    padding: 16px 10px;
-  }
-
-  .main-area {
-    margin-left: 92px;
-  }
-
-  .bottom-nav {
-    display: none;
-  }
-
-  .sheet-overlay {
-    display: none !important;
-  }
-
-  .app-header {
-    margin: 18px 24px 0;
-    padding: 16px 20px;
-  }
-
-  .header-right {
-    gap: 10px;
-  }
-
-  .header-title {
-    font-size: 1.375rem;
-  }
-
-  .header-brand {
-    display: none;
-  }
-
-  .sidebar-brand-wrap {
-    padding: 4px 0 18px;
-  }
-
-  .sidebar-brand {
-    justify-content: center;
-    margin-bottom: 10px;
-  }
-
-  .brand-copy,
-  .sidebar-highlight,
-  .side-section-label,
-  .side-btn span,
-  .side-btn small,
-  .user-meta {
-    display: none;
-  }
-
-  .side-group {
-    padding: 6px 4px;
-  }
-
-  .side-btn,
-  .side-btn.accent,
-  .logout-btn {
-    justify-content: center;
-    padding: 12px 10px;
-  }
-
-  .side-btn:hover {
-    transform: translateY(-1px);
-  }
-
-  .sidebar-user {
-    justify-content: center;
-    padding: 10px;
-  }
-
-  .app-content {
-    padding: 18px 0 0;
-  }
+.slide-up-enter-from .bg-white,
+.slide-up-leave-to .bg-white {
+  transform: translateY(100%);
 }
 
-@media (min-width: 1100px) {
-  .sidebar {
-    width: 260px;
-    padding: 18px 14px;
-  }
+:deep(.customer-app .dashboard-top > article) {
+  border-radius: 1.9rem;
+}
 
-  .main-area {
-    margin-left: 260px;
-  }
+:deep(.customer-app .dashboard-middle > div > .space-y-4 > button),
+:deep(.customer-app .dashboard-middle > aside > div:last-child),
+:deep(.customer-app .section-wrap > div:last-child > button),
+:deep(.customer-app .section-wrap > div:last-child),
+:deep(.customer-app .section-wrap > div:nth-child(2)) {
+  border-radius: 1.7rem;
+}
 
-  .sidebar-brand-wrap {
-    padding: 6px 8px 18px;
-  }
+:deep(.customer-app .dashboard-top h3),
+:deep(.customer-app .dashboard-middle h3),
+:deep(.customer-app .section-wrap h3) {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
 
-  .sidebar-brand {
-    justify-content: flex-start;
-    margin-bottom: 14px;
-  }
+:deep(.customer-app .dashboard-top p.text-\[10px\]),
+:deep(.customer-app .dashboard-middle button.text-xs),
+:deep(.customer-app .section-wrap button.text-xs) {
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
 
-  .brand-copy,
-  .sidebar-highlight,
-  .side-section-label,
-  .side-btn span,
-  .user-meta {
-    display: block;
-  }
+:deep(.customer-app .dashboard-middle h4),
+:deep(.customer-app .section-wrap h4) {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
 
-  .side-btn small {
-    display: block;
-  }
+:deep(.customer-app .dashboard-middle strong),
+:deep(.customer-app .section-wrap strong) {
+  font-weight: 700;
+}
 
-  .side-group {
-    padding: 6px;
-  }
-
-  .side-btn,
-  .side-btn.accent,
-  .logout-btn {
-    justify-content: flex-start;
-    padding: 11px 12px;
-  }
-
-  .side-btn.accent {
-    padding: 14px 14px;
-  }
-
-  .sidebar-user {
-    justify-content: flex-start;
-    padding: 10px 12px 12px;
-  }
-
-  .app-header {
-    margin: 24px 40px 0;
-    padding: 18px 28px;
-  }
+:deep(.customer-app .dashboard-middle .inline-flex.rounded-full),
+:deep(.customer-app .section-wrap .inline-flex.rounded-full) {
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 </style>
+
+<style>.dashboard-top { grid-template-columns: repeat(12, minmax(0, 1fr)) !important; display: grid !important; gap: 1.5rem !important; }</style>

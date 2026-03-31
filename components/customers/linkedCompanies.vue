@@ -2,9 +2,10 @@
   <div class="linked-companies-component">
     <div class="section-header">
       <div class="header-content">
-        <h2>Linked Companies</h2>
+        <p class="eyebrow">Pharmacies</p>
+        <h2>Linked Pharmacies</h2>
         <p class="section-description">
-          Manage your company accounts. You can switch between companies to place orders.
+          Browse the pharmacies connected to your account and jump into any linked storefront.
         </p>
       </div>
       <button @click="triggerLinking" class="btn btn-link-accounts" :disabled="isLinking">
@@ -40,11 +41,16 @@
     <div v-if="!isLoading" class="companies-grid">
       <div v-for="company in companies" :key="company.company_id" class="company-card"
         :class="{ active: isActiveCompany(company) }">
-        <div class="company-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
+        <div class="company-topline">
+          <div class="company-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <span class="company-badge" :class="{ active: isActiveCompany(company) }">
+            {{ isActiveCompany(company) ? 'Active' : 'Linked' }}
+          </span>
         </div>
 
         <div class="company-info">
@@ -85,8 +91,8 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
-      <h3>No linked companies</h3>
-      <p>You don't have any companies linked to your account yet</p>
+      <h3>No linked pharmacies</h3>
+      <p>You do not have any pharmacies linked to your account yet.</p>
     </div>
 
     <!-- Info Box -->
@@ -98,10 +104,9 @@
         </svg>
       </div>
       <div class="info-content">
-        <h4>About Linked Companies</h4>
+        <h4>About Linked Pharmacies</h4>
         <p>
-          Click on any company to visit their online store and browse their products.
-          Each company has its own unique store where you can place orders.
+          Open any linked pharmacy to browse its products and place direct store orders from the same customer account.
         </p>
       </div>
     </div>
@@ -191,12 +196,12 @@ onMounted(() => {
 
 <style scoped>
 .linked-companies-component {
-  max-width: 1000px;
-  padding: 10px;
+  max-width: 1320px;
+  padding: 0.5rem 0 1rem;
 }
 
 .section-header {
-  margin-bottom: 24px;
+  margin-bottom: 26px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -204,22 +209,33 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+.eyebrow {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7b3dbd;
+}
+
 .header-content {
   flex: 1;
 }
 
 .section-header h2 {
-  font-size: 20px;
+  font-size: 30px;
   font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 8px 0;
+  color: #231734;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.04em;
 }
 
 .section-description {
-  color: #64748b;
+  color: #75697f;
   font-size: 14px;
   margin: 0;
   line-height: 1.6;
+  max-width: 560px;
 }
 
 .btn-link-accounts {
@@ -227,12 +243,12 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -294,37 +310,45 @@ onMounted(() => {
 
 .companies-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
   margin-bottom: 32px;
 }
 
 .company-card {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
+  background: linear-gradient(180deg, #ffffff, #fcf8fd);
+  border: 1px solid #eee3f3;
+  border-radius: 22px;
+  padding: 22px;
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: 0 14px 36px rgba(53, 0, 98, 0.05);
 }
 
 .company-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border-color: #d1d5db;
+  box-shadow: 0 20px 40px rgba(53, 0, 98, 0.08);
+  border-color: #dcc9ee;
 }
 
 .company-card.active {
-  border-color: #3b82f6;
-  background: #f0f9ff;
+  border-color: #cda9f1;
+  background: linear-gradient(180deg, #fcf6ff, #f8f0ff);
+}
+
+.company-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .company-icon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -337,10 +361,11 @@ onMounted(() => {
 }
 
 .company-info h3 {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
-  color: #1e293b;
+  color: #231734;
   margin: 0 0 8px 0;
+  letter-spacing: -0.04em;
 }
 
 .company-location,
@@ -349,7 +374,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #64748b;
+  color: #72677d;
   margin: 4px 0;
 }
 
@@ -358,6 +383,24 @@ onMounted(() => {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+.company-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: #f3ebfb;
+  color: #6a3d95;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.company-badge.active {
+  background: #e8f7eb;
+  color: #17754a;
 }
 
 .company-actions {
@@ -389,7 +432,7 @@ onMounted(() => {
   gap: 8px;
   padding: 10px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -403,14 +446,16 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #3b82f6;
-  color: white;
+  background: #fff;
+  color: #4b4056;
+  border: 1px solid #dfd3e6;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
+  background: #faf7fc;
+  border-color: #cdbddb;
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 10px 22px rgba(53, 0, 98, 0.08);
 }
 
 .btn .spinner {
@@ -423,8 +468,9 @@ onMounted(() => {
   text-align: center;
   padding: 60px 20px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 22px;
+  border: 1px solid #eee3f3;
+  box-shadow: 0 14px 34px rgba(53, 0, 98, 0.05);
   margin-bottom: 32px;
 }
 
@@ -447,9 +493,9 @@ onMounted(() => {
 }
 
 .info-box {
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 12px;
+  background: linear-gradient(180deg, #fbf7fd, #f5edf9);
+  border: 1px solid #ebdef2;
+  border-radius: 22px;
   padding: 20px;
   display: flex;
   gap: 16px;
@@ -459,7 +505,7 @@ onMounted(() => {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
-  background: #0ea5e9;
+  background: #6d30b2;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -475,13 +521,13 @@ onMounted(() => {
 .info-content h4 {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: #231734;
   margin: 0 0 8px 0;
 }
 
 .info-content p {
   font-size: 14px;
-  color: #64748b;
+  color: #75697f;
   margin: 0;
   line-height: 1.6;
 }

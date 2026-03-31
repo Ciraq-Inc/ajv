@@ -2,9 +2,9 @@
   <div class="orders-component">
     <div class="section-header">
       <div>
-        <p class="eyebrow">Order History</p>
+        <p class="eyebrow">Orders</p>
         <h2>All Orders</h2>
-        <p class="section-description">View and manage your orders across all linked companies</p>
+        <p class="section-description">View and manage your store and request orders in one place.</p>
       </div>
       <div class="summary-strip">
         <div class="summary-pill">
@@ -39,6 +39,7 @@
 
     <!-- Filters -->
     <div v-if="activeOrdersTab === 'store'" class="filters">
+      <span class="filter-kicker">Status</span>
       <select v-model="selectedStatus" @change="loadOrders" class="filter-select">
         <option value="">All Orders</option>
         <option value="pending">Pending</option>
@@ -83,9 +84,10 @@
           <div v-for="order in orders" :key="order.order_id" class="order-card">
             <div class="order-header">
               <div class="order-info">
+                <p class="order-kind">Store Order</p>
                 <h3>Order #{{ order.order_id.substring(0, 8) }}</h3>
-                <p class="order-date">{{ formatDate(order.created_at || order.order_date) }}</p>
-                <p class="order-company" v-if="order.company_name">From: {{ order.company_name }}</p>
+                <p class="order-date">Placed {{ formatDate(order.created_at || order.order_date) }}</p>
+                <p class="order-company" v-if="order.company_name">{{ order.company_name }}</p>
               </div>
               <div class="order-status">
                 <span :class="['status-badge', getStatusClass(order.status)]">
@@ -149,9 +151,12 @@
           <div v-for="request in paidRequests" :key="request.id" class="order-card request-order-card">
             <div class="order-header">
               <div class="order-info">
+                <p class="order-kind">Request Order</p>
                 <h3>Request #{{ request.request_number }}</h3>
                 <p class="order-date">{{ formatDate(request.updated_at || request.created_at) }}</p>
-                <p class="order-company">Request Order</p>
+                <p class="order-company" v-if="request.fulfillment_type">
+                  {{ request.fulfillment_type === 'delivery' ? 'Delivery' : 'Pickup' }}
+                </p>
               </div>
               <div class="order-status">
                 <span :class="['status-badge', getRequestStatusClass(request.status)]">
@@ -571,16 +576,16 @@ onUnmounted(() => {
 
 <style scoped>
 .orders-component {
-  max-width: 1000px;
-  padding: 10px;
+  max-width: 1360px;
+  padding: 0.75rem 0 1.5rem;
 }
 
 .section-header {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 
@@ -590,43 +595,46 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #2563eb;
+  color: #7b3dbd;
 }
 
 .section-header h2 {
-  font-size: 28px;
+  font-size: 31px;
   line-height: 1.1;
-  font-weight: 800;
-  color: #1e293b;
+  font-weight: 700;
+  color: #231734;
   margin: 0 0 4px 0;
+  letter-spacing: -0.04em;
 }
 
 .section-description {
-  color: #64748b;
+  color: #75697f;
   font-size: 14px;
   margin: 0;
   max-width: 560px;
+  line-height: 1.5;
 }
 
 .summary-strip {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .summary-pill {
-  min-width: 88px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
+  min-width: 108px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffaff, #f6eefc);
+  border: 1px solid #ecdef8;
+  color: #513168;
+  box-shadow: 0 14px 30px rgba(68, 37, 104, 0.05);
 }
 
 .summary-pill.request {
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-  border-color: #a7f3d0;
-  color: #065f46;
+  background: linear-gradient(180deg, #fbf6ff, #f3ebfd);
+  border-color: #e9daf8;
+  color: #60358a;
 }
 
 .summary-label {
@@ -640,8 +648,10 @@ onUnmounted(() => {
 }
 
 .summary-pill strong {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
+  font-weight: 700;
+  color: #241838;
 }
 
 .orders-tabs {
@@ -649,10 +659,10 @@ onUnmounted(() => {
   gap: 8px;
   margin-bottom: 16px;
   padding: 6px;
-  border: 1px solid #dbe4ee;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid #efe4f3;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fffdfd, #f9f4fb);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .tab-btn {
@@ -662,23 +672,23 @@ onUnmounted(() => {
   justify-content: space-between;
   border: none;
   background: transparent;
-  color: #475569;
+  color: #73677d;
   padding: 12px 14px;
   font-size: 14px;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .tab-btn:hover {
-  color: #0f172a;
+  color: #350062;
 }
 
 .tab-btn.active {
   background: white;
-  color: #1e293b;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  color: #2a1d3f;
+  box-shadow: 0 10px 24px rgba(53, 0, 98, 0.08);
 }
 
 .tab-count {
@@ -689,32 +699,47 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #e2e8f0;
-  color: #334155;
+  background: #efe4fb;
+  color: #6c24b3;
   font-size: 12px;
   font-weight: 800;
 }
 
 .tab-btn.active .tab-count {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #ead6fd;
+  color: #6c24b3;
 }
 
 .filters {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 1rem;
+  background: #fcf8fd;
+  border: 1px solid #eee4f2;
+}
+
+.filter-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #756980;
 }
 
 .filter-select {
   width: 100%;
   max-width: 260px;
-  padding: 12px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  padding: 11px 14px;
+  border: 1px solid #e4d8eb;
+  border-radius: 14px;
   font-size: 14px;
   background: white;
   cursor: pointer;
-  color: #0f172a;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  color: #231734;
+  box-shadow: 0 6px 18px rgba(38, 23, 54, 0.04);
 }
 
 .loading-state {
@@ -742,34 +767,34 @@ onUnmounted(() => {
 }
 
 .orders-block {
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+  background: linear-gradient(180deg, #ffffff, #fcf9fd);
+  border: 1px solid #eee2f2;
+  border-radius: 26px;
+  padding: 20px;
+  box-shadow: 0 18px 46px rgba(53, 0, 98, 0.05);
 }
 
 .request-orders-block {
-  background: linear-gradient(180deg, #ffffff, #f0fdf4);
-  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #ffffff, #faf4ff);
+  border-color: #eadcf6;
 }
 
 .block-head {
   margin-bottom: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f0e6f3;
 }
 
 .block-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
+  font-size: 19px;
+  font-weight: 700;
+  color: #261938;
   margin: 0 0 4px 0;
 }
 
 .block-description {
   font-size: 13px;
-  color: #64748b;
+  color: #776b81;
   margin: 0;
 }
 
@@ -818,131 +843,161 @@ onUnmounted(() => {
 .orders-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
+  border: 1px solid #eee4f1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .order-card {
-  background: white;
-  border-radius: 14px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+  background: transparent;
+  border-radius: 0;
+  padding: 18px;
+  border: none;
+  border-bottom: 1px solid #f1e8f3;
   transition: all 0.2s;
+  display: block;
 }
 
 .order-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  transform: none;
+  box-shadow: none;
+  background: #fcf9fd;
+}
+
+.order-card:last-child {
+  border-bottom: none;
 }
 
 .request-order-card {
-  border-color: #bbf7d0;
+  background: linear-gradient(180deg, rgba(250, 245, 255, 0.55), rgba(255, 255, 255, 0.9));
 }
 
 .order-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1e8f3;
+}
+
+.order-kind {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7b6f88;
 }
 
 .order-info h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: 17px;
+  font-weight: 700;
+  color: #241838;
   margin: 0 0 3px 0;
+  letter-spacing: -0.04em;
 }
 
 .order-date {
   font-size: 13px;
-  color: #64748b;
+  color: #7b7186;
   margin: 0 0 3px 0;
 }
 
 .order-company {
   font-size: 11px;
-  color: #059669;
-  font-weight: 500;
+  color: #6a5d77;
+  font-weight: 600;
   margin: 0;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 5px 10px;
+  padding: 6px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .status-pending {
-  background: #fef3c7;
-  color: #92400e;
+  background: #fff4dc;
+  color: #9a610f;
 }
 
 .status-processing {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #eef1ff;
+  color: #4f56ad;
 }
 
 .status-shipped {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #f2ebff;
+  color: #6c3eb1;
 }
 
 .status-delivered {
-  background: #d1fae5;
-  color: #065f46;
+  background: #e6f7ea;
+  color: #16774a;
 }
 
 .status-cancelled {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #ffe6e8;
+  color: #bf4454;
 }
 
 .status-default {
-  background: #f3f4f6;
-  color: #374151;
+  background: #f3eef6;
+  color: #62576d;
 }
 
 .order-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .items-summary {
   font-size: 13px;
-  color: #64748b;
+  color: #74697f;
   margin: 0;
 }
 
 .items-summary strong {
   font-size: 16px;
-  color: #0f172a;
+  color: #231734;
 }
 
 .request-meta-line {
   font-size: 11px;
-  color: #64748b;
+  color: #80748b;
   margin: 4px 0 0 0;
 }
 
 .total-label {
   font-size: 11px;
-  color: #64748b;
+  color: #857a91;
   margin: 0 0 3px 0;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+}
+
+.order-total {
+  text-align: right;
 }
 
 .total-amount {
-  font-size: 18px;
-  font-weight: 800;
-  color: #1e293b;
+  font-size: 22px;
+  font-weight: 700;
+  color: #231734;
   margin: 0;
+  letter-spacing: -0.04em;
 }
 
 .order-footer {
@@ -955,11 +1010,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 13px;
+  padding: 9px 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -971,26 +1026,17 @@ onUnmounted(() => {
 
 .btn-outline {
   background: #fff;
-  border: 1px solid #cbd5e1;
-  color: #374151;
+  border: 1px solid #dfd3e6;
+  color: #4b4056;
 }
 
 .btn-outline:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #2563eb;
+  background: #faf7fc;
+  border-color: #cdbddb;
 }
 
 .btn-danger {
-  background: linear-gradient(180deg, #ef4444, #dc2626);
+  background: linear-gradient(180deg, #e8606d, #d64c5a);
   color: white;
 }
 
@@ -1005,7 +1051,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(30, 19, 44, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1015,12 +1061,12 @@ onUnmounted(() => {
 
 .modal {
   background: white;
-  border-radius: 12px;
+  border-radius: 18px;
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 28px 52px rgba(34, 20, 52, 0.18);
 }
 
 .modal-header {
@@ -1028,7 +1074,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f0e6f2;
 }
 
 .modal-header h3 {
@@ -1065,7 +1111,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f4edf6;
 }
 
 .detail-label {
@@ -1094,10 +1140,12 @@ onUnmounted(() => {
 .item-row {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: #fbf8fc;
+  border-radius: 14px;
   margin-bottom: 8px;
+  border: 1px solid #f0e6f3;
 }
 
 .item-name {
@@ -1169,7 +1217,7 @@ onUnmounted(() => {
   }
 
   .section-header h2 {
-    font-size: 20px;
+    font-size: 24px;
   }
 
   .section-description {
@@ -1180,12 +1228,12 @@ onUnmounted(() => {
     width: 100%;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    gap: 8px;
   }
 
   .summary-pill {
     min-width: 0;
-    padding: 8px 9px;
+    padding: 9px 10px;
     border-radius: 11px;
   }
 
@@ -1216,6 +1264,10 @@ onUnmounted(() => {
   }
 
   .filters {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
     margin-bottom: 12px;
   }
 
@@ -1230,8 +1282,8 @@ onUnmounted(() => {
   }
 
   .orders-block {
-    padding: 12px;
-    border-radius: 14px;
+    padding: 13px;
+    border-radius: 16px;
   }
 
   .block-head {
@@ -1249,12 +1301,19 @@ onUnmounted(() => {
 
   .orders-list {
     gap: 8px;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
+    box-shadow: none;
   }
 
   .order-card {
     padding: 12px;
     border-radius: 13px;
     box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+    border: 1px solid #eee4f1;
+    background: #fff;
   }
 
   .order-header {
@@ -1264,7 +1323,7 @@ onUnmounted(() => {
   }
 
   .order-info h3 {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .order-date {
@@ -1305,16 +1364,12 @@ onUnmounted(() => {
     margin-top: 2px;
   }
 
-  .request-order-card .order-company {
-    display: none;
-  }
-
   .order-total {
     text-align: right;
   }
 
   .total-amount {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .order-footer {

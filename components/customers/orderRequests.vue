@@ -1,219 +1,277 @@
 <template>
     <div class="order-requests">
-        <!-- Sub-tabs -->
-        <div class="sub-tabs">
-            <button @click="subTab = 'new'" class="sub-tab" :class="{ active: subTab === 'new' }">
-                <PlusCircleIcon class="tab-svg" />
-                <span>New Request</span>
-            </button>
-            <button @click="subTab = 'list'; fetchMyRequests()" class="sub-tab" :class="{ active: subTab === 'list' }">
-                <ClipDocList class="tab-svg" />
-                <span>My Requests</span>
-                <span v-if="myRequests.length" class="badge">{{ myRequests.length }}</span>
-            </button>
-        </div>
-
         <!-- ====== NEW REQUEST FORM ====== -->
-        <div v-if="subTab === 'new'" class="form-section">
+        <div v-if="isNewView" class="form-section mb-10 text-[#350062]">
+            <section class="new-request-hero">
+                <div class="new-request-hero-copy">
+                    <span class="shell-eyebrow">New Request</span>
+                    <h2 class="new-request-title">Build your medication request in one flow.</h2>
+                    <p class="new-request-desc">Add medicines, attach prescription images if needed, confirm your location, and choose delivery or pickup before sending it out.</p>
+                </div>
+                <div class="new-request-hero-panel">
+                    <div class="hero-panel-item">
+                        <span>Priority Search</span>
+                        <strong>GHS {{ requestFee.toFixed(2) }}</strong>
+                    </div>
+                    <div class="hero-panel-item">
+                        <span>Wallet Balance</span>
+                        <strong>GHS {{ walletBalance.toFixed(2) }}</strong>
+                    </div>
+                    <div class="hero-panel-item muted">
+                        <span>Request Content</span>
+                        <strong>{{ validItems.length || prescriptionFiles.length ? `${validItems.length || prescriptionFiles.length} ready` : 'Start adding items' }}</strong>
+                    </div>
+                </div>
+            </section>
+
             <div class="step-content">
-                <h3 class="step-title">What do you need?</h3>
-                <p class="step-desc">Add your items or send clear prescription photos, confirm your location, choose delivery or pickup, and send the request from this page.</p>
-                <div v-if="!canSearchProducts" class="search-lock-card">
-                    <div class="search-lock-copy">
-                        <strong>Top up your wallet to start a Priority Search.</strong>
-                        <span>You need at least GHS {{ requestFee.toFixed(2) }} in your wallet before product search becomes available. Current wallet balance: GHS {{ walletBalance.toFixed(2) }}.</span>
+                <div class="editor-section">
+                    <div class="editor-section-head">
+                        <div>
+                            <h3 class="step-title">What do you need?</h3>
+                            <p class="step-desc">Search for medicines, attach product photos, or upload a prescription if you want pharmacies to interpret it for you.</p>
+                        </div>
+                        <span class="editor-section-badge">{{ validItems.length ? `${validItems.length} item${validItems.length === 1 ? '' : 's'}` : 'Awaiting items' }}</span>
                     </div>
-                    <button type="button" class="location-help-btn" @click="openWalletTab">
-                        Top Up Wallet
+
+                    <div v-if="!canSearchProducts" class="search-lock-card">
+                        <div class="search-lock-copy">
+                            <strong>Top up your wallet to start a Priority Search.</strong>
+                            <span>You need at least GHS {{ requestFee.toFixed(2) }} in your wallet before product search becomes available. Current wallet balance: GHS {{ walletBalance.toFixed(2) }}.</span>
+                        </div>
+                        <button type="button" class="location-help-btn" @click="openWalletTab">
+                            Top Up Wallet
+                        </button>
+                    </div>
+                </div>
+
+                <section class="editor-card">
+                    <div class="editor-card-head">
+                        <div>
+                            <span class="editor-card-kicker">Location</span>
+                            <h4>Set where this request should be sourced from.</h4>
+                        </div>
+                        <span class="editor-card-status" :class="{ ready: customerLat }">{{ customerLat ? 'Ready' : 'Needed' }}</span>
+                    </div>
+
+                    <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-4"
+                        :class="{ set: customerLat }">
+                        <div class="location-icon-wrap" :class="{ set: customerLat }">
+                            <MapPinIconSolid v-if="customerLat" class="loc-svg" />
+                            <ArrowPathIcon v-else-if="gettingLocation" class="loc-svg spin" />
+                            <MapPinIcon v-else class="loc-svg" />
+                        </div>
+                        <div class="location-text">
+                            <strong>{{ locationLabel }}</strong>
+                            <span>{{ locationSublabel }}</span>
+                        </div>
+                        <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
                     </button>
-                </div>
+                    <div class="location-help-card" :class="{ error: !!locationIssue }">
+                        <p class="location-help-copy">
+                            {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery or pickup.' }}
+                        </p>
+                        <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="location-help-actions">
+                            <button type="button" class="location-help-btn" @click="getLocation">
+                                Use Different Location For This Request
+                            </button>
+                        </div>
+                        <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="location-help-actions">
+                            <button type="button" class="location-help-btn secondary" @click="restoreSavedHomeLocation">
+                                Use Saved Home Address
+                            </button>
+                            <button type="button" class="location-help-btn" @click="getLocation">
+                                Refresh Request Location
+                            </button>
+                        </div>
+                        <div v-if="locationIssue" class="location-help-actions">
+                            <button type="button" class="location-help-btn" @click="getLocation">Try Again</button>
+                            <button type="button" class="location-help-btn secondary" @click="openLocationSettings">
+                                Open Settings
+                            </button>
+                        </div>
+                        <p v-if="locationIssue" class="location-help-note">{{ locationIssue.instructions }}</p>
+                    </div>
+                </section>
 
-                <!-- Location Prompt -->
-                <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-4"
-                    :class="{ set: customerLat }">
-                    <div class="location-icon-wrap" :class="{ set: customerLat }">
-                        <MapPinIconSolid v-if="customerLat" class="loc-svg" />
-                        <ArrowPathIcon v-else-if="gettingLocation" class="loc-svg spin" />
-                        <MapPinIcon v-else class="loc-svg" />
+                <section class="editor-card">
+                    <div class="editor-card-head">
+                        <div>
+                            <span class="editor-card-kicker">Items</span>
+                            <h4>Add the medicines you want sourced.</h4>
+                        </div>
+                        <span class="editor-card-status">{{ requestItems.length }} row{{ requestItems.length === 1 ? '' : 's' }}</span>
                     </div>
-                    <div class="location-text">
-                        <strong>{{ locationLabel }}</strong>
-                        <span>{{ locationSublabel }}</span>
-                    </div>
-                    <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
-                </button>
-                <div class="location-help-card" :class="{ error: !!locationIssue }">
-                    <p class="location-help-copy">
-                        {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery or pickup.' }}
-                    </p>
-                    <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="location-help-actions">
-                        <button type="button" class="location-help-btn" @click="getLocation">
-                            Use Different Location For This Request
-                        </button>
-                    </div>
-                    <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="location-help-actions">
-                        <button type="button" class="location-help-btn secondary" @click="restoreSavedHomeLocation">
-                            Use Saved Home Address
-                        </button>
-                        <button type="button" class="location-help-btn" @click="getLocation">
-                            Refresh Request Location
-                        </button>
-                    </div>
-                    <div v-if="locationIssue" class="location-help-actions">
-                        <button type="button" class="location-help-btn" @click="getLocation">Try Again</button>
-                        <button type="button" class="location-help-btn secondary" @click="openLocationSettings">
-                            Open Settings
-                        </button>
-                    </div>
-                    <p v-if="locationIssue" class="location-help-note">{{ locationIssue.instructions }}</p>
-                </div>
 
-                <div class="items-list">
-                    <div v-for="(item, index) in requestItems" :key="index" class="item-row">
-                        <span class="item-num">{{ index + 1 }}</span>
-                        <div class="item-main">
-                            <div class="item-search-shell" :class="{ locked: !canSearchProducts }">
+                    <div class="items-list">
+                        <div v-for="(item, index) in requestItems" :key="index" class="item-row">
+                            <span class="item-num">{{ index + 1 }}</span>
+                            <div class="item-main">
+                                <div class="item-search-shell" :class="{ locked: !canSearchProducts }">
                                 <div class="item-search-head">
                                     <strong>Search for a medicine</strong>
                                     <span>Type a name, brand, or strength. You can still enter it manually.</span>
                                 </div>
                                 <div class="input-wrap relative clickable-input-wrap" @click="$event.currentTarget.querySelector('input')?.focus()">
-                                    <MagnifyingGlassIcon class="item-search-icon" />
-                                    <input v-model="item.product_name" type="text" placeholder="Search medicine name, brand, or strength"
-                                        :disabled="!canSearchProducts"
-                                        class="item-input" @input="onProductInput(item)" @focus="onProductInput(item)"
-                                        @blur="closeDropdown(item)" />
+                                        <MagnifyingGlassIcon class="item-search-icon" />
+                                        <input v-model="item.product_name" type="text" placeholder="Search medicine name, brand, or strength"
+                                            :disabled="!canSearchProducts"
+                                            class="item-input" @input="onProductInput(item)" @focus="onProductInput(item)"
+                                            @blur="closeDropdown(item)" />
+                                        <span v-if="item.product_name && !item.loading" class="search-chip">{{ item.showDropdown && item.searchResults.length ? `${item.searchResults.length} match${item.searchResults.length === 1 ? '' : 'es'}` : 'Custom entry' }}</span>
+                                        <span v-else-if="item.loading" class="search-chip searching">Searching</span>
 
-                                    <!-- Search Dropdown -->
-                                    <div v-if="item.showDropdown && (item.searchResults.length || item.loading)"
-                                        class="search-dropdown">
-                                        <div v-if="item.loading" class="search-item loading">
-                                            <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
+                                        <!-- Search Dropdown -->
+                                        <div v-if="item.showDropdown && (item.searchResults.length || item.loading)"
+                                            class="search-dropdown">
+                                            <div class="search-dropdown-head">
+                                                <span>Suggested matches</span>
+                                                <strong>{{ item.loading ? 'Checking nearby options' : `${item.searchResults.length} result${item.searchResults.length === 1 ? '' : 's'}` }}</strong>
+                                            </div>
+                                            <div v-if="item.loading" class="search-item loading">
+                                                <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
+                                            </div>
+                                            <template v-else>
+                                                <div v-for="(res, idx) in item.searchResults" :key="res.id || idx"
+                                                    @mousedown.prevent="selectProduct(item, res)" class="search-item">
+                                                    <div class="search-item-main">
+                                                        <div class="font-medium text-gray-900">{{ res.product_description }}</div>
+                                                        <div class="text-xs text-gray-500">
+                                                            {{ [res.strength, res.unit].filter(Boolean).join(' - ') || 'No extra details' }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="search-item-side">
+                                                        <span v-if="res.available_at" class="search-availability">Nearby</span>
+                                                        <span class="search-pick">Use</span>
+                                                    </div>
+                                                </div>
+                                                <div v-if="item.searchResults.length === 0 && item.product_name.length > 2"
+                                                    class="search-item no-results">
+                                                    No matches found. We’ll keep this as a custom item entry.
+                                                </div>
+                                            </template>
                                         </div>
-                                        <template v-else>
-                                            <div v-for="(res, idx) in item.searchResults" :key="res.id || idx"
-                                                @mousedown.prevent="selectProduct(item, res)" class="search-item">
-                                                <div class="font-medium text-gray-900">{{ res.product_description }}</div>
-                                                <div class="text-xs text-gray-500">
-                                                    {{ [res.strength, res.unit].filter(Boolean).join(' - ') }}
-                                                </div>
-                                                <div v-if="res.available_at" class="text-xs text-green-600 mt-1 font-medium">
-                                                    In stock nearby
-                                                </div>
-                                            </div>
-                                            <div v-if="item.searchResults.length === 0 && item.product_name.length > 2"
-                                                class="search-item no-results">
-                                                No matches found. Using custom entry.
-                                            </div>
-                                        </template>
+                                    </div>
+                                    <div class="search-helper-row">
+                                        <span v-if="item.product_name && !item.showDropdown" class="search-helper-state">Tap the field again to search more</span>
+                                    </div>
+                                </div>
+                                <div class="item-upload-row">
+                                    <label class="item-upload-btn">
+                                        <CameraIcon class="upload-svg" />
+                                        <span>{{ item.imageFiles.length ? `Add photos (${item.imageFiles.length})` : 'Add item photo' }}</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            class="hidden-input"
+                                            @change="onItemImagesSelected($event, item)"
+                                        />
+                                    </label>
+                                    <span v-if="item.imageFiles.length" class="item-upload-note">Attached only to this product.</span>
+                                </div>
+                                <div v-if="item.imageFiles.length" class="item-image-grid">
+                                    <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="item-image-card">
+                                        <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="item-image-preview" />
+                                        <div class="item-image-actions">
+                                            <label class="preview-action-btn">
+                                                Replace
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    class="hidden-input"
+                                                    @change="replaceItemImage($event, item, imageIndex)"
+                                                />
+                                            </label>
+                                            <button type="button" class="preview-action-btn danger" @click="removeItemImage(item, imageIndex)">Delete</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="item-upload-row">
-                                <label class="item-upload-btn">
-                                    <CameraIcon class="upload-svg" />
-                                    <span>{{ item.imageFiles.length ? `Add photos (${item.imageFiles.length})` : 'Add item photo' }}</span>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        class="hidden-input"
-                                        @change="onItemImagesSelected($event, item)"
-                                    />
-                                </label>
-                                <span v-if="item.imageFiles.length" class="item-upload-note">Attached only to this product.</span>
-                            </div>
-                            <div v-if="item.imageFiles.length" class="item-image-grid">
-                                <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="item-image-card">
-                                    <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="item-image-preview" />
-                                    <div class="item-image-actions">
-                                        <label class="preview-action-btn">
-                                            Replace
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                class="hidden-input"
-                                                @change="replaceItemImage($event, item, imageIndex)"
-                                            />
-                                        </label>
-                                        <button type="button" class="preview-action-btn danger" @click="removeItemImage(item, imageIndex)">Delete</button>
-                                    </div>
+                            <div class="qty-picker">
+                                <span class="qty-label">Qty</span>
+                                <div class="qty-controls">
+                                    <button type="button" class="qty-btn" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">
+                                        <MinusSmallIcon class="qty-svg" />
+                                    </button>
+                                    <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
+                                        class="qty-input" />
+                                    <button type="button" class="qty-btn" @click="incrementQty(item)">
+                                        <PlusSmallIcon class="qty-svg" />
+                                    </button>
                                 </div>
                             </div>
+                            <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="remove-btn"
+                                title="Remove">
+                                <XMarkIcon class="rm-svg" />
+                            </button>
                         </div>
-                        <div class="qty-picker">
-                            <span class="qty-label">Qty</span>
-                            <div class="qty-controls">
-                                <button type="button" class="qty-btn" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">
-                                    <MinusSmallIcon class="qty-svg" />
-                                </button>
-                                <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
-                                    class="qty-input" />
-                                <button type="button" class="qty-btn" @click="incrementQty(item)">
-                                    <PlusSmallIcon class="qty-svg" />
-                                </button>
-                            </div>
-                        </div>
-                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="remove-btn"
-                            title="Remove">
-                            <XMarkIcon class="rm-svg" />
-                        </button>
                     </div>
-                </div>
 
-                <button @click="addItem" class="add-item-btn" :disabled="!canSearchProducts">
-                    <PlusIcon class="add-svg" /> Add Another Item
-                </button>
+                    <button @click="addItem" class="add-item-btn" :disabled="!canSearchProducts">
+                        <PlusIcon class="add-svg" /> Add Another Item
+                    </button>
+                </section>
 
                 <!-- Prescription -->
-                <div class="prescription-box">
-                    <CameraIcon class="prescription-svg" />
-                    <div class="prescription-text">
-                        <strong>Have a prescription?</strong>
-                        <span>Add clear photos of each page. Front and back pages can be uploaded together.</span>
+                <section class="editor-card prescription-section">
+                    <div class="editor-card-head">
+                        <div>
+                            <span class="editor-card-kicker">Prescription</span>
+                            <h4>Upload clear prescription photos if the pharmacy should interpret the items.</h4>
+                        </div>
+                        <span class="editor-card-status">{{ prescriptionFiles.length ? `${prescriptionFiles.length} attached` : 'Optional' }}</span>
                     </div>
-                    <label class="upload-label">
-                        <ArrowUpTrayIcon class="upload-svg" />
-                        {{ prescriptionFiles.length ? `Add More Photos (${prescriptionFiles.length})` : 'Choose Photos' }}
+
+                    <div class="prescription-box">
+                        <CameraIcon class="prescription-svg" />
+                        <div class="prescription-text">
+                            <strong>Have a prescription?</strong>
+                            <span>Add clear photos of each page. Front and back pages can be uploaded together.</span>
+                        </div>
+                        <label class="upload-label">
+                            <ArrowUpTrayIcon class="upload-svg" />
+                            {{ prescriptionFiles.length ? `Add More Photos (${prescriptionFiles.length})` : 'Choose Photos' }}
+                            <input
+                                ref="prescriptionPicker"
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                @change="onPrescriptionFilesSelected"
+                                class="hidden-input"
+                            />
+                        </label>
                         <input
-                            ref="prescriptionPicker"
+                            ref="prescriptionReplacePicker"
                             type="file"
                             accept="image/*"
-                            multiple
-                            @change="onPrescriptionFilesSelected"
                             class="hidden-input"
+                            @change="onReplacePrescriptionFile"
                         />
-                    </label>
-                    <input
-                        ref="prescriptionReplacePicker"
-                        type="file"
-                        accept="image/*"
-                        class="hidden-input"
-                        @change="onReplacePrescriptionFile"
-                    />
-                    <div v-if="prescriptionFiles.length" class="prescription-preview-grid">
-                        <div v-for="(image, index) in prescriptionFiles" :key="image.id" class="prescription-preview-card">
-                            <img :src="image.previewUrl" :alt="image.file.name" class="prescription-preview-image" />
-                            <div class="prescription-preview-copy">
-                                <strong>Page {{ index + 1 }}</strong>
-                                <span>{{ image.file.name }}</span>
+                        <div v-if="prescriptionFiles.length" class="prescription-preview-grid">
+                            <div v-for="(image, index) in prescriptionFiles" :key="image.id" class="prescription-preview-card">
+                                <img :src="image.previewUrl" :alt="image.file.name" class="prescription-preview-image" />
+                                <div class="prescription-preview-copy">
+                                    <strong>Page {{ index + 1 }}</strong>
+                                    <span>{{ image.file.name }}</span>
+                                </div>
+                                <div class="prescription-preview-actions">
+                                    <button type="button" class="preview-action-btn" @click="queuePrescriptionReplace(index)">Retake</button>
+                                    <button type="button" class="preview-action-btn danger" @click="removePrescriptionFile(index)">Delete</button>
+                                </div>
                             </div>
-                            <div class="prescription-preview-actions">
-                                <button type="button" class="preview-action-btn" @click="queuePrescriptionReplace(index)">Retake</button>
-                                <button type="button" class="preview-action-btn danger" @click="removePrescriptionFile(index)">Delete</button>
+                        </div>
+                        <div v-if="isUploading" class="upload-progress-card">
+                            <div class="upload-progress-head">
+                                <strong>Uploading prescription photos</strong>
+                                <span>{{ Math.round(uploadProgress) }}%</span>
+                            </div>
+                            <div class="upload-progress-track">
+                                <span class="upload-progress-fill" :style="{ width: `${uploadProgress}%` }"></span>
                             </div>
                         </div>
                     </div>
-                    <div v-if="isUploading" class="upload-progress-card">
-                        <div class="upload-progress-head">
-                            <strong>Uploading prescription photos</strong>
-                            <span>{{ Math.round(uploadProgress) }}%</span>
-                        </div>
-                        <div class="upload-progress-track">
-                            <span class="upload-progress-fill" :style="{ width: `${uploadProgress}%` }"></span>
-                        </div>
-                    </div>
-                </div>
+                </section>
             </div>
 
             <div class="request-builder-grid">
@@ -317,109 +375,77 @@
         </div>
 
         <!-- ====== REQUESTS LIST ====== -->
-        <div v-if="subTab === 'list'" class="list-section">
-            <div class="request-shell-head compact">
+        <div v-if="isListView" class="w-full">
+            <header class="request-shell-head mt-2">
                 <div>
-                    <p class="shell-eyebrow">Request History</p>
+                    <span class="shell-eyebrow">Request History</span>
                     <h2 class="shell-title">My Requests</h2>
-                    <p class="shell-copy">Track sourcing, payment, pickup, and delivery updates in one place.</p>
+                    <p class="shell-copy">Track sourcing, payment, and delivery updates in one place.</p>
                 </div>
+            </header>
+
+            <div v-if="loadingRequests" class="text-center py-10 bg-white rounded-[2rem] border border-[rgba(206,194,212,0.2)]">
+                <span class="material-symbols-outlined text-4xl text-[#cec2d4] mb-3 animate-spin">sync</span>
+                <p class="text-[#71717a] font-medium">Loading requests...</p>
             </div>
 
-            <div v-if="loadingRequests" class="loading-state">
-                <ArrowPathIcon class="load-svg spin" /> Loading requests...
-            </div>
-
-            <div v-else-if="myRequests.length === 0" class="empty-state">
-                <ClipDocList class="empty-svg" />
-                <p class="empty-title">No requests yet</p>
-                <p class="empty-desc">Submit your first order request to get started</p>
-                <button @click="subTab = 'new'" class="nav-next">
-                    <PlusIcon class="add-svg" /> New Request
+            <div v-else-if="myRequests.length === 0" class="text-center py-12 bg-white rounded-[2rem] border border-[rgba(206,194,212,0.2)] shadow-[0_10px_30px_-10px_rgba(53,0,98,0.08)]">
+                <span class="material-symbols-outlined text-6xl text-[#cec2d4] mb-4">inbox</span>
+                <p class="text-[#350062] font-black text-xl mb-2">No requests yet</p>
+                <p class="text-[#71717a] font-medium mb-6">Submit your first order request to get started</p>
+                <button @click="goToNewRequest" class="px-6 py-3 bg-[#350062] text-white rounded-full font-bold text-sm hover:bg-[#520094] transition-colors inline-flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">add</span> Create Request
                 </button>
             </div>
 
             <div v-else>
-                <div class="request-list-tabs">
-                    <button
-                        class="request-list-tab"
-                        :class="{ active: requestListTab === 'active' }"
-                        @click="requestListTab = 'active'"
-                    >
-                        <span>Active</span>
-                        <span class="request-list-count">{{ activeRequests.length }}</span>
-                    </button>
-                    <button
-                        class="request-list-tab"
-                        :class="{ active: requestListTab === 'completed' }"
-                        @click="requestListTab = 'completed'"
-                    >
-                        <span>Completed</span>
-                        <span class="request-list-count">{{ completedRequests.length }}</span>
-                    </button>
+                <!-- Request List Header (Hidden on Mobile) -->
+                <div class="hidden md:grid grid-cols-12 px-6 py-4 mb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#71717a] opacity-70">
+                    <div class="col-span-3">Request ID</div>
+                    <div class="col-span-3">Date &amp; Time</div>
+                    <div class="col-span-2">Items</div>
+                    <div class="col-span-2">Amount</div>
+                    <div class="col-span-2 text-right">Status</div>
                 </div>
 
-                <div v-if="filteredRequests.length === 0" class="empty-state compact-empty">
-                    <ClipDocList class="empty-svg" />
-                    <p class="empty-title">No {{ requestListTab }} requests</p>
-                    <p class="empty-desc">
-                        {{ requestListTab === 'active'
-                            ? 'Requests that still need attention will appear here.'
-                            : 'Finished, delivered, cancelled, or returned requests will appear here.' }}
-                    </p>
-                </div>
-
-                <div v-else class="requests-list">
-                <div v-for="req in filteredRequests" :key="req.id" class="request-card" @click="viewDetail(req)">
-                    <div class="request-header">
-                        <div>
-                            <span class="request-num">#{{ req.request_number }}</span>
-                            <span class="request-date">{{ formatDate(req.created_at) }}</span>
+                <!-- Request List Items -->
+                <div class="flex flex-col gap-3">
+                    <div v-for="req in filteredRequests" :key="req.id" @click="viewDetail(req)" class="grid grid-cols-1 md:grid-cols-12 items-center bg-white p-6 md:p-4 lg:p-6 rounded-2xl transition-all duration-300 group cursor-pointer border-l-4 border-transparent hover:border-[#350062] shadow-[0_10px_30px_-10px_rgba(53,0,98,0.08)] gap-y-4 md:gap-y-0">
+                        <div class="col-span-1 md:col-span-3 flex md:block items-center justify-between">
+                            <span class="font-bold text-[#350062]">#{{ req.request_number }}</span>
+                            <!-- Status visible only on mobile -->
+                            <span class="md:hidden px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider block w-fit" :class="getStatusClasses(getRequestStatus(req))">
+                                {{ formatStatus(getRequestStatus(req)) }}
+                            </span>
                         </div>
-                        <span class="status-badge" :class="getRequestStatus(req)">{{ formatStatus(getRequestStatus(req)) }}</span>
-                    </div>
-                    <div class="request-card-copy">
-                        <p>{{ getRequestCardSummary(req) }}</p>
-                        <ChevronRightIcon class="request-arrow" />
-                    </div>
-                    <div v-if="shouldShowPrescriptionPreview(req)" class="request-prescription-preview">
-                        <a
-                            :href="req.prescription_images[0]"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="request-prescription-thumb-link"
-                            @click.stop
-                        >
-                            <img :src="req.prescription_images[0]" alt="Prescription preview" class="request-prescription-thumb" />
-                        </a>
-                        <div class="request-prescription-copy">
-                            <strong>Prescription</strong>
-                            <span>{{ getPrescriptionImageCount(req) }} image<span v-if="getPrescriptionImageCount(req) !== 1">s</span></span>
+                        <div class="col-span-1 md:col-span-3">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-semibold text-[#350062]">{{ formatDate(req.created_at) }}</span>
+                                <span class="text-[10px] text-[#71717a] md:hidden">Date</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="request-meta">
-                        <span>
-                            <CubeIcon class="meta-svg" /> {{ getRequestContentCount(req) }}
-                        </span>
-                        <span v-if="getRequestTotal(req) !== null">
-                            <CurrencyDollarIcon class="meta-svg" /> Total: GHS {{ formatMoney(getRequestTotal(req)) }}
-                        </span>
-                        <span v-if="req.request_fee">
-                            <CurrencyDollarIcon class="meta-svg" /> Hold: GHS {{
-                                parseFloat(req.request_fee).toFixed(2) }}
-                        </span>
-                        <span v-if="req.fulfillment_type">
-                            <TruckIcon class="meta-svg" /> {{ req.fulfillment_type
-                            }}
-                        </span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" :class="getRequestStatus(req)"
-                            :style="{ width: statusProgress(getRequestStatus(req)) + '%' }">
+                        <div class="col-span-1 md:col-span-2">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-full bg-[#f9f1f9] flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-sm text-[#350062]">medication</span>
+                                </span>
+                                <span class="text-sm font-medium text-[#71717a]">{{ req.items ? req.items.length : (req.request_items ? req.request_items.length : 0) }} item(s)</span>
+                            </div>
+                        </div>
+                        <div class="col-span-1 md:col-span-2">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-[#350062]" v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">GHS {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</span>
+                                <span class="text-sm font-medium text-[#71717a]" v-else>To be priced</span>
+                            </div>
+                        </div>
+                        <div class="hidden md:flex col-span-2 justify-end">
+                            <span class="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-2" :class="getStatusClasses(getRequestStatus(req))">
+                                <div v-if="req.status === 'pending' || req.status === 'searching'" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></div>
+                                {{ formatStatus(getRequestStatus(req)) }}
+                            </span>
                         </div>
                     </div>
                 </div>
-            </div>
             </div>
         </div>
 
@@ -764,7 +790,7 @@
                 <h3>Request Submitted</h3>
                 <p>Your Priority Search charge has been applied and nearby pharmacies can now review your request.</p>
                 <p v-if="submittedNumber" class="success-num">Request #<strong>{{ submittedNumber }}</strong></p>
-                <button @click="showSuccess = false; subTab = 'list'; fetchMyRequests()" class="nav-submit"
+                <button @click="goToRequestHistory" class="nav-submit"
                     style="width:100%">View My Requests</button>
             </div>
         </div>
@@ -803,7 +829,8 @@ const router = useRouter()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
 
-const subTab = ref(props.defaultSubTab)
+const isNewView = computed(() => props.defaultSubTab === 'new')
+const isListView = computed(() => props.defaultSubTab === 'list')
 const isSubmitting = ref(false)
 const loadingRequests = ref(false)
 const gettingLocation = ref(false)
@@ -831,6 +858,73 @@ const newItem = () => ({
     showDropdown: false,
     imageFiles: []
 })
+
+const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
+
+const normalizeHomepageDraftItem = (item) => {
+    const productName = String(typeof item === 'string' ? item : item?.product_name || '').trim()
+    if (!productName) return null
+
+    return {
+        product_name: productName,
+        quantity: Math.max(1, Number(item?.quantity || 1))
+    }
+}
+
+const consumeHomepageRequestDraft = () => {
+    if (!process.client) return null
+
+    const raw = sessionStorage.getItem(HOMEPAGE_REQUEST_DRAFT_KEY)
+    if (!raw) return null
+
+    sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY)
+
+    try {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed?.items)) {
+            return parsed.items.map(normalizeHomepageDraftItem).filter(Boolean)
+        }
+
+        const singleItem = normalizeHomepageDraftItem(parsed)
+        return singleItem ? [singleItem] : []
+    } catch (_error) {
+        return []
+    }
+}
+
+const applyHomepageRequestDraft = (draftItems = []) => {
+    if (!Array.isArray(draftItems) || !draftItems.length) return
+
+    const existingNames = new Set(
+        requestItems.value
+            .map((item) => String(item.product_name || '').trim().toLowerCase())
+            .filter(Boolean)
+    )
+
+    const preparedItems = draftItems
+        .map(normalizeHomepageDraftItem)
+        .filter((item) => item && !existingNames.has(item.product_name.trim().toLowerCase()))
+        .map((item) => ({
+            ...newItem(),
+            product_name: item.product_name,
+            quantity: item.quantity
+        }))
+
+    if (!preparedItems.length) return
+
+    const firstItem = requestItems.value[0]
+    const canReplaceFirstEmptyRow = requestItems.value.length === 1
+        && firstItem
+        && !String(firstItem.product_name || '').trim()
+        && (!Array.isArray(firstItem.imageFiles) || firstItem.imageFiles.length === 0)
+
+    if (canReplaceFirstEmptyRow) {
+        requestItems.value = preparedItems
+        return
+    }
+
+    requestItems.value = [...preparedItems, ...requestItems.value]
+}
 
 const requestItems = ref([newItem()])
 const prescriptionPicker = ref(null)
@@ -861,6 +955,18 @@ const feedbackForm = ref({
 const POLL_INTERVAL_MS = 15000
 let pollTimer = null
 const payableStatuses = new Set(['confirmed_in_pharm', 'awaiting_customer', 'items_sourced', 'confirmed'])
+
+const goToNewRequest = async () => {
+    selectedRequest.value = null
+    showSuccess.value = false
+    await navigateTo({ path: '/customer', query: { tab: 'new' } })
+}
+
+const goToRequestHistory = async () => {
+    selectedRequest.value = null
+    showSuccess.value = false
+    await navigateTo({ path: '/customer', query: { tab: 'requests' } })
+}
 
 const validItems = computed(() => requestItems.value.filter(i => i.product_name.trim()))
 const hasPrescriptionFiles = computed(() => prescriptionFiles.value.length > 0)
@@ -1264,7 +1370,6 @@ const openRequestById = async (requestId, options = {}) => {
     const id = normalizeRequestId(requestId)
     if (!id) return
     try {
-        if (subTab.value !== 'list') subTab.value = 'list'
         const res = await apiCall('GET', `/api/order-requests/customer/${id}`)
         selectedRequest.value = res.data
         syncDecisionSelections()
@@ -1498,6 +1603,17 @@ const incrementQty = (item) => {
 const getCustomerStatus = (s) => {
     if (s === 'picked_up' || s === 'delivered') return 'completed'
     return s || ''
+}
+const getStatusClasses = (status) => {
+    switch(status) {
+        case 'paid': case 'verified': return 'bg-green-100 text-green-700';
+        case 'pending': return 'bg-[#efdbff] text-[#621fa4]';
+        case 'searching': case 'confirming_with_pharm': case 'finding_pharmacist': return 'bg-[#f0f9ff] text-[#531dab]';
+        case 'quote_available': return 'bg-blue-100 text-blue-700';
+        case 'processing': return 'bg-yellow-100 text-yellow-700';
+        case 'cancelled': case 'rejected': return 'bg-red-100 text-red-700';
+        default: return 'bg-gray-100 text-gray-700';
+    }
 }
 const formatStatus = (s) => getCustomerStatus(s).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''
@@ -2029,34 +2145,26 @@ onMounted(async () => {
     await loadSavedHomeLocation()
     await fetchRequestSettings()
     await fetchWalletBalance()
-    if (props.defaultSubTab === 'list' || props.initialRequestId) {
-        subTab.value = 'list'
+    if (isNewView.value && !props.initialRequestId) {
+        applyHomepageRequestDraft(consumeHomepageRequestDraft())
+    }
+    if (isListView.value || props.initialRequestId) {
         await fetchMyRequests()
         await openRequestById(props.initialRequestId, { silent: true })
     }
     await verifyReturnedPaystackRequestPayment()
 
     pollTimer = setInterval(async () => {
-        if (subTab.value !== 'list') return
+        if (!isListView.value) return
         await fetchMyRequests({ silent: true })
         await refreshSelectedRequest()
     }, POLL_INTERVAL_MS)
 })
 
 watch(
-    subTab,
-    async (nextTab) => {
-        if (nextTab === 'new') {
-            await fetchWalletBalance()
-        }
-    }
-)
-
-watch(
     () => props.initialRequestId,
     async (nextId, prevId) => {
         if (!nextId || nextId === prevId) return
-        subTab.value = 'list'
         await fetchMyRequests({ silent: true })
         await openRequestById(nextId, { silent: true })
     }
@@ -2080,9 +2188,9 @@ defineExpose({ fetchMyRequests })
 
 <style scoped>
 .order-requests {
-    padding: 0;
+    padding: 0.35rem 0 1rem;
     width: 100%;
-    max-width: 980px;
+    max-width: 1380px;
     margin: 0 auto;
     overflow-x: clip;
 }
@@ -2220,11 +2328,11 @@ defineExpose({ fetchMyRequests })
 .sub-tabs {
     display: flex;
     gap: 0.4rem;
-    margin-bottom: 1.25rem;
-    padding: 0.35rem;
-    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-    border: 1px solid #e2e8f0;
-    border-radius: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 0.4rem;
+    background: linear-gradient(180deg, #fffdfd, #f7f2fb);
+    border: 1px solid #eadff0;
+    border-radius: 1.15rem;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -2239,7 +2347,7 @@ defineExpose({ fetchMyRequests })
     flex-shrink: 0;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.85rem 1rem;
+    padding: 0.95rem 1.15rem;
     background: transparent;
     border: none;
     color: #6b7280;
@@ -2248,22 +2356,22 @@ defineExpose({ fetchMyRequests })
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
-    border-radius: 0.8rem;
+    border-radius: 0.95rem;
 }
 
 .sub-tab:hover {
-    color: #2563eb;
+    color: #6c24b3;
 }
 
 .sub-tab.active {
-    color: #0f172a;
+    color: #350062;
     background: #ffffff;
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
+    box-shadow: 0 10px 24px rgba(53, 0, 98, 0.08);
 }
 
 .badge {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: #efe4fb;
+    color: #6c24b3;
     font-size: 0.68rem;
     font-weight: 800;
     padding: 0.18rem 0.45rem;
@@ -2277,38 +2385,112 @@ defineExpose({ fetchMyRequests })
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
-    margin-bottom: 1.15rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 1.35rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid #ece4ef;
 }
 
 .request-shell-head.compact {
     margin-bottom: 1rem;
 }
 
+.new-request-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.95fr);
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+    padding: 1.2rem 1.25rem;
+    border: 1px solid #ece2f2;
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at top right, rgba(177, 132, 228, 0.16), transparent 34%),
+        linear-gradient(180deg, #fefcff 0%, #f8f3fb 100%);
+}
+
+.new-request-hero-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    justify-content: center;
+}
+
+.new-request-title {
+    margin: 0;
+    font-size: 1.8rem;
+    line-height: 1.08;
+    font-weight: 700;
+    color: #350062;
+    max-width: 14ch;
+}
+
+.new-request-desc {
+    margin: 0;
+    max-width: 44rem;
+    font-size: 0.94rem;
+    line-height: 1.65;
+    color: #6f5f7a;
+}
+
+.new-request-hero-panel {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+}
+
+.hero-panel-item {
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    border: 1px solid #eadff0;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 24px rgba(53, 0, 98, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.hero-panel-item.muted {
+    grid-column: 1 / -1;
+    background: linear-gradient(180deg, #fcf8ff, #f7f0fb);
+}
+
+.hero-panel-item span {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #7b3dbd;
+}
+
+.hero-panel-item strong {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #2f1d43;
+}
+
 .shell-eyebrow {
     margin: 0 0 0.3rem;
     font-size: 0.68rem;
     font-weight: 800;
-    color: #2563eb;
+    color: #7b3dbd;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
 .shell-title {
     margin: 0;
-    font-size: 1.45rem;
+    font-size: 1.6rem;
     line-height: 1.15;
-    font-weight: 800;
-    color: #0f172a;
+    font-weight: 700;
+    color: #350062;
 }
 
 .shell-copy {
     margin: 0.4rem 0 0;
-    font-size: 0.88rem;
+    font-size: 0.92rem;
     line-height: 1.5;
-    color: #64748b;
-    max-width: 34rem;
+    color: #6f5f7a;
+    max-width: 40rem;
 }
 
 .shell-stats {
@@ -2412,28 +2594,53 @@ defineExpose({ fetchMyRequests })
 /* Step content */
 .form-section,
 .list-section {
-    padding: 1.25rem 1.5rem 1.5rem;
-    background: linear-gradient(180deg, #ffffff, #f8fafc);
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    padding: 1.55rem 1.75rem 1.8rem;
+    background: linear-gradient(180deg, #ffffff, #fcf9ff);
+    border: 1px solid #eadff0;
+    border-radius: 24px;
+    box-shadow: 0 18px 40px rgba(53, 0, 98, 0.07);
 }
 
 .step-content {
     animation: fadeIn 0.2s ease;
 }
 
+.editor-section {
+    margin-bottom: 1rem;
+}
+
+.editor-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.editor-section-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.8rem;
+    border-radius: 999px;
+    background: #f4ecfb;
+    color: #6c24b3;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
 .step-title {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 700;
-    color: #111827;
+    color: #350062;
     margin: 0 0 0.25rem;
 }
 
 .step-desc {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin: 0 0 1.25rem;
+    font-size: 0.93rem;
+    color: #6f5f7a;
+    margin: 0 0 1.4rem;
 }
 
 .search-lock-card {
@@ -2465,21 +2672,72 @@ defineExpose({ fetchMyRequests })
     color: #b45309;
 }
 
+.editor-card {
+    margin-bottom: 1rem;
+    padding: 1.1rem 1.15rem;
+    border: 1px solid #ebe1f0;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #fffeff, #fbf7fd);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.editor-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.editor-card-head h4 {
+    margin: 0.2rem 0 0;
+    font-size: 1rem;
+    line-height: 1.35;
+    color: #2f1d43;
+    font-weight: 700;
+}
+
+.editor-card-kicker {
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #7b3dbd;
+}
+
+.editor-card-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    background: #f5f0f8;
+    color: #6f5f7a;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.editor-card-status.ready {
+    background: #e9f9ef;
+    color: #1f8a45;
+}
+
 .request-builder-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+    grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.95fr);
     gap: 1rem;
-    margin-top: 1.25rem;
+    margin-top: 1rem;
     align-items: start;
 }
 
 .builder-card {
-    padding: 1.1rem;
-    border-radius: 16px;
-    border: 1px solid #dbe4f0;
+    padding: 1.2rem;
+    border-radius: 20px;
+    border: 1px solid #e4ddeb;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
-    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 247, 253, 0.98));
+    box-shadow: 0 14px 32px rgba(53, 0, 98, 0.05);
 }
 
 .builder-card-head {
@@ -2487,34 +2745,35 @@ defineExpose({ fetchMyRequests })
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
 }
 
 .builder-title {
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.06rem;
     font-weight: 700;
-    color: #0f172a;
+    color: #350062;
 }
 
 .builder-copy {
     margin: 0.35rem 0 0;
-    font-size: 0.82rem;
+    font-size: 0.86rem;
     line-height: 1.55;
-    color: #64748b;
+    color: #6f5f7a;
 }
 
 .review-card {
     position: sticky;
-    top: 1rem;
+    top: 1.25rem;
     background:
-        linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.98));
+        linear-gradient(180deg, rgba(252, 249, 255, 0.98), rgba(246, 241, 250, 0.98));
+    overflow: hidden;
 }
 
 .request-submit-bar {
-    margin-top: 1rem;
-    padding: 1rem 1.1rem;
-    border-radius: 16px;
+    margin-top: 0.5rem;
+    padding: 1.05rem 1.15rem;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2545,7 +2804,7 @@ defineExpose({ fetchMyRequests })
 
 .request-submit-btn {
     flex-shrink: 0;
-    min-width: 220px;
+    min-width: 240px;
     white-space: nowrap;
     background: linear-gradient(135deg, #2563eb, #4f46e5);
 }
@@ -2554,18 +2813,18 @@ defineExpose({ fetchMyRequests })
 .items-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .item-row {
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 0.625rem 0.75rem;
+    gap: 0.7rem;
+    background: linear-gradient(180deg, #fcfbfd, #f7f3fa);
+    border: 1px solid #e9e2ee;
+    border-radius: 18px;
+    padding: 0.9rem 1rem;
 }
 
 .item-main {
@@ -2576,8 +2835,8 @@ defineExpose({ fetchMyRequests })
 .item-search-shell {
     background: #ffffff;
     border: 1px solid #dbe4f0;
-    border-radius: 14px;
-    padding: 0.75rem 0.85rem;
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
@@ -2639,6 +2898,25 @@ defineExpose({ fetchMyRequests })
     border: 1px solid #dbe4f0;
     border-radius: 12px;
     padding: 0.75rem 0.85rem;
+}
+
+.search-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    background: #ede9fe;
+    color: #5b34a5;
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.search-chip.searching {
+    background: #eff6ff;
+    color: #1d4ed8;
 }
 
 .item-upload-row {
@@ -2727,10 +3005,38 @@ defineExpose({ fetchMyRequests })
     overflow-y: auto;
 }
 
+.search-dropdown-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    border-bottom: 1px solid #eef2f7;
+    background: #faf7fd;
+}
+
+.search-dropdown-head span {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7b3dbd;
+}
+
+.search-dropdown-head strong {
+    font-size: 0.72rem;
+    color: #5f6b7b;
+    font-weight: 700;
+}
+
 .search-item {
-    padding: 0.5rem 0.75rem;
+    padding: 0.65rem 0.8rem;
     cursor: pointer;
     border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
 }
 
 .search-item:last-child {
@@ -2738,7 +3044,38 @@ defineExpose({ fetchMyRequests })
 }
 
 .search-item:hover {
-    background-color: #f9fafb;
+    background-color: #faf7fd;
+}
+
+.search-item-main {
+    min-width: 0;
+}
+
+.search-item-side {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+}
+
+.search-availability {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    background: #e8f8ec;
+    color: #1f8a45;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.search-pick {
+    font-size: 0.67rem;
+    font-weight: 700;
+    color: #5b34a5;
 }
 
 .search-item.loading {
@@ -2753,6 +3090,30 @@ defineExpose({ fetchMyRequests })
     font-size: 0.875rem;
     font-style: italic;
     cursor: default;
+}
+
+.search-helper-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.search-helper-note,
+.search-helper-state {
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.search-helper-note {
+    color: #64748b;
+}
+
+.search-helper-state {
+    color: #5b34a5;
+    font-weight: 700;
 }
 
 .qty-picker {
@@ -2871,11 +3232,10 @@ defineExpose({ fetchMyRequests })
 
 /* Prescription */
 .prescription-box {
-    margin-top: 1.25rem;
     padding: 1rem;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 10px;
+    background: linear-gradient(180deg, #eef6ff, #f7fbff);
+    border: 1px solid #d3e4ff;
+    border-radius: 18px;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
@@ -3029,7 +3389,7 @@ defineExpose({ fetchMyRequests })
     cursor: pointer;
     transition: all 0.2s;
     text-align: left;
-    margin-bottom: 1rem;
+    margin-bottom: 0.9rem;
 }
 
 .location-btn.set {
@@ -3344,11 +3704,11 @@ defineExpose({ fetchMyRequests })
 .request-list-tabs {
     display: flex;
     gap: 0.5rem;
-    padding: 0.35rem;
-    margin-bottom: 0.9rem;
-    border-radius: 0.95rem;
-    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-    border: 1px solid #e2e8f0;
+    padding: 0.4rem;
+    margin-bottom: 1rem;
+    border-radius: 1.05rem;
+    background: linear-gradient(180deg, #fffafd, #f7f2fb);
+    border: 1px solid #eadff0;
 }
 
 .request-list-tab {
@@ -3357,9 +3717,9 @@ defineExpose({ fetchMyRequests })
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.7rem 0.85rem;
+    padding: 0.8rem 0.95rem;
     border: none;
-    border-radius: 0.8rem;
+    border-radius: 0.92rem;
     background: transparent;
     color: #64748b;
     font-size: 0.82rem;
@@ -3370,8 +3730,8 @@ defineExpose({ fetchMyRequests })
 
 .request-list-tab.active {
     background: #ffffff;
-    color: #0f172a;
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    color: #350062;
+    box-shadow: 0 10px 22px rgba(53, 0, 98, 0.07);
 }
 
 .request-list-count {
@@ -3382,15 +3742,15 @@ defineExpose({ fetchMyRequests })
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
-    background: #e2e8f0;
-    color: #334155;
+    background: #efe4fb;
+    color: #6c24b3;
     font-size: 0.72rem;
     font-weight: 800;
 }
 
 .request-list-tab.active .request-list-count {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: #6c24b3;
+    color: #ffffff;
 }
 
 .compact-empty {
@@ -3402,22 +3762,22 @@ defineExpose({ fetchMyRequests })
 .requests-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.9rem;
 }
 
 .request-card {
-    background: linear-gradient(180deg, #ffffff, #f8fafc);
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 1rem 1.1rem;
+    background: linear-gradient(180deg, #ffffff, #fcf9ff);
+    border: 1px solid #eadff0;
+    border-radius: 18px;
+    padding: 1.1rem 1.2rem;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 10px 24px rgba(53, 0, 98, 0.05);
 }
 
 .request-card:hover {
     transform: translateY(-1px);
-    box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 18px 32px rgba(53, 0, 98, 0.08);
 }
 
 .request-header {
@@ -3448,9 +3808,9 @@ defineExpose({ fetchMyRequests })
     gap: 0.85rem;
     padding: 0.8rem 0.9rem;
     margin-bottom: 0.65rem;
-    border-radius: 14px;
-    background: linear-gradient(180deg, #eff6ff, #f8fbff);
-    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f5eefb, #fcf9ff);
+    border: 1px solid #eadff0;
 }
 
 .request-prescription-thumb-link {
@@ -3490,7 +3850,7 @@ defineExpose({ fetchMyRequests })
 .request-num {
     font-size: 1rem;
     font-weight: 700;
-    color: #111827;
+    color: #350062;
 }
 
 .request-date {
@@ -3516,7 +3876,7 @@ defineExpose({ fetchMyRequests })
     padding: 0.3rem 0.55rem;
     border-radius: 9999px;
     background: #ffffff;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #ece4ef;
 }
 
 .request-meta i {
@@ -4740,6 +5100,44 @@ defineExpose({ fetchMyRequests })
 }
 
 @media (max-width: 640px) {
+    .new-request-hero {
+        grid-template-columns: 1fr;
+        padding: 0.95rem;
+        border-radius: 18px;
+        margin-bottom: 1rem;
+    }
+
+    .new-request-title {
+        font-size: 1.35rem;
+        max-width: none;
+    }
+
+    .new-request-desc {
+        font-size: 0.88rem;
+        line-height: 1.55;
+    }
+
+    .new-request-hero-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-panel-item,
+    .hero-panel-item.muted {
+        grid-column: auto;
+    }
+
+    .editor-section-head,
+    .editor-card-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    .editor-section-badge,
+    .editor-card-status {
+        align-self: flex-start;
+    }
+
     .requests-list {
         gap: 0.45rem;
     }
@@ -4939,6 +5337,11 @@ defineExpose({ fetchMyRequests })
 
     .builder-card-head {
         margin-bottom: 0.75rem;
+    }
+
+    .editor-card {
+        padding: 0.88rem;
+        border-radius: 16px;
     }
 
     .review-card {

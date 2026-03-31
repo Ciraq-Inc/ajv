@@ -1,433 +1,623 @@
 <template>
   <div class="customer-app">
-
-    <!-- Loading State -->
     <div v-if="isCheckingAuth" class="auth-loading">
       <div class="pulse-ring"></div>
       <p>Loading...</p>
     </div>
 
     <template v-else>
+      <div v-if="currentTab === 'home'" class="space-y-8">
+        <section class="dashboard-top">
+          <article class="col-span-12 lg:col-span-6 rounded-2xl p-6 text-zinc-900 sm:p-8 bg-white border border-zinc-200 shadow-sm h-full lg:px-10 flex flex-col justify-center relative overflow-hidden">
+            <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-[#5d4679]">Operations Center</p>
 
-      <!-- Home Screen -->
-      <div v-if="currentTab === 'home'" class="home-screen">
-
-        <!-- ① Hero zone -->
-        <div class="hero-zone">
-          <div class="hero-actions-row">
-            <button class="loc-btn" :disabled="savingHomeLocation" @click.stop="setHomeLocationFromDashboard">
-              <div class="loc-pin-wrap">
-                <ArrowPathIcon v-if="savingHomeLocation" class="loc-pin-icon spin" />
-                <MapPinIcon v-else class="loc-pin-icon" />
-              </div>
-              <div class="loc-content">
-                <span class="loc-label">Delivery Location</span>
-                <div class="loc-name-row">
-                  <span class="loc-name">{{ homeAddressName }}</span>
-                  <span class="loc-badge" :class="{ 'unset': !homeAddress }">
-                    {{ homeAddress ? 'Update' : 'Set' }}
-                  </span>
+            <div class="mt-5 flex flex-col gap-5 lg:flex-row lg:items-center">
+              <div class="flex items-center gap-5">
+                <h3 class="text-5xl font-bold leading-none tracking-tight text-[#4F217A] sm:text-6xl">{{ activeRequestCount }}</h3>
+                <div class="border-l border-zinc-200 pl-5">
+                  <p class="text-lg font-medium leading-tight text-zinc-600">Active</p>
+                  <p class="text-[1.4rem] font-semibold leading-tight text-zinc-800">Requests</p>
                 </div>
-                <p class="loc-copy">{{ homeAddressCopy }}</p>
               </div>
-            </button>
-            <div class="hero-actions">
-              <button class="action-primary" @click="goTab('new')">
-                <PlusIcon class="action-icon" />
-                <span>New Request</span>
+            </div>
+            <p class="mt-5 max-w-xl text-sm font-medium leading-6 text-zinc-600">Track request progress, review updates, and move into payment or fulfillment from one workspace.</p>
+          </article>
+
+          <article
+            class="col-span-12 sm:col-span-6 lg:col-span-3 flex h-full cursor-pointer flex-col justify-between rounded-xl border border-zinc-200 bg-white/95 p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
+            @click="goTab('wallet')"
+          >
+            <div class="space-y-4">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Available Credits</p>
+                <h3 class="mt-2 text-[2rem] font-semibold tracking-tight text-zinc-900">GHS {{ walletBalance.toFixed(2) }}</h3>
+              </div>
+              <p class="text-sm font-medium leading-6 text-zinc-600">Top up, review wallet movement, and keep request payments ready.</p>
+            </div>
+
+            <div class="mt-6 flex items-center gap-3">
+              <div class="flex h-11 w-11 items-center justify-center rounded-full bg-[#f4ecfb] text-[#5e3a86]">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+              </div>
+              <button class="inline-flex items-center gap-1 rounded-full border border-[#dfd3ea] bg-white px-4 py-2 text-xs font-bold text-zinc-700 hover:text-zinc-900 transition-colors">
+                Top up
+                <span class="material-symbols-outlined text-base">add</span>
               </button>
             </div>
-          </div>
-        </div>
+          </article>
 
-        <!-- ② Active requests alert -->
-      <div v-if="activeRequestCount > 0" class="active-alert" @click="goTab('requests')">
-        <div class="alert-left">
-          <div class="alert-dot-ring">
-            <div class="alert-dot"></div>
-          </div>
-          <div class="alert-text">
-            <strong>{{ activeRequestCount }} active request{{ activeRequestCount > 1 ? 's' : '' }} in progress</strong>
-            <span>Check quotes, payment and delivery updates</span>
-          </div>
-        </div>
-        <ChevronRightIcon class="alert-arrow" />
-      </div>
-
-      <!-- ③ Content sections -->
-      <div class="content-area">
-        <div class="content-grid">
-
-          <!-- Recent Requests -->
-          <div class="section-card section-card-prominent">
-            <div class="section-card-head">
-              <div class="section-card-title-group">
-                <p class="section-eyebrow">Activity</p>
-                <h3 class="section-card-title">Recent Requests</h3>
+          <article class="col-span-12 sm:col-span-6 lg:col-span-3 flex h-full flex-col justify-between rounded-xl border border-zinc-200 bg-white/95 p-6 shadow-sm">
+            <div class="space-y-3">
+              <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Delivery Location</p>
+              <div class="flex items-start gap-3">
+                <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-full bg-[#f4ecfb] text-[#5e3a86]">
+                  <span class="material-symbols-outlined">location_on</span>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-2xl font-semibold tracking-tight text-zinc-900">{{ dashboardLocation }}</h3>
+                  <p class="mt-1 text-sm font-medium leading-6 text-zinc-600">{{ dashboardLocationHint }}</p>
+                </div>
               </div>
-              <button class="see-all-btn" @click="goTab('requests')">
-                See all <ChevronRightIcon class="see-all-icon" />
+            </div>
+
+            <div class="mt-6 space-y-2">
+              <button
+                @click="refreshDashboardLocation"
+                :disabled="isUpdatingLocation"
+                class="inline-flex items-center gap-2 rounded-full border border-[#dfd3ea] bg-white px-4 py-2 text-xs font-bold text-zinc-700 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <span class="material-symbols-outlined text-base" :class="{ 'spin-icon': isUpdatingLocation }">refresh</span>
+                Update location
+              </button>
+              <p v-if="locationUpdateMessage" class="text-xs font-medium" :class="locationUpdateState === 'error' ? 'text-[#c03a3a]' : 'text-zinc-600'">
+                {{ locationUpdateMessage }}
+              </p>
+            </div>
+          </article>
+        </section>
+
+        <div class="dashboard-middle">
+          <div class="space-y-5">
+            <div class="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Activity Stream</h3>
+                <p class="text-sm font-medium text-zinc-600">Tracking your latest clinical procurement</p>
+              </div>
+              <button class="inline-flex items-center gap-1 text-xs font-black text-zinc-600 hover:text-zinc-900 transition-colors" @click="goTab('requests')">
+                Full History
+                <span class="material-symbols-outlined text-base">arrow_outward</span>
               </button>
             </div>
 
-            <div v-if="recentRequestItems.length === 0" class="empty-state">
-              <InboxIcon class="empty-icon" />
-              <p>No requests yet</p>
-              <button class="empty-cta" @click="goTab('new')">Start your first request</button>
+            <div v-if="recentRequestItems.length === 0" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
+                <span class="material-symbols-outlined">description</span>
+              </div>
+              <div>
+                <p class="font-black text-zinc-800">No requests yet</p>
+                <p class="text-sm font-medium text-zinc-600">Your latest request activity will appear here.</p>
+              </div>
             </div>
 
-            <div v-else class="request-rows">
-              <div
+            <div v-else class="space-y-4">
+              <button
                 v-for="request in recentRequestItems"
                 :key="request.id"
-                class="request-row"
+                class="flex w-full items-center gap-4 rounded-xl border border-zinc-200 bg-white px-5 py-5 text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-18px_rgba(86,42,134,0.18)] sm:px-6"
                 @click="goTab('requests')"
               >
-                <div class="req-status-badge" :class="getStatusColor(request.status)">
-                  <component :is="getStatusIcon(request.status)" class="req-status-icon" />
+                <div
+                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-[#e7f7ea] text-[#228847]' : request.status === 'processing' || request.status === 'confirming_with_pharm' ? 'bg-[#f4e8fb] text-zinc-600 hover:text-zinc-900 transition-colors' : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors'"
+                >
+                  <span class="material-symbols-outlined">{{ requestIcon(request) }}</span>
                 </div>
-                <div class="req-body">
-                  <div class="req-title-row">
-                    <p class="req-title">Request #{{ request.request_number || shortId(String(request.id || '')) }}</p>
-                    <span class="req-inline-status" :class="getStatusColor(request.status)">{{ formatStatus(request.status) }}</span>
-                  </div>
-                  <p class="req-meta">
-                    <span>{{ timeAgo(request.updated_at || request.created_at) }}</span>
-                    <span v-if="request.item_count" class="req-sep">|</span>
-                    <span v-if="request.item_count">{{ request.item_count }} item{{ request.item_count !== 1 ? 's' : '' }}</span>
-                  </p>
-                </div>
-                <div class="req-right">
-                  <p class="req-amount">{{ getRequestActivityAmount(request) }}</p>
-                  <p class="req-open">Open request</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- My Pharmacies -->
-          <div v-if="companies.length > 0" class="section-card">
-            <div class="section-card-head">
-              <div class="section-card-title-group">
-                <p class="section-eyebrow">Stores</p>
-                <h3 class="section-card-title">My Pharmacies</h3>
-              </div>
-              <button class="see-all-btn" @click="goTab('companies')">
-                See all <ChevronRightIcon class="see-all-icon" />
+                <div class="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="min-w-0">
+                    <h4 class="truncate text-xl font-black tracking-[-0.05em] text-zinc-800">REQ-{{ request.request_number || shortId(String(request.id || '')) }}</h4>
+                    <p class="truncate text-sm font-medium text-zinc-500">{{ formatDate(request.updated_at || request.created_at) }} • {{ requestMeta(request) }}</p>
+                  </div>
+
+                  <div class="flex flex-col items-start gap-2 sm:items-end">
+                    <strong class="text-2xl font-black tracking-[-0.05em] text-zinc-800">GHS {{ formatMoney(getRequestAmount(request)) }}</strong>
+                    <span
+                      class="inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
+                      :class="getRequestStatusClass(request.status)"
+                    >
+                      {{ getRequestStatusLabel(request.status) }}
+                    </span>
+                  </div>
+                </div>
               </button>
             </div>
+          </div>
 
-            <div class="pharmacy-rows">
-              <div
-                v-for="(c, i) in companies.slice(0, 4)"
-                :key="c.company_id"
-                class="pharmacy-row"
-                @click="visitStore(c)"
-              >
-                <div class="pharm-avatar" :class="{ featured: i === 0 }">
-                  {{ (c.company_name || '?')[0] }}
+          <aside class="space-y-5">
+            <div class="px-1">
+              <h3 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Ongoing Orders</h3>
+              <p class="text-sm font-medium text-zinc-600">Currently in delivery pipeline</p>
+            </div>
+
+            <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+              <div v-if="ongoingOrderItems.length === 0" class="flex items-center gap-4 px-6 py-5">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
+                  <span class="material-symbols-outlined">package_2</span>
                 </div>
-                <div class="pharm-info">
-                  <p class="pharm-name">{{ c.company_name }}</p>
-                  <p class="pharm-sub">{{ i === 0 ? 'Preferred pharmacy for quick access' : 'Open storefront and browse products' }}</p>
+                <div>
+                  <p class="font-black text-zinc-800">No active orders</p>
+              <p class="text-sm font-medium text-zinc-600">Orders in progress will show here.</p>
                 </div>
-                <ChevronRightIcon class="pharm-arrow" />
               </div>
+
+              <div v-else>
+                <button
+                  v-for="order in ongoingOrderItems"
+                  :key="order.order_id"
+                  class="flex w-full items-center gap-4 px-5 py-5 text-left transition-colors hover:bg-[#fcf8fe] sm:px-6"
+                  :class="{ 'border-t border-[#f1ebf4]': ongoingOrderItems.indexOf(order) > 0 }"
+                  @click="goTab('orders')"
+                >
+                  <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
+                    <span class="material-symbols-outlined">package_2</span>
+                  </div>
+
+                  <div class="min-w-0 flex-1 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                    <div class="min-w-0">
+                      <h4 class="truncate text-base font-black tracking-[-0.04em] text-zinc-800">#{{ shortOrderId(order.order_id) }}</h4>
+                      <p class="mt-1 truncate text-xs font-medium text-zinc-600">{{ getOrderSummary(order) }}</p>
+                    </div>
+                    <div class="flex flex-col items-start gap-2 sm:items-end">
+                      <strong class="text-sm font-black text-zinc-800">GHS {{ formatMoney(order.total_amount) }}</strong>
+                      <span
+                        class="inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
+                        :class="getOrderStatusClass(order.status)"
+                      >
+                        {{ getOrderStatusLabel(order.status) }}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              <div class="border-t border-[#f1ebf4] px-5 py-4 text-center sm:px-6">
+                <button class="text-xs font-black text-zinc-600 hover:text-zinc-900 transition-colors" @click="goTab('orders')">View All Orders</button>
+              </div>
+            </div>
+          </aside>
+          </div>
+
+        <section class="section-wrap space-y-5">
+          <div class="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Verified Partners</h3>
+              <p class="text-sm font-medium text-zinc-600">Top rated pharmacies in your network</p>
+            </div>
+            <button class="inline-flex items-center gap-1 text-xs font-black text-zinc-600 hover:text-zinc-900 transition-colors" @click="goTab('companies')">
+              Directory
+              <span class="material-symbols-outlined text-base">arrow_outward</span>
+            </button>
+          </div>
+
+          <div v-if="verifiedPartners.length === 0" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
+              <span class="material-symbols-outlined">local_pharmacy</span>
+            </div>
+            <div>
+              <p class="font-black text-zinc-800">No pharmacies linked yet</p>
+              <p class="text-sm font-medium text-zinc-600">Your verified pharmacy network will appear here.</p>
             </div>
           </div>
 
-        </div>
+          <div v-else class="partners-grid">
+            <button
+              v-for="company in verifiedPartners"
+              :key="company.id"
+              class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-5 py-5 text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-18px_rgba(86,42,134,0.18)] sm:px-6"
+              @click="goTab('companies')"
+            >
+              <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
+                <span class="material-symbols-outlined text-[28px]">local_pharmacy</span>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <h4 class="truncate text-2xl font-black tracking-[-0.05em] text-zinc-800">{{ company.company_name || company.name }}</h4>
+                <div class="mt-1 flex items-center gap-1 text-xs font-bold text-zinc-500">
+                  <span class="material-symbols-outlined text-sm ![font-variation-settings:'FILL'_1] text-[#f5b622]">star</span>
+                  <span class="truncate">{{ getCompanyMeta(company) }}</span>
+                </div>
+              </div>
+
+              <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-zinc-200 text-zinc-400 group-hover:text-zinc-600">
+                <span class="material-symbols-outlined text-base">arrow_outward</span>
+              </div>
+            </button>
+          </div>
+        </section>
       </div>
 
-    </div>
-
-    <!-- New Request -->
       <div v-if="currentTab === 'new'" class="page-view">
         <OrderRequests default-sub-tab="new" />
       </div>
 
-      <!-- My Requests -->
       <div v-if="currentTab === 'requests'" class="page-view">
         <OrderRequests default-sub-tab="list" :initial-request-id="requestIdFromQuery" />
       </div>
 
-      <!-- Wallet -->
       <div v-if="currentTab === 'wallet'" class="page-view">
         <Wallet />
       </div>
 
-      <!-- Order History -->
       <div v-if="currentTab === 'orders'" class="page-view">
         <Orders />
       </div>
 
-      <!-- Profile -->
       <div v-if="currentTab === 'profile'" class="page-view">
         <Profile />
       </div>
 
-      <!-- Linked Companies -->
       <div v-if="currentTab === 'companies'" class="page-view">
         <LinkedCompanies />
       </div>
-
     </template>
-
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useUserStore } from '~/stores/user';
-import { useRoute } from 'vue-router';
-import Profile from '~/components/customers/profile.vue';
-import Orders from '~/components/customers/orders.vue';
-import LinkedCompanies from '~/components/customers/linkedCompanies.vue';
-import OrderRequests from '~/components/customers/orderRequests.vue';
-import Wallet from '~/components/customers/wallet.vue';
-import { getCompactAddressLines } from '~/utils/addressFormat';
-import { ChevronRightIcon, InboxIcon, ClockIcon, ArrowPathIcon, TruckIcon, XCircleIcon, DocumentIcon, MapPinIcon, PlusIcon } from '@heroicons/vue/24/outline'
-import { CheckIcon as CheckIconSolid } from '@heroicons/vue/24/solid'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import LinkedCompanies from '~/components/customers/linkedCompanies.vue'
+import Orders from '~/components/customers/orders.vue'
+import OrderRequests from '~/components/customers/orderRequests.vue'
+import Profile from '~/components/customers/profile.vue'
+import Wallet from '~/components/customers/wallet.vue'
+import { useUserStore } from '~/stores/user'
+import { getCompactAddressLines } from '~/utils/addressFormat'
 
-definePageMeta({ layout: 'customer' });
+definePageMeta({ layout: 'customer' })
 
-const userStore = useUserStore();
-const route = useRoute();
-const config = useRuntimeConfig();
+const userStore = useUserStore()
+const route = useRoute()
+const config = useRuntimeConfig()
 
-const isCheckingAuth = ref(true);
-const walletBalance = useState('walletBalance', () => 0);
-const recentRequests = ref([]);
-const activeRequestCount = ref(0);
-const savingHomeLocation = ref(false);
-const HOME_STATS_POLL_MS = 15000;
-let homeStatsPollTimer = null;
+const isCheckingAuth = ref(true)
+const walletBalance = useState('walletBalance', () => 0)
+const recentRequests = ref([])
+const ongoingOrders = ref([])
+const activeRequestCount = ref(0)
+const isUpdatingLocation = ref(false)
+const locationUpdateMessage = ref('')
+const locationUpdateState = ref('idle')
+const HOME_STATS_POLL_MS = 15000
+let homeStatsPollTimer = null
 
-const currentTab = computed(() => route.query.tab || 'home');
+const currentTab = computed(() => route.query.tab || 'home')
 const requestIdFromQuery = computed(() => {
-  const value = route.query.requestId;
-  if (Array.isArray(value)) return value[0] || null;
-  return value || null;
-});
-const recentRequestItems = computed(() => recentRequests.value.slice(0, 1));
-const companies = computed(() => userStore.companies || []);
-const homeAddress = computed(() => userStore.currentUser?.address || null);
+  const value = route.query.requestId
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+})
 
-const homeAddressName = computed(() => {
-  if (!homeAddress.value) return 'No location set';
-  return getCompactAddressLines(homeAddress.value, { primaryCount: 2 }).primary || 'Saved location';
-});
+const companies = computed(() => userStore.companies || [])
+const verifiedPartners = computed(() => companies.value.slice(0, 3))
+const recentRequestItems = computed(() => recentRequests.value.slice(0, 2))
+const ongoingOrderItems = computed(() => {
+  const active = ongoingOrders.value.filter((order) => isOngoingOrderStatus(order.status))
+  return (active.length ? active : ongoingOrders.value).slice(0, 2)
+})
+const dashboardLocationParts = computed(() => getCompactAddressLines(userStore.currentUser?.address || '', { primaryCount: 2 }))
+const dashboardLocation = computed(() => dashboardLocationParts.value.primary || 'Set your delivery location')
+const dashboardLocationHint = computed(() => dashboardLocationParts.value.secondary || 'Used automatically for new delivery requests until you change it.')
 
-const homeAddressCopy = computed(() => {
-  if (!homeAddress.value) return 'Used by default for delivery requests once you save it.';
-  return 'Used automatically for new delivery requests until you change it.';
-});
+const goTab = (tab) => navigateTo({ path: '/customer', query: { tab } })
 
-const userInitials = computed(() => {
-  const u = userStore.currentUser;
-  if (!u) return '?';
-  const f = (u.fname || '').trim()[0] || '';
-  const l = (u.lname || '').trim()[0] || '';
-  return (f + l).toUpperCase() || '?';
-});
+const isActiveRequestStatus = (status) => !['driver_unavailable', 'picked_up', 'delivered', 'completed', 'cancelled', 'returned'].includes(status)
+const isOngoingOrderStatus = (status) => !['completed', 'delivered', 'cancelled', 'picked_up'].includes(status)
 
-const goTab = (tab) => navigateTo({ path: '/customer', query: { tab } });
+const formatDate = (value) => (
+  value
+    ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : ''
+)
+
+const formatMoney = (value) => Number(value || 0).toFixed(2)
+const shortId = (id) => (id || '').substring(0, 8).toUpperCase()
+const shortOrderId = (id) => String(id || '').replace(/^#/, '').substring(0, 8)
+
+const requestMeta = (request) => {
+  const itemCount = Number(request.item_count || request.items?.length || 0)
+  const fulfillment = request.fulfillment_type ? String(request.fulfillment_type).replace(/_/g, ' ') : ''
+  if (fulfillment) return `${itemCount || 0} item${itemCount === 1 ? '' : 's'} • ${fulfillment}`
+  return `${itemCount || 0} item${itemCount === 1 ? '' : 's'}`
+}
+
+const getRequestAmount = (request) => {
+  const totalCost = Number(request.total_cost)
+  if (Number.isFinite(totalCost) && totalCost > 0) return totalCost
+
+  const estimated = Number(request.estimated_total)
+  if (Number.isFinite(estimated) && estimated > 0) return estimated
+
+  const itemsTotal = Number(request.items_total || 0)
+  const deliveryFee = Number(request.delivery_fee || 0)
+  return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
+}
+
+const getRequestStatusLabel = (status) => {
+  const map = {
+    paid: 'Settled',
+    verified: 'Settled',
+    pending: 'Pending',
+    searching: 'Searching',
+    finding_pharmacist: 'Searching',
+    confirming_with_pharm: 'Processing',
+    quote_available: 'Quoted',
+    processing: 'Processing',
+    out_for_delivery: 'In Transit',
+    delivered: 'Delivered',
+    cancelled: 'Cancelled'
+  }
+  return map[status] || String(status || 'active').replace(/_/g, ' ')
+}
+
+const getRequestStatusClass = (status) => {
+  switch (status) {
+    case 'paid':
+    case 'verified':
+      return 'bg-[#e7f7ea] text-[#1f8a45]'
+    case 'processing':
+    case 'confirming_with_pharm':
+      return 'bg-[#f3daff] text-[#5d357a]'
+    case 'quote_available':
+      return 'bg-[#edf4ff] text-[#285db8]'
+    case 'cancelled':
+    case 'rejected':
+      return 'bg-[#ffe7e7] text-[#c03a3a]'
+    default:
+      return 'bg-[#f4eff6] text-[#736a7a]'
+  }
+}
+
+const requestIcon = (request) => {
+  if (request.fulfillment_type === 'delivery') return 'local_shipping'
+  if ((request.item_count || request.items?.length || 0) > 0) return 'pill'
+  return 'description'
+}
+
+const getOrderStatusLabel = (status) => {
+  const map = {
+    pending: 'Pending',
+    processing: 'Preparing',
+    shipped: 'In Transit',
+    logistics_pending: 'Logistics Pending',
+    out_for_delivery: 'In Transit',
+    delivered: 'Delivered',
+    completed: 'Completed',
+    cancelled: 'Cancelled'
+  }
+  return map[status] || String(status || 'order').replace(/_/g, ' ')
+}
+
+const getOrderStatusClass = (status) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-[#fff1d8] text-[#9a620d]'
+    case 'processing':
+      return 'bg-[#fff1d8] text-[#9a620d]'
+    case 'shipped':
+    case 'out_for_delivery':
+      return 'bg-[#edf4ff] text-[#285db8]'
+    case 'delivered':
+    case 'completed':
+      return 'bg-[#e7f7ea] text-[#1f8a45]'
+    case 'cancelled':
+      return 'bg-[#ffe7e7] text-[#c03a3a]'
+    default:
+      return 'bg-[#f4eff6] text-[#736a7a]'
+  }
+}
+
+const getOrderSummary = (order) => {
+  const firstItem = order.items?.[0]?.brand_name || order.items?.[0]?.product_name
+  if (firstItem) return firstItem
+  if (order.company_name) return order.company_name
+  return `${Number(order.item_count || 0)} item${Number(order.item_count || 0) === 1 ? '' : 's'}`
+}
+
+const getCompanyMeta = (company) => {
+  const address = company.address || company.location || company.physical_address || ''
+  const compact = getCompactAddressLines(address, { primaryCount: 2 }).primary
+  return compact || 'Linked pharmacy'
+}
 
 const reverseGeocode = async (latitude, longitude) => {
   const response = await fetch(`${config.public.apiBase}/api/auth/customer/reverse-geocode?lat=${latitude}&lng=${longitude}`, {
     headers: {
-      'Authorization': `Bearer ${userStore.customerAuthToken}`,
+      Authorization: `Bearer ${userStore.customerAuthToken}`,
       'Content-Type': 'application/json'
     }
-  });
-  const data = await response.json();
-  if (!data.success) throw new Error(data.message || 'Failed to generate address');
-  return data.data;
-};
+  })
+  const data = await response.json()
+  if (!data.success) {
+    throw new Error(data.message || 'Failed to look up your address')
+  }
+  return data.data
+}
 
-const setHomeLocationFromDashboard = () => {
-  if (!navigator.geolocation || savingHomeLocation.value) return;
-  savingHomeLocation.value = true;
+const refreshDashboardLocation = () => {
+  if (isUpdatingLocation.value) return
+  if (!navigator.geolocation) {
+    locationUpdateState.value = 'error'
+    locationUpdateMessage.value = 'Location is not available in this browser.'
+    return
+  }
+
+  isUpdatingLocation.value = true
+  locationUpdateState.value = 'idle'
+  locationUpdateMessage.value = 'Updating location...'
+
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       try {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        const location = await reverseGeocode(latitude, longitude);
+        const latitude = position.coords.latitude
+        const longitude = position.coords.longitude
+        const result = await reverseGeocode(latitude, longitude)
+
         await userStore.updateProfile({
-          home_address: location.address || null,
+          home_address: result.address || null,
           home_latitude: latitude,
           home_longitude: longitude
-        });
+        })
+
+        locationUpdateState.value = 'success'
+        locationUpdateMessage.value = 'Location updated.'
       } catch (error) {
-        console.error('Failed to set home location from dashboard:', error);
+        locationUpdateState.value = 'error'
+        locationUpdateMessage.value = error.message || 'Failed to update location.'
       } finally {
-        savingHomeLocation.value = false;
+        isUpdatingLocation.value = false
       }
     },
-    (error) => {
-      console.error('Geolocation failed on dashboard:', error);
-      savingHomeLocation.value = false;
+    (geoError) => {
+      isUpdatingLocation.value = false
+      locationUpdateState.value = 'error'
+      if (geoError?.code === geoError.PERMISSION_DENIED) {
+        locationUpdateMessage.value = 'Location permission was denied.'
+        return
+      }
+      locationUpdateMessage.value = 'Could not get your location right now.'
     },
     { enableHighAccuracy: true, timeout: 15000 }
-  );
-};
-
-const generateCompanySlug = (name) => (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-const getCompanyStoreSlug = (company) => {
-  const explicitSlug = String(company?.domain_name || company?.company_slug || company?.slug || '').trim().toLowerCase();
-  if (explicitSlug) return explicitSlug;
-  return generateCompanySlug(company?.company_name || '');
-};
-
-const visitStore = (company) => {
-  const slug = getCompanyStoreSlug(company);
-  if (!slug) return;
-  navigateTo(`/${slug}`);
-};
-
-const shortId = (id) => (id || '').substring(0, 8).toUpperCase();
-const formatAmount = (v) => parseFloat(v || 0).toFixed(2);
-
-const formatStatus = (s) => {
-  const customerStatus = (s === 'picked_up' || s === 'delivered') ? 'completed' : (s || '');
-  return customerStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-};
-
-const getStatusColor = (s) => {
-  const map = {
-    pending: 'yellow', confirming_with_pharm: 'blue', confirmed_in_pharm: 'green',
-    paid: 'blue', logistics_pending: 'blue', driver_unavailable: 'red',
-    ready_for_pickup: 'yellow', picked_up: 'green', out_for_delivery: 'blue',
-    delivered: 'green', returned: 'red', processing: 'blue', enquiry_sent: 'blue',
-    items_sourced: 'blue', awaiting_customer: 'yellow', confirmed: 'blue',
-    approved: 'blue', completed: 'green', cancelled: 'red'
-  };
-  return map[s] || 'gray';
-};
-
-const getStatusIcon = (s) => {
-  const map = {
-    pending: ClockIcon, confirming_with_pharm: ArrowPathIcon, confirmed_in_pharm: ArrowPathIcon,
-    paid: CheckIconSolid, logistics_pending: ClockIcon, driver_unavailable: XCircleIcon,
-    ready_for_pickup: ClockIcon, picked_up: CheckIconSolid, out_for_delivery: TruckIcon,
-    delivered: TruckIcon, returned: XCircleIcon, processing: ArrowPathIcon,
-    enquiry_sent: ArrowPathIcon, items_sourced: ArrowPathIcon, awaiting_customer: ClockIcon,
-    confirmed: CheckIconSolid, completed: CheckIconSolid, cancelled: XCircleIcon
-  };
-  return map[s] || DocumentIcon;
-};
-
-const isActiveRequestStatus = (status) => !['driver_unavailable', 'picked_up', 'delivered', 'completed', 'cancelled', 'returned'].includes(status);
-
-const timeAgo = (ds) => {
-  if (!ds) return '';
-  const d = new Date(ds);
-  const s = Math.floor((Date.now() - d) / 1000);
-  if (s < 60) return 'Just now';
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-};
-
-const getRequestActivityAmount = (request) => {
-  if (!request) return 'Pending quote';
-  const estimated = Number(request.estimated_total);
-  if (Number.isFinite(estimated) && estimated > 0) return `GHS ${formatAmount(estimated)}`;
-  const itemsTotal = Number(request.items_total || 0);
-  const deliveryFee = Number(request.delivery_fee || 0);
-  const total = itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0);
-  if (Number.isFinite(total) && total > 0) return `GHS ${formatAmount(total)}`;
-  return 'Pending quote';
-};
+  )
+}
 
 const loadWalletBalance = async () => {
   try {
-    const wres = await fetch(`${config.public.apiBase}/api/wallet`, {
-      headers: { 'Authorization': `Bearer ${userStore.customerAuthToken}` }
-    });
-    const wj = await wres.json();
-    walletBalance.value = parseFloat(wj.data?.balance || 0);
-  } catch (e) { walletBalance.value = 0; }
-};
+    const response = await fetch(`${config.public.apiBase}/api/wallet`, {
+      headers: { Authorization: `Bearer ${userStore.customerAuthToken}` }
+    })
+    const json = await response.json()
+    walletBalance.value = parseFloat(json.data?.balance || 0)
+  } catch (_error) {
+    walletBalance.value = 0
+  }
+}
 
 const loadRequestActivity = async () => {
   try {
-    const rres = await fetch(`${config.public.apiBase}/api/order-requests/customer`, {
-      headers: { 'Authorization': `Bearer ${userStore.customerAuthToken}` }
-    });
-    const rj = await rres.json();
-    const reqs = rj.data || [];
-    recentRequests.value = reqs.slice(0, 4);
-    activeRequestCount.value = reqs.filter(r => isActiveRequestStatus(r.status)).length;
-  } catch (e) {
-    recentRequests.value = [];
-    activeRequestCount.value = 0;
+    const response = await fetch(`${config.public.apiBase}/api/order-requests/customer`, {
+      headers: { Authorization: `Bearer ${userStore.customerAuthToken}` }
+    })
+    const json = await response.json()
+    const requests = json.data || []
+    recentRequests.value = requests.slice(0, 4)
+    activeRequestCount.value = requests.filter((request) => isActiveRequestStatus(request.status)).length
+  } catch (_error) {
+    recentRequests.value = []
+    activeRequestCount.value = 0
   }
-};
+}
+
+const loadOrderActivity = async () => {
+  try {
+    const orders = await userStore.getAllOrders({ limit: 12 })
+    ongoingOrders.value = Array.isArray(orders) ? orders : []
+  } catch (_error) {
+    ongoingOrders.value = []
+  }
+}
+
+const loadCompanies = async () => {
+  if (companies.value.length > 0) return
+  try {
+    await userStore.getMyCompanies()
+  } catch (_error) {
+    // Keep the page usable even if company refresh fails.
+  }
+}
 
 const stopHomeStatsPolling = () => {
-  if (homeStatsPollTimer) { clearInterval(homeStatsPollTimer); homeStatsPollTimer = null; }
-};
-
-const startHomeStatsPolling = async () => {
-  stopHomeStatsPolling();
-  await Promise.allSettled([loadWalletBalance(), loadRequestActivity()]);
-  homeStatsPollTimer = setInterval(() => { loadWalletBalance(); loadRequestActivity(); }, HOME_STATS_POLL_MS);
-};
+  if (!homeStatsPollTimer) return
+  clearInterval(homeStatsPollTimer)
+  homeStatsPollTimer = null
+}
 
 const loadDashboard = async () => {
-  try { await loadWalletBalance(); } catch (e) { walletBalance.value = 0; }
-  try { await loadRequestActivity(); } catch (e) { activeRequestCount.value = 0; }
-};
+  await Promise.allSettled([
+    loadCompanies(),
+    loadWalletBalance(),
+    loadRequestActivity(),
+    loadOrderActivity()
+  ])
+}
+
+const startHomeStatsPolling = async () => {
+  stopHomeStatsPolling()
+  await loadDashboard()
+  homeStatsPollTimer = setInterval(() => {
+    loadDashboard()
+  }, HOME_STATS_POLL_MS)
+}
 
 onMounted(async () => {
   try {
-    if (!userStore.authInitialized) await userStore.checkAuthState();
-    if (!userStore.customerAuthToken) { isCheckingAuth.value = false; return navigateTo('/'); }
-    await loadDashboard();
-    if (currentTab.value === 'home') await startHomeStatsPolling();
-  } catch (e) {
-    console.error('Dashboard init error:', e);
+    if (!userStore.authInitialized) await userStore.checkAuthState()
+    if (!userStore.customerAuthToken) {
+      isCheckingAuth.value = false
+      await navigateTo('/')
+      return
+    }
+
+    await loadDashboard()
+    if (currentTab.value === 'home') await startHomeStatsPolling()
+  } catch (error) {
+    console.error('Dashboard init error:', error)
   } finally {
-    isCheckingAuth.value = false;
+    isCheckingAuth.value = false
   }
-});
+})
 
 watch(currentTab, async (tab) => {
-  if (!userStore.customerAuthToken) return;
-  if (tab === 'home') { await startHomeStatsPolling(); return; }
-  stopHomeStatsPolling();
-});
+  if (!userStore.customerAuthToken) return
+  if (tab === 'home') {
+    await startHomeStatsPolling()
+    return
+  }
+  stopHomeStatsPolling()
+})
 
-onUnmounted(() => { stopHomeStatsPolling(); });
+onUnmounted(() => {
+  stopHomeStatsPolling()
+})
 </script>
 
-<style scoped>
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  Shell                                            */
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
+<style>
 .customer-app {
   width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
-  box-sizing: border-box;
 }
 
-.home-screen {
-  display: flex;
-  flex-direction: column;
-  background:
-    radial-gradient(circle at top left, rgba(219, 234, 254, 0.55), transparent 24%),
-    linear-gradient(180deg, #f8fafc 0%, #eff4fb 100%);
-  min-height: 100vh;
+.dashboard-top {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 2.25fr) minmax(290px, 1fr);
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  Auth loading                                     */
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.dashboard-middle {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 0.95fr);
+  align-items: start;
+}
+
+.section-wrap {
+  /* Removed bounding box to match mockup floating headers */
+}
+
+.partners-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 
 .auth-loading {
   display: flex;
@@ -443,565 +633,9 @@ onUnmounted(() => { stopHomeStatsPolling(); });
   height: 40px;
   border-radius: 50%;
   border: 3px solid #e5e7eb;
-  border-top-color: #2563eb;
+  border-top-color: #520094;
   animation: spin 0.8s linear infinite;
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin { animation: spin 0.8s linear infinite; }
-
-.auth-loading p { font-size: 0.875rem; color: #9ca3af; }
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  ① Hero zone                                      */
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-.hero-zone {
-  margin: 20px 20px 0;
-  padding: 24px;
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)),
-    linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(14, 165, 233, 0.04));
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
-}
-
-.hero-actions-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: stretch;
-}
-
-/* Location button -------------------------------- */
-
-.loc-btn {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid #dbe7f5;
-  border-radius: 18px;
-  padding: 16px 18px;
-  cursor: pointer;
-  text-align: left;
-  transition: opacity 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-}
-
-.loc-btn:hover {
-  border-color: #bfdbfe;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
-  transform: translateY(-1px);
-}
-
-.loc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.loc-pin-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.loc-pin-icon {
-  width: 18px;
-  height: 18px;
-  color: #2563eb;
-}
-
-.loc-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.loc-label {
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: #64748b;
-}
-
-.loc-name-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  min-width: 0;
-}
-
-.loc-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.35;
-}
-
-.loc-badge {
-  flex-shrink: 0;
-  background: #2563eb;
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 3px 9px;
-  border-radius: 20px;
-  letter-spacing: 0.03em;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
-}
-
-.loc-badge.unset {
-  background: #f59e0b;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
-}
-
-.loc-copy {
-  margin: 0;
-  font-size: 0.79rem;
-  line-height: 1.45;
-  color: #64748b;
-}
-
-/* Hero action row -------------------------------- */
-
-.hero-actions {
-  display: flex;
-  align-items: stretch;
-}
-
-.action-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 13px 28px;
-  border-radius: 14px;
-  background: #2563eb;
-  border: none;
-  color: #fff;
-  font-size: 0.92rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.action-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.44);
-}
-
-.action-primary:active { transform: translateY(0); }
-
-.action-icon {
-  width: 17px;
-  height: 17px;
-  flex-shrink: 0;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  ② Active alert                                   */
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-.active-alert {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 16px 20px 0;
-  padding: 14px 18px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.active-alert:hover { background: #dbeafe; }
-
-.alert-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
-}
-
-.alert-dot-ring {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #dbeafe;
-  border: 2px solid #bfdbfe;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.alert-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #2563eb;
-  animation: pulse-dot 2s infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
-}
-
-.alert-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.alert-text strong {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: #1e3a8a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.alert-text span {
-  font-size: 0.74rem;
-  color: #3b82f6;
-}
-
-.alert-arrow {
-  width: 18px;
-  height: 18px;
-  color: #3b82f6;
-  flex-shrink: 0;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  ③ Content area                                   */
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-.content-area {
-  padding: 20px 20px 40px;
-}
-
-.content-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ── Section card ────────────────────────────────── */
-
-.section-card {
-  background: #ffffff;
-  border-radius: 20px;
-  border: 1px solid #e8edf3;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
-}
-
-.section-card-prominent {
-  border-color: #dbe7f5;
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.06);
-}
-
-.section-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.section-card-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.section-eyebrow {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #2563eb;
-  margin: 0;
-}
-
-.section-card-title {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-}
-
-.see-all-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  background: none;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #2563eb;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.see-all-btn:hover { background: #eff6ff; }
-
-.see-all-icon {
-  width: 13px;
-  height: 13px;
-}
-
-/* ── Request rows ────────────────────────────────── */
-
-.request-rows { display: flex; flex-direction: column; }
-
-.request-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
-  border-bottom: 1px solid #f8fafc;
-}
-
-.request-row:last-child { border-bottom: none; }
-.request-row:hover {
-  background: #fafcff;
-  transform: translateY(-1px);
-}
-
-.req-status-badge {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.req-status-badge.green  { background: #dcfce7; color: #16a34a; }
-.req-status-badge.blue   { background: #dbeafe; color: #2563eb; }
-.req-status-badge.yellow { background: #fef9c3; color: #ca8a04; }
-.req-status-badge.red    { background: #fee2e2; color: #dc2626; }
-.req-status-badge.gray   { background: #f3f4f6; color: #6b7280; }
-
-.req-status-icon { width: 18px; height: 18px; }
-
-.req-body { flex: 1; min-width: 0; }
-
-.req-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-
-.req-title {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.req-meta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  font-size: 0.73rem;
-  color: #94a3b8;
-  margin: 0;
-}
-
-.req-status-tag {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.req-status-tag.green  { background: #dcfce7; color: #16a34a; }
-.req-status-tag.blue   { background: #dbeafe; color: #2563eb; }
-.req-status-tag.yellow { background: #fef9c3; color: #ca8a04; }
-.req-status-tag.red    { background: #fee2e2; color: #dc2626; }
-.req-status-tag.gray   { background: #f3f4f6; color: #6b7280; }
-
-.req-inline-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 0.63rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.req-inline-status.green  { background: #dcfce7; color: #15803d; }
-.req-inline-status.blue   { background: #dbeafe; color: #1d4ed8; }
-.req-inline-status.yellow { background: #fef3c7; color: #b45309; }
-.req-inline-status.red    { background: #fee2e2; color: #b91c1c; }
-.req-inline-status.gray   { background: #f1f5f9; color: #64748b; }
-
-.req-sep { opacity: 0.4; }
-
-.req-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.req-amount {
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-}
-
-.req-open {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: #eff6ff;
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #2563eb;
-  margin: 0;
-}
-
-/* ── Empty state ─────────────────────────────────── */
-
-.empty-state {
-  padding: 36px 24px;
-  text-align: center;
-}
-
-.empty-icon {
-  width: 32px;
-  height: 32px;
-  color: #cbd5e1;
-  margin: 0 auto;
-}
-
-.empty-state p {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  margin: 10px 0 16px;
-}
-
-.empty-cta {
-  display: inline-flex;
-  align-items: center;
-  padding: 9px 18px;
-  border-radius: 10px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #2563eb;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.empty-cta:hover { background: #dbeafe; }
-
-/* ── Pharmacy rows ───────────────────────────────── */
-
-.pharmacy-rows { display: flex; flex-direction: column; }
-
-.pharmacy-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 20px;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
-  border-bottom: 1px solid #f8fafc;
-}
-
-.pharmacy-row:last-child { border-bottom: none; }
-.pharmacy-row:hover {
-  background: #fafcff;
-  transform: translateY(-1px);
-}
-
-.pharm-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
-}
-
-.pharm-avatar.featured {
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
-}
-
-.pharm-info { flex: 1; min-width: 0; }
-
-.pharm-name {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pharm-sub {
-  font-size: 0.72rem;
-  color: #94a3b8;
-  font-weight: 500;
-  margin: 0;
-  line-height: 1.45;
-}
-
-.pharm-arrow {
-  width: 16px;
-  height: 16px;
-  color: #cbd5e1;
-  flex-shrink: 0;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  Page view (non-home tabs)                        */
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 .page-view {
   min-height: 60vh;
@@ -1009,40 +643,26 @@ onUnmounted(() => { stopHomeStatsPolling(); });
   overflow-x: clip;
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  Responsive                                       */
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-@media (max-width: 480px) {
-  .hero-zone { margin: 16px 16px 0; padding: 16px; border-radius: 20px; }
-  .hero-actions-row { grid-template-columns: 1fr; gap: 12px; }
-  .loc-btn { padding: 14px 15px; gap: 10px; }
-  .hero-actions { width: 100%; }
-  .action-primary { width: 100%; padding: 13px 16px; font-size: 0.88rem; }
-  .loc-name-row { flex-direction: column; align-items: flex-start; }
-  .active-alert  { margin: 14px 18px 0; }
-  .content-area  { padding: 16px 18px 36px; }
-  .request-row,
-  .pharmacy-row { padding: 15px 16px; }
-  .section-card-head { padding: 16px 16px 12px; }
+.spin-icon {
+  animation: spin 0.9s linear infinite;
 }
 
-@media (min-width: 680px) {
-  .content-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
+@media (max-width: 1180px) {
+  .dashboard-top,
+  .dashboard-middle,
+  .partners-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-wrap {
+    padding: 1rem;
+    border-radius: 2.2rem;
   }
 }
 
-@media (min-width: 960px) {
-  .hero-zone { margin: 24px 28px 0; padding: 20px; }
-  .hero-actions-row { grid-template-columns: minmax(0, 1.4fr) auto; gap: 18px; }
-  .action-primary { min-width: 168px; }
-  .active-alert  { margin: 20px 28px 0; }
-  .content-area  { padding: 24px 28px 48px; }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
-
 </style>
-

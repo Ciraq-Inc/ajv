@@ -1,8 +1,11 @@
 <template>
   <div class="profile-component">
     <div class="section-header">
-      <h2>Profile Information</h2>
-      <p class="section-description">Update your personal information and saved home location</p>
+      <div>
+        <p class="eyebrow">Profile</p>
+        <h2>Profile Information</h2>
+        <p class="section-description">Update your personal information and saved home location.</p>
+      </div>
     </div>
 
     <!-- Success Alert -->
@@ -20,6 +23,17 @@
           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <span>{{ error }}</span>
+    </div>
+
+    <div class="profile-summary-card">
+      <div class="profile-avatar">{{ profileInitials }}</div>
+      <div class="profile-summary-copy">
+        <h3>{{ profileDisplayName }}</h3>
+        <p>{{ formatPhoneNumber(userStore.userPhoneNumber) || 'No phone number' }}</p>
+      </div>
+      <div class="profile-summary-status" :class="{ complete: !!profile.address }">
+        {{ profile.address ? 'Location saved' : 'Location needed' }}
+      </div>
     </div>
 
     <!-- Profile Form -->
@@ -162,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useUserStore } from '~/stores/user';
 
 const userStore = useUserStore();
@@ -184,6 +198,16 @@ const profile = reactive({
   address: '',
   latitude: null,
   longitude: null
+});
+
+const profileDisplayName = computed(() => {
+  const fullName = `${profile.fname || ''} ${profile.lname || ''}`.trim();
+  return fullName || 'Customer Profile';
+});
+
+const profileInitials = computed(() => {
+  const initials = `${(profile.fname || '')[0] || ''}${(profile.lname || '')[0] || ''}`.toUpperCase();
+  return initials || 'CP';
 });
 
 // Password form
@@ -351,26 +375,94 @@ onMounted(() => {
 
 <style scoped>
 .profile-component {
-  max-width: 800px;
-  padding: 10px;
+  max-width: 1100px;
+  padding: 0.5rem 0 1rem;
 }
 
 .section-header {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7b3dbd;
 }
 
 .section-header h2,
 .section-header h3 {
-  font-size: 20px;
+  font-size: 30px;
   font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 4px 0;
+  color: #231734;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.04em;
 }
 
 .section-description {
-  color: #64748b;
+  color: #75697f;
   font-size: 14px;
   margin: 0;
+  line-height: 1.6;
+}
+
+.profile-summary-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1.3rem;
+  margin-bottom: 1rem;
+  border-radius: 1.6rem;
+  border: 1px solid #eee3f3;
+  background: linear-gradient(180deg, #ffffff, #fbf7fd);
+  box-shadow: 0 14px 34px rgba(53, 0, 98, 0.05);
+}
+
+.profile-avatar {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.profile-summary-copy h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #231734;
+  font-weight: 700;
+}
+
+.profile-summary-copy p {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: #75697f;
+}
+
+.profile-summary-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  background: #fff1d8;
+  color: #9a620d;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-summary-status.complete {
+  background: #e7f7ea;
+  color: #1f8a45;
 }
 
 .alert {
@@ -402,9 +494,10 @@ onMounted(() => {
 
 .card {
   background: white;
-  border-radius: 12px;
+  border-radius: 1.6rem;
   padding: 24px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #eee3f3;
+  box-shadow: 0 14px 34px rgba(53, 0, 98, 0.05);
 }
 
 .form-grid {
@@ -422,22 +515,23 @@ onMounted(() => {
 .form-group label {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: #453850;
   margin-bottom: 8px;
 }
 
 .form-input {
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid #ddd3e7;
+  border-radius: 14px;
   font-size: 14px;
   transition: all 0.2s;
+  background: #fdfbfe;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #8c59d7;
+  box-shadow: 0 0 0 3px rgba(123, 61, 189, 0.1);
 }
 
 .form-input:disabled {
@@ -448,7 +542,7 @@ onMounted(() => {
 
 .field-hint {
   font-size: 12px;
-  color: #6b7280;
+  color: #7a7280;
   margin-top: 4px;
 }
 
@@ -457,9 +551,9 @@ onMounted(() => {
   gap: 14px;
   margin-top: 4px;
   padding: 18px;
-  border: 1px solid #dbe4f0;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #f8fbff, #ffffff);
+  border: 1px solid #e9def1;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fbf7fd, #ffffff);
 }
 
 .home-location-head {
@@ -473,7 +567,7 @@ onMounted(() => {
   display: block;
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: #231734;
   margin-bottom: 6px;
 }
 
@@ -493,25 +587,25 @@ onMounted(() => {
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 10px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #f6eefc;
+  border: 1px solid #eadcf5;
 }
 
 .home-location-status.set {
-  background: #ecfeff;
-  border-color: #99f6e4;
+  background: #eef9f1;
+  border-color: #cfead7;
 }
 
 .home-location-status strong {
   font-size: 14px;
-  color: #0f172a;
+  color: #231734;
 }
 
 .home-location-status span {
   font-size: 13px;
   line-height: 1.5;
-  color: #475569;
+  color: #72677d;
 }
 
 .location-coordinates {
@@ -536,7 +630,7 @@ onMounted(() => {
   gap: 8px;
   padding: 10px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -550,14 +644,14 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
+  background: linear-gradient(135deg, #5a189a 0%, #7137b4 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 10px 20px rgba(95, 27, 164, 0.25);
 }
 
 .btn-secondary {
@@ -574,23 +668,23 @@ onMounted(() => {
 .btn-ghost {
   min-width: auto;
   padding: 10px 16px;
-  background: #2563eb;
+  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
   color: #fff;
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: linear-gradient(135deg, #5a189a 0%, #7137b4 100%);
 }
 
 .btn-subtle {
   min-width: auto;
   padding: 10px 16px;
-  background: #eef2ff;
-  color: #4338ca;
+  background: #f4ebfb;
+  color: #6a3d95;
 }
 
 .btn-subtle:hover:not(:disabled) {
-  background: #e0e7ff;
+  background: #eee1f8;
 }
 
 .spinner {
@@ -610,6 +704,11 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .profile-summary-card {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
