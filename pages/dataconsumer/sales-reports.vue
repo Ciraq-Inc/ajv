@@ -7,38 +7,41 @@
     </div>
 
     <!-- Quarterly Filters -->
-    <div class="filters-section bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap items-center gap-3">
-      <div class="flex-1 min-w-xs">
-        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase">Year</label>
-        <select
-          v-model="quarterlyFilters.year"
-          @change="fetchQuarterlyData"
-          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="2024">2024</option>
-          <option value="2025">2025</option>
-          <option value="2026">2026</option>
-          <option value="2027">2027</option>
-        </select>
+    <div class="filters-section bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap items-end gap-3">
+      <!-- Year & Date Field on one row -->
+      <div class="filters-inputs flex gap-3 flex-1">
+        <div class="flex-1 min-w-0">
+          <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase">Year</label>
+          <select
+            v-model="quarterlyFilters.year"
+            @change="fetchQuarterlyData"
+            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+          </select>
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase">Date Field</label>
+          <select
+            v-model="quarterlyFilters.date_field"
+            @change="fetchQuarterlyData"
+            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="actual_date">Actual Date</option>
+            <option value="ddate">Transaction Date</option>
+          </select>
+        </div>
       </div>
 
-      <div class="flex-1 min-w-xs">
-        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase">Date Field</label>
-        <select
-          v-model="quarterlyFilters.date_field"
-          @change="fetchQuarterlyData"
-          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="actual_date">Actual Date</option>
-          <option value="ddate">Transaction Date</option>
-        </select>
-      </div>
-
-      <div class="flex gap-2 items-end">
+      <div class="filter-actions">
         <button
           @click="fetchQuarterlyData(true)"
           :disabled="quarterlyLoading"
-          class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap font-medium"
+          class="action-btn bg-blue-600 hover:bg-blue-700"
         >
           <span v-if="quarterlyLoading">Loading...</span>
           <span v-else>Refresh</span>
@@ -46,7 +49,7 @@
         <button
           @click="sendViaWhatsApp"
           :disabled="!canSendWhatsApp"
-          class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2 whitespace-nowrap font-medium"
+          class="action-btn bg-green-600 hover:bg-green-700 inline-flex items-center gap-2"
           title="Send quarterly report request via WhatsApp"
         >
           <ChatBubbleLeftIcon class="w-4 h-4" />
@@ -55,7 +58,7 @@
         <button
           @click="exportQuarterlyToCSV"
           :disabled="!quarterlyData || quarterlyLoading"
-          class="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2 whitespace-nowrap font-medium"
+          class="action-btn bg-purple-600 hover:bg-purple-700 inline-flex items-center gap-2"
         >
           <DocumentArrowDownIcon class="w-4 h-4" />
           <span>Export</span>
@@ -75,14 +78,14 @@
     </div>
 
     <!-- Quarter Selection Cards -->
-    <div v-else-if="quarterlyData && !quarterlyLoading" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div v-else-if="quarterlyData && !quarterlyLoading" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       <label
         v-for="(quarter, index) in [1, 2, 3, 4]"
         :key="index"
-        class="bg-white rounded-lg shadow-md p-4 border-l-4 cursor-pointer hover:shadow-lg transition-shadow"
+        class="bg-white rounded-lg shadow-md p-3 border-l-4 cursor-pointer hover:shadow-lg transition-shadow"
         :class="getQuarterColor(quarter)"
       >
-        <div class="flex items-start gap-3">
+        <div class="flex items-start gap-2">
           <input
             type="checkbox"
             :checked="selectedQuarters[`q${quarter}`]"
@@ -93,7 +96,7 @@
             <p class="text-sm font-semibold text-gray-800">{{ getQuarterName(quarter) }}</p>
             <p class="text-xs text-gray-500 mt-1">{{ getQuarterDates(quarter) }}</p>
             <div v-if="quarterlyData[`q${quarter}`]" class="mt-2 text-xs text-gray-700">
-              <p><strong>{{ quarterlyData[`q${quarter}`].transactions || 0 }}</strong> transactions</p>
+              <p><strong>{{ quarterlyData[`q${quarter}`].transactions || 0 }}</strong> txns</p>
             </div>
           </div>
         </div>
@@ -104,7 +107,7 @@
     <div v-if="quarterlyData && !quarterlyLoading && quarterlyPharmacies.length > 0" class="bg-white rounded-lg shadow-md overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-800">Pharmacy Sales Breakdown</h3>
-        <p class="text-sm text-gray-600 mt-1">Total pharmacies: <span class="font-bold">{{ quarterlyPharmacies.length }}</span></p>
+        <p class="text-sm text-gray-600 mt-1">{{ quarterlyPharmacies.length }} pharmacies</p>
       </div>
       
       <div class="overflow-x-auto">
@@ -119,16 +122,16 @@
                   class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                 />
               </th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">#</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">ALTERNATE ID</th>
+              <th class="hidden md:table-cell px-6 py-3 text-left font-semibold text-gray-700">#</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700">ID</th>
               <th v-if="selectedQuarters.q1" class="px-6 py-3 text-right font-semibold text-gray-700">Q1</th>
-              <th v-if="selectedQuarters.q1" class="px-6 py-3 text-left font-semibold text-gray-700">Q1 DATES</th>
+              <th v-if="selectedQuarters.q1" class="hidden lg:table-cell px-6 py-3 text-left font-semibold text-gray-700">Q1 DATES</th>
               <th v-if="selectedQuarters.q2" class="px-6 py-3 text-right font-semibold text-gray-700">Q2</th>
-              <th v-if="selectedQuarters.q2" class="px-6 py-3 text-left font-semibold text-gray-700">Q2 DATES</th>
+              <th v-if="selectedQuarters.q2" class="hidden lg:table-cell px-6 py-3 text-left font-semibold text-gray-700">Q2 DATES</th>
               <th v-if="selectedQuarters.q3" class="px-6 py-3 text-right font-semibold text-gray-700">Q3</th>
-              <th v-if="selectedQuarters.q3" class="px-6 py-3 text-left font-semibold text-gray-700">Q3 DATES</th>
+              <th v-if="selectedQuarters.q3" class="hidden lg:table-cell px-6 py-3 text-left font-semibold text-gray-700">Q3 DATES</th>
               <th v-if="selectedQuarters.q4" class="px-6 py-3 text-right font-semibold text-gray-700">Q4</th>
-              <th v-if="selectedQuarters.q4" class="px-6 py-3 text-left font-semibold text-gray-700">Q4 DATES</th>
+              <th v-if="selectedQuarters.q4" class="hidden lg:table-cell px-6 py-3 text-left font-semibold text-gray-700">Q4 DATES</th>
               <th class="px-6 py-3 text-right font-semibold text-gray-700">TOTAL</th>
             </tr>
           </thead>
@@ -142,17 +145,17 @@
                   class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                 />
               </td>
-              <td class="px-6 py-4 font-medium text-gray-600">{{ index + 1 }}</td>
-              <td class="px-6 py-4 text-gray-600">{{ pharmacy.alternate_company_id || 'N/A' }}</td>
+              <td class="hidden md:table-cell px-6 py-4 font-medium text-gray-600">{{ index + 1 }}</td>
+              <td class="px-6 py-4 text-gray-600 text-sm">{{ pharmacy.alternate_company_id || 'N/A' }}</td>
               <td v-if="selectedQuarters.q1" class="px-6 py-4 text-right font-medium text-gray-900">{{ pharmacy.q1_transactions || 0 }}</td>
-              <td v-if="selectedQuarters.q1" class="px-6 py-4 text-gray-600">{{ pharmacy.q1_date_range || '-' }}</td>
+              <td v-if="selectedQuarters.q1" class="hidden lg:table-cell px-6 py-4 text-gray-600 text-xs">{{ pharmacy.q1_date_range || '-' }}</td>
               <td v-if="selectedQuarters.q2" class="px-6 py-4 text-right font-medium text-gray-900">{{ pharmacy.q2_transactions || 0 }}</td>
-              <td v-if="selectedQuarters.q2" class="px-6 py-4 text-gray-600">{{ pharmacy.q2_date_range || '-' }}</td>
+              <td v-if="selectedQuarters.q2" class="hidden lg:table-cell px-6 py-4 text-gray-600 text-xs">{{ pharmacy.q2_date_range || '-' }}</td>
               <td v-if="selectedQuarters.q3" class="px-6 py-4 text-right font-medium text-gray-900">{{ pharmacy.q3_transactions || 0 }}</td>
-              <td v-if="selectedQuarters.q3" class="px-6 py-4 text-gray-600">{{ pharmacy.q3_date_range || '-' }}</td>
+              <td v-if="selectedQuarters.q3" class="hidden lg:table-cell px-6 py-4 text-gray-600 text-xs">{{ pharmacy.q3_date_range || '-' }}</td>
               <td v-if="selectedQuarters.q4" class="px-6 py-4 text-right font-medium text-gray-900">{{ pharmacy.q4_transactions || 0 }}</td>
-              <td v-if="selectedQuarters.q4" class="px-6 py-4 text-gray-600">{{ pharmacy.q4_date_range || '-' }}</td>
-              <td class="px-6 py-4 text-right font-bold text-gray-900">
+              <td v-if="selectedQuarters.q4" class="hidden lg:table-cell px-6 py-4 text-gray-600 text-xs">{{ pharmacy.q4_date_range || '-' }}</td>
+              <td class="px-6 py-4 text-right font-bold text-gray-900 text-sm">
                 {{ getPharmacyTotal(pharmacy) }}
               </td>
             </tr>
@@ -414,6 +417,32 @@ onMounted(() => {
   min-width: 200px;
 }
 
+/* Filter action buttons */
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  justify-content: center;
+}
+
+.action-btn:disabled {
+  background-color: #d1d5db !important;
+  cursor: not-allowed;
+}
+
 /* Loading spinner */
 .animate-spin {
   animation: spin 1s linear infinite;
@@ -426,17 +455,45 @@ onMounted(() => {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .filters-section {
-    flex-direction: column;
+  .filters-inputs {
+    flex-basis: 100% !important;
   }
 
-  .min-w-xs {
-    width: 100%;
-    min-width: unset;
+  .filter-actions {
+    flex-basis: 100%;
+  }
+
+  .action-btn {
+    flex: 1;
   }
 
   .page-header h1 {
-    font-size: 24px;
+    font-size: 22px;
+  }
+
+  /* Table: tighter cells and smaller fonts on mobile */
+  :deep(table) {
+    font-size: 10px;
+  }
+
+  :deep(table th) {
+    padding: 6px 4px;
+    font-size: 8px;
+  }
+
+  :deep(table td) {
+    padding: 5px 4px;
+  }
+
+  :deep(table th.px-6),
+  :deep(table td.px-6) {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .overflow-x-auto {
+    margin: 0 -16px;
+    padding: 0 16px;
   }
 }
 </style>

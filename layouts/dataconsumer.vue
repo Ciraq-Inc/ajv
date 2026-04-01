@@ -1,7 +1,7 @@
 <template>
   <div v-if="isReady" class="dataconsumer-layout">
     <!-- Sidebar -->
-    <aside class="sidebar" :class="{ 'sidebar-collapsed': !isSidebarExpanded }">
+    <aside class="sidebar" :class="{ 'sidebar-collapsed': !isSidebarExpanded, 'is-open': isSidebarExpanded }">
       <!-- Logo & Collapse Button -->
       <div class="sidebar-header">
         <div class="logo-section">
@@ -63,11 +63,24 @@
       </nav>
     </aside>
 
+    <!-- Mobile Backdrop Overlay -->
+    <div
+      v-if="isSidebarExpanded"
+      class="mobile-overlay"
+      @click="isSidebarExpanded = false"
+    ></div>
+
     <!-- Main Content Area -->
     <div class="main-wrapper">
       <!-- Top Navbar -->
       <header class="navbar">
         <div class="navbar-content">
+          <!-- Hamburger (mobile only) -->
+          <button class="hamburger-btn" @click="isSidebarExpanded = !isSidebarExpanded" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <h1 class="page-title">Data Consumer Portal</h1>
           <div class="navbar-spacer"></div>
         </div>
@@ -428,8 +441,48 @@ if (process.client) {
   width: 100%;
 }
 
+/* Mobile Overlay */
+.mobile-overlay {
+  display: none;
+}
+
+/* Hamburger Button */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: #1e293b;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 250;
+  }
+
   .sidebar {
     width: 100%;
     transform: translateX(0);
@@ -439,13 +492,12 @@ if (process.client) {
     width: 100%;
   }
 
-  .main-wrapper {
-    margin-left: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+  .main-wrapper,
+  .sidebar ~ .main-wrapper,
+  .sidebar-collapsed ~ .main-wrapper {
+    margin-left: 0 !important;
+    width: 100%;
+    min-height: 100vh;
   }
 
   .sidebar {
