@@ -34,16 +34,6 @@
         </select>
       </div>
 
-      <div class="flex-1 min-w-xs">
-        <label class="block text-xs font-semibold text-gray-600 mb-1 uppercase">Pharmacies (optional)</label>
-        <input
-          v-model="quarterlyFilters.pharmacy_search"
-          type="text"
-          placeholder="e.g., 99, 100, 101"
-          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-
       <div class="flex gap-2 items-end">
         <button
           @click="fetchQuarterlyData(true)"
@@ -130,7 +120,6 @@
                 />
               </th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700">#</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">PHARMACY</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700">ALTERNATE ID</th>
               <th v-if="selectedQuarters.q1" class="px-6 py-3 text-right font-semibold text-gray-700">Q1</th>
               <th v-if="selectedQuarters.q1" class="px-6 py-3 text-left font-semibold text-gray-700">Q1 DATES</th>
@@ -154,7 +143,6 @@
                 />
               </td>
               <td class="px-6 py-4 font-medium text-gray-600">{{ index + 1 }}</td>
-              <td class="px-6 py-4 font-medium text-gray-900">{{ pharmacy.company_name }}</td>
               <td class="px-6 py-4 text-gray-600">{{ pharmacy.alternate_company_id || 'N/A' }}</td>
               <td v-if="selectedQuarters.q1" class="px-6 py-4 text-right font-medium text-gray-900">{{ pharmacy.q1_transactions || 0 }}</td>
               <td v-if="selectedQuarters.q1" class="px-6 py-4 text-gray-600">{{ pharmacy.q1_date_range || '-' }}</td>
@@ -201,8 +189,7 @@ const quarterlyPharmacies = ref([])
 
 const quarterlyFilters = ref({
   year: String(new Date().getFullYear()),
-  date_field: 'actual_date',
-  pharmacy_search: ''
+  date_field: 'actual_date'
 })
 
 // Selected quarters and pharmacies
@@ -292,9 +279,6 @@ const fetchQuarterlyData = async (forceRefresh = false) => {
     params.append('year', quarterlyFilters.value.year)
     params.append('date_field', quarterlyFilters.value.date_field)
 
-    if (quarterlyFilters.value.pharmacy_search) {
-      params.append('company_ids', quarterlyFilters.value.pharmacy_search)
-    }
     if (forceRefresh === true) params.append('refresh', 'true')
 
     const response = await fetch(
@@ -338,7 +322,7 @@ const getSelectedQuartersText = () => {
 const getSelectedPharmaciesText = () => {
   const pharmacies = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
   if (pharmacies.length === 0) return 'No pharmacies selected'
-  return pharmacies.map(p => `${p.company_name} (${p.alternate_company_id || p.company_id})`).join(', ')
+  return pharmacies.map(p => `${p.alternate_company_id || p.company_id}`).join(', ')
 }
 
 const sendViaWhatsApp = () => {
@@ -358,7 +342,7 @@ const exportQuarterlyToCSV = () => {
   const selectedPharmacyList = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
   if (selectedPharmacyList.length === 0) return
 
-  let csv = 'Pharmacy Name,Alternate ID'
+  let csv = 'Alternate ID'
   
   if (selectedQuarters.value.q1) csv += ',Q1,Q1 Dates'
   if (selectedQuarters.value.q2) csv += ',Q2,Q2 Dates'
@@ -368,7 +352,7 @@ const exportQuarterlyToCSV = () => {
   csv += ',Total\n'
 
   selectedPharmacyList.forEach(pharmacy => {
-    csv += `"${pharmacy.company_name}","${pharmacy.alternate_company_id || 'N/A'}"`
+    csv += `"${pharmacy.alternate_company_id || 'N/A'}"`
     
     if (selectedQuarters.value.q1) csv += `,${pharmacy.q1_transactions || 0},"${pharmacy.q1_date_range || '-'}"`
     if (selectedQuarters.value.q2) csv += `,${pharmacy.q2_transactions || 0},"${pharmacy.q2_date_range || '-'}"`
