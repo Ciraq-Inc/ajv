@@ -13,7 +13,7 @@
           <img src="../assets/images/rigellogo.png" alt="Rigelis" width="46" height="46" class="rounded-xl" />
           <div>
             <p class="text-lg font-bold leading-none text-[#520094] sm:text-xl">MedsGh</p>
-            <p class="mt-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">Trusted Pharmacy Network</p>
+            <p class="mt-1 text-[11px] uppercase tracking-[0.1em] text-slate-500">Trusted Pharmacy Network</p>
           </div>
         </nuxt-link>
 

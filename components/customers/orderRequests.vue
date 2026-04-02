@@ -2,38 +2,8 @@
     <div class="order-requests">
         <!-- ====== NEW REQUEST FORM ====== -->
         <div v-if="isNewView" class="form-section mb-10 text-[#350062]">
-            <section class="new-request-hero">
-                <div class="new-request-hero-copy">
-                    <span class="shell-eyebrow">New Request</span>
-                    <h2 class="new-request-title">Build your medication request in one flow.</h2>
-                    <p class="new-request-desc">Add medicines, attach prescription images if needed, confirm your location, and choose delivery or pickup before sending it out.</p>
-                </div>
-                <div class="new-request-hero-panel">
-                    <div class="hero-panel-item">
-                        <span>Priority Search</span>
-                        <strong>GHS {{ requestFee.toFixed(2) }}</strong>
-                    </div>
-                    <div class="hero-panel-item">
-                        <span>Wallet Balance</span>
-                        <strong>GHS {{ walletBalance.toFixed(2) }}</strong>
-                    </div>
-                    <div class="hero-panel-item muted">
-                        <span>Request Content</span>
-                        <strong>{{ validItems.length || prescriptionFiles.length ? `${validItems.length || prescriptionFiles.length} ready` : 'Start adding items' }}</strong>
-                    </div>
-                </div>
-            </section>
-
             <div class="step-content">
                 <div class="editor-section">
-                    <div class="editor-section-head">
-                        <div>
-                            <h3 class="step-title">What do you need?</h3>
-                            <p class="step-desc">Search for medicines, attach product photos, or upload a prescription if you want pharmacies to interpret it for you.</p>
-                        </div>
-                        <span class="editor-section-badge">{{ validItems.length ? `${validItems.length} item${validItems.length === 1 ? '' : 's'}` : 'Awaiting items' }}</span>
-                    </div>
-
                     <div v-if="!canSearchProducts" class="search-lock-card">
                         <div class="search-lock-copy">
                             <strong>Top up your wallet to start a Priority Search.</strong>
@@ -51,7 +21,6 @@
                             <span class="editor-card-kicker">Location</span>
                             <h4>Set where this request should be sourced from.</h4>
                         </div>
-                        <span class="editor-card-status" :class="{ ready: customerLat }">{{ customerLat ? 'Ready' : 'Needed' }}</span>
                     </div>
 
                     <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-4"
@@ -100,7 +69,6 @@
                             <span class="editor-card-kicker">Items</span>
                             <h4>Add the medicines you want sourced.</h4>
                         </div>
-                        <span class="editor-card-status">{{ requestItems.length }} row{{ requestItems.length === 1 ? '' : 's' }}</span>
                     </div>
 
                     <div class="items-list">
@@ -118,8 +86,6 @@
                                             :disabled="!canSearchProducts"
                                             class="item-input" @input="onProductInput(item)" @focus="onProductInput(item)"
                                             @blur="closeDropdown(item)" />
-                                        <span v-if="item.product_name && !item.loading" class="search-chip">{{ item.showDropdown && item.searchResults.length ? `${item.searchResults.length} match${item.searchResults.length === 1 ? '' : 'es'}` : 'Custom entry' }}</span>
-                                        <span v-else-if="item.loading" class="search-chip searching">Searching</span>
 
                                         <!-- Search Dropdown -->
                                         <div v-if="item.showDropdown && (item.searchResults.length || item.loading)"
@@ -152,9 +118,6 @@
                                             </template>
                                         </div>
                                     </div>
-                                    <div class="search-helper-row">
-                                        <span v-if="item.product_name && !item.showDropdown" class="search-helper-state">Tap the field again to search more</span>
-                                    </div>
                                 </div>
                                 <div class="item-upload-row">
                                     <label class="item-upload-btn">
@@ -168,7 +131,6 @@
                                             @change="onItemImagesSelected($event, item)"
                                         />
                                     </label>
-                                    <span v-if="item.imageFiles.length" class="item-upload-note">Attached only to this product.</span>
                                 </div>
                                 <div v-if="item.imageFiles.length" class="item-image-grid">
                                     <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="item-image-card">
@@ -211,6 +173,56 @@
                     <button @click="addItem" class="add-item-btn" :disabled="!canSearchProducts">
                         <PlusIcon class="add-svg" /> Add Another Item
                     </button>
+                </section>
+
+                <!-- Request Images -->
+                <section class="editor-card">
+                    <div class="editor-card-head">
+                        <div>
+                            <span class="editor-card-kicker">Request Images</span>
+                            <h4>Upload images to help pharmacies understand your request.</h4>
+                        </div>
+                    </div>
+
+                    <div class="prescription-box">
+                        <CameraIcon class="prescription-svg" />
+                        <div class="prescription-text">
+                            <strong>Add reference images</strong>
+                            <span>Upload photos related to your medication request. This helps provide context to pharmacies.</span>
+                        </div>
+                        <label class="upload-label">
+                            <ArrowUpTrayIcon class="upload-svg" />
+                            {{ requestImageFiles.length ? `Add More Photos (${requestImageFiles.length})` : 'Choose Photos' }}
+                            <input
+                                ref="requestImagePicker"
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                @change="onRequestImageFilesSelected"
+                                class="hidden-input"
+                            />
+                        </label>
+                        <input
+                            ref="requestImageReplacePicker"
+                            type="file"
+                            accept="image/*"
+                            class="hidden-input"
+                            @change="onReplaceRequestImageFile"
+                        />
+                        <div v-if="requestImageFiles.length" class="prescription-preview-grid">
+                            <div v-for="(image, index) in requestImageFiles" :key="image.id" class="prescription-preview-card">
+                                <img :src="image.previewUrl" :alt="`Request image ${index + 1}`" class="prescription-preview-image" />
+                                <div class="prescription-preview-copy">
+                                    <strong>Image {{ index + 1 }}</strong>
+                                    <span>{{ image.file.name }}</span>
+                                </div>
+                                <div class="prescription-preview-actions">
+                                    <button type="button" class="preview-action-btn" @click="queueRequestImageReplace(index)">Retake</button>
+                                    <button type="button" class="preview-action-btn danger" @click="removeRequestImageFile(index)">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- Prescription -->
@@ -307,12 +319,6 @@
                             class="form-textarea"></textarea>
                         <p class="field-hint">Required for delivery requests.</p>
                     </div>
-
-                    <div class="form-group">
-                        <label>Notes <span class="optional">(optional)</span></label>
-                        <textarea v-model="customerNotes" rows="2" placeholder="e.g. brand preference, dosage form..."
-                            class="form-textarea"></textarea>
-                    </div>
                 </section>
 
             <section class="builder-card review-card">
@@ -345,14 +351,6 @@
                         <div class="review-row" v-if="fulfillmentType === 'delivery'">
                             <span>Address</span><span class="review-addr">{{ compactAddress(deliveryAddress) || 'Not provided' }}</span>
                         </div>
-                    </div>
-                </div>
-
-                <div class="fee-notice priority-note">
-                    <InformationCircleIcon class="info-svg" />
-                    <div>
-                        <strong>Priority Search includes a GHS {{ requestFee.toFixed(2) }} charge</strong>
-                        <span>The charge is deducted when you send the request. Keep at least GHS {{ requestFee.toFixed(2) }} in your wallet before you start searching.</span>
                     </div>
                 </div>
             </section>
@@ -931,6 +929,10 @@ const prescriptionPicker = ref(null)
 const prescriptionReplacePicker = ref(null)
 const prescriptionFiles = ref([])
 const prescriptionReplaceIndex = ref(null)
+const requestImagePicker = ref(null)
+const requestImageReplacePicker = ref(null)
+const requestImageFiles = ref([])
+const requestImageReplaceIndex = ref(null)
 const customerLat = ref(null)
 const customerLng = ref(null)
 const savedHomeLocation = ref(null)
@@ -970,13 +972,14 @@ const goToRequestHistory = async () => {
 
 const validItems = computed(() => requestItems.value.filter(i => i.product_name.trim()))
 const hasPrescriptionFiles = computed(() => prescriptionFiles.value.length > 0)
+const hasRequestImages = computed(() => requestImageFiles.value.length > 0)
 const hasItemImageFiles = computed(() => requestItems.value.some((item) => Array.isArray(item.imageFiles) && item.imageFiles.length > 0))
-const hasMultipartUploads = computed(() => hasPrescriptionFiles.value || hasItemImageFiles.value)
+const hasMultipartUploads = computed(() => hasPrescriptionFiles.value || hasRequestImages.value || hasItemImageFiles.value)
 const isUploading = computed(() => isSubmitting.value && uploadProgress.value > 0)
 const homeLocationAvailable = computed(() => !!(savedHomeLocation.value?.latitude && savedHomeLocation.value?.longitude))
 const canSearchProducts = computed(() => Number(walletBalance.value || 0) >= Number(requestFee.value || 5))
 const canSubmit = computed(() => {
-    const hasRequestContent = validItems.value.length > 0 || prescriptionFiles.value.length > 0
+    const hasRequestContent = validItems.value.length > 0 || prescriptionFiles.value.length > 0 || requestImageFiles.value.length > 0
     if (!(hasRequestContent && customerLat.value && fulfillmentType.value)) return false
     if (fulfillmentType.value === 'delivery') return !!deliveryAddress.value.trim()
     return true
@@ -1184,6 +1187,46 @@ const removePrescriptionFile = (index) => {
     const current = prescriptionFiles.value[index]
     revokePrescriptionPreview(current)
     prescriptionFiles.value.splice(index, 1)
+}
+
+const appendRequestImageFiles = async (files = []) => {
+    const accepted = Array.from(files).slice(0, Math.max(0, 5 - requestImageFiles.value.length))
+    if (!accepted.length) return
+    const compressedFiles = await Promise.all(accepted.map(compressRequestImage))
+    const nextFiles = compressedFiles.map(createPrescriptionPreview)
+    requestImageFiles.value = [...requestImageFiles.value, ...nextFiles]
+}
+
+const onRequestImageFilesSelected = async (event) => {
+    await appendRequestImageFiles(event.target.files || [])
+    resetPickerInput(requestImagePicker)
+}
+
+const queueRequestImageReplace = (index) => {
+    requestImageReplaceIndex.value = index
+    requestImageReplacePicker.value?.click()
+}
+
+const onReplaceRequestImageFile = async (event) => {
+    const replacement = event.target.files?.[0]
+    const index = requestImageReplaceIndex.value
+    if (!replacement || index === null || !requestImageFiles.value[index]) {
+        resetPickerInput(requestImageReplacePicker)
+        requestImageReplaceIndex.value = null
+        return
+    }
+
+    const compressedReplacement = await compressRequestImage(replacement)
+    revokePrescriptionPreview(requestImageFiles.value[index])
+    requestImageFiles.value.splice(index, 1, createPrescriptionPreview(compressedReplacement))
+    resetPickerInput(requestImageReplacePicker)
+    requestImageReplaceIndex.value = null
+}
+
+const removeRequestImageFile = (index) => {
+    const current = requestImageFiles.value[index]
+    revokePrescriptionPreview(current)
+    requestImageFiles.value.splice(index, 1)
 }
 
 const appendItemImages = async (item, files = []) => {
@@ -1469,7 +1512,6 @@ const submitRequest = async () => {
             fulfillment_type: fulfillmentType.value,
             delivery_address: deliveryAddress.value.trim(),
             customer_address: (customerAddress.value || deliveryAddress.value).trim(),
-            customer_notes: customerNotes.value.trim(),
         }
         let res
         if (hasMultipartUploads.value) {
@@ -1480,8 +1522,8 @@ const submitRequest = async () => {
             formData.append('fulfillment_type', payload.fulfillment_type)
             formData.append('delivery_address', payload.delivery_address)
             formData.append('customer_address', payload.customer_address)
-            formData.append('customer_notes', payload.customer_notes)
             prescriptionFiles.value.forEach((image) => formData.append('prescription_images', image.file))
+            requestImageFiles.value.forEach((image) => formData.append('request_images', image.file))
             validItems.value.forEach((item, index) => {
                 item.imageFiles.forEach((image) => formData.append(`item_images_${index}`, image.file))
             })
@@ -1499,10 +1541,13 @@ const submitRequest = async () => {
         prescriptionFiles.value = []
         resetPickerInput(prescriptionPicker)
         resetPickerInput(prescriptionReplacePicker)
+        requestImageFiles.value.forEach(revokePrescriptionPreview)
+        requestImageFiles.value = []
+        resetPickerInput(requestImagePicker)
+        resetPickerInput(requestImageReplacePicker)
         fulfillmentType.value = ''
         customerAddress.value = ''
         deliveryAddress.value = ''
-        customerNotes.value = ''
         customerLat.value = null
         customerLng.value = null
         locationMode.value = 'none'

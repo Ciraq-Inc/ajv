@@ -59,9 +59,7 @@
         <!-- Step 1: Phone Number Input -->
         <div v-if="currentStep === 'phone'">
           <form @submit.prevent="checkPhone">
-            <div :class="subtleCardClass">
-              Enter your number once. We will route you to login, password setup, or registration based on your account status.
-            </div>
+           
 
             <div class="mb-4">
               <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
