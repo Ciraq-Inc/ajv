@@ -10,7 +10,7 @@
 <section class="relative min-h-[870px] flex items-center overflow-hidden">
 <!-- Background Image -->
 <div class="absolute inset-0 z-0">
-<img alt="" class="w-full h-full object-cover" data-alt="A professional smiling dark-skinned female pharmacist in a modern white clinic, warm lighting, clinical yet welcoming atmosphere, high-end editorial style" src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=2070"/>
+<img alt="" class="w-full h-full object-cover" data-alt="A professional smiling dark-skinned female pharmacist in a modern white clinic, warm lighting, clinical yet welcoming atmosphere, high-end editorial style" src="/user_ordering_med.jpg"/>
 <div class="absolute inset-0 bg-gradient-to-r from-[#fff7ff]/95 via-[#fff7ff]/40 to-transparent"></div>
 </div>
 <div class="container mx-auto px-8 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
@@ -30,11 +30,20 @@ v-model="homepageSearchTerm"
 @input="onHomepageSearchInput"
 @focus="focusHomepageSearch"
 @blur="closeHomepageSearch"
-class="w-full pl-14 pr-6 py-5 bg-[#ffffff] border-none shadow-sm rounded-full text-[#1e1a22] focus:ring-2 focus:ring-[#520094]/20 placeholder:text-[#7d7484]"
+class="w-full pl-14 pr-14 py-5 bg-[#ffffff] border-none shadow-sm rounded-full text-[#1e1a22] focus:ring-2 focus:ring-[#520094]/20 placeholder:text-[#7d7484]"
 placeholder="Search for medication or wellness products..."
 type="text"
 />
 <span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-[#520094]" data-icon="search">search</span>
+<label class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" title="Attach prescription image">
+  <span
+    class="flex items-center justify-center w-9 h-9 rounded-full transition-colors"
+    :class="homepagePrescriptionImage ? 'bg-[#520094] text-white' : 'bg-[#f3e8ff] text-[#520094] hover:bg-[#e9d5ff]'"
+  >
+    <span class="material-symbols-outlined text-[1.1rem]" data-icon="photo_camera">{{ homepagePrescriptionImage ? 'check_circle' : 'photo_camera' }}</span>
+  </span>
+  <input ref="homepageImagePicker" type="file" accept="image/*" class="hidden" @change="onHomepagePrescriptionImageSelected" />
+</label>
 <div
 v-if="showHomepageSearchDropdown && (homepageSearchLoading || homepageSearchResults.length || homepageSearchTerm.trim().length >= 2)"
 class="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-20 overflow-hidden rounded-[1.5rem] border border-[#efdbff] bg-white shadow-[0_24px_48px_-24px_rgba(82,0,148,0.28)]"
@@ -63,6 +72,16 @@ class="flex w-full items-start justify-between gap-3 border-b border-[#f4ebf7] p
 No matches found. You can still continue with your typed request.
 </div>
 </div>
+</div>
+<div v-if="homepagePrescriptionImagePreview" class="flex items-center gap-3 rounded-2xl border border-[#d9bcfa] bg-white px-3 py-2.5 shadow-sm">
+  <img :src="homepagePrescriptionImagePreview" alt="Prescription preview" class="h-12 w-12 rounded-xl object-cover flex-shrink-0 border border-[#efdbff]" />
+  <div class="flex-1 min-w-0">
+    <p class="text-xs font-bold text-[#1e1a22] truncate">{{ homepagePrescriptionImage?.name }}</p>
+    <p class="text-[11px] text-[#7d7484] mt-0.5">Prescription · {{ homepagePrescriptionImage ? (homepagePrescriptionImage.size / 1024).toFixed(0) + ' KB' : '' }}</p>
+  </div>
+  <button type="button" @click="removeHomepagePrescriptionImage" class="flex-shrink-0 w-7 h-7 rounded-full bg-[#f3e8ff] text-[#520094] flex items-center justify-center hover:bg-[#e9d5ff] transition-colors" title="Remove image">
+    <span class="material-symbols-outlined text-[1rem]">close</span>
+  </button>
 </div>
 <div v-if="homepageSelectedItems.length" class="rounded-[1.75rem] border border-[#d9bcfa] bg-gradient-to-br from-white via-[#fff8ff] to-[#f8edff] px-4 py-4 shadow-[0_24px_55px_-28px_rgba(82,0,148,0.42)] ring-1 ring-[#f3e3ff]">
 <div class="flex flex-wrap items-start justify-between gap-3">
@@ -416,6 +435,24 @@ const homepageSearchResults = ref([])
 const homepageSearchLoading = ref(false)
 const showHomepageSearchDropdown = ref(false)
 const homepageSelectedItems = ref([])
+const homepageImagePicker = ref(null)
+const homepagePrescriptionImage = ref(null)
+const homepagePrescriptionImagePreview = ref(null)
+
+const onHomepagePrescriptionImageSelected = (e) => {
+  const file = e.target?.files?.[0]
+  if (!file) return
+  if (homepagePrescriptionImagePreview.value) URL.revokeObjectURL(homepagePrescriptionImagePreview.value)
+  homepagePrescriptionImage.value = file
+  homepagePrescriptionImagePreview.value = URL.createObjectURL(file)
+}
+
+const removeHomepagePrescriptionImage = () => {
+  if (homepagePrescriptionImagePreview.value) URL.revokeObjectURL(homepagePrescriptionImagePreview.value)
+  homepagePrescriptionImage.value = null
+  homepagePrescriptionImagePreview.value = null
+  if (homepageImagePicker.value) homepageImagePicker.value.value = ''
+}
 const homepageSelectedQuantity = computed(() => homepageSelectedItems.value.reduce((total, item) => {
   return total + Math.max(1, Number(item?.quantity || 1))
 }, 0))

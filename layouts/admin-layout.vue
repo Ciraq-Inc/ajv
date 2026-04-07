@@ -129,7 +129,7 @@
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Order Management</div>
           
           <NuxtLink 
-            to="/admin/order-requests" 
+            to="/onlineorders" 
             class="nav-item"
             active-class="active"
           >
@@ -138,7 +138,7 @@
           </NuxtLink>
 
           <NuxtLink 
-            to="/admin/deliveries" 
+            to="/onlineorders/deliveries" 
             class="nav-item"
             active-class="active"
           >
@@ -366,6 +366,8 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/sms-billing')) return 'SMS Billing Management'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
   if (path.includes('/admin/masterlist')) return 'Master Products Management'
+  if (path.includes('/onlineorders/deliveries')) return 'Delivery Management'
+  if (path.includes('/onlineorders')) return 'Order Requests'
   if (path.includes('/admin/order-requests')) return 'Order Requests'
   if (path.includes('/admin/deliveries')) return 'Delivery Management'
   if (path.includes('/admin/platform-settings')) return 'Platform Settings'

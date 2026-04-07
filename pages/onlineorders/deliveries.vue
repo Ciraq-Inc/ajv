@@ -381,7 +381,7 @@ onMounted(() => {
   fetchDeliveries()
 })
 
-definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
+definePageMeta({ middleware: ['admin-auth'], layout: 'onlineorders' })
 </script>
 
 <style scoped>

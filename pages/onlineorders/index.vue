@@ -132,10 +132,33 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="8" class="loading-cell">Loading requests...</td>
+            <td colspan="8" class="state-cell">
+              <StateMessage
+                state="loading"
+                heading="Fetching requests..."
+                message="Hang tight, we're loading your orders."
+              />
+            </td>
+          </tr>
+          <tr v-else-if="requestsError">
+            <td colspan="8" class="state-cell">
+              <StateMessage
+                state="error"
+                heading="Couldn't load requests"
+                message="Something went wrong on our end. Check your connection and try again."
+                action-label="Try Again"
+                @action="fetchRequests"
+              />
+            </td>
           </tr>
           <tr v-else-if="filteredRequests.length === 0">
-            <td colspan="8" class="empty-cell">No requests found</td>
+            <td colspan="8" class="state-cell">
+              <StateMessage
+                state="empty"
+                :heading="searchQuery ? 'No matching requests' : 'Nothing here yet'"
+                :message="searchQuery ? 'Try a different search term or clear the filter.' : 'New order requests will appear here once customers submit them.'"
+              />
+            </td>
           </tr>
           <tr v-for="req in filteredRequests" :key="req.id" class="table-row">
             <td class="request-number">{{ req.request_number }}</td>
@@ -158,11 +181,11 @@
               </span>
               <span v-else class="text-muted">-</span>
             </td>
-            <td class="date-cell">{{ formatDateTime(req.created_at) }}</td>
+            <td class="date-cell">{{ formatDate(req.created_at) }}</td>
             <td>
               <div class="action-btns">
                 <button @click="viewRequest(req)" class="btn-icon-text" title="Open Fulfillment Workspace">
-                  <EyeIcon class="icon-sm" /> <span>Process</span>
+                  <EyeIcon class="icon-sm" /> <span>Open</span>
                 </button>
               </div>
             </td>
@@ -171,77 +194,377 @@
       </table>
     </div>
 
-    <!-- Fulfillment Workspace -->
-    <section v-if="selectedRequest" class="modal-overlay">
-      <div class="modal-content modal-lg modal-elevated">
-        <div class="modal-header">
-          <div class="modal-header-left">
-            <div class="modal-title-wrap">
-              <div class="modal-title-row">
-                <h3>Order Request <span class="modal-req-num">#{{ selectedRequest.request_number }}</span></h3>
-                <span class="status-badge" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-              </div>
-              <p class="modal-subtitle">Fulfillment Workspace | {{ selectedRequest.customer_name || 'Unknown Customer' }}</p>
-            </div>
+    <!-- Fulfillment Workspace — split-pane drawer -->
+    <div v-if="selectedRequest" class="fw-backdrop" @click="selectedRequest = null"></div>
+    <div v-if="selectedRequest" class="fw-drawer">
+
+      <!-- ── Header ─────────────────────────────────────────── -->
+      <div class="fw-header">
+        <div class="fw-header-top">
+          <div class="fw-header-identity">
+            <h3 class="fw-req-num">#{{ selectedRequest.request_number }}</h3>
+            <span class="status-badge" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
           </div>
-          <div class="modal-header-actions">
-            <button @click="loadFulfillment({ silent: false, refreshLists: false })" class="btn-secondary btn-sm" :disabled="loading || !canRunFulfillment(selectedRequest.status)">
+          <div class="fw-header-meta">
+            <span v-if="selectedRequest.customer_name" class="fw-meta-chip">{{ selectedRequest.customer_name }}</span>
+            <span v-if="selectedRequest.customer_phone" class="fw-meta-chip">{{ selectedRequest.customer_phone }}</span>
+            <span class="fw-meta-chip">{{ selectedRequest.fulfillment_type || 'delivery' }}</span>
+            <span class="fw-meta-chip">{{ selectedRequest.items?.length || 0 }} items</span>
+            <span class="fw-meta-chip">GHS {{ parseFloat(selectedRequest.request_fee || 0).toFixed(2) }} hold</span>
+          </div>
+          <div class="fw-header-actions">
+            <button
+              @click="loadFulfillment({ silent: false, refreshLists: false })"
+              class="fw-icon-btn"
+              :disabled="loading || !canRunFulfillment(selectedRequest.status)"
+              title="Refresh sourcing data"
+            >
               <ArrowPathIcon class="icon-sm" :class="{ 'animate-spin': loading }" />
-              <span>Refresh</span>
             </button>
-            <button @click="selectedRequest = null" class="btn-secondary btn-sm" :disabled="loading">
-              Back to Requests
+            <button @click="selectedRequest = null" class="fw-icon-btn fw-close-btn" title="Close">
+              <XMarkIcon class="icon-sm" />
             </button>
           </div>
         </div>
-        <div class="modal-body">
-          <!-- Workspace top strip -->
-          <div class="workspace-topstrip">
-            <div class="workspace-topstrip-meta">
-              <span class="workspace-stat-chip">
-                <span class="ws-chip-label">Items</span>
-                <strong>{{ selectedRequest.items?.length || 0 }}</strong>
-              </span>
-              <span class="workspace-stat-chip">
-                <span class="ws-chip-label">Hold</span>
-                <strong>GHS {{ parseFloat(selectedRequest.request_fee || 0).toFixed(2) }}</strong>
-              </span>
-              <span class="workspace-stat-chip">
-                <span class="ws-chip-label">Mode</span>
-                <strong>{{ selectedRequest.fulfillment_type || '-' }}</strong>
-              </span>
-              <span v-if="selectedRequest.customer_name" class="workspace-stat-chip">
-                <span class="ws-chip-label">Customer</span>
-                <strong>{{ selectedRequest.customer_name }}</strong>
-              </span>
-              <span v-if="selectedRequest.customer_phone" class="workspace-stat-chip">
-                <span class="ws-chip-label">Phone</span>
-                <strong>{{ selectedRequest.customer_phone }}</strong>
-              </span>
+      </div>
+
+      <!-- ── Body — split pane ──────────────────────────────── -->
+      <div class="fw-body">
+
+        <!-- Next Step Guide Banner -->
+        <div
+          v-if="nextStepGuide && !isBannerDismissed"
+          class="fw-next-step"
+          :class="`fw-next-step--${nextStepGuide.color}`"
+        >
+          <div class="fw-ns-left">
+            <div class="fw-ns-icon-wrap">
+              <component :is="nextStepGuide.icon" class="fw-ns-icon" aria-hidden="true" />
             </div>
+            <div class="fw-ns-content">
+              <strong class="fw-ns-heading">{{ nextStepGuide.heading }}</strong>
+              <span class="fw-ns-message">{{ nextStepGuide.message }}</span>
+            </div>
+          </div>
+          <div class="fw-ns-actions">
             <button
-              @click="loadFulfillment"
-              class="btn-primary btn-sm"
-              :disabled="loading || !canRunFulfillment(selectedRequest.status)"
+              v-if="nextStepGuide.action"
+              type="button"
+              class="fw-ns-cta"
+              :disabled="loading"
+              @click="handleBannerAction"
             >
-              <ArrowPathIcon class="icon-sm" :class="{ 'animate-spin': loading }" />
-              <span>{{ selectedRequest.status === 'pending' ? 'Start Fulfillment' : 'Refresh Fulfillment' }}</span>
+              <span v-if="nextStepGuide.action === 'run-sourcing' && loading">Running...</span>
+              <span v-else-if="nextStepGuide.action === 'run-sourcing'">Run Sourcing</span>
+              <span v-else-if="nextStepGuide.action === 'send-action-needed'">Send to Customer</span>
+              <span v-else-if="nextStepGuide.action === 'calculate-totals'">Calculate Totals</span>
+            </button>
+            <button
+              type="button"
+              class="fw-ns-dismiss"
+              :aria-label="`Dismiss step hint`"
+              @click="dismissedStepKey = nextStepGuide.key"
+            >
+              <XMarkIcon class="icon-xs" />
             </button>
           </div>
+        </div>
 
-          <div class="workspace-shell">
-          <section v-if="latestPaymentSnapshot" class="section-card section-card--customer workspace-main-card">
-            <div class="section-head">
-              <h4 class="section-title">Paid Breakdown</h4>
+        <!-- LEFT: Items pane -->
+        <div class="fw-split-pane">
+        <div class="fw-items">
+          <div class="fw-pane-header">
+            <h4 class="fw-pane-title">
+              Items
+              <span class="fw-count-badge">{{ selectedRequest.items?.length || 0 }}</span>
+            </h4>
+            <div class="fw-pane-header-right">
+              <span class="fw-avail-summary">{{ requestItemAvailabilitySummary.available }} available · {{ requestItemAvailabilitySummary.unavailable }} unavailable</span>
+              <button
+                class="btn-decision btn-sm"
+                :disabled="loading || !canTriggerActionNeeded"
+                @click="requestCustomerDecision('action_needed')"
+              >
+                Send Action Needed
+              </button>
+            </div>
+          </div>
+
+          <!-- Add item -->
+          <div class="fw-add-item">
+            <div class="fw-add-item-field">
+              <input
+                v-model="adminNewItem.product_search"
+                type="text"
+                class="form-control form-control-sm"
+                :placeholder="hasPrescriptionAttachments ? 'Add from prescription...' : 'Add item...'"
+                @input="onAdminProductInput(adminNewItem)"
+                @focus="adminNewItem.showProductDropdown = true"
+                @blur="closeAdminProductDropdown(adminNewItem)"
+                @keyup.enter.prevent="saveAdminNewItem"
+              />
+              <div v-if="adminNewItem.showProductDropdown" class="product-search-dropdown">
+                <div v-if="adminNewItem.product_search_loading" class="dropdown-empty">Searching...</div>
+                <template v-else>
+                  <button
+                    v-for="(result, resultIndex) in adminNewItem.productSearchResults"
+                    :key="`admin-new-item-result-${resultIndex}`"
+                    type="button"
+                    class="product-search-result"
+                    @mousedown.prevent="selectAdminProduct(adminNewItem, result)"
+                  >
+                    <span class="product-search-name">{{ getProductSearchLabel(result) }}</span>
+                    <span v-if="getProductResultMeta(result)" class="product-search-meta">{{ getProductResultMeta(result) }}</span>
+                  </button>
+                  <div
+                    v-if="adminNewItem.productSearchResults.length === 0 && String(adminNewItem.product_search || '').trim().length >= 2"
+                    class="dropdown-empty"
+                  >
+                    No matching products. You can still add the typed item.
+                  </div>
+                </template>
+              </div>
+            </div>
+            <input
+              v-model.number="adminNewItem.quantity"
+              type="number"
+              min="1"
+              step="1"
+              class="form-control form-control-sm fw-qty-input"
+              placeholder="Qty"
+              @keyup.enter.prevent="saveAdminNewItem"
+            />
+            <button @click="saveAdminNewItem" class="btn-secondary btn-sm" :disabled="loading || !canAddAdminItem">Add</button>
+            <button v-if="canResetAdminNewItem" @click="resetAdminNewItem" class="btn-secondary btn-sm" :disabled="loading">Clear</button>
+          </div>
+
+          <!-- Empty state -->
+          <div v-if="!selectedRequest.items?.length" class="fw-items-empty">
+            <StateMessage
+              state="empty"
+              heading="No items yet"
+              message="Add the first item above to kick off sourcing. If there's a prescription attached, type the items from it."
+            />
+          </div>
+
+          <!-- Item cards -->
+          <div v-else class="fw-item-list">
+            <div
+              v-for="(item, index) in selectedRequest.items"
+              :key="item.id"
+              class="fw-item-card"
+              :class="{ 'fw-item-unavailable': isItemUnavailable(item) }"
+            >
+              <!-- Card header -->
+              <div class="fw-ic-header">
+                <span class="fw-ic-num">{{ index + 1 }}</span>
+                <div class="fw-ic-name-block">
+                  <template v-if="item.editingProduct">
+                    <div class="item-product-edit">
+                      <input
+                        v-model="item.product_search"
+                        type="text"
+                        class="form-control form-control-sm item-product-input"
+                        placeholder="Search product..."
+                        @input="onAdminProductInput(item)"
+                        @focus="item.showProductDropdown = true"
+                        @blur="closeAdminProductDropdown(item)"
+                      />
+                      <div v-if="item.showProductDropdown" class="product-search-dropdown">
+                        <div v-if="item.product_search_loading" class="dropdown-empty">Searching...</div>
+                        <template v-else>
+                          <button
+                            v-for="(result, resultIndex) in item.productSearchResults"
+                            :key="`item-${item.id}-result-${resultIndex}`"
+                            type="button"
+                            class="product-search-result"
+                            @mousedown.prevent="selectAdminProduct(item, result)"
+                          >
+                            <span class="product-search-name">{{ getProductSearchLabel(result) }}</span>
+                            <span v-if="getProductResultMeta(result)" class="product-search-meta">{{ getProductResultMeta(result) }}</span>
+                          </button>
+                          <div v-if="item.productSearchResults.length === 0" class="dropdown-empty">No matching products</div>
+                        </template>
+                      </div>
+                      <div class="item-product-edit-actions">
+                        <button @click="saveItemProduct(item)" class="btn-secondary btn-sm" :disabled="loading">Save</button>
+                        <button @click="cancelEditItemProduct(item)" class="btn-secondary btn-sm" :disabled="loading">Cancel</button>
+                      </div>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="fw-ic-name">{{ item.product_name }}</span>
+                  </template>
+                </div>
+                <span class="fw-ic-qty">× {{ getRequestedQuantity(item) }}</span>
+                <span class="status-badge sm" :class="itemStatusClass(item)">{{ formatItemStatus(item) }}</span>
+              </div>
+
+              <!-- Pricing row -->
+              <div class="fw-ic-pricing">
+                <template v-if="item.editing">
+                  <label class="fw-ic-price-label">Base Quote</label>
+                  <input
+                    v-model.number="item.edit_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="form-control form-control-sm fw-price-input"
+                    placeholder="0.00"
+                  />
+                  <button @click="saveItemPrice(item)" class="btn-primary btn-sm" :disabled="loading">Save</button>
+                  <button @click="item.editing = false" class="btn-secondary btn-sm" :disabled="loading">Cancel</button>
+                </template>
+                <template v-else>
+                  <div class="fw-ic-price-pair">
+                    <div class="fw-ic-price-field">
+                      <span class="fw-ic-price-label">Base</span>
+                      <span v-if="item.unit_price" class="fw-ic-price-val">GHS {{ parseFloat(item.unit_price).toFixed(2) }}</span>
+                      <span v-else class="fw-ic-price-empty">—</span>
+                    </div>
+                    <div class="fw-ic-price-field">
+                      <span class="fw-ic-price-label">Customer</span>
+                      <span v-if="item.marked_up_price" class="fw-ic-price-val accent">GHS {{ parseFloat(item.marked_up_price).toFixed(2) }}</span>
+                      <span v-else class="fw-ic-price-empty">—</span>
+                    </div>
+                  </div>
+                  <button @click="startEditItem(item)" class="fw-ic-inline-edit" :disabled="loading" type="button">
+                    <PencilSquareIcon class="icon-xs" /> Edit Price
+                  </button>
+                </template>
+              </div>
+
+              <!-- Actions row -->
+              <div class="fw-ic-actions">
+                <button @click="startEditItemProduct(item)" class="fw-ic-action-btn" :disabled="loading">
+                  <PencilSquareIcon class="icon-xs" /> Edit Product
+                </button>
+                <button @click="openAlternativeModal(item)" class="fw-ic-action-btn" :disabled="loading">Set alternative</button>
+                <button
+                  v-if="(item.sourcing_status || item.item_status) !== 'unavailable' && item.item_status !== 'not_available'"
+                  @click="markItemUnavailable(item)"
+                  class="fw-ic-action-btn danger"
+                  :disabled="loading"
+                >
+                  Mark as unavailable
+                </button>
+              </div>
+
+              <!-- Assign source -->
+              <!-- Source allocation — display only -->
+              <div class="fw-ic-alloc-display">
+                <template v-if="item.allocation_pharmacy_id && getAllocationPharmacy(item)">
+                  <div class="fw-ic-source-info">
+                    <span class="fw-ic-source-label">Source</span>
+                    <strong class="fw-ic-source-name">{{ getAllocationPharmacy(item)?.name }}</strong>
+                    <span v-if="getAllocationPharmacy(item)?.distance_km != null" class="fw-ic-source-dist">{{ Number(getAllocationPharmacy(item).distance_km).toFixed(1) }} km</span>
+                    <span class="fw-ic-source-qty">Qty {{ item.allocation_quantity || getRequestedQuantity(item) }}</span>
+                  </div>
+                  <div class="fw-ic-source-picker">
+                    <button type="button" class="fw-ic-source-cta" :disabled="loading" @click="toggleSourcingDropdown(item)">
+                      Change source
+                      <ChevronRightIcon class="icon-xs" />
+                    </button>
+                    <div v-if="item.showSourcingDropdown" class="fw-sourcing-dropdown">
+                      <div v-if="!getSourcingOptions(item, true).length" class="fw-sourcing-dropdown-empty">
+                        No other nearby sources found
+                      </div>
+                      <button
+                        v-for="option in getSourcingOptions(item, true)"
+                        :key="option.pharmacyId"
+                        type="button"
+                        class="fw-sourcing-dropdown-option"
+                        @mousedown.prevent="selectSourcingOption(item, option)"
+                      >
+                        <span class="fw-sdo-name">{{ option.name }}</span>
+                        <span class="fw-sdo-meta">
+                          <span class="fw-sdo-dist">{{ option.distanceKm }} km</span>
+                          <span class="fw-sdo-qty">Qty {{ option.availableQuantity }}</span>
+                          <span v-if="option.unitPrice" class="fw-sdo-price">GH&#8373;{{ option.unitPrice.toFixed(2) }}</span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="fw-ic-source-picker fw-ic-source-picker--full">
+                    <button type="button" class="fw-ic-source-cta fw-ic-source-cta--empty" :disabled="loading" @click="toggleSourcingDropdown(item)">
+                      Select from nearby sources
+                      <ChevronRightIcon class="icon-xs" />
+                    </button>
+                    <div v-if="item.showSourcingDropdown" class="fw-sourcing-dropdown fw-sourcing-dropdown--full">
+                      <div v-if="!getSourcingOptions(item, false).length" class="fw-sourcing-dropdown-empty">
+                        No nearby sources found for this item
+                      </div>
+                      <button
+                        v-for="option in getSourcingOptions(item, false)"
+                        :key="option.pharmacyId"
+                        type="button"
+                        class="fw-sourcing-dropdown-option"
+                        @mousedown.prevent="selectSourcingOption(item, option)"
+                      >
+                        <span class="fw-sdo-name">{{ option.name }}</span>
+                        <span class="fw-sdo-meta">
+                          <span class="fw-sdo-dist">{{ option.distanceKm }} km</span>
+                          <span class="fw-sdo-qty">Qty {{ option.availableQuantity }}</span>
+                          <span v-if="option.unitPrice" class="fw-sdo-price">GH&#8373;{{ option.unitPrice.toFixed(2) }}</span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Photos -->
+              <div v-if="item.item_images?.length" class="fw-ic-photos">
+                <div class="item-photo-strip" :class="{ 'item-photo-strip--clamped': shouldShowPhotoToggle(item) && !isPhotoStripExpanded(item) }">
+                  <a
+                    v-for="(imageUrl, imageIndex) in item.item_images"
+                    :key="`${item.id}-photo-${imageIndex}`"
+                    :href="imageUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="item-photo-link"
+                  >
+                    <img :src="imageUrl" :alt="`${item.product_name} photo ${imageIndex + 1}`" class="item-photo-thumb" />
+                  </a>
+                </div>
+                <button
+                  v-if="shouldShowPhotoToggle(item)"
+                  type="button"
+                  class="fw-ic-photos-toggle"
+                  @click="toggleItemPhotos(item)"
+                >
+                  {{ isPhotoStripExpanded(item) ? 'Show less photos' : `Show all ${item.item_images.length} photos` }}
+                </button>
+              </div>
+
+              <!-- Substitute suggestion -->
+              <div v-if="isItemUnavailable(item) && getItemSubstituteDetails(item)" class="item-substitute">
+                <span class="item-substitute-label">Suggested alternative</span>
+                <strong class="item-substitute-name">{{ getItemSubstituteDetails(item).name }}</strong>
+                <span v-if="getItemSubstituteDetails(item).note" class="item-substitute-note">{{ getItemSubstituteDetails(item).note }}</span>
+                <span v-if="getItemSubstituteDetails(item).price !== null" class="item-substitute-price">GHS {{ Number(getItemSubstituteDetails(item).price).toFixed(2) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Sourcing pane -->
+        <div class="fw-sourcing">
+
+          <!-- Paid breakdown -->
+          <div v-if="latestPaymentSnapshot" class="fw-sourcing-card">
+            <div class="fw-sourcing-card-head">
+              <h5>Paid Breakdown</h5>
               <span class="status-badge paid">Wallet Paid</span>
             </div>
             <div class="paid-breakdown-summary">
-              <span><strong>Total Paid:</strong> {{ formatCurrency(latestPaymentSnapshot?.summary?.total_paid) }}</span>
+              <span><strong>Total:</strong> {{ formatCurrency(latestPaymentSnapshot?.summary?.total_paid) }}</span>
               <span><strong>Items:</strong> {{ paidSnapshotItems.length }}</span>
               <span><strong>Sources:</strong> {{ latestPaymentSnapshot?.summary?.source_pharmacy_count || 0 }}</span>
-              <span><strong>Paid At:</strong> {{ formatDateTime(latestPaymentSnapshot?.payment?.paid_at || latestPaymentSnapshot?.captured_at) }}</span>
+              <span><strong>Paid:</strong> {{ formatDateTime(latestPaymentSnapshot?.payment?.paid_at || latestPaymentSnapshot?.captured_at) }}</span>
             </div>
-
             <div class="paid-breakdown-list">
               <div v-for="entry in paidSnapshotItems" :key="`paid-${entry.item_id}`" class="paid-breakdown-item">
                 <div class="paid-breakdown-item-top">
@@ -251,28 +574,28 @@
                 <div class="paid-breakdown-item-meta">
                   Qty {{ entry.quantity }} | Unit {{ formatCurrency(entry.unit_price) }}
                   <template v-if="entry.distance_km !== null && entry.distance_km !== undefined">
-                    | {{ Number(entry.distance_km).toFixed(1) }} km away
+                    | {{ Number(entry.distance_km).toFixed(1) }} km
                   </template>
                 </div>
                 <div v-if="entry.substitute_applied && entry.original_product_name" class="paid-breakdown-note">
-                  Substitute approved for: {{ entry.original_product_name }}
+                  Sub for: {{ entry.original_product_name }}
                 </div>
               </div>
             </div>
-
             <div v-if="paidSnapshotExcludedItems.length" class="paid-breakdown-excluded">
               <h5>Not Paid</h5>
               <ul>
-                <li v-for="entry in paidSnapshotExcludedItems" :key="`excluded-${entry.item_id}`">
+                <li v-for="entry in paidSnapshotExcludedItems" :key="`excl-${entry.item_id}`">
                   {{ entry.product_name }} ({{ formatExcludedReason(entry.reason) }})
                 </li>
               </ul>
             </div>
-          </section>
+          </div>
 
-          <section v-if="selectedRequest.feedback" class="section-card section-card--customer workspace-main-card">
-            <div class="section-head">
-              <h4 class="section-title">Customer Feedback</h4>
+          <!-- Customer feedback -->
+          <div v-if="selectedRequest.feedback" class="fw-sourcing-card">
+            <div class="fw-sourcing-card-head">
+              <h5>Customer Feedback</h5>
               <span class="status-badge delivered">Submitted</span>
             </div>
             <div class="customer-feedback-card">
@@ -281,18 +604,15 @@
                 <span>{{ selectedRequest.feedback.rating }}/5</span>
                 <span v-if="selectedRequest.feedback.created_at">{{ formatDateTime(selectedRequest.feedback.created_at) }}</span>
               </div>
-              <p v-if="selectedRequest.feedback.comment" class="customer-feedback-comment">
-                {{ selectedRequest.feedback.comment }}
-              </p>
-              <p v-else class="customer-feedback-comment muted">
-                Customer left a rating without a written note.
-              </p>
+              <p v-if="selectedRequest.feedback.comment" class="customer-feedback-comment">{{ selectedRequest.feedback.comment }}</p>
+              <p v-else class="customer-feedback-comment muted">No written note.</p>
             </div>
-          </section>
+          </div>
 
-          <section v-if="selectedRequest.prescription_image_url" class="section-card section-card--overview workspace-main-card">
-            <div class="section-head">
-              <h4 class="section-title">Attachments</h4>
+          <!-- Prescription attachments -->
+          <div v-if="selectedRequest.prescription_image_url" class="fw-sourcing-card">
+            <div class="fw-sourcing-card-head">
+              <h5>Attachments</h5>
             </div>
             <div class="prescription-preview-grid">
               <div
@@ -300,33 +620,20 @@
                 :key="`${selectedRequest.id}-prescription-${index}`"
                 class="prescription-preview"
               >
-                <a
-                  :href="imageUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="prescription-link"
-                >
-                  <img
-                    :src="imageUrl"
-                    :alt="`Attached prescription ${index + 1}`"
-                    class="prescription-image"
-                  />
+                <a :href="imageUrl" target="_blank" rel="noopener noreferrer" class="prescription-link">
+                  <img :src="imageUrl" :alt="`Prescription ${index + 1}`" class="prescription-image" />
                 </a>
-                <a
-                  :href="imageUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn-secondary prescription-open-btn"
-                >
+                <a :href="imageUrl" target="_blank" rel="noopener noreferrer" class="btn-secondary prescription-open-btn">
                   Open Image {{ index + 1 }}
                 </a>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section class="section-card section-card--sourcing workspace-main-card section-emphasis">
-            <div class="section-head">
-              <h4 class="section-title">Sourcing Cards</h4>
+          <!-- Sourcing cards -->
+          <div class="fw-sourcing-card fw-sourcing-card--main">
+            <div class="fw-sourcing-card-head">
+              <h5>Nearby Sources</h5>
               <span v-if="canTriggerActionNeeded" class="workspace-inline-status">Customer action pending</span>
             </div>
             <FulfillmentPharmacyManager
@@ -335,390 +642,94 @@
               :candidate-plans="candidatePlans"
               :allocation-summary="allocationSummary"
               :loading="loading"
+              :sourcing-error="sourcingError"
+              :sourcing-loading="sourcingLoading"
               @contact="contactPharmacy"
-              @use-plan="applyCandidatePlan"
+              @use-plan="applyCandidatePlanNow"
+              @retry="loadFulfillment({ silent: false, refreshLists: false })"
             />
+          </div>
 
-            <!-- Customer Decision -->
-              <div v-if="false && selectedRequest" class="fp-sub-block decision-block">
-                <div class="decision-head">
-                  <div>
-                    <span class="fp-sub-label decision-label">Customer Approval</span>
-                    <p class="fp-sub-copy decision-copy">Send one action-needed link when the customer has something to approve, review, or remove.</p>
-                  </div>
-                </div>
-                <div class="decision-actions">
-                  <button
-                    class="btn-decision btn-sm"
-                    :disabled="loading || !canTriggerActionNeeded"
-                    @click="requestCustomerDecision('action_needed')"
-                  >
-                    Send Action Needed
-                  </button>
-                  <p class="decision-state" :class="{ 'decision-state--idle': !canTriggerActionNeeded }">
-                    {{ actionNeededSummaryText }}
-                  </p>
-              </div>
+          <!-- Admin notes -->
+          <div class="fw-sourcing-card">
+            <div class="fw-sourcing-card-head">
+              <h5>Admin Notes</h5>
+              <button @click="saveNotes" class="btn-secondary btn-sm" :disabled="loading">Save</button>
             </div>
-          </section>
-
-          <!-- Items -->
-            <section class="items-section section-card section-card--items workspace-main-card section-emphasis">
-              <div class="section-head">
-                <div class="items-head-copy">
-                  <div class="items-title-row">
-                    <h4 class="section-title">Request Items</h4>
-                    <span class="items-count-badge">{{ selectedRequest.items?.length || 0 }} item{{ (selectedRequest.items?.length || 0) !== 1 ? 's' : '' }}</span>
-                  </div>
-                  <p class="items-head-meta">
-                    <span>{{ requestItemAvailabilitySummary.available }} available</span>
-                    <span>{{ requestItemAvailabilitySummary.unavailable }} unavailable</span>
-                  </p>
-                </div>
-                <div class="items-head-actions">
-                  <div class="items-decision-actions">
-                    <button
-                      class="btn-decision btn-sm"
-                      :disabled="loading || !canTriggerActionNeeded"
-                      @click="requestCustomerDecision('action_needed')"
-                    >
-                      Send Action Needed
-                    </button>
-                    <p class="decision-state items-decision-state" :class="{ 'decision-state--idle': !canTriggerActionNeeded }">
-                      {{ actionNeededSummaryText }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div class="items-section-topline">
-                <p class="items-section-note">Each row shows the customer request, then the sourcing editor and any recorded allocations for that item.</p>
-              </div>
-              <div class="items-intake-card">
-                <div class="items-intake-head">
-                  <div>
-                    <span class="items-intake-label">{{ hasPrescriptionAttachments ? 'Add From Prescription' : 'Add Item' }}</span>
-                    <p class="items-intake-copy">{{ itemsIntakeSummary }}</p>
-                  </div>
-                </div>
-                <div class="items-intake-grid">
-                  <div class="item-product-edit items-intake-search">
-                    <input
-                      v-model="adminNewItem.product_search"
-                      type="text"
-                      class="form-control form-control-sm item-product-input"
-                      :placeholder="hasPrescriptionAttachments ? 'Type medicine name from prescription...' : 'Type item name...'"
-                      @input="onAdminProductInput(adminNewItem)"
-                      @focus="adminNewItem.showProductDropdown = true"
-                      @blur="closeAdminProductDropdown(adminNewItem)"
-                      @keyup.enter.prevent="saveAdminNewItem"
-                    />
-                    <div
-                      v-if="adminNewItem.showProductDropdown"
-                      class="product-search-dropdown"
-                    >
-                      <div v-if="adminNewItem.product_search_loading" class="dropdown-empty">
-                        Searching...
-                      </div>
-                      <template v-else>
-                        <button
-                          v-for="(result, resultIndex) in adminNewItem.productSearchResults"
-                          :key="`admin-new-item-result-${resultIndex}`"
-                          type="button"
-                          class="product-search-result"
-                          @mousedown.prevent="selectAdminProduct(adminNewItem, result)"
-                        >
-                          <span class="product-search-name">{{ getProductSearchLabel(result) }}</span>
-                          <span v-if="getProductResultMeta(result)" class="product-search-meta">
-                            {{ getProductResultMeta(result) }}
-                          </span>
-                        </button>
-                        <div
-                          v-if="adminNewItem.productSearchResults.length === 0 && String(adminNewItem.product_search || '').trim().length >= 2"
-                          class="dropdown-empty"
-                        >
-                          No matching products. You can still add the typed item.
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                  <input
-                    v-model.number="adminNewItem.quantity"
-                    type="number"
-                    min="1"
-                    step="1"
-                    class="form-control form-control-sm allocation-control allocation-mini"
-                    placeholder="Qty"
-                    @keyup.enter.prevent="saveAdminNewItem"
-                  />
-                  <div class="items-intake-actions">
-                    <button
-                      @click="saveAdminNewItem"
-                      class="btn-secondary btn-sm"
-                      :disabled="loading || !canAddAdminItem"
-                    >
-                      Add Item
-                    </button>
-                    <button
-                      v-if="canResetAdminNewItem"
-                      @click="resetAdminNewItem"
-                      class="btn-secondary btn-sm"
-                      :disabled="loading"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div v-if="!selectedRequest.items?.length" class="items-empty-state">
-                <strong>No items added yet.</strong>
-                <p>
-                  {{ hasPrescriptionAttachments
-                    ? 'Add the interpreted items here, then sourcing will refresh using the request location already submitted by the customer.'
-                    : 'Add the first item here to begin sourcing for this request.' }}
-                </p>
-              </div>
-              <div v-else class="items-table-wrap">
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th style="min-width:200px">Product</th>
-                  <th>Qty</th>
-                  <th>Base Quote</th>
-                  <th>Customer Price</th>
-                  <th>Sourcing State</th>
-                  <th>Pricing</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template v-for="(item, index) in selectedRequest.items" :key="item.id">
-                  <tr>
-                    <td>
-                      <div class="item-name-cell">
-                        <span class="item-row-num">{{ index + 1 }}</span>
-                        <div class="item-product-meta">
-                          <template v-if="item.editingProduct">
-                            <div class="item-product-edit">
-                              <input
-                                v-model="item.product_search"
-                                type="text"
-                                class="form-control form-control-sm item-product-input"
-                                placeholder="Search product..."
-                                @input="onAdminProductInput(item)"
-                                @focus="item.showProductDropdown = true"
-                                @blur="closeAdminProductDropdown(item)"
-                              />
-                              <div
-                                v-if="item.showProductDropdown"
-                                class="product-search-dropdown"
-                              >
-                                <div v-if="item.product_search_loading" class="dropdown-empty">
-                                  Searching...
-                                </div>
-                                <template v-else>
-                                  <button
-                                    v-for="(result, resultIndex) in item.productSearchResults"
-                                    :key="`item-${item.id}-result-${resultIndex}`"
-                                    type="button"
-                                    class="product-search-result"
-                                    @mousedown.prevent="selectAdminProduct(item, result)"
-                                  >
-                                    <span class="product-search-name">{{ getProductSearchLabel(result) }}</span>
-                                    <span v-if="getProductResultMeta(result)" class="product-search-meta">
-                                      {{ getProductResultMeta(result) }}
-                                    </span>
-                                  </button>
-                                  <div v-if="item.productSearchResults.length === 0" class="dropdown-empty">
-                                    No matching products
-                                  </div>
-                                </template>
-                              </div>
-                              <div class="item-product-edit-actions">
-                                <button @click="saveItemProduct(item)" class="btn-secondary btn-sm" :disabled="loading">
-                                  Save Item
-                                </button>
-                                <button @click="cancelEditItemProduct(item)" class="btn-secondary btn-sm" :disabled="loading">
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          </template>
-                          <template v-else>
-                            <span class="item-product-name">{{ item.product_name }}</span>
-                            <button
-                              @click="startEditItemProduct(item)"
-                              class="btn-icon-text sm"
-                              :disabled="loading"
-                              title="Edit requested product"
-                            >
-                              <PencilSquareIcon class="icon-xs" />
-                              <span>Edit Item</span>
-                            </button>
-                          </template>
-                          <div v-if="item.item_images?.length" class="item-photo-strip">
-                            <a
-                              v-for="(imageUrl, imageIndex) in item.item_images"
-                              :key="`${item.id}-photo-${imageIndex}`"
-                              :href="imageUrl"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              class="item-photo-link"
-                            >
-                              <img :src="imageUrl" :alt="`${item.product_name} photo ${imageIndex + 1}`" class="item-photo-thumb" />
-                            </a>
-                          </div>
-                          <div
-                            v-if="isItemUnavailable(item) && getItemSubstituteDetails(item)"
-                            class="item-substitute"
-                          >
-                            <span class="item-substitute-label">Suggested alternative</span>
-                            <strong class="item-substitute-name">{{ getItemSubstituteDetails(item).name }}</strong>
-                            <span
-                              v-if="getItemSubstituteDetails(item).note"
-                              class="item-substitute-note"
-                            >
-                              {{ getItemSubstituteDetails(item).note }}
-                            </span>
-                            <span
-                              v-if="getItemSubstituteDetails(item).price !== null"
-                              class="item-substitute-price"
-                            >
-                              GHS {{ Number(getItemSubstituteDetails(item).price).toFixed(2) }}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td><span class="item-price-cell muted">{{ getRequestedQuantity(item) }}</span></td>
-                    <td><span v-if="item.unit_price" class="item-price-cell"><span class="price-currency">GHS</span> {{ parseFloat(item.unit_price).toFixed(2) }}</span><span v-else class="price-empty"></span></td>
-                    <td><span v-if="item.marked_up_price" class="item-price-cell accent"><span class="price-currency">GHS</span> {{ parseFloat(item.marked_up_price).toFixed(2) }}</span><span v-else class="price-empty"></span></td>
-                    <td>
-                      <span class="status-badge sm" :class="itemStatusClass(item)">
-                        {{ formatItemStatus(item) }}
-                      </span>
-                    </td>
-                    <td>
-                      <template v-if="item.editing">
-                        <input
-                          v-model.number="item.edit_price"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          class="form-control form-control-sm allocation-control allocation-mini"
-                          placeholder="Quote price"
-                        />
-                        <button @click="saveItemPrice(item)" class="btn-secondary btn-sm" :disabled="loading">
-                          Save Quote
-                        </button>
-                        <button @click="item.editing = false" class="btn-secondary btn-sm" :disabled="loading">
-                          Cancel
-                        </button>
-                        </template>
-                        <template v-else>
-                          <div class="item-pricing-actions">
-                            <button @click="startEditItem(item)" class="btn-icon-text sm" title="Edit quote price">
-                              <PencilSquareIcon class="icon-xs" /> <span>Edit Quote</span>
-                            </button>
-                            <button
-                              @click="openAlternativeModal(item)"
-                              class="btn-secondary btn-sm"
-                              :disabled="loading"
-                            >
-                              Set alternative
-                            </button>
-                            <button
-                              v-if="(item.sourcing_status || item.item_status) !== 'unavailable' && item.item_status !== 'not_available'"
-                              @click="markItemUnavailable(item)"
-                              class="btn-danger btn-sm"
-                              :disabled="loading"
-                            >
-                              Mark as unavailable
-                            </button>
-                          </div>
-                        </template>
-                      </td>
-                    </tr>
-                  <tr class="allocation-builder-row">
-                    <td colspan="6">
-                      <div class="alloc-builder-inner">
-                        <div v-if="item.allocation_pharmacy_id && getAllocationPharmacy(item)" class="allocation-display">
-                          <span class="allocation-display-label">Source</span>
-                          <strong>{{ getAllocationPharmacy(item)?.name }}</strong>
-                          <span class="allocation-display-qty">Qty {{ item.allocation_quantity || getRequestedQuantity(item) }}</span>
-                        </div>
-                        <div class="alloc-source-picker" :class="{ 'alloc-source-picker--has-source': item.allocation_pharmacy_id && getAllocationPharmacy(item) }">
-                          <button
-                            type="button"
-                            class="alloc-source-btn"
-                            :class="{ 'alloc-source-btn--empty': !(item.allocation_pharmacy_id && getAllocationPharmacy(item)) }"
-                            :disabled="loading"
-                            @click="toggleSourcingDropdown(item)"
-                          >
-                            {{ item.allocation_pharmacy_id && getAllocationPharmacy(item) ? 'Change source' : 'Select from nearby sources' }}
-                            <span class="alloc-source-chevron">›</span>
-                          </button>
-                          <div v-if="item.showSourcingDropdown" class="alloc-sourcing-dropdown">
-                            <div v-if="!getSourcingOptions(item, !!(item.allocation_pharmacy_id && getAllocationPharmacy(item))).length" class="alloc-sourcing-dropdown-empty">
-                              No nearby sources found for this item
-                            </div>
-                            <button
-                              v-for="option in getSourcingOptions(item, !!(item.allocation_pharmacy_id && getAllocationPharmacy(item)))"
-                              :key="option.pharmacyId"
-                              type="button"
-                              class="alloc-sourcing-dropdown-option"
-                              @mousedown.prevent="selectSourcingOption(item, option)"
-                            >
-                              <span class="alloc-sdo-name">{{ option.name }}</span>
-                              <span class="alloc-sdo-meta">
-                                <span class="alloc-sdo-dist">{{ option.distanceKm }} km</span>
-                                <span class="alloc-sdo-qty">Qty {{ option.availableQuantity }}</span>
-                                <span v-if="option.unitPrice" class="alloc-sdo-price">GH&#8373;{{ option.unitPrice.toFixed(2) }}</span>
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-            </div>
-          </section>
-
-          <!-- Admin Notes -->
-          <section class="notes-section section-card section-card--notes workspace-main-card">
-            <div class="section-head">
-              <h4 class="section-title">Admin Notes</h4>
-              <button @click="saveNotes" class="btn-secondary btn-sm" :disabled="loading">Save Notes</button>
-            </div>
-            <textarea v-model="adminNotes" class="form-control notes-textarea" rows="3"
-              placeholder="Internal notes for this request..."></textarea>
-          </section>
+            <textarea v-model="adminNotes" class="form-control notes-textarea" rows="3" placeholder="Internal notes..."></textarea>
           </div>
         </div>
-        <div class="modal-footer">
-          <div class="footer-status-group">
-            <span class="footer-status-label">Current: <span class="status-badge" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span></span>
-            <select v-model="selectedStatus" class="form-control footer-status-select">
-              <option value="">Change status to...</option>
-              <option value="confirming_with_pharm">Confirming With Pharm</option>
-              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-              <option value="paid">Paid</option>
-              <option value="ready_for_pickup">Ready For Pickup</option>
-              <option value="picked_up">Picked Up</option>
-              <option value="out_for_delivery">Out For Delivery</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="returned">Returned</option>
-            </select>
-            <button @click="updateStatus" class="btn-primary" :disabled="!selectedStatus || loading">
-              Update Status
+        </div><!-- end fw-split-pane -->
+      </div>
+
+      <!-- ── Footer ─────────────────────────────────────────── -->
+      <div class="fw-footer">
+        <div class="fw-footer-status">
+          <span class="fw-footer-label">Status</span>
+          <span class="status-badge" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
+
+          <!-- Two-tier status picker -->
+          <div class="fw-status-picker" :class="{ 'fw-status-picker--advanced-open': showAdvancedStatuses }">
+            <!-- Suggested pills -->
+            <div class="fw-status-suggested">
+              <button
+                v-for="s in suggestedStatuses"
+                :key="s.value"
+                type="button"
+                class="fw-status-pill"
+                :class="{ 'fw-status-pill--selected': selectedStatus === s.value }"
+                @click="selectedStatus = selectedStatus === s.value ? '' : s.value"
+              >
+                {{ s.label }}
+              </button>
+              <button
+                v-if="advancedStatuses.length"
+                type="button"
+                class="fw-status-pill fw-status-pill--more"
+                :class="{ 'fw-status-pill--more-open': showAdvancedStatuses }"
+                @click="showAdvancedStatuses = !showAdvancedStatuses"
+                title="Show more status options"
+              >
+                More
+                <ChevronDownIcon class="icon-xs" :class="{ 'rotate-180': showAdvancedStatuses }" />
+              </button>
+            </div>
+
+            <!-- Advanced override options -->
+            <div v-if="showAdvancedStatuses && advancedStatuses.length" class="fw-status-advanced">
+              <span class="fw-status-advanced-label">Override (use carefully)</span>
+              <div class="fw-status-advanced-pills">
+                <button
+                  v-for="s in advancedStatuses"
+                  :key="s.value"
+                  type="button"
+                  class="fw-status-pill fw-status-pill--override"
+                  :class="{ 'fw-status-pill--selected': selectedStatus === s.value }"
+                  @click="selectedStatus = selectedStatus === s.value ? '' : s.value"
+                >
+                  {{ s.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="fw-footer-update">
+            <div v-if="isAdvancedStatus" class="fw-override-warning">
+              <ExclamationCircleIcon class="icon-xs" />
+              Override move — confirm this is correct
+            </div>
+            <button
+              @click="updateStatus"
+              class="btn-primary btn-sm"
+              :class="{ 'btn-override': isAdvancedStatus }"
+              :disabled="!selectedStatus || loading"
+            >
+              {{ loading ? 'Updating...' : 'Update' }}
             </button>
           </div>
-          <button @click="calculateTotals" class="btn-secondary" :disabled="loading">
-            Calculate Totals
-          </button>
         </div>
+        <button @click="calculateTotals" class="btn-secondary btn-sm" :disabled="loading">Calculate Totals</button>
+      </div>
 
         <div v-if="alternativeModal.open" class="workspace-nested-overlay" @click.self="closeAlternativeModal">
           <div class="workspace-nested-modal">
@@ -775,122 +786,108 @@
               </div>
 
               <div class="workspace-nested-body">
-                <div class="nested-form-sections">
-                  <section class="nested-form-panel nested-form-panel--source">
-                    <div class="nested-form-panel-head">
-                      <span class="nested-panel-label">Source</span>
-                      <p>Choose where this alternative is coming from.</p>
-                    </div>
-                    <div class="nested-field-grid compact">
-                      <div class="nested-field">
-                        <label>Source Pharmacy</label>
-                        <select v-model.number="alternativeModal.pharmacy_id" class="form-control">
-                          <option value="">Choose pharmacy</option>
-                          <option
-                            v-for="pharm in nearbyPharmacies"
-                            :key="`alternative-${alternativeModal.item?.id || 'item'}-${pharm.id}`"
-                            :value="pharm.id"
-                          >
-                            {{ pharm.name }} ({{ formatDistance(pharm.distance_km) }})
-                          </option>
-                        </select>
-                      </div>
-                      <div class="nested-field">
-                        <label>Quantity</label>
-                        <input
-                          v-model.number="alternativeModal.allocated_quantity"
-                          type="number"
-                          min="1"
-                          step="1"
-                          class="form-control"
-                          placeholder="Qty"
-                        />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="nested-form-panel">
-                    <div class="nested-form-panel-head">
-                      <span class="nested-panel-label">Customer-facing details</span>
-                    </div>
-                    <div class="nested-field-grid">
-                      <div class="nested-field nested-field-wide">
-                        <label>Alternative Product</label>
-                        <div class="item-product-edit alternative-product-edit">
+                <div class="nested-flat-form">
+                  <div class="nested-field">
+                    <label>Source Pharmacy</label>
+                    <select v-model.number="alternativeModal.pharmacy_id" class="form-control">
+                      <option value="">Choose pharmacy</option>
+                      <option
+                        v-for="pharm in nearbyPharmacies"
+                        :key="`alternative-${alternativeModal.item?.id || 'item'}-${pharm.id}`"
+                        :value="pharm.id"
+                      >
+                        {{ pharm.name }} ({{ formatDistance(pharm.distance_km) }})
+                      </option>
+                    </select>
+                  </div>
+                  <div class="nested-field">
+                    <label>Quantity</label>
+                    <input
+                      v-model.number="alternativeModal.allocated_quantity"
+                      type="number"
+                      min="1"
+                      step="1"
+                      class="form-control"
+                      placeholder="Qty"
+                    />
+                  </div>
+                  <div class="nested-field nested-field-wide">
+                    <label>Alternative Product</label>
+                    <div class="item-product-edit alternative-product-edit">
                           <input
-                            v-model="alternativeModal.name"
-                            type="text"
-                            class="form-control"
-                            placeholder="Search product..."
-                            @input="onAlternativeProductInput"
-                            @focus="alternativeModal.showProductDropdown = true"
-                            @blur="closeAlternativeProductDropdown"
-                          />
-                          <div
-                            v-if="alternativeModal.showProductDropdown"
-                            class="product-search-dropdown"
-                          >
-                            <div v-if="alternativeModal.product_search_loading" class="dropdown-empty">
-                              Searching...
-                            </div>
-                            <template v-else>
-                              <button
-                                v-for="(result, resultIndex) in alternativeModal.productSearchResults"
-                                :key="`alternative-result-${resultIndex}`"
-                                type="button"
-                                class="product-search-result"
-                                @mousedown.prevent="selectAlternativeProduct(result)"
-                              >
-                                <span class="product-search-name">{{ getProductSearchLabel(result) }}</span>
-                                <span v-if="getProductResultMeta(result)" class="product-search-meta">
-                                  {{ getProductResultMeta(result) }}
-                                </span>
-                              </button>
-                              <div v-if="alternativeModal.productSearchResults.length === 0" class="dropdown-empty">
-                                No matching products
-                              </div>
-                            </template>
-                          </div>
+                        v-model="alternativeModal.name"
+                        type="text"
+                        class="form-control"
+                        placeholder="Search product..."
+                        @input="onAlternativeProductInput"
+                        @focus="alternativeModal.showProductDropdown = true"
+                        @blur="closeAlternativeProductDropdown"
+                      />
+                      <div
+                        v-if="alternativeModal.showProductDropdown"
+                        class="product-search-dropdown"
+                      >
+                        <div v-if="alternativeModal.product_search_loading" class="dropdown-empty">
+                          Searching...
                         </div>
-                      </div>
-                      <div class="nested-field">
-                        <label>Customer Price</label>
-                        <input
-                          v-model.number="alternativeModal.price"
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          class="form-control"
-                          placeholder="Price"
-                        />
-                      </div>
-                      <div class="nested-field nested-field-wide">
-                        <label>Note</label>
-                        <input
-                          v-model="alternativeModal.note"
-                          type="text"
-                          class="form-control"
-                          placeholder="Optional note about brand, form, or strength"
-                        />
+                        <template v-else>
+                          <button
+                            v-for="(result, resultIndex) in alternativeModal.productSearchResults"
+                            :key="`alternative-result-${resultIndex}`"
+                            type="button"
+                            class="product-search-result"
+                            @mousedown.prevent="selectAlternativeProduct(result)"
+                          >
+                            <span class="product-search-name">{{ getProductSearchLabel(result) }}</span>
+                            <span v-if="getProductResultMeta(result)" class="product-search-meta">
+                              {{ getProductResultMeta(result) }}
+                            </span>
+                          </button>
+                          <div v-if="alternativeModal.productSearchResults.length === 0" class="dropdown-empty">
+                            No matching products
+                          </div>
+                        </template>
                       </div>
                     </div>
-                  </section>
+                  </div>
+                  <div class="nested-field">
+                    <label>Customer Price</label>
+                    <input
+                      v-model.number="alternativeModal.price"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      class="form-control"
+                      placeholder="Price"
+                    />
+                  </div>
+                  <div class="nested-field">
+                    <label>Note <span class="nested-field-optional">optional</span></label>
+                    <input
+                      v-model="alternativeModal.note"
+                      type="text"
+                      class="form-control"
+                      placeholder="Brand, form, or strength"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
             <div class="workspace-nested-actions">
-              <button type="button" class="btn-secondary" @click="closeAlternativeModal" :disabled="loading">
-                Cancel
-              </button>
-              <button type="button" class="btn-primary" @click="saveAlternativeForItem" :disabled="loading || !canSaveAlternative">
-                {{ hasExistingAlternative ? 'Update Alternative' : 'Save Alternative' }}
-              </button>
+              <p v-if="!canSaveAlternative" class="alt-save-hint">{{ alternativeSaveHint }}</p>
+              <div class="nested-actions-btns">
+                <button type="button" class="btn-secondary" @click="closeAlternativeModal" :disabled="loading">
+                  Cancel
+                </button>
+                <button type="button" class="btn-primary" @click="saveAlternativeForItem" :disabled="loading || !canSaveAlternative">
+                  {{ hasExistingAlternative ? 'Update Alternative' : 'Save Alternative' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+    </div>
 
     <!-- Toast -->
     <div v-if="message" class="message-toast" :class="{ 'message-error': message.type === 'error' }">
@@ -903,6 +900,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import FulfillmentPharmacyManager from '~/components/admin/FulfillmentPharmacyManager.vue'
+import StateMessage from '~/components/StateMessage.vue'
 import {
   ChartBarIcon,
   ArrowPathIcon,
@@ -913,12 +911,23 @@ import {
   XMarkIcon,
   EyeIcon,
   PencilSquareIcon,
-  CheckIcon
+  CheckIcon,
+  BoltIcon,
+  PhoneIcon,
+  TruckIcon,
+  SparklesIcon,
+  ClockIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ExclamationCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const adminStore = useAdminStore()
 const config = useRuntimeConfig()
 const apiBaseUrl = config.public.apiBase
+
+// Shared with layout sidebar badge
+const pendingCount = useState('ol-pending-count', () => 0)
 
 // State
 const loading = ref(false)
@@ -937,6 +946,12 @@ const pharmacyQueue = ref([])
 const nextRecommendedPharmacy = ref(null)
 const logisticsAssessment = ref(null)
 const message = ref(null)
+const requestsError = ref(false)
+const sourcingError = ref(false)
+const sourcingLoading = ref(false)
+const dismissedStepKey = ref('')
+const showAdvancedStatuses = ref(false)
+const expandedItemPhotoIds = ref(new Set())
 const REQUEST_POLL_MS = 5000
 let requestPollTimer = null
 const createAdminNewItemDraft = () => ({
@@ -1039,6 +1054,16 @@ const canSaveAlternative = computed(() => {
   )
 })
 
+const alternativeSaveHint = computed(() => {
+  const missing = []
+  if (!String(alternativeModal.value.name || '').trim()) missing.push('alternative name')
+  if (!(Number(alternativeModal.value.price || 0) > 0)) missing.push('customer price')
+  if (!(Number(alternativeModal.value.pharmacy_id || 0) > 0)) missing.push('source pharmacy')
+  if (!(Number(alternativeModal.value.allocated_quantity || 0) > 0)) missing.push('quantity')
+  if (missing.length === 0) return ''
+  return `Enter ${missing.slice(0, 2).join(' and ')} to continue`
+})
+
 const getRequestedQuantity = (item) => {
   const legacyQuantity = Number(item?.quantity || 0)
   const normalizedQuantity = Number(item?.requested_quantity || 0)
@@ -1047,74 +1072,34 @@ const getRequestedQuantity = (item) => {
 }
 
 const getAllocationPharmacy = (item) => {
-  if (!item?.allocation_pharmacy_id) return null
-  return nearbyPharmacies.value?.find((p) => p.id === item.allocation_pharmacy_id) || null
-}
+  const pharmacyId = Number(item?.allocation_pharmacy_id || 0)
+  if (!pharmacyId) return null
 
-const getSourcingOptions = (item, excludeCurrent = false) => {
-  const itemId = Number(item?.id || 0)
-  if (!itemId) return []
-  const sourceList = Array.isArray(pharmacyQueue.value) && pharmacyQueue.value.length > 0 ? pharmacyQueue.value : []
-  const excludeId = excludeCurrent ? Number(item?.allocation_pharmacy_id || 0) : 0
-  return sourceList
-    .map((pharmacy) => {
-      const pharmacyId = Number(pharmacy?.id || pharmacy?.pharmacy_id || 0)
-      if (excludeId > 0 && pharmacyId === excludeId) return null
-      const coverage = Array.isArray(pharmacy?.coverage_items)
-        ? pharmacy.coverage_items.find((entry) => Number(entry?.item_id || 0) === itemId)
-        : null
-      const availableQuantity = Number(coverage?.available_quantity || 0)
-      const matchedQuantity = Number(coverage?.matched_quantity || 0)
-      if (availableQuantity === 0 && matchedQuantity === 0) return null
-      return {
-        pharmacyId,
-        name: String(pharmacy.name || pharmacy.pharmacy_name || `Pharmacy ${pharmacyId}`).trim(),
-        distanceKm: Number(Number(pharmacy.distance_km || 0).toFixed(1)),
-        matchedQuantity,
-        availableQuantity,
-        unitPrice: coverage?.unit_price != null ? Number(coverage.unit_price) : null
-      }
-    })
-    .filter(Boolean)
-    .sort((a, b) => {
-      if (b.matchedQuantity !== a.matchedQuantity) return b.matchedQuantity - a.matchedQuantity
-      if (b.availableQuantity !== a.availableQuantity) return b.availableQuantity - a.availableQuantity
-      return a.distanceKm - b.distanceKm
-    })
-}
+  // 1. Live nearby list (has distance, coverage, etc.)
+  const nearby = nearbyPharmacies.value?.find((p) => Number(p.id) === pharmacyId)
+  if (nearby) return nearby
 
-const toggleSourcingDropdown = (item) => {
-  const next = !item.showSourcingDropdown
-  const allItems = selectedRequest.value?.items || []
-  for (const otherItem of allItems) {
-    otherItem.showSourcingDropdown = false
+  // 2. Allocation records returned by getById (pharmacy_name from DB JOIN)
+  if (Array.isArray(item.allocations)) {
+    const activeAlloc = item.allocations
+      .filter((a) => ['proposed', 'confirmed'].includes(String(a?.status || '')))
+      .sort((a, b) => {
+        const tA = a?.created_at ? new Date(a.created_at).getTime() : 0
+        const tB = b?.created_at ? new Date(b.created_at).getTime() : 0
+        return tB - tA
+      })
+      .find((a) => Number(a?.pharmacy_id) === pharmacyId)
+    if (activeAlloc?.pharmacy_name) {
+      return { id: pharmacyId, name: activeAlloc.pharmacy_name, distance_km: null }
+    }
   }
-  item.showSourcingDropdown = next
-}
 
-const selectSourcingOption = (item, option) => {
-  item.showSourcingDropdown = false
-  const name = String(item.product_name || 'this item').trim()
-  const isChangingSource = Number(item.allocation_pharmacy_id || 0) > 0
-  item.allocation_pharmacy_id = option.pharmacyId
-  item.allocation_quantity = Number(item.allocation_quantity || 0) > 0
-    ? Number(item.allocation_quantity || 0)
-    : getRequestedQuantity(item)
-  item.allocation_type = 'exact'
-  item.allocation_status = 'confirmed'
-  if (Number.isFinite(option.unitPrice) && Number(option.unitPrice) > 0) {
-    const normalizedUnitPrice = Number(Number(option.unitPrice).toFixed(2))
-    item.edit_price = normalizedUnitPrice
-    item.unit_price = normalizedUnitPrice
-    item.marked_up_price = normalizedUnitPrice
-    item.line_total = Number((normalizedUnitPrice * Number(getRequestedQuantity(item) || 0)).toFixed(2))
-    if (item.editing === undefined) item.editing = false
+  // 3. Item's source pharmacy name (from item row JOIN on source_pharmacy_id)
+  if (item.pharmacy_name) {
+    return { id: pharmacyId, name: item.pharmacy_name, distance_km: null }
   }
-  if (isChangingSource) {
-    showMessage(`Changed source to ${option.name} for ${name}`, 'success')
-  } else {
-    showMessage(`Selected ${option.name} for ${name} — click Save Allocation to confirm`, 'success')
-  }
+
+  return null
 }
 
 const hasQuantitySplit = computed(() => {
@@ -1360,6 +1345,7 @@ const apiCall = async (method, url, data = null) => {
 // Fetch
 const fetchRequests = async ({ silent = false } = {}) => {
   if (!silent) loading.value = true
+  if (!silent) requestsError.value = false
   try {
     const params = new URLSearchParams()
     if (searchQuery.value) params.append('search', searchQuery.value)
@@ -1367,7 +1353,10 @@ const fetchRequests = async ({ silent = false } = {}) => {
     const res = await apiCall('GET', `/api/order-requests/admin${qs ? `?${qs}` : ''}`)
     requests.value = res.data || []
   } catch (e) {
-    if (!silent) showMessage('Failed to load requests', 'error')
+    if (!silent) {
+      requestsError.value = true
+      showMessage('Failed to load requests', 'error')
+    }
   } finally {
     if (!silent) loading.value = false
   }
@@ -1384,6 +1373,7 @@ const fetchStats = async ({ silent = false } = {}) => {
       completed: Number(raw.completed ?? raw.completed_count ?? 0),
       total: Number(raw.total ?? raw.total_requests ?? 0)
     }
+    pendingCount.value = stats.value.pending
   } catch (e) {
     if (!silent) showMessage('Failed to load stats', 'error')
   }
@@ -1510,7 +1500,10 @@ const viewRequest = async (req) => {
   try {
     const res = await apiCall('GET', `/api/order-requests/admin/${req.id}`)
     selectedRequest.value = res.data
-    selectedStatus.value = res.data.status || ''
+    selectedStatus.value = ''
+    showAdvancedStatuses.value = false
+    dismissedStepKey.value = ''
+    expandedItemPhotoIds.value = new Set()
     adminNotes.value = res.data.admin_notes || ''
     nearbyPharmacies.value = res.data.nearby_pharmacies || []
     candidatePlans.value = []
@@ -1522,7 +1515,8 @@ const viewRequest = async (req) => {
     resetAdminNewItem()
 
     hydrateItemUiState(selectedRequest.value.items || [])
-    if (canRunFulfillment(selectedRequest.value.status)) {
+    const viewedStatus = selectedRequest.value.status
+    if (canRunFulfillment(viewedStatus)) {
       loadFulfillment({ silent: true, refreshLists: false })
     } else {
       fetchFulfillmentPlans({ silent: true })
@@ -1574,30 +1568,36 @@ const loadFulfillment = async (options = {}) => {
   const { silent = false, refreshLists = true } = options
   if (!selectedRequest.value || !canRunFulfillment(selectedRequest.value.status)) return
   loading.value = true
+  sourcingLoading.value = true
+  sourcingError.value = false
   try {
     const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
-      const fullRequest = res.data.request || selectedRequest.value
-      selectedRequest.value = { ...fullRequest, status: res.data.status || fullRequest.status }
-      selectedStatus.value = selectedRequest.value.status || ''
-      adminNotes.value = selectedRequest.value.admin_notes || ''
-      nearbyPharmacies.value = res.data.nearby_pharmacies || []
-      candidatePlans.value = res.data.candidate_plans || []
-      fulfillmentPlans.value = res.data.fulfillment_plans || []
-      allocationSummary.value = res.data.allocation_summary || null
-      pharmacyQueue.value = res.data.pharmacy_queue || []
-      nextRecommendedPharmacy.value = res.data.next_recommended_pharmacy || null
-      logisticsAssessment.value = res.data.logistics_assessment || null
-      syncPharmacyCoverageFromQueue(pharmacyQueue.value)
-      hydrateItemUiState(selectedRequest.value.items || [])
-      if (refreshLists) {
-        await fetchRequests()
-        await fetchStats()
+    const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+    const fullRequest = detailRes?.data || selectedRequest.value
+
+    selectedRequest.value = { ...fullRequest, status: res.data.status || fullRequest.status }
+    selectedStatus.value = selectedRequest.value.status || ''
+    adminNotes.value = selectedRequest.value.admin_notes || ''
+    nearbyPharmacies.value = res.data.nearby_pharmacies || []
+    candidatePlans.value = res.data.candidate_plans || []
+    fulfillmentPlans.value = res.data.fulfillment_plans || []
+    allocationSummary.value = res.data.allocation_summary || null
+    pharmacyQueue.value = res.data.pharmacy_queue || []
+    nextRecommendedPharmacy.value = res.data.next_recommended_pharmacy || null
+    logisticsAssessment.value = res.data.logistics_assessment || null
+    syncPharmacyCoverageFromQueue(pharmacyQueue.value)
+    hydrateItemUiState(selectedRequest.value.items || [])
+    if (refreshLists) {
+      await fetchRequests()
+      await fetchStats()
     }
     if (!silent) showMessage('Fulfillment details refreshed', 'success')
   } catch (e) {
+    sourcingError.value = true
     if (!silent) showMessage('Failed to load fulfillment details', 'error')
   } finally {
     loading.value = false
+    sourcingLoading.value = false
   }
 }
 
@@ -1687,6 +1687,7 @@ const updateStatus = async () => {
     })
     selectedRequest.value.status = newStatus
     selectedStatus.value = ''
+    showAdvancedStatuses.value = false
 
     // Only load fulfillment context when explicitly entering the confirming phase.
     if ((newStatus === 'confirming_with_pharm' || newStatus === 'processing') && canRunFulfillment(newStatus)) {
@@ -1742,6 +1743,22 @@ const fetchFulfillmentPlans = async (options = {}) => {
       pharmacyQueue.value = data.pharmacy_queue || []
       nextRecommendedPharmacy.value = data.next_recommended_pharmacy || null
       logisticsAssessment.value = data.logistics_assessment || null
+      // Bootstrap nearbyPharmacies from queue when not yet populated
+      // (e.g. non-active statuses where loadFulfillment never runs)
+      if (!nearbyPharmacies.value.length && pharmacyQueue.value.length) {
+        nearbyPharmacies.value = pharmacyQueue.value.map((entry) => ({
+          id: Number(entry.pharmacy_id),
+          name: entry.pharmacy_name,
+          distance_km: entry.distance_km,
+          matched_item_count: entry.matched_item_count,
+          fully_covered_item_count: entry.fully_covered_item_count,
+          matched_quantity_total: entry.matched_quantity_total,
+          exact_match_count: entry.exact_match_count,
+          substitute_count: entry.substitute_count,
+          missing_item_count: entry.missing_item_count,
+          coverage_items: entry.coverage_items || []
+        }))
+      }
       syncPharmacyCoverageFromQueue(pharmacyQueue.value)
     } catch (e) {
       if (!silent) showMessage('Failed to load fulfillment plans', 'error')
@@ -1799,6 +1816,116 @@ const requestCustomerDecision = async (decisionType) => {
 const startEditItem = (item) => {
   item.editing = true
   item.edit_price = item.unit_price || 0
+}
+
+const isPhotoStripExpanded = (item) => {
+  const itemId = Number(item?.id || 0)
+  if (!itemId) return false
+  return expandedItemPhotoIds.value.has(itemId)
+}
+
+const shouldShowPhotoToggle = (item) => Array.isArray(item?.item_images) && item.item_images.length > 4
+
+const toggleItemPhotos = (item) => {
+  const itemId = Number(item?.id || 0)
+  if (!itemId) return
+
+  const next = new Set(expandedItemPhotoIds.value)
+  if (next.has(itemId)) {
+    next.delete(itemId)
+  } else {
+    next.add(itemId)
+  }
+  expandedItemPhotoIds.value = next
+}
+
+const getSourcingOptions = (item, excludeCurrent = false) => {
+  const itemId = Number(item?.id || 0)
+  if (!itemId) return []
+
+  const sourceList = Array.isArray(pharmacyQueue.value) && pharmacyQueue.value.length > 0
+    ? pharmacyQueue.value
+    : []
+
+  const excludeId = excludeCurrent ? Number(item?.allocation_pharmacy_id || 0) : 0
+
+  return sourceList
+    .map((pharmacy) => {
+      const pharmacyId = Number(pharmacy?.id || pharmacy?.pharmacy_id || 0)
+      if (excludeId > 0 && pharmacyId === excludeId) return null
+
+      const coverage = Array.isArray(pharmacy?.coverage_items)
+        ? pharmacy.coverage_items.find((entry) => Number(entry?.item_id || 0) === itemId)
+        : null
+
+      const availableQuantity = Number(coverage?.available_quantity || 0)
+      const matchedQuantity = Number(coverage?.matched_quantity || 0)
+      if (availableQuantity === 0 && matchedQuantity === 0) return null
+
+      return {
+        pharmacyId,
+        name: String(pharmacy.name || pharmacy.pharmacy_name || `Pharmacy ${pharmacyId}`).trim(),
+        distanceKm: Number(Number(pharmacy.distance_km || 0).toFixed(1)),
+        matchedQuantity,
+        availableQuantity,
+        unitPrice: coverage?.unit_price != null ? Number(coverage.unit_price) : null
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (b.matchedQuantity !== a.matchedQuantity) return b.matchedQuantity - a.matchedQuantity
+      if (b.availableQuantity !== a.availableQuantity) return b.availableQuantity - a.availableQuantity
+      return a.distanceKm - b.distanceKm
+    })
+}
+
+const toggleSourcingDropdown = (item) => {
+  const next = !item.showSourcingDropdown
+  const allItems = selectedRequest.value?.items || []
+  for (const otherItem of allItems) {
+    otherItem.showSourcingDropdown = false
+  }
+  item.showSourcingDropdown = next
+}
+
+const selectSourcingOption = async (item, option) => {
+  item.showSourcingDropdown = false
+  const name = String(item.product_name || 'this item').trim()
+  const previousSourceId = Number(item.allocation_pharmacy_id || item.source_pharmacy_id || 0)
+  const isChangingSource = previousSourceId > 0 && previousSourceId !== Number(option.pharmacyId || 0)
+
+  item.allocation_pharmacy_id = option.pharmacyId
+  item.allocation_quantity = Number(item.allocation_quantity || 0) > 0
+    ? Number(item.allocation_quantity || 0)
+    : getRequestedQuantity(item)
+  item.allocation_type = 'exact'
+  item.allocation_status = 'confirmed'
+
+  if (Number.isFinite(option.unitPrice) && Number(option.unitPrice) > 0) {
+    const normalizedUnitPrice = Number(Number(option.unitPrice).toFixed(2))
+    item.edit_price = normalizedUnitPrice
+    item.unit_price = normalizedUnitPrice
+    item.marked_up_price = normalizedUnitPrice
+    item.line_total = Number((normalizedUnitPrice * Number(getRequestedQuantity(item) || 0)).toFixed(2))
+    if (item.editing === undefined) item.editing = false
+  }
+
+  loading.value = true
+  try {
+    const payload = buildAllocationPayload(item)
+    await apiCall('POST', `/api/order-requests/admin/items/${item.id}/allocations`, payload)
+    await refreshSelectedRequestState()
+
+    if (isChangingSource) {
+      showMessage(`Changed source to ${option.name} for ${name}`, 'success')
+    } else {
+      showMessage(`Selected ${option.name} for ${name}`, 'success')
+    }
+  } catch (e) {
+    showMessage(e.message || 'Failed to save source selection', 'error')
+  } finally {
+    loading.value = false
+  }
 }
 
 const startEditItemProduct = (item) => {
@@ -1882,6 +2009,23 @@ const getProductResultMeta = (result) => {
     parts.push(String(result.strength))
   }
   return parts.join(' • ')
+}
+
+const getProductResultPrice = (result) => {
+  const direct = [
+    Number(result?.selling_price || 0),
+    Number(result?.unit_price || 0),
+    Number(result?.price || 0),
+    Number(result?.cost_price || 0)
+  ].find((value) => Number.isFinite(value) && value > 0)
+
+  if (direct) return direct
+
+  const minPrice = Number(result?.min_price || 0)
+  const maxPrice = Number(result?.max_price || 0)
+  if (Number.isFinite(minPrice) && minPrice > 0) return minPrice
+  if (Number.isFinite(maxPrice) && maxPrice > 0) return maxPrice
+  return null
 }
 
 const fetchProductSearchResults = async (query) => {
@@ -1988,13 +2132,13 @@ const selectAlternativeProduct = (result) => {
     const matched = resultPharmacies.find((p) => nearbyIds.has(Number(p.id))) || resultPharmacies[0]
     if (matched && Number(matched.id) > 0) {
       alternativeModal.value.pharmacy_id = Number(matched.id)
-      const price = Number(matched.price || 0)
-      if (price > 0 && (alternativeModal.value.price === '' || alternativeModal.value.price === null || alternativeModal.value.price === undefined)) {
-        alternativeModal.value.price = Number(price.toFixed(2))
-      }
     }
   }
 
+  const selectedPrice = getProductResultPrice(result)
+  if (Number.isFinite(selectedPrice) && selectedPrice > 0) {
+    alternativeModal.value.price = Number(selectedPrice.toFixed(2))
+  }
   alternativeModal.value.showProductDropdown = false
   alternativeModal.value.productSearchResults = []
 }
@@ -2287,10 +2431,14 @@ const refreshSelectedRequestState = async () => {
   await fetchFulfillmentPlans({ silent: true })
 }
 
-const applyCandidatePlanNow = async (plan) => {
+const applyCandidatePlanNow = async (input) => {
   if (!selectedRequest.value) return
 
-  await applyCandidatePlan(plan)
+  const rawPlan = input?.plan || input
+  const pharmacy = input?.pharmacy || null
+  const planLabel = rawPlan?.label || pharmacy?.name || 'selected plan'
+
+  await applyCandidatePlan(input)
 
   loading.value = true
   try {
@@ -2306,7 +2454,7 @@ const applyCandidatePlanNow = async (plan) => {
     }
 
     await refreshSelectedRequestState()
-    showMessage(`Applied ${plan.label.toLowerCase()} as confirmed allocations`, 'success')
+    showMessage(`Applied ${planLabel.toLowerCase()} as confirmed allocations`, 'success')
   } catch (e) {
     showMessage(e.message || 'Failed to apply suggested plan', 'error')
   } finally {
@@ -2419,7 +2567,7 @@ const markItemUnavailable = async (item) => {
 // Helpers
 const formatStatus = (status) => (status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
-const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-'
+const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'
 const formatCurrency = (value) => `GHS ${Number(value || 0).toFixed(2)}`
 const formatSignedCurrency = (value) => {
   const amount = Number(value || 0)
@@ -2544,6 +2692,218 @@ const queueStateClass = (state) => ({
   muted: ['not_contacted', 'pending', 'unknown'].includes(state),
   danger: ['declined', 'timeout'].includes(state)
 })
+// Self-directed next-step guide
+const allItemsHaveSource = computed(() => {
+  const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
+  if (!items.length) return false
+  return items.every((item) => {
+    const status = item.sourcing_status || item.item_status || ''
+    if (['unavailable', 'not_available'].includes(status)) return true // marked unavailable counts as resolved
+    return Boolean(item.allocation_pharmacy_id || item.source_pharmacy_id)
+  })
+})
+
+const nextStepGuide = computed(() => {
+  const req = selectedRequest.value
+  if (!req) return null
+
+  const status = String(req.status || '').toLowerCase()
+  const completedStatuses = new Set(['delivered', 'picked_up', 'cancelled', 'returned'])
+
+  if (completedStatuses.has(status)) {
+    return {
+      key: 'done',
+      color: 'done',
+      icon: CheckCircleIcon,
+      heading: 'Order complete',
+      message: 'This order has been fulfilled. You can close the workspace.',
+      action: null
+    }
+  }
+
+  if (status === 'out_for_delivery') {
+    return {
+      key: 'out_for_delivery',
+      color: 'info',
+      icon: TruckIcon,
+      heading: "Step 6: Order is on its way!",
+      message: 'The driver is heading to the customer. Update the status once delivered.',
+      action: null
+    }
+  }
+
+  if (status === 'ready_for_pickup') {
+    return {
+      key: 'ready_for_pickup',
+      color: 'info',
+      icon: SparklesIcon,
+      heading: "Step 5: Ready for pickup",
+      message: "The order is ready. Update the status once the customer picks it up.",
+      action: null
+    }
+  }
+
+  if (status === 'paid') {
+    return {
+      key: 'paid',
+      color: 'success',
+      icon: TruckIcon,
+      heading: "Step 5: Payment received — arrange logistics",
+      message: "The customer has paid. Assign a driver or mark as ready for pickup using the status dropdown below.",
+      action: null
+    }
+  }
+
+  if (status === 'confirmed_in_pharm') {
+    return {
+      key: 'confirmed_in_pharm',
+      color: 'info',
+      icon: ClockIcon,
+      heading: "Step 4: Calculate totals & await payment",
+      message: "Items are confirmed at the pharmacy. Click 'Calculate Totals' below so the customer can see the final price and pay.",
+      action: 'calculate-totals'
+    }
+  }
+
+  if (canTriggerActionNeeded.value) {
+    return {
+      key: 'action_needed',
+      color: 'warning',
+      icon: BoltIcon,
+      heading: "Step 3: Let the customer decide",
+      message: actionNeededSummaryText.value + " Send them a decision link so they can approve or adjust their order.",
+      action: 'send-action-needed'
+    }
+  }
+
+  if (status === 'confirming_with_pharm') {
+    if (!allItemsHaveSource.value) {
+      return {
+        key: 'assign_sources',
+        color: 'warning',
+        icon: ClipboardDocumentListIcon,
+        heading: "Step 2: Assign a source to each item",
+        message: "Use the nearby pharmacies on the right — click 'Source from Here' to assign sources, or select manually per item.",
+        action: null
+      }
+    }
+    return {
+      key: 'confirm_pharm',
+      color: 'warning',
+      icon: PhoneIcon,
+      heading: "Step 2: Confirm with the pharmacy",
+      message: "All items have a source. Contact the pharmacy via WhatsApp or call to confirm availability, then update the status below.",
+      action: null
+    }
+  }
+
+  // pending or no pharmacies loaded yet
+  if (!nearbyPharmacies.value.length) {
+    return {
+      key: 'run_sourcing',
+      color: 'info',
+      icon: ArrowPathIcon,
+      heading: "Step 1: Run sourcing",
+      message: "Kick off sourcing to find nearby pharmacies that have these items in stock.",
+      action: 'run-sourcing'
+    }
+  }
+
+  return {
+    key: 'sources_found',
+    color: 'info',
+    icon: ArrowPathIcon,
+    heading: "Step 1: Review nearby sources",
+    message: `Found ${nearbyPharmacies.value.length} nearby source${nearbyPharmacies.value.length !== 1 ? 's' : ''}. Review the sourcing panel on the right to assign items, then update the status to 'Confirming With Pharm'.`,
+    action: null
+  }
+})
+
+const isBannerDismissed = computed(() => {
+  const key = nextStepGuide.value?.key
+  return key ? dismissedStepKey.value === key : false
+})
+
+// Two-tier status transitions
+const ALL_STATUS_LABELS = {
+  confirming_with_pharm: 'Confirming With Pharm',
+  confirmed_in_pharm: 'Confirmed In Pharm',
+  paid: 'Paid',
+  ready_for_pickup: 'Ready For Pickup',
+  picked_up: 'Picked Up',
+  out_for_delivery: 'Out For Delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+  returned: 'Returned'
+}
+
+const STATUS_TRANSITIONS = {
+  pending: {
+    suggested: ['confirming_with_pharm'],
+    advanced: ['cancelled']
+  },
+  confirming_with_pharm: {
+    suggested: ['confirmed_in_pharm'],
+    advanced: ['cancelled', 'pending']
+  },
+  confirmed_in_pharm: {
+    suggested: ['paid', 'ready_for_pickup'],
+    advanced: ['confirming_with_pharm', 'cancelled']
+  },
+  paid: {
+    suggested: ['out_for_delivery', 'ready_for_pickup'],
+    advanced: ['confirmed_in_pharm', 'cancelled']
+  },
+  ready_for_pickup: {
+    suggested: ['picked_up'],
+    advanced: ['out_for_delivery', 'cancelled', 'returned']
+  },
+  out_for_delivery: {
+    suggested: ['delivered'],
+    advanced: ['ready_for_pickup', 'cancelled', 'returned']
+  },
+  delivered: {
+    suggested: [],
+    advanced: ['returned', 'cancelled']
+  },
+  picked_up: {
+    suggested: [],
+    advanced: ['returned', 'cancelled']
+  },
+  cancelled: {
+    suggested: ['pending'],
+    advanced: ['returned']
+  },
+  returned: {
+    suggested: [],
+    advanced: ['cancelled']
+  }
+}
+
+const suggestedStatuses = computed(() => {
+  const status = String(selectedRequest.value?.status || '').toLowerCase()
+  const transitions = STATUS_TRANSITIONS[status] || STATUS_TRANSITIONS['pending']
+  return transitions.suggested.map((value) => ({ value, label: ALL_STATUS_LABELS[value] || value }))
+})
+
+const advancedStatuses = computed(() => {
+  const status = String(selectedRequest.value?.status || '').toLowerCase()
+  const transitions = STATUS_TRANSITIONS[status] || STATUS_TRANSITIONS['pending']
+  return transitions.advanced.map((value) => ({ value, label: ALL_STATUS_LABELS[value] || value }))
+})
+
+const isAdvancedStatus = computed(() => {
+  if (!selectedStatus.value) return false
+  return advancedStatuses.value.some((s) => s.value === selectedStatus.value)
+})
+
+const handleBannerAction = () => {
+  const action = nextStepGuide.value?.action
+  if (action === 'run-sourcing') loadFulfillment({ silent: false, refreshLists: false })
+  if (action === 'send-action-needed') requestCustomerDecision('action_needed')
+  if (action === 'calculate-totals') calculateTotals()
+}
+
 const showMessage = (text, type = 'success') => {
   message.value = { text, type }
   setTimeout(() => { message.value = null }, 4000)
@@ -2559,10 +2919,21 @@ const pollRequestList = async () => {
   ])
 }
 
+const handleKeydown = (e) => {
+  if (e.key === 'Escape' && selectedRequest.value) {
+    if (alternativeModal.value.open) {
+      closeAlternativeModal()
+    } else {
+      selectedRequest.value = null
+    }
+  }
+}
+
 onMounted(() => {
   fetchRequests()
   fetchStats()
   requestPollTimer = window.setInterval(pollRequestList, REQUEST_POLL_MS)
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
@@ -2570,11 +2941,12 @@ onUnmounted(() => {
     clearInterval(requestPollTimer)
     requestPollTimer = null
   }
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 definePageMeta({
   middleware: ['admin-auth'],
-  layout: 'admin-layout',
+  layout: 'onlineorders',
 })
 </script>
 
@@ -2626,76 +2998,82 @@ definePageMeta({
 }
 
 .stat-card {
-  background: white;
-  border-radius: 12px;
+  background: #fff;
+  border-radius: 14px;
   border: 1px solid #e5e7eb;
-  border-left: 4px solid transparent;
-  padding: 1.25rem;
+  padding: 1rem 1.25rem;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 1rem;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  gap: 0.75rem;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #4F217A;
 }
 
 .stat-card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79, 33, 122, 0.12);
+  transform: translateY(-3px);
+  border-color: #dfd3ea;
 }
 
-.stat-card:has(.stat-icon.pending) {
-  border-left-color: #f59e0b;
-}
-
-.stat-card:has(.stat-icon.processing) {
-  border-left-color: #3b82f6;
-}
-
-.stat-card:has(.stat-icon.completed) {
-  border-left-color: #10b981;
-}
-
+.stat-card:has(.stat-icon.pending),
+.stat-card:has(.stat-icon.processing),
+.stat-card:has(.stat-icon.completed),
 .stat-card:has(.stat-icon.total) {
-  border-left-color: #8b5cf6;
+  border-left-color: transparent;
 }
 
 .stat-icon {
-  font-size: 2rem;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: #f4ecfb;
+  color: #5e3a86;
+  font-size: 1.5rem;
 }
 
 .stat-icon.pending {
-  background: #fef3c7;
-  color: #d97706;
+  background: #f4ecfb;
+  color: #5e3a86;
 }
 
 .stat-icon.processing {
-  background: #dbeafe;
-  color: #2563eb;
+  background: #f4ecfb;
+  color: #5e3a86;
 }
 
 .stat-icon.completed {
-  background: #dcfce7;
-  color: #059669;
+  background: #f4ecfb;
+  color: #5e3a86;
 }
 
 .stat-icon.total {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: #f4ecfb;
+  color: #5e3a86;
 }
 
 .stat-value {
   font-size: 2rem;
-  font-weight: 800;
-  color: #111827;
+  font-weight: 900;
+  color: #4F217A;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
 }
 
 .stat-info {
@@ -2705,11 +3083,11 @@ definePageMeta({
 }
 
 .stat-label {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-size: 0.65rem;
+  color: #5d4679;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-weight: 800;
 }
 
 /* Filters */
@@ -2740,26 +3118,28 @@ definePageMeta({
   min-height: 40px;
   padding: 0.55rem 0.8rem;
   border-radius: 999px;
-  border: 1px solid #dbe4ee;
-  background: #f8fafc;
-  color: #475569;
+  border: 1px solid #dfd3ea;
+  background: #f8f9fb;
+  color: #5d4679;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .status-tab-pill:hover {
   transform: translateY(-1px);
-  border-color: #bfdbfe;
-  color: #1d4ed8;
+  border-color: #d8b4fe;
+  color: #4F217A;
+  background: #f4ecfb;
 }
 
 .status-tab-pill.active {
-  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #93c5fd;
-  color: #1d4ed8;
-  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.12);
+  background: #f4ecfb;
+  border-color: #d8b4fe;
+  color: #4F217A;
+  box-shadow: 0 6px 20px rgba(79, 33, 122, 0.15);
+  font-weight: 800;
 }
 
 .status-tab-count {
@@ -2855,20 +3235,20 @@ definePageMeta({
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  background: #4F217A;
+  color: #fff;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.18s;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.875rem;
   letter-spacing: 0.01em;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79, 33, 122, 0.28);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -2885,20 +3265,22 @@ definePageMeta({
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: white;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-weight: 600;
+  background: #fff;
+  color: #5d4679;
+  border: 1px solid #dfd3ea;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.18s;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.875rem;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #f5f7fa;
-  border-color: #9ca3af;
-  color: #1f2937;
+  background: #f4ecfb;
+  border-color: #d8b4fe;
+  color: #4F217A;
+  box-shadow: 0 4px 12px rgba(79, 33, 122, 0.08);
+  transform: translateY(-1px);
 }
 
 .btn-secondary:disabled {
@@ -2982,8 +3364,8 @@ definePageMeta({
   padding: 0.75rem 1rem;
   background: #f8fafc;
   font-size: 0.7rem;
-  font-weight: 700;
-  color: #6b7280;
+  font-weight: 800;
+  color: #5d4679;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   border-bottom: 2px solid #e9edf4;
@@ -3002,22 +3384,28 @@ definePageMeta({
 }
 
 .table-row:hover td {
-  background: #f0f4ff !important;
+  background: #faf5ff !important;
   cursor: pointer;
 }
 
+.table-row:hover {
+  box-shadow: inset 0 0 12px rgba(79, 33, 122, 0.06);
+}
+
 .loading-cell,
-.empty-cell {
+.empty-cell,
+.state-cell {
   text-align: center;
-  padding: 2rem !important;
+  padding: 1.5rem !important;
   color: #9ca3af;
 }
 
 .request-number {
-  font-weight: 700;
-  color: #667eea;
-  font-family: monospace;
-  font-size: 0.875rem;
+  font-weight: 800;
+  color: #4F217A;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
 }
 
 .customer-info {
@@ -4430,44 +4818,26 @@ definePageMeta({
 }
 
 .nested-form-sections {
-  display: grid;
-  gap: 0.9rem;
-  grid-template-columns: minmax(250px, 0.78fr) minmax(0, 1.22fr);
+  display: none;
 }
 
 .nested-form-panel {
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background: #ffffff;
-  padding: 0.95rem 1rem 1rem;
+  display: none;
 }
 
-.nested-form-panel--source {
-  height: fit-content;
+.nested-flat-form {
+  display: grid;
+  grid-template-columns: 1.4fr 0.6fr;
+  gap: 0.85rem;
 }
 
-.nested-form-panel-head {
-  margin-bottom: 0.9rem;
-}
-
-.nested-form-panel-head p {
-  margin: 0.25rem 0 0;
-  color: #64748b;
-  font-size: 0.8rem;
-  line-height: 1.45;
-}
-
-.nested-panel-label {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.22rem 0.52rem;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 0.66rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.nested-field-optional {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 0.3rem;
 }
 
 .nested-field-grid {
@@ -4498,6 +4868,7 @@ definePageMeta({
 
 .workspace-nested-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.4rem 1.4rem;
@@ -4506,9 +4877,22 @@ definePageMeta({
   flex-shrink: 0;
 }
 
+.alt-save-hint {
+  flex: 1;
+  margin: 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.nested-actions-btns {
+  display: flex;
+  gap: 0.75rem;
+}
+
 @media (max-width: 760px) {
   .workspace-nested-content,
   .nested-form-sections,
+    .nested-flat-form,
   .alternative-context-head,
   .nested-field-grid,
   .nested-field-grid.compact {
@@ -4546,12 +4930,23 @@ definePageMeta({
   }
 
   .workspace-nested-actions {
-    flex-direction: column-reverse;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
-  .workspace-nested-actions .btn-secondary,
-  .workspace-nested-actions .btn-primary {
+  .alt-save-hint {
     width: 100%;
+    order: -1;
+  }
+
+  .nested-actions-btns {
+    flex-direction: row-reverse;
+    width: 100%;
+  }
+
+  .nested-actions-btns .btn-secondary,
+  .nested-actions-btns .btn-primary {
+    flex: 1;
   }
 }
 
@@ -4802,133 +5197,20 @@ definePageMeta({
   padding-top: 0.15rem;
 }
 
-.allocation-display {
+.allocation-builder {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 1rem;
-  background: #f4ecfb;
-  border: 1px solid #dfd3ea;
-  border-radius: 8px;
-  font-size: 0.85rem;
+  padding: 0.4rem 0;
 }
-.allocation-display-label {
-  font-size: 0.7rem;
-  color: #5d4679;
-  text-transform: uppercase;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+
+.allocation-control {
+  min-width: 140px;
 }
-.allocation-display strong {
-  color: #4F217A;
-  font-weight: 700;
-}
-.allocation-display-qty {
-  color: #6b21a8;
-  font-size: 0.8rem;
-  margin-left: auto;
-}
-.allocation-empty {
-  color: #9ca3af;
-  justify-content: center;
-}
-.alloc-source-picker {
-  position: relative;
-  margin-top: 0.35rem;
-}
-.alloc-source-picker--has-source {
-  margin-top: 0.4rem;
-}
-.alloc-source-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border: 1px solid #d8b4fe;
-  border-radius: 999px;
-  background: #fdf4ff;
-  color: #5b21b6;
-  font-size: 0.74rem;
-  font-weight: 600;
-  padding: 0.28rem 0.65rem;
-  cursor: pointer;
-  transition: all 0.14s;
-}
-.alloc-source-btn:hover:not(:disabled) {
-  border-color: #c084fc;
-  background: #f5e8ff;
-}
-.alloc-source-btn--empty {
-  width: 100%;
-  justify-content: center;
-}
-.alloc-source-chevron {
-  font-size: 1rem;
-  line-height: 1;
-  color: #a855f7;
-}
-.alloc-sourcing-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid #e9d5ff;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(79, 33, 122, 0.13);
-  z-index: 120;
-  overflow: hidden;
-}
-.alloc-sourcing-dropdown-empty {
-  padding: 0.65rem 0.9rem;
-  font-size: 0.8rem;
-  color: #9ca3af;
-  text-align: center;
-}
-.alloc-sourcing-dropdown-option {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  text-align: left;
-  padding: 0.55rem 0.9rem;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #f3e8ff;
-  cursor: pointer;
-  transition: background 0.13s;
-}
-.alloc-sourcing-dropdown-option:last-child {
-  border-bottom: none;
-}
-.alloc-sourcing-dropdown-option:hover {
-  background: #faf5ff;
-}
-.alloc-sdo-name {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #4F217A;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.alloc-sdo-meta {
-  display: flex;
-  gap: 0.6rem;
-  margin-top: 0.15rem;
-}
-.alloc-sdo-dist {
-  font-size: 0.72rem;
-  color: #9ca3af;
-}
-.alloc-sdo-qty {
-  font-size: 0.72rem;
-  color: #7c3aed;
-  font-weight: 600;
-}
-.alloc-sdo-price {
-  font-size: 0.72rem;
-  color: #059669;
-  font-weight: 700;
-  margin-left: auto;
+
+.allocation-mini {
+  min-width: 92px;
 }
 
 .allocation-history {
@@ -5396,6 +5678,868 @@ definePageMeta({
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ────────────────────────────────────────────────────────
+   Fulfillment Workspace — Split-Pane Drawer
+──────────────────────────────────────────────────────── */
+
+.fw-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+}
+
+.fw-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 82vw;
+  max-width: 1320px;
+  height: 100vh;
+  background: #f8f9fb;
+  display: flex;
+  flex-direction: column;
+  z-index: 1001;
+  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+/* Header */
+.fw-header {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+.fw-header-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+}
+.fw-header-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.fw-req-num {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+.fw-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.fw-meta-chip {
+  font-size: 0.72rem;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+}
+.fw-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.fw-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fw-icon-btn:hover:not(:disabled) { background: #f3f4f6; }
+.fw-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.fw-close-btn:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+/* Body */
+.fw-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+/* Next Step Guide Banner */
+.fw-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.fw-next-step--info {
+  background: #eff6ff;
+  border-bottom-color: #bfdbfe;
+}
+
+.fw-next-step--warning {
+  background: #fffbeb;
+  border-bottom-color: #fde68a;
+}
+
+.fw-next-step--success {
+  background: #f0fdf4;
+  border-bottom-color: #bbf7d0;
+}
+
+.fw-next-step--done {
+  background: #f8f9fb;
+  border-bottom-color: #e5e7eb;
+}
+
+.fw-ns-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.fw-ns-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+}
+
+.fw-ns-icon {
+  width: 18px;
+  height: 18px;
+  color: #374151;
+}
+
+.fw-next-step--info .fw-ns-icon { color: #1d4ed8; }
+.fw-next-step--warning .fw-ns-icon { color: #b45309; }
+.fw-next-step--success .fw-ns-icon { color: #15803d; }
+
+.fw-ns-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.fw-ns-heading {
+  font-size: 0.825rem;
+  font-weight: 800;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.fw-ns-message {
+  font-size: 0.775rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.fw-ns-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.fw-ns-cta {
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  background: #4F217A;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.fw-ns-cta:hover:not(:disabled) {
+  background: #3d1860;
+  box-shadow: 0 4px 12px rgba(79, 33, 122, 0.25);
+}
+
+.fw-ns-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fw-next-step--warning .fw-ns-cta {
+  background: #b45309;
+}
+
+.fw-next-step--warning .fw-ns-cta:hover:not(:disabled) {
+  background: #92400e;
+}
+
+.fw-next-step--success .fw-ns-cta {
+  background: #15803d;
+}
+
+.fw-ns-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.fw-ns-dismiss:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: #374151;
+}
+
+/* The split-pane row sits beneath the banner */
+.fw-split-pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Split pane container (sits below banner) */
+.fw-split-pane {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Items pane (left) */
+.fw-items {
+  width: 55%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  border-right: 1px solid #e5e7eb;
+  gap: 0.75rem;
+}
+.fw-pane-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.fw-pane-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.fw-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #520094;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.fw-pane-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.fw-avail-summary {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
+/* Add item row */
+.fw-add-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  position: relative;
+}
+.fw-add-item-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.fw-qty-input {
+  width: 70px !important;
+  flex-shrink: 0 !important;
+}
+.fw-price-input {
+  width: 110px !important;
+}
+.fw-items-empty {
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+/* Item cards */
+.fw-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.fw-item-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  transition: border-color 0.15s;
+}
+.fw-item-card:hover { border-color: #d8b4fe; }
+.fw-item-unavailable { border-color: #fee2e2; opacity: 0.8; }
+.fw-ic-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.fw-ic-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9ca3af;
+  min-width: 16px;
+  flex-shrink: 0;
+}
+.fw-ic-name-block {
+  flex: 1;
+  min-width: 0;
+}
+.fw-ic-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.fw-ic-qty {
+  font-size: 0.78rem;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+.fw-ic-pricing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  background: #fafafa;
+}
+.fw-ic-price-pair { display: flex; gap: 1.25rem; }
+.fw-ic-price-field { display: flex; flex-direction: column; gap: 0.125rem; }
+.fw-ic-price-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+}
+.fw-ic-price-val {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+}
+.fw-ic-price-val.accent { color: #520094; }
+.fw-ic-price-empty { font-size: 0.85rem; color: #d1d5db; }
+.fw-ic-inline-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4F217A;
+  border: 1px solid #dfd3ea;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  white-space: nowrap;
+}
+.fw-ic-inline-edit:hover:not(:disabled) {
+  background: #f4ecfb;
+}
+.fw-ic-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+}
+.fw-ic-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.fw-ic-action-btn:hover:not(:disabled) { background: #f9fafb; border-color: #d1d5db; }
+.fw-ic-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.fw-ic-action-btn.danger { color: #dc2626; border-color: #fecaca; }
+.fw-ic-action-btn.danger:hover:not(:disabled) { background: #fee2e2; }
+.fw-ic-alloc-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+  background: #f4ecfb;
+  border: 1px solid #dfd3ea;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.fw-ic-source-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+.fw-ic-source-label {
+  font-size: 0.7rem;
+  color: #5d4679;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.fw-ic-source-name {
+  color: #4F217A;
+  font-weight: 700;
+}
+.fw-ic-source-dist {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+.fw-ic-source-qty {
+  color: #6b21a8;
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+.fw-ic-source-empty {
+  width: 100%;
+}
+.fw-ic-source-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #d8b4fe;
+  border-radius: 999px;
+  background: #fff;
+  color: #4F217A;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  transition: all 0.16s;
+}
+.fw-ic-source-cta:hover:not(:disabled) {
+  border-color: #c084fc;
+  background: #faf5ff;
+}
+.fw-ic-source-cta--empty {
+  width: 100%;
+  justify-content: center;
+  color: #5b21b6;
+  background: #fdf4ff;
+}
+.fw-ic-source-picker {
+  position: relative;
+}
+.fw-ic-source-picker--full {
+  width: 100%;
+}
+.fw-sourcing-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 240px;
+  background: #fff;
+  border: 1px solid #e9d5ff;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(79, 33, 122, 0.13);
+  z-index: 120;
+  overflow: hidden;
+}
+.fw-sourcing-dropdown--full {
+  left: 0;
+  right: 0;
+  min-width: unset;
+}
+.fw-sourcing-dropdown-empty {
+  padding: 0.65rem 0.9rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-align: center;
+}
+.fw-sourcing-dropdown-option {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f3e8ff;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.fw-sourcing-dropdown-option:last-child {
+  border-bottom: none;
+}
+.fw-sourcing-dropdown-option:hover {
+  background: #faf5ff;
+}
+.fw-sdo-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #4F217A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fw-sdo-meta {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.15rem;
+}
+.fw-sdo-dist {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+.fw-sdo-qty {
+  font-size: 0.72rem;
+  color: #7c3aed;
+  font-weight: 600;
+}
+.fw-sdo-price {
+  font-size: 0.72rem;
+  color: #059669;
+  font-weight: 700;
+  margin-left: auto;
+}
+.fw-ic-photos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.fw-ic-photos .item-photo-strip {
+  margin-top: 0;
+}
+.fw-ic-photos .item-photo-strip--clamped {
+  max-height: 54px;
+  overflow: hidden;
+}
+.fw-ic-photos-toggle {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: #4F217A;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+.fw-ic-photos-toggle:hover {
+  text-decoration: underline;
+}
+
+/* Sourcing pane (right) */
+.fw-sourcing {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  gap: 0.875rem;
+}
+.fw-sourcing-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  flex-shrink: 0;
+}
+.fw-sourcing-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.fw-sourcing-card-head h5 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Footer */
+.fw-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+.fw-footer-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.fw-footer-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  line-height: 32px;
+}
+
+/* Two-tier status picker */
+.fw-status-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.fw-status-suggested {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.fw-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1.5px solid #dfd3ea;
+  background: #f8f9fb;
+  color: #374151;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.fw-status-pill:hover {
+  border-color: #c4b5fd;
+  background: #f4ecfb;
+  color: #4F217A;
+}
+
+.fw-status-pill--selected {
+  background: #4F217A;
+  border-color: #4F217A;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(79, 33, 122, 0.25);
+}
+
+.fw-status-pill--selected:hover {
+  background: #3d1860;
+  border-color: #3d1860;
+  color: #fff;
+}
+
+.fw-status-pill--more {
+  color: #6b7280;
+  border-style: dashed;
+  border-color: #d1d5db;
+  background: transparent;
+}
+
+.fw-status-pill--more:hover {
+  border-color: #9ca3af;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.fw-status-pill--more-open {
+  border-style: solid;
+  border-color: #9ca3af;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.fw-status-pill--more .icon-xs {
+  transition: transform 0.18s ease;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Advanced override section */
+.fw-status-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.fw-status-advanced-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fw-status-advanced-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.fw-status-pill--override {
+  border-color: #fcd34d;
+  background: #fffdef;
+  color: #92400e;
+}
+
+.fw-status-pill--override:hover {
+  border-color: #f59e0b;
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.fw-status-pill--override.fw-status-pill--selected {
+  background: #b45309;
+  border-color: #b45309;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(180, 83, 9, 0.25);
+}
+
+/* Footer update section */
+.fw-footer-update {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.fw-override-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.btn-override {
+  background: #b45309 !important;
+}
+
+.btn-override:hover:not(:disabled) {
+  background: #92400e !important;
+  box-shadow: 0 8px 24px rgba(180, 83, 9, 0.28) !important;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .fw-drawer { width: 100vw; }
+  .fw-body { overflow-y: auto; }
+  .fw-split-pane { flex-direction: column; overflow-y: visible; }
+  .fw-items { width: 100%; border-right: none; border-bottom: 1px solid #e5e7eb; overflow-y: visible; }
+  .fw-sourcing { overflow-y: visible; }
+  .fw-ic-pricing {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .fw-ic-price-pair {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .fw-ic-inline-edit {
+    align-self: flex-start;
+  }
+  .fw-ic-actions {
+    -webkit-overflow-scrolling: touch;
+  }
+  .fw-next-step { flex-direction: column; align-items: flex-start; }
+  .fw-ns-actions { width: 100%; justify-content: flex-end; }
+  .fw-footer { flex-direction: column; align-items: stretch; }
+  .fw-footer-status { flex-direction: column; }
+  .fw-footer-update { align-items: flex-start; }
 }
 </style>
 

@@ -1,254 +1,170 @@
 <template>
     <div class="order-requests">
         <!-- ====== NEW REQUEST FORM ====== -->
-        <div v-if="isNewView" class="form-section mb-10 text-[#350062]">
-            <section class="new-request-hero">
-                <div class="new-request-hero-copy">
-                    <span class="shell-eyebrow">New Request</span>
-                    <h2 class="new-request-title">Build your medication request in one flow.</h2>
-                    <p class="new-request-desc">Add medicines, attach prescription images if needed, confirm your location, and choose delivery or pickup before sending it out.</p>
+        <div v-if="isNewView" class="space-y-6 pb-28 lg:pb-0">
+
+            <!-- Page Header -->
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Pharmacy Concierge</p>
+                    <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">New Request</h2>
+                    <p class="text-sm font-medium text-zinc-600 mt-1">Describe the medicines you need. A pharmacist will source and confirm pricing.</p>
                 </div>
-                <div class="new-request-hero-panel">
-                    <div class="hero-panel-item">
-                        <span>Priority Search</span>
-                        <strong>GHS {{ requestFee.toFixed(2) }}</strong>
-                    </div>
-                    <div class="hero-panel-item">
-                        <span>Wallet Balance</span>
-                        <strong>GHS {{ walletBalance.toFixed(2) }}</strong>
-                    </div>
-                    <div class="hero-panel-item muted">
-                        <span>Request Content</span>
-                        <strong>{{ validItems.length || prescriptionFiles.length ? `${validItems.length || prescriptionFiles.length} ready` : 'Start adding items' }}</strong>
-                    </div>
+                <button @click="goToRequestHistory" type="button"
+                    class="mt-1 flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">history</span>
+                    My Requests
+                </button>
+            </div>
+
+            <!-- Wallet lock banner -->
+            <div v-if="!canSearchProducts" class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <ExcTriIcon class="w-4 h-4" />
                 </div>
-            </section>
-
-            <div class="step-content">
-                <div class="editor-section">
-                    <div class="editor-section-head">
-                        <div>
-                            <h3 class="step-title">What do you need?</h3>
-                            <p class="step-desc">Search for medicines, attach product photos, or upload a prescription if you want pharmacies to interpret it for you.</p>
-                        </div>
-                        <span class="editor-section-badge">{{ validItems.length ? `${validItems.length} item${validItems.length === 1 ? '' : 's'}` : 'Awaiting items' }}</span>
-                    </div>
-
-                    <div v-if="!canSearchProducts" class="search-lock-card">
-                        <div class="search-lock-copy">
-                            <strong>Top up your wallet to start a Priority Search.</strong>
-                            <span>You need at least GHS {{ requestFee.toFixed(2) }} in your wallet before product search becomes available. Current wallet balance: GHS {{ walletBalance.toFixed(2) }}.</span>
-                        </div>
-                        <button type="button" class="location-help-btn" @click="openWalletTab">
-                            Top Up Wallet
-                        </button>
-                    </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-black text-amber-900 text-sm">Top up to enable Priority Search</p>
+                    <p class="text-xs text-amber-700 mt-0.5">You need at least GHS {{ requestFee.toFixed(2) }} in your wallet. Current balance: GHS {{ walletBalance.toFixed(2) }}.</p>
                 </div>
+                <button type="button" @click="openWalletTab"
+                    class="flex-shrink-0 bg-amber-900 text-white px-3 py-2 rounded-xl text-xs font-semibold hover:bg-amber-800 transition-colors">
+                    Top Up
+                </button>
+            </div>
 
-                <section class="editor-card">
-                    <div class="editor-card-head">
-                        <div>
-                            <span class="editor-card-kicker">Location</span>
-                            <h4>Set where this request should be sourced from.</h4>
-                        </div>
-                        <span class="editor-card-status" :class="{ ready: customerLat }">{{ customerLat ? 'Ready' : 'Needed' }}</span>
-                    </div>
+            <!-- Main content: form + desktop sidebar -->
+            <div class="flex flex-col lg:flex-row gap-6 lg:items-start">
+                <!-- Left column: form sections -->
+                <div class="flex-1 min-w-0 space-y-4">
 
-                    <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-4"
-                        :class="{ set: customerLat }">
-                        <div class="location-icon-wrap" :class="{ set: customerLat }">
-                            <MapPinIconSolid v-if="customerLat" class="loc-svg" />
-                            <ArrowPathIcon v-else-if="gettingLocation" class="loc-svg spin" />
-                            <MapPinIcon v-else class="loc-svg" />
+                    <!-- Section 1: Add Medication -->
+                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">1</div>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Add Medication</h3>
                         </div>
-                        <div class="location-text">
-                            <strong>{{ locationLabel }}</strong>
-                            <span>{{ locationSublabel }}</span>
-                        </div>
-                        <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
-                    </button>
-                    <div class="location-help-card" :class="{ error: !!locationIssue }">
-                        <p class="location-help-copy">
-                            {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery or pickup.' }}
-                        </p>
-                        <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="location-help-actions">
-                            <button type="button" class="location-help-btn" @click="getLocation">
-                                Use Different Location For This Request
-                            </button>
-                        </div>
-                        <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="location-help-actions">
-                            <button type="button" class="location-help-btn secondary" @click="restoreSavedHomeLocation">
-                                Use Saved Home Address
-                            </button>
-                            <button type="button" class="location-help-btn" @click="getLocation">
-                                Refresh Request Location
-                            </button>
-                        </div>
-                        <div v-if="locationIssue" class="location-help-actions">
-                            <button type="button" class="location-help-btn" @click="getLocation">Try Again</button>
-                            <button type="button" class="location-help-btn secondary" @click="openLocationSettings">
-                                Open Settings
-                            </button>
-                        </div>
-                        <p v-if="locationIssue" class="location-help-note">{{ locationIssue.instructions }}</p>
-                    </div>
-                </section>
-
-                <section class="editor-card">
-                    <div class="editor-card-head">
-                        <div>
-                            <span class="editor-card-kicker">Items</span>
-                            <h4>Add the medicines you want sourced.</h4>
-                        </div>
-                        <span class="editor-card-status">{{ requestItems.length }} row{{ requestItems.length === 1 ? '' : 's' }}</span>
-                    </div>
-
-                    <div class="items-list">
-                        <div v-for="(item, index) in requestItems" :key="index" class="item-row">
-                            <span class="item-num">{{ index + 1 }}</span>
-                            <div class="item-main">
-                                <div class="item-search-shell" :class="{ locked: !canSearchProducts }">
-                                <div class="item-search-head">
-                                    <strong>Search for a medicine</strong>
-                                    <span>Type a name, brand, or strength. You can still enter it manually.</span>
+                        <div class="med-card-list">
+                            <div
+                                v-for="(item, index) in requestItems"
+                                :key="index"
+                                class="med-card"
+                                :class="{ 'med-card--named': !!item.product_name.trim() }"
+                            >
+                                <div class="med-icon-circle">
+                                    <span class="material-symbols-outlined med-icon-glyph">pill</span>
                                 </div>
-                                <div class="input-wrap relative clickable-input-wrap" @click="$event.currentTarget.querySelector('input')?.focus()">
-                                        <MagnifyingGlassIcon class="item-search-icon" />
-                                        <input v-model="item.product_name" type="text" placeholder="Search medicine name, brand, or strength"
-                                            :disabled="!canSearchProducts"
-                                            class="item-input" @input="onProductInput(item)" @focus="onProductInput(item)"
-                                            @blur="closeDropdown(item)" />
-                                        <span v-if="item.product_name && !item.loading" class="search-chip">{{ item.showDropdown && item.searchResults.length ? `${item.searchResults.length} match${item.searchResults.length === 1 ? '' : 'es'}` : 'Custom entry' }}</span>
-                                        <span v-else-if="item.loading" class="search-chip searching">Searching</span>
 
-                                        <!-- Search Dropdown -->
-                                        <div v-if="item.showDropdown && (item.searchResults.length || item.loading)"
-                                            class="search-dropdown">
-                                            <div class="search-dropdown-head">
-                                                <span>Suggested matches</span>
-                                                <strong>{{ item.loading ? 'Checking nearby options' : `${item.searchResults.length} result${item.searchResults.length === 1 ? '' : 's'}` }}</strong>
-                                            </div>
-                                            <div v-if="item.loading" class="search-item loading">
-                                                <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
-                                            </div>
-                                            <template v-else>
-                                                <div v-for="(res, idx) in item.searchResults" :key="res.id || idx"
-                                                    @mousedown.prevent="selectProduct(item, res)" class="search-item">
-                                                    <div class="search-item-main">
-                                                        <div class="font-medium text-gray-900">{{ res.product_description }}</div>
-                                                        <div class="text-xs text-gray-500">
-                                                            {{ [res.strength, res.unit].filter(Boolean).join(' - ') || 'No extra details' }}
+                                <div class="med-card-body">
+                                    <div class="item-search-shell" :class="{ locked: !canSearchProducts }">
+                                        <div class="input-wrap relative clickable-input-wrap" @click="$event.currentTarget.querySelector('input')?.focus()">
+                                            <MagnifyingGlassIcon v-if="!item.product_name.trim()" class="item-search-icon" />
+                                            <input
+                                                v-model="item.product_name"
+                                                type="text"
+                                                placeholder="Search medicine name, brand, or strength"
+                                                :disabled="!canSearchProducts"
+                                                class="item-input"
+                                                @input="onProductInput(item)"
+                                                @focus="onProductInput(item)"
+                                                @blur="closeDropdown(item)"
+                                            />
+                                            <span v-if="item.product_name && !item.loading" class="search-chip">{{ item.showDropdown && item.searchResults.length ? `${item.searchResults.length} match${item.searchResults.length === 1 ? '' : 'es'}` : 'Custom entry' }}</span>
+                                            <span v-else-if="item.loading" class="search-chip searching">Searching</span>
+                                            <div v-if="item.showDropdown && (item.searchResults.length || item.loading)" class="search-dropdown">
+                                                <div class="search-dropdown-head">
+                                                    <span>Suggested matches</span>
+                                                    <strong>{{ item.loading ? 'Checking nearby options' : `${item.searchResults.length} result${item.searchResults.length === 1 ? '' : 's'}` }}</strong>
+                                                </div>
+                                                <div v-if="item.loading" class="search-item loading">
+                                                    <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
+                                                </div>
+                                                <template v-else>
+                                                    <div
+                                                        v-for="(res, idx) in item.searchResults"
+                                                        :key="res.id || idx"
+                                                        @mousedown.prevent="selectProduct(item, res)"
+                                                        class="search-item"
+                                                    >
+                                                        <div class="search-item-main">
+                                                            <div class="font-medium text-gray-900">{{ res.product_description }}</div>
+                                                            <div class="text-xs text-gray-500">{{ [res.strength, res.unit].filter(Boolean).join(' - ') || 'No extra details' }}</div>
+                                                        </div>
+                                                        <div class="search-item-side">
+                                                            <span v-if="res.available_at" class="search-availability">Nearby</span>
+                                                            <span class="search-pick">Use</span>
                                                         </div>
                                                     </div>
-                                                    <div class="search-item-side">
-                                                        <span v-if="res.available_at" class="search-availability">Nearby</span>
-                                                        <span class="search-pick">Use</span>
+                                                    <div v-if="item.searchResults.length === 0 && item.product_name.length > 2" class="search-item no-results">
+                                                        No matches found. We'll keep this as a custom item entry.
                                                     </div>
-                                                </div>
-                                                <div v-if="item.searchResults.length === 0 && item.product_name.length > 2"
-                                                    class="search-item no-results">
-                                                    No matches found. We’ll keep this as a custom item entry.
-                                                </div>
-                                            </template>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div class="search-helper-row">
+                                            <span v-if="item.product_name && !item.showDropdown" class="search-helper-state">Tap the field again to search more</span>
                                         </div>
                                     </div>
-                                    <div class="search-helper-row">
-                                        <span v-if="item.product_name && !item.showDropdown" class="search-helper-state">Tap the field again to search more</span>
+
+                                    <div v-if="item.product_name.trim()" class="flex items-center gap-2 mt-2">
+                                        <label class="item-upload-btn" :title="item.imageFiles.length ? `${item.imageFiles.length} photo${item.imageFiles.length !== 1 ? 's' : ''} added` : 'Add item photo'">
+                                            <CameraIcon class="upload-svg" />
+                                            <span v-if="item.imageFiles.length" class="item-upload-count">{{ item.imageFiles.length }}</span>
+                                            <input type="file" accept="image/*" multiple class="hidden-input" @change="onItemImagesSelected($event, item)" />
+                                        </label>
+                                        <div class="med-qty-control" style="margin-left:auto">
+                                            <button type="button" class="med-qty-btn" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
+                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1" class="med-qty-input" />
+                                            <button type="button" class="med-qty-btn" @click="incrementQty(item)">+</button>
+                                        </div>
+                                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="med-remove-btn" type="button" title="Remove">
+                                            <XMarkIcon class="rm-svg" />
+                                        </button>
                                     </div>
-                                </div>
-                                <div class="item-upload-row">
-                                    <label class="item-upload-btn">
-                                        <CameraIcon class="upload-svg" />
-                                        <span>{{ item.imageFiles.length ? `Add photos (${item.imageFiles.length})` : 'Add item photo' }}</span>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            multiple
-                                            class="hidden-input"
-                                            @change="onItemImagesSelected($event, item)"
-                                        />
-                                    </label>
-                                    <span v-if="item.imageFiles.length" class="item-upload-note">Attached only to this product.</span>
-                                </div>
-                                <div v-if="item.imageFiles.length" class="item-image-grid">
-                                    <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="item-image-card">
-                                        <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="item-image-preview" />
-                                        <div class="item-image-actions">
-                                            <label class="preview-action-btn">
-                                                Replace
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    class="hidden-input"
-                                                    @change="replaceItemImage($event, item, imageIndex)"
-                                                />
-                                            </label>
-                                            <button type="button" class="preview-action-btn danger" @click="removeItemImage(item, imageIndex)">Delete</button>
+                                    <div v-if="item.imageFiles.length" class="item-image-grid">
+                                        <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="item-image-card">
+                                            <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="item-image-preview" />
+                                            <div class="item-image-actions">
+                                                <label class="preview-action-btn">
+                                                    Replace
+                                                    <input type="file" accept="image/*" class="hidden-input" @change="replaceItemImage($event, item, imageIndex)" />
+                                                </label>
+                                                <button type="button" class="preview-action-btn danger" @click="removeItemImage(item, imageIndex)">Delete</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="qty-picker">
-                                <span class="qty-label">Qty</span>
-                                <div class="qty-controls">
-                                    <button type="button" class="qty-btn" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">
-                                        <MinusSmallIcon class="qty-svg" />
-                                    </button>
-                                    <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
-                                        class="qty-input" />
-                                    <button type="button" class="qty-btn" @click="incrementQty(item)">
-                                        <PlusSmallIcon class="qty-svg" />
-                                    </button>
+                        </div>
+                        <button @click="addItem" :disabled="!canSearchProducts" type="button"
+                            class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors disabled:opacity-40">
+                            <PlusIcon class="w-4 h-4" /> Add another medication
+                        </button>
+                    </section>
+
+                    <!-- Section 2: Prescription -->
+                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">2</div>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Prescription <span class="text-sm font-normal text-zinc-400">(optional)</span></h3>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
+                                <div class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
+                                    <CameraIcon class="w-5 h-5" />
                                 </div>
-                            </div>
-                            <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="remove-btn"
-                                title="Remove">
-                                <XMarkIcon class="rm-svg" />
-                            </button>
+                                <span class="text-sm font-semibold text-zinc-700">Take a Photo</span>
+                                <input ref="prescriptionPicker" type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
+                            </label>
+                            <label class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
+                                <div class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
+                                    <ArrowUpTrayIcon class="w-5 h-5" />
+                                </div>
+                                <span class="text-sm font-semibold text-zinc-700">Upload Document</span>
+                                <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
+                            </label>
                         </div>
-                    </div>
-
-                    <button @click="addItem" class="add-item-btn" :disabled="!canSearchProducts">
-                        <PlusIcon class="add-svg" /> Add Another Item
-                    </button>
-                </section>
-
-                <!-- Prescription -->
-                <section class="editor-card prescription-section">
-                    <div class="editor-card-head">
-                        <div>
-                            <span class="editor-card-kicker">Prescription</span>
-                            <h4>Upload clear prescription photos if the pharmacy should interpret the items.</h4>
-                        </div>
-                        <span class="editor-card-status">{{ prescriptionFiles.length ? `${prescriptionFiles.length} attached` : 'Optional' }}</span>
-                    </div>
-
-                    <div class="prescription-box">
-                        <CameraIcon class="prescription-svg" />
-                        <div class="prescription-text">
-                            <strong>Have a prescription?</strong>
-                            <span>Add clear photos of each page. Front and back pages can be uploaded together.</span>
-                        </div>
-                        <label class="upload-label">
-                            <ArrowUpTrayIcon class="upload-svg" />
-                            {{ prescriptionFiles.length ? `Add More Photos (${prescriptionFiles.length})` : 'Choose Photos' }}
-                            <input
-                                ref="prescriptionPicker"
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                @change="onPrescriptionFilesSelected"
-                                class="hidden-input"
-                            />
-                        </label>
-                        <input
-                            ref="prescriptionReplacePicker"
-                            type="file"
-                            accept="image/*"
-                            class="hidden-input"
-                            @change="onReplacePrescriptionFile"
-                        />
-                        <div v-if="prescriptionFiles.length" class="prescription-preview-grid">
+                        <input ref="prescriptionReplacePicker" type="file" accept="image/*" class="hidden" @change="onReplacePrescriptionFile" />
+                        <div v-if="prescriptionFiles.length" class="prescription-preview-grid mt-4">
                             <div v-for="(image, index) in prescriptionFiles" :key="image.id" class="prescription-preview-card">
                                 <img :src="image.previewUrl" :alt="image.file.name" class="prescription-preview-image" />
                                 <div class="prescription-preview-copy">
@@ -261,7 +177,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div v-if="isUploading" class="upload-progress-card">
+                        <div v-if="isUploading" class="upload-progress-card mt-4">
                             <div class="upload-progress-head">
                                 <strong>Uploading prescription photos</strong>
                                 <span>{{ Math.round(uploadProgress) }}%</span>
@@ -270,119 +186,182 @@
                                 <span class="upload-progress-fill" :style="{ width: `${uploadProgress}%` }"></span>
                             </div>
                         </div>
-                    </div>
-                </section>
-            </div>
+                    </section>
 
-            <div class="request-builder-grid">
-                <section class="builder-card">
-                    <div class="builder-card-head">
-                        <div>
-                            <h4 class="builder-title">How should we fulfill this request?</h4>
-                            <p class="builder-copy">Choose delivery or pickup before sending the request.</p>
+                    <!-- Section 3: Delivery or Pickup -->
+                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">3</div>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery or Pickup</h3>
                         </div>
-                    </div>
-
-                    <div class="fulfillment-section">
-                        <div class="fulfillment-grid">
-                            <button @click="selectFulfillment('delivery')" type="button" class="fulfillment-btn"
-                                :class="{ selected: fulfillmentType === 'delivery' }">
-                                <TruckIcon class="ful-svg" />
-                                <strong>Delivery</strong>
-                                <span>Bring it to me</span>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button @click="selectFulfillment('delivery')" type="button"
+                                class="flex flex-col items-center gap-2.5 rounded-xl border-2 px-4 py-4 text-center transition-all"
+                                :class="fulfillmentType === 'delivery' ? 'border-[#4F217A] bg-[#f4e8fb]' : 'border-zinc-200 bg-white hover:border-zinc-300'">
+                                <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                                    :class="fulfillmentType === 'delivery' ? 'bg-[#4F217A] text-white' : 'bg-zinc-100 text-zinc-500'">
+                                    <TruckIcon class="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <strong class="block text-sm font-black" :class="fulfillmentType === 'delivery' ? 'text-[#4F217A]' : 'text-zinc-800'">Home Delivery</strong>
+                                    <span class="text-xs" :class="fulfillmentType === 'delivery' ? 'text-[#5e3a86]' : 'text-zinc-400'">Arrives within 2–4 hours</span>
+                                </div>
                             </button>
-                            <button @click="selectFulfillment('pickup')" type="button" class="fulfillment-btn"
-                                :class="{ selected: fulfillmentType === 'pickup' }">
-                                <BuildingStorefrontIcon class="ful-svg" />
-                                <strong>Pickup</strong>
-                                <span>I will collect it</span>
+                            <button @click="selectFulfillment('pickup')" type="button"
+                                class="flex flex-col items-center gap-2.5 rounded-xl border-2 px-4 py-4 text-center transition-all"
+                                :class="fulfillmentType === 'pickup' ? 'border-[#4F217A] bg-[#f4e8fb]' : 'border-zinc-200 bg-white hover:border-zinc-300'">
+                                <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                                    :class="fulfillmentType === 'pickup' ? 'bg-[#4F217A] text-white' : 'bg-zinc-100 text-zinc-500'">
+                                    <BuildingStorefrontIcon class="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <strong class="block text-sm font-black" :class="fulfillmentType === 'pickup' ? 'text-[#4F217A]' : 'text-zinc-800'">Store Pickup</strong>
+                                    <span class="text-xs" :class="fulfillmentType === 'pickup' ? 'text-[#5e3a86]' : 'text-zinc-400'">Ready in 30 minutes at nearby pharmacy</span>
+                                </div>
                             </button>
                         </div>
-                    </div>
+                        <div class="flex flex-col gap-1.5 mt-4">
+                            <label class="text-sm font-semibold text-zinc-700">Notes <span class="font-normal text-zinc-400">(optional)</span></label>
+                            <textarea v-model="customerNotes" rows="2" placeholder="e.g. brand preference, dosage form..."
+                                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
+                        </div>
+                    </section>
 
-                    <div class="form-group" v-if="fulfillmentType === 'delivery'">
-                        <label>Delivery Address</label>
-                        <textarea v-model="deliveryAddress" rows="2"
-                            placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
-                            class="form-textarea"></textarea>
-                        <p class="field-hint">Required for delivery requests.</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Notes <span class="optional">(optional)</span></label>
-                        <textarea v-model="customerNotes" rows="2" placeholder="e.g. brand preference, dosage form..."
-                            class="form-textarea"></textarea>
-                    </div>
-                </section>
-
-            <section class="builder-card review-card">
-                <div class="builder-card-head">
-                    <div>
-                        <h4 class="builder-title">Ready to send</h4>
-                        <p class="builder-copy">This is the summary pharmacies will receive when you submit the request.</p>
-                    </div>
-                </div>
-
-                <div class="review-box">
-                    <div class="review-section">
-                        <span class="review-label">{{ validItems.length ? `Items (${validItems.length})` : 'Prescription review' }}</span>
-                        <template v-if="validItems.length">
-                            <div v-for="(item, i) in validItems" :key="i" class="review-item">
-                                <span>{{ item.product_name }}</span>
-                                <span class="review-qty">&times; {{ item.quantity }}</span>
+                    <!-- Section 4: Address & Location -->
+                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">4</div>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">{{ fulfillmentType === 'delivery' ? 'Delivery Address' : 'Pickup Location' }}</h3>
+                        </div>
+                        <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-3" :class="{ set: customerLat }">
+                            <div class="location-icon-wrap" :class="{ set: customerLat }">
+                                <MapPinIconSolid v-if="customerLat" class="loc-svg" />
+                                <ArrowPathIcon v-else-if="gettingLocation" class="loc-svg spin" />
+                                <MapPinIcon v-else class="loc-svg" />
                             </div>
-                        </template>
-                        <p v-else-if="prescriptionFiles.length" class="review-prescription-only">
-                            No typed items yet. Nearby pharmacies will review the prescription images you attached.
+                            <div class="location-text">
+                                <strong>{{ locationLabel }}</strong>
+                                <span>{{ locationSublabel }}</span>
+                            </div>
+                            <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
+                        </button>
+                        <div class="location-help-card" :class="{ error: !!locationIssue }">
+                            <p class="location-help-copy">
+                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery or pickup.' }}
+                            </p>
+                            <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="location-help-actions">
+                                <button type="button" class="location-help-btn" @click="getLocation">Use Different Location For This Request</button>
+                            </div>
+                            <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="location-help-actions">
+                                <button type="button" class="location-help-btn secondary" @click="restoreSavedHomeLocation">Use Saved Home Address</button>
+                                <button type="button" class="location-help-btn" @click="getLocation">Refresh Request Location</button>
+                            </div>
+                            <div v-if="locationIssue" class="location-help-actions">
+                                <button type="button" class="location-help-btn" @click="getLocation">Try Again</button>
+                                <button type="button" class="location-help-btn secondary" @click="openLocationSettings">Open Settings</button>
+                            </div>
+                            <p v-if="locationIssue" class="location-help-note">{{ locationIssue.instructions }}</p>
+                        </div>
+                        <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-1 mt-4">
+                            <textarea
+                                v-model="deliveryAddress"
+                                rows="2"
+                                placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
+                                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"
+                            ></textarea>
+                            <p class="text-xs text-zinc-400">Required for delivery requests.</p>
+                        </div>
+                    </section>
+
+                    <!-- Privacy note -->
+                    <p class="flex items-center gap-2 text-xs text-zinc-400 px-1 pb-2">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        Your data is encrypted and HIPAA-compliant. We only share prescription details with our pharmacy partners.
+                    </p>
+                </div><!-- /left form column -->
+
+                <!-- Right sidebar (desktop only) -->
+                <div class="hidden lg:block w-72 flex-shrink-0 sticky top-6 space-y-4">
+                    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                        <h3 class="font-black text-zinc-900 text-base tracking-tight mb-4">Order Summary</h3>
+                        <div class="space-y-2.5 text-sm mb-5">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-zinc-500">Medications</span>
+                                <span class="font-semibold text-zinc-900">{{ validItems.length ? `${validItems.length} item${validItems.length !== 1 ? 's' : ''}` : (prescriptionFiles.length ? `${prescriptionFiles.length} Rx page${prescriptionFiles.length !== 1 ? 's' : ''}` : '—') }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-zinc-500">Fulfillment</span>
+                                <span class="font-semibold text-zinc-900">{{ fulfillmentType === 'delivery' ? 'Home Delivery' : (fulfillmentType === 'pickup' ? 'Store Pickup' : '—') }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
+                                <span class="text-zinc-500">Priority Fee</span>
+                                <span class="font-black text-zinc-900">GHS {{ requestFee.toFixed(2) }}</span>
+                            </div>
+                        </div>
+                        <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
+                            class="w-full bg-zinc-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+                            <template v-else>Send Request ›</template>
+                        </button>
+                        <p v-if="!canSubmit && !isSubmitting" class="text-[11px] text-zinc-400 text-center mt-2">
+                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Choose delivery or pickup' : !customerLat ? 'Set your location' : fulfillmentType === 'delivery' && !deliveryAddress.trim() ? 'Add delivery address' : '' }}
                         </p>
                     </div>
-                    <div v-if="prescriptionFiles.length" class="review-attach">
-                        <PaperClipIcon class="attach-svg" /> {{ prescriptionFiles.length }} prescription image<span v-if="prescriptionFiles.length !== 1">s</span> attached
-                    </div>
-                    <div class="review-meta">
-                        <div class="review-row"><span>Location</span><span class="review-addr">{{ reviewLocationLabel }}</span></div>
-                        <div class="review-row"><span>Fulfillment</span><span>{{ fulfillmentType ? formatStatus(fulfillmentType) : 'Not selected' }}</span></div>
-                        <div class="review-row" v-if="fulfillmentType === 'delivery'">
-                            <span>Address</span><span class="review-addr">{{ compactAddress(deliveryAddress) || 'Not provided' }}</span>
-                        </div>
-                    </div>
-                </div>
+                </div><!-- /right sidebar -->
 
-                <div class="fee-notice priority-note">
-                    <InformationCircleIcon class="info-svg" />
-                    <div>
-                        <strong>Priority Search includes a GHS {{ requestFee.toFixed(2) }} charge</strong>
-                        <span>The charge is deducted when you send the request. Keep at least GHS {{ requestFee.toFixed(2) }} in your wallet before you start searching.</span>
-                    </div>
-                </div>
-            </section>
-        </div>
+            </div><!-- /main content row -->
 
-        <div class="request-submit-bar">
-            <div class="request-submit-copy">
-                <strong>Send this request when everything looks right.</strong>
-                <span>Nearby pharmacies will see it immediately after the Priority Search charge is applied.</span>
+            <!-- Mobile sticky footer -->
+            <div class="lg:hidden fixed bottom-[4.75rem] left-0 right-0 z-40 bg-white border-t border-zinc-200 px-4 py-3 flex items-center gap-3 shadow-[0_-2px_12px_0_rgba(0,0,0,0.06)]">
+                <div class="flex-1 min-w-0">
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Priority Fee</p>
+                    <p class="text-lg font-black text-zinc-900 leading-tight">GHS {{ requestFee.toFixed(2) }}</p>
+                </div>
+                <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
+                    class="bg-zinc-900 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
+                    <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+                    <template v-else>Send Request ›</template>
+                </button>
             </div>
-            <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" class="nav-submit request-submit-btn">
-                <template v-if="isSubmitting">
-                    <ArrowPathIcon class="nav-svg spin" /> Submitting...
-                </template>
-                <template v-else>
-                    <PaperAirplaneIconSolid class="nav-svg" /> Review Priority Search
-                </template>
-            </button>
-        </div>
         </div>
 
         <!-- ====== REQUESTS LIST ====== -->
         <div v-if="isListView" class="w-full">
-            <header class="request-shell-head mt-2">
-                <div>
-                    <span class="shell-eyebrow">Request History</span>
-                    <h2 class="shell-title">My Requests</h2>
-                    <p class="shell-copy">Track sourcing, payment, and delivery updates in one place.</p>
-                </div>
+            <header class="concierge-header list-header">
+                <button @click="goToNewRequest" class="concierge-back-btn" type="button">
+                    <ChevronLeftIcon class="concierge-back-svg" />
+                </button>
+                <h1 class="concierge-title">My Requests</h1>
+                <div style="width:36px"></div>
             </header>
+
+            <!-- Active / Completed tabs -->
+            <div class="flex gap-1.5 px-4 py-3 bg-white border-b border-[#ede0f5]">
+                <button
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all"
+                    :class="requestListTab === 'active' ? 'bg-[#350062] text-white' : 'border border-[#e0d0f0] text-[#6b6b7b] hover:border-[#350062] hover:text-[#350062]'"
+                    @click="requestListTab = 'active'"
+                >
+                    Active
+                    <span v-if="activeRequests.length"
+                        class="inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[11px] font-extrabold"
+                        :class="requestListTab === 'active' ? 'bg-white/20 text-white' : 'bg-[#f0e6fa] text-[#6c24b3]'"
+                    >{{ activeRequests.length }}</span>
+                </button>
+                <button
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all"
+                    :class="requestListTab === 'completed' ? 'bg-[#350062] text-white' : 'border border-[#e0d0f0] text-[#6b6b7b] hover:border-[#350062] hover:text-[#350062]'"
+                    @click="requestListTab = 'completed'"
+                >
+                    Completed
+                    <span v-if="completedRequests.length"
+                        class="inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[11px] font-extrabold"
+                        :class="requestListTab === 'completed' ? 'bg-white/20 text-white' : 'bg-[#f0e6fa] text-[#6c24b3]'"
+                    >{{ completedRequests.length }}</span>
+                </button>
+            </div>
 
             <div v-if="loadingRequests" class="text-center py-10 bg-white rounded-[2rem] border border-[rgba(206,194,212,0.2)]">
                 <span class="material-symbols-outlined text-4xl text-[#cec2d4] mb-3 animate-spin">sync</span>
@@ -399,52 +378,34 @@
             </div>
 
             <div v-else>
-                <!-- Request List Header (Hidden on Mobile) -->
-                <div class="hidden md:grid grid-cols-12 px-6 py-4 mb-2 text-[11px] font-extrabold uppercase tracking-widest text-[#71717a] opacity-70">
-                    <div class="col-span-3">Request ID</div>
-                    <div class="col-span-3">Date &amp; Time</div>
-                    <div class="col-span-2">Items</div>
-                    <div class="col-span-2">Amount</div>
-                    <div class="col-span-2 text-right">Status</div>
-                </div>
-
                 <!-- Request List Items -->
-                <div class="flex flex-col gap-3">
-                    <div v-for="req in filteredRequests" :key="req.id" @click="viewDetail(req)" class="grid grid-cols-1 md:grid-cols-12 items-center bg-white p-6 md:p-4 lg:p-6 rounded-2xl transition-all duration-300 group cursor-pointer border-l-4 border-transparent hover:border-[#350062] shadow-[0_10px_30px_-10px_rgba(53,0,98,0.08)] gap-y-4 md:gap-y-0">
-                        <div class="col-span-1 md:col-span-3 flex md:block items-center justify-between">
-                            <span class="font-bold text-[#350062]">#{{ req.request_number }}</span>
-                            <!-- Status visible only on mobile -->
-                            <span class="md:hidden px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider block w-fit" :class="getStatusClasses(getRequestStatus(req))">
-                                {{ formatStatus(getRequestStatus(req)) }}
-                            </span>
-                        </div>
-                        <div class="col-span-1 md:col-span-3">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-semibold text-[#350062]">{{ formatDate(req.created_at) }}</span>
-                                <span class="text-[10px] text-[#71717a] md:hidden">Date</span>
+                <div class="space-y-2 p-4">
+                    <article v-for="req in filteredRequests" :key="req.id"
+                        class="flex items-center gap-3 rounded-xl border border-zinc-100 bg-white px-4 py-3.5 hover:border-zinc-200 hover:-translate-y-px transition-all cursor-pointer"
+                        @click="viewDetail(req)"
+                    >
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <div class="w-10 h-10 rounded-xl bg-[#f4e8fb] text-[#5e3a86] flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-[18px]">medication</span>
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="text-sm font-semibold text-zinc-900 truncate">#{{ req.request_number }}</h4>
+                                <p class="text-xs text-zinc-400 mt-0.5">{{ formatDate(req.created_at) }} · {{ req.item_count || 0 }} item(s)</p>
                             </div>
                         </div>
-                        <div class="col-span-1 md:col-span-2">
-                            <div class="flex items-center gap-3">
-                                <span class="w-8 h-8 rounded-full bg-[#f9f1f9] flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-sm text-[#350062]">medication</span>
+                        <div class="text-right flex-shrink-0">
+                            <template v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
+                                <strong class="text-sm font-black text-zinc-900">GHS {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
+                            </template>
+                            <strong v-else class="text-sm font-semibold text-zinc-400">To be priced</strong>
+                            <div class="flex justify-end mt-0.5">
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em]" :class="getStatusClasses(getRequestStatus(req))">
+                                    <span v-if="req.status === 'pending' || req.status === 'searching'" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
+                                    {{ formatStatus(getRequestStatus(req)) }}
                                 </span>
-                                <span class="text-sm font-medium text-[#71717a]">{{ req.items ? req.items.length : (req.request_items ? req.request_items.length : 0) }} item(s)</span>
                             </div>
                         </div>
-                        <div class="col-span-1 md:col-span-2">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-bold text-[#350062]" v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">GHS {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</span>
-                                <span class="text-sm font-medium text-[#71717a]" v-else>To be priced</span>
-                            </div>
-                        </div>
-                        <div class="hidden md:flex col-span-2 justify-end">
-                            <span class="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-2" :class="getStatusClasses(getRequestStatus(req))">
-                                <div v-if="req.status === 'pending' || req.status === 'searching'" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></div>
-                                {{ formatStatus(getRequestStatus(req)) }}
-                            </span>
-                        </div>
-                    </div>
+                    </article>
                 </div>
             </div>
         </div>
@@ -452,7 +413,7 @@
         <!-- ====== REQUEST DETAIL MODAL ====== -->
         <div v-if="selectedRequest" class="modal-overlay" @click.self="selectedRequest = null">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header modal-header--concierge">
                     <div>
                         <h3>Request #{{ selectedRequest.request_number }}</h3>
                         <span class="status-badge" :class="getRequestStatus(selectedRequest)">{{
@@ -739,26 +700,26 @@
 
                 <div class="modal-body">
                     <div class="priority-hero">
-                        <p class="priority-kicker">Why this charge exists</p>
+                        <p class="priority-kicker">What this charge does</p>
                         <p class="priority-copy">
-                            Your request reaches the front of the queue because it is backed by a GHS {{ requestFee.toFixed(2) }} Priority Search charge. That tells nearby pharmacies to check stock immediately instead of treating it like a casual enquiry.
+                            Sends your request to the front of the queue. Nearby pharmacies check stock right away — not whenever they get around to it.
                         </p>
                     </div>
 
                     <div class="priority-points">
                         <div class="priority-point">
-                            <strong>Before you search</strong>
-                            <span>Your wallet must have at least GHS {{ requestFee.toFixed(2) }} available before product search becomes available.</span>
+                            <strong>Wallet balance needed</strong>
+                            <span>Keep at least GHS {{ requestFee.toFixed(2) }} in your wallet before sending.</span>
                         </div>
                         <div class="priority-point">
-                            <strong>When you send the request</strong>
-                            <span>The GHS {{ requestFee.toFixed(2) }} covers the pharmacist's time spent checking shelves and confirming availability for you.</span>
+                            <strong>Charged on send</strong>
+                            <span>GHS {{ requestFee.toFixed(2) }} pays for the pharmacist's real-time stock check.</span>
                         </div>
                     </div>
 
                     <div v-if="submitShortfall > 0" class="priority-shortfall">
-                        <strong>You need GHS {{ submitShortfall.toFixed(2) }} more in your wallet.</strong>
-                        <span>Top up first, then come back to pay the Priority Search charge and send the request.</span>
+                        <strong>GHS {{ submitShortfall.toFixed(2) }} short.</strong>
+                        <span>Top up your wallet to continue.</span>
                     </div>
 
                     <div class="priority-actions">
@@ -796,15 +757,22 @@
         </div>
 
         <!-- Toast -->
-        <div v-if="toast" class="toast" :class="toast.type">
-            <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="toast-svg" />
+        <div v-if="toast"
+            class="fixed bottom-8 right-8 z-[2000] flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white shadow-lg animate-[slideUp_0.3s_ease]"
+            :class="{
+                'bg-emerald-500': toast.type === 'success',
+                'bg-red-500': toast.type === 'error',
+                'bg-[#350062]': toast.type === 'info' || !toast.type
+            }"
+        >
+            <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="w-5 h-5 flex-shrink-0" />
             {{ toast.text }}
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
 import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
 import { formatCompactAddress } from '~/utils/addressFormat'
@@ -860,6 +828,89 @@ const newItem = () => ({
 })
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
+const FORM_DRAFT_KEY = 'medsgh_order_form_draft'
+let formDraftSaveTimer = null
+
+const saveFormDraft = () => {
+    if (!process.client) return
+    formDraftSaveTimer = null
+    
+    try {
+        const draft = {
+            items: requestItems.value.map(item => ({
+                product_name: item.product_name,
+                quantity: item.quantity
+            })),
+            customerLat: customerLat.value,
+            customerLng: customerLng.value,
+            fulfillmentType: fulfillmentType.value,
+            customerAddress: customerAddress.value,
+            deliveryAddress: deliveryAddress.value,
+            customerNotes: customerNotes.value,
+            locationMode: locationMode.value,
+            savedAt: Date.now()
+        }
+        sessionStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(draft))
+    } catch (error) {
+        console.error('Failed to save form draft:', error)
+    }
+}
+
+const debouncedSaveFormDraft = () => {
+    if (formDraftSaveTimer) clearTimeout(formDraftSaveTimer)
+    formDraftSaveTimer = setTimeout(saveFormDraft, 1000)
+}
+
+const restoreFormDraft = () => {
+    if (!process.client) return
+    
+    try {
+        const raw = sessionStorage.getItem(FORM_DRAFT_KEY)
+        if (!raw) return
+        
+        const draft = JSON.parse(raw)
+        if (!draft) return
+        
+        // Only restore if the items are mostly empty (user hasn't started typing)
+        const hasSignificantContent = requestItems.value.some(item => item.product_name.trim()) ||
+                                     customerLat.value ||
+                                     fulfillmentType.value
+        if (hasSignificantContent) return
+        
+        // Restore items
+        if (Array.isArray(draft.items) && draft.items.length > 0) {
+            requestItems.value = draft.items.map(item => ({
+                ...newItem(),
+                product_name: item.product_name || '',
+                quantity: Math.max(1, Number(item.quantity || 1))
+            }))
+        }
+        
+        // Restore location data
+        if (draft.customerLat) customerLat.value = draft.customerLat
+        if (draft.customerLng) customerLng.value = draft.customerLng
+        if (draft.locationMode) locationMode.value = draft.locationMode
+        
+        // Restore form fields
+        if (draft.fulfillmentType) fulfillmentType.value = draft.fulfillmentType
+        if (draft.customerAddress) customerAddress.value = draft.customerAddress
+        if (draft.deliveryAddress) deliveryAddress.value = draft.deliveryAddress
+        if (draft.customerNotes) customerNotes.value = draft.customerNotes
+    } catch (error) {
+        console.error('Failed to restore form draft:', error)
+    }
+}
+
+const clearFormDraft = () => {
+    if (!process.client) return
+    try {
+        sessionStorage.removeItem(FORM_DRAFT_KEY)
+        if (formDraftSaveTimer) clearTimeout(formDraftSaveTimer)
+        formDraftSaveTimer = null
+    } catch (error) {
+        console.error('Failed to clear form draft:', error)
+    }
+}
 
 const normalizeHomepageDraftItem = (item) => {
     const productName = String(typeof item === 'string' ? item : item?.product_name || '').trim()
@@ -1264,13 +1315,22 @@ const getLocation = () => {
                     if (fulfillmentType.value === 'delivery') {
                         deliveryAddress.value = locationData.address
                     }
+                    try {
+                        await userStore.updateProfile({
+                            home_address: locationData.address,
+                            home_latitude: customerLat.value,
+                            home_longitude: customerLng.value
+                        })
+                    } catch (saveError) {
+                        console.error('Failed to save location to profile:', saveError)
+                    }
                 }
             } catch (error) {
                 console.error('Reverse geocode failed:', error)
             } finally {
                 gettingLocation.value = false
                 locationIssue.value = null
-                showToast('Location set!')
+                showToast('Location set and saved to your profile')
             }
         },
         (error) => {
@@ -1493,6 +1553,7 @@ const submitRequest = async () => {
         submitShortfall.value = 0
         showPriorityModal.value = false
         showSuccess.value = true
+        clearFormDraft()
         requestItems.value.forEach(cleanupItemImages)
         requestItems.value = [newItem()]
         prescriptionFiles.value.forEach(revokePrescriptionPreview)
@@ -2147,6 +2208,8 @@ onMounted(async () => {
     await fetchWalletBalance()
     if (isNewView.value && !props.initialRequestId) {
         applyHomepageRequestDraft(consumeHomepageRequestDraft())
+        // Restore form auto-save draft if no homepage draft was applied
+        restoreFormDraft()
     }
     if (isListView.value || props.initialRequestId) {
         await fetchMyRequests()
@@ -2176,6 +2239,25 @@ watch(
         await verifyReturnedPaystackRequestPayment()
     }
 )
+
+// Auto-save form draft when form fields change
+watchEffect(() => {
+    // Only setup auto-save in new view
+    if (!isNewView.value) return
+    
+    // Access all form fields to track dependencies
+    requestItems.value.map(i => `${i.product_name}|${i.quantity}`).join(';')
+    fulfillmentType.value
+    customerAddress.value
+    deliveryAddress.value
+    customerNotes.value
+    customerLat.value
+    customerLng.value
+    locationMode.value
+    
+    // Trigger debounced save
+    debouncedSaveFormDraft()
+})
 
 onUnmounted(() => {
     if (pollTimer) clearInterval(pollTimer)
@@ -2309,12 +2391,6 @@ defineExpose({ fetchMyRequests })
 .success-svg {
     width: 32px;
     height: 32px;
-}
-
-.toast-svg {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
 }
 
 .request-arrow {
@@ -2894,10 +2970,19 @@ defineExpose({ fetchMyRequests })
 
 .input-wrap {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     background: #f8fafc;
     border: 1px solid #dbe4f0;
     border-radius: 12px;
     padding: 0.75rem 0.85rem;
+    position: relative;
+}
+
+.input-wrap .item-input {
+    flex: 1;
+    min-width: 0;
 }
 
 .search-chip {
@@ -2915,8 +3000,8 @@ defineExpose({ fetchMyRequests })
 }
 
 .search-chip.searching {
-    background: #eff6ff;
-    color: #1d4ed8;
+    background: #f0e6fa;
+    color: #6c24b3;
 }
 
 .item-upload-row {
@@ -2928,17 +3013,43 @@ defineExpose({ fetchMyRequests })
 }
 
 .item-upload-btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    border: 1px dashed #bfdbfe;
-    background: #eff6ff;
-    color: #1d4ed8;
+    justify-content: center;
+    border: 1px dashed #c4a8e8;
+    background: #f7f0fb;
+    color: #6c24b3;
     border-radius: 999px;
-    padding: 0.35rem 0.7rem;
-    font-size: 0.78rem;
-    font-weight: 700;
+    width: 2.1rem;
+    height: 2.1rem;
+    flex-shrink: 0;
     cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.item-upload-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 3px;
+    background: #520094;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.item-upload-btn:hover {
+    border-color: #350062;
+    background: #ede0f5;
+    color: #350062;
 }
 
 .item-upload-note {
@@ -2999,7 +3110,7 @@ defineExpose({ fetchMyRequests })
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    z-index: 50;
+    z-index: 200;
     margin-top: 4px;
     max-height: 200px;
     overflow-y: auto;
@@ -3397,6 +3508,26 @@ defineExpose({ fetchMyRequests })
     background: #f0fdf4;
 }
 
+.concierge-shell .location-btn {
+    border-color: #e5d9f5;
+    background: #ffffff;
+}
+
+.concierge-shell .location-btn.set {
+    border-color: #c4a8e8;
+    background: #f7f0fb;
+}
+
+.concierge-shell .location-icon-wrap {
+    background: #f0e6fa;
+    color: #6c24b3;
+}
+
+.concierge-shell .location-icon-wrap.set {
+    background: #e8d5fa;
+    color: #350062;
+}
+
 .location-icon-wrap {
     width: 40px;
     height: 40px;
@@ -3466,19 +3597,29 @@ defineExpose({ fetchMyRequests })
 
 .location-help-btn {
     border: none;
-    background: #2563eb;
+    background: #350062;
     color: white;
     border-radius: 999px;
     padding: 0.5rem 0.9rem;
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
+    transition: background 0.15s;
+}
+
+.location-help-btn:hover {
+    background: #520094;
 }
 
 .location-help-btn.secondary {
     background: white;
-    color: #1d4ed8;
-    border: 1px solid #bfdbfe;
+    color: #350062;
+    border: 1px solid #ddd0ea;
+}
+
+.location-help-btn.secondary:hover {
+    background: #f7f0fb;
+    border-color: #350062;
 }
 
 .location-help-note {
@@ -3653,7 +3794,7 @@ defineExpose({ fetchMyRequests })
 
 .nav-next {
     padding: 0.625rem 1.5rem;
-    background: #667eea;
+    background: #520094;
     color: white;
     border: none;
     border-radius: 10px;
@@ -3667,7 +3808,7 @@ defineExpose({ fetchMyRequests })
 }
 
 .nav-next:hover:not(:disabled) {
-    background: #5a6fd6;
+    background: #6c24b3;
 }
 
 .nav-next:disabled {
@@ -3677,7 +3818,7 @@ defineExpose({ fetchMyRequests })
 
 .nav-submit {
     padding: 0.75rem 2rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: #520094;
     color: white;
     border: none;
     border-radius: 10px;
@@ -3692,7 +3833,8 @@ defineExpose({ fetchMyRequests })
 }
 
 .nav-submit:hover:not(:disabled) {
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    background: #6c24b3;
+    box-shadow: 0 4px 14px rgba(82, 0, 148, 0.35);
 }
 
 .nav-submit:disabled {
@@ -3991,8 +4133,8 @@ defineExpose({ fetchMyRequests })
 }
 
 .status-badge.confirming_with_pharm {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #efdbff;
+    color: #520094;
 }
 
 .status-badge.confirmed_in_pharm {
@@ -4102,7 +4244,7 @@ defineExpose({ fetchMyRequests })
 
 .modal-header {
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid #efdbff;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -4174,9 +4316,9 @@ defineExpose({ fetchMyRequests })
 }
 
 .priority-hero {
-    padding: 1rem;
+    padding: 1rem 1.1rem;
     border-radius: 14px;
-    background: linear-gradient(135deg, #0f172a, #1d4ed8 60%, #0891b2);
+    background: #520094;
     color: #ffffff;
     margin-bottom: 1rem;
 }
@@ -4187,14 +4329,14 @@ defineExpose({ fetchMyRequests })
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #bfdbfe;
+    color: #dbb8ff;
 }
 
 .priority-copy {
     margin: 0;
     font-size: 0.92rem;
     line-height: 1.65;
-    color: #e0f2fe;
+    color: #f3e8ff;
 }
 
 .priority-points {
@@ -4207,23 +4349,23 @@ defineExpose({ fetchMyRequests })
     gap: 0.25rem;
     padding: 0.95rem 1rem;
     border-radius: 14px;
-    border: 1px solid #e5e7eb;
-    background: #f8fafc;
+    border: 1px solid #efdbff;
+    background: #faf5ff;
 }
 
 .priority-point strong {
     font-size: 0.9rem;
-    color: #111827;
+    color: #1e1a22;
 }
 
 .priority-point span {
     font-size: 0.83rem;
     line-height: 1.6;
-    color: #475569;
+    color: #7d7484;
 }
 
 .priority-point.muted {
-    background: #f8fafc;
+    background: #faf5ff;
     border-style: dashed;
 }
 
@@ -4254,13 +4396,19 @@ defineExpose({ fetchMyRequests })
     gap: 0.75rem;
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #efdbff;
 }
 
 .priority-back {
     padding: 0.8rem 1rem;
     border-radius: 10px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #efdbff;
+    color: #520094;
+}
+
+.priority-back:hover {
+    background: #f3e8ff;
+    color: #3b006a;
 }
 
 .priority-submit {
@@ -5038,31 +5186,6 @@ defineExpose({ fetchMyRequests })
 }
 
 /* Toast */
-.toast {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 10px;
-    color: white;
-    font-weight: 600;
-    font-size: 0.875rem;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    animation: slideUp 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.toast.success {
-    background: #10b981;
-}
-
-.toast.error {
-    background: #ef4444;
-}
-
 .spin {
     animation: spin 1s linear infinite;
 }
@@ -5574,6 +5697,644 @@ defineExpose({ fetchMyRequests })
         border-radius: 12px;
     }
 }
+/* ═══════════════════════════════════════════════════════════════
+   CONCIERGE REDESIGN — new classes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Step fade-in animation ── */
+@keyframes stepFadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.concierge-step {
+    animation: stepFadeUp 0.3s ease both;
+}
+
+.concierge-step:nth-child(1) { animation-delay: 0.05s; }
+.concierge-step:nth-child(2) { animation-delay: 0.12s; }
+.concierge-step:nth-child(3) { animation-delay: 0.19s; }
+.concierge-step:nth-child(4) { animation-delay: 0.26s; }
+
+/* ── Concierge: strip double-card inside med-card ── */
+.med-card .item-search-shell {
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.med-card .input-wrap {
+    background: #f4f4f5;
+    border-color: #e4e4e7;
+}
+
+.med-card .input-wrap:focus-within {
+    border-color: #4F217A;
+    background: #faf5ff;
+}
+
+/* ── Concierge Shell ── */
+.concierge-shell {
+    padding: 0;
+    max-width: 560px;
+    margin: 0 auto;
+    background: #f4f4f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* ── Concierge Header ── */
+.concierge-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem 0.75rem;
+    background: #ffffff;
+    border-bottom: 1px solid #e4e4e7;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.list-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e4e4e7;
+    margin-bottom: 0;
+}
+
+.concierge-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #350062;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.concierge-back-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.concierge-back-svg {
+    width: 20px;
+    height: 20px;
+}
+
+.concierge-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #4F217A;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.concierge-help-ring {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid #e4e4e7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #4F217A;
+    background: #f4f4f5;
+    cursor: default;
+}
+
+/* ── Concierge Steps Container ── */
+.concierge-steps {
+    flex: 1;
+    padding: 0.25rem 1rem 12rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Single Step Row ── */
+.concierge-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e4e4e7;
+}
+
+.concierge-step:last-of-type {
+    border-bottom: none;
+}
+
+.step-num-circle {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #350062;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.1rem;
+}
+
+.concierge-step-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.concierge-step-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #4F217A;
+    margin: 0 0 0.85rem;
+    letter-spacing: -0.02em;
+}
+
+/* ── Med Cards (Step 1) ── */
+.med-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+}
+
+.med-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 14px;
+    padding: 0.8rem 0.85rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: border-color 0.15s;
+}
+
+.med-icon-circle {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f0e6fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.15rem;
+}
+
+.med-icon-glyph {
+    font-size: 20px;
+    color: #6c24b3;
+}
+
+.med-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+/* When named: remove shell styling from search box */
+.med-card--named .item-search-shell {
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+}
+
+.med-card--named .item-search-head {
+    display: none;
+}
+
+.med-card--named .item-input {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a0030;
+    padding: 0;
+    background: transparent;
+}
+
+/* Qty controls */
+.med-qty-control {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #f7f0fb;
+    border-radius: 999px;
+    padding: 0.25rem 0.45rem;
+    margin-top: 0.2rem;
+    transition: opacity 0.15s;
+}
+
+.med-qty-control.med-qty-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.med-qty-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid #ddd0ea;
+    background: #ffffff;
+    color: #350062;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s;
+    padding: 0;
+}
+
+.med-qty-btn:hover:not(:disabled) {
+    background: #350062;
+    color: #ffffff;
+    border-color: #350062;
+}
+
+.med-qty-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.med-qty-input {
+    width: 28px;
+    text-align: center;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #350062;
+    padding: 0;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.med-qty-input::-webkit-outer-spin-button,
+.med-qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
+
+.med-remove-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.2rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+.med-remove-btn:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.add-med-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0;
+    background: transparent;
+    border: none;
+    color: #6c24b3;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.add-med-link:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.add-med-link:hover:not(:disabled) {
+    color: #350062;
+}
+
+/* ── Prescription Choice Grid (Step 2) ── */
+.prescription-choice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.prescription-choice-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 1.4rem 1rem;
+    background: #ffffff;
+    border: 1px solid #e5d9f5;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(53, 0, 98, 0.05);
+}
+
+.prescription-choice-card:hover {
+    border-color: #350062;
+    box-shadow: 0 4px 12px rgba(53, 0, 98, 0.1);
+}
+
+.prx-choice-icon {
+    width: 28px;
+    height: 28px;
+    color: #6c24b3;
+}
+
+.prescription-choice-card span {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1a0030;
+}
+
+/* ── Fulfillment Choice Cards (Step 3) ── */
+.fulfillment-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 0.5rem;
+}
+
+.fulfillment-choice-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    background: #ffffff;
+    border: 1.5px solid #e4e4e7;
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    width: 100%;
+}
+
+.fulfillment-choice-card.selected {
+    border-color: #4F217A;
+    box-shadow: 0 0 0 3px rgba(79, 33, 122, 0.1);
+}
+
+.fulfillment-choice-card:hover {
+    border-color: #4F217A;
+}
+
+.fulfillment-choice-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #f0e6fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ful-choice-svg {
+    width: 22px;
+    height: 22px;
+    color: #6c24b3;
+}
+
+.fulfillment-choice-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.fulfillment-choice-text strong {
+    font-size: 0.97rem;
+    font-weight: 700;
+    color: #1a0030;
+}
+
+.fulfillment-choice-text span {
+    font-size: 0.82rem;
+    color: #6b6b7b;
+}
+
+/* ── Privacy Strip ── */
+.privacy-strip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin: 0.25rem 0 1.5rem;
+    padding: 0.8rem 0.9rem;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: #71717a;
+}
+
+.privacy-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: #6c24b3;
+    margin-top: 1px;
+}
+
+/* ── Concierge Sticky Footer ── */
+.concierge-footer {
+    position: fixed;
+    bottom: 5.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 560px;
+    z-index: 30;
+    background: #ffffff;
+    border-top: 1px solid #e4e4e7;
+    border-radius: 1rem 1rem 0 0;
+    padding: 0.85rem 1.25rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.footer-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.footer-total-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.footer-total-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #71717a;
+}
+
+.footer-total-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.footer-total-amount {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #18181b;
+    line-height: 1;
+}
+
+.footer-fee-note {
+    font-size: 0.78rem;
+    color: #71717a;
+}
+
+.footer-count-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+}
+
+.footer-count-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #71717a;
+}
+
+.footer-count-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #18181b;
+}
+
+.footer-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: #18181b;
+    color: #ffffff;
+    font-size: 1.02rem;
+    font-weight: 800;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.footer-send-btn:hover:not(:disabled) {
+    background: #27272a;
+    transform: translateY(-1px);
+}
+
+.footer-send-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.footer-send-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Detail Modal: purple header ── */
+.modal-header--concierge {
+    background: #350062;
+    border-radius: 1rem 1rem 0 0;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header--concierge h3 {
+    color: #ffffff;
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.modal-header--concierge .status-badge {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border: none;
+}
+
+.modal-header--concierge .modal-close {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.modal-header--concierge .modal-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Mobile: detail modal as bottom-sheet ── */
+@media (max-width: 640px) {
+    .modal-content {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 1.5rem 1.5rem 0 0;
+        max-height: 92vh;
+        overflow-y: auto;
+        margin: 0;
+        transform: none;
+        animation: slideUpSheet 0.25s ease;
+    }
+
+    .modal-header--concierge {
+        border-radius: 1.5rem 1.5rem 0 0;
+    }
+}
+
+@keyframes slideUpSheet {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Concierge: override outer order-requests background for new view ── */
+.order-requests:has(.concierge-shell) {
+    background: #f4f4f5;
+    max-width: 100%;
+}
+
 </style>
 
 

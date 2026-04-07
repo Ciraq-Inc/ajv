@@ -186,6 +186,10 @@
               <i class="ri-shopping-bag-line"></i>
               My Orders
             </nuxt-link>
+            <nuxt-link to="/customer?tab=companies" @click="showMobileMenu = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white">
+              <i class="ri-store-3-line"></i>
+              My Pharmacies
+            </nuxt-link>
             <button @click="handleLogout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50">
               <i class="ri-logout-box-line"></i>
               Logout

@@ -24,8 +24,8 @@
           Wallet
         </button>
         <button @click="goTo('orders')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'orders' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <span class="material-symbols-outlined" :style="activeNav === 'orders' ? 'font-variation-settings: \'FILL\' 1;' : ''">shopping_bag</span>
-          Orders
+          <span class="material-symbols-outlined" :style="activeNav === 'orders' ? 'font-variation-settings: \'FILL\' 1;' : ''">receipt_long</span>
+          History
         </button>
         <button @click="goTo('companies')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'companies' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
           <span class="material-symbols-outlined" :style="activeNav === 'companies' ? 'font-variation-settings: \'FILL\' 1;' : ''">local_pharmacy</span>
@@ -50,8 +50,9 @@
     </aside>
 
     <main class="lg:ml-64 min-h-screen bg-[#f4f4f5] pb-28 lg:pb-0">
-      <!-- TopAppBar -->
+      <!-- TopAppBar: hidden on concierge new-request and list views -->
       <header
+        v-if="activeNav !== 'new' && activeNav !== 'requests'"
         class="sticky top-0 z-40 bg-[#f4f4f5]/92 backdrop-blur-md px-4 lg:px-8 flex justify-between items-center border-b border-zinc-200"
         :class="activeNav === 'home' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
       >
@@ -85,7 +86,7 @@
       </header>
 
       <!-- Slot Area -->
-      <div class="p-4 lg:p-8">
+      <div :class="activeNav === 'requests' ? '' : 'p-4 lg:p-8'">
         <slot />
       </div>
 
@@ -104,7 +105,7 @@
            <span class="text-[10px] font-semibold">Requests</span>
         </button>
         <div class="relative -top-5">
-           <button @click="goTo('new')" class="w-14 h-14 primary-gradient text-white rounded-xl flex items-center justify-center shadow-[0_18px_34px_-18px_rgba(53,0,98,0.7)] hover:scale-95 transition-transform border-[4px] border-white">
+           <button @click="goTo('new')" class="w-14 h-14 primary-gradient text-white rounded-full flex items-center justify-center shadow-[0_18px_34px_-18px_rgba(53,0,98,0.7)] hover:scale-95 transition-transform border-[4px] border-white">
               <span class="material-symbols-outlined">add</span>
            </button>
         </div>
@@ -114,11 +115,11 @@
            </div>
            <span class="text-[10px] font-semibold">Wallet</span>
         </button>
-        <button @click="goTo('orders')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'orders' ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'orders' ? 'bg-[#efdbff]' : ''">
-             <span class="material-symbols-outlined" :style="activeNav === 'orders' ? 'font-variation-settings: \'FILL\' 1;' : ''">shopping_bag</span>
+        <button @click="showMenu = true" class="flex flex-col items-center gap-1 p-2" :class="['orders','profile','companies'].includes(activeNav) ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="['orders','profile','companies'].includes(activeNav) ? 'bg-[#efdbff]' : ''">
+             <span class="material-symbols-outlined" :style="['orders','profile','companies'].includes(activeNav) ? 'font-variation-settings: \'FILL\' 1;' : ''">more_horiz</span>
            </div>
-           <span class="text-[10px] font-semibold">Orders</span>
+           <span class="text-[10px] font-semibold">More</span>
         </button>
       </nav>
     </main>
@@ -141,6 +142,9 @@
             </button>
             <button @click="showMenu = false; goTo('companies')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
               <span class="material-symbols-outlined text-[#71717a]">local_pharmacy</span> Linked Pharmacies
+            </button>
+            <button @click="showMenu = false; goTo('orders')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
+              <span class="material-symbols-outlined text-[#71717a]">receipt_long</span> History
             </button>
             <div class="h-px w-full bg-[#f3ebf3] my-2"></div>
             <button @click="handleLogout" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-[#ffdad6] text-[#ba1a1a] transition-colors text-left font-semibold">
@@ -200,7 +204,7 @@ const displayUserName = computed(() => hasMounted.value ? userName.value : 'Cust
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
 const activeNav = computed(() => route.query.tab || 'home')
-const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home')
+const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home' && route.query.tab !== 'new' && route.query.tab !== 'requests')
 const headerLocation = computed(() => {
   const address = userStore.currentUser?.address || ''
   const compact = getCompactAddressLines(address, { primaryCount: 2 }).primary

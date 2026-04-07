@@ -1,148 +1,159 @@
 <template>
-    <div class="wallet-page">
-        <header class="wallet-intro">
-            <div>
-                <p class="wallet-intro-kicker">Wallet</p>
-                <h2 class="wallet-intro-title">Financial Sanctuary</h2>
-                <p class="wallet-intro-copy">Overview of your healthcare credits and spending.</p>
-            </div>
-        </header>
+    <div class="space-y-6">
+        <!-- Header -->
+        <div>
+            <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Wallet</h2>
+            <p class="text-sm font-medium text-zinc-600 mt-1">Credits and transaction history.</p>
+        </div>
 
-        <div class="wallet-hero-grid">
-            <section class="wallet-balance-card">
-                <div class="wallet-balance-top">
-                    <div class="wallet-balance-copy">
-                        <p class="wallet-card-kicker">Available Balance</p>
-                        <div class="wallet-balance-line">
-                            <span class="wallet-balance-currency">GHS</span>
-                            <strong class="wallet-balance-amount">{{ balance.toFixed(2) }}</strong>
+        <!-- Hero grid: balance card + stat cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
+            <!-- Purple balance card -->
+            <section class="relative overflow-hidden rounded-xl p-6 text-white min-h-[160px] flex flex-col justify-between" style="background: linear-gradient(135deg, #5a169a 0%, #6922b1 52%, #4e1684 100%); box-shadow: 0 18px 42px rgba(88,29,137,0.18);">
+                <div class="flex items-start justify-between gap-3 relative z-10">
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">Available Balance</p>
+                        <div class="flex items-end gap-1.5 mt-1">
+                            <span class="text-lg font-semibold text-white/80 leading-none mb-0.5">GHS</span>
+                            <strong class="text-4xl font-black tracking-tight leading-none">{{ balance.toFixed(2) }}</strong>
                         </div>
                     </div>
-
-                    <button @click="showTopUp = true" class="wallet-topup-button">
-                        <CreditCardIcon class="wallet-topup-icon" />
+                    <button @click="showTopUp = true" class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/30 transition-colors flex-shrink-0">
+                        <CreditCardIcon class="w-4 h-4" />
                         Top Up
                     </button>
                 </div>
 
-                <div class="wallet-balance-footer">
-                    <div class="wallet-balance-note">
-                        <h4>Top-up ready</h4>
-                        <p>Keep your wallet funded so request and order payments move smoothly.</p>
-                    </div>
-                </div>
-
-                <div class="wallet-balance-glow wallet-balance-glow-a"></div>
-                <div class="wallet-balance-glow wallet-balance-glow-b"></div>
+                <!-- Decorative glow -->
+                <div class="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-20" style="background: radial-gradient(circle, #c084fc, transparent)"></div>
+                <div class="absolute -bottom-8 -left-8 w-40 h-40 rounded-full opacity-15" style="background: radial-gradient(circle, #a855f7, transparent)"></div>
             </section>
 
-            <div class="wallet-stat-column">
-                <article class="wallet-mini-card">
-                    <div class="wallet-mini-main">
-                        <div class="wallet-mini-icon credit">
-                            <ArrowDownIcon class="wallet-mini-svg" />
-                        </div>
-                        <div>
-                            <p class="wallet-mini-kicker">Total Credits</p>
-                            <h3 class="wallet-mini-value">{{ creditTransactions.length }}</h3>
-                            <p class="wallet-mini-copy">Transactions</p>
-                        </div>
+            <!-- Stat mini cards -->
+            <div class="flex lg:flex-col gap-3">
+                <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
+                    <div class="w-11 h-11 rounded-full bg-[#edf9ef] text-[#1d9154] flex items-center justify-center flex-shrink-0">
+                        <ArrowDownIcon class="w-5 h-5" />
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Credits</p>
+                        <h3 class="text-2xl font-black text-zinc-900 leading-none mt-0.5">{{ creditTransactions.length }}</h3>
+                        <p class="text-xs text-zinc-400 mt-0.5">Transactions</p>
                     </div>
                 </article>
 
-                <article class="wallet-mini-card">
-                    <div class="wallet-mini-main">
-                        <div class="wallet-mini-icon debit">
-                            <ArrowUpIcon class="wallet-mini-svg" />
-                        </div>
-                        <div>
-                            <p class="wallet-mini-kicker">Total Debits</p>
-                            <h3 class="wallet-mini-value">{{ debitTransactions.length }}</h3>
-                            <p class="wallet-mini-copy">Transactions</p>
-                        </div>
+                <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
+                    <div class="w-11 h-11 rounded-full bg-[#fff0f1] text-[#d14b5c] flex items-center justify-center flex-shrink-0">
+                        <ArrowUpIcon class="w-5 h-5" />
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Debits</p>
+                        <h3 class="text-2xl font-black text-zinc-900 leading-none mt-0.5">{{ debitTransactions.length }}</h3>
+                        <p class="text-xs text-zinc-400 mt-0.5">Transactions</p>
                     </div>
                 </article>
-
             </div>
         </div>
 
-        <section class="wallet-transactions-shell">
-            <div class="wallet-section-header">
-                <div class="wallet-section-copy">
-                    <h3>Recent Transactions</h3>
-                    <span class="wallet-month-pill">{{ currentMonthLabel }}</span>
+        <!-- Transactions -->
+        <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <h3 class="font-black text-zinc-900 text-base tracking-tight">Recent Transactions</h3>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 bg-[#f4e8fb] text-[#5e3a86] text-[10px] font-black uppercase tracking-[0.12em]">{{ currentMonthLabel }}</span>
                 </div>
-                <button @click="fetchTransactions" :disabled="loading" class="wallet-refresh-link">
-                    <ArrowPathIcon class="wallet-refresh-icon" :class="{ spin: loading }" />
+                <button @click="fetchTransactions" :disabled="loading"
+                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5e3a86] hover:text-[#4F217A] transition-colors disabled:opacity-50">
+                    <ArrowPathIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
                     Refresh
                 </button>
             </div>
 
-            <div v-if="loading" class="wallet-empty-state">
-                <ArrowPathIcon class="wallet-empty-icon spin" />
-                <p>Loading transactions...</p>
+            <!-- Loading -->
+            <div v-if="loading" class="flex items-center gap-3 py-8 justify-center text-zinc-400">
+                <ArrowPathIcon class="w-5 h-5 animate-spin" />
+                <p class="text-sm font-medium">Loading transactions...</p>
             </div>
 
-            <div v-else-if="transactions.length === 0" class="wallet-empty-state">
-                <ArrowsRightLeftIcon class="wallet-empty-icon" />
-                <p class="wallet-empty-title">No transactions yet</p>
-                <p class="wallet-empty-copy">Top up your wallet to start building transaction history.</p>
+            <!-- Empty -->
+            <div v-else-if="transactions.length === 0" class="flex flex-col items-center gap-3 py-10 rounded-xl border border-dashed border-zinc-200 bg-zinc-50">
+                <div class="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center">
+                    <ArrowsRightLeftIcon class="w-5 h-5 text-zinc-400" />
+                </div>
+                <p class="font-black text-zinc-800">No transactions yet</p>
+                <p class="text-sm font-medium text-zinc-500">Top up your wallet to start building transaction history.</p>
             </div>
 
-            <div v-else class="wallet-transactions-list">
-                <article v-for="tx in transactions" :key="tx.id" class="wallet-transaction-row">
-                    <div class="wallet-transaction-left">
-                        <div class="wallet-transaction-icon" :class="getTransactionDirection(tx)">
-                            <component :is="getTransactionDirection(tx) === 'credit' ? ArrowDownIcon : ArrowUpIcon"
-                                class="wallet-transaction-svg" />
+            <!-- Transaction list -->
+            <div v-else class="space-y-2">
+                <article v-for="tx in transactions" :key="tx.id"
+                    class="flex items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-white px-4 py-3.5 hover:border-zinc-200 hover:-translate-y-px transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            :class="getTransactionDirection(tx) === 'credit' ? 'bg-[#edf9ef] text-[#1d9154]' : 'bg-[#fff0f1] text-[#d14b5c]'"
+                        >
+                            <component :is="getTransactionDirection(tx) === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="w-4 h-4" />
                         </div>
-                        <div class="wallet-transaction-copy">
-                            <h4>{{ formatTransactionDescription(tx) }}</h4>
-                            <p>{{ formatDate(tx.created_at) }}</p>
+                        <div class="min-w-0">
+                            <h4 class="text-sm font-semibold text-zinc-900 truncate">{{ formatTransactionDescription(tx) }}</h4>
+                            <p class="text-xs text-zinc-400 mt-0.5">{{ formatDate(tx.created_at) }}</p>
                         </div>
                     </div>
-
-                    <div class="wallet-transaction-right">
-                        <strong class="wallet-transaction-amount" :class="getTransactionDirection(tx)">
-                            {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{
-                                parseFloat(tx.amount).toFixed(2) }}
+                    <div class="text-right flex-shrink-0">
+                        <strong
+                            class="text-sm font-black"
+                            :class="getTransactionDirection(tx) === 'credit' ? 'text-[#1d9154]' : 'text-[#d14b5c]'"
+                        >
+                            {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
                         </strong>
-                        <span class="wallet-transaction-note">{{ getTransactionNote(tx) }}</span>
+                        <p class="text-[10px] text-zinc-400 mt-0.5">{{ getTransactionNote(tx) }}</p>
                     </div>
                 </article>
             </div>
         </section>
 
-        <section class="wallet-feature-banner">
-            <div class="wallet-feature-icon">
-                <ShieldCheckIcon class="wallet-feature-svg" />
+        <!-- Insurance feature banner -->
+        <section class="flex items-center gap-5 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4">
+            <div class="w-11 h-11 bg-[#f4ecfb] text-[#5e3a86] rounded-full flex items-center justify-center flex-shrink-0">
+                <ShieldCheckIcon class="w-5 h-5" />
             </div>
-            <div class="wallet-feature-copy">
-                <h3>Insurance Sync Beta</h3>
-                <p>Connect private healthcare cover later and manage credits from one calm wallet space.</p>
+            <div class="flex-1 min-w-0">
+                <p class="font-black text-zinc-900 text-sm">Insurance Sync Beta</p>
+                <p class="text-xs text-zinc-500 mt-0.5">Connect private healthcare cover later and manage credits from one calm wallet space.</p>
             </div>
-            <button type="button" class="wallet-feature-button">Join Beta</button>
+            <button type="button" class="inline-flex items-center border border-zinc-200 bg-white px-4 py-2 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors flex-shrink-0">
+                Join Beta
+            </button>
         </section>
 
-        <div v-if="showTopUp" class="modal-overlay" @click.self="showTopUp = false">
-            <div class="topup-modal">
-                <div class="topup-header">
-                    <h3>Top Up Wallet</h3>
-                    <p>Add funds via Paystack</p>
+        <!-- Top Up Modal -->
+        <div v-if="showTopUp" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="showTopUp = false">
+            <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
+                <div class="px-6 pt-6 pb-2">
+                    <h3 class="font-black text-zinc-900 tracking-tight text-lg">Top Up Wallet</h3>
+                    <p class="text-sm text-zinc-500 mt-0.5">Add funds via Paystack</p>
                 </div>
-                <div class="topup-body">
-                    <label>Amount (GHS)</label>
-                    <input v-model.number="topUpAmount" type="number" min="1" step="0.01" placeholder="50.00"
-                        class="amount-input" />
-                    <div class="quick-amounts">
-                        <button v-for="amt in [10, 20, 50, 100]" :key="amt" @click="topUpAmount = amt" class="quick-btn"
-                            :class="{ active: topUpAmount === amt }">
+                <div class="px-6 pb-6 space-y-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-sm font-semibold text-zinc-700">Amount (GHS)</label>
+                        <input v-model.number="topUpAmount" type="number" min="1" step="0.01" placeholder="50.00"
+                            class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 text-zinc-900 font-semibold" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button v-for="amt in [10, 20, 50, 100]" :key="amt" @click="topUpAmount = amt"
+                            class="flex-1 py-2 rounded-xl border text-sm font-semibold transition-colors"
+                            :class="topUpAmount === amt ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'">
                             {{ amt }}
                         </button>
                     </div>
-                    <div class="topup-actions">
-                        <button @click="showTopUp = false" class="cancel-btn">Cancel</button>
-                        <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0" class="pay-btn">
+                    <div class="flex gap-3 pt-2">
+                        <button @click="showTopUp = false"
+                            class="flex-1 border border-zinc-200 bg-white text-zinc-700 py-3 rounded-xl text-sm font-semibold hover:bg-zinc-50 transition-colors">
+                            Cancel
+                        </button>
+                        <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0"
+                            class="flex-1 bg-zinc-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             Pay GHS {{ (topUpAmount || 0).toFixed(2) }}
                         </button>
                     </div>
@@ -150,8 +161,11 @@
             </div>
         </div>
 
-        <div v-if="toast" class="toast" :class="toast.type">
-            <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="toast-svg" />
+        <!-- Toast -->
+        <div v-if="toast"
+            class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold"
+            :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'">
+            <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="w-4 h-4 flex-shrink-0" />
             {{ toast.text }}
         </div>
     </div>
@@ -412,728 +426,3 @@ onUnmounted(() => {
 defineExpose({ fetchBalance, fetchTransactions })
 </script>
 
-<style scoped>
-.wallet-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.75rem;
-    max-width: 1320px;
-    padding: 1rem 1.25rem 2rem;
-    margin: 0 auto;
-}
-
-.wallet-intro {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.wallet-intro-kicker,
-.wallet-card-kicker,
-.wallet-mini-kicker {
-    margin: 0;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #7c6f87;
-}
-
-.wallet-intro-title {
-    margin: 0.18rem 0 0;
-    font-size: clamp(1.9rem, 3vw, 2.45rem);
-    line-height: 1.08;
-    font-weight: 700;
-    color: #231734;
-}
-
-.wallet-intro-copy {
-    margin: 0.4rem 0 0;
-    color: #756c80;
-    font-size: 0.96rem;
-    max-width: 620px;
-}
-
-.wallet-hero-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 0.78fr) minmax(360px, 1fr);
-    gap: 1.25rem;
-    align-items: stretch;
-}
-
-.wallet-balance-card {
-    position: relative;
-    overflow: hidden;
-    min-height: 156px;
-    max-width: 590px;
-    width: 100%;
-    justify-self: start;
-    border-radius: 1.55rem;
-    padding: 1rem 1.05rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    background: linear-gradient(135deg, #5a169a 0%, #6922b1 52%, #4e1684 100%);
-    box-shadow: 0 18px 42px rgba(88, 29, 137, 0.14);
-    color: #fff;
-}
-
-.wallet-balance-copy,
-.wallet-balance-footer {
-    position: relative;
-    z-index: 1;
-}
-
-.wallet-balance-top {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.65rem;
-}
-
-.wallet-balance-line {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.4rem;
-    margin-top: 0.35rem;
-}
-
-.wallet-balance-currency {
-    font-size: 0.9rem;
-    font-weight: 400;
-    opacity: 0.7;
-}
-
-.wallet-balance-amount {
-    font-size: clamp(1.72rem, 2.6vw, 2.25rem);
-    line-height: 0.95;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-}
-
-.wallet-balance-footer {
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
-    gap: 0.75rem;
-}
-
-.wallet-balance-note {
-    max-width: 230px;
-    margin-left: auto;
-    text-align: right;
-}
-
-.wallet-balance-note h4 {
-    margin: 0;
-    font-size: 0.92rem;
-    font-weight: 650;
-    color: #fff;
-}
-
-.wallet-balance-note p {
-    margin: 0.28rem 0 0;
-    font-size: 0.73rem;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.74);
-}
-
-.wallet-topup-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    border: none;
-    border-radius: 999px;
-    padding: 0.56rem 0.82rem;
-    background: rgba(255, 255, 255, 0.96);
-    color: #4e1788;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 10px 24px rgba(34, 12, 67, 0.14);
-}
-
-.wallet-topup-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 14px 26px rgba(34, 12, 67, 0.18);
-}
-
-.wallet-topup-icon {
-    width: 0.82rem;
-    height: 0.82rem;
-}
-
-.wallet-balance-glow {
-    position: absolute;
-    border-radius: 999px;
-    pointer-events: none;
-}
-
-.wallet-balance-glow-a {
-    width: 8rem;
-    height: 8rem;
-    right: -4rem;
-    top: -3rem;
-    background: rgba(255, 255, 255, 0.09);
-    filter: blur(16px);
-}
-
-.wallet-balance-glow-b {
-    width: 5rem;
-    height: 5rem;
-    left: -3rem;
-    bottom: -5rem;
-    background: rgba(255, 255, 255, 0.08);
-    filter: blur(18px);
-}
-
-.wallet-stat-column {
-    display: grid;
-    gap: 1rem;
-    align-content: start;
-}
-
-.wallet-mini-card {
-    border-radius: 1.6rem;
-    padding: 0.95rem 1rem;
-    background: #fcf8ff;
-    border: 1px solid #eee5f7;
-    box-shadow: 0 14px 34px rgba(56, 32, 89, 0.06);
-}
-
-.wallet-mini-main {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.wallet-mini-icon,
-.wallet-mini-center-icon {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.wallet-mini-icon.credit {
-    background: #efe7ff;
-    color: #6b35b6;
-}
-
-.wallet-mini-icon.debit {
-    background: #f5ebff;
-    color: #7d47c5;
-}
-
-.wallet-mini-center-icon {
-    margin: 0 auto 0.8rem;
-    background: #f0e5ff;
-    color: #6322aa;
-}
-
-.wallet-mini-svg {
-    width: 1.15rem;
-    height: 1.15rem;
-}
-
-.wallet-mini-value {
-    margin: 0.2rem 0 0;
-    font-size: 1.45rem;
-    line-height: 1;
-    color: #281b3d;
-    font-weight: 700;
-}
-
-.wallet-mini-copy {
-    margin: 0.15rem 0 0;
-    color: #7d7487;
-    font-size: 0.82rem;
-}
-
-.wallet-transactions-shell,
-.wallet-feature-banner {
-    border-radius: 1.9rem;
-    background: #fffdfd;
-    border: 1px solid #f0e6f3;
-    box-shadow: 0 18px 48px rgba(67, 38, 100, 0.06);
-}
-
-.wallet-transactions-shell {
-    padding: 1.5rem;
-}
-
-.wallet-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.wallet-section-copy {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    flex-wrap: wrap;
-}
-
-.wallet-section-copy h3 {
-    margin: 0;
-    color: #25193a;
-    font-size: 1.28rem;
-    font-weight: 650;
-}
-
-.wallet-month-pill {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.42rem 0.8rem;
-    background: #f4ebff;
-    color: #6d38b9;
-    font-size: 0.76rem;
-    font-weight: 700;
-}
-
-.wallet-refresh-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    border: none;
-    background: transparent;
-    color: #582693;
-    font-weight: 650;
-    cursor: pointer;
-}
-
-.wallet-refresh-link:disabled {
-    opacity: 0.55;
-    cursor: default;
-}
-
-.wallet-refresh-icon,
-.wallet-empty-icon,
-.toast-svg {
-    width: 1rem;
-    height: 1rem;
-}
-
-.wallet-empty-state {
-    display: grid;
-    place-items: center;
-    text-align: center;
-    gap: 0.35rem;
-    padding: 2.3rem 1rem;
-    border-radius: 1.45rem;
-    border: 1px dashed #e5dced;
-    background: #fbf8fd;
-    color: #776f81;
-}
-
-.wallet-empty-title {
-    margin: 0;
-    color: #281d3c;
-    font-weight: 650;
-}
-
-.wallet-empty-copy {
-    margin: 0;
-    font-size: 0.88rem;
-}
-
-.wallet-transactions-list {
-    display: grid;
-    gap: 0.85rem;
-}
-
-.wallet-transaction-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.95rem 1.05rem;
-    border-radius: 1.45rem;
-    background: #fff;
-    border: 1px solid #f2e8f6;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.wallet-transaction-row:hover {
-    transform: translateY(-1px);
-    border-color: #e7d8f1;
-    box-shadow: 0 12px 30px rgba(63, 36, 95, 0.06);
-}
-
-.wallet-transaction-left {
-    display: flex;
-    align-items: center;
-    gap: 0.95rem;
-    min-width: 0;
-}
-
-.wallet-transaction-icon {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 1rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.wallet-transaction-icon.credit {
-    background: #edf9ef;
-    color: #1d9154;
-}
-
-.wallet-transaction-icon.debit {
-    background: #fff0f1;
-    color: #d14b5c;
-}
-
-.wallet-transaction-svg {
-    width: 1rem;
-    height: 1rem;
-}
-
-.wallet-transaction-copy {
-    min-width: 0;
-}
-
-.wallet-transaction-copy h4 {
-    margin: 0;
-    color: #241937;
-    font-size: 0.98rem;
-    font-weight: 650;
-    line-height: 1.35;
-}
-
-.wallet-transaction-copy p,
-.wallet-transaction-note {
-    margin: 0.24rem 0 0;
-    font-size: 0.82rem;
-    color: #7e7488;
-}
-
-.wallet-transaction-right {
-    min-width: 170px;
-    text-align: right;
-}
-
-.wallet-transaction-amount {
-    display: block;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #25193a;
-}
-
-.wallet-transaction-amount.credit {
-    color: #17995a;
-}
-
-.wallet-transaction-amount.debit {
-    color: #d14b5c;
-}
-
-.wallet-transaction-note {
-    display: block;
-}
-
-.wallet-transaction-note:has(+ *) {
-    display: inline;
-}
-
-.wallet-feature-banner {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.35rem 1.5rem;
-    background: linear-gradient(180deg, #fbf7fd 0%, #f8f1fb 100%);
-}
-
-.wallet-feature-icon {
-    width: 4rem;
-    height: 4rem;
-    border-radius: 1.35rem;
-    background: #f0e3ff;
-    color: #6729aa;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.wallet-feature-svg {
-    width: 1.45rem;
-    height: 1.45rem;
-}
-
-.wallet-feature-copy h3 {
-    margin: 0;
-    color: #241938;
-    font-size: 1.08rem;
-    font-weight: 650;
-}
-
-.wallet-feature-copy p {
-    margin: 0.3rem 0 0;
-    max-width: 640px;
-    color: #7d7387;
-    line-height: 1.5;
-    font-size: 0.9rem;
-}
-
-.wallet-feature-button {
-    border: none;
-    border-radius: 999px;
-    padding: 0.85rem 1.15rem;
-    background: #5f1ba4;
-    color: #fff;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(25, 12, 40, 0.34);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    z-index: 1100;
-}
-
-.topup-modal {
-    width: min(100%, 420px);
-    background: #fff;
-    border-radius: 1.55rem;
-    border: 1px solid #f0e6f4;
-    box-shadow: 0 24px 54px rgba(41, 20, 66, 0.18);
-    overflow: hidden;
-}
-
-.topup-header {
-    padding: 1.35rem 1.35rem 0.85rem;
-}
-
-.topup-header h3 {
-    margin: 0;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #231734;
-}
-
-.topup-header p {
-    margin: 0.28rem 0 0;
-    color: #7a7184;
-    font-size: 0.9rem;
-}
-
-.topup-body {
-    padding: 0 1.35rem 1.35rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.topup-body label {
-    font-size: 0.86rem;
-    font-weight: 600;
-    color: #51475d;
-}
-
-.amount-input {
-    width: 100%;
-    padding: 0.92rem 1rem;
-    border-radius: 1rem;
-    border: 1px solid #ddd1e8;
-    background: #fbf8fe;
-    font-size: 1rem;
-    color: #211631;
-    outline: none;
-}
-
-.amount-input:focus {
-    border-color: #8b57d6;
-    box-shadow: 0 0 0 3px rgba(126, 79, 212, 0.12);
-}
-
-.quick-amounts {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.55rem;
-}
-
-.quick-btn,
-.cancel-btn,
-.pay-btn {
-    border-radius: 999px;
-    padding: 0.82rem 0.95rem;
-    font-weight: 650;
-    font-size: 0.88rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.quick-btn {
-    border: 1px solid #e5d9ef;
-    background: #fff;
-    color: #5b4d6b;
-}
-
-.quick-btn.active {
-    background: #efe3ff;
-    border-color: #bb97ee;
-    color: #6224a5;
-}
-
-.topup-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-}
-
-.cancel-btn {
-    border: 1px solid #ddd4e7;
-    background: #fff;
-    color: #63576f;
-}
-
-.pay-btn {
-    border: none;
-    background: linear-gradient(135deg, #5e16a5 0%, #6e27bd 100%);
-    color: #fff;
-}
-
-.pay-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-.toast {
-    position: fixed;
-    right: 1.25rem;
-    bottom: 1.25rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.9rem 1.05rem;
-    border-radius: 1rem;
-    color: #fff;
-    font-weight: 650;
-    z-index: 1200;
-    box-shadow: 0 20px 40px rgba(40, 18, 64, 0.2);
-}
-
-.toast.success {
-    background: #169c5d;
-}
-
-.toast.error {
-    background: #d34a55;
-}
-
-.spin {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@media (max-width: 1100px) {
-    .wallet-hero-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .wallet-balance-card {
-        max-width: none;
-    }
-
-    .wallet-stat-column {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 820px) {
-    .wallet-page {
-        padding: 0.8rem 0.85rem 1.6rem;
-    }
-
-    .wallet-balance-card {
-        min-height: 160px;
-        padding: 1rem;
-        border-radius: 1.5rem;
-    }
-
-    .wallet-balance-top,
-    .wallet-balance-footer,
-    .wallet-feature-banner,
-    .wallet-section-header,
-    .wallet-transaction-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .wallet-stat-column {
-        grid-template-columns: 1fr;
-    }
-
-    .wallet-feature-banner {
-        grid-template-columns: 1fr;
-    }
-
-    .wallet-transaction-right {
-        min-width: 0;
-        text-align: left;
-    }
-}
-
-@media (max-width: 520px) {
-    .wallet-intro-title {
-        font-size: 1.6rem;
-    }
-
-    .wallet-balance-line {
-        align-items: baseline;
-    }
-
-    .wallet-balance-currency {
-        font-size: 1.05rem;
-    }
-
-    .wallet-balance-amount {
-        font-size: 2.15rem;
-    }
-
-    .wallet-balance-note {
-        max-width: none;
-        margin-left: 0;
-        text-align: left;
-    }
-
-    .wallet-topup-button,
-    .wallet-feature-button {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .quick-amounts,
-    .topup-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-</style>

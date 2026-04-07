@@ -1,5 +1,27 @@
 <template>
   <div class="fpm">
+    <!-- Loading state -->
+    <div v-if="sourcingLoading" class="fpm-state">
+      <StateMessage
+        state="loading"
+        heading="Looking for nearby sources..."
+        message="We're searching pharmacies close to the customer's location."
+      />
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="sourcingError" class="fpm-state">
+      <StateMessage
+        state="error"
+        heading="Couldn't load nearby sources"
+        message="Something went wrong while fetching nearby pharmacies. Check your connection and try refreshing sourcing."
+        action-label="Retry"
+        @action="$emit('retry')"
+      />
+    </div>
+
+    <!-- Normal content -->
+    <template v-else>
     <!-- Header -->
     <div class="fpm-header">
       <div class="fpm-header-left">
@@ -8,8 +30,20 @@
       </div>
       <div class="fpm-header-actions">
         <p v-if="hasHiddenPharmacies" class="fpm-summary-copy">
-          Showing the 3 closest first so the workspace stays focused.
+          Showing the top 3 by {{ rankingModeLabel.toLowerCase() }} so the workspace stays focused.
         </p>
+        <label class="fpm-ranking-label" for="fpm-ranking-mode">Rank by</label>
+        <select
+          id="fpm-ranking-mode"
+          v-model="rankingMode"
+          class="fpm-ranking-select"
+        >
+          <option value="auto">Auto</option>
+          <option value="distance">Distance</option>
+          <option value="coverage">Coverage</option>
+          <option value="missing">Missing items</option>
+          <option value="balanced">Balanced</option>
+        </select>
         <button @click="copyFullRequest" class="btn-copy-all">
           <ClipboardDocumentIcon class="fpm-icon-sm" />
           Copy Request Info
@@ -19,9 +53,11 @@
 
     <!-- Empty state -->
     <div v-if="filteredPharmacies.length === 0" class="fpm-empty">
-      <BuildingOfficeIcon class="fpm-empty-icon" />
-      <p class="fpm-empty-title">No pharmacies found nearby</p>
-      <p class="fpm-empty-sub">Run fulfillment processing to discover nearby pharmacies.</p>
+      <StateMessage
+        state="empty"
+        heading="No pharmacies found nearby"
+        message="Run sourcing to discover nearby pharmacies, or the customer's address may be missing."
+      />
     </div>
 
     <!-- Pharmacy list -->
@@ -70,7 +106,12 @@
               :key="status.name"
               class="pharm-item-row"
             >
-              <span class="pharm-item-row-name">{{ status.name }}</span>
+              <div class="pharm-item-row-copy">
+                <span class="pharm-item-row-name">{{ status.name }}</span>
+                <span v-if="status.found" class="pharm-item-row-meta">
+                  Price: {{ formatItemPrice(status.unitPrice) }} • In stock: {{ formatItemStock(status.availableQuantity) }}
+                </span>
+              </div>
               <span class="pharm-item-row-state" :class="status.found ? 'is-found' : 'is-missing'">
                 {{ status.found ? 'Available' : 'Unavailable' }}
               </span>
@@ -80,12 +121,14 @@
           <div class="pharm-card-footer">
             <div class="pharm-footer-actions">
               <button
-                v-if="getPrimaryPlan(pharm)"
-                @click="$emit('use-plan', { plan: getPrimaryPlan(pharm), pharmacy: pharm })"
-                class="btn-use-plan"
-                :disabled="loading"
+                @click="handleWhatsAppClick(pharm)"
+                class="btn-footer-whatsapp"
+                :class="{ disabled: !hasWhatsApp(pharm) }"
+                :disabled="!hasWhatsApp(pharm)"
+                :title="hasWhatsApp(pharm) ? 'Send via WhatsApp' : 'No WhatsApp available'"
               >
-                Use Plan
+                <i class="ri-whatsapp-line fpm-icon-sm-ri" aria-hidden="true"></i>
+                Message
               </button>
               <button
                 @click="copyRequestText(pharm)"
@@ -96,13 +139,12 @@
                 Copy
               </button>
               <button
-                @click="handleWhatsAppClick(pharm)"
-                class="btn-footer-whatsapp"
-                :class="{ disabled: !hasWhatsApp(pharm) }"
-                :disabled="!hasWhatsApp(pharm)"
-                :title="hasWhatsApp(pharm) ? 'Send via WhatsApp' : 'No WhatsApp available'"
+                v-if="canSourceFrom(pharm)"
+                @click="handleUsePlan(pharm)"
+                class="btn-use-plan"
+                :disabled="loading"
               >
-                <i class="ri-whatsapp-line fpm-icon-sm-ri" aria-hidden="true"></i>
+                Source from Here
               </button>
             </div>
             <button
@@ -140,12 +182,13 @@
         class="btn-show-more"
         @click="showAllPharmacies = !showAllPharmacies"
       >
-        {{ showAllPharmacies ? `Show Top 3` : `Show ${filteredPharmacies.length - 3} More Pharmacies` }}
+        {{ showAllPharmacies ? `Show Top 3` : `Show ${sortedPharmacies.length - 3} More Pharmacies` }}
       </button>
     </div>
 
     <!-- Toast -->
     <div v-if="toast" class="fpm-toast" :class="toast.type">{{ toast.text }}</div>
+    </template>
   </div>
 </template>
 
@@ -161,19 +204,31 @@ import {
   ChevronDownIcon,
   ChevronUpIcon
 } from '@heroicons/vue/24/outline'
+import StateMessage from '~/components/StateMessage.vue'
 
 const props = defineProps({
   request: { type: Object, required: true },
   pharmacies: { type: Array, default: () => [] },
   candidatePlans: { type: Array, default: () => [] },
   allocationSummary: { type: Object, default: null },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  sourcingError: { type: Boolean, default: false },
+  sourcingLoading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['contact', 'use-plan'])
+const emit = defineEmits(['contact', 'use-plan', 'retry'])
 const toast = ref(null)
 const showAllPharmacies = ref(false)
 const expandedPharmacyIds = ref([])
+const rankingMode = ref('auto')
+
+const rankingModeLabel = computed(() => ({
+  auto: 'System ranking',
+  distance: 'distance',
+  coverage: 'coverage',
+  missing: 'fewest missing items',
+  balanced: 'balanced score'
+}[rankingMode.value] || 'system ranking'))
 
 const filteredPharmacies = computed(() => (
   Array.isArray(props.pharmacies)
@@ -181,11 +236,59 @@ const filteredPharmacies = computed(() => (
     : []
 ))
 
+const getNumericDistance = (pharm) => {
+  const distance = Number(pharm?.distance_km)
+  return Number.isFinite(distance) ? distance : Number.POSITIVE_INFINITY
+}
+
+const getBalancedScore = (pharm) => (
+  (getCoveragePercent(pharm) * 3)
+  - (getMissingCount(pharm) * 16)
+  - (getNumericDistance(pharm) * 6)
+)
+
+const sortedPharmacies = computed(() => {
+  const list = [...filteredPharmacies.value]
+  const mode = rankingMode.value
+
+  if (mode === 'distance') {
+    return list.sort((a, b) => {
+      if (getNumericDistance(a) !== getNumericDistance(b)) return getNumericDistance(a) - getNumericDistance(b)
+      return getMissingCount(a) - getMissingCount(b)
+    })
+  }
+
+  if (mode === 'coverage') {
+    return list.sort((a, b) => {
+      if (getCoveragePercent(b) !== getCoveragePercent(a)) return getCoveragePercent(b) - getCoveragePercent(a)
+      if (getMatchedCount(b) !== getMatchedCount(a)) return getMatchedCount(b) - getMatchedCount(a)
+      return getNumericDistance(a) - getNumericDistance(b)
+    })
+  }
+
+  if (mode === 'missing') {
+    return list.sort((a, b) => {
+      if (getMissingCount(a) !== getMissingCount(b)) return getMissingCount(a) - getMissingCount(b)
+      if (getCoveragePercent(b) !== getCoveragePercent(a)) return getCoveragePercent(b) - getCoveragePercent(a)
+      return getNumericDistance(a) - getNumericDistance(b)
+    })
+  }
+
+  if (mode === 'balanced') {
+    return list.sort((a, b) => {
+      if (getBalancedScore(b) !== getBalancedScore(a)) return getBalancedScore(b) - getBalancedScore(a)
+      return getNumericDistance(a) - getNumericDistance(b)
+    })
+  }
+
+  return list
+})
+
 const visiblePharmacies = computed(() => (
-  showAllPharmacies.value ? filteredPharmacies.value : filteredPharmacies.value.slice(0, 3)
+  showAllPharmacies.value ? sortedPharmacies.value : sortedPharmacies.value.slice(0, 3)
 ))
 
-const hasHiddenPharmacies = computed(() => filteredPharmacies.value.length > 3)
+const hasHiddenPharmacies = computed(() => sortedPharmacies.value.length > 3)
 
 const isExpanded = (pharmacyId) => expandedPharmacyIds.value.includes(Number(pharmacyId))
 
@@ -273,6 +376,20 @@ const getPrimaryPlan = (pharm) => {
     })[0] || null
 }
 
+const canSourceFrom = (pharm) => {
+  if (getPrimaryPlan(pharm)) return true
+  return getMatchedCount(pharm) > 0
+}
+
+const handleUsePlan = (pharm) => {
+  const plan = getPrimaryPlan(pharm)
+  if (plan) {
+    emit('use-plan', { plan, pharmacy: pharm })
+    return
+  }
+  emit('use-plan', { pharmacy: pharm, fallback: true })
+}
+
 const getFoundItems = (pharm) => {
   const pharmacyId = Number(pharm?.id || pharm?.pharmacy_id || 0)
   const plan = getPrimaryPlan(pharm)
@@ -308,18 +425,55 @@ const getItemStatuses = (pharm) => {
   const requested = Array.isArray(props.request?.items) ? props.request.items : []
   if (!requested.length) return []
 
+  const pharmacyId = Number(pharm?.id || pharm?.pharmacy_id || 0)
   const foundItems = getFoundItems(pharm)
-  const foundIds = new Set(foundItems.map((f) => Number(f.item_id || 0)).filter(Boolean))
-  const foundNames = new Set(foundItems.map((f) => String(f.product_name || '').toLowerCase().trim()))
+  const foundById = new Map()
+  const foundByName = new Map()
+
+  foundItems.forEach((item) => {
+    const allocation = Array.isArray(item?.allocations)
+      ? item.allocations.find((entry) => Number(entry?.pharmacy_id || 0) === pharmacyId)
+      : null
+    const itemId = Number(item?.item_id || item?.id || 0)
+    const itemName = String(item?.product_name || item?.name || '').toLowerCase().trim()
+    const unitPriceRaw = allocation?.unit_price ?? item?.unit_price
+    const availableQuantityRaw = allocation?.available_quantity ?? item?.available_quantity
+    const matchedQuantityRaw = allocation?.matched_quantity ?? item?.matched_quantity
+    const statusDetails = {
+      unitPrice: unitPriceRaw == null ? null : Number(unitPriceRaw),
+      availableQuantity: availableQuantityRaw == null ? null : Number(availableQuantityRaw),
+      matchedQuantity: matchedQuantityRaw == null ? null : Number(matchedQuantityRaw)
+    }
+
+    if (itemId > 0) foundById.set(itemId, statusDetails)
+    if (itemName) foundByName.set(itemName, statusDetails)
+  })
 
   return requested.map((item) => {
-    const byId = Number(item.id || item.item_id || 0) > 0 && foundIds.has(Number(item.id || item.item_id))
-    const byName = foundNames.has(String(item.product_name || '').toLowerCase().trim())
+    const itemId = Number(item.id || item.item_id || 0)
+    const itemName = String(item.product_name || item.name || '').toLowerCase().trim()
+    const matched = (itemId > 0 && foundById.get(itemId)) || foundByName.get(itemName) || null
+
     return {
       name: item.product_name || item.name || 'Item',
-      found: byId || byName
+      found: Boolean(matched),
+      unitPrice: matched?.unitPrice ?? null,
+      availableQuantity: matched?.availableQuantity ?? null,
+      matchedQuantity: matched?.matchedQuantity ?? null
     }
   })
+}
+
+const formatItemPrice = (value) => {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount < 0) return 'n/a'
+  return `GHS ${amount.toFixed(2)}`
+}
+
+const formatItemStock = (value) => {
+  const stock = Number(value)
+  if (!Number.isFinite(stock) || stock < 0) return 'n/a'
+  return `${stock}`
 }
 
 const hasWhatsApp = (pharm) =>
@@ -378,6 +532,29 @@ const copyFullRequest = () => {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 0.7rem;
+}
+
+.fpm-ranking-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.fpm-ranking-select {
+  min-height: 38px;
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid #dbe4ee;
+  background: #fff;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.fpm-ranking-select:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .fpm-title {
@@ -465,17 +642,12 @@ const copyFullRequest = () => {
   color: #1d4ed8;
 }
 
+.fpm-state {
+  padding: 0.5rem;
+}
+
 .fpm-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 1.8rem 1rem;
-  border-radius: 16px;
-  border: 1px dashed #cbd5e1;
-  background: linear-gradient(180deg, #fcfdff 0%, #f8fafc 100%);
-  text-align: center;
+  padding: 0.5rem;
 }
 
 .fpm-empty-icon {
@@ -554,7 +726,7 @@ const copyFullRequest = () => {
   gap: 0.35rem;
 }
 
-/* Use Plan — primary solid */
+/* Source from Here — primary solid */
 .btn-use-plan {
   display: inline-flex;
   align-items: center;
@@ -610,9 +782,6 @@ const copyFullRequest = () => {
 }
 
 .btn-footer-whatsapp {
-  width: 34px;
-  height: 34px;
-  padding: 0;
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
   color: #16a34a;
@@ -750,7 +919,7 @@ const copyFullRequest = () => {
 
 .pharm-item-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.55rem;
   min-width: 0;
@@ -758,6 +927,13 @@ const copyFullRequest = () => {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fbfcfd;
+}
+
+.pharm-item-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
 .pharm-item-row-name {
@@ -768,6 +944,15 @@ const copyFullRequest = () => {
   font-size: 0.73rem;
   font-weight: 600;
   color: #334155;
+}
+
+.pharm-item-row-meta {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.66rem;
+  color: #64748b;
 }
 
 .pharm-item-row-state {

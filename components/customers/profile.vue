@@ -1,124 +1,119 @@
 <template>
-  <div class="profile-component">
-    <div class="section-header">
-      <div>
-        <p class="eyebrow">Profile</p>
-        <h2>Profile Information</h2>
-        <p class="section-description">Update your personal information and saved home location.</p>
-      </div>
+  <div class="max-w-3xl">
+    <!-- Header -->
+    <div class="mb-6">
+      <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Profile</p>
+      <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">Profile Information</h2>
+      <p class="text-sm font-medium text-zinc-600 mt-1">Update your personal information and saved home location.</p>
     </div>
 
     <!-- Success Alert -->
-    <div v-if="updateSuccess" class="alert alert-success">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
-      <span>Profile updated successfully!</span>
+    <div v-if="updateSuccess" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#e7f7ea] border border-[#b6e8c2] text-[#166534] mb-5 text-sm font-semibold">
+      <span class="material-symbols-outlined text-[18px]">check_circle</span>
+      Profile updated successfully!
     </div>
 
     <!-- Error Alert -->
-    <div v-if="error" class="alert alert-error">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span>{{ error }}</span>
+    <div v-if="error" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 mb-5 text-sm font-semibold">
+      <span class="material-symbols-outlined text-[18px]">error</span>
+      {{ error }}
     </div>
 
-    <div class="profile-summary-card">
-      <div class="profile-avatar">{{ profileInitials }}</div>
-      <div class="profile-summary-copy">
-        <h3>{{ profileDisplayName }}</h3>
-        <p>{{ formatPhoneNumber(userStore.userPhoneNumber) || 'No phone number' }}</p>
+    <!-- Summary card -->
+    <div class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 mb-4">
+      <div class="w-14 h-14 bg-zinc-900 rounded-xl text-white font-bold flex items-center justify-center text-lg flex-shrink-0">{{ profileInitials }}</div>
+      <div class="min-w-0 flex-1">
+        <p class="font-semibold text-zinc-900 leading-tight">{{ profileDisplayName }}</p>
+        <p class="text-sm text-zinc-500 mt-0.5">{{ formatPhoneNumber(userStore.userPhoneNumber) || 'No phone number' }}</p>
       </div>
-      <div class="profile-summary-status" :class="{ complete: !!profile.address }">
+      <span
+        class="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] flex-shrink-0"
+        :class="profile.address ? 'bg-[#e7f7ea] text-[#228847]' : 'bg-amber-50 text-amber-700'"
+      >
         {{ profile.address ? 'Location saved' : 'Location needed' }}
-      </div>
+      </span>
     </div>
 
     <!-- Profile Form -->
-    <div class="card">
+    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-6">
       <form @submit.prevent="saveProfile">
-        <div class="form-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
           <!-- First Name -->
-          <div class="form-group">
-            <label for="fname">First Name</label>
-            <input v-model="profile.fname" type="text" id="fname" class="form-input" placeholder="Enter first name"
-              required />
+          <div class="flex flex-col gap-1.5">
+            <label for="fname" class="text-sm font-semibold text-zinc-700">First Name</label>
+            <input v-model="profile.fname" type="text" id="fname" placeholder="Enter first name" required
+              class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
           </div>
 
           <!-- Last Name -->
-          <div class="form-group">
-            <label for="lname">Last Name</label>
-            <input v-model="profile.lname" type="text" id="lname" class="form-input" placeholder="Enter last name"
-              required />
+          <div class="flex flex-col gap-1.5">
+            <label for="lname" class="text-sm font-semibold text-zinc-700">Last Name</label>
+            <input v-model="profile.lname" type="text" id="lname" placeholder="Enter last name" required
+              class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
           </div>
 
           <!-- Email -->
-          <div class="form-group">
-            <label for="email">Email Address</label>
-            <input v-model="profile.email" type="email" id="email" class="form-input" placeholder="Enter email address" />
+          <div class="flex flex-col gap-1.5">
+            <label for="email" class="text-sm font-semibold text-zinc-700">Email Address</label>
+            <input v-model="profile.email" type="email" id="email" placeholder="Enter email address"
+              class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
           </div>
 
           <!-- Phone (Read-only) -->
-          <div class="form-group">
-            <label for="phone">Phone Number</label>
-            <input :value="formatPhoneNumber(userStore.userPhoneNumber)" type="text" id="phone" class="form-input"
-              disabled />
-            <p class="field-hint">Phone number cannot be changed</p>
+          <div class="flex flex-col gap-1.5">
+            <label for="phone" class="text-sm font-semibold text-zinc-700">Phone Number</label>
+            <input :value="formatPhoneNumber(userStore.userPhoneNumber)" type="text" id="phone" disabled
+              class="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-400 cursor-not-allowed" />
+            <p class="text-xs text-zinc-400">Phone number cannot be changed</p>
           </div>
         </div>
 
-        <div class="home-location-card">
-          <div class="home-location-head">
+        <!-- Home Location -->
+        <div class="rounded-xl border border-zinc-200 bg-zinc-50/50 p-5 mb-5">
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
             <div>
-              <label class="home-location-label">Home Address</label>
-              <p class="field-hint">Used by default for delivery requests until you change it for a specific request.</p>
+              <p class="text-sm font-semibold text-zinc-900">Home Address</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Used by default for delivery requests until you change it for a specific request.</p>
             </div>
-            <div class="home-location-actions">
-              <button type="button" class="btn btn-ghost" :disabled="isLocating" @click="captureHomeLocation">
-                <svg v-if="isLocating" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                  </path>
-                </svg>
-                <span>{{ isLocating ? 'Finding...' : (profile.latitude && profile.longitude ? 'Update From Current Location' : 'Set From Current Location') }}</span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button type="button" :disabled="isLocating" @click="captureHomeLocation"
+                class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                <span v-if="isLocating" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                <span v-else class="material-symbols-outlined text-[16px]">my_location</span>
+                {{ isLocating ? 'Finding...' : (profile.latitude && profile.longitude ? 'Update Location' : 'Set From GPS') }}
               </button>
               <button
                 v-if="profile.latitude || profile.longitude || profile.address"
-                type="button"
-                class="btn btn-subtle"
-                :disabled="isLoading || isLocating"
+                type="button" :disabled="isLoading || isLocating"
                 @click="clearHomeLocation"
-              >
+                class="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-semibold text-zinc-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-60">
                 Clear
               </button>
             </div>
           </div>
 
-          <div class="home-location-body">
-            <div class="home-location-status" :class="{ set: !!profile.address }">
-              <strong>{{ profile.address ? 'Home location saved' : 'No home location saved yet' }}</strong>
-              <span v-if="profile.address">{{ profile.address }}</span>
-              <span v-else>Use your current location once, then we will use it for future delivery requests.</span>
-            </div>
-            <div v-if="profile.latitude && profile.longitude" class="location-coordinates">
+          <div
+            class="rounded-lg px-4 py-3 text-sm"
+            :class="profile.address ? 'bg-[#eef9f1] border border-[#c6e8d0]' : 'bg-white border border-zinc-200'"
+          >
+            <p class="font-semibold" :class="profile.address ? 'text-[#166534]' : 'text-zinc-700'">
+              {{ profile.address ? 'Home location saved' : 'No home location saved yet' }}
+            </p>
+            <p class="mt-1 text-xs" :class="profile.address ? 'text-[#1f8a45]' : 'text-zinc-500'">
+              {{ profile.address || 'Set your current location once and we will use it for future delivery requests.' }}
+            </p>
+            <div v-if="profile.latitude && profile.longitude" class="flex gap-4 mt-1.5 text-[11px] font-semibold text-zinc-400">
               <span>Lat: {{ Number(profile.latitude).toFixed(6) }}</span>
               <span>Lng: {{ Number(profile.longitude).toFixed(6) }}</span>
             </div>
           </div>
         </div>
 
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary" :disabled="isLoading">
-            <svg v-if="isLoading" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-              </path>
-            </svg>
-            <span v-else>Save Changes</span>
+        <div class="flex justify-end">
+          <button type="submit" :disabled="isLoading"
+            class="inline-flex items-center gap-2 bg-zinc-900 text-white py-3 px-6 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+            <span v-if="isLoading" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+            {{ isLoading ? 'Saving...' : 'Save Changes' }}
           </button>
         </div>
       </form>
@@ -373,357 +368,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.profile-component {
-  max-width: 1100px;
-  padding: 0.5rem 0 1rem;
-}
-
-.section-header {
-  margin-bottom: 22px;
-}
-
-.eyebrow {
-  margin: 0 0 6px 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #7b3dbd;
-}
-
-.section-header h2,
-.section-header h3 {
-  font-size: 30px;
-  font-weight: 700;
-  color: #231734;
-  margin: 0 0 6px 0;
-  letter-spacing: -0.04em;
-}
-
-.section-description {
-  color: #75697f;
-  font-size: 14px;
-  margin: 0;
-  line-height: 1.6;
-}
-
-.profile-summary-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.2rem 1.3rem;
-  margin-bottom: 1rem;
-  border-radius: 1.6rem;
-  border: 1px solid #eee3f3;
-  background: linear-gradient(180deg, #ffffff, #fbf7fd);
-  box-shadow: 0 14px 34px rgba(53, 0, 98, 0.05);
-}
-
-.profile-avatar {
-  width: 3.4rem;
-  height: 3.4rem;
-  border-radius: 1.15rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.profile-summary-copy h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #231734;
-  font-weight: 700;
-}
-
-.profile-summary-copy p {
-  margin: 0.3rem 0 0;
-  font-size: 0.9rem;
-  color: #75697f;
-}
-
-.profile-summary-status {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.55rem 0.9rem;
-  background: #fff1d8;
-  color: #9a620d;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.profile-summary-status.complete {
-  background: #e7f7ea;
-  color: #1f8a45;
-}
-
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.alert svg {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}
-
-.alert-success {
-  background: #dcfce7;
-  border: 1px solid #86efac;
-  color: #166534;
-}
-
-.alert-error {
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  color: #991b1b;
-}
-
-.card {
-  background: white;
-  border-radius: 1.6rem;
-  padding: 24px;
-  border: 1px solid #eee3f3;
-  box-shadow: 0 14px 34px rgba(53, 0, 98, 0.05);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #453850;
-  margin-bottom: 8px;
-}
-
-.form-input {
-  padding: 12px 14px;
-  border: 1px solid #ddd3e7;
-  border-radius: 14px;
-  font-size: 14px;
-  transition: all 0.2s;
-  background: #fdfbfe;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #8c59d7;
-  box-shadow: 0 0 0 3px rgba(123, 61, 189, 0.1);
-}
-
-.form-input:disabled {
-  background: #f9fafb;
-  color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.field-hint {
-  font-size: 12px;
-  color: #7a7280;
-  margin-top: 4px;
-}
-
-.home-location-card {
-  display: grid;
-  gap: 14px;
-  margin-top: 4px;
-  padding: 18px;
-  border: 1px solid #e9def1;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #fbf7fd, #ffffff);
-}
-
-.home-location-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.home-location-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 700;
-  color: #231734;
-  margin-bottom: 6px;
-}
-
-.home-location-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.home-location-body {
-  display: grid;
-  gap: 10px;
-}
-
-.home-location-status {
-  display: grid;
-  gap: 6px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: #f6eefc;
-  border: 1px solid #eadcf5;
-}
-
-.home-location-status.set {
-  background: #eef9f1;
-  border-color: #cfead7;
-}
-
-.home-location-status strong {
-  font-size: 14px;
-  color: #231734;
-}
-
-.home-location-status span {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #72677d;
-}
-
-.location-coordinates {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 140px;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5a189a 0%, #7137b4 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(95, 27, 164, 0.25);
-}
-
-.btn-secondary {
-  background: #8b5cf6;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #7c3aed;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3);
-}
-
-.btn-ghost {
-  min-width: auto;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, #5f1ba4 0%, #7b3dbd 100%);
-  color: #fff;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5a189a 0%, #7137b4 100%);
-}
-
-.btn-subtle {
-  min-width: auto;
-  padding: 10px 16px;
-  background: #f4ebfb;
-  color: #6a3d95;
-}
-
-.btn-subtle:hover:not(:disabled) {
-  background: #eee1f8;
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 768px) {
-  .profile-summary-card {
-    grid-template-columns: 1fr;
-    justify-items: start;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .card {
-    padding: 16px;
-  }
-
-  .home-location-head {
-    flex-direction: column;
-  }
-
-  .home-location-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-</style>

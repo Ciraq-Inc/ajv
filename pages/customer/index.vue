@@ -6,234 +6,155 @@
     </div>
 
     <template v-else>
-      <div v-if="currentTab === 'home'" class="space-y-8">
-        <section class="dashboard-top">
-          <article class="col-span-12 lg:col-span-6 rounded-2xl p-6 text-zinc-900 sm:p-8 bg-white border border-zinc-200 shadow-sm h-full lg:px-10 flex flex-col justify-center relative overflow-hidden">
-            <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-[#5d4679]">Operations Center</p>
+      <div v-if="currentTab === 'home'" class="home-view">
+        <!-- Alert Banner -->
+        <AlertBanner :event="criticalEvent" @dismiss="dismissAlert" @action="handleAlertAction" />
 
-            <div class="mt-5 flex flex-col gap-5 lg:flex-row lg:items-center">
-              <div class="flex items-center gap-5">
-                <h3 class="text-5xl font-bold leading-none tracking-tight text-[#4F217A] sm:text-6xl">{{ activeRequestCount }}</h3>
-                <div class="border-l border-zinc-200 pl-5">
-                  <p class="text-lg font-medium leading-tight text-zinc-600">Active</p>
-                  <p class="text-[1.4rem] font-semibold leading-tight text-zinc-800">Requests</p>
-                </div>
-              </div>
-            </div>
-            <p class="mt-5 max-w-xl text-sm font-medium leading-6 text-zinc-600">Track request progress, review updates, and move into payment or fulfillment from one workspace.</p>
-          </article>
+        <!-- Quick Actions Bar -->
+        <div class="quick-actions-bar">
+          <button class="location-chip" @click="showLocationModal = true">
+            <span class="material-symbols-outlined">location_on</span>
+            <span class="location-text">{{ dashboardLocation }}</span>
+            <span class="material-symbols-outlined edit-icon">edit</span>
+          </button>
+          <button class="new-request-btn" @click="goTab('new')">
+            <span class="material-symbols-outlined">add</span>
+            New Request
+          </button>
+        </div>
 
-          <article
-            class="col-span-12 sm:col-span-6 lg:col-span-3 flex h-full cursor-pointer flex-col justify-between rounded-xl border border-zinc-200 bg-white/95 p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
-            @click="goTab('wallet')"
-          >
-            <div class="space-y-4">
-              <div>
-                <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Available Credits</p>
-                <h3 class="mt-2 text-[2rem] font-semibold tracking-tight text-zinc-900">GHS {{ walletBalance.toFixed(2) }}</h3>
-              </div>
-              <p class="text-sm font-medium leading-6 text-zinc-600">Top up, review wallet movement, and keep request payments ready.</p>
-            </div>
+        <!-- Unified Activity Stream -->
+        <UnifiedActivity
+          :requests="recentRequests"
+          :orders="ongoingOrders"
+          :limit="4"
+          @view-all="goTab('requests')"
+          @item-click="handleActivityClick"
+        />
 
-            <div class="mt-6 flex items-center gap-3">
-              <div class="flex h-11 w-11 items-center justify-center rounded-full bg-[#f4ecfb] text-[#5e3a86]">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
-              </div>
-              <button class="inline-flex items-center gap-1 rounded-full border border-[#dfd3ea] bg-white px-4 py-2 text-xs font-bold text-zinc-700 hover:text-zinc-900 transition-colors">
-                Top up
-                <span class="material-symbols-outlined text-base">add</span>
-              </button>
-            </div>
-          </article>
-
-          <article class="col-span-12 sm:col-span-6 lg:col-span-3 flex h-full flex-col justify-between rounded-xl border border-zinc-200 bg-white/95 p-6 shadow-sm">
-            <div class="space-y-3">
-              <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Delivery Location</p>
-              <div class="flex items-start gap-3">
-                <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-full bg-[#f4ecfb] text-[#5e3a86]">
-                  <span class="material-symbols-outlined">location_on</span>
-                </div>
-                <div class="min-w-0">
-                  <h3 class="text-2xl font-semibold tracking-tight text-zinc-900">{{ dashboardLocation }}</h3>
-                  <p class="mt-1 text-sm font-medium leading-6 text-zinc-600">{{ dashboardLocationHint }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-6 space-y-2">
-              <button
-                @click="refreshDashboardLocation"
-                :disabled="isUpdatingLocation"
-                class="inline-flex items-center gap-2 rounded-full border border-[#dfd3ea] bg-white px-4 py-2 text-xs font-bold text-zinc-700 transition-colors hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                <span class="material-symbols-outlined text-base" :class="{ 'spin-icon': isUpdatingLocation }">refresh</span>
-                Update location
-              </button>
-              <p v-if="locationUpdateMessage" class="text-xs font-medium" :class="locationUpdateState === 'error' ? 'text-[#c03a3a]' : 'text-zinc-600'">
-                {{ locationUpdateMessage }}
-              </p>
-            </div>
-          </article>
-        </section>
-
-        <div class="dashboard-middle">
-          <div class="space-y-5">
-            <div class="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h3 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Activity Stream</h3>
-                <p class="text-sm font-medium text-zinc-600">Tracking your latest clinical procurement</p>
-              </div>
-              <button class="inline-flex items-center gap-1 text-xs font-black text-zinc-600 hover:text-zinc-900 transition-colors" @click="goTab('requests')">
-                Full History
-                <span class="material-symbols-outlined text-base">arrow_outward</span>
-              </button>
-            </div>
-
-            <div v-if="recentRequestItems.length === 0" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
-                <span class="material-symbols-outlined">description</span>
-              </div>
-              <div>
-                <p class="font-black text-zinc-800">No requests yet</p>
-                <p class="text-sm font-medium text-zinc-600">Your latest request activity will appear here.</p>
-              </div>
-            </div>
-
-            <div v-else class="space-y-4">
-              <button
-                v-for="request in recentRequestItems"
-                :key="request.id"
-                class="flex w-full items-center gap-4 rounded-xl border border-zinc-200 bg-white px-5 py-5 text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-18px_rgba(86,42,134,0.18)] sm:px-6"
-                @click="goTab('requests')"
-              >
-                <div
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
-                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-[#e7f7ea] text-[#228847]' : request.status === 'processing' || request.status === 'confirming_with_pharm' ? 'bg-[#f4e8fb] text-zinc-600 hover:text-zinc-900 transition-colors' : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors'"
-                >
-                  <span class="material-symbols-outlined">{{ requestIcon(request) }}</span>
-                </div>
-
-                <div class="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div class="min-w-0">
-                    <h4 class="truncate text-xl font-black tracking-[-0.05em] text-zinc-800">REQ-{{ request.request_number || shortId(String(request.id || '')) }}</h4>
-                    <p class="truncate text-sm font-medium text-zinc-500">{{ formatDate(request.updated_at || request.created_at) }} • {{ requestMeta(request) }}</p>
-                  </div>
-
-                  <div class="flex flex-col items-start gap-2 sm:items-end">
-                    <strong class="text-2xl font-black tracking-[-0.05em] text-zinc-800">GHS {{ formatMoney(getRequestAmount(request)) }}</strong>
-                    <span
-                      class="inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
-                      :class="getRequestStatusClass(request.status)"
-                    >
-                      {{ getRequestStatusLabel(request.status) }}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            </div>
+        <!-- Wallet Info Card -->
+        <div class="wallet-info-card">
+          <div class="wallet-left">
+            <p class="wallet-label">Available Balance</p>
+            <h3 class="wallet-amount">GHS {{ walletBalance.toFixed(2) }}</h3>
           </div>
+          <button class="wallet-link-btn" @click="goTab('wallet')">
+            Wallet Details
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </div>
 
-          <aside class="space-y-5">
-            <div class="px-1">
-              <h3 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Ongoing Orders</h3>
-              <p class="text-sm font-medium text-zinc-600">Currently in delivery pipeline</p>
+        <!-- Verified Partners (Collapsible) -->
+        <div v-if="verifiedPartners.length > 0" class="partners-section">
+          <button class="partners-header" @click="showPartnersCollapsed = !showPartnersCollapsed">
+            <div>
+              <h3 class="partners-title">Verified Pharmacies</h3>
+              <p class="partners-subtitle">Direct shop from trusted partners</p>
+            </div>
+            <span class="material-symbols-outlined" :class="{ rotated: !showPartnersCollapsed }">expand_more</span>
+          </button>
+
+          <Transition name="collapse">
+            <div v-show="!showPartnersCollapsed" class="partners-list">
+              <button
+                v-for="company in verifiedPartners"
+                :key="company.id"
+                class="partner-card"
+                @click="goTab('companies')"
+              >
+                <div class="partner-avatar">
+                  <span class="material-symbols-outlined">local_pharmacy</span>
+                </div>
+                <div class="partner-info">
+                  <h4 class="partner-name">{{ company.company_name || company.name }}</h4>
+                  <p class="partner-meta">{{ getCompanyMeta(company) }}</p>
+                </div>
+                <span class="material-symbols-outlined">arrow_forward</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Order Detail Modal -->
+        <div v-if="selectedOrder" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="selectedOrder = null">
+          <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+              <h3 class="font-black text-zinc-900 tracking-tight">Order Details</h3>
+              <button @click="selectedOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+              </button>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-              <div v-if="ongoingOrderItems.length === 0" class="flex items-center gap-4 px-6 py-5">
-                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
-                  <span class="material-symbols-outlined">package_2</span>
-                </div>
+            <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Order ID</p><p class="font-semibold text-zinc-900 mt-0.5 truncate">{{ selectedOrder.order_id }}</p></div>
+                <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Date</p><p class="font-semibold text-zinc-900 mt-0.5">{{ modalFormatDate(selectedOrder.created_at) }}</p></div>
                 <div>
-                  <p class="font-black text-zinc-800">No active orders</p>
-              <p class="text-sm font-medium text-zinc-600">Orders in progress will show here.</p>
+                  <p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Status</p>
+                  <span class="inline-flex rounded-full mt-1 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]" :class="orderStatusClass(selectedOrder.status)">{{ modalFormatStatus(selectedOrder.status) }}</span>
                 </div>
               </div>
 
-              <div v-else>
-                <button
-                  v-for="order in ongoingOrderItems"
-                  :key="order.order_id"
-                  class="flex w-full items-center gap-4 px-5 py-5 text-left transition-colors hover:bg-[#fcf8fe] sm:px-6"
-                  :class="{ 'border-t border-[#f1ebf4]': ongoingOrderItems.indexOf(order) > 0 }"
-                  @click="goTab('orders')"
-                >
-                  <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
-                    <span class="material-symbols-outlined">package_2</span>
+              <div class="border-t border-zinc-100 pt-4">
+                <h4 class="text-sm font-black text-zinc-800 mb-3">Order Items</h4>
+                <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
+                  <div>
+                    <p class="text-sm font-semibold text-zinc-900">{{ item.brand_name || item.product_name }}</p>
+                    <p class="text-xs text-zinc-500">Qty: {{ item.qty }} · GHS {{ item.selling_price }}</p>
                   </div>
-
-                  <div class="min-w-0 flex-1 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-                    <div class="min-w-0">
-                      <h4 class="truncate text-base font-black tracking-[-0.04em] text-zinc-800">#{{ shortOrderId(order.order_id) }}</h4>
-                      <p class="mt-1 truncate text-xs font-medium text-zinc-600">{{ getOrderSummary(order) }}</p>
-                    </div>
-                    <div class="flex flex-col items-start gap-2 sm:items-end">
-                      <strong class="text-sm font-black text-zinc-800">GHS {{ formatMoney(order.total_amount) }}</strong>
-                      <span
-                        class="inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
-                        :class="getOrderStatusClass(order.status)"
-                      >
-                        {{ getOrderStatusLabel(order.status) }}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              </div>
-
-              <div class="border-t border-[#f1ebf4] px-5 py-4 text-center sm:px-6">
-                <button class="text-xs font-black text-zinc-600 hover:text-zinc-900 transition-colors" @click="goTab('orders')">View All Orders</button>
-              </div>
-            </div>
-          </aside>
-          </div>
-
-        <section class="section-wrap space-y-5">
-          <div class="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h3 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Verified Partners</h3>
-              <p class="text-sm font-medium text-zinc-600">Top rated pharmacies in your network</p>
-            </div>
-            <button class="inline-flex items-center gap-1 text-xs font-black text-zinc-600 hover:text-zinc-900 transition-colors" @click="goTab('companies')">
-              Directory
-              <span class="material-symbols-outlined text-base">arrow_outward</span>
-            </button>
-          </div>
-
-          <div v-if="verifiedPartners.length === 0" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
-              <span class="material-symbols-outlined">local_pharmacy</span>
-            </div>
-            <div>
-              <p class="font-black text-zinc-800">No pharmacies linked yet</p>
-              <p class="text-sm font-medium text-zinc-600">Your verified pharmacy network will appear here.</p>
-            </div>
-          </div>
-
-          <div v-else class="partners-grid">
-            <button
-              v-for="company in verifiedPartners"
-              :key="company.id"
-              class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-5 py-5 text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-18px_rgba(86,42,134,0.18)] sm:px-6"
-              @click="goTab('companies')"
-            >
-              <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.35rem] bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition-colors">
-                <span class="material-symbols-outlined text-[28px]">local_pharmacy</span>
-              </div>
-
-              <div class="min-w-0 flex-1">
-                <h4 class="truncate text-2xl font-black tracking-[-0.05em] text-zinc-800">{{ company.company_name || company.name }}</h4>
-                <div class="mt-1 flex items-center gap-1 text-xs font-bold text-zinc-500">
-                  <span class="material-symbols-outlined text-sm ![font-variation-settings:'FILL'_1] text-[#f5b622]">star</span>
-                  <span class="truncate">{{ getCompanyMeta(company) }}</span>
+                  <p class="text-sm font-black text-zinc-900">GHS {{ modalFormatAmount(item.line_total) }}</p>
                 </div>
               </div>
 
-              <div class="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-zinc-200 text-zinc-400 group-hover:text-zinc-600">
-                <span class="material-symbols-outlined text-base">arrow_outward</span>
+              <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
+                <div class="flex justify-between text-sm text-zinc-600"><span>Subtotal</span><span>GHS {{ modalFormatAmount(selectedOrder.subtotal || selectedOrder.total_amount) }}</span></div>
+                <div class="flex justify-between text-sm text-zinc-600"><span>Tax</span><span>GHS {{ modalFormatAmount(selectedOrder.tax_amount || 0) }}</span></div>
+                <div class="flex justify-between text-base font-black text-zinc-900 pt-2 border-t border-zinc-200"><span>Total</span><span>GHS {{ modalFormatAmount(selectedOrder.total_amount) }}</span></div>
               </div>
-            </button>
+            </div>
           </div>
-        </section>
+        </div>
+
+        <!-- Request Order Detail Modal -->
+        <div v-if="selectedRequestOrder" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="selectedRequestOrder = null">
+          <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+              <h3 class="font-black text-zinc-900 tracking-tight">Request Order Details</h3>
+              <button @click="selectedRequestOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Request #</p><p class="font-semibold text-zinc-900 mt-0.5">{{ selectedRequestOrder.request_number }}</p></div>
+                <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Date</p><p class="font-semibold text-zinc-900 mt-0.5">{{ modalFormatDate(selectedRequestOrder.updated_at || selectedRequestOrder.created_at) }}</p></div>
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Status</p>
+                  <span class="inline-flex rounded-full mt-1 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]" :class="requestOrderStatusClass(selectedRequestOrder.status)">{{ modalFormatRequestStatus(selectedRequestOrder.status) }}</span>
+                </div>
+                <div v-if="selectedRequestOrder.fulfillment_type"><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Fulfillment</p><p class="font-semibold text-zinc-900 mt-0.5 capitalize">{{ selectedRequestOrder.fulfillment_type }}</p></div>
+              </div>
+
+              <div class="border-t border-zinc-100 pt-4">
+                <h4 class="text-sm font-black text-zinc-800 mb-3">Request Items</h4>
+                <div v-for="(item, index) in selectedRequestOrder.items || []" :key="index" class="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
+                  <div>
+                    <p class="text-sm font-semibold text-zinc-900">{{ item.product_name }}</p>
+                    <p class="text-xs text-zinc-500">Qty: {{ item.quantity }} · GHS {{ modalFormatAmount(item.marked_up_price || item.unit_price || 0) }}</p>
+                  </div>
+                  <p class="text-sm font-black text-zinc-900">GHS {{ modalFormatAmount(item.line_total || ((item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}</p>
+                </div>
+              </div>
+
+              <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
+                <div class="flex justify-between text-sm text-zinc-600"><span>Items total</span><span>GHS {{ modalFormatAmount(selectedRequestOrder.items_total || 0) }}</span></div>
+                <div v-if="selectedRequestOrder.delivery_fee" class="flex justify-between text-sm text-zinc-600"><span>Delivery fee</span><span>GHS {{ modalFormatAmount(selectedRequestOrder.delivery_fee || 0) }}</span></div>
+                <div class="flex justify-between text-base font-black text-zinc-900 pt-2 border-t border-zinc-200"><span>Total</span><span>GHS {{ modalFormatAmount(getRequestTotalAmount(selectedRequestOrder)) }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-if="currentTab === 'new'" class="page-view">
@@ -249,7 +170,7 @@
       </div>
 
       <div v-if="currentTab === 'orders'" class="page-view">
-        <Orders />
+        <Orders :initial-order-id="orderIdFromQuery" />
       </div>
 
       <div v-if="currentTab === 'profile'" class="page-view">
@@ -266,6 +187,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import AlertBanner from '~/components/customers/AlertBanner.vue'
+import UnifiedActivity from '~/components/customers/UnifiedActivity.vue'
 import LinkedCompanies from '~/components/customers/linkedCompanies.vue'
 import Orders from '~/components/customers/orders.vue'
 import OrderRequests from '~/components/customers/orderRequests.vue'
@@ -288,6 +211,9 @@ const activeRequestCount = ref(0)
 const isUpdatingLocation = ref(false)
 const locationUpdateMessage = ref('')
 const locationUpdateState = ref('idle')
+const showLocationModal = ref(false)
+const showPartnersCollapsed = ref(true)
+const criticalEvent = ref(null)
 const HOME_STATS_POLL_MS = 15000
 let homeStatsPollTimer = null
 
@@ -298,16 +224,16 @@ const requestIdFromQuery = computed(() => {
   return value || null
 })
 
+const orderIdFromQuery = computed(() => {
+  const value = route.query.orderId
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+})
+
 const companies = computed(() => userStore.companies || [])
 const verifiedPartners = computed(() => companies.value.slice(0, 3))
-const recentRequestItems = computed(() => recentRequests.value.slice(0, 2))
-const ongoingOrderItems = computed(() => {
-  const active = ongoingOrders.value.filter((order) => isOngoingOrderStatus(order.status))
-  return (active.length ? active : ongoingOrders.value).slice(0, 2)
-})
 const dashboardLocationParts = computed(() => getCompactAddressLines(userStore.currentUser?.address || '', { primaryCount: 2 }))
 const dashboardLocation = computed(() => dashboardLocationParts.value.primary || 'Set your delivery location')
-const dashboardLocationHint = computed(() => dashboardLocationParts.value.secondary || 'Used automatically for new delivery requests until you change it.')
 
 const goTab = (tab) => navigateTo({ path: '/customer', query: { tab } })
 
@@ -322,112 +248,347 @@ const formatDate = (value) => (
 
 const formatMoney = (value) => Number(value || 0).toFixed(2)
 const shortId = (id) => (id || '').substring(0, 8).toUpperCase()
-const shortOrderId = (id) => String(id || '').replace(/^#/, '').substring(0, 8)
 
-const requestMeta = (request) => {
-  const itemCount = Number(request.item_count || request.items?.length || 0)
-  const fulfillment = request.fulfillment_type ? String(request.fulfillment_type).replace(/_/g, ' ') : ''
-  if (fulfillment) return `${itemCount || 0} item${itemCount === 1 ? '' : 's'} • ${fulfillment}`
-  return `${itemCount || 0} item${itemCount === 1 ? '' : 's'}`
+// Smart prefix detection helpers for alert IDs
+const formatRequestId = (requestNumber, fallbackId) => {
+  const value = requestNumber || shortId(String(fallbackId))
+  // If already starts with REQ-, don't prepend again
+  if (String(value).startsWith('REQ-')) return value
+  return `REQ-${value}`
 }
 
-const getRequestAmount = (request) => {
-  const totalCost = Number(request.total_cost)
-  if (Number.isFinite(totalCost) && totalCost > 0) return totalCost
-
-  const estimated = Number(request.estimated_total)
-  if (Number.isFinite(estimated) && estimated > 0) return estimated
-
-  const itemsTotal = Number(request.items_total || 0)
-  const deliveryFee = Number(request.delivery_fee || 0)
-  return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
-}
-
-const getRequestStatusLabel = (status) => {
-  const map = {
-    paid: 'Settled',
-    verified: 'Settled',
-    pending: 'Pending',
-    searching: 'Searching',
-    finding_pharmacist: 'Searching',
-    confirming_with_pharm: 'Processing',
-    quote_available: 'Quoted',
-    processing: 'Processing',
-    out_for_delivery: 'In Transit',
-    delivered: 'Delivered',
-    cancelled: 'Cancelled'
-  }
-  return map[status] || String(status || 'active').replace(/_/g, ' ')
-}
-
-const getRequestStatusClass = (status) => {
-  switch (status) {
-    case 'paid':
-    case 'verified':
-      return 'bg-[#e7f7ea] text-[#1f8a45]'
-    case 'processing':
-    case 'confirming_with_pharm':
-      return 'bg-[#f3daff] text-[#5d357a]'
-    case 'quote_available':
-      return 'bg-[#edf4ff] text-[#285db8]'
-    case 'cancelled':
-    case 'rejected':
-      return 'bg-[#ffe7e7] text-[#c03a3a]'
-    default:
-      return 'bg-[#f4eff6] text-[#736a7a]'
-  }
-}
-
-const requestIcon = (request) => {
-  if (request.fulfillment_type === 'delivery') return 'local_shipping'
-  if ((request.item_count || request.items?.length || 0) > 0) return 'pill'
-  return 'description'
-}
-
-const getOrderStatusLabel = (status) => {
-  const map = {
-    pending: 'Pending',
-    processing: 'Preparing',
-    shipped: 'In Transit',
-    logistics_pending: 'Logistics Pending',
-    out_for_delivery: 'In Transit',
-    delivered: 'Delivered',
-    completed: 'Completed',
-    cancelled: 'Cancelled'
-  }
-  return map[status] || String(status || 'order').replace(/_/g, ' ')
-}
-
-const getOrderStatusClass = (status) => {
-  switch (status) {
-    case 'pending':
-      return 'bg-[#fff1d8] text-[#9a620d]'
-    case 'processing':
-      return 'bg-[#fff1d8] text-[#9a620d]'
-    case 'shipped':
-    case 'out_for_delivery':
-      return 'bg-[#edf4ff] text-[#285db8]'
-    case 'delivered':
-    case 'completed':
-      return 'bg-[#e7f7ea] text-[#1f8a45]'
-    case 'cancelled':
-      return 'bg-[#ffe7e7] text-[#c03a3a]'
-    default:
-      return 'bg-[#f4eff6] text-[#736a7a]'
-  }
-}
-
-const getOrderSummary = (order) => {
-  const firstItem = order.items?.[0]?.brand_name || order.items?.[0]?.product_name
-  if (firstItem) return firstItem
-  if (order.company_name) return order.company_name
-  return `${Number(order.item_count || 0)} item${Number(order.item_count || 0) === 1 ? '' : 's'}`
+const formatOrderId = (orderId) => {
+  const value = String(orderId || '').substring(0, 8).toUpperCase()
+  // If already starts with Order #, don't prepend again
+  if (value.startsWith('Order #')) return value
+  return `Order #${value}`
 }
 
 const getCompanyMeta = (company) => {
   const address = company.address || company.location || company.physical_address || ''
   const compact = getCompactAddressLines(address, { primaryCount: 2 }).primary
   return compact || 'Linked pharmacy'
+}
+
+// Track analytics event
+const trackEvent = (eventName, eventData = {}) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', eventName, eventData)
+  }
+}
+
+// Handle activity item click
+const handleActivityClick = (item) => {
+  trackEvent('activity_item_clicked', {
+    item_type: item.type,
+    item_id: item.id,
+    status: item.statusClass
+  })
+  
+  // Extract raw ID (remove 'req-' or 'ord-' prefix)
+  const rawId = item.id.replace(/^(req|ord)-/, '')
+  
+  // If it's an order, open the order modal
+  if (item.type === 'order') {
+    // Try to find in memory first
+    const order = ongoingOrders.value.find(o => o.order_id === rawId)
+    if (order) {
+      viewOrder(order)
+      return
+    }
+    // If not in memory, create a minimal order object and fetch details
+    viewOrder({ order_id: rawId, company_id: null })
+    return
+  }
+
+  // If it's a request, open the request modal
+  if (item.type === 'request') {
+    // Try to find in memory first
+    const request = recentRequests.value.find(r => String(r.id) === String(rawId))
+    if (request) {
+      viewRequestOrder(request)
+      return
+    }
+    // If not in memory, create a minimal request object and fetch details
+    viewRequestOrder({ id: rawId })
+    return
+  }
+}
+
+// Get critical event from request/order status (priority-ordered)
+const evaluateCriticalEvent = () => {
+  // 1. Payment required — quote is ready, customer must pay
+  const paymentPendingRequest = recentRequests.value.find(r => r.status === 'quote_available')
+  if (paymentPendingRequest) {
+    criticalEvent.value = {
+      id: 'payment-pending',
+      type: 'warning',
+      title: 'Payment Required',
+      description: `${formatRequestId(paymentPendingRequest.request_number, paymentPendingRequest.id)} awaiting payment`,
+      actionLabel: 'Pay Now',
+      actionTab: 'requests',
+      actionId: paymentPendingRequest.id
+    }
+    trackEvent('critical_event_shown', { event_type: 'payment_pending' })
+    return
+  }
+
+  // 2. Delivery failed
+  const failedDelivery = ongoingOrders.value.find(o => o.status === 'delivery_failed')
+  if (failedDelivery) {
+    criticalEvent.value = {
+      id: 'delivery-failed',
+      type: 'error',
+      title: 'Delivery Failed',
+      description: `${formatOrderId(failedDelivery.order_id)} could not be delivered`,
+      actionLabel: 'View Details',
+      actionTab: 'orders',
+      actionId: failedDelivery.order_id
+    }
+    trackEvent('critical_event_shown', { event_type: 'delivery_failed' })
+    return
+  }
+
+  // 3. No driver available
+  const noDriverOrder = ongoingOrders.value.find(o => o.status === 'driver_unavailable')
+  if (noDriverOrder) {
+    criticalEvent.value = {
+      id: 'driver-unavailable',
+      type: 'error',
+      title: 'No Driver Available',
+      description: `${formatOrderId(noDriverOrder.order_id)} is waiting for a driver`,
+      actionLabel: 'View Order',
+      actionTab: 'orders',
+      actionId: noDriverOrder.order_id
+    }
+    trackEvent('critical_event_shown', { event_type: 'driver_unavailable' })
+    return
+  }
+
+  // 4. Order ready for pickup
+  const readyOrder = ongoingOrders.value.find(o => o.status === 'ready_for_pickup')
+  if (readyOrder) {
+    criticalEvent.value = {
+      id: 'ready-pickup',
+      type: 'success',
+      title: 'Order Ready',
+      description: `${formatOrderId(readyOrder.order_id)} is ready for pickup`,
+      actionLabel: 'View Order',
+      actionTab: 'orders',
+      actionId: readyOrder.order_id
+    }
+    trackEvent('critical_event_shown', { event_type: 'order_ready' })
+    return
+  }
+
+  // 5. Order out for delivery / shipped
+  const outForDelivery = ongoingOrders.value.find(o => o.status === 'out_for_delivery' || o.status === 'shipped')
+  if (outForDelivery) {
+    criticalEvent.value = {
+      id: 'out-for-delivery',
+      type: 'info',
+      title: 'Order On the Way',
+      description: `${formatOrderId(outForDelivery.order_id)} is on its way to you`,
+      actionLabel: 'Track Order',
+      actionTab: 'orders',
+      actionId: outForDelivery.order_id
+    }
+    trackEvent('critical_event_shown', { event_type: 'out_for_delivery' })
+    return
+  }
+
+  // 6. Request cancelled or rejected
+  const cancelledRequest = recentRequests.value.find(r => r.status === 'cancelled' || r.status === 'rejected')
+  if (cancelledRequest) {
+    criticalEvent.value = {
+      id: 'request-cancelled',
+      type: 'error',
+      title: 'Request Cancelled',
+      description: `${formatRequestId(cancelledRequest.request_number, cancelledRequest.id)} was cancelled`,
+      actionLabel: 'View Request',
+      actionTab: 'requests',
+      actionId: cancelledRequest.id
+    }
+    trackEvent('critical_event_shown', { event_type: 'request_cancelled' })
+    return
+  }
+
+  criticalEvent.value = null
+}
+
+const handleAlertAction = (event) => {
+  if (!event) return
+  
+  trackEvent('alert_action_clicked', { 
+    event_type: event.id, 
+    action_tab: event.actionTab,
+    action_id: event.actionId 
+  })
+
+  // For orders: find in list and open modal
+  if (event.actionTab === 'orders' && event.actionId) {
+    const order = ongoingOrders.value.find(o => o.order_id === event.actionId)
+    if (order) {
+      viewOrder(order)
+      return
+    }
+  }
+
+  // For requests: find in list and open modal
+  if (event.actionTab === 'requests' && event.actionId) {
+    const request = recentRequests.value.find(r => r.id === event.actionId)
+    if (request) {
+      viewRequestOrder(request)
+      return
+    }
+  }
+
+  // Fallback: navigate to tab if item not found
+  const query = { tab: event.actionTab }
+  if (event.actionId) {
+    if (event.actionTab === 'orders') query.orderId = event.actionId
+    else query.requestId = event.actionId
+  }
+  navigateTo({ path: '/customer', query })
+}
+
+const dismissAlert = (eventId) => {
+  trackEvent('alert_dismissed', { event_id: eventId })
+  criticalEvent.value = null
+}
+
+// Modal state for order/request details
+const selectedOrder = ref(null)
+const selectedRequestOrder = ref(null)
+
+// Helper function for API calls
+const dashboardApiCall = async (method, url) => {
+  const response = await fetch(`${config.public.apiBase}${url}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${userStore.customerAuthToken}`,
+      'Content-Type': 'application/json'
+    }
+  })
+  const json = await response.json()
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || `Request failed (${response.status})`)
+  }
+  return json
+}
+
+// Format date with time for modals
+const modalFormatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// Format status
+const modalFormatStatus = (status) => {
+  const statusMap = {
+    'pending': 'Pending',
+    'processing': 'Processing',
+    'shipped': 'Shipped',
+    'completed': 'Completed',
+    'delivered': 'Completed',
+    'picked_up': 'Completed',
+    'cancelled': 'Cancelled'
+  }
+  return statusMap[status] || status
+}
+
+// Tailwind class helpers for order status badges
+const orderStatusClass = (status) => {
+  const map = {
+    pending: 'bg-amber-50 text-amber-700',
+    processing: 'bg-[#f4e8fb] text-[#5e3a86]',
+    shipped: 'bg-[#e8f0fe] text-[#2856c3]',
+    completed: 'bg-[#e7f7ea] text-[#228847]',
+    delivered: 'bg-[#e7f7ea] text-[#228847]',
+    picked_up: 'bg-[#e7f7ea] text-[#228847]',
+    cancelled: 'bg-red-50 text-red-600'
+  }
+  return map[status] || 'bg-zinc-100 text-zinc-600'
+}
+
+// Tailwind class helpers for request status badges
+const requestOrderStatusClass = (status) => {
+  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status
+  const map = {
+    paid: 'bg-[#f4e8fb] text-[#5e3a86]',
+    logistics_pending: 'bg-[#f4e8fb] text-[#5e3a86]',
+    driver_unavailable: 'bg-red-50 text-red-600',
+    ready_for_pickup: 'bg-[#e8f0fe] text-[#2856c3]',
+    out_for_delivery: 'bg-[#e8f0fe] text-[#2856c3]',
+    completed: 'bg-[#e7f7ea] text-[#228847]',
+    returned: 'bg-red-50 text-red-600',
+    cancelled: 'bg-red-50 text-red-600'
+  }
+  return map[normalized] || 'bg-zinc-100 text-zinc-600'
+}
+
+// Format amount for modals
+const modalFormatAmount = (amount) => {
+  return parseFloat(amount || 0).toFixed(2)
+}
+
+// Format request status
+const modalFormatRequestStatus = (status) => {
+  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status
+  const statusMap = {
+    paid: 'Paid',
+    logistics_pending: 'Logistics Pending',
+    driver_unavailable: 'Driver Unavailable',
+    ready_for_pickup: 'Ready For Pickup',
+    out_for_delivery: 'Out For Delivery',
+    completed: 'Completed',
+    returned: 'Returned',
+    cancelled: 'Cancelled'
+  }
+  return statusMap[normalized] || (normalized || '').replace(/_/g, ' ')
+}
+
+// Get total amount for request
+const getRequestTotalAmount = (request) => {
+  if (!request) return 0
+  const estimated = Number(request.estimated_total)
+  if (Number.isFinite(estimated) && estimated > 0) return estimated
+  const itemsTotal = Number(request.items_total || 0)
+  const deliveryFee = Number(request.delivery_fee || 0)
+  return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
+}
+
+// View order details
+const viewOrder = async (order) => {
+  try {
+    const details = await userStore.getOrderDetails(order.order_id, order.company_id)
+    selectedOrder.value = details
+    trackEvent('modal_opened', { modal_type: 'order_details', order_id: order.order_id })
+  } catch (error) {
+    console.error('Error loading order details:', error)
+    const errorMsg = error.message || 'Failed to load order details'
+    // Show toast would go here
+  }
+}
+
+// View request order details
+const viewRequestOrder = async (request) => {
+  try {
+    const res = await dashboardApiCall('GET', `/api/order-requests/customer/${request.id}`)
+    selectedRequestOrder.value = res.data
+    trackEvent('modal_opened', { modal_type: 'request_details', request_id: request.id })
+  } catch (error) {
+    console.error('Error loading request details:', error)
+    const errorMsg = error.message || 'Failed to load request details'
+    // Show toast would go here
+  }
 }
 
 const reverseGeocode = async (latitude, longitude) => {
@@ -455,6 +616,7 @@ const refreshDashboardLocation = () => {
   isUpdatingLocation.value = true
   locationUpdateState.value = 'idle'
   locationUpdateMessage.value = 'Updating location...'
+  trackEvent('location_update_started')
 
   navigator.geolocation.getCurrentPosition(
     async (position) => {
@@ -471,9 +633,11 @@ const refreshDashboardLocation = () => {
 
         locationUpdateState.value = 'success'
         locationUpdateMessage.value = 'Location updated.'
+        trackEvent('location_updated', { success: true })
       } catch (error) {
         locationUpdateState.value = 'error'
         locationUpdateMessage.value = error.message || 'Failed to update location.'
+        trackEvent('location_updated', { success: false, error: error.message })
       } finally {
         isUpdatingLocation.value = false
       }
@@ -483,9 +647,11 @@ const refreshDashboardLocation = () => {
       locationUpdateState.value = 'error'
       if (geoError?.code === geoError.PERMISSION_DENIED) {
         locationUpdateMessage.value = 'Location permission was denied.'
+        trackEvent('location_updated', { success: false, error: 'permission_denied' })
         return
       }
       locationUpdateMessage.value = 'Could not get your location right now.'
+      trackEvent('location_updated', { success: false, error: 'location_unavailable' })
     },
     { enableHighAccuracy: true, timeout: 15000 }
   )
@@ -549,11 +715,17 @@ const loadDashboard = async () => {
     loadRequestActivity(),
     loadOrderActivity()
   ])
+  evaluateCriticalEvent()
 }
 
 const startHomeStatsPolling = async () => {
   stopHomeStatsPolling()
   await loadDashboard()
+  trackEvent('dashboard_view', {
+    first_time: !userStore.currentUser?.last_login,
+    request_count: activeRequestCount.value,
+    order_count: ongoingOrders.value.length
+  })
   homeStatsPollTimer = setInterval(() => {
     loadDashboard()
   }, HOME_STATS_POLL_MS)
@@ -581,9 +753,11 @@ watch(currentTab, async (tab) => {
   if (!userStore.customerAuthToken) return
   if (tab === 'home') {
     await startHomeStatsPolling()
+    trackEvent('tab_changed', { tab: 'home' })
     return
   }
   stopHomeStatsPolling()
+  trackEvent('tab_changed', { tab })
 })
 
 onUnmounted(() => {
@@ -591,34 +765,284 @@ onUnmounted(() => {
 })
 </script>
 
-<style>
+<style scoped>
 .customer-app {
   width: 100%;
 }
 
-.dashboard-top {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 2.25fr) minmax(290px, 1fr);
+.home-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
 }
 
-.dashboard-middle {
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: minmax(0, 2fr) minmax(300px, 0.95fr);
-  align-items: start;
+/* Alert Banner */
+:deep(.alert-banner) {
+  margin-bottom: 0;
 }
 
-.section-wrap {
-  /* Removed bounding box to match mockup floating headers */
+/* Quick Actions Bar - Mobile First */
+.quick-actions-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e4e4e7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.partners-grid {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.location-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.5rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  flex: 1;
 }
 
+.location-chip:hover {
+  border-color: #d4d4d8;
+  background: #fafafa;
+}
+
+.location-chip .material-symbols-outlined {
+  font-size: 20px;
+  color: #4f217a;
+  flex-shrink: 0;
+}
+
+.location-text {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1d1a20;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-icon {
+  font-size: 18px;
+  color: #a1a1a6;
+  flex-shrink: 0;
+}
+
+.new-request-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #4F217A 0%, #520094 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 12px rgba(79, 33, 122, 0.2);
+}
+
+.new-request-btn:active {
+  transform: scale(0.98);
+}
+
+.new-request-btn:hover {
+  box-shadow: 0 6px 16px rgba(79, 33, 122, 0.3);
+}
+
+.new-request-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* Wallet Info Card */
+.wallet-info-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.75rem;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.wallet-left {
+  flex: 1;
+}
+
+.wallet-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5d4679;
+}
+
+.wallet-amount {
+  margin: 4px 0 0 0;
+  font-size: 1.375rem;
+  font-weight: 900;
+  color: #1d1a20;
+}
+
+.wallet-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.5rem;
+  background: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #71717a;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.wallet-link-btn:hover {
+  border-color: #d4d4d8;
+  background: #fafafa;
+  color: #1d1a20;
+}
+
+.wallet-link-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Partners Section */
+.partners-section {
+  border: 1px solid #e4e4e7;
+  border-radius: 0.75rem;
+  background: white;
+  overflow: hidden;
+}
+
+.partners-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-align: left;
+}
+
+.partners-header:hover {
+  background: #fafafa;
+}
+
+.partners-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1d1a20;
+}
+
+.partners-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.75rem;
+  color: #71717a;
+}
+
+.partners-header .material-symbols-outlined {
+  font-size: 24px;
+  color: #71717a;
+  transition: transform 0.3s;
+}
+
+.partners-header .material-symbols-outlined.rotated {
+  transform: rotate(180deg);
+}
+
+.partners-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #e4e4e7;
+}
+
+.partner-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid #e4e4e7;
+  background: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-align: left;
+}
+
+.partner-card:last-child {
+  border-bottom: none;
+}
+
+.partner-card:hover {
+  background: #fafafa;
+}
+
+.partner-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  background: #f4f4f5;
+  color: #71717a;
+  font-size: 20px;
+}
+
+.partner-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.partner-name {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1d1a20;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.partner-meta {
+  margin: 2px 0 0 0;
+  font-size: 0.75rem;
+  color: #71717a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.partner-card .material-symbols-outlined {
+  font-size: 20px;
+  color: #a1a1a6;
+  flex-shrink: 0;
+}
+
+/* Auth Loading */
 .auth-loading {
   display: flex;
   flex-direction: column;
@@ -643,26 +1067,117 @@ onUnmounted(() => {
   overflow-x: clip;
 }
 
-.spin-icon {
-  animation: spin 0.9s linear infinite;
-}
-
-@media (max-width: 1180px) {
-  .dashboard-top,
-  .dashboard-middle,
-  .partners-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .section-wrap {
-    padding: 1rem;
-    border-radius: 2.2rem;
-  }
-}
-
+/* Animations */
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.3s ease;
+}
+
+.collapse-enter-from {
+  opacity: 0;
+  max-height: 0;
+}
+
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+/* Tablet and Desktop (min-width: 1024px) */
+@media (min-width: 1024px) {
+  .home-view {
+    gap: 24px;
+  }
+
+  .quick-actions-bar {
+    flex-direction: row;
+    padding: 12px;
+    gap: 16px;
+  }
+
+  .location-chip {
+    flex: 0.7;
+  }
+
+  .new-request-btn {
+    flex: 0.3;
+  }
+
+  .wallet-info-card {
+    justify-content: flex-start;
+    gap: 24px;
+  }
+
+  .wallet-left {
+    flex: 0.5;
+  }
+
+  .wallet-link-btn {
+    margin-left: auto;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 640px) {
+  .home-view {
+    gap: 12px;
+  }
+
+  .quick-actions-bar {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .location-chip {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+  }
+
+  .location-text {
+    font-size: 0.8125rem;
+  }
+
+  .new-request-btn {
+    padding: 12px 16px;
+    font-size: 0.8125rem;
+  }
+
+  .wallet-info-card {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .wallet-amount {
+    font-size: 1.125rem;
+  }
+
+  .wallet-link-btn {
+    padding: 8px 12px;
+    font-size: 0.7rem;
+  }
+
+  .partners-header {
+    padding: 12px;
+  }
+
+  .partner-card {
+    padding: 10px 12px;
+  }
+
+  .partner-name {
+    font-size: 0.8125rem;
+  }
+
+  .partner-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
   }
 }
 </style>
