@@ -1118,16 +1118,21 @@ const customerReadySummary = computed(() => {
 
   const sourcePharmacyIds = new Set()
   readyItems.forEach((item) => {
-    if (item.source_pharmacy_id) {
-      sourcePharmacyIds.add(Number(item.source_pharmacy_id))
+    // Use the current authoritative source for this item (one pharmacy per item)
+    const effectivePharmacyId = Number(item.allocation_pharmacy_id || item.source_pharmacy_id || 0)
+    if (effectivePharmacyId > 0) {
+      sourcePharmacyIds.add(effectivePharmacyId)
+      return
     }
 
+    // Fallback: check existing allocations from server if no direct assignment
     if (Array.isArray(item.allocations)) {
-      item.allocations.forEach((allocation) => {
-        if (allocation?.pharmacy_id) {
-          sourcePharmacyIds.add(Number(allocation.pharmacy_id))
-        }
-      })
+      const activeAlloc = item.allocations
+        .filter((a) => ['proposed', 'confirmed'].includes(String(a?.status || '').toLowerCase()))
+        .sort((a, b) => Number(b?.id || 0) - Number(a?.id || 0))[0]
+      if (activeAlloc?.pharmacy_id) {
+        sourcePharmacyIds.add(Number(activeAlloc.pharmacy_id))
+      }
     }
   })
 
@@ -2449,8 +2454,18 @@ const applyCandidatePlanNow = async (input) => {
       if (!Number(item.allocation_pharmacy_id || 0)) {
         continue
       }
+
       const payload = buildAllocationPayload(item)
       await apiCall('POST', `/api/order-requests/admin/items/${item.id}/allocations`, payload)
+      
+      // Save the unit price that was already extracted and set by applyCandidatePlan
+      const unitPrice = item.unit_price ? Number(item.unit_price) : null
+      if (Number.isFinite(unitPrice) && unitPrice > 0) {
+        await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
+          unit_price: unitPrice,
+          item_status: 'available'
+        })
+      }
     }
 
     await refreshSelectedRequestState()
