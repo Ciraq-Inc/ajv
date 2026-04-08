@@ -2041,10 +2041,12 @@ const fetchProductSearchResults = async (query) => {
   let res
   if (coords.hasCoords) {
     res = await apiCall('GET', `/api/products/nearby-search?lat=${coords.lat}&lng=${coords.lng}&search=${encodeURIComponent(trimmedQuery)}&limit=8`)
+    const results = Array.isArray(res?.data) ? res.data : []
+    return results.filter((product) => !(product?.is_active === false || product?.is_active === 0 || product?.is_active === '0'))
   } else {
     res = await apiCall('GET', `/api/master-products?search=${encodeURIComponent(trimmedQuery)}&limit=8`)
+    return Array.isArray(res?.data) ? res.data : []
   }
-  return Array.isArray(res?.data) ? res.data : []
 }
 
 const searchAdminProducts = async (item) => {

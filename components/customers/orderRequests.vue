@@ -1621,10 +1621,12 @@ const searchProducts = async (item) => {
         let res;
         if (customerLat.value && customerLng.value) {
             res = await apiCall('GET', `/api/products/nearby-search?lat=${customerLat.value}&lng=${customerLng.value}&search=${encodeURIComponent(item.product_name)}&limit=5`)
+            const results = Array.isArray(res?.data) ? res.data : []
+            item.searchResults = results.filter((product) => !(product?.is_active === false || product?.is_active === 0 || product?.is_active === '0'))
         } else {
             res = await apiCall('GET', `/api/master-products?search=${encodeURIComponent(item.product_name)}&limit=5`)
+            item.searchResults = Array.isArray(res?.data) ? res.data : []
         }
-        item.searchResults = res.data || []
     } catch (e) {
         item.searchResults = []
         if (e.status === 402) {

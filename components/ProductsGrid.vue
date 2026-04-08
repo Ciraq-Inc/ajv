@@ -63,9 +63,9 @@
 
             <!-- Add to Cart Section -->
             <div class="flex justify-end">
-              <button @click="handleAddToCart(product)" :disabled="product.stockQty <= 0" :class="[
+              <button @click="handleAddToCart(product)" :disabled="product.stockQty <= 0 || !isProductActive(product)" :class="[
                 'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
-                product.stockQty <= 0 ? 'bg-gray-400 text-white cursor-not-allowed' :
+                (product.stockQty <= 0 || !isProductActive(product)) ? 'bg-gray-400 text-white cursor-not-allowed' :
                   product.justAdded ? 'bg-green-600 text-white transform scale-95 cursor-default' :
                     'bg-green-700 text-white hover:bg-green-600'
               ]">
@@ -118,6 +118,9 @@ const pharmacySlug = computed(() => route.params.pharmacy);
 // Memoized image URL cache to prevent unnecessary recalculations
 const imageUrlCache = new Map();
 
+const isProductActive = (product) =>
+  !(product?.isActive === false || product?.isActive === 0 || product?.isActive === '0');
+
 const getImageURL = (product) => {
   if (!product || !product.uniqid || product.uniqid == 0) return '/placeholder-med.svg';
 
@@ -146,7 +149,9 @@ const initializeProductItems = () => {
     : pharmacyStore.products;
 
   if (Array.isArray(sourceProducts)) {
-    productItems.value = sourceProducts.map(product => ({
+    productItems.value = sourceProducts
+      .filter((product) => isProductActive(product))
+      .map(product => ({
       ...product,
       quantity: 1,
       justAdded: false
@@ -233,6 +238,7 @@ const filteredProducts = computed(() => {
 
   // Filter by search query
   return productItems.value.filter(product =>
+    isProductActive(product) &&
     product.brandName &&
     product.brandName.toLowerCase().includes(query.toLowerCase())
   );
@@ -254,7 +260,7 @@ const decreaseQuantity = (product) => {
 };
 
 const handleAddToCart = (product) => {
-  if (product.stockQty <= 0) return;
+  if (!isProductActive(product) || product.stockQty <= 0) return;
 
   // Format the product data to match cart store expectations
   cartStore.addToCart({

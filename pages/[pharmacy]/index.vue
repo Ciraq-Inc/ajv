@@ -659,6 +659,9 @@ const clearSearch = () => {
   searchResults.value = [];
 };
 
+const isProductActive = (product) =>
+  !(product?.is_active === false || product?.is_active === 0 || product?.is_active === '0');
+
 // Search functionality with API integration
 const searchProducts = async (query) => {
   if (!query || query.trim().length === 0) {
@@ -686,8 +689,10 @@ const searchProducts = async (query) => {
     const data = await response.json();
 
     if (data.success) {
+      const activeResults = (data.data || []).filter((product) => isProductActive(product));
+
       // Map API response to expected format (matching the pharmacy store format)
-      searchResults.value = (data.data || []).map((product) => ({
+      searchResults.value = activeResults.map((product) => ({
         id: product.id,
         barcode: product.barcode,
         brandName: product.brand_name,
