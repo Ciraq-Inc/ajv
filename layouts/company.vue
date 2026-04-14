@@ -143,7 +143,8 @@ import {
   ArrowPathIcon,
   UserGroupIcon,
   BriefcaseIcon,
-  Bars3Icon
+  Bars3Icon,
+  PresentationChartLineIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -211,6 +212,16 @@ const allNavigationSections = computed(() => [
         path: servicePath('sms-billing'),
         label: 'Billing',
         icon: CreditCardIcon,
+      },
+    ],
+  },
+  {
+    title: 'Reports',
+    items: [
+      {
+        path: servicePath('monthly-reports'),
+        label: 'Monthly Reports',
+        icon: PresentationChartLineIcon,
       },
     ],
   },

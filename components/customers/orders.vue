@@ -1,88 +1,133 @@
 <template>
-  <div>
+  <div class="w-full">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">History</p>
-        <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">Order History</h2>
-        <p class="text-sm font-medium text-zinc-600 mt-1">Your complete order and request fulfillment history.</p>
-      </div>
-      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 shadow-sm">
-        <span class="text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">Total</span>
-        <strong class="text-lg font-black text-zinc-900">{{ mergedItems.length }}</strong>
-      </div>
-    </div>
+    <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[18px]">history</span>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Order History</h1>
+                <p class="text-xs text-zinc-500 font-medium mt-0.5">Your complete order and request fulfillment history</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 shadow-sm hidden sm:flex">
+            <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-500">Total</span>
+            <strong class="text-sm font-black text-zinc-900 tabular-nums">{{ mergedItems.length }}</strong>
+        </div>
+    </header>
 
     <!-- Status filter -->
-    <div class="flex items-center gap-3 mb-5">
-      <span class="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">Filter</span>
-      <select v-model="selectedStatus"
-        class="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 cursor-pointer">
-        <option value="">All</option>
-        <option value="active">Active</option>
-        <option value="in_transit">In Transit</option>
-        <option value="completed">Completed</option>
-        <option value="cancelled">Cancelled</option>
-      </select>
+    <div class="px-5 mb-5 overflow-x-auto no-scrollbar">
+        <div class="inline-flex gap-2 p-1 bg-zinc-100 border border-zinc-200 rounded-lg">
+            <button
+                @click="selectedStatus = ''"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === '' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                All
+            </button>
+            <button
+                @click="selectedStatus = 'active'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'active' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                Active
+            </button>
+            <button
+                @click="selectedStatus = 'in_transit'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'in_transit' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                In Transit
+            </button>
+            <button
+                @click="selectedStatus = 'completed'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'completed' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                Completed
+            </button>
+            <button
+                @click="selectedStatus = 'cancelled'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'cancelled' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                Cancelled
+            </button>
+        </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-8 shadow-sm">
-      <span class="material-symbols-outlined text-2xl text-zinc-400 animate-spin">sync</span>
-      <p class="text-sm font-medium text-zinc-500">Loading your history...</p>
+    <div v-if="isLoading" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-zinc-50 rounded-xl">
+        <span class="material-symbols-outlined text-3xl text-zinc-400 animate-spin mb-3">sync</span>
+        <p class="text-sm font-medium text-zinc-500">Loading your history...</p>
     </div>
 
     <!-- ─── Merged Timeline ─── -->
-    <section v-else class="space-y-2">
-      <div v-if="filteredItems.length === 0" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-400">
-          <span class="material-symbols-outlined">receipt_long</span>
+    <div v-else>
+      <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-white rounded-xl shadow-sm">
+        <div class="max-w-[48px] max-h-[48px] w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100 mx-auto">
+          <span class="material-symbols-outlined text-2xl text-zinc-300">receipt_long</span>
         </div>
-        <div>
-          <p class="font-black text-zinc-800">No history yet</p>
-          <p class="text-sm font-medium text-zinc-500">Your orders and fulfilled requests will appear here.</p>
-        </div>
+        <p class="text-base font-bold text-zinc-900 mb-1 text-center">No history yet</p>
+        <p class="text-sm font-medium text-zinc-500 text-center">Your orders and requests will appear here</p>
       </div>
 
-      <template v-else>
+      <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
         <article v-for="item in filteredItems" :key="item._key"
-          class="flex items-center gap-3 rounded-xl border border-zinc-100 bg-white px-4 py-3.5 hover:border-zinc-200 hover:-translate-y-px transition-all cursor-pointer"
+          class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
           @click="item._type === 'store' ? viewOrder(item) : viewRequestOrder(item)"
         >
-          <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              :class="item._type === 'store' ? orderIconClass(item.status) : 'bg-[#f4e8fb] text-[#5e3a86]'">
-              <span class="material-symbols-outlined text-[18px]">{{ item._type === 'store' ? 'shopping_bag' : 'package_2' }}</span>
+          <div class="flex items-center gap-4 min-w-0">
+            <!-- Colored Icon Box based on status -->
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
+              :class="item.status === 'completed' || item.status === 'delivered' || item.status === 'picked_up' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (item.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : (item.status === 'processing' || item.status === 'shipped' || item.status === 'out_for_delivery' || item.status === 'ready_for_pickup' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100'))">
+              <span class="material-symbols-outlined text-[20px]">{{ item._type === 'store' ? 'shopping_bag' : 'package_2' }}</span>
             </div>
             <div class="min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h4 class="text-sm font-semibold text-zinc-900 truncate">{{ item._displayId }}</h4>
+              <div class="flex items-center gap-2 mb-0.5">
+                <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight truncate">{{ item._displayId }}</h4>
                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.08em] flex-shrink-0"
                   :class="item._type === 'store' ? 'bg-zinc-100 text-zinc-500' : 'bg-[#f4e8fb] text-[#5e3a86]'">
                   {{ item._type === 'store' ? 'Store' : 'Request' }}
                 </span>
+                <span v-if="item._meta" class="hidden sm:inline-flex items-center text-xs text-zinc-400 font-medium truncate w-32 sm:w-auto">
+                    &middot; {{ item._meta }}
+                </span>
               </div>
-              <p class="text-xs text-zinc-400 mt-0.5">{{ item._date }}<span v-if="item._meta"> · {{ item._meta }}</span></p>
+              <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
+                {{ item._date }}
+              </p>
             </div>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <div class="text-right">
-              <strong class="text-sm font-black text-zinc-900">GHS {{ item._amount }}</strong>
-              <div class="flex justify-end mt-0.5">
-                <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em]"
+          <div class="text-right flex-shrink-0 flex items-center gap-4">
+            <div class="flex flex-col items-end gap-1.5">
+              <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ item._amount }}</strong>
+              <div class="flex justify-end">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.1em]"
                   :class="item._type === 'store' ? orderStatusClass(item.status) : requestOrderStatusClass(item.status)">
                   {{ item._type === 'store' ? formatStatus(item.status) : formatRequestStatus(item.status) }}
                 </span>
               </div>
             </div>
+            
             <button v-if="item._type === 'store' && item.status === 'pending'" @click.stop="confirmCancelOrder(item)"
-              class="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-colors flex-shrink-0">
-              <span class="material-symbols-outlined text-[16px]">close</span>
+              class="w-7 h-7 hidden sm:flex items-center justify-center rounded border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-colors flex-shrink-0"
+              title="Cancel Order">
+              <span class="material-symbols-outlined text-[14px]">close</span>
             </button>
+            
+            <!-- Hover Chevron -->
+            <div class="ml-2 hidden sm:flex w-6 h-6 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                </svg>
+            </div>
           </div>
         </article>
-      </template>
-    </section>
+      </div>
+    </div>
 
     <!-- ─── Store Order Detail Modal ─── -->
     <div v-if="selectedOrder" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="selectedOrder = null">

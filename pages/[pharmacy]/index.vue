@@ -201,38 +201,33 @@
         </article>
       </section>
 
-      <!-- Search Bar with improved styling -->
+      <!-- Request Search Bar -->
       <div class="bg-opacity-80 backdrop-blur-md py-3 mt-3 sticky top-0 z-40">
         <div
           class="bg-white rounded-xl shadow-lg p-3 border border-gray-100 transition-all duration-300 hover:shadow-xl">
-          <div class="relative">
+          <form class="relative" @submit.prevent="submitRequestSearch">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <!-- Show spinner when searching -->
-              <svg v-if="isSearching" class="animate-spin h-6 w-6 shopfront-text" xmlns="http://www.w3.org/2000/svg"
-                fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                </path>
-              </svg>
-              <!-- Show search icon when not searching -->
-              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shopfront-text" fill="none"
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shopfront-text" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
             <input v-model="searchQuery" ref="searchInput" type="text"
-              placeholder="Search for medications, health products..."
+              placeholder="Search medicine name to start a request..."
               class="w-full pl-12 px-4 py-3 md:py-4 border border-gray-200 rounded-lg shopfront-input bg-gray-50 text-gray-700 shadow-sm transition-all duration-200 text-lg" />
-            <span v-if="searchQuery" @click="clearSearch"
+            <button v-if="searchQuery" type="button" @click="clearSearch"
               class="absolute right-4 top-3 md:top-4 text-gray-500 hover:text-gray-700 cursor-pointer p-1 rounded-full hover:bg-gray-100">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </span>
-          </div>
+            </button>
+          </form>
+
+          <p class="mt-3 px-1 text-sm text-gray-500">
+            This search starts a medicine request. Our team will confirm stock and pricing after you submit it.
+          </p>
         </div>
       </div>
 
@@ -340,7 +335,7 @@
         </div>
 
         <!-- No products state with improved styling -->
-        <div v-if="!pharmacyStore.hasProducts && !searchQuery"
+        <div v-if="!pharmacyStore.hasProducts"
           class="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-100 transition-all duration-300 hover:shadow-xl">
           <div
             class="inline-flex items-center justify-center w-20 h-20 rounded-full shopfront-accent-soft shopfront-text mb-6">
@@ -359,44 +354,13 @@
           </p>
         </div>
 
-        <!-- No search results state -->
-        <div v-else-if="
-          searchQuery && displayProducts.length === 0 && !isSearching
-        "
-          class="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-100 transition-all duration-300 hover:shadow-xl">
-          <div
-            class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-yellow-100 text-yellow-600 mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <h3 class="text-2xl font-medium text-gray-900 mb-3">
-            No products found
-          </h3>
-          <p class="mt-2 text-gray-600 max-w-md mx-auto">
-            We couldn't find any products matching "{{ searchQuery }}". Try
-            searching with different keywords.
-          </p>
-          <button @click="searchQuery = ''"
-            class="mt-6 shopfront-primary text-white px-6 py-3 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Clear Search
-          </button>
-        </div>
-
         <!-- Products display -->
         <template v-else>
           <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="''"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex"
-            @item-added-to-cart="clearSearchAfterAddToCart" />
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex" />
 
           <ProductsGrid v-else :products="displayProducts" :search-query="''"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" @item-added-to-cart="clearSearchAfterAddToCart" />
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" />
         </template>
       </div>
     </div>
@@ -491,11 +455,10 @@ const searchQuery = ref("");
 const viewMode = ref("table");
 const cartSidebar = ref(null);
 const searchInput = ref(null);
-const isSearching = ref(false);
-const searchResults = ref([]);
-const searchDebounceTimer = ref(null);
 const showLoginModal = ref(false);
 const activeAds = ref([]);
+
+const HOMEPAGE_REQUEST_DRAFT_KEY = "medsgh_homepage_request_draft";
 
 // Order success state
 const orderSuccessMessage = ref("");
@@ -612,11 +575,6 @@ const formatAdWindow = (startDate, endDate) => {
 
 // Computed property for products to display - either search results or all products
 const displayProducts = computed(() => {
-  // If searching and we have a query, show search results (including out of stock)
-  if (searchQuery.value && searchQuery.value.trim().length > 0) {
-    return searchResults.value;
-  }
-  // Otherwise show all in-stock products
   return pharmacyStore.inStockProducts;
 });
 
@@ -645,98 +603,63 @@ const updateViewMode = () => {
   viewMode.value = window.innerWidth < 768 ? "grid" : "table";
 };
 
-const clearSearchAfterAddToCart = (product) => {
-  setTimeout(() => {
-    searchQuery.value = "";
-    searchResults.value = [];
-    focusSearchInput();
-  }, 100);
-};
-
-// Search control methods
 const clearSearch = () => {
   searchQuery.value = "";
-  searchResults.value = [];
 };
 
-// Search functionality with API integration
-const searchProducts = async (query) => {
-  if (!query || query.trim().length === 0) {
-    searchResults.value = [];
-    isSearching.value = false;
+const normalizeRequestDraftItem = (item) => {
+  const productName = String(typeof item === "string" ? item : item?.product_name || "").trim();
+  if (!productName) return null;
+
+  return {
+    product_name: productName,
+    quantity: Math.max(1, Number(item?.quantity || 1)),
+  };
+};
+
+const persistRequestDraft = (items = []) => {
+  if (!process.client) return;
+
+  const normalizedItems = (Array.isArray(items) ? items : [items])
+    .map(normalizeRequestDraftItem)
+    .filter(Boolean);
+
+  if (!normalizedItems.length) {
+    sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY);
     return;
   }
 
-  isSearching.value = true;
-
-  try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
-    // Call the product search API
-    const response = await fetch(
-      `${baseURL}/api/products/search?company_id=${pharmacyStore.currentPharmacy
-      }&q=${encodeURIComponent(query.trim())}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.success) {
-      // Map API response to expected format (matching the pharmacy store format)
-      searchResults.value = (data.data || []).map((product) => ({
-        id: product.id,
-        barcode: product.barcode,
-        brandName: product.brand_name,
-        masterName: product.master_name,
-        dosage: product.dosage,
-        strength: product.strength,
-        unit: product.unit,
-        buyUnit: product.buy_unit,
-        sellUnit: product.sell_unit,
-        costPrice: product.cost_price,
-        sellingPrice: product.selling_price,
-        markup: product.markup,
-        discount: product.discount,
-        stockQty: product.stock_qty,
-        reorder: product.reorder,
-        shelves: product.shelves,
-        productExpiry: product.product_expiry,
-        hasMultiExpiryDate: product.has_multi_expiry_date,
-        hasTax: product.has_tax,
-        multi: product.multi,
-        supplier: product.supplier,
-        supplierId: product.supplier_id,
-        selectedProdClass: product.selected_prod_class,
-        isActive: product.is_active,
-        inStock: product.stock_qty > 0,
-        quantity: product.stock_qty,
-      }));
-    } else {
-      searchResults.value = [];
-    }
-  } catch (error) {
-    console.error("Error searching products:", error);
-    searchResults.value = [];
-  } finally {
-    isSearching.value = false;
-  }
+  sessionStorage.setItem(
+    HOMEPAGE_REQUEST_DRAFT_KEY,
+    JSON.stringify({
+      items: normalizedItems,
+      source: "pharmacy-storefront-search",
+    })
+  );
 };
 
-// Debounced search to avoid excessive API calls
-const debouncedSearch = (query) => {
-  // Clear existing timer
-  if (searchDebounceTimer.value) {
-    clearTimeout(searchDebounceTimer.value);
+const hasRequestDraft = () => {
+  if (!process.client) return false;
+  return Boolean(sessionStorage.getItem(HOMEPAGE_REQUEST_DRAFT_KEY));
+};
+
+const openRequestFlow = async (draftItems = []) => {
+  persistRequestDraft(draftItems);
+
+  if (userStore.isLoggedIn) {
+    await router.push("/customer?tab=new");
+    return;
   }
 
-  // Set new timer
-  searchDebounceTimer.value = setTimeout(() => {
-    searchProducts(query);
-  }, 300); // 300ms delay
+  showLoginModal.value = true;
+};
+
+const submitRequestSearch = async () => {
+  const query = searchQuery.value.trim();
+  if (!query) return;
+
+  await openRequestFlow([{ product_name: query, quantity: 1 }]);
+  clearSearch();
 };
 
 // Navigation Methods
@@ -804,10 +727,12 @@ const closeLoginModal = () => {
 
 const handleLoginSuccess = async () => {
   closeLoginModal();
-  // User state will be updated automatically by the store
-  // Load user stats to ensure fresh data
   if (userStore.isLoggedIn) {
     await userStore.loadUserStats();
+  }
+
+  if (hasRequestDraft()) {
+    await router.push("/customer?tab=new");
   }
 };
 
@@ -831,11 +756,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", updateViewMode);
-
-  // Clear any pending search timer
-  if (searchDebounceTimer.value) {
-    clearTimeout(searchDebounceTimer.value);
-  }
 });
 
 // Watch for route changes
@@ -859,19 +779,6 @@ watch(
   }
 );
 
-// Watch search query for real-time API search
-watch(searchQuery, (newQuery) => {
-  if (newQuery && newQuery.trim().length > 0) {
-    debouncedSearch(newQuery);
-  } else {
-    searchResults.value = [];
-    isSearching.value = false;
-    // Clear any pending search
-    if (searchDebounceTimer.value) {
-      clearTimeout(searchDebounceTimer.value);
-    }
-  }
-});
 </script>
 
 <style scoped>

@@ -232,6 +232,8 @@
             title="All Products Across Companies"
             :showTitle="true"
             :showCompanyFilter="true"
+            :showPharmacySearch="true"
+            :autoload="false"
             :pageSize="50"
           />
         </div>

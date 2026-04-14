@@ -10,7 +10,7 @@
 <section class="relative min-h-[870px] flex items-center overflow-hidden">
 <!-- Background Image -->
 <div class="absolute inset-0 z-0">
-<img alt="" class="w-full h-full object-cover" data-alt="A professional smiling dark-skinned female pharmacist in a modern white clinic, warm lighting, clinical yet welcoming atmosphere, high-end editorial style" src="/user_ordering_med.jpg"/>
+<img :src="heroOrderingImage" alt="" class="w-full h-full object-cover" data-alt="A professional smiling dark-skinned female pharmacist in a modern white clinic, warm lighting, clinical yet welcoming atmosphere, high-end editorial style"/>
 <div class="absolute inset-0 bg-gradient-to-r from-[#fff7ff]/95 via-[#fff7ff]/40 to-transparent"></div>
 </div>
 <div class="container mx-auto px-8 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
@@ -24,55 +24,46 @@
 <!-- Search & CTA -->
 <div class="flex flex-col space-y-4 max-w-lg">
 <form class="space-y-4" @submit.prevent="submitHomepageSearch">
-<div class="relative">
-<input
-v-model="homepageSearchTerm"
-@input="onHomepageSearchInput"
-@focus="focusHomepageSearch"
-@blur="closeHomepageSearch"
-class="w-full pl-14 pr-14 py-5 bg-[#ffffff] border-none shadow-sm rounded-full text-[#1e1a22] focus:ring-2 focus:ring-[#520094]/20 placeholder:text-[#7d7484]"
-placeholder="Search for medication or wellness products..."
-type="text"
-/>
-<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-[#520094]" data-icon="search">search</span>
-<label class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" title="Attach prescription image">
-  <span
-    class="flex items-center justify-center w-9 h-9 rounded-full transition-colors"
-    :class="homepagePrescriptionImage ? 'bg-[#520094] text-white' : 'bg-[#f3e8ff] text-[#520094] hover:bg-[#e9d5ff]'"
-  >
-    <span class="material-symbols-outlined text-[1.1rem]" data-icon="photo_camera">{{ homepagePrescriptionImage ? 'check_circle' : 'photo_camera' }}</span>
-  </span>
-  <input ref="homepageImagePicker" type="file" accept="image/*" class="hidden" @change="onHomepagePrescriptionImageSelected" />
-</label>
-<div
-v-if="showHomepageSearchDropdown && (homepageSearchLoading || homepageSearchResults.length || homepageSearchTerm.trim().length >= 2)"
-class="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-20 overflow-hidden rounded-[1.5rem] border border-[#efdbff] bg-white shadow-[0_24px_48px_-24px_rgba(82,0,148,0.28)]"
->
-<div v-if="homepageSearchLoading" class="px-5 py-4 text-sm font-medium text-[#7d7484]">
-Searching medicines...
-</div>
-<template v-else-if="homepageSearchResults.length">
-<button
-v-for="product in homepageSearchResults"
-:key="product.id"
-type="button"
-@mousedown.prevent="selectHomepageProduct(product)"
-class="flex w-full items-start justify-between gap-3 border-b border-[#f4ebf7] px-5 py-4 text-left transition hover:bg-[#faf0fd] last:border-b-0"
->
-<div>
-<div class="font-semibold text-[#1e1a22]">{{ formatHomepageProductLabel(product) }}</div>
-<div v-if="product.classification_name || product.product_description" class="mt-1 text-xs text-[#7d7484]">
-{{ product.classification_name || 'Medicine match' }}
-</div>
-</div>
-<span class="text-[11px] font-bold uppercase tracking-[0.14em] text-[#520094]">Use</span>
-</button>
-</template>
-<div v-else class="px-5 py-4 text-sm text-[#7d7484]">
-No matches found. You can still continue with your typed request.
-</div>
-</div>
-</div>
+              <!-- Unified Input Bar -->
+              <div class="relative flex flex-col md:flex-row items-stretch md:items-center bg-white rounded-[2.5rem] p-1.5 md:p-2 border border-[#ead6fd] shadow-[0_8px_30px_rgb(82,0,148,0.12)] transition-all duration-300 focus-within:ring-4 focus-within:ring-[#520094]/10 focus-within:shadow-[0_10px_40px_rgb(82,0,148,0.2)] focus-within:-translate-y-1">
+                
+                <!-- Main Input Area -->
+                <div class="relative flex-1 min-w-0 flex items-center">
+                  <span class="material-symbols-outlined shrink-0 text-[#cbb5e1] !text-[28px] pl-4 md:pl-5 pr-2" data-icon="search">search</span>
+                  <input
+                    v-model="homepageSearchTerm"
+                    class="w-full bg-transparent border-none py-3.5 md:py-4 text-[#1e1a22] focus:ring-0 placeholder:text-[#d3c2e1] outline-none font-bold text-[15px] md:text-[16px] pr-4 md:pr-6"
+                    placeholder="Type the medicine you need..."
+                    type="text"
+                  />
+                </div>
+                
+                <!-- Divider (Responsive) -->
+                <div class="hidden md:block w-px h-10 bg-gradient-to-b from-transparent via-[#ead6fd] to-transparent mx-2 opacity-80 shrink-0"></div>
+                <div class="md:hidden h-px w-full bg-gradient-to-r from-transparent via-[#ead6fd] to-transparent my-1 opacity-80 shrink-0"></div>
+
+                <!-- Right Controls: Unit & Submit -->
+                <div class="flex items-center gap-2 pl-2 pr-1 md:px-0 md:pr-1 pb-1 md:pb-0 pt-2 md:pt-0 shrink-0">
+                  <div class="w-[120px] md:w-[140px] relative h-[48px] md:h-[52px]">
+                    <select
+                      v-model="homepageRequestedUnit"
+                      class="w-full h-full rounded-[2rem] border-2 border-transparent hover:border-[#ead6fd] focus:border-[#cbb5e1] bg-[#fbf5ff] md:bg-transparent pl-5 pr-10 py-0 text-[14px] font-bold text-[#520094] outline-none transition-all duration-200 focus:ring-0 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23520094%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:18px_18px] bg-[right_14px_center] bg-no-repeat cursor-pointer"
+                    >
+                      <option value="" class="text-[#a890bd] font-semibold">Qty/Unit</option>
+                      <option v-for="option in medicineUnitOptions" :key="option" :value="option" class="font-bold text-[#1e1a22]">{{ option }}</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    @click="addHomepageCurrentItem"
+                    :disabled="!homepageSearchTerm.trim()"
+                    class="h-[48px] md:h-[52px] flex-shrink-0 inline-flex items-center justify-center gap-1.5 rounded-[2rem] bg-gradient-to-r from-[#6c24b3] to-[#520094] pl-5 pr-6 text-[14px] font-black uppercase tracking-[0.15em] text-white transition-all duration-300 hover:shadow-lg hover:shadow-[#520094]/40 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:from-[#efe2ff] disabled:to-[#efe2ff] disabled:text-[#cbb5e1] disabled:shadow-none disabled:transform-none"
+                  >
+                    <span class="material-symbols-outlined !text-[22px] font-bold">add</span>
+                    <span class="mt-px">Add</span>
+                  </button>
+                </div>
+              </div>
 <div v-if="homepagePrescriptionImagePreview" class="flex items-center gap-3 rounded-2xl border border-[#d9bcfa] bg-white px-3 py-2.5 shadow-sm">
   <img :src="homepagePrescriptionImagePreview" alt="Prescription preview" class="h-12 w-12 rounded-xl object-cover flex-shrink-0 border border-[#efdbff]" />
   <div class="flex-1 min-w-0">
@@ -107,10 +98,11 @@ Clear all
 <div class="mt-4 flex flex-wrap gap-2.5">
 <div
 v-for="(item, index) in homepageSelectedItems"
-:key="`${item.product_name}-${index}`"
+:key="`${item.product_name}-${item.requested_unit || 'none'}-${index}`"
 class="inline-flex items-center gap-2 rounded-full border border-[#ead6fd] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#1e1a22] shadow-[0_10px_26px_-22px_rgba(82,0,148,0.55)]"
 >
 <span>{{ item.product_name }}</span>
+<span v-if="item.requested_unit" class="rounded-full bg-[#faf5ff] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#6f35ad]">{{ item.requested_unit }}</span>
 <div class="inline-flex items-center rounded-full border border-[#ead6fd] bg-[#faf5ff] p-1">
 <button
 type="button"
@@ -426,14 +418,13 @@ useHead({
 const userStore = useUserStore()
 const route = useRoute()
 const config = useRuntimeConfig()
+const heroOrderingImage = '/user_ordering_med.jpg'
 
 const authResolved = ref(false)
 const showLoginModal = ref(false)
 const toast = ref(null)
 const homepageSearchTerm = ref('')
-const homepageSearchResults = ref([])
-const homepageSearchLoading = ref(false)
-const showHomepageSearchDropdown = ref(false)
+const homepageRequestedUnit = ref('')
 const homepageSelectedItems = ref([])
 const homepageImagePicker = ref(null)
 const homepagePrescriptionImage = ref(null)
@@ -458,7 +449,18 @@ const homepageSelectedQuantity = computed(() => homepageSelectedItems.value.redu
 }, 0))
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
-let homepageSearchDebounceTimer = null
+const medicineUnitOptions = [
+  'tab',
+  'capsule',
+  'bottle',
+  'suppository',
+  'tube',
+  'vial',
+  'ampoule',
+  'sachet',
+  'pack',
+  'other'
+]
 
 const categories = [
   { name: 'Prescription Medicines', description: 'Upload scripts or request specific prescription products.', icon: 'ri-file-paper-2-line' },
@@ -492,23 +494,13 @@ const showToast = (text, type = 'success') => {
   }, 4000)
 }
 
-const formatHomepageProductLabel = (product = {}) => {
-  const description = String(product.product_description || product.name || '').trim()
-  const suffix = [product.strength, product.unit].filter(Boolean).join(' ').trim()
-
-  if (!description) return suffix
-  if (!suffix) return description
-  if (description.toLowerCase().includes(suffix.toLowerCase())) return description
-
-  return `${description} ${suffix}`.trim()
-}
-
 const normalizeHomepageDraftItem = (item) => {
   const productName = String(typeof item === 'string' ? item : item?.product_name || '').trim()
   if (!productName) return null
 
   return {
     product_name: productName,
+    requested_unit: String(item?.requested_unit || '').trim().toLowerCase(),
     quantity: Math.max(1, Number(item?.quantity || 1))
   }
 }
@@ -545,6 +537,7 @@ const addHomepageSelectedItem = (item) => {
 
   const existingIndex = homepageSelectedItems.value.findIndex((entry) =>
     entry.product_name.trim().toLowerCase() === normalized.product_name.trim().toLowerCase()
+    && String(entry.requested_unit || '').trim().toLowerCase() === String(normalized.requested_unit || '').trim().toLowerCase()
   )
 
   if (existingIndex >= 0) {
@@ -560,6 +553,19 @@ const addHomepageSelectedItem = (item) => {
   homepageSelectedItems.value = [...homepageSelectedItems.value, normalized]
   syncHomepageDraftItems()
   return true
+}
+
+const addHomepageCurrentItem = () => {
+  const added = addHomepageSelectedItem({
+    product_name: homepageSearchTerm.value,
+    requested_unit: homepageRequestedUnit.value,
+    quantity: 1
+  })
+
+  if (!added) return
+
+  homepageSearchTerm.value = ''
+  homepageRequestedUnit.value = ''
 }
 
 const updateHomepageSelectedItemQuantity = (index, nextQuantity) => {
@@ -594,65 +600,6 @@ const clearHomepageSelectedItems = () => {
   syncHomepageDraftItems()
 }
 
-const runHomepageSearch = async () => {
-  const query = homepageSearchTerm.value.trim()
-  if (query.length < 2) {
-    homepageSearchResults.value = []
-    homepageSearchLoading.value = false
-    return
-  }
-
-  homepageSearchLoading.value = true
-  try {
-    const response = await fetch(`${config.public.apiBase}/api/master-products?search=${encodeURIComponent(query)}&limit=5`)
-    const data = await response.json()
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || 'Failed to search medicines')
-    }
-    homepageSearchResults.value = Array.isArray(data.data) ? data.data : []
-  } catch (error) {
-    homepageSearchResults.value = []
-    console.error('Homepage medicine search failed:', error)
-  } finally {
-    homepageSearchLoading.value = false
-  }
-}
-
-const onHomepageSearchInput = () => {
-  showHomepageSearchDropdown.value = true
-  clearTimeout(homepageSearchDebounceTimer)
-
-  if (homepageSearchTerm.value.trim().length < 2) {
-    homepageSearchResults.value = []
-    homepageSearchLoading.value = false
-    return
-  }
-
-  homepageSearchDebounceTimer = setTimeout(() => {
-    runHomepageSearch()
-  }, 250)
-}
-
-const focusHomepageSearch = () => {
-  if (homepageSearchTerm.value.trim().length >= 2) {
-    showHomepageSearchDropdown.value = true
-  }
-}
-
-const closeHomepageSearch = () => {
-  setTimeout(() => {
-    showHomepageSearchDropdown.value = false
-  }, 140)
-}
-
-const selectHomepageProduct = (product) => {
-  const label = formatHomepageProductLabel(product)
-  addHomepageSelectedItem(label)
-  homepageSearchTerm.value = ''
-  homepageSearchResults.value = []
-  showHomepageSearchDropdown.value = false
-}
-
 const openOrderFlow = (draftItems = []) => {
   persistHomepageRequestDraft(draftItems)
   if (userStore.isLoggedIn) {
@@ -665,10 +612,7 @@ const openOrderFlow = (draftItems = []) => {
 const submitHomepageSearch = () => {
   const query = homepageSearchTerm.value.trim()
   if (query) {
-    addHomepageSelectedItem(query)
-    homepageSearchTerm.value = ''
-    homepageSearchResults.value = []
-    showHomepageSearchDropdown.value = false
+    addHomepageCurrentItem()
   }
   openOrderFlow(homepageSelectedItems.value)
 }
@@ -711,10 +655,6 @@ onMounted(async () => {
   await userStore.checkAuthState()
   if (await redirectLoggedInUsers()) return
   authResolved.value = true
-})
-
-onUnmounted(() => {
-  clearTimeout(homepageSearchDebounceTimer)
 })
 
 watch(() => route.query.logged_out, handleLoggedOutNotice, { immediate: true })

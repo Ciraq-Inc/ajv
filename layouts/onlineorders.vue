@@ -58,6 +58,14 @@
           </svg>
           <span v-if="!collapsed" class="ol-nav-text">Deliveries</span>
         </NuxtLink>
+
+        <NuxtLink to="/admin/pharmacy-ledger" class="ol-nav-item" active-class="ol-nav-active" :title="collapsed ? 'Pharmacy Ledger' : undefined">
+          <svg class="ol-nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 8v8m-4-4h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 6.5C4 5.12 5.12 4 6.5 4h11C18.88 4 20 5.12 20 6.5v11c0 1.38-1.12 2.5-2.5 2.5h-11C5.12 20 4 18.88 4 17.5v-11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          <span v-if="!collapsed" class="ol-nav-text">Pharmacy Ledger</span>
+        </NuxtLink>
       </nav>
 
       <!-- Footer actions -->
@@ -84,7 +92,7 @@
     <div class="ol-main">
       <!-- Topbar -->
       <header class="ol-topbar">
-        <button class="ol-mobile-menu-btn" @click="collapsed = !collapsed">☰</button>
+        <button class="ol-mobile-menu-btn" @click="collapsed = !collapsed" :aria-label="collapsed ? 'Open menu' : 'Close menu'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
         <h1 class="ol-page-title">{{ pageTitle }}</h1>
       </header>
       <main class="ol-content">
@@ -109,7 +117,7 @@ const isReady = ref(false)
 const collapsed = ref(false)
 const isMobile = ref(false)
 
-// Shared pending count — written by the page, read here
+// Shared pending count, written by the page and read here
 const pendingCount = useState('ol-pending-count', () => 0)
 
 const adminName = computed(() => {
@@ -132,6 +140,7 @@ const adminRole = computed(() => {
 
 const pageTitle = computed(() => {
   const path = route.path
+  if (path.includes('/pharmacy-ledger')) return 'Pharmacy Ledger'
   if (path.includes('/onlineorders/deliveries')) return 'Delivery Management'
   if (path.includes('/onlineorders')) return 'Order Requests'
   return 'Online Orders'
@@ -483,4 +492,5 @@ onUnmounted(() => {
   .ol-mobile-menu-btn { display: flex; }
 }
 </style>
+
 

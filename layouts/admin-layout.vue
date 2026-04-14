@@ -147,6 +147,15 @@
           </NuxtLink>
 
           <NuxtLink 
+            to="/admin/pharmacy-ledger" 
+            class="nav-item"
+            active-class="active"
+          >
+            <BanknotesIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Ledger</span>
+          </NuxtLink>
+
+          <NuxtLink 
             to="/admin/platform-settings" 
             class="nav-item"
             active-class="active"
@@ -316,6 +325,7 @@ import {
   CubeIcon,
   ClipboardDocumentListIcon,
   TruckIcon,
+  BanknotesIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute } from 'vue-router'

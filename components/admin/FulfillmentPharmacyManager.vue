@@ -51,6 +51,37 @@
       </div>
     </div>
 
+    <div v-if="recommendedPharmacyCard" class="fpm-next-card">
+      <div class="fpm-next-copy">
+        <span class="fpm-next-label">Next follow-up</span>
+        <strong>{{ recommendedPharmacyCard.name }}</strong>
+        <span class="fpm-next-meta">
+          {{ formatDistanceMeta(recommendedPharmacyCard.distance_km) }}
+          <template v-if="getQueueStateLabel(recommendedPharmacyCard)">
+            • {{ getQueueStateLabel(recommendedPharmacyCard) }}
+          </template>
+        </span>
+      </div>
+      <div class="fpm-next-actions">
+        <button
+          type="button"
+          class="btn-footer-ghost"
+          @click="togglePharmacyDetails(recommendedPharmacyCard.id)"
+        >
+          {{ isExpanded(recommendedPharmacyCard.id) ? 'Hide Details' : 'View Details' }}
+        </button>
+        <button
+          v-if="canSourceFrom(recommendedPharmacyCard)"
+          type="button"
+          class="btn-use-plan"
+          :disabled="loading"
+          @click="handleUsePlan(recommendedPharmacyCard)"
+        >
+          Source from Here
+        </button>
+      </div>
+    </div>
+
     <!-- Empty state -->
     <div v-if="filteredPharmacies.length === 0" class="fpm-empty">
       <StateMessage
@@ -77,8 +108,15 @@
               <h3 class="pharm-name">{{ pharm.name }}</h3>
             </div>
             <div class="pharm-top-badge">
-              <span v-if="getPrimaryPlan(pharm)?.priority_rank" class="pharm-badge fit">Plan {{ getPrimaryPlan(pharm).priority_rank }}</span>
-              <span v-else-if="pharm.contacted_at" class="pharm-badge contacted">Contacted</span>
+              <span
+                v-if="shouldShowQueueStateBadge(pharm)"
+                class="pharm-badge"
+                :class="queueStateBadgeClass(pharm)"
+              >
+                {{ getQueueStateLabel(pharm) }}
+              </span>
+              <span v-else-if="getPrimaryPlan(pharm)?.priority_rank" class="pharm-badge fit">Plan {{ getPrimaryPlan(pharm).priority_rank }}</span>
+              <span v-else-if="getQueueStateLabel(pharm)" class="pharm-badge" :class="queueStateBadgeClass(pharm)">{{ getQueueStateLabel(pharm) }}</span>
             </div>
           </div>
 
@@ -162,6 +200,50 @@
             <div v-if="getPlanSupportCopy(pharm)" class="pharm-plan-support">
               {{ getPlanSupportCopy(pharm) }}
             </div>
+            <div class="pharm-contact-actions">
+              <button
+                type="button"
+                class="btn-contact-action"
+                @click="emitContactAction(pharm, 'contacted')"
+                :disabled="isContactActionDisabled(pharm, 'contacted')"
+              >
+                Mark Contacted
+              </button>
+              <button
+                type="button"
+                class="btn-contact-action success"
+                @click="emitContactAction(pharm, 'confirmed')"
+                :disabled="isContactActionDisabled(pharm, 'confirmed')"
+              >
+                Confirm Available
+              </button>
+              <button
+                type="button"
+                class="btn-contact-action warn"
+                @click="emitContactAction(pharm, 'declined')"
+                :disabled="isContactActionDisabled(pharm, 'declined')"
+              >
+                Mark Unavailable
+              </button>
+              <button
+                type="button"
+                class="btn-contact-action muted"
+                @click="emitContactAction(pharm, 'timed_out')"
+                :disabled="isContactActionDisabled(pharm, 'timed_out')"
+              >
+                Mark Timeout
+              </button>
+            </div>
+            <div class="pharm-note-field">
+              <label class="pharm-note-label" :for="`pharm-note-${pharm.id}`">Contact note</label>
+              <textarea
+                :id="`pharm-note-${pharm.id}`"
+                v-model="pharmacyNotes[Number(pharm.id)]"
+                class="pharm-note-input"
+                rows="2"
+                placeholder="Add a short note about the call or WhatsApp reply..."
+              />
+            </div>
             <div class="pharm-detail-meta">
               <span class="pharm-meta-chip">Qty matched {{ Number(pharm.matched_quantity_total || 0) }}</span>
               <span v-if="pharm.location" class="pharm-meta-chip">{{ pharm.location }}</span>
@@ -173,7 +255,13 @@
                 <CheckIcon class="fpm-icon-xs" />
                 Contacted at {{ formatDate(pharm.contacted_at) }}
               </span>
+              <span v-if="formatResponseMeta(pharm)" class="pharm-meta-chip subtle">
+                {{ formatResponseMeta(pharm) }}
+              </span>
             </div>
+            <p v-if="getResponseNote(pharm)" class="pharm-response-note">
+              {{ getResponseNote(pharm) }}
+            </p>
           </div>
         </article>
       <button
@@ -193,7 +281,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   ClipboardDocumentIcon,
   BuildingOfficeIcon,
@@ -211,16 +299,18 @@ const props = defineProps({
   pharmacies: { type: Array, default: () => [] },
   candidatePlans: { type: Array, default: () => [] },
   allocationSummary: { type: Object, default: null },
+  nextRecommendedPharmacy: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   sourcingError: { type: Boolean, default: false },
   sourcingLoading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['contact', 'use-plan', 'retry'])
+const emit = defineEmits(['contact', 'contact-status', 'use-plan', 'retry'])
 const toast = ref(null)
 const showAllPharmacies = ref(false)
 const expandedPharmacyIds = ref([])
 const rankingMode = ref('auto')
+const pharmacyNotes = ref({})
 
 const rankingModeLabel = computed(() => ({
   auto: 'System ranking',
@@ -290,6 +380,26 @@ const visiblePharmacies = computed(() => (
 
 const hasHiddenPharmacies = computed(() => sortedPharmacies.value.length > 3)
 
+const recommendedPharmacyCard = computed(() => {
+  const pharmacyId = Number(props.nextRecommendedPharmacy?.pharmacy_id || 0)
+  if (!pharmacyId) return null
+  return props.pharmacies.find((pharm) => Number(pharm?.id || pharm?.pharmacy_id || 0) === pharmacyId) || null
+})
+
+watch(
+  () => props.pharmacies,
+  (pharmacies) => {
+    const nextNotes = {}
+    for (const pharm of Array.isArray(pharmacies) ? pharmacies : []) {
+      const pharmacyId = Number(pharm?.id || pharm?.pharmacy_id || 0)
+      if (!pharmacyId) continue
+      nextNotes[pharmacyId] = String(pharm?.response_note || '')
+    }
+    pharmacyNotes.value = nextNotes
+  },
+  { immediate: true, deep: true }
+)
+
 const isExpanded = (pharmacyId) => expandedPharmacyIds.value.includes(Number(pharmacyId))
 
 const togglePharmacyDetails = (pharmacyId) => {
@@ -308,6 +418,12 @@ const showToast = (text, type = 'success') => {
 
 const formatDate = (d) =>
   new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+
+const formatDistanceMeta = (distanceKm) => {
+  const distance = Number(distanceKm)
+  if (!Number.isFinite(distance) || distance < 0) return 'Distance unavailable'
+  return `${distance.toFixed(1)} km away`
+}
 
 const getRequestedCount = () => {
   const total = Array.isArray(props.request?.items) ? props.request.items.length : 0
@@ -479,12 +595,78 @@ const formatItemStock = (value) => {
 const hasWhatsApp = (pharm) =>
   Boolean(pharm?.whatsapp_url && String(pharm.whatsapp_url).trim())
 
+const shouldShowQueueStateBadge = (pharm) => {
+  const queueState = String(pharm?.queue_state || '').toLowerCase()
+  return Boolean(queueState && queueState !== 'not_contacted')
+}
+
+const getQueueStateLabel = (pharm) => {
+  const queueState = String(pharm?.queue_state || '').toLowerCase()
+  if (!queueState) return ''
+  if (queueState === 'awaiting_response') return 'Awaiting Response'
+  if (queueState === 'full') return 'Confirmed'
+  if (queueState === 'partial') return 'Partial Stock'
+  if (queueState === 'declined') return 'Unavailable'
+  if (queueState === 'timeout') return 'Timed Out'
+  if (queueState === 'not_contacted') return 'Not Contacted'
+  return queueState.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+const queueStateBadgeClass = (pharm) => {
+  const queueState = String(pharm?.queue_state || '').toLowerCase()
+  return {
+    fit: queueState === 'full',
+    contacted: queueState === 'awaiting_response',
+    danger: ['declined', 'timeout'].includes(queueState),
+    warn: queueState === 'partial',
+    pending: queueState === 'not_contacted'
+  }
+}
+
+const isContactActionDisabled = (pharm, action) => {
+  if (props.loading) return true
+
+  const queueState = String(pharm?.queue_state || '').toLowerCase()
+  if (!queueState) return false
+
+  if (action === 'contacted') return queueState === 'awaiting_response'
+  if (action === 'confirmed') return queueState === 'full'
+  if (action === 'declined') return queueState === 'declined'
+  if (action === 'timed_out') return queueState === 'timeout'
+  return false
+}
+
+const formatResponseMeta = (pharm) => {
+  const respondedAt = pharm?.responded_at ? formatDate(pharm.responded_at) : ''
+  const queueStateLabel = getQueueStateLabel(pharm)
+  if (respondedAt && queueStateLabel && !['Awaiting Response', 'Not Contacted'].includes(queueStateLabel)) {
+    return `${queueStateLabel} at ${respondedAt}`
+  }
+  if (queueStateLabel && !['Awaiting Response', 'Not Contacted'].includes(queueStateLabel)) {
+    return queueStateLabel
+  }
+  return ''
+}
+
+const getResponseNote = (pharm) => {
+  const note = String(pharm?.response_note || '').trim()
+  return note || ''
+}
+
+const emitContactAction = (pharm, action) => {
+  const pharmacyId = Number(pharm?.id || pharm?.pharmacy_id || 0)
+  const draftNote = String(pharmacyNotes.value[pharmacyId] || '').trim()
+  emit('contact-status', { pharmacy: pharm, action, note: draftNote })
+}
+
 const handleWhatsAppClick = (pharm) => {
   if (!hasWhatsApp(pharm)) {
     showToast(`No WhatsApp number for ${pharm?.name || 'this pharmacy'}`, 'error')
     return
   }
-  emit('contact', pharm)
+  const pharmacyId = Number(pharm?.id || pharm?.pharmacy_id || 0)
+  const draftNote = String(pharmacyNotes.value[pharmacyId] || '').trim()
+  emit('contact', { pharmacy: pharm, note: draftNote })
 }
 
 const formatRequestDetails = () => {
@@ -532,6 +714,44 @@ const copyFullRequest = () => {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 0.7rem;
+}
+
+.fpm-next-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+}
+
+.fpm-next-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.fpm-next-label {
+  font-size: 0.69rem;
+  font-weight: 800;
+  color: #2563eb;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fpm-next-meta {
+  font-size: 0.79rem;
+  color: #64748b;
+}
+
+.fpm-next-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .fpm-ranking-label {
@@ -858,8 +1078,10 @@ const copyFullRequest = () => {
 }
 
 .pharm-badge.fit       { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.pharm-badge.warn      { background: #fef3c7; color: #92400e; border-color: #fde68a; }
 .pharm-badge.contacted { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
 .pharm-badge.pending   { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+.pharm-badge.danger    { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
 
 .pharm-meta-row {
   display: flex;
@@ -992,6 +1214,100 @@ const copyFullRequest = () => {
   border-top: 1px solid #e2e8f0;
 }
 
+.pharm-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  margin: 0 0 0.75rem;
+}
+
+.pharm-note-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.pharm-note-input {
+  width: 100%;
+  min-height: 66px;
+  padding: 0.72rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid #dbe4ee;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.pharm-note-input:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.pharm-response-note {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.pharm-contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 0.7rem;
+}
+
+.btn-contact-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #dbe4ee;
+  background: #fff;
+  color: #475569;
+  font-size: 0.73rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-contact-action:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn-contact-action.success {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.btn-contact-action.warn {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+
+.btn-contact-action.muted {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.btn-contact-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .pharm-coverage-copy {
   margin: 0;
   font-size: 0.78rem;
@@ -1035,6 +1351,11 @@ const copyFullRequest = () => {
 
   .fpm-list {
     grid-template-columns: 1fr;
+  }
+
+  .fpm-next-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

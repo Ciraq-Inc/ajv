@@ -1,131 +1,130 @@
 <template>
-    <div class="space-y-6">
+    <div class="space-y-6 w-full">
         <!-- Header -->
-        <div>
-            <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A]">Wallet</h2>
-            <p class="text-sm font-medium text-zinc-600 mt-1">Credits and transaction history.</p>
-        </div>
+        <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Wallet</h1>
+                    <p class="text-xs text-zinc-500 font-medium mt-0.5">Credits and transaction history</p>
+                </div>
+            </div>
+            <button @click="fetchTransactions" :disabled="loading"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50">
+                <ArrowPathIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
+                Refresh
+            </button>
+        </header>
 
-        <!-- Hero grid: balance card + stat cards -->
-        <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
-            <!-- Purple balance card -->
-            <section class="relative overflow-hidden rounded-xl p-6 text-white min-h-[160px] flex flex-col justify-between" style="background: linear-gradient(135deg, #5a169a 0%, #6922b1 52%, #4e1684 100%); box-shadow: 0 18px 42px rgba(88,29,137,0.18);">
-                <div class="flex items-start justify-between gap-3 relative z-10">
-                    <div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">Available Balance</p>
-                        <div class="flex items-end gap-1.5 mt-1">
-                            <span class="text-lg font-semibold text-white/80 leading-none mb-0.5">GHS</span>
-                            <strong class="text-4xl font-black tracking-tight leading-none">{{ balance.toFixed(2) }}</strong>
+        <div class="px-5 space-y-6">
+            <!-- Hero grid: balance card + stat cards -->
+            <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
+                <!-- Bright balance card -->
+                <section class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 min-h-[160px] flex flex-col justify-between shadow-sm">
+                    <div class="flex items-start justify-between gap-3 relative z-10">
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-500">Available Balance</p>
+                            <div class="flex items-end gap-1.5 mt-1">
+                                <span class="text-lg font-semibold text-zinc-500 leading-none mb-0.5">GHS</span>
+                                <strong class="text-4xl font-black tracking-tight leading-none text-zinc-900 tabular-nums">{{ balance.toFixed(2) }}</strong>
+                            </div>
                         </div>
+                        <button @click="showTopUp = true" class="inline-flex items-center gap-2 bg-[#4F217A] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#3d1861] transition-colors flex-shrink-0 shadow-sm">
+                            <CreditCardIcon class="w-4 h-4" />
+                            Top Up
+                        </button>
                     </div>
-                    <button @click="showTopUp = true" class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/30 transition-colors flex-shrink-0">
-                        <CreditCardIcon class="w-4 h-4" />
-                        Top Up
-                    </button>
+
+                    <!-- Decorative soft accents -->
+                    <div class="absolute -top-16 -right-10 w-48 h-48 rounded-full opacity-[0.03] bg-[#4F217A]"></div>
+                    <div class="absolute -bottom-16 -left-8 w-40 h-40 rounded-full opacity-[0.02] bg-[#4F217A]"></div>
+                </section>
+
+                <!-- Stat mini cards -->
+                <div class="flex lg:flex-col gap-3">
+                    <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <ArrowDownIcon class="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Credits</p>
+                            <h3 class="text-xl font-black text-zinc-900 leading-none mt-0.5 tabular-nums">{{ creditTransactions.length }}</h3>
+                        </div>
+                    </article>
+
+                    <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
+                        <div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 border border-red-100 flex items-center justify-center flex-shrink-0">
+                            <ArrowUpIcon class="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Debits</p>
+                            <h3 class="text-xl font-black text-zinc-900 leading-none mt-0.5 tabular-nums">{{ debitTransactions.length }}</h3>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <!-- Transactions -->
+            <section class="rounded-xl border border-zinc-200 bg-white shadow-sm pt-5 overflow-hidden">
+                <div class="flex items-center justify-between gap-3 mb-4 px-5">
+                    <div class="flex items-center gap-3">
+                        <h3 class="font-black text-zinc-900 text-base tracking-tight">Recent Transactions</h3>
+                        <span class="inline-flex items-center rounded-full px-3 py-1 bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] font-black uppercase tracking-[0.12em]">{{ currentMonthLabel }}</span>
+                    </div>
                 </div>
 
-                <!-- Decorative glow -->
-                <div class="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-20" style="background: radial-gradient(circle, #c084fc, transparent)"></div>
-                <div class="absolute -bottom-8 -left-8 w-40 h-40 rounded-full opacity-15" style="background: radial-gradient(circle, #a855f7, transparent)"></div>
-            </section>
-
-            <!-- Stat mini cards -->
-            <div class="flex lg:flex-col gap-3">
-                <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
-                    <div class="w-11 h-11 rounded-full bg-[#edf9ef] text-[#1d9154] flex items-center justify-center flex-shrink-0">
-                        <ArrowDownIcon class="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Credits</p>
-                        <h3 class="text-2xl font-black text-zinc-900 leading-none mt-0.5">{{ creditTransactions.length }}</h3>
-                        <p class="text-xs text-zinc-400 mt-0.5">Transactions</p>
-                    </div>
-                </article>
-
-                <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
-                    <div class="w-11 h-11 rounded-full bg-[#fff0f1] text-[#d14b5c] flex items-center justify-center flex-shrink-0">
-                        <ArrowUpIcon class="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Debits</p>
-                        <h3 class="text-2xl font-black text-zinc-900 leading-none mt-0.5">{{ debitTransactions.length }}</h3>
-                        <p class="text-xs text-zinc-400 mt-0.5">Transactions</p>
-                    </div>
-                </article>
-            </div>
-        </div>
-
-        <!-- Transactions -->
-        <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
-            <div class="flex items-center justify-between gap-3 mb-4">
-                <div class="flex items-center gap-3">
-                    <h3 class="font-black text-zinc-900 text-base tracking-tight">Recent Transactions</h3>
-                    <span class="inline-flex items-center rounded-full px-3 py-1 bg-[#f4e8fb] text-[#5e3a86] text-[10px] font-black uppercase tracking-[0.12em]">{{ currentMonthLabel }}</span>
+                <!-- Loading -->
+                <div v-if="loading" class="flex flex-col items-center justify-center py-12 text-zinc-400 border-t border-zinc-200 bg-zinc-50">
+                    <span class="material-symbols-outlined text-3xl animate-spin mb-3">sync</span>
+                    <p class="text-sm font-medium text-zinc-500">Loading transactions...</p>
                 </div>
-                <button @click="fetchTransactions" :disabled="loading"
-                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5e3a86] hover:text-[#4F217A] transition-colors disabled:opacity-50">
-                    <ArrowPathIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
-                    Refresh
-                </button>
-            </div>
 
-            <!-- Loading -->
-            <div v-if="loading" class="flex items-center gap-3 py-8 justify-center text-zinc-400">
-                <ArrowPathIcon class="w-5 h-5 animate-spin" />
-                <p class="text-sm font-medium">Loading transactions...</p>
-            </div>
-
-            <!-- Empty -->
-            <div v-else-if="transactions.length === 0" class="flex flex-col items-center gap-3 py-10 rounded-xl border border-dashed border-zinc-200 bg-zinc-50">
-                <div class="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center">
-                    <ArrowsRightLeftIcon class="w-5 h-5 text-zinc-400" />
+                <!-- Empty -->
+                <div v-else-if="transactions.length === 0" class="flex flex-col items-center justify-center py-16 border-t border-zinc-200 bg-zinc-50">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center border border-zinc-200 shadow-sm mb-4">
+                        <span class="material-symbols-outlined text-2xl text-zinc-300">receipt_long</span>
+                    </div>
+                    <p class="text-base font-bold text-zinc-900 mb-1 leading-tight">No transactions yet</p>
+                    <p class="text-sm font-medium text-zinc-500">Top up your wallet to start building transaction history.</p>
                 </div>
-                <p class="font-black text-zinc-800">No transactions yet</p>
-                <p class="text-sm font-medium text-zinc-500">Top up your wallet to start building transaction history.</p>
-            </div>
 
             <!-- Transaction list -->
-            <div v-else class="space-y-2">
+            <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
                 <article v-for="tx in transactions" :key="tx.id"
-                    class="flex items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-white px-4 py-3.5 hover:border-zinc-200 hover:-translate-y-px transition-all">
-                    <div class="flex items-center gap-3 min-w-0">
+                    class="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group gap-3 sm:gap-4"
+                >
+                    <div class="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
                         <div
-                            class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                            :class="getTransactionDirection(tx) === 'credit' ? 'bg-[#edf9ef] text-[#1d9154]' : 'bg-[#fff0f1] text-[#d14b5c]'"
+                            class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border mt-0.5 sm:mt-0 transition-colors shadow-sm"
+                            :class="getTransactionDirection(tx) === 'credit' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-100 group-hover:bg-red-100'"
                         >
-                            <component :is="getTransactionDirection(tx) === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="w-4 h-4" />
+                            <component :is="getTransactionDirection(tx) === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="w-5 h-5" />
                         </div>
-                        <div class="min-w-0">
-                            <h4 class="text-sm font-semibold text-zinc-900 truncate">{{ formatTransactionDescription(tx) }}</h4>
-                            <p class="text-xs text-zinc-400 mt-0.5">{{ formatDate(tx.created_at) }}</p>
+                        <div class="min-w-0 flex-1">
+                            <h4 class="text-sm font-bold text-zinc-900 leading-tight mb-1" :title="formatTransactionDescription(tx)">{{ formatTransactionDescription(tx) }}</h4>
+                            <p class="text-[11px] font-medium text-zinc-500 flex items-center gap-1.5">
+                                {{ formatDate(tx.created_at) }}, {{ new Date(tx.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }}
+                            </p>
                         </div>
                     </div>
-                    <div class="text-right flex-shrink-0">
+                    <div class="flex flex-row-reverse sm:flex-col items-center sm:items-end justify-between sm:justify-center flex-shrink-0 pl-[52px] sm:pl-0 gap-2 sm:gap-1.5">
                         <strong
-                            class="text-sm font-black"
-                            :class="getTransactionDirection(tx) === 'credit' ? 'text-[#1d9154]' : 'text-[#d14b5c]'"
+                            class="text-[15px] font-black tabular-nums tracking-tight"
+                            :class="getTransactionDirection(tx) === 'credit' ? 'text-[#1d9154]' : 'text-red-600'"
                         >
                             {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
                         </strong>
-                        <p class="text-[10px] text-zinc-400 mt-0.5">{{ getTransactionNote(tx) }}</p>
+                        <span v-if="getTransactionNote(tx)" class="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-zinc-50 text-zinc-500 border-zinc-200 shadow-sm max-w-[150px] sm:max-w-xs truncate" :title="getTransactionNote(tx)">
+                            {{ getTransactionNote(tx) }}
+                        </span>
                     </div>
                 </article>
             </div>
         </section>
 
-        <!-- Insurance feature banner -->
-        <section class="flex items-center gap-5 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4">
-            <div class="w-11 h-11 bg-[#f4ecfb] text-[#5e3a86] rounded-full flex items-center justify-center flex-shrink-0">
-                <ShieldCheckIcon class="w-5 h-5" />
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="font-black text-zinc-900 text-sm">Insurance Sync Beta</p>
-                <p class="text-xs text-zinc-500 mt-0.5">Connect private healthcare cover later and manage credits from one calm wallet space.</p>
-            </div>
-            <button type="button" class="inline-flex items-center border border-zinc-200 bg-white px-4 py-2 rounded-xl text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors flex-shrink-0">
-                Join Beta
-            </button>
-        </section>
+        </div>
 
         <!-- Top Up Modal -->
         <div v-if="showTopUp" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="showTopUp = false">
@@ -201,7 +200,7 @@ const toast = ref(null)
 let topUpRefreshTimer = null
 let topUpRefreshTicks = 0
 
-const CREDIT_TYPES = new Set(['topup', 'refund', 'fee_credit'])
+const CREDIT_TYPES = new Set(['topup', 'refund', 'fee_credit', 'payment_credit'])
 const DEBIT_TYPES = new Set(['request_fee', 'order_payment'])
 
 const getTransactionDirection = (tx) => {
@@ -220,6 +219,16 @@ const formatTransactionDescription = (tx) => {
     const type = String(tx?.transaction_type || '').toLowerCase()
     const description = String(tx?.description || '').trim()
 
+    if (type === 'payment_credit') {
+        return description
+            ? description.replace(/^Paystack funding received for/i, 'Request payment received for')
+            : 'Request payment received'
+    }
+
+    if (type === 'fee_credit' && description.toLowerCase().includes('paystack funding received for')) {
+        return description.replace(/^Paystack funding received for/i, 'Request payment received for')
+    }
+
     if (description) {
         return description
             .replace(/^Request submission fee/i, 'Priority Search hold')
@@ -231,6 +240,7 @@ const formatTransactionDescription = (tx) => {
         request_fee: 'Priority Search hold placed',
         fee_credit: 'Priority Search hold returned',
         refund: 'Priority Search hold refunded',
+        payment_credit: 'Request payment received',
         order_payment: 'Order payment'
     }
 
@@ -262,7 +272,7 @@ const sortWalletTransactions = (entries = []) => {
             && Math.abs(leftAmount - rightAmount) < 0.01
 
         if (isSamePaystackPair || isSameLegacyRequestPair) {
-            const pairOrder = { topup: 0, order_payment: 1 }
+            const pairOrder = { topup: 0, refund: 0, fee_credit: 0, payment_credit: 0, request_fee: 1, order_payment: 1 }
             const leftRank = pairOrder[leftType]
             const rightRank = pairOrder[rightType]
             if (leftRank !== undefined && rightRank !== undefined && leftRank !== rightRank) {
@@ -287,11 +297,13 @@ const getTransactionNote = (tx) => {
     const reference = String(tx?.paystack_reference || '').trim()
     const requestNumber = extractRequestNumber(tx)
     const type = String(tx?.transaction_type || '').toLowerCase()
+    const description = String(tx?.description || '').toLowerCase()
 
     if (reference) return `Reference: ${reference}`
     if (requestNumber && type === 'order_payment') return `Success · ${requestNumber}`
     if (requestNumber) return requestNumber
     if (type === 'topup') return 'Wallet funding'
+    if (type === 'payment_credit' || (type === 'fee_credit' && description.includes('paystack funding received for'))) return 'Request payment'
     if (type === 'request_fee') return 'Priority Search'
     if (type === 'fee_credit' || type === 'refund') return 'Returned to wallet'
     if (type === 'order_payment') return 'Order payment'

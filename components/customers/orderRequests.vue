@@ -23,8 +23,8 @@
                     <ExcTriIcon class="w-4 h-4" />
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="font-black text-amber-900 text-sm">Top up to enable Priority Search</p>
-                    <p class="text-xs text-amber-700 mt-0.5">You need at least GHS {{ requestFee.toFixed(2) }} in your wallet. Current balance: GHS {{ walletBalance.toFixed(2) }}.</p>
+                    <p class="font-black text-amber-900 text-sm">Top up before sending your request</p>
+                    <p class="text-xs text-amber-700 mt-0.5">You need at least GHS {{ requestFee.toFixed(2) }} in your wallet before submission. Current balance: GHS {{ walletBalance.toFixed(2) }}.</p>
                 </div>
                 <button type="button" @click="openWalletTab"
                     class="flex-shrink-0 bg-amber-900 text-white px-3 py-2 rounded-xl text-xs font-semibold hover:bg-amber-800 transition-colors">
@@ -43,99 +43,77 @@
                             <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">1</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Add Medication</h3>
                         </div>
-                        <div class="med-card-list">
+                        <div class="flex flex-col gap-4">
                             <div
                                 v-for="(item, index) in requestItems"
                                 :key="index"
-                                class="med-card"
-                                :class="{ 'med-card--named': !!item.product_name.trim() }"
+                                class="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 transition-all"
+                                :class="{ 'bg-white shadow-sm border-[#4F217A]/20': !!item.product_name.trim() }"
                             >
-                                <div class="med-icon-circle">
-                                    <span class="material-symbols-outlined med-icon-glyph">pill</span>
-                                </div>
-
-                                <div class="med-card-body">
-                                    <div class="item-search-shell" :class="{ locked: !canSearchProducts }">
-                                        <div class="input-wrap relative clickable-input-wrap" @click="$event.currentTarget.querySelector('input')?.focus()">
-                                            <MagnifyingGlassIcon v-if="!item.product_name.trim()" class="item-search-icon" />
-                                            <input
-                                                v-model="item.product_name"
-                                                type="text"
-                                                placeholder="Search medicine name, brand, or strength"
-                                                :disabled="!canSearchProducts"
-                                                class="item-input"
-                                                @input="onProductInput(item)"
-                                                @focus="onProductInput(item)"
-                                                @blur="closeDropdown(item)"
-                                            />
-                                            <span v-if="item.product_name && !item.loading" class="search-chip">{{ item.showDropdown && item.searchResults.length ? `${item.searchResults.length} match${item.searchResults.length === 1 ? '' : 'es'}` : 'Custom entry' }}</span>
-                                            <span v-else-if="item.loading" class="search-chip searching">Searching</span>
-                                            <div v-if="item.showDropdown && (item.searchResults.length || item.loading)" class="search-dropdown">
-                                                <div class="search-dropdown-head">
-                                                    <span>Suggested matches</span>
-                                                    <strong>{{ item.loading ? 'Checking nearby options' : `${item.searchResults.length} result${item.searchResults.length === 1 ? '' : 's'}` }}</strong>
-                                                </div>
-                                                <div v-if="item.loading" class="search-item loading">
-                                                    <ArrowPathIcon class="spin w-4 h-4 mr-2" /> Searching...
-                                                </div>
-                                                <template v-else>
-                                                    <div
-                                                        v-for="(res, idx) in item.searchResults"
-                                                        :key="res.id || idx"
-                                                        @mousedown.prevent="selectProduct(item, res)"
-                                                        class="search-item"
-                                                    >
-                                                        <div class="search-item-main">
-                                                            <div class="font-medium text-gray-900">{{ res.product_description }}</div>
-                                                            <div class="text-xs text-gray-500">{{ [res.strength, res.unit].filter(Boolean).join(' - ') || 'No extra details' }}</div>
-                                                        </div>
-                                                        <div class="search-item-side">
-                                                            <span v-if="res.available_at" class="search-availability">Nearby</span>
-                                                            <span class="search-pick">Use</span>
-                                                        </div>
-                                                    </div>
-                                                    <div v-if="item.searchResults.length === 0 && item.product_name.length > 2" class="search-item no-results">
-                                                        No matches found. We'll keep this as a custom item entry.
-                                                    </div>
-                                                </template>
+                                <div class="flex flex-col gap-3">
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <MagnifyingGlassIcon v-if="!item.product_name.trim()" class="h-5 w-5 text-zinc-400" />
+                                            <div v-else class="h-5 w-5 rounded bg-[#4F217A]/10 text-[#4F217A] flex items-center justify-center">
+                                                <span class="material-symbols-outlined text-[14px]">pill</span>
                                             </div>
                                         </div>
-                                        <div class="search-helper-row">
-                                            <span v-if="item.product_name && !item.showDropdown" class="search-helper-state">Tap the field again to search more</span>
-                                        </div>
+                                        <input
+                                            v-model="item.product_name"
+                                            type="text"
+                                            placeholder="Enter medicine name, brand, or strength"
+                                            class="block w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl leading-5 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 text-sm font-semibold transition-colors"
+                                        />
+                                    </div>
+                                    
+                                    <div v-if="item.product_name" class="pl-2">
+                                        <span class="text-xs text-zinc-500 font-medium">Enter the medicine name exactly as you know it. The pharmacy team will verify the match.</span>
                                     </div>
 
-                                    <div v-if="item.product_name.trim()" class="flex items-center gap-2 mt-2">
-                                        <label class="item-upload-btn" :title="item.imageFiles.length ? `${item.imageFiles.length} photo${item.imageFiles.length !== 1 ? 's' : ''} added` : 'Add item photo'">
-                                            <CameraIcon class="upload-svg" />
-                                            <span v-if="item.imageFiles.length" class="item-upload-count">{{ item.imageFiles.length }}</span>
-                                            <input type="file" accept="image/*" multiple class="hidden-input" @change="onItemImagesSelected($event, item)" />
-                                        </label>
-                                        <div class="med-qty-control" style="margin-left:auto">
-                                            <button type="button" class="med-qty-btn" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
-                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1" class="med-qty-input" />
-                                            <button type="button" class="med-qty-btn" @click="incrementQty(item)">+</button>
+                                    <div v-if="item.product_name.trim()" class="flex flex-wrap items-center gap-3 pt-2">
+                                        <div class="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-3 py-1.5 shadow-sm">
+                                            <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Unit</label>
+                                            <select v-model="item.requested_unit" class="bg-transparent text-sm font-bold text-zinc-800 focus:outline-none cursor-pointer">
+                                                <option value="">Select unit</option>
+                                                <option v-for="option in medicineUnitOptions" :key="option" :value="option">{{ option }}</option>
+                                            </select>
                                         </div>
-                                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="med-remove-btn" type="button" title="Remove">
-                                            <XMarkIcon class="rm-svg" />
+                                        
+                                        <label class="flex items-center gap-1.5 cursor-pointer bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm" :title="item.imageFiles.length ? `${item.imageFiles.length} photo${item.imageFiles.length !== 1 ? 's' : ''} added` : 'Add item photo'">
+                                            <CameraIcon class="w-4 h-4 text-zinc-500" />
+                                            <span v-if="item.imageFiles.length" class="text-xs font-bold text-zinc-700">{{ item.imageFiles.length }} added</span>
+                                            <span v-else class="text-xs font-semibold text-zinc-600">Add Photo</span>
+                                            <input type="file" accept="image/*" multiple class="hidden" @change="onItemImagesSelected($event, item)" />
+                                        </label>
+
+                                        <div class="flex items-center bg-white border border-zinc-200 rounded-lg overflow-hidden shadow-sm ml-auto">
+                                            <button type="button" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
+                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1" class="w-12 h-8 text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-100 appearance-none bg-transparent m-0 p-0" />
+                                            <button type="button" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" @click="incrementQty(item)">+</button>
+                                        </div>
+
+                                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100" type="button" title="Remove Item">
+                                            <XMarkIcon class="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div v-if="item.imageFiles.length" class="item-image-grid">
-                                        <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="item-image-card">
-                                            <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="item-image-preview" />
-                                            <div class="item-image-actions">
-                                                <label class="preview-action-btn">
+                                    
+                                    <!-- Image Previews -->
+                                    <div v-if="item.imageFiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                                        <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100">
+                                            <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="w-full h-full object-cover" />
+                                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                <label class="text-[10px] font-bold text-white uppercase tracking-wider cursor-pointer hover:underline">
                                                     Replace
-                                                    <input type="file" accept="image/*" class="hidden-input" @change="replaceItemImage($event, item, imageIndex)" />
+                                                    <input type="file" accept="image/*" class="hidden" @change="replaceItemImage($event, item, imageIndex)" />
                                                 </label>
-                                                <button type="button" class="preview-action-btn danger" @click="removeItemImage(item, imageIndex)">Delete</button>
+                                                <button type="button" class="text-[10px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline" @click="removeItemImage(item, imageIndex)">Delete</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <button @click="addItem" :disabled="!canSearchProducts" type="button"
+                        <button @click="addItem" type="button"
                             class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors disabled:opacity-40">
                             <PlusIcon class="w-4 h-4" /> Add another medication
                         </button>
@@ -147,7 +125,7 @@
                             <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">2</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Prescription <span class="text-sm font-normal text-zinc-400">(optional)</span></h3>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 gap-3">
                             <label class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
                                 <div class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
                                     <CameraIcon class="w-5 h-5" />
@@ -164,37 +142,38 @@
                             </label>
                         </div>
                         <input ref="prescriptionReplacePicker" type="file" accept="image/*" class="hidden" @change="onReplacePrescriptionFile" />
-                        <div v-if="prescriptionFiles.length" class="prescription-preview-grid mt-4">
-                            <div v-for="(image, index) in prescriptionFiles" :key="image.id" class="prescription-preview-card">
-                                <img :src="image.previewUrl" :alt="image.file.name" class="prescription-preview-image" />
-                                <div class="prescription-preview-copy">
-                                    <strong>Page {{ index + 1 }}</strong>
-                                    <span>{{ image.file.name }}</span>
+                        <div v-if="prescriptionFiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                            <div v-for="(image, index) in prescriptionFiles" :key="image.id" class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100 shadow-sm">
+                                <img :src="image.previewUrl" :alt="image.file.name" class="w-full h-full object-cover" />
+                                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                                    <strong class="block text-[11px] text-white font-bold tracking-wider">Page {{ index + 1 }}</strong>
+                                    <span class="block text-[9px] text-white/80 font-medium truncate">{{ image.file.name }}</span>
                                 </div>
-                                <div class="prescription-preview-actions">
-                                    <button type="button" class="preview-action-btn" @click="queuePrescriptionReplace(index)">Retake</button>
-                                    <button type="button" class="preview-action-btn danger" @click="removePrescriptionFile(index)">Delete</button>
+                                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                                    <button type="button" class="text-[11px] font-bold text-white uppercase tracking-wider hover:underline" @click="queuePrescriptionReplace(index)">Retake</button>
+                                    <button type="button" class="text-[11px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline" @click="removePrescriptionFile(index)">Delete</button>
                                 </div>
                             </div>
                         </div>
-                        <div v-if="isUploading" class="upload-progress-card mt-4">
-                            <div class="upload-progress-head">
-                                <strong>Uploading prescription photos</strong>
-                                <span>{{ Math.round(uploadProgress) }}%</span>
+
+                        <div v-if="isUploading" class="mt-5 rounded-xl border border-[#4F217A]/20 bg-[#fbf9fc] p-4 shadow-sm">
+                            <div class="flex items-center justify-between mb-2 pb-1 border-b border-[#4F217A]/10">
+                                <strong class="text-xs font-black uppercase tracking-wider text-[#4F217A]">Uploading prescription photos</strong>
+                                <span class="text-xs font-black text-[#5d4679]">{{ Math.round(uploadProgress) }}%</span>
                             </div>
-                            <div class="upload-progress-track">
-                                <span class="upload-progress-fill" :style="{ width: `${uploadProgress}%` }"></span>
+                            <div class="w-full h-2 bg-[#4F217A]/10 rounded-full overflow-hidden">
+                                <span class="block h-full bg-[#4F217A] transition-all duration-300" :style="{ width: `${uploadProgress}%` }"></span>
                             </div>
                         </div>
                     </section>
 
-                    <!-- Section 3: Delivery or Pickup -->
+                    <!-- Section 3: Delivery Details -->
                     <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">3</div>
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery or Pickup</h3>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Details</h3>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 gap-3">
                             <button @click="selectFulfillment('delivery')" type="button"
                                 class="flex flex-col items-center gap-2.5 rounded-xl border-2 px-4 py-4 text-center transition-all"
                                 :class="fulfillmentType === 'delivery' ? 'border-[#4F217A] bg-[#f4e8fb]' : 'border-zinc-200 bg-white hover:border-zinc-300'">
@@ -205,18 +184,6 @@
                                 <div>
                                     <strong class="block text-sm font-black" :class="fulfillmentType === 'delivery' ? 'text-[#4F217A]' : 'text-zinc-800'">Home Delivery</strong>
                                     <span class="text-xs" :class="fulfillmentType === 'delivery' ? 'text-[#5e3a86]' : 'text-zinc-400'">Arrives within 2–4 hours</span>
-                                </div>
-                            </button>
-                            <button @click="selectFulfillment('pickup')" type="button"
-                                class="flex flex-col items-center gap-2.5 rounded-xl border-2 px-4 py-4 text-center transition-all"
-                                :class="fulfillmentType === 'pickup' ? 'border-[#4F217A] bg-[#f4e8fb]' : 'border-zinc-200 bg-white hover:border-zinc-300'">
-                                <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-                                    :class="fulfillmentType === 'pickup' ? 'bg-[#4F217A] text-white' : 'bg-zinc-100 text-zinc-500'">
-                                    <BuildingStorefrontIcon class="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <strong class="block text-sm font-black" :class="fulfillmentType === 'pickup' ? 'text-[#4F217A]' : 'text-zinc-800'">Store Pickup</strong>
-                                    <span class="text-xs" :class="fulfillmentType === 'pickup' ? 'text-[#5e3a86]' : 'text-zinc-400'">Ready in 30 minutes at nearby pharmacy</span>
                                 </div>
                             </button>
                         </div>
@@ -230,46 +197,95 @@
                     <!-- Section 4: Address & Location -->
                     <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">4</div>
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">{{ fulfillmentType === 'delivery' ? 'Delivery Address' : 'Pickup Location' }}</h3>
+                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">4</div>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Address</h3>
                         </div>
-                        <button @click="getLocation" :disabled="gettingLocation" class="location-btn mb-3" :class="{ set: customerLat }">
-                            <div class="location-icon-wrap" :class="{ set: customerLat }">
-                                <MapPinIconSolid v-if="customerLat" class="loc-svg" />
-                                <ArrowPathIcon v-else-if="gettingLocation" class="loc-svg spin" />
-                                <MapPinIcon v-else class="loc-svg" />
+                        <button @click="getLocation" :disabled="gettingLocation" class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300" :class="{ 'bg-emerald-50/50 border-emerald-200': customerLat }">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 transition-colors" :class="customerLat ? 'bg-emerald-500 text-white' : 'bg-white border border-zinc-200 text-zinc-500'">
+                                <MapPinIconSolid v-if="customerLat" class="w-5 h-5" />
+                                <ArrowPathIcon v-else-if="gettingLocation" class="w-5 h-5 animate-spin" />
+                                <MapPinIcon v-else class="w-5 h-5" />
                             </div>
-                            <div class="location-text">
-                                <strong>{{ locationLabel }}</strong>
-                                <span>{{ locationSublabel }}</span>
+                            <div class="flex-1 text-left min-w-0">
+                                <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel }}</strong>
+                                <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{ locationSublabel }}</span>
                             </div>
-                            <CheckCircleIconSolid v-if="customerLat" class="location-check-svg" />
+                            <CheckCircleIconSolid v-if="customerLat" class="w-5 h-5 text-emerald-500 opacity-80" />
                         </button>
-                        <div class="location-help-card" :class="{ error: !!locationIssue }">
-                            <p class="location-help-copy">
-                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery or pickup.' }}
-                            </p>
-                            <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="location-help-actions">
-                                <button type="button" class="location-help-btn" @click="getLocation">Use Different Location For This Request</button>
+                        <div v-if="gettingLocation" class="mb-4 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-800">
+                            <div class="flex items-center gap-3 animate-pulse">
+                                <div class="h-11 w-11 rounded-xl bg-blue-200/80"></div>
+                                <div class="flex-1 min-w-0 space-y-2">
+                                    <div class="h-4 w-44 rounded bg-blue-200/80"></div>
+                                    <div class="h-3 w-3/4 rounded bg-blue-100/90"></div>
+                                </div>
+                                <div class="h-5 w-5 rounded-full bg-blue-200/80"></div>
                             </div>
-                            <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="location-help-actions">
-                                <button type="button" class="location-help-btn secondary" @click="restoreSavedHomeLocation">Use Saved Home Address</button>
-                                <button type="button" class="location-help-btn" @click="getLocation">Refresh Request Location</button>
+                            <div class="mt-4 grid grid-cols-2 gap-2 animate-pulse">
+                                <div class="h-10 rounded-lg border border-blue-100 bg-white/80"></div>
+                                <div class="h-10 rounded-lg border border-blue-100 bg-white/80"></div>
                             </div>
-                            <div v-if="locationIssue" class="location-help-actions">
-                                <button type="button" class="location-help-btn" @click="getLocation">Try Again</button>
-                                <button type="button" class="location-help-btn secondary" @click="openLocationSettings">Open Settings</button>
-                            </div>
-                            <p v-if="locationIssue" class="location-help-note">{{ locationIssue.instructions }}</p>
+                            <p class="mt-3 text-xs font-bold text-blue-700/70">Refreshing request location...</p>
                         </div>
-                        <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-1 mt-4">
+                        <div v-else class="rounded-xl p-4 text-sm" :class="locationIssue ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-blue-50/50 text-blue-800 border border-blue-100'">
+                            <p class="font-medium text-sm leading-relaxed mb-3">
+                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery.' }}
+                            </p>
+                            <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="flex flex-wrap gap-2">
+                                <button type="button" :disabled="gettingLocation" class="w-full bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="getLocation">Use Different Location For This Request</button>
+                            </div>
+                            <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="flex flex-wrap gap-2">
+                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="restoreSavedHomeLocation">Use Saved Home Address</button>
+                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 font-bold hover:bg-blue-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="getLocation">Refresh Request Location</button>
+                            </div>
+                            <div v-if="locationIssue" class="flex flex-wrap gap-2">
+                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-red-600 text-white border border-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="getLocation">Try Again</button>
+                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-white border border-red-200 text-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="openLocationSettings">Open Settings</button>
+                            </div>
+                            <p v-if="locationIssue" class="text-xs text-red-600/80 font-bold mt-2 pt-2 border-t border-red-200/60">{{ locationIssue.instructions }}</p>
+                        </div>
+                        <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-2 mt-4">
+                            <div class="relative">
+                                <label class="block text-xs font-black uppercase tracking-[0.12em] text-zinc-500 mb-2">Search delivery address</label>
+                                <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
+                                    <span class="material-symbols-outlined text-[18px] text-zinc-400">search</span>
+                                    <input
+                                        v-model="deliveryAddressSearch"
+                                        type="text"
+                                        placeholder="Type an address or landmark"
+                                        class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
+                                    />
+                                    <span v-if="deliveryAutocompleteLoading" class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
+                                </div>
+
+                                <div
+                                    v-if="deliveryAddressSuggestions.length"
+                                    class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain"
+                                >
+                                    <div class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400">
+                                        <span>Suggestions</span>
+                                        <span>{{ deliveryAddressSuggestions.length }}</span>
+                                    </div>
+                                    <button
+                                        v-for="(suggestion, index) in deliveryAddressSuggestions"
+                                        :key="`${suggestion.display_name}-${index}`"
+                                        type="button"
+                                        class="w-full border-b border-zinc-100 px-4 py-3.5 text-left last:border-b-0 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
+                                        @click="applyDeliveryAddressSuggestion(suggestion)"
+                                    >
+                                        <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{ suggestion.display_name }}</p>
+                                        <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">{{ suggestion.type || 'Address' }}</p>
+                                    </button>
+                                </div>
+                            </div>
+
                             <textarea
                                 v-model="deliveryAddress"
                                 rows="2"
                                 placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
                                 class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"
                             ></textarea>
-                            <p class="text-xs text-zinc-400">Required for delivery requests.</p>
+                            <p class="text-xs text-zinc-400">Required for delivery requests. You can refine the address below if needed.</p>
                         </div>
                     </section>
 
@@ -293,7 +309,7 @@
                             </div>
                             <div class="flex items-center justify-between gap-3">
                                 <span class="text-zinc-500">Fulfillment</span>
-                                <span class="font-semibold text-zinc-900">{{ fulfillmentType === 'delivery' ? 'Home Delivery' : (fulfillmentType === 'pickup' ? 'Store Pickup' : '—') }}</span>
+                                <span class="font-semibold text-zinc-900">Home Delivery</span>
                             </div>
                             <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
                                 <span class="text-zinc-500">Priority Fee</span>
@@ -306,7 +322,7 @@
                             <template v-else>Send Request ›</template>
                         </button>
                         <p v-if="!canSubmit && !isSubmitting" class="text-[11px] text-zinc-400 text-center mt-2">
-                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Choose delivery or pickup' : !customerLat ? 'Set your location' : fulfillmentType === 'delivery' && !deliveryAddress.trim() ? 'Add delivery address' : '' }}
+                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add delivery address' : '' }}
                         </p>
                     </div>
                 </div><!-- /right sidebar -->
@@ -328,85 +344,121 @@
         </div>
 
         <!-- ====== REQUESTS LIST ====== -->
-        <div v-if="isListView" class="w-full">
-            <header class="concierge-header list-header">
-                <button @click="goToNewRequest" class="concierge-back-btn" type="button">
-                    <ChevronLeftIcon class="concierge-back-svg" />
-                </button>
-                <h1 class="concierge-title">My Requests</h1>
-                <div style="width:36px"></div>
+        <div v-if="isListView" class="w-full pb-12">
+            <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <button @click="goToNewRequest" class="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100/50 border border-zinc-200 hover:bg-zinc-100 transition-colors text-zinc-600 shadow-sm" type="button">
+                        <ChevronLeftIcon class="w-4 h-4" />
+                    </button>
+                    <div>
+                        <h1 class="text-lg font-bold text-zinc-900 tracking-tight">My Requests</h1>
+                        <p class="text-xs text-zinc-500 font-medium mt-0.5">Track your custom pharmacy orders</p>
+                    </div>
+                </div>
             </header>
 
-            <!-- Active / Completed tabs -->
-            <div class="flex gap-1.5 px-4 py-3 bg-white border-b border-[#ede0f5]">
-                <button
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all"
-                    :class="requestListTab === 'active' ? 'bg-[#350062] text-white' : 'border border-[#e0d0f0] text-[#6b6b7b] hover:border-[#350062] hover:text-[#350062]'"
-                    @click="requestListTab = 'active'"
-                >
-                    Active
-                    <span v-if="activeRequests.length"
-                        class="inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[11px] font-extrabold"
-                        :class="requestListTab === 'active' ? 'bg-white/20 text-white' : 'bg-[#f0e6fa] text-[#6c24b3]'"
-                    >{{ activeRequests.length }}</span>
-                </button>
-                <button
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition-all"
-                    :class="requestListTab === 'completed' ? 'bg-[#350062] text-white' : 'border border-[#e0d0f0] text-[#6b6b7b] hover:border-[#350062] hover:text-[#350062]'"
-                    @click="requestListTab = 'completed'"
-                >
-                    Completed
-                    <span v-if="completedRequests.length"
-                        class="inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[11px] font-extrabold"
-                        :class="requestListTab === 'completed' ? 'bg-white/20 text-white' : 'bg-[#f0e6fa] text-[#6c24b3]'"
-                    >{{ completedRequests.length }}</span>
-                </button>
-            </div>
+            <div class="px-5 max-w-5xl mx-auto">
+                <!-- Active / Completed tabs -->
+                <div class="mb-5 flex justify-start">
+                    <div class="inline-flex gap-2 p-1 bg-white border border-zinc-200 rounded-lg shadow-sm">
+                        <button
+                            class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                            :class="requestListTab === 'active' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
+                            @click="requestListTab = 'active'"
+                        >
+                            Active
+                            <span v-if="activeRequests.length"
+                                class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
+                                :class="requestListTab === 'active' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'"
+                            >{{ activeRequests.length }}</span>
+                        </button>
+                        <button
+                            class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                            :class="requestListTab === 'completed' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
+                            @click="requestListTab = 'completed'"
+                        >
+                            Completed
+                            <span v-if="completedRequests.length"
+                                class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
+                                :class="requestListTab === 'completed' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'"
+                            >{{ completedRequests.length }}</span>
+                        </button>
+                    </div>
+                </div>
 
-            <div v-if="loadingRequests" class="text-center py-10 bg-white rounded-[2rem] border border-[rgba(206,194,212,0.2)]">
-                <span class="material-symbols-outlined text-4xl text-[#cec2d4] mb-3 animate-spin">sync</span>
-                <p class="text-[#71717a] font-medium">Loading requests...</p>
-            </div>
+                <div v-if="loadingRequests" class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-zinc-50 rounded-xl">
+                    <ArrowPathIcon class="w-8 h-8 text-zinc-400 animate-spin mb-3" />
+                    <p class="text-sm font-medium text-zinc-500">Loading requests...</p>
+                </div>
 
-            <div v-else-if="myRequests.length === 0" class="text-center py-12 bg-white rounded-[2rem] border border-[rgba(206,194,212,0.2)] shadow-[0_10px_30px_-10px_rgba(53,0,98,0.08)]">
-                <span class="material-symbols-outlined text-6xl text-[#cec2d4] mb-4">inbox</span>
-                <p class="text-[#350062] font-black text-xl mb-2">No requests yet</p>
-                <p class="text-[#71717a] font-medium mb-6">Submit your first order request to get started</p>
-                <button @click="goToNewRequest" class="px-6 py-3 bg-[#350062] text-white rounded-full font-bold text-sm hover:bg-[#520094] transition-colors inline-flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[18px]">add</span> Create Request
-                </button>
-            </div>
+                <div v-else-if="myRequests.length === 0" class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-white rounded-xl shadow-sm">
+                    <div class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100">
+                        <span class="material-symbols-outlined text-3xl text-zinc-300">inbox</span>
+                    </div>
+                    <p class="text-base font-bold text-zinc-900 mb-1">No requests yet</p>
+                    <p class="text-sm font-medium text-zinc-500 mb-6">Submit your first order request to get started</p>
+                    <button @click="goToNewRequest" class="px-5 py-2.5 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-zinc-800 transition-colors inline-flex items-center gap-2 shadow-sm">
+                        <PlusIcon class="w-4 h-4" /> Create Request
+                    </button>
+                </div>
 
-            <div v-else>
-                <!-- Request List Items -->
-                <div class="space-y-2 p-4">
-                    <article v-for="req in filteredRequests" :key="req.id"
-                        class="flex items-center gap-3 rounded-xl border border-zinc-100 bg-white px-4 py-3.5 hover:border-zinc-200 hover:-translate-y-px transition-all cursor-pointer"
-                        @click="viewDetail(req)"
-                    >
-                        <div class="flex items-center gap-3 min-w-0 flex-1">
-                            <div class="w-10 h-10 rounded-xl bg-[#f4e8fb] text-[#5e3a86] flex items-center justify-center flex-shrink-0">
-                                <span class="material-symbols-outlined text-[18px]">medication</span>
+                <div v-else class="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden mb-6">
+                    <!-- Request List Items -->
+                    <div class="space-y-0 text-sm">
+                        <article v-for="req in filteredRequests" :key="req.id"
+                            class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
+                            @click="viewDetail(req)"
+                        >
+                        <div class="flex items-center gap-4 min-w-0">
+                            <!-- Colored Icon Box based on status -->
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
+                                :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (req.status === 'processing' || req.status === 'composed' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100')">
+                                <span class="material-symbols-outlined text-[20px]">{{ req.status === 'completed' ? 'check_circle' : 'medication' }}</span>
                             </div>
                             <div class="min-w-0">
-                                <h4 class="text-sm font-semibold text-zinc-900 truncate">#{{ req.request_number }}</h4>
-                                <p class="text-xs text-zinc-400 mt-0.5">{{ formatDate(req.created_at) }} · {{ req.item_count || 0 }} item(s)</p>
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{ req.request_number }}</h4>
+                                </div>
+                                <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
+                                    <span>{{ formatDate(req.created_at) }}</span>
+                                    <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                    <span>{{ req.item_count || 0 }} item(s)</span>
+                                </p>
                             </div>
                         </div>
-                        <div class="text-right flex-shrink-0">
-                            <template v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
-                                <strong class="text-sm font-black text-zinc-900">GHS {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
-                            </template>
-                            <strong v-else class="text-sm font-semibold text-zinc-400">To be priced</strong>
-                            <div class="flex justify-end mt-0.5">
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em]" :class="getStatusClasses(getRequestStatus(req))">
+                        <div class="flex items-center ml-auto gap-3 sm:gap-6">
+                            <!-- Status Column (Middle) -->
+                            <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
+                                    :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
+                                    <span v-if="req.status === 'pending' || req.status === 'searching'" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
+                                    {{ formatStatus(getRequestStatus(req)) }}
+                                </span>
+                            </div>
+
+                            <!-- Cost Column (Right) -->
+                            <div class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
+                                <template v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
+                                    <strong class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
+                                </template>
+                                <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
+                                
+                                <!-- Mobile Badge Fallback -->
+                                <span class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
+                                    :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
                                     <span v-if="req.status === 'pending' || req.status === 'searching'" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
                                     {{ formatStatus(getRequestStatus(req)) }}
                                 </span>
                             </div>
                         </div>
+                        <!-- Hover Chevron -->
+                        <div class="ml-2 hidden sm:flex w-5 h-5 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors flex-shrink-0">
+                            <ChevronRightIcon class="w-5 h-5" />
+                        </div>
                     </article>
                 </div>
+            </div>
+            <!-- End of max-w-5xl container -->
             </div>
         </div>
 
@@ -768,6 +820,44 @@
             <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="w-5 h-5 flex-shrink-0" />
             {{ toast.text }}
         </div>
+
+        <!-- Payment Success Animation Overlay -->
+        <Transition
+            enter-active-class="transition duration-500 ease-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition duration-300 ease-in"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+        >
+            <div v-if="showPaymentSuccessAnim" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#4F217A]/60 backdrop-blur-sm">
+                <div class="bg-white rounded-[2rem] p-8 max-w-[320px] w-full mx-4 shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, rgba(16, 185, 129, 0.05) 0%, transparent 70%);"></div>
+                    <div class="w-24 h-24 mb-6 relative z-10 flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full bg-emerald-100 scale-0 animate-[scaleIn_0.5s_ease-out_forwards]"></div>
+                        <div class="absolute inset-0 rounded-full border-4 border-emerald-500 scale-0 animate-[scaleIn_0.5s_ease-out_0.2s_forwards]"></div>
+                        <svg class="w-12 h-12 text-emerald-600 relative z-20 stroke-dasharray-[100] stroke-dashoffset-[100] animate-[drawCheck_0.5s_ease-out_0.4s_forwards]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-black text-[#350062] mb-3 opacity-0 animate-[fadeUp_0.5s_ease-out_0.6s_forwards]">Payment Successful!</h3>
+                    <p class="text-gray-600 text-[0.85rem] mb-8 font-medium leading-relaxed opacity-0 animate-[fadeUp_0.5s_ease-out_0.7s_forwards]">
+                        Your order payment was successfully processed. Our pharmacists will fulfill your request shortly.
+                    </p>
+                    <button @click="showPaymentSuccessAnim = false" class="w-full bg-[#4F217A] hover:bg-[#350062] text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-[0_4px_14px_rgba(79,33,122,0.3)] opacity-0 animate-[fadeUp_0.5s_ease-out_0.8s_forwards]">
+                        Awesome
+                    </button>
+                    <!-- Scoped keyframes purely for this modal -->
+                    <component :is="'style'">
+                        @keyframes scaleIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+                        @keyframes drawCheck { 0% { stroke-dashoffset: 100; } 100% { stroke-dashoffset: 0; } }
+                        @keyframes fadeUp { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+                        .stroke-dasharray-\[100\] { stroke-dasharray: 100; }
+                        .stroke-dashoffset-\[100\] { stroke-dashoffset: 100; }
+                    </component>
+                </div>
+            </div>
+        </Transition>
     </div>
 </template>
 
@@ -777,10 +867,16 @@ import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
 import { formatCompactAddress } from '~/utils/addressFormat'
 import {
+    PAYABLE_REQUEST_STATUSES as payableStatuses,
+    getRequestTotalAmount as getPayableAmount,
+    isPayableRequest as canPayRequest,
+    isPaymentPendingRequest
+} from '~/utils/requestPayment'
+import {
     PlusCircleIcon, ClipboardDocumentListIcon as ClipDocList, CheckIcon, PlusIcon, XMarkIcon,
     CameraIcon, ArrowUpTrayIcon, MapPinIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon,
     PaperClipIcon, InformationCircleIcon, CubeIcon, CurrencyDollarIcon, TruckIcon, StarIcon,
-    BuildingStorefrontIcon, ChatBubbleLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon,
+    ChatBubbleLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon,
     MinusSmallIcon, PlusSmallIcon,
     ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon
 } from '@heroicons/vue/24/outline'
@@ -807,6 +903,7 @@ const payingMethod = ref('')
 const cancelingRequest = ref(false)
 const toast = ref(null)
 const showSuccess = ref(false)
+const showPaymentSuccessAnim = ref(false)
 const showPriorityModal = ref(false)
 const submittedNumber = ref('')
 const requestFee = ref(5)
@@ -817,13 +914,23 @@ const paymentShortfall = ref({
     requestId: null,
     amount: 0
 })
+const medicineUnitOptions = [
+    'tab',
+    'capsule',
+    'bottle',
+    'suppository',
+    'tube',
+    'vial',
+    'ampoule',
+    'sachet',
+    'pack',
+    'other'
+]
 
 const newItem = () => ({
     product_name: '',
+    requested_unit: '',
     quantity: 1,
-    searchResults: [],
-    loading: false,
-    showDropdown: false,
     imageFiles: []
 })
 
@@ -839,6 +946,7 @@ const saveFormDraft = () => {
         const draft = {
             items: requestItems.value.map(item => ({
                 product_name: item.product_name,
+                requested_unit: item.requested_unit || '',
                 quantity: item.quantity
             })),
             customerLat: customerLat.value,
@@ -882,6 +990,7 @@ const restoreFormDraft = () => {
             requestItems.value = draft.items.map(item => ({
                 ...newItem(),
                 product_name: item.product_name || '',
+                requested_unit: item.requested_unit || '',
                 quantity: Math.max(1, Number(item.quantity || 1))
             }))
         }
@@ -892,7 +1001,7 @@ const restoreFormDraft = () => {
         if (draft.locationMode) locationMode.value = draft.locationMode
         
         // Restore form fields
-        if (draft.fulfillmentType) fulfillmentType.value = draft.fulfillmentType
+        fulfillmentType.value = 'delivery'
         if (draft.customerAddress) customerAddress.value = draft.customerAddress
         if (draft.deliveryAddress) deliveryAddress.value = draft.deliveryAddress
         if (draft.customerNotes) customerNotes.value = draft.customerNotes
@@ -918,6 +1027,7 @@ const normalizeHomepageDraftItem = (item) => {
 
     return {
         product_name: productName,
+        requested_unit: String(item?.requested_unit || '').trim().toLowerCase(),
         quantity: Math.max(1, Number(item?.quantity || 1))
     }
 }
@@ -958,6 +1068,7 @@ const applyHomepageRequestDraft = (draftItems = []) => {
         .map((item) => ({
             ...newItem(),
             product_name: item.product_name,
+            requested_unit: item.requested_unit || '',
             quantity: item.quantity
         }))
 
@@ -986,12 +1097,17 @@ const customerLat = ref(null)
 const customerLng = ref(null)
 const savedHomeLocation = ref(null)
 const locationMode = ref('none')
-const fulfillmentType = ref('')
+const fulfillmentType = ref('delivery')
 const customerAddress = ref('')
 const deliveryAddress = ref('')
+const deliveryAddressSearch = ref('')
+const deliveryAddressSuggestions = ref([])
+const deliveryAutocompleteLoading = ref(false)
 const customerNotes = ref('')
 const locationIssue = ref(null)
 const uploadProgress = ref(0)
+let deliveryAutocompleteTimer = null
+let deliveryAutocompleteSuspend = false
 
 const myRequests = ref([])
 const selectedRequest = ref(null)
@@ -1005,7 +1121,6 @@ const feedbackForm = ref({
 })
 const POLL_INTERVAL_MS = 15000
 let pollTimer = null
-const payableStatuses = new Set(['confirmed_in_pharm', 'awaiting_customer', 'items_sourced', 'confirmed'])
 
 const goToNewRequest = async () => {
     selectedRequest.value = null
@@ -1064,7 +1179,7 @@ const reviewLocationLabel = computed(() => {
 
 const isCompletedRequest = (request) => {
     const status = getCustomerStatus(request?.status)
-    return ['completed', 'cancelled', 'returned'].includes(status)
+    return ['completed', 'expired', 'cancelled', 'returned'].includes(status)
 }
 
 const activeRequests = computed(() => myRequests.value.filter(req => !isCompletedRequest(req)))
@@ -1075,6 +1190,40 @@ const filteredRequests = computed(() => (
 
 const buildLocationIssue = (message, instructions) => ({ message, instructions })
 
+const clearDeliveryAddressSuggestions = () => {
+    deliveryAddressSuggestions.value = []
+    deliveryAutocompleteLoading.value = false
+}
+
+const fetchDeliveryAddressSuggestions = async (query) => {
+    const trimmed = String(query || '').trim()
+    if (trimmed.length < 3) {
+        clearDeliveryAddressSuggestions()
+        return
+    }
+
+    try {
+        deliveryAutocompleteLoading.value = true
+        const res = await apiCall('GET', `/api/auth/customer/autocomplete-location?q=${encodeURIComponent(trimmed)}&limit=5`)
+        deliveryAddressSuggestions.value = Array.isArray(res.data) ? res.data : []
+    } catch (_error) {
+        deliveryAddressSuggestions.value = []
+    } finally {
+        deliveryAutocompleteLoading.value = false
+    }
+}
+
+const applyDeliveryAddressSuggestion = (suggestion) => {
+    const address = String(suggestion?.display_name || '').trim()
+    if (!address) return
+
+    deliveryAddress.value = address
+    deliveryAddressSearch.value = address
+    customerAddress.value = address
+    deliveryAutocompleteSuspend = true
+    clearDeliveryAddressSuggestions()
+}
+
 const applySavedHomeLocation = (homeLocation, { force = false } = {}) => {
     if (!homeLocation?.latitude || !homeLocation?.longitude) return
     if (!force && (customerLat.value || customerLng.value || locationMode.value === 'current-request')) return
@@ -1084,6 +1233,7 @@ const applySavedHomeLocation = (homeLocation, { force = false } = {}) => {
     customerAddress.value = homeLocation.address || ''
     if (fulfillmentType.value === 'delivery' && (!deliveryAddress.value.trim() || force || locationMode.value !== 'current-request')) {
         deliveryAddress.value = homeLocation.address || ''
+        deliveryAddressSearch.value = deliveryAddress.value
     }
     locationMode.value = 'home'
 }
@@ -1121,6 +1271,7 @@ const selectFulfillment = (type) => {
     fulfillmentType.value = type
     if (type === 'delivery' && !deliveryAddress.value.trim()) {
         deliveryAddress.value = customerAddress.value || ''
+        deliveryAddressSearch.value = deliveryAddress.value
     }
 }
 
@@ -1184,6 +1335,7 @@ const compressRequestImage = async (file) => {
 
 const buildItemPayload = (item) => ({
     product_name: item.product_name.trim(),
+    requested_unit: String(item.requested_unit || '').trim().toLowerCase() || null,
     quantity: item.quantity || 1
 })
 
@@ -1314,6 +1466,7 @@ const getLocation = () => {
                     customerAddress.value = locationData.address
                     if (fulfillmentType.value === 'delivery') {
                         deliveryAddress.value = locationData.address
+                        deliveryAddressSearch.value = locationData.address
                     }
                     try {
                         await userStore.updateProfile({
@@ -1563,6 +1716,8 @@ const submitRequest = async () => {
         fulfillmentType.value = ''
         customerAddress.value = ''
         deliveryAddress.value = ''
+        deliveryAddressSearch.value = ''
+        clearDeliveryAddressSuggestions()
         customerNotes.value = ''
         customerLat.value = null
         customerLng.value = null
@@ -1596,60 +1751,27 @@ const openWalletTab = async () => {
     await navigateTo({ path: '/customer', query: { tab: 'wallet' } })
 }
 
-// Search Logic
-let debounceTimer = null
-const onProductInput = (item) => {
-    if (!canSearchProducts.value) {
-        item.showDropdown = false
-        item.searchResults = []
-        return
-    }
-    item.showDropdown = true
-    if (!item.product_name || item.product_name.length < 2) {
-        item.searchResults = []
+watch(deliveryAddressSearch, (value) => {
+    if (deliveryAutocompleteSuspend) {
+        deliveryAutocompleteSuspend = false
         return
     }
 
-    // Debounce
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => searchProducts(item), 300)
-}
-
-const searchProducts = async (item) => {
-    item.loading = true
-    try {
-        let res;
-        if (customerLat.value && customerLng.value) {
-            res = await apiCall('GET', `/api/products/nearby-search?lat=${customerLat.value}&lng=${customerLng.value}&search=${encodeURIComponent(item.product_name)}&limit=5`)
-        } else {
-            res = await apiCall('GET', `/api/master-products?search=${encodeURIComponent(item.product_name)}&limit=5`)
-        }
-        item.searchResults = res.data || []
-    } catch (e) {
-        item.searchResults = []
-        if (e.status === 402) {
-            walletBalance.value = Number(e.data?.wallet_balance || 0)
-            showToast(`You need at least GHS ${requestFee.value.toFixed(2)} in your wallet before Priority Search is available.`, 'error')
-        } else {
-            console.error(e)
-        }
-    } finally {
-        item.loading = false
+    if (deliveryAutocompleteTimer) {
+        clearTimeout(deliveryAutocompleteTimer)
+        deliveryAutocompleteTimer = null
     }
-}
 
-const selectProduct = (item, res) => {
-    let name = res.product_description
-    if (res.strength) name += ` ${res.strength}`
-    // if(res.unit) name += ` ${res.unit}` // unit might be redundant if user just wants name
-    item.product_name = name
-    item.showDropdown = false
-}
+    const trimmed = String(value || '').trim()
+    if (!trimmed) {
+        clearDeliveryAddressSuggestions()
+        return
+    }
 
-const closeDropdown = (item) => {
-    // Delay to allow click event to register
-    setTimeout(() => { item.showDropdown = false }, 200)
-}
+    deliveryAutocompleteTimer = setTimeout(() => {
+        fetchDeliveryAddressSuggestions(trimmed)
+    }, 300)
+})
 
 const addItem = () => requestItems.value.push(newItem())
 const decrementQty = (item) => {
@@ -1672,6 +1794,7 @@ const getStatusClasses = (status) => {
         case 'searching': case 'confirming_with_pharm': case 'finding_pharmacist': return 'bg-[#f0f9ff] text-[#531dab]';
         case 'quote_available': return 'bg-blue-100 text-blue-700';
         case 'processing': return 'bg-yellow-100 text-yellow-700';
+        case 'expired': return 'bg-amber-100 text-amber-700';
         case 'cancelled': case 'rejected': return 'bg-red-100 text-red-700';
         default: return 'bg-gray-100 text-gray-700';
     }
@@ -1706,30 +1829,12 @@ const getRequestContentCount = (req) => {
     return '-'
     return `${itemCount || '—'} item${itemCount === 1 ? '' : 's'}`
 }
-const getPayableAmount = (req) => {
-    if (!req) return 0
-    const estimated = Number(req.estimated_total)
-    if (Number.isFinite(estimated) && estimated > 0) return estimated
-    const itemsTotal = Number(req.items_total || 0)
-    const deliveryFee = Number(req.delivery_fee || 0)
-    const amount = itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
-    return Number.isFinite(amount) && amount > 0 ? amount : 0
-}
 const getRequestStatus = (req) => {
     const rawStatus = getCustomerStatus(req?.status || '')
     if (payableStatuses.has(rawStatus) && getPayableAmount(req) <= 0) {
         return 'confirming_with_pharm'
     }
     return rawStatus
-}
-const canPayRequest = (req) => {
-    if (!req) return false
-    if (!payableStatuses.has(req.status)) return false
-    return getPayableAmount(req) > 0
-}
-const isPaymentPendingRequest = (req) => {
-    if (!req) return false
-    return payableStatuses.has(req.status) && getPayableAmount(req) <= 0
 }
 const canCancelRequest = (req) => !!req && req.status === 'pending'
 const clearRequestPaymentQuery = async (requestId = null) => {
@@ -1761,6 +1866,8 @@ const payForRequest = async (id, method = 'wallet') => {
         if (selectedRequest.value?.id === id) {
             await refreshSelectedRequest()
         }
+        selectedRequest.value = null
+        showPaymentSuccessAnim.value = true
         showToast(res.message || 'Payment completed successfully')
     } catch (e) {
         if (method === 'wallet' && e.status === 402 && e.data) {
@@ -1795,6 +1902,8 @@ const verifyReturnedPaystackRequestPayment = async () => {
         await fetchWalletBalance()
         await fetchMyRequests({ silent: true })
         await openRequestById(requestId, { silent: true })
+        selectedRequest.value = null
+        showPaymentSuccessAnim.value = true
         showToast(res.message || 'Payment completed successfully')
     } catch (e) {
         await fetchWalletBalance()
@@ -2192,6 +2301,7 @@ const statusProgress = (s) => ({
     out_for_delivery: 85,
     delivered: 100,
     returned: 100,
+    expired: 100,
     cancelled: 100,
     // Legacy values
     processing: 25,
@@ -2246,7 +2356,7 @@ watchEffect(() => {
     if (!isNewView.value) return
     
     // Access all form fields to track dependencies
-    requestItems.value.map(i => `${i.product_name}|${i.quantity}`).join(';')
+    requestItems.value.map(i => `${i.product_name}|${i.requested_unit}|${i.quantity}`).join(';')
     fulfillmentType.value
     customerAddress.value
     deliveryAddress.value
@@ -2261,6 +2371,7 @@ watchEffect(() => {
 
 onUnmounted(() => {
     if (pollTimer) clearInterval(pollTimer)
+    if (deliveryAutocompleteTimer) clearTimeout(deliveryAutocompleteTimer)
     prescriptionFiles.value.forEach(revokePrescriptionPreview)
     requestItems.value.forEach(cleanupItemImages)
 })
@@ -6336,5 +6447,6 @@ defineExpose({ fetchMyRequests })
 }
 
 </style>
+
 
 

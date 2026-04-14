@@ -56,22 +56,40 @@
         class="sticky top-0 z-40 bg-[#f4f4f5]/92 backdrop-blur-md px-4 lg:px-8 flex justify-between items-center border-b border-zinc-200"
         :class="activeNav === 'home' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
       >
-        <div v-if="activeNav === 'home' || canGoBack" class="flex items-center gap-3">
-          <div v-if="activeNav === 'home' && !canGoBack" class="lg:hidden w-10 h-10 primary-gradient rounded-xl flex items-center justify-center text-white">
-            <span class="material-symbols-outlined">medical_services</span>
+        <div v-if="activeNav === 'home' || canGoBack" class="flex min-w-0 flex-1 items-center gap-2.5 lg:gap-3">
+          <div v-if="activeNav === 'home' && !canGoBack" class="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#e9daf7] bg-white shadow-sm">
+            <img :src="brandLogo" alt="MedsGH Logo" class="h-7 w-7 object-contain" />
           </div>
           <button v-else-if="canGoBack" @click="goTo('home')" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
             <span class="material-symbols-outlined">arrow_back</span>
           </button>
           
-          <div v-if="activeNav === 'home'">
-            <h2 class="text-xl lg:text-[2rem] font-bold text-zinc-900 tracking-tight leading-tight">
-              {{ `Good morning, ${displayUserName}` }}
+          <div v-if="activeNav === 'home'" class="min-w-0 flex-1">
+            <h2 class="truncate text-[1.05rem] font-bold leading-tight tracking-tight text-zinc-900 lg:text-[2rem]">
+              {{ headerGreeting }}
             </h2>
-            <div class="mt-1 flex items-center gap-1.5 text-[#7a7280]">
-              <span class="material-symbols-outlined text-[15px]">location_on</span>
-              <span class="text-[11px] font-semibold uppercase tracking-[0.12em]">{{ headerLocation }}</span>
-            </div>
+            <button
+              type="button"
+              @click="refreshDeliveryLocation"
+              :disabled="isRefreshingLocation"
+              class="mt-1 flex min-w-0 w-full items-center gap-2 rounded-full border border-transparent bg-white/0 px-0 py-1 text-left text-[#7a7280] transition-all hover:bg-[#f7f1ff] hover:text-[#4F217A] focus:outline-none focus-visible:border-[#4F217A]/20 focus-visible:bg-[#f7f1ff] focus-visible:text-[#4F217A]"
+              :title="headerLocation === 'Set your delivery location' ? 'Set your delivery location' : 'Update delivery location'"
+            >
+              <span class="material-symbols-outlined shrink-0 text-[14px]" :class="isRefreshingLocation ? 'animate-spin' : ''">
+                {{ isRefreshingLocation ? 'sync' : 'location_on' }}
+              </span>
+              <span class="truncate text-[10px] font-semibold uppercase tracking-[0.1em] lg:text-[11px] lg:tracking-[0.12em]">{{ headerLocation }}</span>
+              <span class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full border border-[#4F217A]/15 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#4F217A] shadow-sm transition-colors">
+                <template v-if="isRefreshingLocation">
+                  Updating
+                  <span class="material-symbols-outlined text-[11px] animate-spin">sync</span>
+                </template>
+                <template v-else>
+                  Update
+                  <span class="material-symbols-outlined text-[11px]">chevron_right</span>
+                </template>
+              </span>
+            </button>
           </div>
         </div>
 
@@ -79,9 +97,13 @@
           <button class="w-10 h-10 hidden lg:flex items-center justify-center rounded-xl text-[#71717a] hover:bg-[#e8e0e8] transition-colors">
             <span class="material-symbols-outlined">notifications</span>
           </button>
-          <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-[#efdbff] bg-[#f08a5d] text-[#4F217A] flex items-center justify-center font-semibold cursor-pointer" @click="toggleMenu">
-            {{ displayUserInitials }}
-          </div>
+          <button class="flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm group" @click="toggleMenu">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F217A] to-[#381659] text-white flex items-center justify-center text-xs font-black shadow-inner">
+              {{ displayUserInitials }}
+            </div>
+            <span class="text-xs font-bold text-zinc-700 group-hover:text-zinc-900 transition-colors hidden sm:block">Menu</span>
+            <span class="material-symbols-outlined text-[16px] text-zinc-400 group-hover:text-zinc-600 transition-colors hidden sm:block">expand_more</span>
+          </button>
         </div>
       </header>
 
@@ -170,7 +192,7 @@
 
 <script setup>
 import { useHead } from '#imports'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import brandLogo from '~/assets/images/rigellogo.png'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useUserStore } from '~/stores/user'
@@ -191,26 +213,86 @@ const route = useRoute()
 const showMenu = ref(false)
 const showLogoutConfirm = ref(false)
 const hasMounted = ref(false)
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1440)
 
 const userName = computed(() => {
   const u = userStore.currentUser
   return u ? `${u.fname || ''} ${u.lname || ''}`.trim() || 'Customer' : 'Customer'
+})
+const userFirstName = computed(() => {
+  const firstName = String(userStore.currentUser?.fname || '').trim()
+  return firstName || 'Customer'
 })
 const userInitials = computed(() => {
   const u = userStore.currentUser
   return u ? `${(u.fname || '')[0] || ''}${(u.lname || '')[0] || ''}`.toUpperCase() || 'C' : 'C'
 })
 const displayUserName = computed(() => hasMounted.value ? userName.value : 'Customer')
+const displayUserFirstName = computed(() => hasMounted.value ? userFirstName.value : 'Customer')
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
 const activeNav = computed(() => route.query.tab || 'home')
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home' && route.query.tab !== 'new' && route.query.tab !== 'requests')
+const greetingLabel = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+})
+const headerGreeting = computed(() => {
+  const compactName = viewportWidth.value < 380 ? displayUserFirstName.value : displayUserName.value
+  return `${greetingLabel.value}, ${compactName}`
+})
 const headerLocation = computed(() => {
   const address = userStore.currentUser?.address || ''
   const compact = getCompactAddressLines(address, { primaryCount: 2 }).primary
   return compact || 'Set your delivery location'
 })
 const goTo = (tab) => navigateTo({ path: '/customer', query: { tab } })
+const isRefreshingLocation = ref(false)
+const reverseGeocodeLocation = async (latitude, longitude) => {
+  const config = useRuntimeConfig()
+  const response = await fetch(`${config.public.apiBase}/api/auth/customer/reverse-geocode?lat=${latitude}&lng=${longitude}`, {
+    headers: {
+      Authorization: `Bearer ${userStore.customerAuthToken}`,
+      'Content-Type': 'application/json'
+    }
+  })
+  const data = await response.json()
+  if (!data.success) {
+    throw new Error(data.message || 'Failed to look up your address')
+  }
+  return data.data
+}
+const refreshDeliveryLocation = async () => {
+  if (!navigator.geolocation) return
+  if (isRefreshingLocation.value) return
+
+  isRefreshingLocation.value = true
+
+  try {
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 15000
+      })
+    })
+
+    const latitude = position.coords.latitude
+    const longitude = position.coords.longitude
+    const result = await reverseGeocodeLocation(latitude, longitude)
+
+    await userStore.updateProfile({
+      home_address: result.address || null,
+      home_latitude: latitude,
+      home_longitude: longitude
+    })
+  } catch (error) {
+    console.error('Failed to update delivery location:', error)
+  } finally {
+    isRefreshingLocation.value = false
+  }
+}
 const toggleMenu = () => { showMenu.value = !showMenu.value }
 const handleLogout = () => {
   showMenu.value = false
@@ -226,8 +308,18 @@ const confirmLogout = async () => {
   }
 }
 
+const updateViewportWidth = () => {
+  viewportWidth.value = window.innerWidth
+}
+
 onMounted(() => {
   hasMounted.value = true
+  updateViewportWidth()
+  window.addEventListener('resize', updateViewportWidth)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateViewportWidth)
 })
 </script>
 
