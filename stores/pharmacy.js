@@ -132,8 +132,12 @@ export const usePharmacyStore = defineStore("pharmacy", {
           throw new Error(data.message || 'Failed to fetch products');
         }
 
+        const activeProducts = (data.data || []).filter((product) =>
+          !(product?.is_active === false || product?.is_active === 0 || product?.is_active === '0')
+        );
+
         // Map API response to expected format
-        this.products = (data.data || []).map(product => ({
+        this.products = activeProducts.map(product => ({
           id: product.id,
           barcode: product.barcode,
           brandName: product.brand_name,
