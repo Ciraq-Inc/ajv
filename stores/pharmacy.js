@@ -78,9 +78,12 @@ export const usePharmacyStore = defineStore("pharmacy", {
           companytype: data.data.companytype,
           domain_name: data.data.domain_name,
           logo: data.data.logo,
+          logoUrl: data.data.logo,
           shop_banner: data.data.shop_banner,
           subdomain: data.data.domain_name, // Use domain_name as subdomain
           hide_prices: data.data.hide_prices === 1 || data.data.hide_prices === true,
+          theme_preset: data.data.theme_preset || "indigo",
+          theme_color: data.data.theme_color || null,
         };
 
         // Update pharmacySlug from pharmacy data if available
@@ -129,8 +132,12 @@ export const usePharmacyStore = defineStore("pharmacy", {
           throw new Error(data.message || 'Failed to fetch products');
         }
 
+        const activeProducts = (data.data || []).filter((product) =>
+          !(product?.is_active === false || product?.is_active === 0 || product?.is_active === '0')
+        );
+
         // Map API response to expected format
-        this.products = (data.data || []).map(product => ({
+        this.products = activeProducts.map(product => ({
           id: product.id,
           barcode: product.barcode,
           brandName: product.brand_name,

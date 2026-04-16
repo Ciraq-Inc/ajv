@@ -232,10 +232,22 @@
 			</div>
 		</div>
 	</div>
+
+	<ConfirmDialog
+		:is-open="showLogoutConfirm"
+		title="Log out?"
+		message="You will be returned to the home page and will need to sign in again."
+		confirm-text="Log Out"
+		cancel-text="Stay Here"
+		variant="danger"
+		@close="showLogoutConfirm = false"
+		@confirm="confirmLogout"
+	/>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue';
+import ConfirmDialog from '~/components/ConfirmDialog.vue';
 import { useUserStore } from '~/stores/user';
 
 const userStore = useUserStore();
@@ -246,6 +258,7 @@ const isLoadingOrders = ref(false);
 const updateSuccess = ref(false);
 const orders = ref([]);
 const selectedOrder = ref(null);
+const showLogoutConfirm = ref(false);
 
 // Initialize profile from user store data
 const profile = reactive({
@@ -354,14 +367,17 @@ const viewOrderDetails = (order) => {
 };
 
 // Logout user
-const logout = async () => {
-	if (confirm('Are you sure you want to log out?')) {
-		try {
-			await userStore.logout();
-			navigateTo('/');
-		} catch (error) {
-			console.error('Error logging out:', error);
-		}
+const logout = () => {
+	showLogoutConfirm.value = true;
+};
+
+const confirmLogout = async () => {
+	try {
+		await userStore.logout();
+		showLogoutConfirm.value = false;
+		navigateTo({ path: '/', query: { logged_out: Date.now().toString() } });
+	} catch (error) {
+		console.error('Error logging out:', error);
 	}
 };
 

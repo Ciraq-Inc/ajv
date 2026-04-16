@@ -1,222 +1,215 @@
 <template>
-  <header class="bg-white shadow-sm py-3 border-b border-gray-100 sticky top-0 z-40">
-    <div class="container mx-auto px-4 max-w-7xl">
-      <div class="flex items-center justify-between gap-4">
-        <!-- Logo and Brand -->
-        <nuxt-link to="/" class="flex items-center cursor-pointer flex-shrink-0">
-          <img src="../assets/images/rigellogo.png" alt="Rigelis" width="50" height="50" class="mr-1" />
-          <h1 class="text-xl md:text-2xl font-bold text-black">MedsGh</h1>
+  <header class="fixed left-0 right-0 top-0 z-40 px-3 py-3 sm:px-5">
+    <div
+      class="mx-auto max-w-7xl rounded-2xl border transition-all duration-300"
+      :class="[
+        isScrolled
+          ? 'border-[#e4d3f8] bg-white/96 shadow-[0_20px_48px_-32px_rgba(80,0,148,0.18)] backdrop-blur-xl'
+          : 'border-white/70 bg-white/84 shadow-[0_20px_52px_-36px_rgba(80,0,148,0.16)] backdrop-blur-xl',
+      ]"
+    >
+      <div class="flex items-center gap-3 px-3 py-2.5 sm:px-5 sm:py-3.5">
+        <nuxt-link to="/" class="flex items-center gap-2.5">
+          <img src="../assets/images/rigellogo.png" alt="Rigelis" width="46" height="46" class="rounded-xl" />
+          <div>
+            <p class="text-lg font-bold leading-none text-[#520094] sm:text-xl">MedsGh</p>
+            <p class="mt-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">Trusted Pharmacy Network</p>
+          </div>
         </nuxt-link>
 
-        <!-- Desktop Navigation -->
-        <div class="hidden lg:flex items-center gap-4 xl:gap-6">
-          <!-- Phone -->
-          <a href="tel:+233552587974" class="flex items-center gap-2 text-gray-700 hover:text-indigo-600 transition-colors">
-            <div class="w-9 h-9 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-            </div>
-            <span class="hidden xl:inline text-sm font-medium">(+233) 55-258-7974</span>
-          </a>
-          
-          <!-- WhatsApp Contact Button -->
-          <a 
-            target="_blank" 
-            href="https://wa.me/+233552587974"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+        <nav class="ml-6 hidden items-center gap-5 text-sm font-medium text-slate-600 lg:flex">
+          <nuxt-link to="/" class="transition hover:text-[#520094]">Home</nuxt-link>
+          <nuxt-link to="/drugs" class="transition hover:text-[#520094]">Products</nuxt-link>
+          <a href="/#how-it-works" class="transition hover:text-[#520094]">How It Works</a>
+          <a href="/#support" class="transition hover:text-[#520094]">Support</a>
+          <nuxt-link to="/jobs" class="transition hover:text-[#520094]">Jobs</nuxt-link>
+        </nav>
+
+        <div class="ml-auto hidden items-center gap-2 lg:flex">
+          <a
+            href="tel:+233552587974"
+            class="inline-flex items-center gap-2 rounded-full bg-[#f7efff] px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f0e2ff]"
           >
-            <i class="ri-whatsapp-line text-xl"></i>
-            <span class="hidden xl:inline">Contact Us</span>
+            <i class="ri-phone-line text-sm"></i>
+            (+233) 55-258-7974
           </a>
 
-          <!-- Customer Not Logged In -->
-          <button 
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://wa.me/+233552587974"
+            class="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700"
+          >
+            <i class="ri-whatsapp-line text-base"></i>
+            Contact Us
+          </a>
+
+          <button
             v-if="!userStore.isLoggedIn"
             @click="showLoginModal = true"
-            class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+            class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
           >
-            <i class="ri-user-line text-xl"></i>
-            <span>Login</span>
+            <i class="ri-user-line text-base"></i>
+            Login
           </button>
 
-          <!-- Customer Logged In - Show Profile Menu -->
           <div v-else class="relative profile-menu-container">
-            <button 
+            <button
               @click.stop="showProfileMenu = !showProfileMenu"
-              class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+              class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
             >
-              <i class="ri-user-line text-xl"></i>
-              <span class="truncate max-w-[100px]">{{ userStore.currentUser?.fname || 'Account' }}</span>
-              <i :class="['ri-arrow-down-s-line text-lg transition-transform duration-200', showProfileMenu ? 'rotate-180' : '']"></i>
+              <i class="ri-user-line text-base"></i>
+              <span class="max-w-[100px] truncate">{{ userStore.currentUser?.fname || 'Account' }}</span>
+              <i :class="['ri-arrow-down-s-line text-base transition-transform duration-200', showProfileMenu ? 'rotate-180' : '']"></i>
             </button>
 
-            <!-- Dropdown Menu -->
-            <div 
+            <div
               v-if="showProfileMenu"
               @click.stop
-              class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+              class="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-slate-200 bg-white py-2 shadow-xl"
             >
-            <!-- User Info -->
-            <div class="px-4 py-3 border-b border-gray-100">
-              <p class="text-sm font-semibold text-gray-900">
-                {{ userStore.currentUser?.fname }} {{ userStore.currentUser?.lname }}
-              </p>
-              <p class="text-xs text-gray-500 mt-1">{{ formatPhone(userStore.currentUser?.phone) }}</p>
-              <p v-if="userStore.currentCompany" class="text-xs text-indigo-600 mt-1 flex items-center gap-1">
-                <i class="ri-building-line"></i>
-                {{ userStore.currentCompany.company_name }}
-              </p>
-            </div>
+              <div class="border-b border-slate-100 px-4 py-3">
+                <p class="text-sm font-semibold text-slate-900">{{ userStore.currentUser?.fname }} {{ userStore.currentUser?.lname }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ formatPhone(userStore.currentUser?.phone) }}</p>
+                <p v-if="userStore.currentCompany" class="mt-1 flex items-center gap-1 text-xs text-purple-700">
+                  <i class="ri-building-line"></i>
+                  {{ userStore.currentCompany.company_name }}
+                </p>
+              </div>
 
-            <!-- Menu Items -->
-            <nuxt-link 
-              to="/customer"
-              @click="showProfileMenu = false"
-              class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              <nuxt-link to="/customer" @click="showProfileMenu = false" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50">
+                <i class="ri-user-settings-line text-lg"></i>
+                My Account
+              </nuxt-link>
+              <nuxt-link to="/customer?tab=orders" @click="showProfileMenu = false" class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50">
+                <i class="ri-shopping-bag-line text-lg"></i>
+                My Orders
+              </nuxt-link>
+              <nuxt-link
+                v-if="userStore.hasMultipleCompanies"
+                to="/customer?tab=companies"
+                @click="showProfileMenu = false"
+                class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50"
+              >
+                <i class="ri-building-line text-lg"></i>
+                Linked Companies ({{ userStore.companyCount }})
+              </nuxt-link>
+
+              <div class="mt-2 border-t border-slate-100"></div>
+
+              <button @click="handleLogout" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-rose-600 transition hover:bg-rose-50">
+                <i class="ri-logout-box-line text-lg"></i>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ml-auto flex items-center gap-2 lg:hidden">
+          <button
+            v-if="!userStore.isLoggedIn"
+            @click="showLoginModal = true; showMobileMenu = false"
+            class="inline-flex items-center gap-1.5 rounded-full border border-[#eadbfd] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
+          >
+            <i class="ri-login-box-line text-base"></i>
+            Login
+          </button>
+
+          <nuxt-link
+            v-else
+            to="/customer"
+            class="inline-flex items-center gap-1.5 rounded-full border border-[#eadbfd] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
+          >
+            <i class="ri-user-star-line text-base"></i>
+            My Hub
+          </nuxt-link>
+
+          <button
+            @click="showMobileMenu = !showMobileMenu"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#eadbfd] bg-white text-slate-700 transition hover:bg-[#f7efff]"
+          >
+            <i :class="[showMobileMenu ? 'ri-close-line' : 'ri-menu-line', 'text-lg']"></i>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="showMobileMenu" class="border-t border-[#efe4fa] px-3 py-3 lg:hidden sm:px-5">
+        <div class="space-y-2 rounded-xl bg-[#fbf6ff] p-3 text-sm text-slate-700">
+          <nuxt-link to="/" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
+            <span>Home</span>
+            <i class="ri-arrow-right-line"></i>
+          </nuxt-link>
+          <nuxt-link to="/drugs" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
+            <span>Products</span>
+            <i class="ri-arrow-right-line"></i>
+          </nuxt-link>
+         
+          <a href="/#how-it-works" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
+            <span>How It Works</span>
+            <i class="ri-arrow-right-line"></i>
+          </a>
+          <a href="/#support" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
+            <span>Support</span>
+            <i class="ri-arrow-right-line"></i>
+          </a>
+           <nuxt-link to="/jobs" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
+            <span>Jobs</span>
+            <i class="ri-arrow-right-line"></i>
+          </nuxt-link>
+
+          <div class="mt-3 flex flex-col gap-2 rounded-lg bg-white p-3">
+            <a href="tel:+233552587974" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <i class="ri-phone-line text-sm"></i>
+              (+233) 55-258-7974
+            </a>
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://wa.me/+233552587974"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
             >
-              <i class="ri-user-settings-line text-lg"></i>
+              <i class="ri-whatsapp-line text-base"></i>
+              Contact Us on WhatsApp
+            </a>
+          </div>
+
+          <div v-if="userStore.isLoggedIn" class="mt-3 space-y-2 border-t border-[#efe4fa] pt-3">
+            <div class="rounded-lg bg-white px-3 py-2">
+              <p class="text-sm font-semibold text-slate-900">{{ userStore.currentUser?.fname }} {{ userStore.currentUser?.lname }}</p>
+              <p class="mt-1 text-xs text-slate-500">{{ formatPhone(userStore.currentUser?.phone) }}</p>
+            </div>
+            <nuxt-link to="/customer" @click="showMobileMenu = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white">
+              <i class="ri-user-settings-line"></i>
               My Account
             </nuxt-link>
-
-            <nuxt-link 
-              to="/customer?tab=orders"
-              @click="showProfileMenu = false"
-              class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <i class="ri-shopping-bag-line text-lg"></i>
+            <nuxt-link to="/customer?tab=orders" @click="showMobileMenu = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white">
+              <i class="ri-shopping-bag-line"></i>
               My Orders
             </nuxt-link>
-
-            <nuxt-link 
-              v-if="userStore.hasMultipleCompanies"
-              to="/customer?tab=companies"
-              @click="showProfileMenu = false"
-              class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <i class="ri-building-line text-lg"></i>
-              Linked Companies ({{ userStore.companyCount }})
+            <nuxt-link to="/customer?tab=companies" @click="showMobileMenu = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white">
+              <i class="ri-store-3-line"></i>
+              My Pharmacies
             </nuxt-link>
-
-            <div class="border-t border-gray-100 mt-2"></div>
-
-            <button 
-              @click="handleLogout"
-              class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <i class="ri-logout-box-line text-lg"></i>
+            <button @click="handleLogout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50">
+              <i class="ri-logout-box-line"></i>
               Logout
             </button>
           </div>
         </div>
-        </div>
-
-        <!-- Mobile Menu Button -->
-        <button 
-          @click="showMobileMenu = !showMobileMenu"
-          class="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <i :class="[showMobileMenu ? 'ri-close-line' : 'ri-menu-line', 'text-2xl']"></i>
-        </button>
-      </div>
-
-      <!-- Mobile Navigation -->
-      <div 
-        v-if="showMobileMenu"
-        class="lg:hidden mt-4 pt-4 border-t border-gray-100 space-y-3"
-      >
-        <!-- Phone -->
-        <a 
-          href="tel:+233552587974" 
-          class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <div class="w-9 h-9 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-          </div>
-          <span class="text-sm font-medium text-gray-700">(+233) 55-258-7974</span>
-        </a>
-
-        <!-- WhatsApp Contact -->
-        <a 
-          target="_blank" 
-          href="https://wa.me/+233552587974"
-          class="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-lg transition-colors duration-200"
-        >
-          <i class="ri-whatsapp-line text-xl"></i>
-          Contact Us on WhatsApp
-        </a>
-
-        <!-- Mobile Login/Profile -->
-        <!-- <button 
-         
-          @click="showLoginModal = true; showMobileMenu = false"
-          class="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-4 py-2.5 rounded-lg transition-colors duration-200"
-        >
-          <i class="ri-user-line text-xl"></i>
-          Login
-        </button> -->
-
-        <!-- Mobile Profile Menu -->
-        <div  v-if="userStore.isLoggedIn" class="space-y-2">
-          <!-- User Info -->
-          <div class="px-3 py-2 bg-gray-50 rounded-lg">
-            <p class="text-sm font-semibold text-gray-900">
-              {{ userStore.currentUser?.fname }} {{ userStore.currentUser?.lname }}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">{{ formatPhone(userStore.currentUser?.phone) }}</p>
-            <p v-if="userStore.currentCompany" class="text-xs text-indigo-600 mt-1 flex items-center gap-1">
-              <i class="ri-building-line"></i>
-              {{ userStore.currentCompany.company_name }}
-            </p>
-          </div>
-
-          <!-- Menu Items -->
-          <nuxt-link 
-            to="/customer"
-            @click="showMobileMenu = false"
-            class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <i class="ri-user-settings-line text-lg"></i>
-            My Account
-          </nuxt-link>
-
-          <nuxt-link 
-            to="/customer?tab=orders"
-            @click="showMobileMenu = false"
-            class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <i class="ri-shopping-bag-line text-lg"></i>
-            My Orders
-          </nuxt-link>
-
-          <nuxt-link 
-            v-if="userStore.hasMultipleCompanies"
-            to="/customer?tab=companies"
-            @click="showMobileMenu = false"
-            class="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <i class="ri-building-line text-lg"></i>
-            Linked Companies ({{ userStore.companyCount }})
-          </nuxt-link>
-
-          <button 
-            @click="handleLogout"
-            class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <i class="ri-logout-box-line text-lg"></i>
-            Logout
-          </button>
-        </div>
       </div>
     </div>
 
-    <!-- Login Modal -->
-    <Login 
-      :is-open="showLoginModal" 
-      @close="showLoginModal = false"
-      @login-success="handleLoginSuccess"
+    <Login :is-open="showLoginModal" @close="showLoginModal = false" @login-success="handleLoginSuccess" />
+
+    <ConfirmDialog
+      :is-open="showLogoutConfirm"
+      title="Log out?"
+      message="You will need to sign in again to view your requests, wallet, and account details."
+      confirm-text="Log Out"
+      cancel-text="Stay Here"
+      variant="danger"
+      @close="showLogoutConfirm = false"
+      @confirm="confirmLogout"
     />
   </header>
 </template>
@@ -224,29 +217,39 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useUserStore } from '~/stores/user'
+import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import Login from '~/components/Login.vue'
 
 const userStore = useUserStore()
 const showLoginModal = ref(false)
 const showProfileMenu = ref(false)
 const showMobileMenu = ref(false)
+const showLogoutConfirm = ref(false)
+const isScrolled = ref(false)
 
-const handleLoginSuccess = () => {
+const handleLoginSuccess = (payload = {}) => {
   showLoginModal.value = false
+  if (payload.destination === 'new') {
+    navigateTo('/customer?tab=new')
+    return
+  }
   // Redirect to customer account page after successful login
   navigateTo('/customer')
 }
 
-const handleLogout = async () => {
-  if (confirm('Are you sure you want to log out?')) {
-    try {
-      await userStore.logout()
-      showProfileMenu.value = false
-      showMobileMenu.value = false
-      navigateTo('/')
-    } catch (error) {
-      console.error('Error logging out:', error)
-    }
+const handleLogout = () => {
+  showProfileMenu.value = false
+  showMobileMenu.value = false
+  showLogoutConfirm.value = true
+}
+
+const confirmLogout = async () => {
+  try {
+    await userStore.logout()
+    showLogoutConfirm.value = false
+    navigateTo({ path: '/', query: { logged_out: Date.now().toString() } })
+  } catch (error) {
+    console.error('Error logging out:', error)
   }
 }
 
@@ -269,7 +272,14 @@ const handleClickOutside = (event) => {
   }
 }
 
+const handleScroll = () => {
+  isScrolled.value = window.scrollY > 12
+}
+
 onMounted(() => {
+  handleScroll()
+  window.addEventListener('scroll', handleScroll, { passive: true })
+
   // Use capture phase and add small delay to allow navigation to work
   setTimeout(() => {
     document.addEventListener('click', handleClickOutside, true)
@@ -277,6 +287,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll)
   document.removeEventListener('click', handleClickOutside, true)
 })
 </script>

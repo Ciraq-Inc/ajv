@@ -1,153 +1,210 @@
 <template>
-  <div class="orders-component">
-    <div class="section-header">
-      <h2>All Orders</h2>
-      <p class="section-description">View and manage your orders across all linked companies</p>
+  <div class="w-full">
+    <!-- Header -->
+    <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[18px]">history</span>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Order History</h1>
+                <p class="text-xs text-zinc-500 font-medium mt-0.5">Your complete order and request fulfillment history</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 shadow-sm hidden sm:flex">
+            <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-500">Total</span>
+            <strong class="text-sm font-black text-zinc-900 tabular-nums">{{ mergedItems.length }}</strong>
+        </div>
+    </header>
+
+    <!-- Status filter -->
+    <div class="px-5 mb-5 overflow-x-auto no-scrollbar">
+        <div class="inline-flex gap-2 p-1 bg-zinc-100 border border-zinc-200 rounded-lg">
+            <button
+                @click="selectedStatus = ''"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === '' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                All
+            </button>
+            <button
+                @click="selectedStatus = 'active'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'active' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                Active
+            </button>
+            <button
+                @click="selectedStatus = 'in_transit'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'in_transit' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                In Transit
+            </button>
+            <button
+                @click="selectedStatus = 'completed'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'completed' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                Completed
+            </button>
+            <button
+                @click="selectedStatus = 'cancelled'"
+                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                :class="selectedStatus === 'cancelled' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
+            >
+                Cancelled
+            </button>
+        </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filters">
-      <select v-model="selectedStatus" @change="loadOrders" class="filter-select">
-        <option value="">All Orders</option>
-        <option value="pending">Pending</option>
-        <option value="processing">Processing</option>
-        <option value="shipped">Shipped</option>
-        <option value="delivered">Delivered</option>
-        <option value="cancelled">Cancelled</option>
-      </select>
+    <!-- Loading -->
+    <div v-if="isLoading" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-zinc-50 rounded-xl">
+        <span class="material-symbols-outlined text-3xl text-zinc-400 animate-spin mb-3">sync</span>
+        <p class="text-sm font-medium text-zinc-500">Loading your history...</p>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <svg class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-        </path>
-      </svg>
-      <p>Loading your orders...</p>
-    </div>
+    <!-- ─── Merged Timeline ─── -->
+    <div v-else>
+      <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-white rounded-xl shadow-sm">
+        <div class="max-w-[48px] max-h-[48px] w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100 mx-auto">
+          <span class="material-symbols-outlined text-2xl text-zinc-300">receipt_long</span>
+        </div>
+        <p class="text-base font-bold text-zinc-900 mb-1 text-center">No history yet</p>
+        <p class="text-sm font-medium text-zinc-500 text-center">Your orders and requests will appear here</p>
+      </div>
 
-    <!-- Empty State -->
-    <div v-else-if="orders.length === 0" class="empty-state">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-      </svg>
-      <h3>No orders found</h3>
-      <p>You haven't placed any orders across your linked companies yet</p>
-      <button @click="navigateTo('/')" class="btn btn-primary">
-        Start Shopping
-      </button>
-    </div>
-
-    <!-- Orders List -->
-    <div v-else class="orders-list">
-      <div v-for="order in orders" :key="order.order_id" class="order-card">
-        <div class="order-header">
-          <div class="order-info">
-            <h3>Order #{{ order.order_id.substring(0, 8) }}</h3>
-            <p class="order-date">{{ formatDate(order.created_at || order.order_date) }}</p>
-            <p class="order-company" v-if="order.company_name">From: {{ order.company_name }}</p>
+      <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
+        <article v-for="item in filteredItems" :key="item._key"
+          class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
+          @click="item._type === 'store' ? viewOrder(item) : viewRequestOrder(item)"
+        >
+          <div class="flex items-center gap-4 min-w-0">
+            <!-- Colored Icon Box based on status -->
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
+              :class="item.status === 'completed' || item.status === 'delivered' || item.status === 'picked_up' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (item.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : (item.status === 'processing' || item.status === 'shipped' || item.status === 'out_for_delivery' || item.status === 'ready_for_pickup' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100'))">
+              <span class="material-symbols-outlined text-[20px]">{{ item._type === 'store' ? 'shopping_bag' : 'package_2' }}</span>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-0.5">
+                <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight truncate">{{ item._displayId }}</h4>
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.08em] flex-shrink-0"
+                  :class="item._type === 'store' ? 'bg-zinc-100 text-zinc-500' : 'bg-[#f4e8fb] text-[#5e3a86]'">
+                  {{ item._type === 'store' ? 'Store' : 'Request' }}
+                </span>
+                <span v-if="item._meta" class="hidden sm:inline-flex items-center text-xs text-zinc-400 font-medium truncate w-32 sm:w-auto">
+                    &middot; {{ item._meta }}
+                </span>
+              </div>
+              <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
+                {{ item._date }}
+              </p>
+            </div>
           </div>
-          <div class="order-status">
-            <span :class="['status-badge', getStatusClass(order.status)]">
-              {{ formatStatus(order.status) }}
-            </span>
+          <div class="text-right flex-shrink-0 flex items-center gap-4">
+            <div class="flex flex-col items-end gap-1.5">
+              <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ item._amount }}</strong>
+              <div class="flex justify-end">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.1em]"
+                  :class="item._type === 'store' ? orderStatusClass(item.status) : requestOrderStatusClass(item.status)">
+                  {{ item._type === 'store' ? formatStatus(item.status) : formatRequestStatus(item.status) }}
+                </span>
+              </div>
+            </div>
+            
+            <button v-if="item._type === 'store' && item.status === 'pending'" @click.stop="confirmCancelOrder(item)"
+              class="w-7 h-7 hidden sm:flex items-center justify-center rounded border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-colors flex-shrink-0"
+              title="Cancel Order">
+              <span class="material-symbols-outlined text-[14px]">close</span>
+            </button>
+            
+            <!-- Hover Chevron -->
+            <div class="ml-2 hidden sm:flex w-6 h-6 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                </svg>
+            </div>
           </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- ─── Store Order Detail Modal ─── -->
+    <div v-if="selectedOrder" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="selectedOrder = null">
+      <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+          <h3 class="font-black text-zinc-900 tracking-tight">Order Details</h3>
+          <button @click="selectedOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
         </div>
 
-        <div class="order-body">
-          <div class="order-items">
-            <p class="items-summary">
-              <strong>{{ order.item_count || 0 }}</strong> item(s)
-            </p>
+        <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Order ID</p><p class="font-semibold text-zinc-900 mt-0.5 truncate">{{ selectedOrder.order_id }}</p></div>
+            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Date</p><p class="font-semibold text-zinc-900 mt-0.5">{{ formatDate(selectedOrder.created_at) }}</p></div>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Status</p>
+              <span class="inline-flex rounded-full mt-1 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]" :class="orderStatusClass(selectedOrder.status)">{{ formatStatus(selectedOrder.status) }}</span>
+            </div>
           </div>
 
-          <div class="order-total">
-            <p class="total-label">Total Amount</p>
-            <p class="total-amount">GHS {{ formatAmount(order.total_amount) }}</p>
+          <div class="border-t border-zinc-100 pt-4">
+            <h4 class="text-sm font-black text-zinc-800 mb-3">Order Items</h4>
+            <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
+              <div>
+                <p class="text-sm font-semibold text-zinc-900">{{ item.brand_name || item.product_name }}</p>
+                <p class="text-xs text-zinc-500">Qty: {{ item.qty }} · GHS {{ item.selling_price }}</p>
+              </div>
+              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total) }}</p>
+            </div>
           </div>
-        </div>
 
-        <div class="order-footer">
-          <button @click="viewOrder(order)" class="btn btn-outline">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            View Details
-          </button>
-
-          <button v-if="order.status === 'pending'" @click="confirmCancelOrder(order)" class="btn btn-danger">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Cancel Order
-          </button>
+          <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
+            <div class="flex justify-between text-sm text-zinc-600"><span>Subtotal</span><span>GHS {{ formatAmount(selectedOrder.subtotal || selectedOrder.total_amount) }}</span></div>
+            <div class="flex justify-between text-sm text-zinc-600"><span>Tax</span><span>GHS {{ formatAmount(selectedOrder.tax_amount || 0) }}</span></div>
+            <div class="flex justify-between text-base font-black text-zinc-900 pt-2 border-t border-zinc-200"><span>Total</span><span>GHS {{ formatAmount(selectedOrder.total_amount) }}</span></div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Order Details Modal -->
-    <div v-if="selectedOrder" class="modal-overlay" @click="selectedOrder = null">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3>Order Details</h3>
-          <button @click="selectedOrder = null" class="close-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+    <!-- ─── Request Order Detail Modal ─── -->
+    <div v-if="selectedRequestOrder" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="selectedRequestOrder = null">
+      <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+          <h3 class="font-black text-zinc-900 tracking-tight">Request Order Details</h3>
+          <button @click="selectedRequestOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
-        <div class="modal-body">
-          <div class="detail-row">
-            <span class="detail-label">Order ID:</span>
-            <span class="detail-value">{{ selectedOrder.order_id }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Date:</span>
-            <span class="detail-value">{{ formatDate(selectedOrder.created_at) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Status:</span>
-            <span :class="['status-badge', getStatusClass(selectedOrder.status)]">
-              {{ formatStatus(selectedOrder.status) }}
-            </span>
+        <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Request #</p><p class="font-semibold text-zinc-900 mt-0.5">{{ selectedRequestOrder.request_number }}</p></div>
+            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Date</p><p class="font-semibold text-zinc-900 mt-0.5">{{ formatDate(selectedRequestOrder.updated_at || selectedRequestOrder.created_at) }}</p></div>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Status</p>
+              <span class="inline-flex rounded-full mt-1 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]" :class="requestOrderStatusClass(selectedRequestOrder.status)">{{ formatRequestStatus(selectedRequestOrder.status) }}</span>
+            </div>
+            <div v-if="selectedRequestOrder.fulfillment_type"><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Fulfillment</p><p class="font-semibold text-zinc-900 mt-0.5 capitalize">{{ selectedRequestOrder.fulfillment_type }}</p></div>
           </div>
 
-          <div class="items-section">
-            <h4>Order Items</h4>
-            <div v-for="(item, index) in selectedOrder.items" :key="index" class="item-row">
-              <div class="item-info">
-                <p class="item-name">{{ item.brand_name || item.product_name }}</p>
-                <span class="items_details">
-                  <p class="item-qty">Qty: {{ item.qty }}</p>
-                  <p class="item-qty">Price: {{ item.selling_price }}</p>
-                </span>
+          <div class="border-t border-zinc-100 pt-4">
+            <h4 class="text-sm font-black text-zinc-800 mb-3">Request Items</h4>
+            <div v-for="(item, index) in selectedRequestOrder.items || []" :key="index" class="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
+              <div>
+                <p class="text-sm font-semibold text-zinc-900">{{ item.product_name }}</p>
+                <p class="text-xs text-zinc-500">Qty: {{ item.quantity }} · GHS {{ formatAmount(item.marked_up_price || item.unit_price || 0) }}</p>
               </div>
-              <div class="item-price">
-                <p>GHS {{ formatAmount(item.line_total) }}</p>
-              </div>
+              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total || ((item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}</p>
             </div>
           </div>
 
-          <div class="total-section">
-            <div class="total-row">
-              <span>Subtotal:</span>
-              <span>GHS {{ formatAmount(selectedOrder.subtotal || selectedOrder.total_amount) }}</span>
-            </div>
-            <div class="total-row">
-              <span>Tax:</span>
-              <span>GHS {{ formatAmount(selectedOrder.tax_amount || 0) }}</span>
-            </div>
-            <div class="total-row final">
-              <span>Total:</span>
-              <span>GHS {{ formatAmount(selectedOrder.total_amount) }}</span>
-            </div>
+          <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
+            <div class="flex justify-between text-sm text-zinc-600"><span>Items total</span><span>GHS {{ formatAmount(selectedRequestOrder.items_total || 0) }}</span></div>
+            <div v-if="selectedRequestOrder.delivery_fee" class="flex justify-between text-sm text-zinc-600"><span>Delivery fee</span><span>GHS {{ formatAmount(selectedRequestOrder.delivery_fee || 0) }}</span></div>
+            <div class="flex justify-between text-base font-black text-zinc-900 pt-2 border-t border-zinc-200"><span>Total</span><span>GHS {{ formatAmount(getRequestTotalAmount(selectedRequestOrder)) }}</span></div>
           </div>
         </div>
       </div>
@@ -156,16 +213,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 
+const props = defineProps({
+  initialOrderId: { type: String, default: null }
+});
+
 const userStore = useUserStore();
+const config = useRuntimeConfig();
 
 // State
 const isLoading = ref(false);
 const orders = ref([]);
+const paidRequests = ref([]);
 const selectedOrder = ref(null);
+const selectedRequestOrder = ref(null);
 const selectedStatus = ref('');
+const POLL_INTERVAL_MS = 15000;
+let pollTimer = null;
+const paidRequestStatuses = new Set([
+  'paid',
+  'logistics_pending',
+  'driver_unavailable',
+  'ready_for_pickup',
+  'picked_up',
+  'out_for_delivery',
+  'delivered'
+]);
 
 // Format date
 const formatDate = (dateString) => {
@@ -186,22 +261,54 @@ const formatStatus = (status) => {
     'pending': 'Pending',
     'processing': 'Processing',
     'shipped': 'Shipped',
-    'delivered': 'Delivered',
+    'completed': 'Completed',
+    'delivered': 'Completed',
+    'picked_up': 'Completed',
     'cancelled': 'Cancelled'
   };
   return statusMap[status] || status;
 };
 
-// Get status class
-const getStatusClass = (status) => {
-  const statusClasses = {
-    'pending': 'status-pending',
-    'processing': 'status-processing',
-    'shipped': 'status-shipped',
-    'delivered': 'status-delivered',
-    'cancelled': 'status-cancelled'
+// Tailwind class helpers for status badges
+const orderStatusClass = (status) => {
+  const map = {
+    pending: 'bg-amber-50 text-amber-700',
+    processing: 'bg-[#f4e8fb] text-[#5e3a86]',
+    shipped: 'bg-[#e8f0fe] text-[#2856c3]',
+    completed: 'bg-[#e7f7ea] text-[#228847]',
+    delivered: 'bg-[#e7f7ea] text-[#228847]',
+    picked_up: 'bg-[#e7f7ea] text-[#228847]',
+    cancelled: 'bg-red-50 text-red-600'
   };
-  return statusClasses[status] || 'status-default';
+  return map[status] || 'bg-zinc-100 text-zinc-600';
+};
+
+const orderIconClass = (status) => {
+  const map = {
+    pending: 'bg-amber-50 text-amber-600',
+    processing: 'bg-[#e8f0fe] text-[#2856c3]',
+    shipped: 'bg-[#e8f0fe] text-[#2856c3]',
+    completed: 'bg-[#edf9ef] text-[#1d9154]',
+    delivered: 'bg-[#edf9ef] text-[#1d9154]',
+    picked_up: 'bg-[#edf9ef] text-[#1d9154]',
+    cancelled: 'bg-[#fff0f1] text-[#d14b5c]'
+  };
+  return map[status] || 'bg-zinc-100 text-zinc-500';
+};
+
+const requestOrderStatusClass = (status) => {
+  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
+  const map = {
+    paid: 'bg-[#f4e8fb] text-[#5e3a86]',
+    logistics_pending: 'bg-[#f4e8fb] text-[#5e3a86]',
+    driver_unavailable: 'bg-red-50 text-red-600',
+    ready_for_pickup: 'bg-[#e8f0fe] text-[#2856c3]',
+    out_for_delivery: 'bg-[#e8f0fe] text-[#2856c3]',
+    completed: 'bg-[#e7f7ea] text-[#228847]',
+    returned: 'bg-red-50 text-red-600',
+    cancelled: 'bg-red-50 text-red-600'
+  };
+  return map[normalized] || 'bg-zinc-100 text-zinc-600';
 };
 
 // Format amount
@@ -209,19 +316,167 @@ const formatAmount = (amount) => {
   return parseFloat(amount || 0).toFixed(2);
 };
 
-// Load orders
-const loadOrders = async () => {
-  try {
-    isLoading.value = true;
-    const filters = {};
-    if (selectedStatus.value) {
-      filters.status = selectedStatus.value;
+const requestApiCall = async (method, url) => {
+  const response = await fetch(`${config.public.apiBase}${url}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${userStore.customerAuthToken}`,
+      'Content-Type': 'application/json'
     }
-    orders.value = await userStore.getAllOrders(filters);
+  });
+
+  const json = await response.json();
+  if (!response.ok || !json.success) {
+    throw new Error(json.message || `Request failed (${response.status})`);
+  }
+  return json;
+};
+
+const formatRequestStatus = (status) => {
+  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
+  const statusMap = {
+    paid: 'Paid',
+    logistics_pending: 'Logistics Pending',
+    driver_unavailable: 'Driver Unavailable',
+    ready_for_pickup: 'Ready For Pickup',
+    out_for_delivery: 'Out For Delivery',
+    completed: 'Completed',
+    returned: 'Returned',
+    cancelled: 'Cancelled'
+  };
+  return statusMap[normalized] || (normalized || '').replace(/_/g, ' ');
+};
+
+const getRequestStatusClass = (status) => {
+  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
+  const classes = {
+    paid: 'status-processing',
+    logistics_pending: 'status-processing',
+    driver_unavailable: 'status-cancelled',
+    ready_for_pickup: 'status-shipped',
+    out_for_delivery: 'status-shipped',
+    completed: 'status-delivered',
+    returned: 'status-cancelled',
+    cancelled: 'status-cancelled'
+  };
+  return classes[normalized] || 'status-default';
+};
+
+const getRequestTotalAmount = (request) => {
+  if (!request) return 0;
+  const estimated = Number(request.estimated_total);
+  if (Number.isFinite(estimated) && estimated > 0) return estimated;
+  const itemsTotal = Number(request.items_total || 0);
+  const deliveryFee = Number(request.delivery_fee || 0);
+  return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0);
+};
+
+const mergedItems = computed(() => {
+  const storeItems = orders.value.map(o => ({
+    ...o,
+    _type: 'store',
+    _key: `store-${o.order_id}`,
+    _displayId: `Order #${String(o.order_id).substring(0, 8)}`,
+    _date: formatDate(o.created_at || o.order_date),
+    _sortDate: new Date(o.created_at || o.order_date).getTime() || 0,
+    _meta: o.company_name || null,
+    _amount: formatAmount(o.total_amount)
+  }))
+
+  const requestItems = paidRequests.value.map(r => ({
+    ...r,
+    _type: 'request',
+    _key: `req-${r.id}`,
+    _displayId: `Request #${r.request_number}`,
+    _date: formatDate(r.updated_at || r.created_at),
+    _sortDate: new Date(r.updated_at || r.created_at).getTime() || 0,
+    _meta: r.fulfillment_type ? (r.fulfillment_type === 'delivery' ? 'Delivery' : 'Pickup') : null,
+    _amount: formatAmount(getRequestTotalAmount(r))
+  }))
+
+  return [...storeItems, ...requestItems].sort((a, b) => b._sortDate - a._sortDate)
+})
+
+const storeStatusMap = {
+  active: ['pending', 'processing'],
+  in_transit: ['shipped'],
+  completed: ['completed', 'delivered', 'picked_up'],
+  cancelled: ['cancelled']
+}
+
+const requestStatusMap = {
+  active: ['paid', 'logistics_pending'],
+  in_transit: ['out_for_delivery', 'ready_for_pickup'],
+  completed: ['delivered', 'picked_up', 'completed'],
+  cancelled: ['cancelled', 'driver_unavailable', 'returned']
+}
+
+const filteredItems = computed(() => {
+  if (!selectedStatus.value) return mergedItems.value
+  return mergedItems.value.filter(item => {
+    const matchSet = item._type === 'store' ? storeStatusMap[selectedStatus.value] : requestStatusMap[selectedStatus.value]
+    return matchSet ? matchSet.includes(item.status) : false
+  })
+})
+
+const fetchPaidRequests = async () => {
+  const res = await requestApiCall('GET', '/api/order-requests/customer?limit=100');
+  return (res.data || []).filter((req) => paidRequestStatuses.has(req.status));
+};
+
+const viewRequestOrder = async (request) => {
+  try {
+    const res = await requestApiCall('GET', `/api/order-requests/customer/${request.id}`);
+    selectedRequestOrder.value = res.data;
+  } catch (error) {
+    console.error('Error loading request details:', error);
+    alert('Failed to load request details');
+  }
+};
+
+// Load orders + paid requests
+const loadOrders = async ({ silent = false } = {}) => {
+  try {
+    if (!silent) isLoading.value = true;
+
+    const [ordersResult, requestsResult] = await Promise.allSettled([
+      userStore.getAllOrders({}),
+      fetchPaidRequests()
+    ]);
+
+    const nextOrders = ordersResult.status === 'fulfilled' ? (ordersResult.value || []) : [];
+    const nextPaidRequests = requestsResult.status === 'fulfilled' ? (requestsResult.value || []) : paidRequests.value;
+
+    if (ordersResult.status === 'rejected') {
+      console.error('Error loading store orders:', ordersResult.reason);
+    }
+    if (requestsResult.status === 'rejected') {
+      console.error('Error loading paid request orders:', requestsResult.reason);
+    }
+
+    orders.value = nextOrders;
+    paidRequests.value = nextPaidRequests;
+
+    // Keep open modal order status/details synced with latest list values.
+    if (selectedOrder.value?.order_id) {
+      const refreshed = nextOrders.find(o => o.order_id === selectedOrder.value.order_id);
+      if (refreshed) {
+        selectedOrder.value = { ...selectedOrder.value, ...refreshed };
+      }
+    }
+
+    if (selectedRequestOrder.value?.id) {
+      const refreshedRequest = nextPaidRequests.find(r => r.id === selectedRequestOrder.value.id);
+      if (refreshedRequest) {
+        selectedRequestOrder.value = { ...selectedRequestOrder.value, ...refreshedRequest };
+      } else if (!paidRequestStatuses.has(selectedRequestOrder.value.status)) {
+        selectedRequestOrder.value = null;
+      }
+    }
   } catch (error) {
     console.error('Error loading orders:', error);
   } finally {
-    isLoading.value = false;
+    if (!silent) isLoading.value = false;
   }
 };
 
@@ -265,418 +520,25 @@ const cancelOrder = async (orderId, companyId) => {
 };
 
 // Initialize
-onMounted(() => {
-  loadOrders();
+onMounted(async () => {
+  await loadOrders();
+
+  if (props.initialOrderId) {
+    const match = orders.value.find(o => o.order_id === props.initialOrderId)
+      || paidRequests.value.find(r => String(r.id) === String(props.initialOrderId));
+    if (match) {
+      if (match.order_id) viewOrder(match);
+      else selectedRequestOrder.value = match;
+    }
+  }
+
+  pollTimer = setInterval(async () => {
+    await loadOrders({ silent: true });
+  }, POLL_INTERVAL_MS);
+});
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer);
 });
 </script>
 
-<style scoped>
-.orders-component {
-  max-width: 1000px;
-  padding: 10px;
-}
-
-.section-header {
-  margin-bottom: 20px;
-}
-
-.section-header h2 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 4px 0;
-}
-
-.section-description {
-  color: #64748b;
-  font-size: 14px;
-  margin: 0;
-}
-
-.filters {
-  margin-bottom: 20px;
-}
-
-.filter-select {
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-}
-
-.loading-state {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.loading-state .spinner {
-  width: 48px;
-  height: 48px;
-  color: #3b82f6;
-  margin: 0 auto;
-  animation: spin 1s linear infinite;
-}
-
-.loading-state p {
-  margin-top: 16px;
-  color: #64748b;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-}
-
-.empty-state svg {
-  width: 64px;
-  height: 64px;
-  color: #9ca3af;
-  margin: 0 auto;
-}
-
-.empty-state h3 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 16px 0 8px 0;
-}
-
-.empty-state p {
-  color: #64748b;
-  margin-bottom: 24px;
-}
-
-.orders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.order-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
-}
-
-.order-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.order-info h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 4px 0;
-}
-
-.order-date {
-  font-size: 14px;
-  color: #64748b;
-  margin: 0 0 4px 0;
-}
-
-.order-company {
-  font-size: 12px;
-  color: #059669;
-  font-weight: 500;
-  margin: 0;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.status-pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.status-processing {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.status-shipped {
-  background: #e0e7ff;
-  color: #3730a3;
-}
-
-.status-delivered {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-cancelled {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.order-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.items-summary {
-  font-size: 14px;
-  color: #64748b;
-  margin: 0;
-}
-
-.total-label {
-  font-size: 12px;
-  color: #64748b;
-  margin: 0 0 4px 0;
-}
-
-.total-amount {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-
-.order-footer {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.btn-outline {
-  background: white;
-  border: 1px solid #d1d5db;
-  color: #374151;
-}
-
-.btn-outline:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #2563eb;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #dc2626;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal {
-  background: white;
-  border-radius: 12px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h3 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  color: #64748b;
-  transition: color 0.2s;
-}
-
-.close-btn:hover {
-  color: #1e293b;
-}
-
-.close-btn svg {
-  width: 24px;
-  height: 24px;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.detail-label {
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.detail-value {
-  font-size: 14px;
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.items-section {
-  margin-top: 20px;
-}
-
-.items-section h4 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 12px 0;
-}
-
-.item-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 8px;
-}
-
-.item-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 4px 0;
-}
-
-.item-qty {
-  font-size: 12px;
-  color: #64748b;
-  margin: 0;
-}
-
-.items_details {
-  display: flex;
-  gap: 10px;
-}
-
-.item-price p {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-}
-
-.total-section {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 2px solid #e5e7eb;
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.total-row.final {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 768px) {
-  .order-footer {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
-}
-</style>
