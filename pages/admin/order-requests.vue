@@ -49,10 +49,7 @@
     <!-- Filters -->
     <div v-if="!selectedRequest" class="filters-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; gap: 1rem;">
       <div class="status-tabs-bar" role="tablist" aria-label="Order request status filters" style="display: flex; flex-wrap: nowrap; align-items: center; gap: 0.4rem; padding: 0.35rem; padding-left: 0.8rem; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow-x: auto; white-space: nowrap; max-width: 100%;">
-        <div style="display: flex; align-items: center; gap: 0.35rem; color: #6b7280; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.2rem; flex-shrink: 0;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.8;"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-          Filter by Status
-        </div>
+       
         <div style="width: 1px; height: 1.5rem; background: #e5e7eb; margin-right: 0.2rem; flex-shrink: 0;"></div>
         <button
           v-for="tab in statusTabs"
@@ -69,9 +66,8 @@
           <span>{{ tab.label }}</span>
           <span class="status-tab-count" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 0.5rem; font-size: 0.65rem; font-weight: 700; border-radius: 999px; height: 1.25rem;" :style="statusFilter === tab.value ? 'background: rgba(255,255,255,0.2); color: #fff;' : 'background: #e5e7eb; color: #374151;'">{{ tab.count }}</span>
         </button>
-      </div>
-      <div style="display: flex; gap: 0.75rem; align-items: center; flex: 1 1 auto; justify-content: flex-end; min-width: 300px;">
-        <!-- Status Changer on the Far Right -->
+
+          <!-- Status Changer on the Far Right -->
         <div style="position: relative; display: flex; align-items: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding-left: 0.75rem; overflow: hidden; transition: all 0.2s ease;" onmouseover="this.style.borderColor='#d1d5db'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.06)'" onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.04)'">
           <div style="color: #6b7280; display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
@@ -92,6 +88,9 @@
              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </div>
         </div>
+      </div>
+      <div style="display: flex; gap: 0.75rem; align-items: center; flex: 1 1 auto; justify-content: flex-end; min-width: 300px;">
+      
 
         <!-- Search Group -->
         <div class="search-group" style="display: flex; align-items: center; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.2s ease;" onmouseover="this.style.borderColor='#d1d5db'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.06)'" onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.04)'">
@@ -120,13 +119,23 @@
       <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; white-space: nowrap;">
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-            <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Request #</th>
+            <th @click="toggleSort('request_number')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
+              Request # <span style="opacity: 0.5;">{{ sortKey === 'request_number' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+            </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Customer</th>
-            <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: center;">Items</th>
-            <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Status</th>
-            <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right;">Fee</th>
+            <th @click="toggleSort('items')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: center; cursor: pointer; user-select: none; white-space: nowrap;">
+              Items <span style="opacity: 0.5;">{{ sortKey === 'items' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+            </th>
+            <th @click="toggleSort('status')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
+              Status <span style="opacity: 0.5;">{{ sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+            </th>
+            <th @click="toggleSort('cost')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right; cursor: pointer; user-select: none; white-space: nowrap;">
+              Cost <span style="opacity: 0.5;">{{ sortKey === 'cost' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+            </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Fulfillment</th>
-            <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Created</th>
+            <th @click="toggleSort('updated_at')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
+              Updated <span style="opacity: 0.5;">{{ sortKey === 'updated_at' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+            </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right;">Actions</th>
           </tr>
         </thead>
@@ -180,7 +189,10 @@
                 style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 4px; white-space: nowrap; text-transform: uppercase;">{{ formatStatus(req.status) }}</span>
             </td>
             <td style="padding: 0.875rem 1.25rem; text-align: right; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">
-              GHS {{ parseFloat(req.request_fee || 0).toFixed(2) }}
+              <template v-if="getRequestComposedCost(req) !== null">
+                GHS {{ getRequestComposedCost(req).toFixed(2) }}
+              </template>
+              <span v-else style="color: #9ca3af; font-weight: 400;">—</span>
             </td>
             <td style="padding: 0.875rem 1.25rem;">
               <span v-if="req.fulfillment_type" class="fulfillment-badge" :class="req.fulfillment_type" 
@@ -190,7 +202,7 @@
               </span>
               <span v-else class="text-muted" style="color: #9ca3af;">-</span>
             </td>
-            <td class="date-cell" style="padding: 0.875rem 1.25rem; color: #6b7280; font-size: 0.8rem;">{{ formatDateTime(req.created_at) }}</td>
+            <td class="date-cell" style="padding: 0.875rem 1.25rem; color: #6b7280; font-size: 0.8rem;">{{ formatDateTime(req.updated_at || req.created_at) }}</td>
             <td style="padding: 0.875rem 1.25rem; text-align: right;">
               <div class="action-btns" style="display: flex; justify-content: flex-end;">
                 <button
@@ -204,7 +216,7 @@
                   onmouseout="this.style.background='#faf5ff'"
                 >
                   <template v-if="openingRequestId === req.id">
-                    <span class="inline-loader-spinner" aria-hidden="true" style="border: 2px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; width: 12px; height: 12px; inline-block; animation: spin 1s linear infinite;"></span>
+                    <span class="inline-loader-spinner" aria-hidden="true" style="border: 2px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; width: 12px; height: 12px; display: inline-block; animation: spin 1s linear infinite;"></span>
                     <span>Opening...</span>
                   </template>
                   <template v-else>
@@ -403,212 +415,7 @@
           </section>
 
           <!-- Items -->
-            <section class="items-section workspace-main-card section-emphasis">
-              <div class="section-head" style="border-bottom: 2px solid #e5e7eb; padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
-                <div class="items-head-copy">
-                  <div class="items-title-row">
-                    <h4 class="section-title text-[#4F217A]">Workspace Board</h4>
-                    <span class="items-count-badge">{{ getCustomerRequestItemCount(selectedRequest) }} item{{ getCustomerRequestItemCount(selectedRequest) !== 1 ? 's' : '' }}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="flex flex-col xl:flex-row gap-4 mb-6">
-                <!-- Left: Quick Add -->
-                <div v-if="showTopQuickAdd" class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm w-full xl:max-w-[400px] flex-none z-20">
-                  <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                      <div class="w-1.5 h-1.5 rounded-full bg-[#4F217A]"></div>
-                      <span class="text-xs font-bold text-gray-900 uppercase tracking-widest">Quick Add Line</span>
-                    </div>
-                    <span class="text-[10px] font-semibold text-gray-400 truncate ml-2">{{ itemsIntakeSummary }}</span>
-                  </div>
-                    
-                  <div class="flex flex-col gap-2.5">
-                    <div class="relative">
-                      <input
-                        v-model="adminNewItem.product_search"
-                        type="text"
-                        class="w-full pl-4 pr-10 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold"
-                        placeholder="Search to add item..."
-                        @input="onAdminProductInput(adminNewItem)"
-                        @focus="adminNewItem.showProductDropdown = true"
-                        @blur="closeAdminProductDropdown(adminNewItem)"
-                        @keyup.enter.prevent="saveAdminNewItem"
-                      />
-                      <div class="absolute right-3 top-[9px] text-gray-400 pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                        </svg>
-                      </div>
-                      <div
-                        v-if="adminNewItem.showProductDropdown"
-                        class="absolute z-50 top-[calc(100%+0.5rem)] left-0 w-[500px] max-w-[90vw] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden max-h-[300px] overflow-y-auto"
-                      >
-                        <div v-if="adminNewItem.product_search_loading" class="p-4 text-sm text-gray-500 text-center font-medium">
-                          Searching...
-                        </div>
-                        <template v-else>
-                          <div
-                            v-if="adminNewItem.productSearchResults.length > 0"
-                            class="grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-widest sticky top-0"
-                          >
-                            <span>Product / Pharmacy</span>
-                            <span class="text-right">Stock</span>
-                            <span class="text-right">Price</span>
-                          </div>
-                          <button
-                            v-for="(result, resultIndex) in adminNewItem.productSearchResults"
-                            :key="`admin-new-item-result-${resultIndex}`"
-                            type="button"
-                            class="w-full text-left grid grid-cols-[1fr_auto_auto] gap-3 items-center px-4 py-3 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
-                            @mousedown.prevent="selectAdminProduct(adminNewItem, result)"
-                          >
-                            <div class="flex flex-col overflow-hidden pr-2">
-                              <span class="text-sm font-bold text-gray-900 truncate">{{ getProductSearchLabel(result) }}</span>
-                              <span class="text-xs font-semibold text-gray-500 truncate flex items-center gap-1.5">
-                                {{ String(result?.company_name || '-').trim() || '-' }}
-                                <span class="text-[10px] text-gray-400">• {{ Number.isFinite(Number(result.distance_km)) ? formatDistance(result.distance_km) : '-' }}</span>
-                              </span>
-                            </div>
-                            <span class="text-xs font-bold text-right" :class="Number(result.available_quantity) > 0 ? 'text-emerald-600' : 'text-gray-400'">{{ Number(result.available_quantity || 0) > 0 ? `${Number(result.available_quantity)} left` : '-' }}</span>
-                            <span class="text-sm font-black text-gray-900 text-right">{{ Number(result.price || 0) > 0 ? `GHS ${Number(result.price).toFixed(2)}` : '-' }}</span>
-                          </button>
-                          <div
-                            v-if="adminNewItem.productSearchResults.length === 0 && String(adminNewItem.product_search || '').trim().length >= 2"
-                            class="p-4 text-sm text-gray-500 text-center font-medium"
-                          >
-                            No matching products. You can still add the typed item.
-                          </div>
-                        </template>
-                      </div>
-                      <div
-                        v-if="adminNewItem.selected_source_summary"
-                        class="mt-2 flex items-center flex-wrap gap-2 px-3 py-2 bg-purple-50 border border-[#4F217A]/20 rounded-xl text-xs"
-                      >
-                        <div class="flex flex-col min-w-0 flex-1">
-                          <span class="font-bold text-[#4F217A] truncate">
-                            {{ adminNewItem.selected_source_summary.name }}
-                          </span>
-                          <span v-if="adminNewItem.selected_source_summary.distance" class="text-purple-600 font-semibold text-[10px]">
-                            {{ adminNewItem.selected_source_summary.distance }} away
-                          </span>
-                        </div>
-                        <span v-if="adminNewItem.selected_source_summary.price" class="px-2 py-1 bg-white rounded-lg font-black text-gray-900 shadow-sm">
-                          GHS {{ adminNewItem.selected_source_summary.price }}
-                        </span>
-                        <button
-                          type="button"
-                          class="ml-1 text-purple-400 hover:text-[#4F217A] transition-colors p-1 bg-white rounded-md shadow-sm border border-purple-100"
-                          @click="clearAdminSelectedProduct"
-                          :disabled="loading"
-                          title="Clear selection"
-                        >
-                          <XMarkIcon class="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-2">
-                      <select
-                        v-model="adminNewItem.requested_unit"
-                        class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-[11px] text-gray-700 font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all cursor-pointer"
-                        style="height: 32px;"
-                      >
-                        <option value="">Unit...</option>
-                        <option v-for="option in medicineUnitOptions" :key="`admin-unit-${option}`" :value="option">
-                          {{ option }}
-                        </option>
-                      </select>
-
-                      <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-[32px] shrink-0">
-                        <button
-                          type="button"
-                          class="w-7 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-900 font-bold transition-colors disabled:opacity-50"
-                          @click="decrementAdminNewItemQty"
-                          :disabled="Number(adminNewItem.quantity || 1) <= 1"
-                        >
-                          -
-                        </button>
-                        <input
-                          v-model.number="adminNewItem.quantity"
-                          type="number"
-                          min="1"
-                          step="1"
-                          class="w-8 h-full text-center text-[11px] font-black text-gray-900 border-x border-gray-200 bg-white focus:outline-none appearance-none m-0 p-0"
-                          placeholder="1"
-                          @keyup.enter.prevent="saveAdminNewItem"
-                        />
-                        <button
-                          type="button"
-                          class="w-7 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-900 font-bold transition-colors"
-                          @click="incrementAdminNewItemQty"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <button
-                        @click="saveAdminNewItem"
-                        class="px-4 py-0 bg-[#4F217A] bg-opacity-10 text-[#4F217A] rounded-xl text-[11px] font-black transition-all hover:bg-opacity-20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink-0 h-[32px] flex items-center justify-center"
-                        :disabled="loading || !canAddAdminItem"
-                      >
-                        Add Item
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right: Admin Notes & Composition Queue -->
-                <div class="flex flex-col sm:flex-row gap-4 w-full flex-1 min-w-0 z-10">
-                  <!-- Notes -->
-                  <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex-1 flex flex-col">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-[10px] font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-gray-400"></div>Admin Notes</span>
-                      <button @click="saveNotes" class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded-md font-bold transition-colors" :disabled="loading">Save</button>
-                    </div>
-                    <textarea v-model="adminNotes" class="w-full text-xs text-gray-700 bg-gray-50 border border-gray-100 rounded-xl p-3 focus:outline-none focus:bg-white focus:ring-2 focus:ring-gray-200 resize-none flex-1 min-h-[60px]" placeholder="Internal notes for this request..."></textarea>
-                  </div>
-
-                  <!-- Queue -->
-                  <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex-[1.2] flex flex-col justify-between min-w-[280px]">
-                    <div>
-                      <div class="flex items-center justify-between mb-3">
-                        <span class="text-[10px] font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>Composition Queue</span>
-                        <button @click="markRequestComposed" class="text-[10px] bg-[#4F217A] hover:bg-[#381659] text-white px-2.5 py-1 rounded-md font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!canMarkRequestComposed">
-                          Mark Composed
-                        </button>
-                      </div>
-                      <div class="flex items-center gap-2 mb-2">
-                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold whitespace-nowrap">Total: {{ composedCoverageSummary.total }}</span>
-                        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[10px] font-bold whitespace-nowrap">Composed: {{ composedCoverageSummary.covered }}</span>
-                        <span class="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md text-[10px] font-bold whitespace-nowrap">Pending: {{ composedCoverageSummary.uncovered }}</span>
-                      </div>
-                      <p class="text-[10px] text-gray-400 mb-2 truncate leading-tight" :title="composedStatusHint">{{ composedStatusHint }}</p>
-                    </div>
-                    
-                    <div class="flex items-center gap-2 pt-2.5 border-t border-gray-100 mt-auto">
-                      <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-                      <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-300">
-                        <option value="">Change status...</option>
-                        <option value="composed">Composed</option>
-                        <option value="confirming_with_pharm">Confirming With Pharm</option>
-                        <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                        <option value="paid">Paid</option>
-                        <option value="ready_for_pickup">Ready For Pickup</option>
-                        <option value="picked_up">Picked Up</option>
-                        <option value="out_for_delivery">Out For Delivery</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="returned">Returned</option>
-                      </select>
-                      <button @click="updateStatus" class="shrink-0 text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2.5 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50" :disabled="!selectedStatus || loading">
-                        Update
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <section class="items-section workspace-main-card section-emphasis">            
               <div v-if="!requestItems.length && !prescriptionAttachmentUrls.length" class="items-empty-state">
                 <strong>No items added yet.</strong>
                 <p>
@@ -668,30 +475,84 @@
                         </div>
                         <div class="request-items-pane-actions">
                           <span class="request-items-pane-count">{{ requestItems.length }}</span>
+                          <span v-if="requestItems.length" class="text-[9px] font-bold px-1.5 py-0.5 rounded" :style="{ background: allItemsResolved ? '#ecfdf5' : '#fffbeb', color: allItemsResolved ? '#059669' : '#d97706' }">
+                            {{ resolvedItemCount }}/{{ requestItems.length }} resolved
+                          </span>
                         </div>
                       </div>
                       <div v-if="requestItems.length" class="request-items-list request-items-list--workspace">
                         <div
                           v-for="(item, index) in requestItems"
                           :key="item.id"
-                          role="button"
-                          tabindex="0"
                           class="request-item-row request-item-row--deletable"
                           :class="{ active: activeRequestItem?.id === item.id }"
-                          @click="selectRequestItem(item)"
-                          @keydown.enter.prevent="selectRequestItem(item)"
-                          @keydown.space.prevent="selectRequestItem(item)"
                         >
                           <span class="request-item-row-index">{{ index + 1 }}</span>
-                          <div class="request-item-row-main">
-                            <strong>{{ item.product_name }}</strong>
-                            <div class="request-item-row-meta">
-                              <span>Qty {{ getRequestedQuantity(item) }}</span>
-                              <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
-                              <span class="status-badge sm" :class="itemStatusClass(item)">
-                                {{ formatItemStatus(item) }}
-                              </span>
-                            </div>
+                          <div class="request-item-row-main" style="flex: 1; min-width: 0;">
+                            <!-- Resolving mode for this item -->
+                            <template v-if="resolvingItemId === item.id">
+                              <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                  <input
+                                    :value="masterSearchQuery"
+                                    @input="onMasterSearchInput($event.target.value)"
+                                    type="text"
+                                    class="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold"
+                                    placeholder="Search master catalog..."
+                                    autofocus
+                                  />
+                                  <button @click="cancelResolving" class="shrink-0 text-gray-400 hover:text-gray-600 p-0.5" title="Cancel">
+                                    <XMarkIcon class="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <div v-if="masterSearchLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
+                                <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
+                                  <button
+                                    v-for="mp in masterSearchResults"
+                                    :key="mp.id"
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
+                                    @click="resolveItemToMaster(item, mp)"
+                                  >
+                                    <span class="text-xs font-bold text-gray-900 block truncate">{{ mp.product_description }}</span>
+                                    <span class="text-[10px] text-gray-500">
+                                      <template v-if="mp.strength">{{ mp.strength }}</template>
+                                      <template v-if="mp.strength && mp.unit"> · </template>
+                                      <template v-if="mp.unit">{{ mp.unit }}</template>
+                                    </span>
+                                  </button>
+                                </div>
+                                <div v-else-if="masterSearchQuery.length >= 2 && !masterSearchLoading" class="text-[10px] text-gray-400 px-1">
+                                  No master products found
+                                </div>
+                              </div>
+                            </template>
+                            <!-- Normal display -->
+                            <template v-else>
+                              <strong>{{ item.product_name }}</strong>
+                              <div class="request-item-row-meta">
+                                <span>Qty {{ getRequestedQuantity(item) }}</span>
+                                <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
+                                <template v-if="item.master_product_id">
+                                  <span class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 cursor-pointer" @click.stop="startResolvingItem(item)" title="Change master product">
+                                    ✓ resolved
+                                  </span>
+                                </template>
+                                <template v-else>
+                                  <button
+                                    type="button"
+                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer border-0"
+                                    @click.stop="startResolvingItem(item)"
+                                    title="Resolve to master product"
+                                  >
+                                    resolve
+                                  </button>
+                                </template>
+                              </div>
+                              <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
+                                → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
+                              </div>
+                            </template>
                           </div>
                           <button
                             type="button"
@@ -706,13 +567,90 @@
                         </div>
                       </div>
                       <div v-else class="request-items-empty-list">
-                        No request items yet. Use the quick add bar above to create the first request line.
+                        No request items yet. Add the first line below.
+                      </div>
+
+                      <div class="pane-quick-add">
+                        <div class="pane-quick-add-head">
+                          <div class="w-1.5 h-1.5 rounded-full bg-[#4F217A] shrink-0"></div>
+                          <span>Add to request</span>
+                        </div>
+                        <div class="pane-quick-add-body">
+                          <div class="relative">
+                            <input
+                              v-model="adminNewItem.product_search"
+                              type="text"
+                              class="w-full pl-3 pr-9 py-0 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold h-[32px]"
+                              placeholder="Type product name to add..."
+                              @keyup.enter.prevent="saveAdminNewItem"
+                            />
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <select
+                              v-model="adminNewItem.requested_unit"
+                              class="flex-1 px-3 bg-gray-50 border border-gray-200 rounded-xl text-[11px] text-gray-700 font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all cursor-pointer h-[32px]"
+                            >
+                              <option value="">Unit...</option>
+                              <option v-for="option in medicineUnitOptions" :key="`pane-unit-${option}`" :value="option">{{ option }}</option>
+                            </select>
+                            <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-[32px] shrink-0">
+                              <button type="button" class="w-7 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-900 font-bold transition-colors disabled:opacity-50" @click="decrementAdminNewItemQty" :disabled="Number(adminNewItem.quantity || 1) <= 1">-</button>
+                              <input v-model.number="adminNewItem.quantity" type="number" min="1" step="1" class="w-8 h-full text-center text-[11px] font-black text-gray-900 border-x border-gray-200 bg-white focus:outline-none appearance-none m-0 p-0" placeholder="1" @keyup.enter.prevent="saveAdminNewItem" />
+                              <button type="button" class="w-7 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-900 font-bold transition-colors" @click="incrementAdminNewItemQty">+</button>
+                            </div>
+                            <button @click="saveAdminNewItem" class="px-3 bg-[#4F217A] bg-opacity-10 text-[#4F217A] rounded-xl text-[11px] font-black transition-all hover:bg-opacity-20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink-0 h-[32px] flex items-center justify-center" :disabled="loading || !canAddAdminItem">
+                              Add
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </template>
                   </aside>
 
                   <template v-if="hasPrescriptionAttachments">
-                    <section class="workspace-search-card">
+                    <section class="workspace-composer-card workspace-composer-card--prescription">
+                      <div class="composer-meta-strip">
+                        <div class="composer-meta-notes">
+                          <div class="composer-meta-label">
+                            <div class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
+                            <span>Admin Notes</span>
+                            <button @click="saveNotes" class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors ml-auto" :disabled="loading">Save</button>
+                          </div>
+                          <textarea v-model="adminNotes" class="composer-meta-textarea" placeholder="Internal notes..."></textarea>
+                        </div>
+                        <div class="composer-meta-queue">
+                          <div class="composer-meta-label">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></div>
+                            <span>Queue</span>
+                            <div class="flex items-center gap-1.5 ml-auto">
+                              <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-bold">{{ composedCoverageSummary.total }}</span>
+                              <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.covered }} done</span>
+                              <span class="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.uncovered }} left</span>
+                            </div>
+                          </div>
+                          <div class="composer-meta-queue-actions">
+                            <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
+                            <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
+                              <option value="">Change status...</option>
+                              <option value="composed">Composed</option>
+                              <option value="confirming_with_pharm">Confirming With Pharm</option>
+                              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+                              <option value="paid">Paid</option>
+                              <option value="ready_for_pickup">Ready For Pickup</option>
+                              <option value="picked_up">Picked Up</option>
+                              <option value="out_for_delivery">Out For Delivery</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                              <option value="returned">Returned</option>
+                            </select>
+                            <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Update</button>
+                            <button @click="markRequestComposed" class="text-[10px] bg-[#4F217A] hover:bg-[#381659] text-white px-2 py-1 rounded-md font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0" :disabled="!canMarkRequestComposed">Mark Composed</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="workspace-composer-divider"></div>
+
                       <div class="workspace-panel-head">
                         <div>
                           <h5>Pharmacy Search</h5>
@@ -722,55 +660,54 @@
                         </div>
                       </div>
 
-                      <div class="simple-search-block">
-                        <label class="simple-field-label">Search pharmacy inventory</label>
-                        <input
-                          v-model="adminNewItem.product_search"
-                          type="text"
-                          class="form-control composer-search-input"
-                          :placeholder="`Search item from image ${activePrescriptionImageIndex + 1}`"
-                          @input="onAdminProductInput(adminNewItem)"
-                        />
-                      </div>
+                      <div class="simple-search-anchor">
+                        <div class="simple-search-block">
+                          <label class="simple-field-label">Search pharmacy inventory</label>
+                          <input
+                            v-model="adminNewItem.product_search"
+                            type="text"
+                            class="form-control composer-search-input"
+                            :placeholder="`Search item from image ${activePrescriptionImageIndex + 1}`"
+                            @input="onAdminProductInput(adminNewItem)"
+                          />
+                        </div>
 
-                      <div v-if="adminNewItem.product_search_loading || String(adminNewItem.product_search || '').trim().length >= 2" class="simple-search-results">
-                        <div class="simple-search-results-head">
-                          <span>Choice</span>
-                          <span>Product</span>
-                          <span>Pharmacy</span>
-                          <span>Distance</span>
-                          <span>Stock</span>
-                          <span>Price</span>
-                        </div>
-                        <div v-if="adminNewItem.product_search_loading" class="dropdown-empty">
-                          Searching...
-                        </div>
-                        <template v-else>
-                          <button
-                            v-for="(result, resultIndex) in adminNewItem.productSearchResults"
-                            :key="`prescription-image-${activePrescriptionImageIndex}-result-${resultIndex}`"
-                            type="button"
-                            class="simple-search-result-row"
-                            @click="selectAdminProduct(adminNewItem, result)"
-                          >
-                            <span class="search-choice-index">{{ resultIndex + 1 }}</span>
-                            <span>{{ getProductSearchLabel(result) }}</span>
-                            <span>{{ result.company_name || '-' }}</span>
-                            <span>{{ Number.isFinite(Number(result.distance_km)) ? formatDistance(result.distance_km) : '-' }}</span>
-                            <span>{{ Number(result.available_quantity || 0) > 0 ? Number(result.available_quantity) : '-' }}</span>
-                            <span>{{ Number(result.price || 0) > 0 ? `GHS ${Number(result.price).toFixed(2)}` : '-' }}</span>
-                          </button>
-                          <div v-if="adminNewItem.productSearchResults.length === 0" class="dropdown-empty workspace-search-empty">
-                            No nearby matches found.
+                        <div v-if="adminNewItem.product_search_loading || String(adminNewItem.product_search || '').trim().length >= 2" class="simple-search-results">
+                          <div class="simple-search-results-head">
+                            <span>Choice</span>
+                            <span>Product</span>
+                            <span>Pharmacy</span>
+                            <span>Distance</span>
+                            <span>Stock</span>
+                            <span>Price</span>
                           </div>
-                        </template>
+                          <div v-if="adminNewItem.product_search_loading" class="dropdown-empty">
+                            Searching...
+                          </div>
+                          <template v-else>
+                            <button
+                              v-for="(result, resultIndex) in adminNewItem.productSearchResults"
+                              :key="`prescription-image-${activePrescriptionImageIndex}-result-${resultIndex}`"
+                              type="button"
+                              class="simple-search-result-row"
+                              @click="selectAdminProduct(adminNewItem, result)"
+                            >
+                              <span class="search-choice-index">{{ resultIndex + 1 }}</span>
+                              <span>{{ getProductSearchLabel(result) }}</span>
+                              <span>{{ result.company_name || '-' }}</span>
+                              <span>{{ Number.isFinite(Number(result.distance_km)) ? formatDistance(result.distance_km) : '-' }}</span>
+                              <span>{{ Number(result.available_quantity || 0) > 0 ? Number(result.available_quantity) : '-' }}</span>
+                              <span>{{ Number(result.price || 0) > 0 ? `GHS ${Number(result.price).toFixed(2)}` : '-' }}</span>
+                            </button>
+                            <div v-if="adminNewItem.productSearchResults.length === 0" class="dropdown-empty workspace-search-empty">
+                              No nearby matches found.
+                            </div>
+                          </template>
+                        </div>
                       </div>
-                      <div v-else class="workspace-search-placeholder">
-                        Select the prescription image on the left, then search for the medicine here.
-                      </div>
-                    </section>
 
-                    <section class="workspace-selection-card workspace-selection-card--prescription">
+                      <div class="workspace-composer-divider"></div>
+
                       <div class="simple-composer-head">
                         <div>
                           <span class="pane-eyebrow">Admin selections</span>
@@ -795,7 +732,7 @@
                           >
                             <span class="request-item-row-index">{{ savedIndex + 1 }}</span>
                             <div class="request-item-row-main">
-                              <strong>{{ getPersistedItemSourceSummary(item)?.productName || 'Saved pharmacy product' }}</strong>
+                              <strong>{{ getPersistedItemSourceSummary(item)?.productName || '' }}</strong>
                               <div class="request-item-row-meta">
                                 <span>{{ getPersistedItemSourceSummary(item)?.name || 'Selected pharmacy' }}</span>
                                 <span>Qty {{ getRequestedQuantity(item) }}</span>
@@ -932,208 +869,213 @@
                     </section>
                   </template>
 
-                  <template v-else-if="activeRequestItem">
-                    <section class="workspace-search-card">
-                      <div class="workspace-panel-head">
-                        <div>
-                          <h5>Pharmacy Search</h5>
+                  <template v-else-if="requestItems.length">
+                    <section class="workspace-composer-card">
+                      <div class="composer-meta-strip">
+                        <div class="composer-meta-notes">
+                          <div class="composer-meta-label">
+                            <div class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
+                            <span>Admin Notes</span>
+                            <button @click="saveNotes" class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors ml-auto" :disabled="loading">Save</button>
+                          </div>
+                          <textarea v-model="adminNotes" class="composer-meta-textarea" placeholder="Internal notes..."></textarea>
+                        </div>
+                        <div class="composer-meta-queue">
+                          <div class="composer-meta-label">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></div>
+                            <span>Queue</span>
+                            <div class="flex items-center gap-1.5 ml-auto">
+                              <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-bold">{{ composedCoverageSummary.total }}</span>
+                              <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.covered }} done</span>
+                              <span class="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.uncovered }} left</span>
+                            </div>
+                          </div>
+                          <div class="composer-meta-queue-actions">
+                            <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
+                            <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
+                              <option value="">Change status...</option>
+                              <option value="composed">Composed</option>
+                              <option value="confirming_with_pharm">Confirming With Pharm</option>
+                              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+                              <option value="paid">Paid</option>
+                              <option value="ready_for_pickup">Ready For Pickup</option>
+                              <option value="picked_up">Picked Up</option>
+                              <option value="out_for_delivery">Out For Delivery</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                              <option value="returned">Returned</option>
+                            </select>
+                            <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Update</button>
+                            <button @click="markRequestComposed" class="text-[10px] bg-[#4F217A] hover:bg-[#381659] text-white px-2 py-1 rounded-md font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0" :disabled="!canMarkRequestComposed">Mark Composed</button>
+                          </div>
                         </div>
                       </div>
 
-                      <div class="simple-search-block">
-                        <label class="simple-field-label">Search pharmacy inventory</label>
-                        <input
-                          v-model="activeRequestItem.product_search"
-                          type="text"
-                          class="form-control composer-search-input"
-                          :placeholder="`Search inventory for ${activeRequestItem.product_name}`"
-                          @input="onAdminProductInput(activeRequestItem)"
-                        />
-                      </div>
+                      <div class="workspace-composer-divider"></div>
 
-                      <div v-if="activeRequestItem.product_search_loading || String(activeRequestItem.product_search || '').trim().length >= 2" class="simple-search-results">
-                        <div class="simple-search-results-head">
-                          <span>Choice</span>
-                          <span>Product</span>
-                          <span>Pharmacy</span>
-                          <span>Distance</span>
-                          <span>Stock</span>
-                          <span>Price</span>
-                        </div>
-                        <div v-if="activeRequestItem.product_search_loading" class="dropdown-empty">
-                          Searching...
-                        </div>
-                        <template v-else>
+                      <!-- Coverage Matrix Panel -->
+                      <div class="coverage-matrix-panel">
+                        <div class="coverage-matrix-head">
+                          <div class="flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-[#4F217A] shrink-0"></div>
+                            <span class="text-xs font-bold text-gray-700">Pharmacy Coverage</span>
+                            <span v-if="pharmacyCoverage?.data?.pharmacies" class="text-[9px] font-bold text-gray-400">{{ pharmacyCoverage.data.pharmacies.length }} nearby</span>
+                          </div>
                           <button
-                            v-for="(result, resultIndex) in activeRequestItem.productSearchResults"
-                            :key="`composer-item-${activeRequestItem.id}-result-${resultIndex}`"
-                            type="button"
-                            class="simple-search-result-row"
-                            @click="selectAdminProduct(activeRequestItem, result)"
+                            @click="fetchPharmacyCoverage"
+                            class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors"
+                            :disabled="coverageLoading"
                           >
-                            <span class="search-choice-index">{{ resultIndex + 1 }}</span>
-                            <span>{{ getProductSearchLabel(result) }}</span>
-                            <span>{{ result.company_name || '-' }}</span>
-                            <span>{{ Number.isFinite(Number(result.distance_km)) ? formatDistance(result.distance_km) : '-' }}</span>
-                            <span>{{ Number(result.available_quantity || 0) > 0 ? Number(result.available_quantity) : '-' }}</span>
-                            <span>{{ Number(result.price || 0) > 0 ? `GHS ${Number(result.price).toFixed(2)}` : '-' }}</span>
+                            {{ coverageLoading ? 'Loading...' : 'Refresh' }}
                           </button>
-                          <div v-if="activeRequestItem.productSearchResults.length === 0" class="dropdown-empty workspace-search-empty">
-                            No nearby matches found.
-                          </div>
-                        </template>
-                      </div>
-                      <div v-else class="workspace-search-placeholder">
-                        Start typing to search nearby pharmacies for this item.
-                      </div>
-                    </section>
-
-                    <section class="workspace-selection-card">
-                      <div class="simple-composer-head">
-                        <div>
-                          <div>
-                            <h5>{{ getAdminSelectedItemTitle(activeRequestItem) }}</h5>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="simple-item-reference">
-                        <span>Requested qty: {{ getRequestedQuantity(activeRequestItem) }}</span>
-                        <span v-if="activeRequestItem.requested_unit">Requested unit: {{ activeRequestItem.requested_unit }}</span>
-                        <span class="status-badge sm" :class="itemStatusClass(activeRequestItem)">
-                          {{ formatItemStatus(activeRequestItem) }}
-                        </span>
-                      </div>
-
-                      <section class="saved-selection-list-shell">
-                        <div class="saved-selection-list-head">
-                          <div>
-                            <span class="pane-eyebrow">Saved Selections</span>
-                            <p>Linked pharmacy products for this request.</p>
-                          </div>
-                          <span class="request-items-pane-count">{{ persistedSelectionItems.length }}</span>
                         </div>
 
-                        <div v-if="persistedSelectionItems.length" class="saved-selection-list">
+                        <!-- Resolve prompt -->
+                        <div v-if="!allItemsResolved" class="coverage-resolve-prompt">
+                          <div class="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-amber-600 shrink-0">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                            </svg>
+                            <span class="text-xs text-amber-800 font-semibold">
+                              Resolve all items to master products for accurate coverage.
+                              <strong>{{ resolvedItemCount }}/{{ requestItems.length }}</strong> resolved.
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Loading state -->
+                        <div v-if="coverageLoading" class="coverage-loading">
+                          <div class="flex flex-col items-center justify-center py-10 gap-2 text-gray-400">
+                            <svg class="animate-spin w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span class="text-xs font-semibold">Searching nearby pharmacies...</span>
+                          </div>
+                        </div>
+
+                        <!-- No results -->
+                        <div v-else-if="pharmacyCoverage && (!pharmacyCoverage.data?.pharmacies || pharmacyCoverage.data.pharmacies.length === 0)" class="coverage-empty">
+                          <div class="flex flex-col items-center justify-center py-10 gap-2 text-gray-400">
+                            <span class="text-xs font-semibold">No nearby pharmacies have matching products.</span>
+                            <span class="text-[10px]">Try resolving more items or expanding the search radius.</span>
+                          </div>
+                        </div>
+
+                        <!-- Pharmacy cards -->
+                        <div v-else-if="pharmacyCoverage?.data?.pharmacies" class="coverage-pharmacy-list">
                           <div
-                            v-for="(item, savedIndex) in persistedSelectionItems"
-                            :key="`saved-selection-${item.id}`"
-                            class="request-item-row saved-selection-row request-item-row--deletable"
-                            :class="{ active: activeRequestItem?.id === item.id }"
-                            @click="selectRequestItem(item)"
+                            v-for="(pharmacy, pIdx) in pharmacyCoverage.data.pharmacies"
+                            :key="`coverage-pharm-${pharmacy.pharmacy_id}`"
+                            class="coverage-pharmacy-card"
                           >
-                            <span class="request-item-row-index">{{ savedIndex + 1 }}</span>
-                            <div class="request-item-row-main">
-                              <strong>{{ getPersistedItemSourceSummary(item)?.productName || 'Saved pharmacy product' }}</strong>
-                              <div class="request-item-row-meta">
-                                <span>{{ getPersistedItemSourceSummary(item)?.name || 'Selected pharmacy' }}</span>
-                                <span>Qty {{ getRequestedQuantity(item) }}</span>
-                                <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
-                                <span v-if="getPersistedItemSourceSummary(item)?.distance">{{ getPersistedItemSourceSummary(item).distance }}</span>
-                                <span
-                                  v-if="getPersistedItemSourceSummary(item)?.price"
-                                  class="selection-preview-chip selection-preview-chip--price"
-                                >
-                                  GHS {{ getPersistedItemSourceSummary(item).price }}
-                                </span>
+                            <!-- Pharmacy header -->
+                            <div class="coverage-pharmacy-header">
+                              <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                  <span class="text-[10px] font-black text-gray-400 shrink-0">#{{ pIdx + 1 }}</span>
+                                  <strong class="text-sm font-bold text-gray-900 truncate">{{ pharmacy.pharmacy_name }}</strong>
+                                </div>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                  <span class="text-[10px] text-gray-500 font-semibold">
+                                    {{ Number.isFinite(Number(pharmacy.distance_km)) ? `${Number(pharmacy.distance_km).toFixed(1)} km` : '-' }}
+                                  </span>
+                                  <span v-if="pharmacy.location" class="text-[10px] text-gray-400">{{ pharmacy.location }}</span>
+                                </div>
                               </div>
-                              <div v-if="activeRequestItem?.id === item.id" class="mt-3 pt-3 border-t border-slate-200/70 pb-1 flex flex-col gap-3">
-                                <!-- Row 1: Unit and Qty -->
-                                <div class="flex items-end gap-3 w-full">
-                                  <!-- Unit -->
-                                  <label class="flex flex-col gap-1 flex-1 m-0">
-                                    <span class="text-[9px] font-black tracking-widest text-[#4F217A]/60 uppercase leading-none">Unit</span>
-                                    <select
-                                      v-model="item.requested_unit"
-                                      @change="autoUpdateAllocation(item)"
-                                      class="form-control border border-[#4F217A]/20 bg-white text-[11px] font-bold text-gray-900 rounded px-1 !py-0 !h-7 tracking-wide w-full"
-                                    >
-                                      <option value="">...</option>
-                                      <option v-for="option in medicineUnitOptions" :key="`saved-unit-${item.id}-${option}`" :value="option">
-                                        {{ option }}
-                                      </option>
-                                    </select>
-                                  </label>
-
-                                  <!-- Qty -->
-                                  <label class="flex flex-col gap-1 w-[55px] shrink-0 m-0">
-                                    <span class="text-[9px] font-black tracking-widest text-[#4F217A]/60 uppercase leading-none">Qty</span>
-                                    <input
-                                      v-model.number="item.allocation_quantity"
-                                      @blur="autoUpdateAllocation(item)"
-                                      type="number"
-                                      min="1"
-                                      class="form-control border border-[#4F217A]/20 bg-white text-[12px] font-black text-center text-gray-900 rounded px-1 !py-0 !h-7 tracking-wide w-full"
-                                      placeholder="1"
-                                    />
-                                  </label>
-                                </div>
-
-                                <!-- Row 2: Price and Save -->
-                                <div class="flex items-end gap-3 w-full">
-                                  <!-- Price -->
-                                  <label class="flex flex-col gap-1 flex-1 m-0">
-                                    <span class="text-[9px] font-black tracking-widest text-[#4F217A]/60 uppercase leading-none">Cust Price</span>
-                                    <div class="relative flex items-center !h-7 w-full border border-[#4F217A]/20 rounded bg-white overflow-hidden focus-within:ring-1 focus-within:ring-[#4F217A]">
-                                      <span class="absolute left-2 text-[9px] font-black text-[#4F217A]/40 pointer-events-none mt-px">GHS</span>
-                                      <input
-                                        v-model.number="item.edit_price"
-                                        @blur="autoUpdateAllocation(item)"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        class="block w-full border-none pl-[34px] pr-2 !py-0 h-full text-[12px] font-black text-gray-900 focus:ring-0 focus:outline-none bg-transparent"
-                                        placeholder="0.00"
-                                      />
-                                    </div>
-                                  </label>
-
-                                  <!-- Save -->
-                                  <button
-                                    type="button"
-                                    class="w-[75px] shrink-0 !h-7 rounded bg-[#4F217A]/10 text-[#4F217A] font-black text-[10px] uppercase tracking-wider hover:bg-[#4F217A]/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center border border-[#4F217A]/5 mb-0"
-                                    :disabled="loading || !canSaveItemSelection(item)"
-                                    @click.stop="saveItemPrice(item)"
-                                  >
-                                    Save
-                                  </button>
-                                </div>
+                              <div class="flex items-center gap-2 shrink-0">
+                                <a
+                                  v-if="pharmacy.phone"
+                                  :href="getPharmacyWhatsAppUrl(pharmacy.phone)"
+                                  target="_blank"
+                                  rel="noopener"
+                                  class="text-[10px] font-bold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                  title="WhatsApp"
+                                >
+                                  WhatsApp
+                                </a>
+                                <button
+                                  @click="routePharmacyAction(pharmacy)"
+                                  class="text-[10px] font-black px-3 py-1.5 rounded-lg bg-[#4F217A] text-white hover:bg-[#381659] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                  :disabled="loading || pharmacy.coverage_score === 0"
+                                  title="Route entire order to this pharmacy"
+                                >
+                                  Route here
+                                </button>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              class="selection-preview-close saved-selection-row-clear"
-                              @click.stop="clearSavedSelection(item)"
-                              :disabled="loading"
-                              title="Clear saved selection"
-                              aria-label="Clear saved selection"
-                            >
-                              <XMarkIcon class="icon-xs" />
-                            </button>
+
+                            <!-- Coverage bar -->
+                            <div class="coverage-bar-row">
+                              <div class="coverage-bar-track">
+                                <div
+                                  class="coverage-bar-fill"
+                                  :style="{
+                                    width: `${pharmacy.total_items > 0 ? (pharmacy.coverage_score / pharmacy.total_items) * 100 : 0}%`,
+                                    background: getCoverageColor(pharmacy.coverage_score, pharmacy.total_items)
+                                  }"
+                                ></div>
+                              </div>
+                              <span class="text-[10px] font-black shrink-0" :style="{ color: getCoverageColor(pharmacy.coverage_score, pharmacy.total_items) }">
+                                {{ pharmacy.coverage_score }}/{{ pharmacy.total_items }}
+                              </span>
+                            </div>
+
+                            <!-- Covered items -->
+                            <div v-if="pharmacy.covered && pharmacy.covered.length" class="coverage-items-section">
+                              <div
+                                v-for="ci in pharmacy.covered"
+                                :key="`covered-${pharmacy.pharmacy_id}-${ci.item_id}`"
+                                class="coverage-item-row coverage-item-row--covered"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-emerald-500 shrink-0">
+                                  <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="text-xs text-gray-800 font-semibold truncate flex-1">{{ ci.product_name }}</span>
+                                <span v-if="ci.best_match" class="text-[10px] text-gray-500 font-medium shrink-0">
+                                  {{ ci.best_match.brand_name }}
+                                </span>
+                                <span v-if="ci.best_match?.price" class="text-[10px] font-bold text-gray-900 shrink-0">
+                                  GHS {{ Number(ci.best_match.price).toFixed(2) }}
+                                </span>
+                                <span v-if="ci.best_match?.available_quantity" class="text-[9px] font-bold px-1 py-0.5 rounded shrink-0" :class="Number(ci.best_match.available_quantity) > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+                                  {{ ci.best_match.available_quantity }} left
+                                </span>
+                              </div>
+                            </div>
+
+                            <!-- Uncovered items -->
+                            <div v-if="pharmacy.uncovered && pharmacy.uncovered.length" class="coverage-items-section">
+                              <div
+                                v-for="ui in pharmacy.uncovered"
+                                :key="`uncovered-${pharmacy.pharmacy_id}-${ui.item_id}`"
+                                class="coverage-item-row coverage-item-row--uncovered"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-gray-300 shrink-0">
+                                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                </svg>
+                                <span class="text-xs text-gray-400 font-medium truncate flex-1">{{ ui.product_name }}</span>
+                                <span class="text-[9px] text-gray-300 font-bold shrink-0">not found</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-
-                        <div v-else class="saved-selection-empty">
-                          No saved pharmacy selections yet. Pick a pharmacy choice in the middle panel and save it here.
-                        </div>
-
-                        <div v-if="persistedSelectionItems.length" class="saved-selection-total">
-                          <span>Total of listed items</span>
-                          <strong>{{ formatCurrency(savedSelectionsTotal) }}</strong>
-                        </div>
-                      </section>
+                      </div>
 
                     </section>
                   </template>
                   <div v-else-if="prescriptionAttachmentUrls.length" class="simple-composer-empty workspace-board-empty">
-                    <span class="pane-eyebrow">Composition Workspace</span>
+                    <span class="pane-eyebrow">Composition Workspace 
+                                          <span class="items-count-badge">{{ getCustomerRequestItemCount(selectedRequest) }} item{{ getCustomerRequestItemCount(selectedRequest) !== 1 ? 's' : '' }}</span>
+
+                    </span>
                     <h5>Add the first request item</h5>
                     <p>Use the quick add bar above to create the first line, then the full workspace will open here for the rest of the prescription.</p>
                   </div>
                   <div v-else class="simple-composer-empty workspace-board-empty">
                     <span class="pane-eyebrow">Composition Workspace</span>
-                    <h5>Select a request item</h5>
-                    <p>Use the item list on the left as your reference, then search and compose the selected item across the middle and right panels.</p>
+                    <h5>Add items to get started</h5>
+                    <p>Use the quick add bar on the left to create request items, then resolve each to a master product to see pharmacy coverage.</p>
                   </div>
                 </div>
           </section>
@@ -1518,7 +1460,7 @@ const loading = ref(false)
 const requests = ref([])
 const stats = ref(null)
 const searchQuery = ref('')
-const statusFilter = ref('pending')
+const statusFilter = ref('')
 const selectedRequest = ref(null)
 const selectedStatus = ref('')
 const composedSummaryRequest = ref(null)
@@ -1536,6 +1478,26 @@ const pharmacyQueue = ref([])
 const nextRecommendedPharmacy = ref(null)
 const logisticsAssessment = ref(null)
 const message = ref(null)
+
+// --- Coverage matrix state ---
+const pharmacyCoverage = ref(null)
+const coverageLoading = ref(false)
+const masterSearchResults = ref([])
+const masterSearchLoading = ref(false)
+const masterSearchQuery = ref('')
+const resolvingItemId = ref(null)
+let masterSearchDebounce = null
+
+const resolvedItemCount = computed(() => {
+  const items = requestItems.value || []
+  return items.filter(i => i.master_product_id).length
+})
+const allItemsResolved = computed(() => {
+  const items = requestItems.value || []
+  return items.length > 0 && items.every(i => i.master_product_id)
+})
+// --- End coverage matrix state ---
+
 const REQUEST_POLL_MS = 5000
 let requestPollTimer = null
 const medicineUnitOptions = [
@@ -1586,18 +1548,16 @@ const prescriptionPreview = ref({
 })
 
 const STATUS_TAB_CONFIG = [
-  { value: 'pending', label: 'Pending', statuses: ['pending'] },
-  { value: 'confirming_with_pharm', label: 'Confirming', statuses: ['confirming_with_pharm'] },
+  { value: '', label: 'All', statuses: [] },
+  { value: 'pending', label: 'New Requests', statuses: ['pending'] },
   { value: 'composed', label: 'Composed', statuses: ['composed'] },
+  { value: 'confirming_with_pharm', label: 'Confirming', statuses: ['confirming_with_pharm'] },
   { value: 'confirmed_in_pharm', label: 'Confirmed', statuses: ['confirmed_in_pharm'] },
   { value: 'paid', label: 'Paid', statuses: ['paid'] },
-  { value: 'out_for_delivery', label: 'Out for Delivery', statuses: ['out_for_delivery'] },
-  { value: 'delivered', label: 'Delivered', statuses: ['delivered'] },
-  { value: 'cancelled', label: 'Cancelled', statuses: ['cancelled'] }
+  { value: 'out_for_delivery', label: 'Out for Delivery', statuses: ['out_for_delivery'] }
 ]
 
 const STATUS_SELECTOR_OPTIONS = [
-  { value: 'ready_for_pickup', label: 'Ready For Pickup' },
   { value: 'awaiting_customer', label: 'Awaiting Customer' },
   { value: 'logistics_pending', label: 'Logistics Pending' },
   { value: 'driver_unavailable', label: 'Driver Unavailable' },
@@ -1622,11 +1582,66 @@ const matchesStatusFilter = (request, filterValue = statusFilter.value) => {
   return status === normalizeRequestStatus(filterValue)
 }
 
-const filteredRequests = computed(() => requests.value.filter((request) => matchesStatusFilter(request)))
+const sortKey = ref('updated_at')
+const sortDir = ref('desc')
+
+const toggleSort = (key) => {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'desc'
+  }
+}
+
+const getRequestComposedCost = (req) => {
+  const items = Array.isArray(req?.items) ? req.items : []
+  const sourcedItems = items.filter((item) => isSavedSelectionItem(item))
+  if (!sourcedItems.length) return null
+  return sourcedItems.reduce((sum, item) => {
+    const lineTotal = Number(item?.line_total || 0)
+    if (Number.isFinite(lineTotal) && lineTotal > 0) return sum + lineTotal
+    const qty = Number(item?.quantity || 1)
+    const price = Number(item?.marked_up_price || item?.unit_price || 0)
+    return sum + (qty * price)
+  }, 0)
+}
+
+const filteredRequests = computed(() => {
+  const filtered = requests.value.filter((request) => matchesStatusFilter(request))
+  const key = sortKey.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return [...filtered].sort((a, b) => {
+    if (key === 'updated_at') {
+      const aTime = new Date(a?.updated_at || a?.created_at || 0).getTime()
+      const bTime = new Date(b?.updated_at || b?.created_at || 0).getTime()
+      return (aTime - bTime) * dir
+    }
+    if (key === 'request_number') {
+      return String(a?.request_number || '').localeCompare(String(b?.request_number || '')) * dir
+    }
+    if (key === 'status') {
+      return String(a?.status || '').localeCompare(String(b?.status || '')) * dir
+    }
+    if (key === 'items') {
+      const aCount = Array.isArray(a?.items) ? a.items.length : 0
+      const bCount = Array.isArray(b?.items) ? b.items.length : 0
+      return (aCount - bCount) * dir
+    }
+    if (key === 'cost') {
+      const aCost = getRequestComposedCost(a) ?? -1
+      const bCost = getRequestComposedCost(b) ?? -1
+      return (aCost - bCost) * dir
+    }
+    return 0
+  })
+})
 
 const statusTabs = computed(() => STATUS_TAB_CONFIG.map((tab) => ({
   ...tab,
-  count: requests.value.filter((request) => tab.statuses.includes(normalizeRequestStatus(request?.status))).length
+  count: tab.value
+    ? requests.value.filter((request) => tab.statuses.includes(normalizeRequestStatus(request?.status))).length
+    : requests.value.length
 })))
 
 const statusSelectorOptions = computed(() => STATUS_SELECTOR_OPTIONS.map((option) => ({
@@ -2663,9 +2678,159 @@ const viewRequest = async (req) => {
     resetAdminNewItem()
 
     hydrateItemUiState(selectedRequest.value.items || [])
+
+    // Load pharmacy coverage when opening the workspace
+    fetchPharmacyCoverage()
   } catch (e) {
     showMessage('Failed to load request details', 'error')
   }
+}
+
+// ============================
+// PHARMACY COVERAGE MATRIX
+// ============================
+const fetchPharmacyCoverage = async () => {
+  const reqId = selectedRequest.value?.id
+  if (!reqId) return
+  coverageLoading.value = true
+  try {
+    const res = await apiCall('GET', `/api/order-requests/admin/${reqId}/pharmacy-coverage`)
+    pharmacyCoverage.value = res || null
+  } catch (e) {
+    pharmacyCoverage.value = null
+  } finally {
+    coverageLoading.value = false
+  }
+}
+
+const searchMasterProductsForResolve = async (query) => {
+  const q = String(query || '').trim()
+  if (q.length < 2) {
+    masterSearchResults.value = []
+    return
+  }
+  masterSearchLoading.value = true
+  try {
+    const res = await apiCall('GET', `/api/order-requests/admin/master-products/search?q=${encodeURIComponent(q)}&limit=10`)
+    masterSearchResults.value = Array.isArray(res?.data?.products) ? res.data.products : []
+  } catch (e) {
+    masterSearchResults.value = []
+  } finally {
+    masterSearchLoading.value = false
+  }
+}
+
+const onMasterSearchInput = (query) => {
+  masterSearchQuery.value = query
+  if (masterSearchDebounce) clearTimeout(masterSearchDebounce)
+  if (String(query || '').trim().length < 2) {
+    masterSearchResults.value = []
+    return
+  }
+  masterSearchDebounce = setTimeout(() => {
+    searchMasterProductsForResolve(query)
+  }, 300)
+}
+
+const startResolvingItem = (item) => {
+  resolvingItemId.value = item.id
+  masterSearchQuery.value = item.product_name || ''
+  masterSearchResults.value = []
+  // Pre-search with the existing product name
+  searchMasterProductsForResolve(item.product_name)
+}
+
+const cancelResolving = () => {
+  resolvingItemId.value = null
+  masterSearchQuery.value = ''
+  masterSearchResults.value = []
+}
+
+const resolveItemToMaster = async (item, masterProduct) => {
+  if (!item?.id || !masterProduct?.id) return
+  try {
+    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
+      master_product_id: masterProduct.id,
+      product_name: masterProduct.product_description
+    })
+    // Update local state
+    if (selectedRequest.value?.items) {
+      const localItem = selectedRequest.value.items.find(i => i.id === item.id)
+      if (localItem) {
+        localItem.master_product_id = masterProduct.id
+        localItem.master_product_description = masterProduct.product_description
+        localItem.master_product_strength = masterProduct.strength
+        localItem.master_product_unit = masterProduct.unit
+        localItem.product_name = masterProduct.product_description
+      }
+    }
+    resolvingItemId.value = null
+    masterSearchQuery.value = ''
+    masterSearchResults.value = []
+    // Refresh coverage
+    fetchPharmacyCoverage()
+  } catch (e) {
+    showMessage('Failed to resolve item', 'error')
+  }
+}
+
+const unresolveItem = async (item) => {
+  if (!item?.id) return
+  try {
+    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
+      master_product_id: null
+    })
+    if (selectedRequest.value?.items) {
+      const localItem = selectedRequest.value.items.find(i => i.id === item.id)
+      if (localItem) {
+        localItem.master_product_id = null
+        localItem.master_product_description = null
+        localItem.master_product_strength = null
+        localItem.master_product_unit = null
+      }
+    }
+    fetchPharmacyCoverage()
+  } catch (e) {
+    showMessage('Failed to unresolve item', 'error')
+  }
+}
+
+const routePharmacyAction = async (pharmacy) => {
+  const reqId = selectedRequest.value?.id
+  if (!reqId || !pharmacy?.pharmacy_id) return
+  const coveredItems = (pharmacy.covered || []).map(c => ({
+    item_id: c.item_id,
+    matched_product_id: c.matched_product_id,
+    distance_km: pharmacy.distance_km
+  }))
+  if (coveredItems.length === 0) return
+  try {
+    await apiCall('POST', `/api/order-requests/admin/${reqId}/route-pharmacy`, {
+      pharmacy_id: pharmacy.pharmacy_id,
+      items: coveredItems
+    })
+    showMessage(`Routed ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}`, 'success')
+    // Refresh request data + coverage
+    await refreshSelectedRequestDetails()
+    fetchPharmacyCoverage()
+  } catch (e) {
+    showMessage('Failed to route items', 'error')
+  }
+}
+
+const getPharmacyWhatsAppUrl = (phone) => {
+  if (!phone) return null
+  const cleaned = String(phone).replace(/[^0-9+]/g, '')
+  if (cleaned.length < 8) return null
+  return `https://wa.me/${cleaned.replace(/^\+/, '')}`
+}
+
+const getCoverageColor = (score, total) => {
+  if (total === 0) return '#9ca3af'
+  const ratio = score / total
+  if (ratio >= 1) return '#10b981'
+  if (ratio >= 0.5) return '#f59e0b'
+  return '#ef4444'
 }
 
 const openComposedSummary = async (req) => {
@@ -5071,7 +5236,7 @@ definePageMeta({
 /* Three Pane Grid Setup */
 .workspace-board-grid {
   display: grid;
-  grid-template-columns: 320px 1fr 380px;
+  grid-template-columns: 2fr 3fr;
   min-height: 500px;
   gap: 0;
 }
@@ -5083,15 +5248,8 @@ definePageMeta({
   flex-direction: column;
 }
 
-.workspace-search-card {
-  border-right: 1px solid #e5e7eb;
+.workspace-composer-card {
   background: #fcfcfc;
-  display: flex;
-  flex-direction: column;
-}
-
-.workspace-selection-card {
-  background: #ffffff;
   display: flex;
   flex-direction: column;
 }
@@ -6971,10 +7129,7 @@ definePageMeta({
   z-index: 1;
 }
 
-.items-table tbody tr:nth-child(4n+1) td,
-.items-table tbody tr:nth-child(4n+2) td {
-  /* removed: caused uneven coloring between item groups */
-}
+
 
 .items-table td {
   padding: 0.6rem 0.75rem;
@@ -6996,7 +7151,7 @@ definePageMeta({
 
 .workspace-board-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(320px, 380px);
+  grid-template-columns: 2fr 3fr;
   gap: 1rem;
   align-items: start;
 }
@@ -7219,6 +7374,31 @@ definePageMeta({
   color: #5b5b6f;
 }
 
+.pane-quick-add {
+  margin-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.75rem;
+  position: relative;
+}
+
+.pane-quick-add-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+}
+
+.pane-quick-add-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .request-item-row {
   width: 100%;
   text-align: left;
@@ -7293,8 +7473,7 @@ definePageMeta({
   gap: 0.9rem;
 }
 
-.workspace-search-card,
-.workspace-selection-card {
+.workspace-composer-card {
   border: 1px solid #dbe4ef;
   border-radius: 20px;
   background:
@@ -7303,11 +7482,63 @@ definePageMeta({
   padding: 1.1rem 1.1rem 1rem;
   box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
   min-width: 0;
-  overflow: hidden;
 }
 
-.workspace-selection-card--wide {
-  grid-column: 2 / 4;
+.workspace-composer-divider {
+  border-top: 1px solid #e2e8f0;
+  margin: 0.9rem -1.1rem;
+}
+
+.composer-meta-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0;
+}
+
+.composer-meta-notes,
+.composer-meta-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.composer-meta-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+}
+
+.composer-meta-textarea {
+  width: 100%;
+  font-size: 0.72rem;
+  color: #374151;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem;
+  resize: none;
+  min-height: 52px;
+  line-height: 1.5;
+  outline: none;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.composer-meta-textarea:focus {
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(79, 33, 122, 0.12);
+}
+
+.composer-meta-queue-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .workspace-panel-head {
@@ -7319,7 +7550,7 @@ definePageMeta({
 }
 
 .workspace-panel-head h5,
-.workspace-selection-card .simple-composer-head h5 {
+.workspace-composer-card .simple-composer-head h5 {
   margin: 0;
   font-size: 0.92rem;
   color: #0f172a;
@@ -7344,10 +7575,9 @@ definePageMeta({
   gap: 0.75rem;
 }
 
-.workspace-search-card--starter {
+.workspace-composer-card--starter {
   display: flex;
   flex-direction: column;
-  grid-column: 2 / 4;
   min-height: 20rem;
 }
 
@@ -7481,20 +7711,12 @@ definePageMeta({
 .simple-search-block {
   display: grid;
   gap: 0.45rem;
-  margin: 0.9rem 0;
+  margin: 0.9rem 0 0;
 }
 
-.workspace-search-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 13rem;
-  border: 1px dashed #dbe4ef;
-  border-radius: 14px;
-  background: #f8fbff;
-  color: #64748b;
-  text-align: center;
-  padding: 1rem;
+.simple-search-anchor {
+  position: relative;
+  margin-bottom: 0;
 }
 
 .workspace-search-empty {
@@ -7521,11 +7743,17 @@ definePageMeta({
   display: flex;
   flex-direction: column;
   gap: 0;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
   border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  border-radius: 10px;
   overflow: auto;
   background: #ffffff;
-  max-height: 24rem;
+  max-height: 22rem;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.13), 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 .simple-search-results-head,
@@ -7678,11 +7906,11 @@ definePageMeta({
   flex-shrink: 0;
 }
 
-.workspace-selection-card--prescription .saved-selection-row {
+.workspace-composer-card--prescription .saved-selection-row {
   cursor: default;
 }
 
-.workspace-selection-card--prescription .saved-selection-row:hover {
+.workspace-composer-card--prescription .saved-selection-row:hover {
   transform: none;
   border-color: #e2e8f0;
   background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
@@ -7717,6 +7945,95 @@ definePageMeta({
   color: #0f172a;
   font-size: 0.96rem;
   letter-spacing: -0.02em;
+}
+
+/* Coverage Matrix Panel */
+.coverage-matrix-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.coverage-matrix-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.coverage-resolve-prompt {
+  padding: 0.75rem 1.25rem 0;
+}
+
+.coverage-loading,
+.coverage-empty {
+  padding: 0 1.25rem;
+}
+
+.coverage-pharmacy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 380px);
+}
+
+.coverage-pharmacy-card {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.15s ease;
+}
+
+.coverage-pharmacy-card:hover {
+  background: #fafbfc;
+}
+
+.coverage-pharmacy-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.coverage-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.coverage-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.coverage-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.coverage-items-section {
+  margin-top: 0.5rem;
+}
+
+.coverage-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.coverage-item-row--covered {
+  color: #1f2937;
+}
+
+.coverage-item-row--uncovered {
+  opacity: 0.6;
 }
 
 .selection-compare-card {
@@ -8040,45 +8357,45 @@ definePageMeta({
   min-width: 0;
 }
 
-.workspace-selection-card--prescription .selection-editor-panel {
+.workspace-composer-card--prescription .selection-editor-panel {
   background:
     radial-gradient(circle at top right, rgba(124, 58, 237, 0.05), transparent 34%),
     #ffffff;
 }
 
-.workspace-selection-card--prescription .composer-field .form-control,
-.workspace-selection-card--prescription .items-qty-stepper {
+.workspace-composer-card--prescription .composer-field .form-control,
+.workspace-composer-card--prescription .items-qty-stepper {
   min-height: 2.45rem;
 }
 
-.workspace-selection-card--prescription .composer-field .form-control {
+.workspace-composer-card--prescription .composer-field .form-control {
   padding-top: 0.55rem;
   padding-bottom: 0.55rem;
 }
 
-.workspace-selection-card--prescription .composer-field--price .form-control {
+.workspace-composer-card--prescription .composer-field--price .form-control {
   min-width: 0;
 }
 
-.workspace-selection-card--prescription .items-qty-stepper {
+.workspace-composer-card--prescription .items-qty-stepper {
   gap: 0.35rem;
   min-width: 0;
   flex-wrap: nowrap;
 }
 
-.workspace-selection-card--prescription .items-qty-btn {
+.workspace-composer-card--prescription .items-qty-btn {
   width: 2rem;
   height: 2rem;
   border-radius: 10px;
 }
 
-.workspace-selection-card--prescription .allocation-mini {
+.workspace-composer-card--prescription .allocation-mini {
   min-width: 0;
   width: 3.75rem;
   text-align: center;
 }
 
-.workspace-selection-card--prescription .composer-actions {
+.workspace-composer-card--prescription .composer-actions {
   margin-top: 0.1rem;
 }
 

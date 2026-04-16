@@ -751,46 +751,46 @@
                 </div>
 
                 <div class="modal-body">
-                    <div class="priority-hero">
-                        <p class="priority-kicker">What this charge does</p>
-                        <p class="priority-copy">
-                            Sends your request to the front of the queue. Nearby pharmacies check stock right away — not whenever they get around to it.
-                        </p>
-                    </div>
+    <div class="priority-hero">
+        <p class="priority-kicker">Before you send</p>
+        <p class="priority-copy">
+            A small fee of GHS {{ requestFee.toFixed(2) }} is charged from your wallet when you send this request.
+        </p>
+    </div>
 
-                    <div class="priority-points">
-                        <div class="priority-point">
-                            <strong>Wallet balance needed</strong>
-                            <span>Keep at least GHS {{ requestFee.toFixed(2) }} in your wallet before sending.</span>
-                        </div>
-                        <div class="priority-point">
-                            <strong>Charged on send</strong>
-                            <span>GHS {{ requestFee.toFixed(2) }} pays for the pharmacist's real-time stock check.</span>
-                        </div>
-                    </div>
+    <div class="priority-points">
+        <div class="priority-point">
+            <strong>✅ If you place an order</strong>
+            <span>The GHS {{ requestFee.toFixed(2) }} is taken off your final bill — so you don't pay it twice.</span>
+        </div>
+        <div class="priority-point">
+            <strong>❌ If you don't place an order</strong>
+            <span>The GHS {{ requestFee.toFixed(2) }} is kept as a search fee.</span>
+        </div>
+    </div>
 
-                    <div v-if="submitShortfall > 0" class="priority-shortfall">
-                        <strong>GHS {{ submitShortfall.toFixed(2) }} short.</strong>
-                        <span>Top up your wallet to continue.</span>
-                    </div>
+    <div v-if="submitShortfall > 0" class="priority-shortfall">
+        <strong>GHS {{ submitShortfall.toFixed(2) }} short.</strong>
+        <span>Top up your wallet to continue.</span>
+    </div>
 
-                    <div class="priority-actions">
-                        <button @click="showPriorityModal = false" class="nav-back priority-back">
-                            Not Yet
-                        </button>
-                        <button v-if="submitShortfall > 0" @click="openWalletTab" class="nav-next priority-topup">
-                            Top Up Wallet
-                        </button>
-                        <button @click="confirmPriorityAndSubmit" :disabled="isSubmitting" class="nav-submit priority-submit">
-                            <template v-if="isSubmitting">
-                                <ArrowPathIcon class="nav-svg spin" /> Sending...
-                            </template>
-                            <template v-else>
-                                Charge GHS {{ requestFee.toFixed(2) }} &amp; Send Request
-                            </template>
-                        </button>
-                    </div>
-                </div>
+    <div class="priority-actions">
+        <button @click="showPriorityModal = false" class="nav-back priority-back">
+            Not Yet
+        </button>
+        <button v-if="submitShortfall > 0" @click="openWalletTab" class="nav-next priority-topup">
+            Top Up Wallet
+        </button>
+        <button @click="confirmPriorityAndSubmit" :disabled="isSubmitting" class="nav-submit priority-submit">
+            <template v-if="isSubmitting">
+                <ArrowPathIcon class="nav-svg spin" /> Sending...
+            </template>
+            <template v-else>
+                Charge GHS {{ requestFee.toFixed(2) }} &amp; Send Request
+            </template>
+        </button>
+    </div>
+</div>
             </div>
         </div>
 
