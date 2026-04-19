@@ -353,31 +353,6 @@
             </div>
           </section>
 
-          <!-- Pipeline status bar -->
-          <div v-if="currentPipelineStageIndex >= 0" class="pipeline-bar">
-            <template v-for="(stage, idx) in PIPELINE_STAGES" :key="stage.label">
-              <div
-                class="pipeline-step"
-                :class="{
-                  'pipeline-step--done': idx < currentPipelineStageIndex,
-                  'pipeline-step--active': idx === currentPipelineStageIndex,
-                  'pipeline-step--future': idx > currentPipelineStageIndex
-                }"
-              >
-                <div class="pipeline-step-dot">
-                  <svg v-if="idx < currentPipelineStageIndex" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-2.5 h-2.5">
-                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-                <span class="pipeline-step-label">{{ stage.label }}</span>
-              </div>
-              <div v-if="idx < PIPELINE_STAGES.length - 1" class="pipeline-step-connector" :class="{ 'pipeline-step-connector--done': idx < currentPipelineStageIndex }"></div>
-            </template>
-          </div>
-          <div v-else-if="selectedRequest && ['cancelled', 'returned', 'expired'].includes(selectedRequest.status)" class="pipeline-bar pipeline-bar--exit">
-            <span class="pipeline-exit-pill">{{ formatStatus(selectedRequest.status) }}</span>
-          </div>
-
           <div class="workspace-shell" style="flex: 1; border-radius: 0; display: flex; flex-direction: column; padding: 0.5rem; background: #f3f4f6; gap: 0.5rem;">
           <section v-if="latestPaymentSnapshot" class="section-card section-card--customer workspace-main-card">
             <div class="section-head">
@@ -520,78 +495,36 @@
                                 <div style="display: flex; align-items: center; gap: 4px;">
                                   <input
                                     :value="masterSearchQuery"
-                                    @input="resolveSearchMode === 'master' ? onMasterSearchInput($event.target.value) : onPharmResolveInput($event.target.value)"
+                                    @input="onMasterSearchInput($event.target.value)"
                                     type="text"
                                     class="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold"
-                                    :placeholder="resolveSearchMode === 'master' ? 'Search master catalog...' : 'Search pharmacy stock...'"
+                                    placeholder="Search master catalog..."
                                     autofocus
                                   />
                                   <button @click="cancelResolving" class="shrink-0 text-gray-400 hover:text-gray-600 p-0.5" title="Cancel">
                                     <XMarkIcon class="w-3.5 h-3.5" />
                                   </button>
                                 </div>
-                                <!-- Mode toggle -->
-                                <div style="display: flex; gap: 4px;">
+                                <div v-if="masterSearchLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
+                                <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
                                   <button
+                                    v-for="mp in masterSearchResults"
+                                    :key="mp.id"
                                     type="button"
-                                    class="resolve-mode-tab"
-                                    :class="{ active: resolveSearchMode === 'master' }"
-                                    @click="setResolveMode('master')"
-                                  >Master catalog</button>
-                                  <button
-                                    type="button"
-                                    class="resolve-mode-tab"
-                                    :class="{ active: resolveSearchMode === 'pharmacy' }"
-                                    @click="setResolveMode('pharmacy')"
-                                  >Pharmacy stock</button>
+                                    class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
+                                    @click="resolveItemToMaster(item, mp)"
+                                  >
+                                    <span class="text-xs font-bold text-gray-900 block truncate">{{ mp.product_description }}</span>
+                                    <span class="text-[10px] text-gray-500">
+                                      <template v-if="mp.strength">{{ mp.strength }}</template>
+                                      <template v-if="mp.strength && mp.unit"> · </template>
+                                      <template v-if="mp.unit">{{ mp.unit }}</template>
+                                    </span>
+                                  </button>
                                 </div>
-                                <!-- Master catalog results -->
-                                <template v-if="resolveSearchMode === 'master'">
-                                  <div v-if="masterSearchLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
-                                  <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
-                                    <button
-                                      v-for="mp in masterSearchResults"
-                                      :key="mp.id"
-                                      type="button"
-                                      class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
-                                      @click="resolveItemToMaster(item, mp)"
-                                    >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ mp.product_description }}</span>
-                                      <span class="text-[10px] text-gray-500">
-                                        <template v-if="mp.strength">{{ mp.strength }}</template>
-                                        <template v-if="mp.strength && mp.unit"> · </template>
-                                        <template v-if="mp.unit">{{ mp.unit }}</template>
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div v-else-if="masterSearchQuery.length >= 2 && !masterSearchLoading" class="text-[10px] text-gray-400 px-1">
-                                    No master products found
-                                  </div>
-                                </template>
-                                <!-- Pharmacy stock results -->
-                                <template v-else>
-                                  <div v-if="pharmResolveLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
-                                  <div v-else-if="pharmResolveResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
-                                    <button
-                                      v-for="pp in pharmResolveResults"
-                                      :key="pp.id"
-                                      type="button"
-                                      class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
-                                      @click="resolveItemToPharmProduct(item, pp)"
-                                    >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ pp.product_description || pp.brand_name }}</span>
-                                      <span class="text-[10px] text-gray-500">
-                                        {{ pp.pharmacy_name }}
-                                        <template v-if="pp.distance_km !== null"> · {{ Number(pp.distance_km).toFixed(1) }} km</template>
-                                        <template v-if="pp.price > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
-                                        <template v-if="pp.available_quantity > 0"> · {{ pp.available_quantity }} in stock</template>
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div v-else-if="masterSearchQuery.length >= 2 && !pharmResolveLoading" class="text-[10px] text-gray-400 px-1">
-                                    No pharmacy stock found
-                                  </div>
-                                </template>
+                                <div v-else-if="masterSearchQuery.length >= 2 && !masterSearchLoading" class="text-[10px] text-gray-400 px-1">
+                                  No master products found
+                                </div>
                               </div>
                             </template>
                             <!-- Normal display -->
@@ -696,35 +629,22 @@
                             </div>
                           </div>
                           <div class="composer-meta-queue-actions">
-                            <div v-if="autoAdvanceSuggestion" class="status-nudge-banner">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 shrink-0 text-amber-600">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
-                              </svg>
-                              <span class="flex-1 text-[10px] text-amber-800 font-semibold">{{ autoAdvanceSuggestion.message }}</span>
-                              <button @click="applyNextStep(autoAdvanceSuggestion.status)" class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="loading">{{ autoAdvanceSuggestion.label }}</button>
-                            </div>
-                            <div class="status-action-row">
-                              <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-                              <button v-if="nextStepAction" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} →</button>
-                              <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">Override ▾</button>
-                            </div>
-                            <div v-if="showStatusOverride" class="status-override-row">
-                              <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
-                                <option value="">Change status...</option>
-                                <option value="pending">Pending</option>
-                                <option value="composed">Composed</option>
-                                <option value="confirming_with_pharm">Confirming With Pharm</option>
-                                <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                                <option value="paid">Paid</option>
-                                <option value="ready_for_pickup">Ready For Pickup</option>
-                                <option value="picked_up">Picked Up</option>
-                                <option value="out_for_delivery">Out For Delivery</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="returned">Returned</option>
-                              </select>
-                              <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Apply Override</button>
-                            </div>
+                            <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
+                            <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
+                              <option value="">Change status...</option>
+                              <option value="composed">Composed</option>
+                              <option value="confirming_with_pharm">Confirming With Pharm</option>
+                              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+                              <option value="paid">Paid</option>
+                              <option value="ready_for_pickup">Ready For Pickup</option>
+                              <option value="picked_up">Picked Up</option>
+                              <option value="out_for_delivery">Out For Delivery</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                              <option value="returned">Returned</option>
+                            </select>
+                            <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Update</button>
+                            <button @click="markRequestComposed" class="text-[10px] bg-[#4F217A] hover:bg-[#381659] text-white px-2 py-1 rounded-md font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0" :disabled="!canMarkRequestComposed">Mark Composed</button>
                           </div>
                         </div>
                       </div>
@@ -971,35 +891,22 @@
                             </div>
                           </div>
                           <div class="composer-meta-queue-actions">
-                            <div v-if="autoAdvanceSuggestion" class="status-nudge-banner">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 shrink-0 text-amber-600">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
-                              </svg>
-                              <span class="flex-1 text-[10px] text-amber-800 font-semibold">{{ autoAdvanceSuggestion.message }}</span>
-                              <button @click="applyNextStep(autoAdvanceSuggestion.status)" class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="loading">{{ autoAdvanceSuggestion.label }}</button>
-                            </div>
-                            <div class="status-action-row">
-                              <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-                              <button v-if="nextStepAction" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} →</button>
-                              <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">Override ▾</button>
-                            </div>
-                            <div v-if="showStatusOverride" class="status-override-row">
-                              <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
-                                <option value="">Change status...</option>
-                                <option value="pending">Pending</option>
-                                <option value="composed">Composed</option>
-                                <option value="confirming_with_pharm">Confirming With Pharm</option>
-                                <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                                <option value="paid">Paid</option>
-                                <option value="ready_for_pickup">Ready For Pickup</option>
-                                <option value="picked_up">Picked Up</option>
-                                <option value="out_for_delivery">Out For Delivery</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="returned">Returned</option>
-                              </select>
-                              <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Apply Override</button>
-                            </div>
+                            <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
+                            <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
+                              <option value="">Change status...</option>
+                              <option value="composed">Composed</option>
+                              <option value="confirming_with_pharm">Confirming With Pharm</option>
+                              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+                              <option value="paid">Paid</option>
+                              <option value="ready_for_pickup">Ready For Pickup</option>
+                              <option value="picked_up">Picked Up</option>
+                              <option value="out_for_delivery">Out For Delivery</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                              <option value="returned">Returned</option>
+                            </select>
+                            <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Update</button>
+                            <button @click="markRequestComposed" class="text-[10px] bg-[#4F217A] hover:bg-[#381659] text-white px-2 py-1 rounded-md font-bold transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0" :disabled="!canMarkRequestComposed">Mark Composed</button>
                           </div>
                         </div>
                       </div>
@@ -1155,62 +1062,17 @@
 
                             <!-- Uncovered items -->
                             <div v-if="pharmacy.uncovered && pharmacy.uncovered.length" class="coverage-items-section">
-                              <template
+                              <div
                                 v-for="ui in pharmacy.uncovered"
                                 :key="`uncovered-${pharmacy.pharmacy_id}-${ui.item_id}`"
+                                class="coverage-item-row coverage-item-row--uncovered"
                               >
-                                <div class="coverage-item-row coverage-item-row--uncovered">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-gray-300 shrink-0">
-                                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                                  </svg>
-                                  <span class="text-xs text-gray-400 font-medium truncate flex-1">{{ ui.product_name }}</span>
-                                  <button
-                                    v-if="coverageSubSearch.pharmacyId === pharmacy.pharmacy_id && coverageSubSearch.itemId === ui.item_id"
-                                    type="button"
-                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 shrink-0 transition-colors"
-                                    @click="closeCoverageSubSearch"
-                                  >cancel</button>
-                                  <button
-                                    v-else
-                                    type="button"
-                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-600 hover:bg-violet-100 shrink-0 transition-colors"
-                                    @click="startCoverageSubSearch(pharmacy, ui)"
-                                  >find substitute</button>
-                                </div>
-                                <!-- Inline substitute search panel -->
-                                <div
-                                  v-if="coverageSubSearch.pharmacyId === pharmacy.pharmacy_id && coverageSubSearch.itemId === ui.item_id"
-                                  class="coverage-sub-search-panel"
-                                >
-                                  <input
-                                    :value="coverageSubSearch.query"
-                                    @input="onCoverageSubSearchInput($event.target.value)"
-                                    type="text"
-                                    class="w-full px-2 py-1 bg-white border border-violet-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 transition-all"
-                                    :placeholder="`Search ${pharmacy.pharmacy_name} catalog...`"
-                                    autofocus
-                                  />
-                                  <div v-if="coverageSubSearch.loading" class="text-[10px] text-gray-400 px-1 py-1">Searching...</div>
-                                  <div v-else-if="coverageSubSearch.results.length" class="coverage-sub-search-results">
-                                    <button
-                                      v-for="sp in coverageSubSearch.results"
-                                      :key="sp.id"
-                                      type="button"
-                                      class="coverage-sub-search-result"
-                                      @click="selectCoverageSubstitute(pharmacy, ui, sp)"
-                                    >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ sp.product_description || sp.brand_name }}</span>
-                                      <span class="text-[10px] text-gray-500">
-                                        GH₵{{ Number(sp.price || 0).toFixed(2) }} · {{ sp.available_quantity || 0 }} in stock
-                                        <template v-if="sp.distance_km !== null"> · {{ Number(sp.distance_km).toFixed(2) }} km</template>
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div v-else-if="coverageSubSearch.query.length >= 2 && !coverageSubSearch.loading" class="text-[10px] text-gray-400 px-1 py-1">
-                                    No products found in this pharmacy's catalog.
-                                  </div>
-                                </div>
-                              </template>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-gray-300 shrink-0">
+                                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                </svg>
+                                <span class="text-xs text-gray-400 font-medium truncate flex-1">{{ ui.product_name }}</span>
+                                <span class="text-[9px] text-gray-300 font-bold shrink-0">not found</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1605,16 +1467,6 @@ import {
   ChatBubbleLeftRightIcon
 } from '@heroicons/vue/24/outline'
 
-const PIPELINE_STAGES = [
-  { label: 'Pending',    statuses: ['pending'],                                                         nextStatus: 'confirming_with_pharm', nextLabel: 'Start Confirming'      },
-  { label: 'Confirming', statuses: ['confirming_with_pharm', 'processing', 'enquiry_sent'],            nextStatus: 'composed',              nextLabel: 'Mark as Composed'      },
-  { label: 'Composed',   statuses: ['composed', 'partially_available', 'items_sourced'],               nextStatus: 'confirmed_in_pharm',    nextLabel: 'Confirm with Customer' },
-  { label: 'Confirmed',  statuses: ['confirmed_in_pharm', 'ordered', 'confirmed', 'awaiting_customer'], nextStatus: 'paid',                  nextLabel: 'Mark as Paid'          },
-  { label: 'Paid',       statuses: ['paid', 'logistics_pending', 'driver_unavailable'],                nextStatus: null,                    nextLabel: null                    },
-  { label: 'In Transit', statuses: ['out_for_delivery', 'ready_for_pickup', 'ready_to_order'],         nextStatus: null,                    nextLabel: null                    },
-  { label: 'Done',       statuses: ['delivered', 'picked_up', 'completed'],                            nextStatus: null,                    nextLabel: null                    },
-]
-
 const adminStore = useAdminStore()
 const config = useRuntimeConfig()
 const apiBaseUrl = config.public.apiBase
@@ -1651,16 +1503,6 @@ const masterSearchLoading = ref(false)
 const masterSearchQuery = ref('')
 const resolvingItemId = ref(null)
 let masterSearchDebounce = null
-const showStatusOverride = ref(false)
-const resolveSearchMode = ref('master') // 'master' | 'pharmacy'
-const pharmResolveResults = ref([])
-const pharmResolveLoading = ref(false)
-let pharmResolveDebounce = null
-
-// --- Coverage substitute search state ---
-const coverageSubSearch = ref({ pharmacyId: null, itemId: null, query: '', results: [], loading: false })
-let coverageSubDebounce = null
-// --- End coverage substitute search state ---
 
 const resolvedItemCount = computed(() => {
   const items = requestItems.value || []
@@ -2485,37 +2327,6 @@ const composedStatusHint = computed(() => {
   return 'All request items have sourcing details and are ready for the composed queue.'
 })
 
-const currentPipelineStageIndex = computed(() => {
-  const status = selectedRequest.value?.status
-  if (!status) return -1
-  return PIPELINE_STAGES.findIndex(s => s.statuses.includes(status))
-})
-
-const nextStepAction = computed(() => {
-  const idx = currentPipelineStageIndex.value
-  if (idx < 0 || idx === 6) return null
-  const ftype = String(selectedRequest.value?.fulfillment_type || '').toLowerCase()
-  const isPickup = ftype.includes('pickup')
-  if (idx === 1) return { label: 'Mark as Composed', status: 'composed', disabled: !canMarkRequestComposed.value }
-  if (idx === 4) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'Out for Delivery', status: 'out_for_delivery' }
-  if (idx === 5) return isPickup ? { label: 'Mark Picked Up', status: 'picked_up' } : { label: 'Mark Delivered', status: 'delivered' }
-  const stage = PIPELINE_STAGES[idx]
-  return stage.nextStatus ? { label: stage.nextLabel, status: stage.nextStatus } : null
-})
-
-const autoAdvanceSuggestion = computed(() => {
-  if (!selectedRequest.value) return null
-  const status = selectedRequest.value.status
-  const items = requestItems.value || []
-  if (status === 'pending' && items.length > 0 && items.every(i => i.source_pharmacy_id)) {
-    return { message: 'All items routed — ready to start confirming?', status: 'confirming_with_pharm', label: 'Start Confirming' }
-  }
-  if (status === 'confirming_with_pharm' && canMarkRequestComposed.value) {
-    return { message: 'All items sourced — ready to mark as Composed?', status: 'composed', label: 'Mark Composed' }
-  }
-  return null
-})
-
 const canSendPartialAvailabilityDecision = computed(() => {
   if (!selectedRequest.value) return false
   return customerReadySummary.value.missingItems > 0
@@ -2634,14 +2445,8 @@ const apiCall = async (method, url, data = null) => {
   }
   if (data) opts.body = JSON.stringify(data)
   const response = await fetch(fullUrl, opts)
-  const json = await response.json()
-  if (!response.ok) {
-    const err = new Error(json?.message || `API error: ${response.status}`)
-    err.code = json?.code || null
-    err.httpStatus = response.status
-    throw err
-  }
-  return json
+  if (!response.ok) throw new Error(`API error: ${response.status}`)
+  return response.json()
 }
 
 // Fetch
@@ -2943,42 +2748,10 @@ const onMasterSearchInput = (query) => {
   }, 300)
 }
 
-const searchPharmResolve = async (query) => {
-  const q = String(query || '').trim()
-  if (q.length < 2) { pharmResolveResults.value = []; return }
-  pharmResolveLoading.value = true
-  try {
-    pharmResolveResults.value = await searchPharmacyProductsForResolve(q)
-  } catch {
-    pharmResolveResults.value = []
-  } finally {
-    pharmResolveLoading.value = false
-  }
-}
-
-const onPharmResolveInput = (query) => {
-  masterSearchQuery.value = query
-  clearTimeout(pharmResolveDebounce)
-  if (String(query || '').trim().length < 2) { pharmResolveResults.value = []; return }
-  pharmResolveDebounce = setTimeout(() => searchPharmResolve(query), 300)
-}
-
-const setResolveMode = (mode) => {
-  resolveSearchMode.value = mode
-  masterSearchResults.value = []
-  pharmResolveResults.value = []
-  if (masterSearchQuery.value.length >= 2) {
-    if (mode === 'master') searchMasterProductsForResolve(masterSearchQuery.value)
-    else searchPharmResolve(masterSearchQuery.value)
-  }
-}
-
 const startResolvingItem = (item) => {
   resolvingItemId.value = item.id
   masterSearchQuery.value = item.product_name || ''
   masterSearchResults.value = []
-  pharmResolveResults.value = []
-  resolveSearchMode.value = 'master'
   // Pre-search with the existing product name
   searchMasterProductsForResolve(item.product_name)
 }
@@ -2987,110 +2760,16 @@ const cancelResolving = () => {
   resolvingItemId.value = null
   masterSearchQuery.value = ''
   masterSearchResults.value = []
-  pharmResolveResults.value = []
-  resolveSearchMode.value = 'master'
 }
-
-// --- Pharmacy stock resolution (no master catalog needed) ---
-const resolveItemToPharmProduct = async (item, pharmProduct) => {
-  if (!item?.id || !pharmProduct?.id) return
-  try {
-    const payload = { product_name: pharmProduct.product_description || pharmProduct.brand_name || pharmProduct.product_name }
-    if (pharmProduct.uniqid) payload.master_product_id = pharmProduct.uniqid
-    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, payload)
-    if (selectedRequest.value?.items) {
-      const localItem = selectedRequest.value.items.find(i => i.id === item.id)
-      if (localItem) {
-        localItem.product_name = payload.product_name
-        if (payload.master_product_id) localItem.master_product_id = payload.master_product_id
-      }
-    }
-    resolvingItemId.value = null
-    masterSearchQuery.value = ''
-    masterSearchResults.value = []
-    fetchPharmacyCoverage()
-  } catch (e) {
-    showMessage('Failed to resolve item to pharmacy product', 'error')
-  }
-}
-
-// --- Coverage substitute search (per-pharmacy catalog search for uncovered items) ---
-const searchPharmacyProductsForResolve = async (query, companyId = null) => {
-  const trimmed = String(query || '').trim()
-  if (trimmed.length < 2) return []
-  const coords = getRequestSearchCoordinates()
-  const params = new URLSearchParams()
-  params.append('q', trimmed)
-  params.append('limit', '10')
-  if (coords.hasCoords) {
-    params.append('lat', String(coords.lat))
-    params.append('lng', String(coords.lng))
-  }
-  if (companyId) params.append('company_id', String(companyId))
-  const res = await apiCall('GET', `/api/order-requests/admin/pharmacy-products/search?${params.toString()}`)
-  return Array.isArray(res?.data?.products) ? res.data.products : []
-}
-
-const startCoverageSubSearch = (pharmacy, uncoveredItem) => {
-  coverageSubSearch.value = {
-    pharmacyId: pharmacy.pharmacy_id,
-    companyId: pharmacy.company_id || pharmacy.pharmacy_id,
-    itemId: uncoveredItem.item_id,
-    query: uncoveredItem.product_name || '',
-    results: [],
-    loading: false
-  }
-  // Pre-search with product name
-  if (uncoveredItem.product_name) searchCoverageSubstitute(uncoveredItem.product_name, pharmacy)
-}
-
-const closeCoverageSubSearch = () => {
-  clearTimeout(coverageSubDebounce)
-  coverageSubSearch.value = { pharmacyId: null, companyId: null, itemId: null, query: '', results: [], loading: false }
-}
-
-const searchCoverageSubstitute = async (query, pharmacy = null) => {
-  const companyId = pharmacy?.company_id || pharmacy?.pharmacy_id || coverageSubSearch.value.companyId
-  coverageSubSearch.value.loading = true
-  try {
-    coverageSubSearch.value.results = await searchPharmacyProductsForResolve(query, companyId)
-  } catch {
-    coverageSubSearch.value.results = []
-  } finally {
-    coverageSubSearch.value.loading = false
-  }
-}
-
-const onCoverageSubSearchInput = (query) => {
-  coverageSubSearch.value.query = query
-  clearTimeout(coverageSubDebounce)
-  coverageSubDebounce = setTimeout(() => searchCoverageSubstitute(query), 300)
-}
-
-const selectCoverageSubstitute = (pharmacy, uncoveredItem, selectedProduct) => {
-  // Move uncovered item to covered with Fuzzy badge
-  const covered = pharmacy.covered || (pharmacy.covered = [])
-  covered.push({
-    item_id: uncoveredItem.item_id,
-    product_name: uncoveredItem.product_name,
-    fuzzy_match: {
-      matched_product_name: selectedProduct.product_description || selectedProduct.brand_name || selectedProduct.product_name,
-      price: selectedProduct.price || 0,
-      stock: selectedProduct.available_quantity || 0
-    }
-  })
-  pharmacy.uncovered = (pharmacy.uncovered || []).filter(u => u.item_id !== uncoveredItem.item_id)
-  pharmacy.coverage_score = (pharmacy.coverage_score || 0) + 1
-  closeCoverageSubSearch()
-}
-// --- End coverage substitute search ---
 
 const resolveItemToMaster = async (item, masterProduct) => {
   if (!item?.id || !masterProduct?.id) return
   try {
     await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-      master_product_id: masterProduct.id,
-      product_name: masterProduct.product_description
+      master_product_id: masterProduct.id
+      // Do not overwrite product_name with the master description — keep the
+      // customer's original simple name (e.g. "Paracetamol 500mg") so that
+      // the pharmacy coverage text search continues to work broadly.
     })
     // Update local state
     if (selectedRequest.value?.items) {
@@ -3540,12 +3219,10 @@ const updateStatus = async () => {
 
     const statusRes = await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/status`, {
       status: newStatus,
-      admin_notes: adminNotes.value,
-      ...(showStatusOverride.value ? { force: true } : {})
+      admin_notes: adminNotes.value
     })
     selectedRequest.value.status = newStatus
     selectedStatus.value = ''
-    showStatusOverride.value = false
 
     // Only load fulfillment context when explicitly entering the confirming phase.
     if ((newStatus === 'confirming_with_pharm' || newStatus === 'processing') && canRunFulfillment(newStatus)) {
@@ -3570,11 +3247,7 @@ const updateStatus = async () => {
       logisticsAssessment.value = null
     }
   } catch (e) {
-    if (e.code === 'BACKWARDS_TRANSITION') {
-      showMessage('This would move backwards. Use "Override" to force it.', 'error')
-    } else {
-      showMessage(e.message || 'Failed to update status', 'error')
-    }
+    showMessage(e.message || 'Failed to update status', 'error')
   } finally {
     loading.value = false
   }
@@ -3598,13 +3271,6 @@ const markRequestComposed = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const applyNextStep = async (statusOverride) => {
-  const targetStatus = statusOverride || nextStepAction.value?.status
-  if (!targetStatus || !selectedRequest.value) return
-  selectedStatus.value = targetStatus
-  await updateStatus()
 }
 
 const saveNotes = async () => {
@@ -7888,8 +7554,9 @@ definePageMeta({
 
 .composer-meta-queue-actions {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .workspace-panel-head {
@@ -8405,7 +8072,7 @@ definePageMeta({
   letter-spacing: 0.06em;
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
-  flex-shrink: 0;
+  shrink: 0;
 }
 
 .coverage-match-badge--master {
@@ -8416,225 +8083,6 @@ definePageMeta({
 .coverage-match-badge--fuzzy {
   background: #e0f2fe;
   color: #0369a1;
-}
-
-.coverage-sub-search-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  background: #faf5ff;
-  border: 1px solid #ddd6fe;
-  border-radius: 8px;
-  margin: 2px 0 4px;
-}
-
-.coverage-sub-search-results {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  max-height: 180px;
-  overflow-y: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #fff;
-}
-
-.coverage-sub-search-result {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  text-align: left;
-  padding: 6px 10px;
-  border: 0;
-  border-bottom: 1px solid #f3f4f6;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.coverage-sub-search-result:last-child {
-  border-bottom: 0;
-}
-
-.coverage-sub-search-result:hover {
-  background: #f5f3ff;
-}
-
-.resolve-mode-tab {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 5px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.resolve-mode-tab:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.resolve-mode-tab.active {
-  background: #4F217A;
-  border-color: #4F217A;
-  color: #fff;
-}
-
-/* ── Pipeline status bar ──────────────────────────────────────────────────── */
-.pipeline-bar {
-  display: flex;
-  align-items: center;
-  padding: 0.65rem 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  gap: 0;
-  overflow-x: auto;
-}
-
-.pipeline-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: fit-content;
-}
-
-.pipeline-step-dot {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #e5e7eb;
-  background: #fff;
-  transition: all 0.2s;
-}
-
-.pipeline-step--done .pipeline-step-dot {
-  background: #4F217A;
-  border-color: #4F217A;
-  color: #fff;
-}
-
-.pipeline-step--active .pipeline-step-dot {
-  background: #fff;
-  border-color: #4F217A;
-  box-shadow: 0 0 0 3px rgba(79, 33, 122, 0.15);
-}
-
-.pipeline-step--future .pipeline-step-dot {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.pipeline-step-label {
-  font-size: 0.58rem;
-  font-weight: 700;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
-
-.pipeline-step--done .pipeline-step-label { color: #4F217A; }
-.pipeline-step--active .pipeline-step-label { color: #4F217A; font-weight: 900; }
-.pipeline-step--future .pipeline-step-label { color: #9ca3af; }
-
-.pipeline-step-connector {
-  flex: 1;
-  height: 2px;
-  background: #e5e7eb;
-  min-width: 1rem;
-  max-width: 3.5rem;
-  margin-bottom: 1.1rem;
-}
-
-.pipeline-step-connector--done {
-  background: #4F217A;
-}
-
-.pipeline-bar--exit {
-  justify-content: flex-start;
-  gap: 0.5rem;
-}
-
-.pipeline-exit-pill {
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
-}
-
-/* ── Status action row (next step + override) ──────────────────────────────── */
-.status-nudge-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.65rem;
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  border-radius: 10px;
-}
-
-.status-action-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.next-step-btn {
-  flex: 1;
-  min-width: 0;
-  padding: 0.3rem 0.75rem;
-  border-radius: 8px;
-  background: #4F217A;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 800;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
-  text-align: center;
-}
-.next-step-btn:hover:not(:disabled) { background: #381659; }
-.next-step-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.override-toggle-btn {
-  padding: 0.28rem 0.55rem;
-  border-radius: 6px;
-  background: #f3f4f6;
-  color: #6b7280;
-  font-size: 0.68rem;
-  font-weight: 700;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.override-toggle-btn:hover,
-.override-toggle-btn.active {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.status-override-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.5rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
 }
 
 .selection-compare-card {

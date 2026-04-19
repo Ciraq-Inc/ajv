@@ -29,63 +29,24 @@
       <!-- Navigation Menu -->
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Main</div>
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Dashboard</div>
 
           <NuxtLink to="/admin/data" class="nav-item" active-class="active">
             <ChartBarIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Data</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
-            <UserGroupIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Waitlist Signups</span>
-          </NuxtLink>
-
-          <NuxtLink 
-            to="/admin/access?tab=companies" 
-            class="nav-item"
-            exact-active-class="active"
-          >
-            <KeyIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Company Management</span>
-          </NuxtLink>
-
-          <NuxtLink
-            to="/admin/access?tab=store-settings"
-            class="nav-item"
-            exact-active-class="active"
-          >
-            <Cog6ToothIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Store Settings</span>
-          </NuxtLink>
-
-          
-          <NuxtLink 
-            to="/admin/useraccess" 
-            class="nav-item"
-            active-class="active"
-          >
-            <UserGroupIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">User Access Management</span>
+            <span v-if="!isSidebarCollapsed" class="nav-text">Overview</span>
           </NuxtLink>
         </div>
 
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">SMS Management</div>
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
 
-          <NuxtLink to="/admin/sms-campaigns" class="nav-item" active-class="active">
-            <DevicePhoneMobileIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Campaigns</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/sms-billing" class="nav-item" active-class="active">
-            <CreditCardIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Billing</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
-            <Cog6ToothIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Settings</span>
+          <NuxtLink 
+            to="/admin/fulfillment" 
+            class="nav-item"
+            :class="{ active: isInFulfillment }"
+          >
+            <ClipboardDocumentListIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Fulfillment</span>
           </NuxtLink>
         </div>
 
@@ -99,34 +60,53 @@
         </div>
 
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Order Management</div>
-          
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Companies & Users</div>
+
           <NuxtLink 
-            to="/onlineorders" 
+            to="/admin/access?tab=companies" 
             class="nav-item"
-            active-class="active"
+            exact-active-class="active"
           >
-            <ClipboardDocumentListIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Order Requests</span>
+            <KeyIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Companies</span>
           </NuxtLink>
 
           <NuxtLink 
-            to="/onlineorders/deliveries" 
+            to="/admin/useraccess" 
             class="nav-item"
             active-class="active"
           >
-            <TruckIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Deliveries</span>
+            <UserGroupIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">User Access</span>
           </NuxtLink>
 
-          <NuxtLink 
-            to="/admin/pharmacy-ledger" 
-            class="nav-item"
-            active-class="active"
-          >
-            <BanknotesIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Ledger</span>
+          <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
+            <ClipboardDocumentCheckIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Waitlist Signups</span>
           </NuxtLink>
+        </div>
+
+        <div class="nav-section">
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">SMS</div>
+
+          <NuxtLink to="/admin/sms-campaigns" class="nav-item" active-class="active">
+            <DevicePhoneMobileIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Campaigns</span>
+          </NuxtLink>
+
+          <NuxtLink to="/admin/sms-billing" class="nav-item" active-class="active">
+            <CreditCardIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Billing</span>
+          </NuxtLink>
+
+          <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
+            <Cog6ToothIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Settings</span>
+          </NuxtLink>
+        </div>
+
+        <div class="nav-section">
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Settings</div>
 
           <NuxtLink 
             to="/admin/platform-settings" 
@@ -136,61 +116,16 @@
             <Cog6ToothIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Platform Settings</span>
           </NuxtLink>
-        </div> 
 
-        <!-- <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
-          
           <NuxtLink 
-            to="/admin/orders" 
+            to="/admin/store-settings" 
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">📦</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Orders</span>
-            <span v-if="!isSidebarCollapsed && pendingOrders > 0" class="badge">{{ pendingOrders }}</span>
+            <SwatchIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Store Settings</span>
           </NuxtLink>
-
-          <NuxtLink 
-            to="/admin/companies" 
-            class="nav-item"
-            active-class="active"
-          >
-            <span class="nav-icon">🏢</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Companies</span>
-          </NuxtLink>
-
-          <NuxtLink 
-            to="/admin/products" 
-            class="nav-item"
-            active-class="active"
-          >
-            <span class="nav-icon">💊</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Products</span>
-          </NuxtLink>
-        </div>  -->
-
-        <!-- <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">System</div>
-          
-          <NuxtLink 
-            to="/admin/settings" 
-            class="nav-item"
-            active-class="active"
-          >
-            <span class="nav-icon">⚙️</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Settings</span>
-          </NuxtLink>
-
-          <NuxtLink 
-            to="/admin/logs" 
-            class="nav-item"
-            active-class="active"
-          >
-            <span class="nav-icon">📋</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Activity Logs</span>
-          </NuxtLink>
-        </div>  -->
+        </div>
       </nav>
 
       <!-- Logout Button -->
@@ -275,6 +210,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   BuildingOfficeIcon,
+  BuildingOffice2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChartBarIcon,
@@ -286,8 +222,10 @@ import {
   ArrowLeftOnRectangleIcon,
   CubeIcon,
   ClipboardDocumentListIcon,
+  ClipboardDocumentCheckIcon,
   TruckIcon,
   BanknotesIcon,
+  SwatchIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute } from 'vue-router'
@@ -329,26 +267,26 @@ const adminInitials = computed(() => {
 const pageTitle = computed(() => {
   const path = route.path
   const tab = route.query.tab
-  if (path.includes('/admin/data')) return 'Data Overview'
+  if (path.includes('/admin/data')) return 'Dashboard'
   if (path.includes('/admin/signups')) return 'Waitlist Signups'
-  if (path.includes('/admin/access') && tab === 'store-settings') return 'Store Settings'
-  if (path.includes('/admin/user-access')) return 'User Access Management'
-  if (path.includes('/admin/access')) return 'Company Management'
-  if (path.includes('/admin/sms-campaigns')) return 'SMS Campaign Management'
-  if (path.includes('/admin/sms-billing')) return 'SMS Billing Management'
+  if (path.includes('/admin/access')) return 'Companies'
+  if (path.includes('/admin/useraccess')) return 'User Access'
+  if (path.includes('/admin/sms-campaigns')) return 'SMS Campaigns'
+  if (path.includes('/admin/sms-billing')) return 'SMS Billing'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
-  if (path.includes('/admin/masterlist')) return 'Master Products Management'
-  if (path.includes('/onlineorders/deliveries')) return 'Delivery Management'
-  if (path.includes('/onlineorders')) return 'Order Requests'
-  if (path.includes('/admin/order-requests')) return 'Order Requests'
-  if (path.includes('/admin/deliveries')) return 'Delivery Management'
+  if (path.includes('/admin/masterlist')) return 'Master Products'
+  if (path.includes('/admin/fulfillment/requests')) return 'Order Requests'
+  if (path.includes('/admin/fulfillment/deliveries')) return 'Deliveries'
+  if (path.includes('/admin/fulfillment/dispatch-companies')) return 'Dispatch Companies'
+  if (path.includes('/admin/fulfillment/pharmacy-ledger')) return 'Pharmacy Ledger'
+  if (path.includes('/admin/fulfillment')) return 'Fulfillment'
   if (path.includes('/admin/platform-settings')) return 'Platform Settings'
-  if (path.includes('/admin/orders')) return 'Orders Management'
-  if (path.includes('/admin/companies')) return 'Companies'
-  if (path.includes('/admin/products')) return 'Products'
-  if (path.includes('/admin/settings')) return 'Settings'
-  if (path.includes('/admin/logs')) return 'Activity Logs'
+  if (path.includes('/admin/store-settings')) return 'Store Settings'
   return 'Dashboard'
+})
+
+const isInFulfillment = computed(() => {
+  return route.path.includes('/admin/fulfillment')
 })
 
 // Methods

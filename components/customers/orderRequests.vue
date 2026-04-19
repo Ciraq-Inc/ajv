@@ -663,7 +663,7 @@
                         </div>
                     </div>
 
-                    <div v-if="canPayRequest(selectedRequest)" class="payment-action">
+                    <div v-if="canPayRequest(selectedRequest) && !selectedRequest.pending_decisions?.length" class="payment-action">
                         <div class="payment-method-grid">
                             <button
                                 @click="payForRequest(selectedRequest.id, 'wallet')"

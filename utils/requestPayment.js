@@ -1,6 +1,5 @@
 export const PAYABLE_REQUEST_STATUSES = new Set([
   'confirmed_in_pharm',
-  'awaiting_customer',
   'items_sourced',
   'confirmed'
 ])

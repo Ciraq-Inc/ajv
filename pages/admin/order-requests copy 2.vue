@@ -520,78 +520,36 @@
                                 <div style="display: flex; align-items: center; gap: 4px;">
                                   <input
                                     :value="masterSearchQuery"
-                                    @input="resolveSearchMode === 'master' ? onMasterSearchInput($event.target.value) : onPharmResolveInput($event.target.value)"
+                                    @input="onMasterSearchInput($event.target.value)"
                                     type="text"
                                     class="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold"
-                                    :placeholder="resolveSearchMode === 'master' ? 'Search master catalog...' : 'Search pharmacy stock...'"
+                                    placeholder="Search master catalog..."
                                     autofocus
                                   />
                                   <button @click="cancelResolving" class="shrink-0 text-gray-400 hover:text-gray-600 p-0.5" title="Cancel">
                                     <XMarkIcon class="w-3.5 h-3.5" />
                                   </button>
                                 </div>
-                                <!-- Mode toggle -->
-                                <div style="display: flex; gap: 4px;">
+                                <div v-if="masterSearchLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
+                                <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
                                   <button
+                                    v-for="mp in masterSearchResults"
+                                    :key="mp.id"
                                     type="button"
-                                    class="resolve-mode-tab"
-                                    :class="{ active: resolveSearchMode === 'master' }"
-                                    @click="setResolveMode('master')"
-                                  >Master catalog</button>
-                                  <button
-                                    type="button"
-                                    class="resolve-mode-tab"
-                                    :class="{ active: resolveSearchMode === 'pharmacy' }"
-                                    @click="setResolveMode('pharmacy')"
-                                  >Pharmacy stock</button>
+                                    class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
+                                    @click="resolveItemToMaster(item, mp)"
+                                  >
+                                    <span class="text-xs font-bold text-gray-900 block truncate">{{ mp.product_description }}</span>
+                                    <span class="text-[10px] text-gray-500">
+                                      <template v-if="mp.strength">{{ mp.strength }}</template>
+                                      <template v-if="mp.strength && mp.unit"> · </template>
+                                      <template v-if="mp.unit">{{ mp.unit }}</template>
+                                    </span>
+                                  </button>
                                 </div>
-                                <!-- Master catalog results -->
-                                <template v-if="resolveSearchMode === 'master'">
-                                  <div v-if="masterSearchLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
-                                  <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
-                                    <button
-                                      v-for="mp in masterSearchResults"
-                                      :key="mp.id"
-                                      type="button"
-                                      class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
-                                      @click="resolveItemToMaster(item, mp)"
-                                    >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ mp.product_description }}</span>
-                                      <span class="text-[10px] text-gray-500">
-                                        <template v-if="mp.strength">{{ mp.strength }}</template>
-                                        <template v-if="mp.strength && mp.unit"> · </template>
-                                        <template v-if="mp.unit">{{ mp.unit }}</template>
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div v-else-if="masterSearchQuery.length >= 2 && !masterSearchLoading" class="text-[10px] text-gray-400 px-1">
-                                    No master products found
-                                  </div>
-                                </template>
-                                <!-- Pharmacy stock results -->
-                                <template v-else>
-                                  <div v-if="pharmResolveLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
-                                  <div v-else-if="pharmResolveResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
-                                    <button
-                                      v-for="pp in pharmResolveResults"
-                                      :key="pp.id"
-                                      type="button"
-                                      class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
-                                      @click="resolveItemToPharmProduct(item, pp)"
-                                    >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ pp.product_description || pp.brand_name }}</span>
-                                      <span class="text-[10px] text-gray-500">
-                                        {{ pp.pharmacy_name }}
-                                        <template v-if="pp.distance_km !== null"> · {{ Number(pp.distance_km).toFixed(1) }} km</template>
-                                        <template v-if="pp.price > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
-                                        <template v-if="pp.available_quantity > 0"> · {{ pp.available_quantity }} in stock</template>
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div v-else-if="masterSearchQuery.length >= 2 && !pharmResolveLoading" class="text-[10px] text-gray-400 px-1">
-                                    No pharmacy stock found
-                                  </div>
-                                </template>
+                                <div v-else-if="masterSearchQuery.length >= 2 && !masterSearchLoading" class="text-[10px] text-gray-400 px-1">
+                                  No master products found
+                                </div>
                               </div>
                             </template>
                             <!-- Normal display -->
@@ -1155,62 +1113,17 @@
 
                             <!-- Uncovered items -->
                             <div v-if="pharmacy.uncovered && pharmacy.uncovered.length" class="coverage-items-section">
-                              <template
+                              <div
                                 v-for="ui in pharmacy.uncovered"
                                 :key="`uncovered-${pharmacy.pharmacy_id}-${ui.item_id}`"
+                                class="coverage-item-row coverage-item-row--uncovered"
                               >
-                                <div class="coverage-item-row coverage-item-row--uncovered">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-gray-300 shrink-0">
-                                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                                  </svg>
-                                  <span class="text-xs text-gray-400 font-medium truncate flex-1">{{ ui.product_name }}</span>
-                                  <button
-                                    v-if="coverageSubSearch.pharmacyId === pharmacy.pharmacy_id && coverageSubSearch.itemId === ui.item_id"
-                                    type="button"
-                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 hover:bg-gray-200 shrink-0 transition-colors"
-                                    @click="closeCoverageSubSearch"
-                                  >cancel</button>
-                                  <button
-                                    v-else
-                                    type="button"
-                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-600 hover:bg-violet-100 shrink-0 transition-colors"
-                                    @click="startCoverageSubSearch(pharmacy, ui)"
-                                  >find substitute</button>
-                                </div>
-                                <!-- Inline substitute search panel -->
-                                <div
-                                  v-if="coverageSubSearch.pharmacyId === pharmacy.pharmacy_id && coverageSubSearch.itemId === ui.item_id"
-                                  class="coverage-sub-search-panel"
-                                >
-                                  <input
-                                    :value="coverageSubSearch.query"
-                                    @input="onCoverageSubSearchInput($event.target.value)"
-                                    type="text"
-                                    class="w-full px-2 py-1 bg-white border border-violet-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 transition-all"
-                                    :placeholder="`Search ${pharmacy.pharmacy_name} catalog...`"
-                                    autofocus
-                                  />
-                                  <div v-if="coverageSubSearch.loading" class="text-[10px] text-gray-400 px-1 py-1">Searching...</div>
-                                  <div v-else-if="coverageSubSearch.results.length" class="coverage-sub-search-results">
-                                    <button
-                                      v-for="sp in coverageSubSearch.results"
-                                      :key="sp.id"
-                                      type="button"
-                                      class="coverage-sub-search-result"
-                                      @click="selectCoverageSubstitute(pharmacy, ui, sp)"
-                                    >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ sp.product_description || sp.brand_name }}</span>
-                                      <span class="text-[10px] text-gray-500">
-                                        GH₵{{ Number(sp.price || 0).toFixed(2) }} · {{ sp.available_quantity || 0 }} in stock
-                                        <template v-if="sp.distance_km !== null"> · {{ Number(sp.distance_km).toFixed(2) }} km</template>
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div v-else-if="coverageSubSearch.query.length >= 2 && !coverageSubSearch.loading" class="text-[10px] text-gray-400 px-1 py-1">
-                                    No products found in this pharmacy's catalog.
-                                  </div>
-                                </div>
-                              </template>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-gray-300 shrink-0">
+                                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                </svg>
+                                <span class="text-xs text-gray-400 font-medium truncate flex-1">{{ ui.product_name }}</span>
+                                <span class="text-[9px] text-gray-300 font-bold shrink-0">not found</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1652,15 +1565,6 @@ const masterSearchQuery = ref('')
 const resolvingItemId = ref(null)
 let masterSearchDebounce = null
 const showStatusOverride = ref(false)
-const resolveSearchMode = ref('master') // 'master' | 'pharmacy'
-const pharmResolveResults = ref([])
-const pharmResolveLoading = ref(false)
-let pharmResolveDebounce = null
-
-// --- Coverage substitute search state ---
-const coverageSubSearch = ref({ pharmacyId: null, itemId: null, query: '', results: [], loading: false })
-let coverageSubDebounce = null
-// --- End coverage substitute search state ---
 
 const resolvedItemCount = computed(() => {
   const items = requestItems.value || []
@@ -2943,42 +2847,10 @@ const onMasterSearchInput = (query) => {
   }, 300)
 }
 
-const searchPharmResolve = async (query) => {
-  const q = String(query || '').trim()
-  if (q.length < 2) { pharmResolveResults.value = []; return }
-  pharmResolveLoading.value = true
-  try {
-    pharmResolveResults.value = await searchPharmacyProductsForResolve(q)
-  } catch {
-    pharmResolveResults.value = []
-  } finally {
-    pharmResolveLoading.value = false
-  }
-}
-
-const onPharmResolveInput = (query) => {
-  masterSearchQuery.value = query
-  clearTimeout(pharmResolveDebounce)
-  if (String(query || '').trim().length < 2) { pharmResolveResults.value = []; return }
-  pharmResolveDebounce = setTimeout(() => searchPharmResolve(query), 300)
-}
-
-const setResolveMode = (mode) => {
-  resolveSearchMode.value = mode
-  masterSearchResults.value = []
-  pharmResolveResults.value = []
-  if (masterSearchQuery.value.length >= 2) {
-    if (mode === 'master') searchMasterProductsForResolve(masterSearchQuery.value)
-    else searchPharmResolve(masterSearchQuery.value)
-  }
-}
-
 const startResolvingItem = (item) => {
   resolvingItemId.value = item.id
   masterSearchQuery.value = item.product_name || ''
   masterSearchResults.value = []
-  pharmResolveResults.value = []
-  resolveSearchMode.value = 'master'
   // Pre-search with the existing product name
   searchMasterProductsForResolve(item.product_name)
 }
@@ -2987,103 +2859,7 @@ const cancelResolving = () => {
   resolvingItemId.value = null
   masterSearchQuery.value = ''
   masterSearchResults.value = []
-  pharmResolveResults.value = []
-  resolveSearchMode.value = 'master'
 }
-
-// --- Pharmacy stock resolution (no master catalog needed) ---
-const resolveItemToPharmProduct = async (item, pharmProduct) => {
-  if (!item?.id || !pharmProduct?.id) return
-  try {
-    const payload = { product_name: pharmProduct.product_description || pharmProduct.brand_name || pharmProduct.product_name }
-    if (pharmProduct.uniqid) payload.master_product_id = pharmProduct.uniqid
-    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, payload)
-    if (selectedRequest.value?.items) {
-      const localItem = selectedRequest.value.items.find(i => i.id === item.id)
-      if (localItem) {
-        localItem.product_name = payload.product_name
-        if (payload.master_product_id) localItem.master_product_id = payload.master_product_id
-      }
-    }
-    resolvingItemId.value = null
-    masterSearchQuery.value = ''
-    masterSearchResults.value = []
-    fetchPharmacyCoverage()
-  } catch (e) {
-    showMessage('Failed to resolve item to pharmacy product', 'error')
-  }
-}
-
-// --- Coverage substitute search (per-pharmacy catalog search for uncovered items) ---
-const searchPharmacyProductsForResolve = async (query, companyId = null) => {
-  const trimmed = String(query || '').trim()
-  if (trimmed.length < 2) return []
-  const coords = getRequestSearchCoordinates()
-  const params = new URLSearchParams()
-  params.append('q', trimmed)
-  params.append('limit', '10')
-  if (coords.hasCoords) {
-    params.append('lat', String(coords.lat))
-    params.append('lng', String(coords.lng))
-  }
-  if (companyId) params.append('company_id', String(companyId))
-  const res = await apiCall('GET', `/api/order-requests/admin/pharmacy-products/search?${params.toString()}`)
-  return Array.isArray(res?.data?.products) ? res.data.products : []
-}
-
-const startCoverageSubSearch = (pharmacy, uncoveredItem) => {
-  coverageSubSearch.value = {
-    pharmacyId: pharmacy.pharmacy_id,
-    companyId: pharmacy.company_id || pharmacy.pharmacy_id,
-    itemId: uncoveredItem.item_id,
-    query: uncoveredItem.product_name || '',
-    results: [],
-    loading: false
-  }
-  // Pre-search with product name
-  if (uncoveredItem.product_name) searchCoverageSubstitute(uncoveredItem.product_name, pharmacy)
-}
-
-const closeCoverageSubSearch = () => {
-  clearTimeout(coverageSubDebounce)
-  coverageSubSearch.value = { pharmacyId: null, companyId: null, itemId: null, query: '', results: [], loading: false }
-}
-
-const searchCoverageSubstitute = async (query, pharmacy = null) => {
-  const companyId = pharmacy?.company_id || pharmacy?.pharmacy_id || coverageSubSearch.value.companyId
-  coverageSubSearch.value.loading = true
-  try {
-    coverageSubSearch.value.results = await searchPharmacyProductsForResolve(query, companyId)
-  } catch {
-    coverageSubSearch.value.results = []
-  } finally {
-    coverageSubSearch.value.loading = false
-  }
-}
-
-const onCoverageSubSearchInput = (query) => {
-  coverageSubSearch.value.query = query
-  clearTimeout(coverageSubDebounce)
-  coverageSubDebounce = setTimeout(() => searchCoverageSubstitute(query), 300)
-}
-
-const selectCoverageSubstitute = (pharmacy, uncoveredItem, selectedProduct) => {
-  // Move uncovered item to covered with Fuzzy badge
-  const covered = pharmacy.covered || (pharmacy.covered = [])
-  covered.push({
-    item_id: uncoveredItem.item_id,
-    product_name: uncoveredItem.product_name,
-    fuzzy_match: {
-      matched_product_name: selectedProduct.product_description || selectedProduct.brand_name || selectedProduct.product_name,
-      price: selectedProduct.price || 0,
-      stock: selectedProduct.available_quantity || 0
-    }
-  })
-  pharmacy.uncovered = (pharmacy.uncovered || []).filter(u => u.item_id !== uncoveredItem.item_id)
-  pharmacy.coverage_score = (pharmacy.coverage_score || 0) + 1
-  closeCoverageSubSearch()
-}
-// --- End coverage substitute search ---
 
 const resolveItemToMaster = async (item, masterProduct) => {
   if (!item?.id || !masterProduct?.id) return
@@ -8416,72 +8192,6 @@ definePageMeta({
 .coverage-match-badge--fuzzy {
   background: #e0f2fe;
   color: #0369a1;
-}
-
-.coverage-sub-search-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  background: #faf5ff;
-  border: 1px solid #ddd6fe;
-  border-radius: 8px;
-  margin: 2px 0 4px;
-}
-
-.coverage-sub-search-results {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  max-height: 180px;
-  overflow-y: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #fff;
-}
-
-.coverage-sub-search-result {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  text-align: left;
-  padding: 6px 10px;
-  border: 0;
-  border-bottom: 1px solid #f3f4f6;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.coverage-sub-search-result:last-child {
-  border-bottom: 0;
-}
-
-.coverage-sub-search-result:hover {
-  background: #f5f3ff;
-}
-
-.resolve-mode-tab {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 5px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.resolve-mode-tab:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.resolve-mode-tab.active {
-  background: #4F217A;
-  border-color: #4F217A;
-  color: #fff;
 }
 
 /* ── Pipeline status bar ──────────────────────────────────────────────────── */

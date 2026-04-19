@@ -199,7 +199,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 
-definePageMeta({ middleware: ['admin-auth'], layout: 'onlineorders' })
+definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
 
 const adminStore = useAdminStore()
 const config = useRuntimeConfig()
@@ -299,7 +299,7 @@ const formatStatus = (value) => String(value || '').replace(/_/g, ' ')
 const sanitizeStatus = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '-')
 
 const goBack = () => {
-  router.push('/onlineorders')
+  router.push('/admin/fulfillment/requests')
 }
 
 const applyQuickRange = (range) => {
