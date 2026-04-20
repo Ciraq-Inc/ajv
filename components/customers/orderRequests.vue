@@ -301,8 +301,7 @@
                         <div v-else class="rounded-xl p-4 text-sm"
                             :class="locationIssue ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-blue-50/50 text-blue-800 border border-blue-100'">
                             <p class="font-medium text-sm leading-relaxed mb-3">
-                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster
-                                delivery.' }}
+                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery.' }}
                             </p>
                             <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue"
                                 class="flex flex-wrap gap-2">
@@ -412,10 +411,7 @@
                             <template v-else>Send Request ›</template>
                         </button>
                         <p v-if="!canSubmit && !isSubmitting" class="text-[11px] text-zinc-400 text-center mt-2">
-                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' :
-                                !fulfillmentType ?
-                                    'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add
-                            delivery address' : '' }}
+                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add delivery address' : '' }}
                         </p>
                     </div>
                 </div><!-- /right sidebar -->
@@ -665,9 +661,7 @@
                             <button type="button" class="nav-submit feedback-submit-btn" :disabled="savingFeedback"
                                 @click="submitFeedback">
                                 <ArrowPathIcon v-if="savingFeedback" class="nav-svg spin" />
-                                <span>{{ savingFeedback ? 'Saving...' : (selectedRequest.feedback ? 'Update Feedback' :
-                                    'Submit
-                                    Feedback') }}</span>
+                                <span>{{ savingFeedback ? 'Saving...' : (selectedRequest.feedback ? 'Update Feedback' : 'Submit Feedback') }}</span>
                             </button>
                         </div>
                     </div>
@@ -765,8 +759,7 @@
                                     class="pay-svg spin" />
                                 <i v-else class="ri-bank-card-line pay-svg"></i>
                                 <span>{{ payingRequest && payingMethod === 'paystack' ? 'Redirecting to Paystack...' :
-                                    'Pay with
-                                    Paystack' }}</span>
+                                    'Pay with Paystack' }}</span>
                             </button>
                         </div>
                         <p class="payment-note">Choose wallet or Paystack. Direct Paystack payments are also recorded in
@@ -851,8 +844,7 @@
                     <div class="priority-points">
                         <div class="priority-point">
                             <strong>✅ If you place an order</strong>
-                            <span>The GHS {{ requestFee.toFixed(2) }} is taken off your final bill — so you don't pay it
-                                twice.</span>
+                            <span>The GHS {{ requestFee.toFixed(2) }} is taken off your final bill</span>
                         </div>
                         <div class="priority-point">
                             <strong>❌ If you don't place an order</strong>
