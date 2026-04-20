@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="order-requests-page">
     <!-- Compact header bar: title + stats + actions in one row -->
     <div v-if="!selectedRequest" style="display: flex; align-items: center; gap: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 1rem; flex-wrap: wrap;">
@@ -543,7 +543,7 @@
                                       <span class="text-xs font-bold text-gray-900 block truncate">{{ mp.product_description }}</span>
                                       <span class="text-[10px] text-gray-500">
                                         <template v-if="mp.strength">{{ mp.strength }}</template>
-                                        <template v-if="mp.strength && mp.unit"> Â· </template>
+                                        <template v-if="mp.strength && mp.unit"> · </template>
                                         <template v-if="mp.unit">{{ mp.unit }}</template>
                                       </span>
                                     </button>
@@ -566,9 +566,9 @@
                                       <span class="text-xs font-bold text-gray-900 block truncate">{{ pp.product_description || pp.brand_name }}</span>
                                       <span class="text-[10px] text-gray-500">
                                         {{ pp.pharmacy_name }}
-                                        <template v-if="pp.distance_km !== null"> Â· {{ Number(pp.distance_km).toFixed(1) }} km</template>
-                                        <template v-if="pp.price > 0"> Â· GHâ‚µ{{ Number(pp.price).toFixed(2) }}</template>
-                                        <template v-if="pp.available_quantity > 0"> Â· {{ pp.available_quantity }} in stock</template>
+                                        <template v-if="pp.distance_km !== null"> · {{ Number(pp.distance_km).toFixed(1) }} km</template>
+                                        <template v-if="pp.price > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
+                                        <template v-if="pp.available_quantity > 0"> · {{ pp.available_quantity }} in stock</template>
                                       </span>
                                     </button>
                                   </div>
@@ -786,7 +786,7 @@
                               </div>
                               <div class="flex items-center gap-2 shrink-0">
                                 <a
-                                  v-if="pharmacy.phone"
+                                  v-if="getPharmacyWhatsAppUrl(pharmacy.phone)"
                                   :href="getPharmacyWhatsAppUrl(pharmacy.phone)"
                                   target="_blank"
                                   rel="noopener"
@@ -2702,17 +2702,33 @@ const searchPharmacyProductsForResolve = async (query, companyId = null) => {
   return Array.isArray(res?.data?.products) ? res.data.products : []
 }
 
+const simplifyCoverageSearchQuery = (productName) => {
+  if (!productName) return ''
+  return String(productName)
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\d+\s*(ml|mg|mcg|iu|g|kg|l|mm|cm)\b/gi, ' ')
+    .replace(/[^a-zA-Z\s]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length >= 3)
+    .slice(0, 3)
+    .join(' ')
+    .trim()
+}
+
 const startCoverageSubSearch = (pharmacy, uncoveredItem) => {
+  const simplified = simplifyCoverageSearchQuery(uncoveredItem.product_name)
   coverageSubSearch.value = {
     pharmacyId: pharmacy.pharmacy_id,
     companyId: pharmacy.company_id || pharmacy.pharmacy_id,
     itemId: uncoveredItem.item_id,
-    query: uncoveredItem.product_name || '',
+    query: simplified || uncoveredItem.product_name || '',
     results: [],
     loading: false
   }
-  // Pre-search with product name
-  if (uncoveredItem.product_name) searchCoverageSubstitute(uncoveredItem.product_name, pharmacy)
+  // Pre-search with simplified product name
+  const searchTerm = simplified || uncoveredItem.product_name
+  if (searchTerm) searchCoverageSubstitute(searchTerm, pharmacy)
 }
 
 const closeCoverageSubSearch = () => {
@@ -2738,12 +2754,13 @@ const onCoverageSubSearchInput = (query) => {
   coverageSubDebounce = setTimeout(() => searchCoverageSubstitute(query), 300)
 }
 
-const selectCoverageSubstitute = (pharmacy, uncoveredItem, selectedProduct) => {
-  // Move uncovered item to covered with Fuzzy badge
+const selectCoverageSubstitute = async (pharmacy, uncoveredItem, selectedProduct) => {
+  // Move uncovered item to covered with Fuzzy badge (local state)
   const covered = pharmacy.covered || (pharmacy.covered = [])
   covered.push({
     item_id: uncoveredItem.item_id,
     product_name: uncoveredItem.product_name,
+    matched_product_id: selectedProduct.id || null,
     fuzzy_match: {
       matched_product_name: selectedProduct.product_description || selectedProduct.brand_name || selectedProduct.product_name,
       price: selectedProduct.price || 0,
@@ -2753,6 +2770,24 @@ const selectCoverageSubstitute = (pharmacy, uncoveredItem, selectedProduct) => {
   pharmacy.uncovered = (pharmacy.uncovered || []).filter(u => u.item_id !== uncoveredItem.item_id)
   pharmacy.coverage_score = (pharmacy.coverage_score || 0) + 1
   closeCoverageSubSearch()
+
+  // Persist selection via route-pharmacy API
+  const reqId = selectedRequest.value?.id
+  if (reqId && pharmacy.pharmacy_id && uncoveredItem.item_id) {
+    try {
+      await apiCall('POST', `/api/order-requests/admin/${reqId}/route-pharmacy`, {
+        pharmacy_id: pharmacy.pharmacy_id,
+        items: [{
+          item_id: uncoveredItem.item_id,
+          matched_product_id: selectedProduct.id || null,
+          distance_km: pharmacy.distance_km || null
+        }]
+      })
+      await refreshSelectedRequestDetails()
+    } catch (e) {
+      showMessage('Substitute selected locally but failed to save to server', 'error')
+    }
+  }
 }
 // --- End coverage substitute search ---
 
@@ -2814,6 +2849,12 @@ const routePharmacyAction = async (pharmacy) => {
     distance_km: pharmacy.distance_km
   }))
   if (coveredItems.length === 0) return
+
+  const confirmed = window.confirm(
+    `Route ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}?\n\nThis will update the source pharmacy for these items.`
+  )
+  if (!confirmed) return
+
   try {
     await apiCall('POST', `/api/order-requests/admin/${reqId}/route-pharmacy`, {
       pharmacy_id: pharmacy.pharmacy_id,
