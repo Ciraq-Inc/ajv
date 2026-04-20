@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="order-requests-page">
     <!-- Compact header bar: title + stats + actions in one row -->
     <div v-if="!selectedRequest" style="display: flex; align-items: center; gap: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 1rem; flex-wrap: wrap;">
@@ -107,21 +107,21 @@
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
             <th @click="toggleSort('request_number')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
-              Request # <span style="opacity: 0.5;">{{ sortKey === 'request_number' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+              Request # <span style="opacity: 0.5;">{{ sortKey === 'request_number' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
             </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Customer</th>
             <th @click="toggleSort('items')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: center; cursor: pointer; user-select: none; white-space: nowrap;">
-              Items <span style="opacity: 0.5;">{{ sortKey === 'items' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+              Items <span style="opacity: 0.5;">{{ sortKey === 'items' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
             </th>
             <th @click="toggleSort('status')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
-              Status <span style="opacity: 0.5;">{{ sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+              Status <span style="opacity: 0.5;">{{ sortKey === 'status' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
             </th>
             <th @click="toggleSort('cost')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right; cursor: pointer; user-select: none; white-space: nowrap;">
-              Cost <span style="opacity: 0.5;">{{ sortKey === 'cost' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+              Cost <span style="opacity: 0.5;">{{ sortKey === 'cost' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
             </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Fulfillment</th>
             <th @click="toggleSort('updated_at')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
-              Updated <span style="opacity: 0.5;">{{ sortKey === 'updated_at' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+              Updated <span style="opacity: 0.5;">{{ sortKey === 'updated_at' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
             </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right;">Actions</th>
           </tr>
@@ -179,7 +179,7 @@
               <template v-if="getRequestComposedCost(req) !== null">
                 GHS {{ getRequestComposedCost(req).toFixed(2) }}
               </template>
-              <span v-else style="color: #9ca3af; font-weight: 400;">—</span>
+              <span v-else style="color: #9ca3af; font-weight: 400;">â€”</span>
             </td>
             <td style="padding: 0.875rem 1.25rem;">
               <span v-if="req.fulfillment_type" class="fulfillment-badge" :class="req.fulfillment_type" 
@@ -431,9 +431,7 @@
               <div v-if="!requestItems.length && !prescriptionAttachmentUrls.length" class="items-empty-state">
                 <strong>No items added yet.</strong>
                 <p>
-                  {{ hasPrescriptionAttachments
-                    ? 'Add the interpreted items here so the team can begin composing the request.'
-                    : 'Add the first item here to begin composing this request.' }}
+                  Add the first item here to begin composing this request.
                 </p>
               </div>
               <div v-else class="workspace-board-grid">
@@ -442,7 +440,7 @@
                       <div class="request-items-pane-head prescription-reference-head">
                         <div>
                           <h5>Prescription</h5>
-                          <p>Pick an image, search the medicine, then save the pharmacy choice on the right.</p>
+                          <p>Use each image as reference, then type the medicine names into the Add form below.</p>
                         </div>
                         <span class="request-items-pane-count">{{ prescriptionAttachmentUrls.length }}</span>
                       </div>
@@ -480,7 +478,6 @@
                       </div>
                     </section>
 
-                    <template v-if="!hasPrescriptionAttachments">
                       <div class="request-items-pane-head">
                         <div>
                           <h5>Request Items</h5>
@@ -546,7 +543,7 @@
                                       <span class="text-xs font-bold text-gray-900 block truncate">{{ mp.product_description }}</span>
                                       <span class="text-[10px] text-gray-500">
                                         <template v-if="mp.strength">{{ mp.strength }}</template>
-                                        <template v-if="mp.strength && mp.unit"> · </template>
+                                        <template v-if="mp.strength && mp.unit"> Â· </template>
                                         <template v-if="mp.unit">{{ mp.unit }}</template>
                                       </span>
                                     </button>
@@ -569,9 +566,9 @@
                                       <span class="text-xs font-bold text-gray-900 block truncate">{{ pp.product_description || pp.brand_name }}</span>
                                       <span class="text-[10px] text-gray-500">
                                         {{ pp.pharmacy_name }}
-                                        <template v-if="pp.distance_km !== null"> · {{ Number(pp.distance_km).toFixed(1) }} km</template>
-                                        <template v-if="pp.price > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
-                                        <template v-if="pp.available_quantity > 0"> · {{ pp.available_quantity }} in stock</template>
+                                        <template v-if="pp.distance_km !== null"> Â· {{ Number(pp.distance_km).toFixed(1) }} km</template>
+                                        <template v-if="pp.price > 0"> Â· GHâ‚µ{{ Number(pp.price).toFixed(2) }}</template>
+                                        <template v-if="pp.available_quantity > 0"> Â· {{ pp.available_quantity }} in stock</template>
                                       </span>
                                     </button>
                                   </div>
@@ -589,7 +586,7 @@
                                 <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
                                 <template v-if="item.master_product_id">
                                   <span class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 cursor-pointer" @click.stop="startResolvingItem(item)" title="Change master product">
-                                    ✓ resolved
+                                    âœ“ resolved
                                   </span>
                                 </template>
                                 <template v-else>
@@ -604,7 +601,7 @@
                                 </template>
                               </div>
                               <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
-                                → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
+                                â†’ {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
                               </div>
                             </template>
                           </div>
@@ -658,285 +655,9 @@
                           </div>
                         </div>
                       </div>
-                    </template>
                   </aside>
 
-                  <template v-if="hasPrescriptionAttachments">
-                    <section class="workspace-composer-card workspace-composer-card--prescription">
-                      <div class="composer-meta-strip">
-                        <div class="composer-meta-notes">
-                          <div class="composer-meta-label">
-                            <div class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
-                            <span>Admin Notes</span>
-                            <button @click="saveNotes" class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors ml-auto" :disabled="loading">Save</button>
-                          </div>
-                          <textarea v-model="adminNotes" class="composer-meta-textarea" placeholder="Internal notes..."></textarea>
-                        </div>
-                        <div class="composer-meta-queue">
-                          <div class="composer-meta-label">
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></div>
-                            <span>Queue</span>
-                            <div class="flex items-center gap-1.5 ml-auto">
-                              <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-bold">{{ composedCoverageSummary.total }}</span>
-                              <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.covered }} done</span>
-                              <span class="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.uncovered }} left</span>
-                            </div>
-                          </div>
-                          <div class="composer-meta-queue-actions">
-                            <div v-if="autoAdvanceSuggestion" class="status-nudge-banner">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 shrink-0 text-amber-600">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
-                              </svg>
-                              <span class="flex-1 text-[10px] text-amber-800 font-semibold">{{ autoAdvanceSuggestion.message }}</span>
-                              <button @click="applyNextStep(autoAdvanceSuggestion.status)" class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="loading">{{ autoAdvanceSuggestion.label }}</button>
-                            </div>
-                            <div class="status-action-row">
-                              <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-                              <button v-if="nextStepAction" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} →</button>
-                              <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">Override ▾</button>
-                            </div>
-                            <div v-if="showStatusOverride" class="status-override-row">
-                              <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
-                                <option value="">Change status...</option>
-                                <option value="pending">Pending</option>
-                                <option value="composed">Composed</option>
-                                <option value="confirming_with_pharm">Confirming With Pharm</option>
-                                <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                                <option value="paid">Paid</option>
-                                <option value="ready_for_pickup">Ready For Pickup</option>
-                                <option value="picked_up">Picked Up</option>
-                                <option value="out_for_delivery">Out For Delivery</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="returned">Returned</option>
-                              </select>
-                              <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Apply Override</button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="workspace-composer-divider"></div>
-
-                      <div class="workspace-panel-head">
-                        <div>
-                          <h5>Pharmacy Search</h5>
-                          <p class="workspace-panel-subcopy">
-                            Searching from prescription image {{ activePrescriptionImageIndex + 1 }}.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div class="simple-search-anchor">
-                        <div class="simple-search-block">
-                          <label class="simple-field-label">Search pharmacy inventory</label>
-                          <input
-                            v-model="adminNewItem.product_search"
-                            type="text"
-                            class="form-control composer-search-input"
-                            :placeholder="`Search item from image ${activePrescriptionImageIndex + 1}`"
-                            @input="onAdminProductInput(adminNewItem)"
-                          />
-                        </div>
-
-                        <div v-if="adminNewItem.product_search_loading || String(adminNewItem.product_search || '').trim().length >= 2" class="simple-search-results">
-                          <div class="simple-search-results-head">
-                            <span>Choice</span>
-                            <span>Product</span>
-                            <span>Pharmacy</span>
-                            <span>Distance</span>
-                            <span>Stock</span>
-                            <span>Price</span>
-                          </div>
-                          <div v-if="adminNewItem.product_search_loading" class="dropdown-empty">
-                            Searching...
-                          </div>
-                          <template v-else>
-                            <button
-                              v-for="(result, resultIndex) in adminNewItem.productSearchResults"
-                              :key="`prescription-image-${activePrescriptionImageIndex}-result-${resultIndex}`"
-                              type="button"
-                              class="simple-search-result-row"
-                              @click="selectAdminProduct(adminNewItem, result)"
-                            >
-                              <span class="search-choice-index">{{ resultIndex + 1 }}</span>
-                              <span>{{ getProductSearchLabel(result) }}</span>
-                              <span>{{ result.company_name || '-' }}</span>
-                              <span>{{ Number.isFinite(Number(result.distance_km)) ? formatDistance(result.distance_km) : '-' }}</span>
-                              <span>{{ Number(result.available_quantity || 0) > 0 ? Number(result.available_quantity) : '-' }}</span>
-                              <span>{{ Number(result.price || 0) > 0 ? `GHS ${Number(result.price).toFixed(2)}` : '-' }}</span>
-                            </button>
-                            <div v-if="adminNewItem.productSearchResults.length === 0" class="dropdown-empty workspace-search-empty">
-                              No nearby matches found.
-                            </div>
-                          </template>
-                        </div>
-                      </div>
-
-                      <div class="workspace-composer-divider"></div>
-
-                      <div class="simple-composer-head">
-                        <div>
-                          <span class="pane-eyebrow">Admin selections</span>
-                          <h5>Image {{ activePrescriptionImageIndex + 1 }} choices</h5>
-                        </div>
-                      </div>
-
-                      <section class="saved-selection-list-shell">
-                        <div class="saved-selection-list-head">
-                          <div>
-                            <span class="pane-eyebrow">Saved Selections</span>
-                            <p>Linked pharmacy products for this prescription request.</p>
-                          </div>
-                          <span class="request-items-pane-count">{{ persistedSelectionItems.length }}</span>
-                        </div>
-
-                        <div v-if="persistedSelectionItems.length" class="saved-selection-list">
-                          <div
-                            v-for="(item, savedIndex) in persistedSelectionItems"
-                            :key="`prescription-saved-selection-${item.id}`"
-                            class="request-item-row saved-selection-row request-item-row--deletable"
-                          >
-                            <span class="request-item-row-index">{{ savedIndex + 1 }}</span>
-                            <div class="request-item-row-main">
-                              <strong>{{ getPersistedItemSourceSummary(item)?.productName || '' }}</strong>
-                              <div class="request-item-row-meta">
-                                <span>{{ getPersistedItemSourceSummary(item)?.name || 'Selected pharmacy' }}</span>
-                                <span>Qty {{ getRequestedQuantity(item) }}</span>
-                                <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
-                                <span v-if="getPersistedItemSourceSummary(item)?.distance">{{ getPersistedItemSourceSummary(item).distance }}</span>
-                                <span
-                                  v-if="getPersistedItemSourceSummary(item)?.price"
-                                  class="selection-preview-chip selection-preview-chip--price"
-                                >
-                                  GHS {{ getPersistedItemSourceSummary(item).price }}
-                                </span>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              class="selection-preview-close saved-selection-row-clear"
-                              @click.stop="clearSavedSelection(item)"
-                              :disabled="loading"
-                              title="Clear saved selection"
-                              aria-label="Clear saved selection"
-                            >
-                              <XMarkIcon class="icon-xs" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div v-else class="saved-selection-empty">
-                          No saved pharmacy selections yet. Search from the active prescription image, pick the best pharmacy option, then save it here.
-                        </div>
-
-                        <div v-if="persistedSelectionItems.length" class="saved-selection-total">
-                          <span>Total of listed items</span>
-                          <strong>{{ formatCurrency(savedSelectionsTotal) }}</strong>
-                        </div>
-                      </section>
-
-                      <div v-if="adminNewItem.selected_source_summary" class="selection-compare-grid">
-                        <article class="selection-compare-card selection-compare-card--draft">
-                          <div class="selection-card-topline">
-                            <span class="selection-card-label">Choice to save</span>
-                            <div class="selection-card-topline-actions">
-                              <span class="selection-link-badge selection-link-badge--draft">Pending</span>
-                              <button
-                                type="button"
-                                class="selection-preview-close"
-                                @click="clearAdminSelectedProduct"
-                                :disabled="loading"
-                                title="Clear selected product"
-                                aria-label="Clear selected product"
-                              >
-                                <XMarkIcon class="icon-xs" />
-                              </button>
-                            </div>
-                          </div>
-                          <div class="selection-card-product-line">
-                            <strong>{{ adminNewItem.selected_source_summary.productName || 'Pending pharmacy product' }}</strong>
-                            <span class="selection-card-pharmacy">{{ adminNewItem.selected_source_summary.name || 'Selected pharmacy' }}</span>
-                          </div>
-                          <div class="selection-preview-chip-row">
-                            <span class="selection-preview-chip">Image {{ activePrescriptionImageIndex + 1 }}</span>
-                            <span v-if="adminNewItem.selected_source_summary.distance" class="selection-preview-chip">
-                              {{ adminNewItem.selected_source_summary.distance }}
-                            </span>
-                          </div>
-                          <div class="selection-card-inline-editor">
-                            <div class="selection-mini-grid selection-mini-grid--compact">
-                              <label class="selection-mini-field">
-                                <span>Unit</span>
-                                <select
-                                  v-model="adminNewItem.requested_unit"
-                                  class="form-control selection-mini-input"
-                                >
-                                  <option value="">Unit</option>
-                                  <option v-for="option in medicineUnitOptions" :key="`prescription-unit-${option}`" :value="option">
-                                    {{ option }}
-                                  </option>
-                                </select>
-                              </label>
-                              <label class="selection-mini-field">
-                                <span>Qty</span>
-                                <div class="items-qty-stepper items-qty-stepper--tight">
-                                  <button
-                                    type="button"
-                                    class="items-qty-btn"
-                                    @click="decrementAdminNewItemQty"
-                                    :disabled="Number(adminNewItem.quantity || 1) <= 1"
-                                  >
-                                    -
-                                  </button>
-                                  <input
-                                    v-model.number="adminNewItem.quantity"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    class="form-control selection-mini-input selection-mini-input--qty"
-                                  />
-                                  <button
-                                    type="button"
-                                    class="items-qty-btn"
-                                    @click="incrementAdminNewItemQty"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              </label>
-                            </div>
-                            <div class="selection-card-footer">
-                              <label class="selection-mini-field selection-mini-field--price">
-                                <span>Customer Price</span>
-                                <div class="selection-mini-price">
-                                  <span>GHS</span>
-                                  <input
-                                    v-model.number="adminNewItem.selected_source_price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    class="form-control selection-mini-input selection-mini-input--price"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                              </label>
-                              <button
-                                type="button"
-                                class="selection-card-save"
-                                :disabled="loading || !canSavePrescriptionAdminSelection"
-                                @click="saveAdminNewItem"
-                              >
-                                Save choice
-                              </button>
-                            </div>
-                          </div>
-                        </article>
-                      </div>
-                    </section>
-                  </template>
-
-                  <template v-else-if="requestItems.length">
+                  <template v-if="requestItems.length">
                     <section class="workspace-composer-card">
                       <div class="composer-meta-strip">
                         <div class="composer-meta-notes">
@@ -967,8 +688,8 @@
                             </div>
                             <div class="status-action-row">
                               <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-                              <button v-if="nextStepAction" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} →</button>
-                              <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">Override ▾</button>
+                              <button v-if="nextStepAction" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} â†’</button>
+                              <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">Override â–¾</button>
                             </div>
                             <div v-if="showStatusOverride" class="status-override-row">
                               <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
@@ -1188,8 +909,8 @@
                                     >
                                       <span class="text-xs font-bold text-gray-900 block truncate">{{ sp.product_description || sp.brand_name }}</span>
                                       <span class="text-[10px] text-gray-500">
-                                        GH₵{{ Number(sp.price || 0).toFixed(2) }} · {{ sp.available_quantity || 0 }} in stock
-                                        <template v-if="sp.distance_km !== null"> · {{ Number(sp.distance_km).toFixed(2) }} km</template>
+                                        GHâ‚µ{{ Number(sp.price || 0).toFixed(2) }} Â· {{ sp.available_quantity || 0 }} in stock
+                                        <template v-if="sp.distance_km !== null"> Â· {{ Number(sp.distance_km).toFixed(2) }} km</template>
                                       </span>
                                     </button>
                                   </div>
@@ -1205,14 +926,6 @@
 
                     </section>
                   </template>
-                  <div v-else-if="prescriptionAttachmentUrls.length" class="simple-composer-empty workspace-board-empty">
-                    <span class="pane-eyebrow">Composition Workspace 
-                                          <span class="items-count-badge">{{ getCustomerRequestItemCount(selectedRequest) }} item{{ getCustomerRequestItemCount(selectedRequest) !== 1 ? 's' : '' }}</span>
-
-                    </span>
-                    <h5>Add the first request item</h5>
-                    <p>Use the quick add bar above to create the first line, then the full workspace will open here for the rest of the prescription.</p>
-                  </div>
                   <div v-else class="simple-composer-empty workspace-board-empty">
                     <span class="pane-eyebrow">Composition Workspace</span>
                     <h5>Add items to get started</h5>
@@ -1252,7 +965,7 @@
                     <span class="alternative-preview-text">
                       {{ alternativeModal.item.product_name }}
                       <template v-if="Number(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price || 0) > 0">
-                        • {{ formatCurrency(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price) }}
+                        â€¢ {{ formatCurrency(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price) }}
                       </template>
                     </span>
                   </div>
@@ -1261,7 +974,7 @@
                     <span class="alternative-preview-text">
                       {{ alternativePreviewName }}
                       <template v-if="alternativeModal.price !== '' && alternativeModal.price !== null && alternativeModal.price !== undefined">
-                        • {{ formatCurrency(alternativeModal.price) }}
+                        â€¢ {{ formatCurrency(alternativeModal.price) }}
                       </template>
                     </span>
                   </div>
@@ -2111,7 +1824,7 @@ const selectSourcingOption = (item, option, options = {}) => {
   if (isChangingSource) {
     showMessage(`Changed source to ${option.name} for ${name}`, 'success')
   } else {
-    showMessage(`Selected ${option.name} for ${name} — click Save Allocation to confirm`, 'success')
+    showMessage(`Selected ${option.name} for ${name} â€” click Save Allocation to confirm`, 'success')
   }
 }
 
@@ -2188,7 +1901,7 @@ const activePrescriptionImageUrl = computed(() => {
 })
 
 const showTopQuickAdd = computed(() => {
-  return !hasPrescriptionAttachments.value
+  return true
 })
 
 const itemsIntakeSummary = computed(() => {
@@ -2211,15 +1924,7 @@ const canResetAdminNewItem = computed(() => {
 })
 
 const canSavePrescriptionAdminSelection = computed(() => {
-  if (!hasPrescriptionAttachments.value) return canAddAdminItem.value
-  const price = Number(adminNewItem.selected_source_price || 0)
-  return Boolean(
-    canAddAdminItem.value
-    && adminNewItem.selected_source_summary
-    && Number(adminNewItem.selected_source_pharmacy_id || 0) > 0
-    && Number.isFinite(price)
-    && price > 0
-  )
+  return canAddAdminItem.value
 })
 
 const hasComposableItems = computed(() => {
@@ -2495,10 +2200,10 @@ const autoAdvanceSuggestion = computed(() => {
   const status = selectedRequest.value.status
   const items = requestItems.value || []
   if (status === 'pending' && items.length > 0 && items.every(i => i.source_pharmacy_id)) {
-    return { message: 'All items routed — ready to start confirming?', status: 'confirming_with_pharm', label: 'Start Confirming' }
+    return { message: 'All items routed â€” ready to start confirming?', status: 'confirming_with_pharm', label: 'Start Confirming' }
   }
   if (status === 'confirming_with_pharm' && canMarkRequestComposed.value) {
-    return { message: 'All items sourced — ready to mark as Composed?', status: 'composed', label: 'Mark Composed' }
+    return { message: 'All items sourced â€” ready to mark as Composed?', status: 'composed', label: 'Mark Composed' }
   }
   return null
 })
@@ -2668,16 +2373,9 @@ const setStatusFilter = (value) => {
 }
 
 const formatRequestItemsLabel = (request) => {
-  if (request?.has_prescription) {
-    const prescriptionUrls = Array.isArray(request?.prescription_images) && request.prescription_images.length
-      ? request.prescription_images
-      : [request?.prescription_image_url].filter(Boolean)
-    if (prescriptionUrls.length > 0) return prescriptionUrls.length
-  }
-
   const itemCount = Number(request?.item_count || getCustomerRequestItems(request).length || 0)
   if (itemCount > 0) return itemCount
-  if (request?.has_prescription) return 'Prescription attached'
+  if (request?.has_prescription) return 'Rx'
   return '-'
 }
 
@@ -2690,24 +2388,10 @@ const isSavedSelectionItem = (item) => Boolean(
 
 const getCustomerRequestItems = (request) => {
   if (!request) return []
-
-  if (request?.has_prescription) {
-    return Array.isArray(request?.customer_items) && request.customer_items.length
-      ? request.customer_items
-      : []
-  }
-
   return Array.isArray(request?.items) ? request.items : []
 }
 
 const getCustomerRequestItemCount = (request) => {
-  if (request?.has_prescription) {
-    const prescriptionUrls = Array.isArray(request?.prescription_images) && request.prescription_images.length
-      ? request.prescription_images
-      : [request?.prescription_image_url].filter(Boolean)
-    return prescriptionUrls.length
-  }
-
   return getCustomerRequestItems(request).length
 }
 
@@ -3760,7 +3444,7 @@ const getProductResultMeta = (result) => {
   if (!parts.length && result?.strength) {
     parts.push(String(result.strength))
   }
-  return parts.join(' • ')
+  return parts.join(' â€¢ ')
 }
 
 const fetchProductSearchResults = async (query, options = {}) => {
@@ -3942,52 +3626,20 @@ const closeAlternativeProductDropdown = () => {
 
 const saveAdminNewItem = async () => {
   if (!selectedRequest.value || !canAddAdminItem.value) return
-  if (hasPrescriptionAttachments.value && !canSavePrescriptionAdminSelection.value) {
-    showMessage('Choose a pharmacy product with a price before saving this prescription selection', 'error')
-    return
-  }
 
   loading.value = true
   try {
     const quantity = Number(adminNewItem.quantity || 1)
-
-    if (hasPrescriptionAttachments.value) {
-      const selectedPrice = Number(adminNewItem.selected_source_price || 0)
-      if (!Number.isFinite(selectedPrice) || selectedPrice <= 0) {
-        throw new Error('Choose a pharmacy product with a valid price before saving')
-      }
-
-      const productName = String(adminNewItem.product_search || '').trim()
-      await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/items`, {
-        product_id: adminNewItem.product_id || null,
-        product_name: productName,
-        requested_unit: String(adminNewItem.requested_unit || '').trim().toLowerCase() || null,
-        quantity,
-        requested_quantity: quantity,
-        source_type: 'prescription',
-        source_pharmacy_id: adminNewItem.selected_source_pharmacy_id || null,
-        source_product_id: adminNewItem.selected_source_product_id || null,
-        source_distance_km: adminNewItem.selected_source_distance_km || null,
-        notes: {
-          prescription_image_index: Number(activePrescriptionImageIndex.value || 0) + 1,
-          prescription_image_url: activePrescriptionImageUrl.value || null
-        },
-        unit_price: selectedPrice,
-        marked_up_price: selectedPrice,
-        line_total: Number((selectedPrice * quantity).toFixed(2))
-      })
-    } else {
-      const productName = String(adminNewItem.product_search || '').trim()
-      await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/items`, {
-        product_id: adminNewItem.product_id || null,
-        product_name: productName,
-        requested_unit: String(adminNewItem.requested_unit || '').trim().toLowerCase() || null,
-        quantity,
-        requested_quantity: quantity,
-        source_type: 'admin',
-        notes: null
-      })
-    }
+    const productName = String(adminNewItem.product_search || '').trim()
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/items`, {
+      product_id: adminNewItem.product_id || null,
+      product_name: productName,
+      requested_unit: String(adminNewItem.requested_unit || '').trim().toLowerCase() || null,
+      quantity,
+      requested_quantity: quantity,
+      source_type: 'admin',
+      notes: null
+    })
 
     resetAdminNewItem()
 
@@ -4517,7 +4169,7 @@ const formatSignedCurrency = (value) => {
 }
 const formatRatingStars = (rating) => {
   const safeRating = Math.max(0, Math.min(5, Number(rating || 0)))
-  return `${'★'.repeat(safeRating)}${'☆'.repeat(Math.max(5 - safeRating, 0))}`
+  return `${'â˜…'.repeat(safeRating)}${'â˜†'.repeat(Math.max(5 - safeRating, 0))}`
 }
 const formatExcludedReason = (reason) => {
   const key = String(reason || '').toLowerCase()
@@ -8471,7 +8123,7 @@ definePageMeta({
   color: #fff;
 }
 
-/* ── Pipeline status bar ──────────────────────────────────────────────────── */
+/* â”€â”€ Pipeline status bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .pipeline-bar {
   display: flex;
   align-items: center;
@@ -8560,7 +8212,7 @@ definePageMeta({
   border: 1px solid #fca5a5;
 }
 
-/* ── Status action row (next step + override) ──────────────────────────────── */
+/* â”€â”€ Status action row (next step + override) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .status-nudge-banner {
   display: flex;
   align-items: center;

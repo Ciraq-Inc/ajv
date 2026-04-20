@@ -7,8 +7,10 @@
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Pharmacy Concierge</p>
-                    <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">New Request</h2>
-                    <p class="text-sm font-medium text-zinc-600 mt-1">Describe the medicines you need. A pharmacist will source and confirm pricing.</p>
+                    <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">New Request
+                    </h2>
+                    <p class="text-sm font-medium text-zinc-600 mt-1">Describe the medicines you need. A pharmacist will
+                        source and confirm pricing.</p>
                 </div>
                 <button @click="goToRequestHistory" type="button"
                     class="mt-1 flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
@@ -18,13 +20,16 @@
             </div>
 
             <!-- Wallet lock banner -->
-            <div v-if="!canSearchProducts" class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
-                <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <div v-if="!canSearchProducts"
+                class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+                <div
+                    class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <ExcTriIcon class="w-4 h-4" />
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="font-black text-amber-900 text-sm">Top up before sending your request</p>
-                    <p class="text-xs text-amber-700 mt-0.5">You need at least GHS {{ requestFee.toFixed(2) }} in your wallet before submission. Current balance: GHS {{ walletBalance.toFixed(2) }}.</p>
+                    <p class="text-xs text-amber-700 mt-0.5">You need at least GHS {{ requestFee.toFixed(2) }} in your
+                        wallet before submission. Current balance: GHS {{ walletBalance.toFixed(2) }}.</p>
                 </div>
                 <button type="button" @click="openWalletTab"
                     class="flex-shrink-0 bg-amber-900 text-white px-3 py-2 rounded-xl text-xs font-semibold hover:bg-amber-800 transition-colors">
@@ -40,73 +45,100 @@
                     <!-- Section 1: Add Medication -->
                     <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">1</div>
+                            <div
+                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+                                1</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Add Medication</h3>
                         </div>
                         <div class="flex flex-col gap-4">
-                            <div
-                                v-for="(item, index) in requestItems"
-                                :key="index"
+                            <div v-for="(item, index) in requestItems" :key="index"
                                 class="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 transition-all"
-                                :class="{ 'bg-white shadow-sm border-[#4F217A]/20': !!item.product_name.trim() }"
-                            >
+                                :class="{ 'bg-white shadow-sm border-[#4F217A]/20': !!item.product_name.trim() }">
                                 <div class="flex flex-col gap-3">
                                     <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <MagnifyingGlassIcon v-if="!item.product_name.trim()" class="h-5 w-5 text-zinc-400" />
-                                            <div v-else class="h-5 w-5 rounded bg-[#4F217A]/10 text-[#4F217A] flex items-center justify-center">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <MagnifyingGlassIcon v-if="!item.product_name.trim()"
+                                                class="h-5 w-5 text-zinc-400" />
+                                            <div v-else
+                                                class="h-5 w-5 rounded bg-[#4F217A]/10 text-[#4F217A] flex items-center justify-center">
                                                 <span class="material-symbols-outlined text-[14px]">pill</span>
                                             </div>
                                         </div>
-                                        <input
-                                            v-model="item.product_name"
-                                            type="text"
+                                        <input v-model="item.product_name" type="text"
                                             placeholder="Enter medicine name, brand, or strength"
-                                            class="block w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl leading-5 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 text-sm font-semibold transition-colors"
-                                        />
+                                            class="block w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl leading-5 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 text-sm font-semibold transition-colors" />
                                     </div>
-                                    
+
                                     <div v-if="item.product_name" class="pl-2">
-                                        <span class="text-xs text-zinc-500 font-medium">Enter the medicine name exactly as you know it. The pharmacy team will verify the match.</span>
+                                        <span class="text-xs text-zinc-500 font-medium">Enter the medicine name exactly
+                                            as you know it. The pharmacy team will verify the match.</span>
                                     </div>
 
                                     <div v-if="item.product_name.trim()" class="flex flex-wrap items-center gap-3 pt-2">
-                                        <div class="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-3 py-1.5 shadow-sm">
-                                            <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Unit</label>
-                                            <select v-model="item.requested_unit" class="bg-transparent text-sm font-bold text-zinc-800 focus:outline-none cursor-pointer">
+                                        <div
+                                            class="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-3 py-1.5 shadow-sm">
+                                            <label
+                                                class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Unit</label>
+                                            <select v-model="item.requested_unit"
+                                                class="bg-transparent text-sm font-bold text-zinc-800 focus:outline-none cursor-pointer">
                                                 <option value="">Select unit</option>
-                                                <option v-for="option in medicineUnitOptions" :key="option" :value="option">{{ option }}</option>
+                                                <option v-for="option in medicineUnitOptions" :key="option"
+                                                    :value="option">{{ option }}</option>
                                             </select>
                                         </div>
-                                        
-                                        <label class="flex items-center gap-1.5 cursor-pointer bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm" :title="item.imageFiles.length ? `${item.imageFiles.length} photo${item.imageFiles.length !== 1 ? 's' : ''} added` : 'Add item photo'">
+
+                                        <label
+                                            class="flex items-center gap-1.5 cursor-pointer bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm"
+                                            :title="item.imageFiles.length ? `${item.imageFiles.length} photo${item.imageFiles.length !== 1 ? 's' : ''} added` : 'Add item photo'">
                                             <CameraIcon class="w-4 h-4 text-zinc-500" />
-                                            <span v-if="item.imageFiles.length" class="text-xs font-bold text-zinc-700">{{ item.imageFiles.length }} added</span>
+                                            <span v-if="item.imageFiles.length"
+                                                class="text-xs font-bold text-zinc-700">{{ item.imageFiles.length }}
+                                                added</span>
                                             <span v-else class="text-xs font-semibold text-zinc-600">Add Photo</span>
-                                            <input type="file" accept="image/*" multiple class="hidden" @change="onItemImagesSelected($event, item)" />
+                                            <input type="file" accept="image/*" multiple class="hidden"
+                                                @change="onItemImagesSelected($event, item)" />
                                         </label>
 
-                                        <div class="flex items-center bg-white border border-zinc-200 rounded-lg overflow-hidden shadow-sm ml-auto">
-                                            <button type="button" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent" @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
-                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1" class="w-12 h-8 text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-100 appearance-none bg-transparent m-0 p-0" />
-                                            <button type="button" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" @click="incrementQty(item)">+</button>
+                                        <div
+                                            class="flex items-center bg-white border border-zinc-200 rounded-lg overflow-hidden shadow-sm ml-auto">
+                                            <button type="button"
+                                                class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                                                @click="decrementQty(item)"
+                                                :disabled="Number(item.quantity || 1) <= 1">−</button>
+                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
+                                                class="w-12 h-8 text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-100 appearance-none bg-transparent m-0 p-0" />
+                                            <button type="button"
+                                                class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                                                @click="incrementQty(item)">+</button>
                                         </div>
 
-                                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100" type="button" title="Remove Item">
+                                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
+                                            class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                            type="button" title="Remove Item">
                                             <XMarkIcon class="w-4 h-4" />
                                         </button>
                                     </div>
-                                    
+
                                     <!-- Image Previews -->
-                                    <div v-if="item.imageFiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                                        <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id" class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100">
-                                            <img :src="image.previewUrl" :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`" class="w-full h-full object-cover" />
-                                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                                <label class="text-[10px] font-bold text-white uppercase tracking-wider cursor-pointer hover:underline">
+                                    <div v-if="item.imageFiles.length"
+                                        class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                                        <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id"
+                                            class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100">
+                                            <img :src="image.previewUrl"
+                                                :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`"
+                                                class="w-full h-full object-cover" />
+                                            <div
+                                                class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                <label
+                                                    class="text-[10px] font-bold text-white uppercase tracking-wider cursor-pointer hover:underline">
                                                     Replace
-                                                    <input type="file" accept="image/*" class="hidden" @change="replaceItemImage($event, item, imageIndex)" />
+                                                    <input type="file" accept="image/*" class="hidden"
+                                                        @change="replaceItemImage($event, item, imageIndex)" />
                                                 </label>
-                                                <button type="button" class="text-[10px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline" @click="removeItemImage(item, imageIndex)">Delete</button>
+                                                <button type="button"
+                                                    class="text-[10px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline"
+                                                    @click="removeItemImage(item, imageIndex)">Delete</button>
                                             </div>
                                         </div>
                                     </div>
@@ -122,47 +154,70 @@
                     <!-- Section 2: Prescription -->
                     <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">2</div>
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Prescription <span class="text-sm font-normal text-zinc-400">(optional)</span></h3>
+                            <div
+                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+                                2</div>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Prescription <span
+                                    class="text-sm font-normal text-zinc-400">(optional)</span></h3>
                         </div>
                         <div class="grid grid-cols-1 gap-3">
-                            <label class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
-                                <div class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
+                            <label
+                                class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
+                                <div
+                                    class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
                                     <CameraIcon class="w-5 h-5" />
                                 </div>
                                 <span class="text-sm font-semibold text-zinc-700">Take a Photo</span>
-                                <input ref="prescriptionPicker" type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
+                                <input ref="prescriptionPicker" type="file" accept="image/*" multiple
+                                    @change="onPrescriptionFilesSelected" class="hidden" />
                             </label>
-                            <label class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
-                                <div class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
+                            <label
+                                class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
+                                <div
+                                    class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
                                     <ArrowUpTrayIcon class="w-5 h-5" />
                                 </div>
                                 <span class="text-sm font-semibold text-zinc-700">Upload Document</span>
-                                <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
+                                <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected"
+                                    class="hidden" />
                             </label>
                         </div>
-                        <input ref="prescriptionReplacePicker" type="file" accept="image/*" class="hidden" @change="onReplacePrescriptionFile" />
+                        <input ref="prescriptionReplacePicker" type="file" accept="image/*" class="hidden"
+                            @change="onReplacePrescriptionFile" />
                         <div v-if="prescriptionFiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                            <div v-for="(image, index) in prescriptionFiles" :key="image.id" class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100 shadow-sm">
-                                <img :src="image.previewUrl" :alt="image.file.name" class="w-full h-full object-cover" />
-                                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
-                                    <strong class="block text-[11px] text-white font-bold tracking-wider">Page {{ index + 1 }}</strong>
-                                    <span class="block text-[9px] text-white/80 font-medium truncate">{{ image.file.name }}</span>
+                            <div v-for="(image, index) in prescriptionFiles" :key="image.id"
+                                class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100 shadow-sm">
+                                <img :src="image.previewUrl" :alt="image.file.name"
+                                    class="w-full h-full object-cover" />
+                                <div
+                                    class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                                    <strong class="block text-[11px] text-white font-bold tracking-wider">Page {{ index
+                                        + 1 }}</strong>
+                                    <span class="block text-[9px] text-white/80 font-medium truncate">{{ image.file.name
+                                        }}</span>
                                 </div>
-                                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
-                                    <button type="button" class="text-[11px] font-bold text-white uppercase tracking-wider hover:underline" @click="queuePrescriptionReplace(index)">Retake</button>
-                                    <button type="button" class="text-[11px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline" @click="removePrescriptionFile(index)">Delete</button>
+                                <div
+                                    class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                                    <button type="button"
+                                        class="text-[11px] font-bold text-white uppercase tracking-wider hover:underline"
+                                        @click="queuePrescriptionReplace(index)">Retake</button>
+                                    <button type="button"
+                                        class="text-[11px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline"
+                                        @click="removePrescriptionFile(index)">Delete</button>
                                 </div>
                             </div>
                         </div>
 
-                        <div v-if="isUploading" class="mt-5 rounded-xl border border-[#4F217A]/20 bg-[#fbf9fc] p-4 shadow-sm">
+                        <div v-if="isUploading"
+                            class="mt-5 rounded-xl border border-[#4F217A]/20 bg-[#fbf9fc] p-4 shadow-sm">
                             <div class="flex items-center justify-between mb-2 pb-1 border-b border-[#4F217A]/10">
-                                <strong class="text-xs font-black uppercase tracking-wider text-[#4F217A]">Uploading prescription photos</strong>
+                                <strong class="text-xs font-black uppercase tracking-wider text-[#4F217A]">Uploading
+                                    prescription photos</strong>
                                 <span class="text-xs font-black text-[#5d4679]">{{ Math.round(uploadProgress) }}%</span>
                             </div>
                             <div class="w-full h-2 bg-[#4F217A]/10 rounded-full overflow-hidden">
-                                <span class="block h-full bg-[#4F217A] transition-all duration-300" :style="{ width: `${uploadProgress}%` }"></span>
+                                <span class="block h-full bg-[#4F217A] transition-all duration-300"
+                                    :style="{ width: `${uploadProgress}%` }"></span>
                             </div>
                         </div>
                     </section>
@@ -170,7 +225,9 @@
                     <!-- Section 3: Delivery Details -->
                     <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">3</div>
+                            <div
+                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+                                3</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Details</h3>
                         </div>
                         <div class="grid grid-cols-1 gap-3">
@@ -182,14 +239,20 @@
                                     <TruckIcon class="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <strong class="block text-sm font-black" :class="fulfillmentType === 'delivery' ? 'text-[#4F217A]' : 'text-zinc-800'">Home Delivery</strong>
-                                    <span class="text-xs" :class="fulfillmentType === 'delivery' ? 'text-[#5e3a86]' : 'text-zinc-400'">Arrives within 2–4 hours</span>
+                                    <strong class="block text-sm font-black"
+                                        :class="fulfillmentType === 'delivery' ? 'text-[#4F217A]' : 'text-zinc-800'">Home
+                                        Delivery</strong>
+                                    <span class="text-xs"
+                                        :class="fulfillmentType === 'delivery' ? 'text-[#5e3a86]' : 'text-zinc-400'">Arrives
+                                        within 2–4 hours</span>
                                 </div>
                             </button>
                         </div>
                         <div class="flex flex-col gap-1.5 mt-4">
-                            <label class="text-sm font-semibold text-zinc-700">Notes <span class="font-normal text-zinc-400">(optional)</span></label>
-                            <textarea v-model="customerNotes" rows="2" placeholder="e.g. brand preference, dosage form..."
+                            <label class="text-sm font-semibold text-zinc-700">Notes <span
+                                    class="font-normal text-zinc-400">(optional)</span></label>
+                            <textarea v-model="customerNotes" rows="2"
+                                placeholder="e.g. brand preference, dosage form..."
                                 class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
                         </div>
                     </section>
@@ -197,22 +260,30 @@
                     <!-- Section 4: Address & Location -->
                     <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">4</div>
+                            <div
+                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">
+                                4</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Address</h3>
                         </div>
-                        <button @click="getLocation" :disabled="gettingLocation" class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300" :class="{ 'bg-emerald-50/50 border-emerald-200': customerLat }">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 transition-colors" :class="customerLat ? 'bg-emerald-500 text-white' : 'bg-white border border-zinc-200 text-zinc-500'">
+                        <button @click="getLocation" :disabled="gettingLocation"
+                            class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300"
+                            :class="{ 'bg-emerald-50/50 border-emerald-200': customerLat }">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 transition-colors"
+                                :class="customerLat ? 'bg-emerald-500 text-white' : 'bg-white border border-zinc-200 text-zinc-500'">
                                 <MapPinIconSolid v-if="customerLat" class="w-5 h-5" />
                                 <ArrowPathIcon v-else-if="gettingLocation" class="w-5 h-5 animate-spin" />
                                 <MapPinIcon v-else class="w-5 h-5" />
                             </div>
                             <div class="flex-1 text-left min-w-0">
-                                <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel }}</strong>
-                                <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{ locationSublabel }}</span>
+                                <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel
+                                    }}</strong>
+                                <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{
+                                    locationSublabel }}</span>
                             </div>
                             <CheckCircleIconSolid v-if="customerLat" class="w-5 h-5 text-emerald-500 opacity-80" />
                         </button>
-                        <div v-if="gettingLocation" class="mb-4 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-800">
+                        <div v-if="gettingLocation"
+                            class="mb-4 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-800">
                             <div class="flex items-center gap-3 animate-pulse">
                                 <div class="h-11 w-11 rounded-xl bg-blue-200/80"></div>
                                 <div class="flex-1 min-w-0 space-y-2">
@@ -227,74 +298,90 @@
                             </div>
                             <p class="mt-3 text-xs font-bold text-blue-700/70">Refreshing request location...</p>
                         </div>
-                        <div v-else class="rounded-xl p-4 text-sm" :class="locationIssue ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-blue-50/50 text-blue-800 border border-blue-100'">
+                        <div v-else class="rounded-xl p-4 text-sm"
+                            :class="locationIssue ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-blue-50/50 text-blue-800 border border-blue-100'">
                             <p class="font-medium text-sm leading-relaxed mb-3">
-                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery.' }}
+                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster
+                                delivery.' }}
                             </p>
-                            <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue" class="flex flex-wrap gap-2">
-                                <button type="button" :disabled="gettingLocation" class="w-full bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="getLocation">Use Different Location For This Request</button>
+                            <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue"
+                                class="flex flex-wrap gap-2">
+                                <button type="button" :disabled="gettingLocation"
+                                    class="w-full bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    @click="getLocation">Use Different Location For This Request</button>
                             </div>
-                            <div v-if="homeLocationAvailable && locationMode === 'current-request'" class="flex flex-wrap gap-2">
-                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="restoreSavedHomeLocation">Use Saved Home Address</button>
-                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 font-bold hover:bg-blue-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="getLocation">Refresh Request Location</button>
+                            <div v-if="homeLocationAvailable && locationMode === 'current-request'"
+                                class="flex flex-wrap gap-2">
+                                <button type="button" :disabled="gettingLocation"
+                                    class="flex-1 bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    @click="restoreSavedHomeLocation">Use Saved Home Address</button>
+                                <button type="button" :disabled="gettingLocation"
+                                    class="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 font-bold hover:bg-blue-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    @click="getLocation">Refresh Request Location</button>
                             </div>
                             <div v-if="locationIssue" class="flex flex-wrap gap-2">
-                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-red-600 text-white border border-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="getLocation">Try Again</button>
-                                <button type="button" :disabled="gettingLocation" class="flex-1 bg-white border border-red-200 text-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed" @click="openLocationSettings">Open Settings</button>
+                                <button type="button" :disabled="gettingLocation"
+                                    class="flex-1 bg-red-600 text-white border border-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    @click="getLocation">Try Again</button>
+                                <button type="button" :disabled="gettingLocation"
+                                    class="flex-1 bg-white border border-red-200 text-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    @click="openLocationSettings">Open Settings</button>
                             </div>
-                            <p v-if="locationIssue" class="text-xs text-red-600/80 font-bold mt-2 pt-2 border-t border-red-200/60">{{ locationIssue.instructions }}</p>
+                            <p v-if="locationIssue"
+                                class="text-xs text-red-600/80 font-bold mt-2 pt-2 border-t border-red-200/60">{{
+                                locationIssue.instructions }}</p>
                         </div>
                         <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-2 mt-4">
                             <div class="relative">
-                                <label class="block text-xs font-black uppercase tracking-[0.12em] text-zinc-500 mb-2">Search delivery address</label>
-                                <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
+                                <label
+                                    class="block text-xs font-black uppercase tracking-[0.12em] text-zinc-500 mb-2">Search
+                                    delivery address</label>
+                                <div
+                                    class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
                                     <span class="material-symbols-outlined text-[18px] text-zinc-400">search</span>
-                                    <input
-                                        v-model="deliveryAddressSearch"
-                                        type="text"
+                                    <input v-model="deliveryAddressSearch" type="text"
                                         placeholder="Type an address or landmark"
-                                        class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
-                                    />
-                                    <span v-if="deliveryAutocompleteLoading" class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
+                                        class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
+                                    <span v-if="deliveryAutocompleteLoading"
+                                        class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
                                 </div>
 
-                                <div
-                                    v-if="deliveryAddressSuggestions.length"
-                                    class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain"
-                                >
-                                    <div class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400">
+                                <div v-if="deliveryAddressSuggestions.length"
+                                    class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain">
+                                    <div
+                                        class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400">
                                         <span>Suggestions</span>
                                         <span>{{ deliveryAddressSuggestions.length }}</span>
                                     </div>
-                                    <button
-                                        v-for="(suggestion, index) in deliveryAddressSuggestions"
-                                        :key="`${suggestion.display_name}-${index}`"
-                                        type="button"
+                                    <button v-for="(suggestion, index) in deliveryAddressSuggestions"
+                                        :key="`${suggestion.display_name}-${index}`" type="button"
                                         class="w-full border-b border-zinc-100 px-4 py-3.5 text-left last:border-b-0 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
-                                        @click="applyDeliveryAddressSuggestion(suggestion)"
-                                    >
-                                        <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{ suggestion.display_name }}</p>
-                                        <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">{{ suggestion.type || 'Address' }}</p>
+                                        @click="applyDeliveryAddressSuggestion(suggestion)">
+                                        <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{
+                                            suggestion.display_name }}</p>
+                                        <p
+                                            class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">
+                                            {{ suggestion.type || 'Address' }}</p>
                                     </button>
                                 </div>
                             </div>
 
-                            <textarea
-                                v-model="deliveryAddress"
-                                rows="2"
+                            <textarea v-model="deliveryAddress" rows="2"
                                 placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
-                                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"
-                            ></textarea>
-                            <p class="text-xs text-zinc-400">Required for delivery requests. You can refine the address below if needed.</p>
+                                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
+                            <p class="text-xs text-zinc-400">Required for delivery requests. You can refine the address
+                                below if needed.</p>
                         </div>
                     </section>
 
                     <!-- Privacy note -->
                     <p class="flex items-center gap-2 text-xs text-zinc-400 px-1 pb-2">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         </svg>
-                        Your data is encrypted and HIPAA-compliant. We only share prescription details with our pharmacy partners.
+                        Your data is encrypted and HIPAA-compliant. We only share prescription details with our pharmacy
+                        partners.
                     </p>
                 </div><!-- /left form column -->
 
@@ -305,7 +392,10 @@
                         <div class="space-y-2.5 text-sm mb-5">
                             <div class="flex items-center justify-between gap-3">
                                 <span class="text-zinc-500">Medications</span>
-                                <span class="font-semibold text-zinc-900">{{ validItems.length ? `${validItems.length} item${validItems.length !== 1 ? 's' : ''}` : (prescriptionFiles.length ? `${prescriptionFiles.length} Rx page${prescriptionFiles.length !== 1 ? 's' : ''}` : '—') }}</span>
+                                <span class="font-semibold text-zinc-900">{{ validItems.length ? `${validItems.length}
+                                    item${validItems.length !== 1 ? 's' : ''}` : (prescriptionFiles.length ?
+                                    `${prescriptionFiles.length} Rx page${prescriptionFiles.length !== 1 ? 's' : ''}` :
+                                    '—') }}</span>
                             </div>
                             <div class="flex items-center justify-between gap-3">
                                 <span class="text-zinc-500">Fulfillment</span>
@@ -322,7 +412,10 @@
                             <template v-else>Send Request ›</template>
                         </button>
                         <p v-if="!canSubmit && !isSubmitting" class="text-[11px] text-zinc-400 text-center mt-2">
-                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add delivery address' : '' }}
+                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' :
+                                !fulfillmentType ?
+                                    'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add
+                            delivery address' : '' }}
                         </p>
                     </div>
                 </div><!-- /right sidebar -->
@@ -330,7 +423,8 @@
             </div><!-- /main content row -->
 
             <!-- Mobile sticky footer -->
-            <div class="lg:hidden fixed bottom-[4.75rem] left-0 right-0 z-40 bg-white border-t border-zinc-200 px-4 py-3 flex items-center gap-3 shadow-[0_-2px_12px_0_rgba(0,0,0,0.06)]">
+            <div
+                class="lg:hidden fixed bottom-[4.75rem] left-0 right-0 z-40 bg-white border-t border-zinc-200 px-4 py-3 flex items-center gap-3 shadow-[0_-2px_12px_0_rgba(0,0,0,0.06)]">
                 <div class="flex-1 min-w-0">
                     <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Priority Fee</p>
                     <p class="text-lg font-black text-zinc-900 leading-tight">GHS {{ requestFee.toFixed(2) }}</p>
@@ -347,7 +441,9 @@
         <div v-if="isListView" class="w-full pb-12">
             <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-6">
                 <div class="flex items-center gap-3">
-                    <button @click="goToNewRequest" class="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100/50 border border-zinc-200 hover:bg-zinc-100 transition-colors text-zinc-600 shadow-sm" type="button">
+                    <button @click="goToNewRequest"
+                        class="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100/50 border border-zinc-200 hover:bg-zinc-100 transition-colors text-zinc-600 shadow-sm"
+                        type="button">
                         <ChevronLeftIcon class="w-4 h-4" />
                     </button>
                     <div>
@@ -361,43 +457,43 @@
                 <!-- Active / Completed tabs -->
                 <div class="mb-5 flex justify-start">
                     <div class="inline-flex gap-2 p-1 bg-white border border-zinc-200 rounded-lg shadow-sm">
-                        <button
-                            class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                        <button class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
                             :class="requestListTab === 'active' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
-                            @click="requestListTab = 'active'"
-                        >
+                            @click="requestListTab = 'active'">
                             Active
                             <span v-if="activeRequests.length"
                                 class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
-                                :class="requestListTab === 'active' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'"
-                            >{{ activeRequests.length }}</span>
+                                :class="requestListTab === 'active' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'">{{
+                                activeRequests.length }}</span>
                         </button>
-                        <button
-                            class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
+                        <button class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
                             :class="requestListTab === 'completed' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
-                            @click="requestListTab = 'completed'"
-                        >
+                            @click="requestListTab = 'completed'">
                             Completed
                             <span v-if="completedRequests.length"
                                 class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
-                                :class="requestListTab === 'completed' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'"
-                            >{{ completedRequests.length }}</span>
+                                :class="requestListTab === 'completed' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'">{{
+                                completedRequests.length }}</span>
                         </button>
                     </div>
                 </div>
 
-                <div v-if="loadingRequests" class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-zinc-50 rounded-xl">
+                <div v-if="loadingRequests"
+                    class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-zinc-50 rounded-xl">
                     <ArrowPathIcon class="w-8 h-8 text-zinc-400 animate-spin mb-3" />
                     <p class="text-sm font-medium text-zinc-500">Loading requests...</p>
                 </div>
 
-                <div v-else-if="myRequests.length === 0" class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-white rounded-xl shadow-sm">
-                    <div class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100">
+                <div v-else-if="myRequests.length === 0"
+                    class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-white rounded-xl shadow-sm">
+                    <div
+                        class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100">
                         <span class="material-symbols-outlined text-3xl text-zinc-300">inbox</span>
                     </div>
                     <p class="text-base font-bold text-zinc-900 mb-1">No requests yet</p>
                     <p class="text-sm font-medium text-zinc-500 mb-6">Submit your first order request to get started</p>
-                    <button @click="goToNewRequest" class="px-5 py-2.5 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-zinc-800 transition-colors inline-flex items-center gap-2 shadow-sm">
+                    <button @click="goToNewRequest"
+                        class="px-5 py-2.5 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-zinc-800 transition-colors inline-flex items-center gap-2 shadow-sm">
                         <PlusIcon class="w-4 h-4" /> Create Request
                     </button>
                 </div>
@@ -407,58 +503,68 @@
                     <div class="space-y-0 text-sm">
                         <article v-for="req in filteredRequests" :key="req.id"
                             class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
-                            @click="viewDetail(req)"
-                        >
-                        <div class="flex items-center gap-4 min-w-0">
-                            <!-- Colored Icon Box based on status -->
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-                                :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (req.status === 'processing' || req.status === 'composed' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100')">
-                                <span class="material-symbols-outlined text-[20px]">{{ req.status === 'completed' ? 'check_circle' : 'medication' }}</span>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 mb-0.5">
-                                    <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{ req.request_number }}</h4>
+                            @click="viewDetail(req)">
+                            <div class="flex items-center gap-4 min-w-0">
+                                <!-- Colored Icon Box based on status -->
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
+                                    :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (req.status === 'processing' || req.status === 'composed' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100')">
+                                    <span class="material-symbols-outlined text-[20px]">{{ req.status === 'completed' ?
+                                        'check_circle' : 'medication' }}</span>
                                 </div>
-                                <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
-                                    <span>{{ formatDate(req.created_at) }}</span>
-                                    <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
-                                    <span>{{ req.item_count || 0 }} item(s)</span>
-                                </p>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 mb-0.5">
+                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{
+                                            req.request_number }}</h4>
+                                    </div>
+                                    <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
+                                        <span>{{ formatDate(req.created_at) }}</span>
+                                        <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                        <span>{{ req.item_count || 0 }} item(s)</span>
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex items-center ml-auto gap-3 sm:gap-6">
-                            <!-- Status Column (Middle) -->
-                            <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
-                                    :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
-                                    <span v-if="req.status === 'pending' || req.status === 'searching'" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
-                                    {{ formatStatus(getRequestStatus(req)) }}
-                                </span>
-                            </div>
+                            <div class="flex items-center ml-auto gap-3 sm:gap-6">
+                                <!-- Status Column (Middle) -->
+                                <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
+                                        :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
+                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
+                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
+                                        {{ formatStatus(getRequestStatus(req)) }}
+                                    </span>
+                                </div>
 
-                            <!-- Cost Column (Right) -->
-                            <div class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
-                                <template v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
-                                    <strong class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
-                                </template>
-                                <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
-                                
-                                <!-- Mobile Badge Fallback -->
-                                <span class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
-                                    :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
-                                    <span v-if="req.status === 'pending' || req.status === 'searching'" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
-                                    {{ formatStatus(getRequestStatus(req)) }}
-                                </span>
+                                <!-- Cost Column (Right) -->
+                                <div
+                                    class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
+                                    <template
+                                        v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
+                                        <strong
+                                            class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS
+                                            {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
+                                    </template>
+                                    <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
+
+                                    <!-- Mobile Badge Fallback -->
+                                    <span
+                                        class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
+                                        :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
+                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
+                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
+                                        {{ formatStatus(getRequestStatus(req)) }}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Hover Chevron -->
-                        <div class="ml-2 hidden sm:flex w-5 h-5 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors flex-shrink-0">
-                            <ChevronRightIcon class="w-5 h-5" />
-                        </div>
-                    </article>
+                            <!-- Hover Chevron -->
+                            <div
+                                class="ml-2 hidden sm:flex w-5 h-5 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors flex-shrink-0">
+                                <ChevronRightIcon class="w-5 h-5" />
+                            </div>
+                        </article>
+                    </div>
                 </div>
-            </div>
-            <!-- End of max-w-5xl container -->
+                <!-- End of max-w-5xl container -->
             </div>
         </div>
 
@@ -470,7 +576,7 @@
                         <h3>Request #{{ selectedRequest.request_number }}</h3>
                         <span class="status-badge" :class="getRequestStatus(selectedRequest)">{{
                             formatStatus(getRequestStatus(selectedRequest))
-                            }}</span>
+                        }}</span>
                     </div>
                     <button @click="selectedRequest = null" class="modal-close">
                         <XMarkIcon class="close-svg" />
@@ -481,15 +587,11 @@
                     <div v-if="selectedRequest.prescription_images?.length" class="detail-section">
                         <span class="detail-label">Prescription Images</span>
                         <div class="detail-prescription-grid">
-                            <a
-                                v-for="(imageUrl, imageIndex) in selectedRequest.prescription_images"
-                                :key="`prescription-${imageIndex}`"
-                                :href="imageUrl"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="detail-prescription-link"
-                            >
-                                <img :src="imageUrl" :alt="`Prescription image ${imageIndex + 1}`" class="detail-prescription-image" />
+                            <a v-for="(imageUrl, imageIndex) in selectedRequest.prescription_images"
+                                :key="`prescription-${imageIndex}`" :href="imageUrl" target="_blank"
+                                rel="noopener noreferrer" class="detail-prescription-link">
+                                <img :src="imageUrl" :alt="`Prescription image ${imageIndex + 1}`"
+                                    class="detail-prescription-image" />
                             </a>
                         </div>
                     </div>
@@ -502,15 +604,11 @@
                                 <strong>{{ item.product_name }}</strong>
                                 <span class="item-qty">Qty: {{ item.quantity }}</span>
                                 <div v-if="item.item_images?.length" class="detail-item-images">
-                                    <a
-                                        v-for="(imageUrl, imageIndex) in item.item_images"
-                                        :key="`${item.id}-img-${imageIndex}`"
-                                        :href="imageUrl"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="detail-item-image-link"
-                                    >
-                                        <img :src="imageUrl" :alt="`${item.product_name} photo ${imageIndex + 1}`" class="detail-item-image" />
+                                    <a v-for="(imageUrl, imageIndex) in item.item_images"
+                                        :key="`${item.id}-img-${imageIndex}`" :href="imageUrl" target="_blank"
+                                        rel="noopener noreferrer" class="detail-item-image-link">
+                                        <img :src="imageUrl" :alt="`${item.product_name} photo ${imageIndex + 1}`"
+                                            class="detail-item-image" />
                                     </a>
                                 </div>
                             </div>
@@ -548,47 +646,38 @@
                         </div>
 
                         <div class="feedback-stars" role="radiogroup" aria-label="Rate this request">
-                            <button
-                                v-for="star in 5"
-                                :key="`feedback-star-${star}`"
-                                type="button"
-                                class="feedback-star-btn"
-                                :class="{ active: star <= feedbackForm.rating }"
-                                @click="feedbackForm.rating = star"
-                            >
+                            <button v-for="star in 5" :key="`feedback-star-${star}`" type="button"
+                                class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating }"
+                                @click="feedbackForm.rating = star">
                                 <StarIcon class="feedback-star-icon" />
                                 <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
                             </button>
                         </div>
 
-                        <textarea
-                            v-model="feedbackForm.comment"
-                            rows="3"
-                            maxlength="1000"
+                        <textarea v-model="feedbackForm.comment" rows="3" maxlength="1000"
                             class="form-textarea feedback-textarea"
-                            placeholder="Optional: tell us what worked well or what felt difficult."
-                        ></textarea>
+                            placeholder="Optional: tell us what worked well or what felt difficult."></textarea>
 
                         <div class="feedback-actions">
                             <span v-if="selectedRequest.feedback?.rating" class="feedback-saved-note">
                                 Saved rating: {{ selectedRequest.feedback.rating }}/5
                             </span>
-                            <button
-                                type="button"
-                                class="nav-submit feedback-submit-btn"
-                                :disabled="savingFeedback"
-                                @click="submitFeedback"
-                            >
+                            <button type="button" class="nav-submit feedback-submit-btn" :disabled="savingFeedback"
+                                @click="submitFeedback">
                                 <ArrowPathIcon v-if="savingFeedback" class="nav-svg spin" />
-                                <span>{{ savingFeedback ? 'Saving...' : (selectedRequest.feedback ? 'Update Feedback' : 'Submit Feedback') }}</span>
+                                <span>{{ savingFeedback ? 'Saving...' : (selectedRequest.feedback ? 'Update Feedback' :
+                                    'Submit
+                                    Feedback') }}</span>
                             </button>
                         </div>
                     </div>
 
                     <div v-if="selectedRequest.pending_decisions?.length" class="decision-panel">
                         <span class="detail-label">Customer Decision</span>
-                        <div v-for="decision in selectedRequest.pending_decisions" :key="decision.id" class="decision-card">
-                            <span class="decision-eyebrow" :class="getDecisionVariantClass(decision)">{{ getDecisionEyebrow(decision) }}</span>
+                        <div v-for="decision in selectedRequest.pending_decisions" :key="decision.id"
+                            class="decision-card">
+                            <span class="decision-eyebrow" :class="getDecisionVariantClass(decision)">{{
+                                getDecisionEyebrow(decision) }}</span>
                             <div class="decision-copy">
                                 <strong>{{ decision.title }}</strong>
                                 <p>{{ decision.message }}</p>
@@ -598,43 +687,44 @@
                             </p>
 
                             <div v-if="getDecisionItems(decision).length" class="decision-item-list">
-                                <div
-                                    v-for="decisionItem in getDecisionItems(decision)"
-                                    :key="`${decision.id}-${decisionItem.item_id}`"
-                                    class="decision-item-row"
-                                >
+                                <div v-for="decisionItem in getDecisionItems(decision)"
+                                    :key="`${decision.id}-${decisionItem.item_id}`" class="decision-item-row">
                                     <div class="decision-item-copy">
                                         <strong>{{ decisionItem.product_name }}</strong>
                                         <span class="decision-item-meta">Qty: {{ decisionItem.quantity }}</span>
-                                        <span v-if="shouldShowDecisionItemPrice(decisionItem)" class="decision-item-meta">
+                                        <span v-if="shouldShowDecisionItemPrice(decisionItem)"
+                                            class="decision-item-meta">
                                             GHS {{ formatMoney(decisionItem.unit_price) }} each
                                         </span>
-                                        <span v-if="getDecisionItemRouteText(decision, decisionItem)" class="decision-item-meta source">
+                                        <span v-if="getDecisionItemRouteText(decision, decisionItem)"
+                                            class="decision-item-meta source">
                                             {{ getDecisionItemRouteText(decision, decisionItem) }}
                                         </span>
-                                        <span v-if="decisionItem.status === 'unavailable'" class="decision-item-meta unavailable">
+                                        <span v-if="decisionItem.status === 'unavailable'"
+                                            class="decision-item-meta unavailable">
                                             Unavailable right now
                                         </span>
                                         <div v-if="decisionItem.substitute_option" class="decision-substitute">
-                                            <span class="decision-item-meta substitute-label">Suggested alternative</span>
+                                            <span class="decision-item-meta substitute-label">Suggested
+                                                alternative</span>
                                             <strong>{{ decisionItem.substitute_option.name }}</strong>
-                                            <span v-if="decisionItem.substitute_option.marked_up_price !== null" class="decision-item-meta">
-                                                GHS {{ formatMoney(decisionItem.substitute_option.marked_up_price) }} each
+                                            <span v-if="decisionItem.substitute_option.marked_up_price !== null"
+                                                class="decision-item-meta">
+                                                GHS {{ formatMoney(decisionItem.substitute_option.marked_up_price) }}
+                                                each
                                             </span>
-                                            <span v-if="getDecisionSubstituteRouteText(decision, decisionItem)" class="decision-item-meta source">
+                                            <span v-if="getDecisionSubstituteRouteText(decision, decisionItem)"
+                                                class="decision-item-meta source">
                                                 {{ getDecisionSubstituteRouteText(decision, decisionItem) }}
                                             </span>
                                         </div>
                                     </div>
                                     <div class="decision-item-actions">
-                                        <button
-                                            v-for="choice in getDecisionItemChoices(decisionItem)"
+                                        <button v-for="choice in getDecisionItemChoices(decisionItem)"
                                             :key="`${decision.id}-${decisionItem.item_id}-${choice.value}`"
-                                            type="button"
-                                            class="decision-item-btn"
+                                            type="button" class="decision-item-btn"
                                             :class="{ active: getDecisionChoice(decision, decisionItem) === choice.value }"
-                                            @click="setDecisionChoice(decision, decisionItem, choice.value)"
-                                        >
+                                            @click="setDecisionChoice(decision, decisionItem, choice.value)">
                                             {{ choice.label }}
                                         </button>
                                     </div>
@@ -645,50 +735,45 @@
                                 </div>
                             </div>
                             <div class="decision-actions">
-                                <button
-                                    class="decision-btn secondary"
-                                    :disabled="respondingDecisionId === decision.id"
-                                    @click="respondToDecision(decision, 'declined')"
-                                >
+                                <button class="decision-btn secondary" :disabled="respondingDecisionId === decision.id"
+                                    @click="respondToDecision(decision, 'declined')">
                                     {{ getDecisionDeclineLabel(decision) }}
                                 </button>
-                                <button
-                                    class="decision-btn primary"
-                                    :disabled="respondingDecisionId === decision.id"
-                                    @click="respondToDecision(decision, 'approved')"
-                                >
-                                    {{ respondingDecisionId === decision.id ? 'Saving...' : getDecisionApproveLabel(decision) }}
+                                <button class="decision-btn primary" :disabled="respondingDecisionId === decision.id"
+                                    @click="respondToDecision(decision, 'approved')">
+                                    {{ respondingDecisionId === decision.id ? 'Saving...' :
+                                    getDecisionApproveLabel(decision) }}
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="canPayRequest(selectedRequest) && !selectedRequest.pending_decisions?.length" class="payment-action">
+                    <div v-if="canPayRequest(selectedRequest) && !selectedRequest.pending_decisions?.length"
+                        class="payment-action">
                         <div class="payment-method-grid">
-                            <button
-                                @click="payForRequest(selectedRequest.id, 'wallet')"
-                                class="pay-request-btn"
-                                :disabled="payingRequest"
-                            >
+                            <button @click="payForRequest(selectedRequest.id, 'wallet')" class="pay-request-btn"
+                                :disabled="payingRequest">
                                 <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
                                 <CurrencyDollarIcon v-else class="pay-svg" />
-                                <span>{{ payingRequest && payingMethod === 'wallet' ? 'Processing wallet payment...' : `Pay with Wallet` }}</span>
+                                <span>{{ payingRequest && payingMethod === 'wallet' ? 'Processing wallet payment...' :
+                                    `Pay with
+                                    Wallet` }}</span>
                             </button>
-                            <button
-                                @click="payForRequest(selectedRequest.id, 'paystack')"
-                                class="pay-request-btn secondary-pay-btn"
-                                :disabled="payingRequest"
-                            >
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="pay-svg spin" />
+                            <button @click="payForRequest(selectedRequest.id, 'paystack')"
+                                class="pay-request-btn secondary-pay-btn" :disabled="payingRequest">
+                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'"
+                                    class="pay-svg spin" />
                                 <i v-else class="ri-bank-card-line pay-svg"></i>
-                                <span>{{ payingRequest && payingMethod === 'paystack' ? 'Redirecting to Paystack...' : 'Pay with Paystack' }}</span>
+                                <span>{{ payingRequest && payingMethod === 'paystack' ? 'Redirecting to Paystack...' :
+                                    'Pay with
+                                    Paystack' }}</span>
                             </button>
                         </div>
-                        <p class="payment-note">Choose wallet or Paystack. Direct Paystack payments are also recorded in your wallet history.</p>
-                        <div
-                            v-if="paymentShortfall.requestId === selectedRequest.id && paymentShortfall.amount > 0"
-                            class="payment-shortfall"
-                        >
+                        <p class="payment-note">Choose wallet or Paystack. Direct Paystack payments are also recorded in
+                            your
+                            wallet history.</p>
+                        <div v-if="paymentShortfall.requestId === selectedRequest.id && paymentShortfall.amount > 0"
+                            class="payment-shortfall">
                             <div class="payment-shortfall-head">
                                 <div class="payment-shortfall-icon">
                                     <ExcTriIcon class="payment-shortfall-svg" />
@@ -702,23 +787,24 @@
                                 </div>
                             </div>
                             <div class="payment-shortfall-actions">
-                                <span class="payment-shortfall-note">Top up this amount to complete the payment from your wallet.</span>
+                                <span class="payment-shortfall-note">Top up this amount to complete the payment from
+                                    your
+                                    wallet.</span>
                                 <button @click="openWalletTab" class="priority-topup payment-topup-btn">
                                     Top Up Wallet
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <div v-else-if="isPaymentPendingRequest(selectedRequest)" class="payment-action payment-action--pending">
-                        <p class="payment-note">Payment will appear here once item pricing is confirmed for this request.</p>
+                    <div v-else-if="isPaymentPendingRequest(selectedRequest)"
+                        class="payment-action payment-action--pending">
+                        <p class="payment-note">Payment will appear here once item pricing is confirmed for this
+                            request.</p>
                     </div>
 
                     <div v-if="canCancelRequest(selectedRequest)" class="cancel-action">
-                        <button
-                            @click="cancelRequest(selectedRequest.id)"
-                            class="cancel-request-btn"
-                            :disabled="cancelingRequest || payingRequest"
-                        >
+                        <button @click="cancelRequest(selectedRequest.id)" class="cancel-request-btn"
+                            :disabled="cancelingRequest || payingRequest">
                             <ArrowPathIcon v-if="cancelingRequest" class="pay-svg spin" />
                             <XMarkIcon v-else class="pay-svg" />
                             <span>{{ cancelingRequest ? 'Cancelling request...' : 'Cancel Request' }}</span>
@@ -727,8 +813,10 @@
                     </div>
 
                     <!-- Address / Notes -->
-                    <div v-if="selectedRequest.customer_address || selectedRequest.delivery_address" class="detail-info">
-                        <MapPinIcon class="detail-svg" /> {{ compactAddress(selectedRequest.customer_address || selectedRequest.delivery_address) }}
+                    <div v-if="selectedRequest.customer_address || selectedRequest.delivery_address"
+                        class="detail-info">
+                        <MapPinIcon class="detail-svg" /> {{ compactAddress(selectedRequest.customer_address ||
+                        selectedRequest.delivery_address) }}
                     </div>
                     <div v-if="selectedRequest.admin_notes" class="detail-info">
                         <ChatBubbleLeftIcon class="detail-svg" /> {{ selectedRequest.admin_notes }}
@@ -751,46 +839,50 @@
                 </div>
 
                 <div class="modal-body">
-    <div class="priority-hero">
-        <p class="priority-kicker">Before you send</p>
-        <p class="priority-copy">
-            A small fee of GHS {{ requestFee.toFixed(2) }} is charged from your wallet when you send this request.
-        </p>
-    </div>
+                    <div class="priority-hero">
+                        <p class="priority-kicker">Before you send</p>
+                        <p class="priority-copy">
+                            A small fee of GHS {{ requestFee.toFixed(2) }} is charged from your wallet when you send
+                            this
+                            request.
+                        </p>
+                    </div>
 
-    <div class="priority-points">
-        <div class="priority-point">
-            <strong>✅ If you place an order</strong>
-            <span>The GHS {{ requestFee.toFixed(2) }} is taken off your final bill — so you don't pay it twice.</span>
-        </div>
-        <div class="priority-point">
-            <strong>❌ If you don't place an order</strong>
-            <span>The GHS {{ requestFee.toFixed(2) }} is kept as a search fee.</span>
-        </div>
-    </div>
+                    <div class="priority-points">
+                        <div class="priority-point">
+                            <strong>✅ If you place an order</strong>
+                            <span>The GHS {{ requestFee.toFixed(2) }} is taken off your final bill — so you don't pay it
+                                twice.</span>
+                        </div>
+                        <div class="priority-point">
+                            <strong>❌ If you don't place an order</strong>
+                            <span>The GHS {{ requestFee.toFixed(2) }} is kept as a search fee.</span>
+                        </div>
+                    </div>
 
-    <div v-if="submitShortfall > 0" class="priority-shortfall">
-        <strong>GHS {{ submitShortfall.toFixed(2) }} short.</strong>
-        <span>Top up your wallet to continue.</span>
-    </div>
+                    <div v-if="submitShortfall > 0" class="priority-shortfall">
+                        <strong>GHS {{ submitShortfall.toFixed(2) }} short.</strong>
+                        <span>Top up your wallet to continue.</span>
+                    </div>
 
-    <div class="priority-actions">
-        <button @click="showPriorityModal = false" class="nav-back priority-back">
-            Not Yet
-        </button>
-        <button v-if="submitShortfall > 0" @click="openWalletTab" class="nav-next priority-topup">
-            Top Up Wallet
-        </button>
-        <button @click="confirmPriorityAndSubmit" :disabled="isSubmitting" class="nav-submit priority-submit">
-            <template v-if="isSubmitting">
-                <ArrowPathIcon class="nav-svg spin" /> Sending...
-            </template>
-            <template v-else>
-                Charge GHS {{ requestFee.toFixed(2) }} &amp; Send Request
-            </template>
-        </button>
-    </div>
-</div>
+                    <div class="priority-actions">
+                        <button @click="showPriorityModal = false" class="nav-back priority-back">
+                            Not Yet
+                        </button>
+                        <button v-if="submitShortfall > 0" @click="openWalletTab" class="nav-next priority-topup">
+                            Top Up Wallet
+                        </button>
+                        <button @click="confirmPriorityAndSubmit" :disabled="isSubmitting"
+                            class="nav-submit priority-submit">
+                            <template v-if="isSubmitting">
+                                <ArrowPathIcon class="nav-svg spin" /> Sending...
+                            </template>
+                            <template v-else>
+                                Charge GHS {{ requestFee.toFixed(2) }} &amp; Send Request
+                            </template>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -801,10 +893,9 @@
                     <CheckBadgeIcon class="success-svg" />
                 </div>
                 <h3>Request Submitted</h3>
-                <p>Your Priority Search charge has been applied and nearby pharmacies can now review your request.</p>
+                <p>Your request has been submitted, we'll notify you once it has been processed.</p>
                 <p v-if="submittedNumber" class="success-num">Request #<strong>{{ submittedNumber }}</strong></p>
-                <button @click="goToRequestHistory" class="nav-submit"
-                    style="width:100%">View My Requests</button>
+                <button @click="goToRequestHistory" class="nav-submit" style="width:100%">View My Requests</button>
             </div>
         </div>
 
@@ -815,43 +906,56 @@
                 'bg-emerald-500': toast.type === 'success',
                 'bg-red-500': toast.type === 'error',
                 'bg-[#350062]': toast.type === 'info' || !toast.type
-            }"
-        >
+            }">
             <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="w-5 h-5 flex-shrink-0" />
             {{ toast.text }}
         </div>
 
         <!-- Payment Success Animation Overlay -->
-        <Transition
-            enter-active-class="transition duration-500 ease-out"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition duration-300 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-        >
-            <div v-if="showPaymentSuccessAnim" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#4F217A]/60 backdrop-blur-sm">
-                <div class="bg-white rounded-[2rem] p-8 max-w-[320px] w-full mx-4 shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
-                    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, rgba(16, 185, 129, 0.05) 0%, transparent 70%);"></div>
+        <Transition enter-active-class="transition duration-500 ease-out" enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-300 ease-in"
+            leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
+            <div v-if="showPaymentSuccessAnim"
+                class="fixed inset-0 z-[100] flex items-center justify-center bg-[#4F217A]/60 backdrop-blur-sm">
+                <div
+                    class="bg-white rounded-[2rem] p-8 max-w-[320px] w-full mx-4 shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <div class="absolute inset-0 pointer-events-none"
+                        style="background: radial-gradient(circle at center, rgba(16, 185, 129, 0.05) 0%, transparent 70%);">
+                    </div>
                     <div class="w-24 h-24 mb-6 relative z-10 flex items-center justify-center">
-                        <div class="absolute inset-0 rounded-full bg-emerald-100 scale-0 animate-[scaleIn_0.5s_ease-out_forwards]"></div>
-                        <div class="absolute inset-0 rounded-full border-4 border-emerald-500 scale-0 animate-[scaleIn_0.5s_ease-out_0.2s_forwards]"></div>
-                        <svg class="w-12 h-12 text-emerald-600 relative z-20 stroke-dasharray-[100] stroke-dashoffset-[100] animate-[drawCheck_0.5s_ease-out_0.4s_forwards]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <div
+                            class="absolute inset-0 rounded-full bg-emerald-100 scale-0 animate-[scaleIn_0.5s_ease-out_forwards]">
+                        </div>
+                        <div
+                            class="absolute inset-0 rounded-full border-4 border-emerald-500 scale-0 animate-[scaleIn_0.5s_ease-out_0.2s_forwards]">
+                        </div>
+                        <svg class="w-12 h-12 text-emerald-600 relative z-20 stroke-dasharray-[100] stroke-dashoffset-[100] animate-[drawCheck_0.5s_ease-out_0.4s_forwards]"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"
+                            stroke-linecap="round" stroke-linejoin="round">
                             <path d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-black text-[#350062] mb-3 opacity-0 animate-[fadeUp_0.5s_ease-out_0.6s_forwards]">Payment Successful!</h3>
-                    <p class="text-gray-600 text-[0.85rem] mb-8 font-medium leading-relaxed opacity-0 animate-[fadeUp_0.5s_ease-out_0.7s_forwards]">
-                        Your order payment was successfully processed. Our pharmacists will fulfill your request shortly.
+                    <h3
+                        class="text-2xl font-black text-[#350062] mb-3 opacity-0 animate-[fadeUp_0.5s_ease-out_0.6s_forwards]">
+                        Payment Successful!</h3>
+                    <p
+                        class="text-gray-600 text-[0.85rem] mb-8 font-medium leading-relaxed opacity-0 animate-[fadeUp_0.5s_ease-out_0.7s_forwards]">
+                        Your order payment was successfully processed. Our pharmacists will fulfill your request
+                        shortly.
                     </p>
-                    <button @click="showPaymentSuccessAnim = false" class="w-full bg-[#4F217A] hover:bg-[#350062] text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-[0_4px_14px_rgba(79,33,122,0.3)] opacity-0 animate-[fadeUp_0.5s_ease-out_0.8s_forwards]">
+                    <button @click="showPaymentSuccessAnim = false"
+                        class="w-full bg-[#4F217A] hover:bg-[#350062] text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-[0_4px_14px_rgba(79,33,122,0.3)] opacity-0 animate-[fadeUp_0.5s_ease-out_0.8s_forwards]">
                         Awesome
                     </button>
                     <!-- Scoped keyframes purely for this modal -->
                     <component :is="'style'">
-                        @keyframes scaleIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+                        @keyframes scaleIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.1);
+                        opacity: 1; }
+                        100% { transform: scale(1); opacity: 1; } }
                         @keyframes drawCheck { 0% { stroke-dashoffset: 100; } 100% { stroke-dashoffset: 0; } }
-                        @keyframes fadeUp { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+                        @keyframes fadeUp { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1;
+                        transform:
+                        translateY(0); } }
                         .stroke-dasharray-\[100\] { stroke-dasharray: 100; }
                         .stroke-dashoffset-\[100\] { stroke-dashoffset: 100; }
                     </component>
@@ -941,7 +1045,7 @@ let formDraftSaveTimer = null
 const saveFormDraft = () => {
     if (!process.client) return
     formDraftSaveTimer = null
-    
+
     try {
         const draft = {
             items: requestItems.value.map(item => ({
@@ -971,20 +1075,20 @@ const debouncedSaveFormDraft = () => {
 
 const restoreFormDraft = () => {
     if (!process.client) return
-    
+
     try {
         const raw = sessionStorage.getItem(FORM_DRAFT_KEY)
         if (!raw) return
-        
+
         const draft = JSON.parse(raw)
         if (!draft) return
-        
+
         // Only restore if the items are mostly empty (user hasn't started typing)
         const hasSignificantContent = requestItems.value.some(item => item.product_name.trim()) ||
-                                     customerLat.value ||
-                                     fulfillmentType.value
+            customerLat.value ||
+            fulfillmentType.value
         if (hasSignificantContent) return
-        
+
         // Restore items
         if (Array.isArray(draft.items) && draft.items.length > 0) {
             requestItems.value = draft.items.map(item => ({
@@ -994,12 +1098,12 @@ const restoreFormDraft = () => {
                 quantity: Math.max(1, Number(item.quantity || 1))
             }))
         }
-        
+
         // Restore location data
         if (draft.customerLat) customerLat.value = draft.customerLat
         if (draft.customerLng) customerLng.value = draft.customerLng
         if (draft.locationMode) locationMode.value = draft.locationMode
-        
+
         // Restore form fields
         fulfillmentType.value = 'delivery'
         if (draft.customerAddress) customerAddress.value = draft.customerAddress
@@ -1423,7 +1527,7 @@ const removeItemImage = (item, imageIndex) => {
 }
 
 const cleanupItemImages = (item) => {
-    ;(item?.imageFiles || []).forEach(revokePrescriptionPreview)
+    ; (item?.imageFiles || []).forEach(revokePrescriptionPreview)
 }
 
 const removeRequestItem = (index) => {
@@ -1788,7 +1892,7 @@ const getCustomerStatus = (s) => {
     return s || ''
 }
 const getStatusClasses = (status) => {
-    switch(status) {
+    switch (status) {
         case 'paid': case 'verified': return 'bg-green-100 text-green-700';
         case 'pending': return 'bg-[#efdbff] text-[#621fa4]';
         case 'searching': case 'confirming_with_pharm': case 'finding_pharmacist': return 'bg-[#f0f9ff] text-[#531dab]';
@@ -2354,7 +2458,7 @@ watch(
 watchEffect(() => {
     // Only setup auto-save in new view
     if (!isNewView.value) return
-    
+
     // Access all form fields to track dependencies
     requestItems.value.map(i => `${i.product_name}|${i.requested_unit}|${i.quantity}`).join(';')
     fulfillmentType.value
@@ -2364,7 +2468,7 @@ watchEffect(() => {
     customerLat.value
     customerLng.value
     locationMode.value
-    
+
     // Trigger debounced save
     debouncedSaveFormDraft()
 })
@@ -5636,7 +5740,7 @@ defineExpose({ fetchMyRequests })
         margin-bottom: 0.25rem;
     }
 
-    .request-header > div {
+    .request-header>div {
         min-width: 0;
     }
 
@@ -5808,24 +5912,43 @@ defineExpose({ fetchMyRequests })
         border-radius: 12px;
     }
 }
+
 /* ═══════════════════════════════════════════════════════════════
    CONCIERGE REDESIGN — new classes
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Step fade-in animation ── */
 @keyframes stepFadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .concierge-step {
     animation: stepFadeUp 0.3s ease both;
 }
 
-.concierge-step:nth-child(1) { animation-delay: 0.05s; }
-.concierge-step:nth-child(2) { animation-delay: 0.12s; }
-.concierge-step:nth-child(3) { animation-delay: 0.19s; }
-.concierge-step:nth-child(4) { animation-delay: 0.26s; }
+.concierge-step:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.concierge-step:nth-child(2) {
+    animation-delay: 0.12s;
+}
+
+.concierge-step:nth-child(3) {
+    animation-delay: 0.19s;
+}
+
+.concierge-step:nth-child(4) {
+    animation-delay: 0.26s;
+}
 
 /* ── Concierge: strip double-card inside med-card ── */
 .med-card .item-search-shell {
@@ -6436,8 +6559,15 @@ defineExpose({ fetchMyRequests })
 }
 
 @keyframes slideUpSheet {
-    from { transform: translateY(40px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* ── Concierge: override outer order-requests background for new view ── */
@@ -6445,8 +6575,4 @@ defineExpose({ fetchMyRequests })
     background: #f4f4f5;
     max-width: 100%;
 }
-
 </style>
-
-
-
