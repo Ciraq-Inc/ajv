@@ -1,48 +1,35 @@
 <template>
   <div class="order-requests-page">
-    <!-- Header -->
-    <div v-if="!selectedRequest" class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 1.5rem;">
-      <div>
-        <h1 class="page-title" style="font-size: 1.5rem; font-weight: 600; color: #111827; letter-spacing: -0.025em; margin: 0;">Order Requests</h1>
-        <p class="page-subtitle" style="font-size: 0.875rem; color: #6b7280; margin: 0.25rem 0 0 0;">Manage customer order requests, process items, and coordinate fulfillment</p>
+    <!-- Compact header bar: title + stats + actions in one row -->
+    <div v-if="!selectedRequest" style="display: flex; align-items: center; gap: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 1rem; flex-wrap: wrap;">
+      <h1 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin: 0; white-space: nowrap;">Order Requests</h1>
+
+      <!-- Inline stat pills -->
+      <div v-if="stats" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.65rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: #92400e;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> {{ stats.pending || 0 }} Pending
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.65rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: #1d4ed8;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#3b82f6;display:inline-block;"></span> {{ stats.processing || 0 }} In Progress
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.65rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: #15803d;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span> {{ stats.completed || 0 }} Fulfilled
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.65rem; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: #6d28d9;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#9333ea;display:inline-block;"></span> {{ stats.total || 0 }} Total
+        </span>
       </div>
-      <div class="header-actions" style="display: flex; gap: 0.5rem;">
-        <button @click="fetchStats" class="btn-secondary" :disabled="loading" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.8rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-size: 0.8rem; font-weight: 500; color: #374151;">
-          <ChartBarIcon class="icon-sm" style="width: 1rem; height: 1rem;" />
+
+      <!-- Actions pushed to the right -->
+      <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+        <button @click="fetchStats" class="btn-secondary" :disabled="loading" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.7rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-size: 0.78rem; font-weight: 500; color: #374151; cursor:pointer;">
+          <ChartBarIcon style="width: 0.9rem; height: 0.9rem;" />
           <span>Stats</span>
         </button>
-        <button @click="fetchRequests" class="btn-secondary" :disabled="loading" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.8rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-size: 0.8rem; font-weight: 500; color: #374151;">
-          <ArrowPathIcon class="icon-sm" :class="{ 'animate-spin': loading }" style="width: 1rem; height: 1rem;" />
+        <button @click="fetchRequests" class="btn-secondary" :disabled="loading" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.7rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-size: 0.78rem; font-weight: 500; color: #374151; cursor:pointer;">
+          <ArrowPathIcon :class="{ 'animate-spin': loading }" style="width: 0.9rem; height: 0.9rem;" />
           <span>Refresh</span>
         </button>
-      </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div v-if="!selectedRequest && stats" class="stats-bar" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #e5e7eb; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); width: 100%;">
-      <div class="stat-card" style="background: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative;">
-        <span style="font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></div> Pending
-        </span>
-        <strong style="font-size: 2rem; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; line-height: 1;">{{ stats.pending || 0 }}</strong>
-      </div>
-      <div class="stat-card" style="background: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative;">
-        <span style="font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></div> In Progress
-        </span>
-        <strong style="font-size: 2rem; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; line-height: 1;">{{ stats.processing || 0 }}</strong>
-      </div>
-      <div class="stat-card" style="background: #fff; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative;">
-        <span style="font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div> Fulfilled
-        </span>
-        <strong style="font-size: 2rem; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; line-height: 1;">{{ stats.completed || 0 }}</strong>
-      </div>
-      <div class="stat-card" style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; position: relative;">
-        <span style="font-size: 0.7rem; font-weight: 700; color: #6b21a8; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: #9333ea;"></div> Total Requests
-        </span>
-        <strong style="font-size: 2rem; font-weight: 600; color: #4c1d95; font-variant-numeric: tabular-nums; line-height: 1;">{{ stats.total || 0 }}</strong>
       </div>
     </div>
 

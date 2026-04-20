@@ -40,14 +40,31 @@
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
 
-          <NuxtLink 
-            to="/admin/fulfillment" 
-            class="nav-item"
-            :class="{ active: isInFulfillment }"
-          >
+          <!-- Fulfillment parent label -->
+          <div class="nav-item" :class="{ active: isInFulfillment }" style="cursor:default; pointer-events:none;">
             <ClipboardDocumentListIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Fulfillment</span>
-          </NuxtLink>
+          </div>
+
+          <!-- Fulfillment child links -->
+          <template v-if="isInFulfillment || !isSidebarCollapsed">
+            <NuxtLink to="/admin/fulfillment/requests" class="nav-item nav-child-item" active-class="active">
+              <ClipboardDocumentListIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Order Requests</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/fulfillment/deliveries" class="nav-item nav-child-item" active-class="active">
+              <TruckIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Deliveries</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/fulfillment/dispatch-companies" class="nav-item nav-child-item" active-class="active">
+              <BuildingOffice2Icon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Dispatch Companies</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/fulfillment/pharmacy-ledger" class="nav-item nav-child-item" active-class="active">
+              <BanknotesIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Ledger</span>
+            </NuxtLink>
+          </template>
         </div>
 
         <div class="nav-section">
@@ -547,6 +564,12 @@ onUnmounted(() => {
   color: white;
   border-left: 2px solid #3B82F6;
   /* emphasis border */
+}
+
+.nav-child-item {
+  padding-left: 36px;
+  font-size: 13px;
+  margin-top: 1px;
 }
 
 .nav-icon {

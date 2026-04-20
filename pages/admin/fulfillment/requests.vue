@@ -1,13 +1,11 @@
 <template>
   <div>
-    <FulfillmentTabs>
-      <SharedOrderRequestsPage />
-    </FulfillmentTabs>
+    <SharedOrderRequestsPage />
   </div>
 </template>
 
 <script setup>
-import SharedOrderRequestsPage from '../order-requests.vue'
+import SharedOrderRequestsPage from './order-requests.vue'
 
 definePageMeta({
   middleware: 'admin-auth',
