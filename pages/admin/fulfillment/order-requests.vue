@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="order-requests-page">
     <!-- Compact header bar: title + stats + actions in one row -->
     <div v-if="!selectedRequest" style="display: flex; align-items: center; gap: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; margin-bottom: 1rem; flex-wrap: wrap;">
@@ -1306,13 +1306,14 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const PIPELINE_STAGES = [
-  { label: 'Pending',    statuses: ['pending'],                                                         nextStatus: 'confirming_with_pharm', nextLabel: 'Start Confirming'      },
-  { label: 'Confirming', statuses: ['confirming_with_pharm', 'processing', 'enquiry_sent'],            nextStatus: 'composed',              nextLabel: 'Mark as Composed'      },
-  { label: 'Composed',   statuses: ['composed', 'partially_available', 'items_sourced'],               nextStatus: 'confirmed_in_pharm',    nextLabel: 'Confirm with Customer' },
-  { label: 'Confirmed',  statuses: ['confirmed_in_pharm', 'ordered', 'confirmed', 'awaiting_customer'], nextStatus: 'paid',                  nextLabel: 'Mark as Paid'          },
-  { label: 'Paid',       statuses: ['paid', 'logistics_pending', 'driver_unavailable'],                nextStatus: null,                    nextLabel: null                    },
-  { label: 'In Transit', statuses: ['out_for_delivery', 'ready_for_pickup', 'ready_to_order'],         nextStatus: null,                    nextLabel: null                    },
-  { label: 'Done',       statuses: ['delivered', 'picked_up', 'completed'],                            nextStatus: null,                    nextLabel: null                    },
+  { label: 'Pending',         statuses: ['pending'],                                                                                      nextStatus: 'composing',       nextLabel: 'Start Composing'      },
+  { label: 'Composing',       statuses: ['composing', 'composed'],                                                                        nextStatus: 'sourcing',        nextLabel: 'Start Sourcing'       },
+  { label: 'Sourcing',        statuses: ['sourcing', 'confirming_with_pharm', 'processing', 'enquiry_sent'],                              nextStatus: 'awaiting_input',  nextLabel: 'Send to Customer'     },
+  { label: 'Awaiting Input',  statuses: ['awaiting_input', 'awaiting_customer'],                                                          nextStatus: 'payment_pending', nextLabel: 'Mark Payment Pending' },
+  { label: 'Payment Pending', statuses: ['payment_pending', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'],               nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
+  { label: 'Paid',            statuses: ['paid', 'preparing', 'logistics_pending', 'driver_unavailable'],                                 nextStatus: null,              nextLabel: null                   },
+  { label: 'In Transit',      statuses: ['in_transit', 'driver_assigned', 'out_for_delivery', 'ready_for_pickup', 'ready_to_order'],      nextStatus: null,              nextLabel: null                   },
+  { label: 'Done',            statuses: ['delivered', 'picked_up', 'completed'],                                                          nextStatus: null,              nextLabel: null                   },
 ]
 
 const adminStore = useAdminStore()
@@ -1424,24 +1425,25 @@ const prescriptionPreview = ref({
 const STATUS_TAB_CONFIG = [
   { value: '', label: 'All', statuses: [] },
   { value: 'pending', label: 'New Requests', statuses: ['pending'] },
-  { value: 'composed', label: 'Composed', statuses: ['composed'] },
-  { value: 'confirming_with_pharm', label: 'Confirming', statuses: ['confirming_with_pharm'] },
-  { value: 'confirmed_in_pharm', label: 'Confirmed', statuses: ['confirmed_in_pharm'] },
+  { value: 'composing', label: 'Composing', statuses: ['composing', 'composed'] },
+  { value: 'sourcing', label: 'Sourcing', statuses: ['sourcing', 'confirming_with_pharm'] },
+  { value: 'awaiting_input', label: 'Awaiting Customer', statuses: ['awaiting_input', 'awaiting_customer'] },
+  { value: 'payment_pending', label: 'Payment Pending', statuses: ['payment_pending', 'confirmed_in_pharm', 'items_sourced', 'confirmed'] },
   { value: 'paid', label: 'Paid', statuses: ['paid'] },
-  { value: 'out_for_delivery', label: 'Out for Delivery', statuses: ['out_for_delivery'] }
+  { value: 'in_transit', label: 'In Transit', statuses: ['in_transit', 'out_for_delivery', 'driver_assigned'] }
 ]
 
 const STATUS_SELECTOR_OPTIONS = [
-  { value: 'awaiting_customer', label: 'Awaiting Customer' },
-  { value: 'logistics_pending', label: 'Logistics Pending' },
-  { value: 'driver_unavailable', label: 'Driver Unavailable' },
+  { value: 'preparing', label: 'Preparing' },
   { value: 'ready_for_pickup', label: 'Ready For Pickup' },
   { value: 'picked_up', label: 'Picked Up' },
-  { value: 'out_for_delivery', label: 'Out For Delivery' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'returned', label: 'Returned' },
   { value: 'expired', label: 'Expired' },
-  { value: 'cancelled', label: 'Cancelled' }
+  { value: 'cancelled', label: 'Cancelled' },
+  // Legacy statuses available for manual override
+  { value: 'logistics_pending', label: 'Logistics Pending (legacy)' },
+  { value: 'driver_unavailable', label: 'Driver Unavailable (legacy)' }
 ]
 
 const normalizeRequestStatus = (value) => String(value || '').trim().toLowerCase()
@@ -2163,7 +2165,7 @@ const isComposedSummaryFullyConfirmed = () => {
 const canMarkRequestComposed = computed(() => {
   if (!selectedRequest.value || loading.value) return false
   const currentStatus = normalizeRequestStatus(selectedRequest.value.status)
-  if (!['pending', 'processing', 'composed', 'confirming_with_pharm'].includes(currentStatus)) return false
+  if (!['pending', 'composing', 'sourcing', 'processing', 'composed', 'confirming_with_pharm'].includes(currentStatus)) return false
   return hasComposableItems.value && composedCoverageSummary.value.covered > 0
 })
 
@@ -2185,12 +2187,12 @@ const currentPipelineStageIndex = computed(() => {
 
 const nextStepAction = computed(() => {
   const idx = currentPipelineStageIndex.value
-  if (idx < 0 || idx === 6) return null
+  if (idx < 0 || idx === 7) return null
   const ftype = String(selectedRequest.value?.fulfillment_type || '').toLowerCase()
   const isPickup = ftype.includes('pickup')
-  if (idx === 1) return { label: 'Mark as Composed', status: 'composed', disabled: !canMarkRequestComposed.value }
-  if (idx === 4) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'Out for Delivery', status: 'out_for_delivery' }
-  if (idx === 5) return isPickup ? { label: 'Mark Picked Up', status: 'picked_up' } : { label: 'Mark Delivered', status: 'delivered' }
+  if (idx === 1) return { label: 'Start Sourcing', status: 'sourcing', disabled: !canMarkRequestComposed.value }
+  if (idx === 5) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'In Transit', status: 'in_transit' }
+  if (idx === 6) return isPickup ? { label: 'Mark Picked Up', status: 'picked_up' } : { label: 'Mark Delivered', status: 'delivered' }
   const stage = PIPELINE_STAGES[idx]
   return stage.nextStatus ? { label: stage.nextLabel, status: stage.nextStatus } : null
 })
@@ -2200,10 +2202,10 @@ const autoAdvanceSuggestion = computed(() => {
   const status = selectedRequest.value.status
   const items = requestItems.value || []
   if (status === 'pending' && items.length > 0 && items.every(i => i.source_pharmacy_id)) {
-    return { message: 'All items routed â€” ready to start confirming?', status: 'confirming_with_pharm', label: 'Start Confirming' }
+    return { message: 'All items routed — ready to start composing?', status: 'composing', label: 'Start Composing' }
   }
-  if (status === 'confirming_with_pharm' && canMarkRequestComposed.value) {
-    return { message: 'All items sourced â€” ready to mark as Composed?', status: 'composed', label: 'Mark Composed' }
+  if (['composing', 'sourcing', 'confirming_with_pharm'].includes(status) && canMarkRequestComposed.value) {
+    return { message: 'All items sourced — ready to start sourcing?', status: 'sourcing', label: 'Start Sourcing' }
   }
   return null
 })
@@ -2221,7 +2223,7 @@ const canSendSplitFulfillmentDecision = computed(() => {
 })
 
 const buildFallbackPaymentSnapshotFromRequest = (request) => {
-  const paidStatuses = new Set(['paid', 'ready_for_pickup', 'picked_up', 'out_for_delivery', 'delivered'])
+  const paidStatuses = new Set(['paid', 'preparing', 'ready_for_pickup', 'picked_up', 'in_transit', 'driver_assigned', 'out_for_delivery', 'delivered'])
   const status = String(request?.status || '').toLowerCase()
   if (!paidStatuses.has(status)) return null
 
@@ -2902,7 +2904,7 @@ const closeComposedSummary = () => {
   composedGroupActions.value = {}
 }
 
-const isComposedTabActive = computed(() => statusFilter.value === 'composed')
+const isComposedTabActive = computed(() => statusFilter.value === 'composing')
 
 const handleProcessRequest = async (req) => {
   const requestId = Number(req?.id || 0)
@@ -2923,10 +2925,13 @@ const handleProcessRequest = async (req) => {
 const canRunFulfillment = (status) => {
   const allowed = new Set([
     'pending',
+    'composing',
+    'sourcing',
+    'awaiting_input',
+    // Legacy values kept to support older records.
     'composed',
     'confirming_with_pharm',
     'confirmed_in_pharm',
-    // Legacy values kept to support older records.
     'processing',
     'items_sourced',
     'awaiting_customer',
@@ -3062,8 +3067,8 @@ const maybePromoteRequestToConfirming = (action) => {
   if (!['contacted', 'confirmed'].includes(action)) return
   if (!['pending', 'processing'].includes(currentStatus)) return
 
-  selectedRequest.value.status = 'confirming_with_pharm'
-  selectedStatus.value = 'confirming_with_pharm'
+  selectedRequest.value.status = 'composing'
+  selectedStatus.value = 'composing'
 }
 
 const maybePromoteSummaryRequestToConfirming = (action) => {
@@ -3073,7 +3078,7 @@ const maybePromoteSummaryRequestToConfirming = (action) => {
   if (!['contacted', 'confirmed'].includes(action)) return
   if (!['pending', 'processing'].includes(currentStatus)) return
 
-  composedSummaryRequest.value.status = 'confirming_with_pharm'
+  composedSummaryRequest.value.status = 'composing'
 }
 
 const recordPharmacyContactAction = async (pharm, action, options = {}) => {
@@ -3259,8 +3264,8 @@ const updateStatus = async () => {
     selectedStatus.value = ''
     showStatusOverride.value = false
 
-    // Only load fulfillment context when explicitly entering the confirming phase.
-    if ((newStatus === 'confirming_with_pharm' || newStatus === 'processing') && canRunFulfillment(newStatus)) {
+    // Only load fulfillment context when explicitly entering the sourcing phase.
+    if (['composing', 'sourcing', 'confirming_with_pharm', 'processing'].includes(newStatus) && canRunFulfillment(newStatus)) {
       const procRes = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
       nearbyPharmacies.value = procRes.data.nearby_pharmacies || []
     }
@@ -3269,7 +3274,7 @@ const updateStatus = async () => {
     await fetchStats()
     showMessage(statusRes?.message || 'Status updated and fulfillment data refreshed', 'success')
 
-    if (newStatus === 'confirmed_in_pharm') {
+    if (['payment_pending', 'confirmed_in_pharm'].includes(newStatus)) {
       selectedRequest.value = null
       selectedStatus.value = ''
       adminNotes.value = ''
@@ -3297,14 +3302,14 @@ const markRequestComposed = async () => {
   loading.value = true
   try {
     const statusRes = await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/status`, {
-      status: 'composed',
+      status: 'sourcing',
       admin_notes: adminNotes.value
     })
-    selectedRequest.value.status = 'composed'
+    selectedRequest.value.status = 'sourcing'
     selectedStatus.value = ''
     await fetchRequests()
     await fetchStats()
-    showMessage(statusRes?.message || 'Request moved to Composed Orders', 'success')
+    showMessage(statusRes?.message || 'Request moved to Sourcing', 'success')
   } catch (e) {
     showMessage(e.message || 'Failed to mark request composed', 'error')
   } finally {

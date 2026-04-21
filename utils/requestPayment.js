@@ -1,4 +1,6 @@
 export const PAYABLE_REQUEST_STATUSES = new Set([
+  'payment_pending',
+  // Legacy values kept for backward compatibility
   'confirmed_in_pharm',
   'items_sourced',
   'confirmed'

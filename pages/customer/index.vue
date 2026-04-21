@@ -72,7 +72,7 @@
               >
                 <div
                   class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[1rem] mt-0.5 sm:mt-0"
-                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-green-50 text-green-700' : request.status === 'processing' || request.status === 'confirming_with_pharm' ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-600'"
+                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-green-50 text-green-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-600'"
                 >
                   <span class="material-symbols-outlined text-[1.2rem]">{{ requestIcon(request) }}</span>
                 </div>
@@ -313,14 +313,23 @@ const getRequestStatusLabel = (status) => {
     paid: 'Settled',
     verified: 'Settled',
     pending: 'Pending',
+    composing: 'Processing',
+    sourcing: 'Sourcing',
     searching: 'Searching',
     finding_pharmacist: 'Searching',
-    confirming_with_pharm: 'Processing',
+    confirming_with_pharm: 'Sourcing',
+    awaiting_input: 'Awaiting Your Input',
+    payment_pending: 'Ready to Pay',
     quote_available: 'Quoted',
     processing: 'Processing',
+    preparing: 'Preparing',
+    in_transit: 'In Transit',
+    driver_assigned: 'Driver Assigned',
     out_for_delivery: 'In Transit',
     delivered: 'Delivered',
-    cancelled: 'Cancelled'
+    picked_up: 'Picked Up',
+    cancelled: 'Cancelled',
+    returned: 'Returned'
   }
   return map[status] || String(status || 'active').replace(/_/g, ' ')
 }
@@ -330,6 +339,12 @@ const getRequestStatusClass = (status) => {
     case 'paid':
     case 'verified':
       return 'bg-[#e7f7ea] text-[#1f8a45]'
+    case 'payment_pending':
+      return 'bg-[#fff7e0] text-[#b07300]'
+    case 'awaiting_input':
+      return 'bg-[#edf4ff] text-[#285db8]'
+    case 'composing':
+    case 'sourcing':
     case 'processing':
     case 'confirming_with_pharm':
       return 'bg-[#f3daff] text-[#5d357a]'
@@ -353,7 +368,10 @@ const getOrderStatusLabel = (status) => {
   const map = {
     pending: 'Pending',
     processing: 'Preparing',
+    preparing: 'Preparing',
     shipped: 'In Transit',
+    in_transit: 'In Transit',
+    driver_assigned: 'Driver Assigned',
     logistics_pending: 'Logistics Pending',
     out_for_delivery: 'In Transit',
     delivered: 'Delivered',

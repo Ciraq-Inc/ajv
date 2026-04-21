@@ -1275,7 +1275,7 @@ const reviewLocationLabel = computed(() => {
 
 const isCompletedRequest = (request) => {
     const status = getCustomerStatus(request?.status)
-    return ['completed', 'expired', 'cancelled', 'returned'].includes(status)
+    return ['completed', 'delivered', 'picked_up', 'expired', 'cancelled', 'returned'].includes(status)
 }
 
 const activeRequests = computed(() => myRequests.value.filter(req => !isCompletedRequest(req)))
@@ -1371,7 +1371,7 @@ const selectFulfillment = (type) => {
     }
 }
 
-const isFeedbackEligibleStatus = (status) => ['picked_up', 'delivered', 'completed'].includes(getCustomerStatus(status))
+const isFeedbackEligibleStatus = (status) => ['completed', 'delivered', 'picked_up'].includes(getCustomerStatus(status))
 
 const canLeaveFeedback = (request) => isFeedbackEligibleStatus(request?.status)
 
@@ -1880,15 +1880,23 @@ const incrementQty = (item) => {
 }
 
 const getCustomerStatus = (s) => {
+    if (s === 'in_transit' || s === 'out_for_delivery') return 'on the way'
     if (s === 'picked_up' || s === 'delivered') return 'completed'
+    // Map legacy sourcing statuses to new names for display
+    if (s === 'confirming_with_pharm' || s === 'composed') return 'sourcing'
+    if (s === 'confirmed_in_pharm' || s === 'items_sourced' || s === 'confirmed') return 'payment_pending'
+    if (s === 'awaiting_customer') return 'awaiting_input'
     return s || ''
 }
 const getStatusClasses = (status) => {
     switch (status) {
-        case 'paid': case 'verified': return 'bg-green-100 text-green-700';
-        case 'pending': return 'bg-[#efdbff] text-[#621fa4]';
-        case 'searching': case 'confirming_with_pharm': case 'finding_pharmacist': return 'bg-[#f0f9ff] text-[#531dab]';
-        case 'quote_available': return 'bg-blue-100 text-blue-700';
+        case 'paid': case 'verified': case 'preparing': return 'bg-green-100 text-green-700';
+        case 'pending': case 'composing': return 'bg-[#efdbff] text-[#621fa4]';
+        case 'sourcing': case 'searching': case 'confirming_with_pharm': case 'finding_pharmacist': return 'bg-[#f0f9ff] text-[#531dab]';
+        case 'awaiting_input': case 'awaiting_customer': return 'bg-orange-100 text-orange-700';
+        case 'payment_pending': case 'quote_available': return 'bg-blue-100 text-blue-700';
+        case 'driver_assigned': case 'on the way': case 'in_transit': case 'out_for_delivery': return 'bg-indigo-100 text-indigo-700';
+        case 'ready_for_pickup': return 'bg-teal-100 text-teal-700';
         case 'processing': return 'bg-yellow-100 text-yellow-700';
         case 'expired': return 'bg-amber-100 text-amber-700';
         case 'cancelled': case 'rejected': return 'bg-red-100 text-red-700';
@@ -1928,7 +1936,7 @@ const getRequestContentCount = (req) => {
 const getRequestStatus = (req) => {
     const rawStatus = getCustomerStatus(req?.status || '')
     if (payableStatuses.has(rawStatus) && getPayableAmount(req) <= 0) {
-        return 'confirming_with_pharm'
+        return 'sourcing'
     }
     return rawStatus
 }
@@ -2386,24 +2394,33 @@ const cancelRequest = async (id) => {
     }
 }
 const statusProgress = (s) => ({
+    // New lifecycle
     pending: 10,
-    confirming_with_pharm: 25,
-    confirmed_in_pharm: 40,
-    paid: 70,
-    logistics_pending: 75,
-    driver_unavailable: 75,
+    composing: 15,
+    sourcing: 25,
+    awaiting_input: 40,
+    payment_pending: 50,
+    paid: 65,
+    preparing: 75,
     ready_for_pickup: 80,
+    driver_assigned: 82,
+    in_transit: 90,
     picked_up: 100,
-    out_for_delivery: 85,
     delivered: 100,
     returned: 100,
     expired: 100,
     cancelled: 100,
-    // Legacy values
+    // Legacy values mapped for backward compatibility
     processing: 25,
-    items_sourced: 40,
-    awaiting_customer: 55,
-    confirmed: 70,
+    confirming_with_pharm: 25,
+    composed: 15,
+    confirmed_in_pharm: 50,
+    items_sourced: 50,
+    awaiting_customer: 40,
+    confirmed: 65,
+    out_for_delivery: 90,
+    logistics_pending: 70,
+    driver_unavailable: 70,
     completed: 100
 }[s] || 10)
 const showToast = (text, type = 'success') => { toast.value = { text, type }; setTimeout(() => { toast.value = null }, 4000) }
