@@ -107,21 +107,21 @@
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
             <th @click="toggleSort('request_number')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
-              Request # <span style="opacity: 0.5;">{{ sortKey === 'request_number' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
+              Request # <span style="opacity: 0.5;">{{ sortKey === 'request_number' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Customer</th>
             <th @click="toggleSort('items')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: center; cursor: pointer; user-select: none; white-space: nowrap;">
-              Items <span style="opacity: 0.5;">{{ sortKey === 'items' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
+              Items <span style="opacity: 0.5;">{{ sortKey === 'items' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
             <th @click="toggleSort('status')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
-              Status <span style="opacity: 0.5;">{{ sortKey === 'status' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
+              Status <span style="opacity: 0.5;">{{ sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
             <th @click="toggleSort('cost')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right; cursor: pointer; user-select: none; white-space: nowrap;">
-              Cost <span style="opacity: 0.5;">{{ sortKey === 'cost' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
+              Cost <span style="opacity: 0.5;">{{ sortKey === 'cost' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none;">Fulfillment</th>
             <th @click="toggleSort('updated_at')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
-              Updated <span style="opacity: 0.5;">{{ sortKey === 'updated_at' ? (sortDir === 'asc' ? 'â†‘' : 'â†“') : 'â†•' }}</span>
+              Updated <span style="opacity: 0.5;">{{ sortKey === 'updated_at' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
             <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right;">Actions</th>
           </tr>
@@ -179,7 +179,7 @@
               <template v-if="getRequestComposedCost(req) !== null">
                 GHS {{ getRequestComposedCost(req).toFixed(2) }}
               </template>
-              <span v-else style="color: #9ca3af; font-weight: 400;">â€”</span>
+              <span v-else style="color: #9ca3af; font-weight: 400;">—</span>
             </td>
             <td style="padding: 0.875rem 1.25rem;">
               <span v-if="req.fulfillment_type" class="fulfillment-badge" :class="req.fulfillment_type" 
@@ -385,7 +385,22 @@
                   Add the first item here to begin composing this request.
                 </p>
               </div>
-              <div v-else class="workspace-board-grid">
+              <template v-else>
+                <div v-if="isComposeLocked && requestItems.length" class="compose-cta-banner compose-cta-banner--full">
+                  <div class="compose-cta-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                      <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                    </svg>
+                  </div>
+                  <div class="compose-cta-copy">
+                    <strong>Ready to work this order?</strong>
+                    <span>Claim it to start adding &amp; resolving items.</span>
+                  </div>
+                  <button @click="applyNextStep()" class="compose-cta-btn" :disabled="loading">
+                    Start Composing &rarr;
+                  </button>
+                </div>
+                <div class="workspace-board-grid" :class="{ 'workspace-board-grid--locked': isComposeLocked }">
                   <aside class="request-items-pane request-items-pane--board">
                     <section v-if="prescriptionAttachmentUrls.length" class="prescription-reference-card">
                       <div class="request-items-pane-head prescription-reference-head">
@@ -536,23 +551,29 @@
                                 <span>Qty {{ getRequestedQuantity(item) }}</span>
                                 <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
                                 <template v-if="item.master_product_id">
-                                  <span class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 cursor-pointer" @click.stop="startResolvingItem(item)" title="Change master product">
-                                    âœ“ resolved
+                                  <span
+                                    class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-700"
+                                    :class="isComposeLocked ? 'cursor-default opacity-60' : 'cursor-pointer'"
+                                    @click.stop="!isComposeLocked && startResolvingItem(item)"
+                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Change master product'"
+                                  >
+                                    ✓ resolved
                                   </span>
                                 </template>
                                 <template v-else>
                                   <button
                                     type="button"
-                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer border-0"
+                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer border-0 disabled:opacity-40 disabled:cursor-not-allowed"
                                     @click.stop="startResolvingItem(item)"
-                                    title="Resolve to master product"
+                                    :disabled="isComposeLocked"
+                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Resolve to master product'"
                                   >
                                     resolve
                                   </button>
                                 </template>
                               </div>
                               <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
-                                â†’ {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
+                                → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
                               </div>
                             </template>
                           </div>
@@ -560,8 +581,8 @@
                             type="button"
                             class="selection-preview-close request-item-row-clear"
                             @click.stop="deleteRequestItem(item)"
-                            :disabled="loading"
-                            title="Delete request item"
+                            :disabled="loading || isComposeLocked"
+                            :title="isComposeLocked ? 'Start Composing to edit' : 'Delete request item'"
                             aria-label="Delete request item"
                           >
                             <XMarkIcon class="icon-xs" />
@@ -577,7 +598,13 @@
                           <div class="w-1.5 h-1.5 rounded-full bg-[#4F217A] shrink-0"></div>
                           <span>Add to request</span>
                         </div>
-                        <div class="pane-quick-add-body">
+                        <div v-if="isComposeLocked" class="pane-quick-add-lock">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 text-gray-400 shrink-0">
+                            <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                          </svg>
+                          <span>Click <strong>Start Composing →</strong> above to edit this request.</span>
+                        </div>
+                        <div v-else class="pane-quick-add-body">
                           <div class="relative">
                             <input
                               v-model="adminNewItem.product_search"
@@ -608,73 +635,81 @@
                       </div>
                   </aside>
 
-                  <template v-if="requestItems.length">
+                  <template v-if="requestItems.length && !isComposeLocked">
                     <section class="workspace-composer-card">
-                      <div class="composer-meta-strip">
-                        <div class="composer-meta-notes">
-                          <div class="composer-meta-label">
-                            <div class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
-                            <span>Admin Notes</span>
-                            <button @click="saveNotes" class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors ml-auto" :disabled="loading">Save</button>
-                          </div>
-                          <textarea v-model="adminNotes" class="composer-meta-textarea" placeholder="Internal notes..."></textarea>
-                        </div>
-                        <div class="composer-meta-queue">
-                          <div class="composer-meta-label">
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></div>
-                            <span>Queue</span>
-                            <div class="flex items-center gap-1.5 ml-auto">
-                              <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-bold">{{ composedCoverageSummary.total }}</span>
-                              <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.covered }} done</span>
-                              <span class="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.uncovered }} left</span>
-                            </div>
-                          </div>
-                          <div class="composer-meta-queue-actions">
-                            <div v-if="autoAdvanceSuggestion" class="status-nudge-banner">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 shrink-0 text-amber-600">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                        <div class="composer-meta-strip">
+                          <div class="composer-meta-notes">
+                            <button class="composer-meta-label composer-meta-label--toggle" @click="showAdminNotes = !showAdminNotes" type="button">
+                              <div class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></div>
+                              <span>Admin Notes</span>
+                              <span v-if="!showAdminNotes && adminNotes" class="composer-notes-preview">{{ adminNotes.slice(0, 40) }}{{ adminNotes.length > 40 ? '…' : '' }}</span>
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 ml-auto transition-transform" :class="showAdminNotes ? 'rotate-180' : ''">
+                                <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z" clip-rule="evenodd" />
                               </svg>
-                              <span class="flex-1 text-[10px] text-amber-800 font-semibold">{{ autoAdvanceSuggestion.message }}</span>
-                              <button @click="applyNextStep(autoAdvanceSuggestion.status)" class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="loading">{{ autoAdvanceSuggestion.label }}</button>
-                            </div>
-                            <div class="status-action-row">
-                              <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-                              <button v-if="nextStepAction" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} â†’</button>
-                              <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">Override â–¾</button>
-                            </div>
-                            <div v-if="showStatusOverride" class="status-override-row">
-                              <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
-                                <option value="">Change status...</option>
-                                <option value="pending">Pending</option>
-                                <option value="composing">Composing</option>
-                                <option value="composed">Composed</option>
-                                <option value="sourcing">Sourcing</option>
-                                <option value="enquiry_sent">Enquiry Sent</option>
-                                <option value="partially_available">Partially Available</option>
-                                <option value="confirming_with_pharm">Confirming With Pharm</option>
-                                <option value="awaiting_input">Awaiting Input</option>
-                                <option value="awaiting_customer">Awaiting Customer</option>
-                                <option value="payment_pending">Payment Pending</option>
-                                <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                                <option value="items_sourced">Items Sourced</option>
-                                <option value="paid">Paid</option>
-                                <option value="preparing">Preparing</option>
-                                <option value="driver_assigned">Driver Assigned</option>
-                                <option value="in_transit">In Transit</option>
-                                <option value="out_for_delivery">Out For Delivery</option>
-                                <option value="ready_for_pickup">Ready For Pickup</option>
-                                <option value="picked_up">Picked Up</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="returned">Returned</option>
-                                <option value="expired">Expired</option>
-                              </select>
-                              <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Apply Override</button>
+                            </button>
+                            <template v-if="showAdminNotes">
+                              <textarea v-model="adminNotes" class="composer-meta-textarea" placeholder="Internal notes..."></textarea>
+                              <button @click="saveNotes" class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors self-end" :disabled="loading">Save</button>
+                            </template>
+                          </div>
+                          <div class="composer-meta-queue">
+                            <div class="composer-meta-label">
+                              <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></div>
+                              <span>Queue</span>
+                              <div class="flex items-center gap-1.5 ml-auto">
+                                <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[9px] font-bold">{{ composedCoverageSummary.total }}</span>
+                                <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.covered }} done</span>
+                                <span class="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded text-[9px] font-bold">{{ composedCoverageSummary.uncovered }} left</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+
+                        <!-- Full-width action row -->
+                        <div class="composer-action-strip">
+                          <div v-if="autoAdvanceSuggestion" class="status-nudge-banner">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 shrink-0 text-amber-600">
+                              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="flex-1 text-[10px] text-amber-800 font-semibold">{{ autoAdvanceSuggestion.message }}</span>
+                            <button @click="applyNextStep(autoAdvanceSuggestion.status)" class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="loading">{{ autoAdvanceSuggestion.label }}</button>
+                          </div>
+                          <div class="status-action-row">
+                            <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
+                            <button v-if="nextStepAction && !(autoAdvanceSuggestion && autoAdvanceSuggestion.status === nextStepAction.status)" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} →</button>
+                            <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">override</button>
+                          </div>
+                          <div v-if="showStatusOverride" class="status-override-row">
+                            <select v-model="selectedStatus" class="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300">
+                              <option value="">Change status...</option>
+                              <option value="pending">Pending</option>
+                              <option value="composing">Composing</option>
+                              <option value="composed">Composed</option>
+                              <option value="sourcing">Sourcing</option>
+                              <option value="enquiry_sent">Enquiry Sent</option>
+                              <option value="partially_available">Partially Available</option>
+                              <option value="confirming_with_pharm">Confirming With Pharm</option>
+                              <option value="awaiting_input">Awaiting Input</option>
+                              <option value="awaiting_customer">Awaiting Customer</option>
+                              <option value="payment_pending">Payment Pending</option>
+                              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+                              <option value="items_sourced">Items Sourced</option>
+                              <option value="paid">Paid</option>
+                              <option value="preparing">Preparing</option>
+                              <option value="driver_assigned">Driver Assigned</option>
+                              <option value="in_transit">In Transit</option>
+                              <option value="out_for_delivery">Out For Delivery</option>
+                              <option value="ready_for_pickup">Ready For Pickup</option>
+                              <option value="picked_up">Picked Up</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                              <option value="returned">Returned</option>
+                              <option value="expired">Expired</option>
+                            </select>
+                            <button @click="updateStatus" class="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 shadow-sm px-2 py-1 rounded-lg font-bold transition-colors disabled:opacity-50 shrink-0" :disabled="!selectedStatus || loading">Apply</button>
+                          </div>
+                        </div>
 
                       <div class="workspace-composer-divider"></div>
 
@@ -702,8 +737,8 @@
                               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                             </svg>
                             <span class="text-xs text-amber-800 font-semibold">
-                              Resolve all items to master products for accurate coverage.
-                              <strong>{{ resolvedItemCount }}/{{ requestItems.length }}</strong> resolved.
+                              Identify all items before starting sourcing.
+                              <strong>{{ resolvedItemCount }}/{{ requestItems.length }}</strong> identified.
                             </span>
                           </div>
                         </div>
@@ -748,27 +783,7 @@
                                   <span v-if="pharmacy.location" class="text-[10px] text-gray-400">{{ pharmacy.location }}</span>
                                 </div>
                               </div>
-                              <div class="flex items-center gap-2 shrink-0">
-                                <a
-                                  v-if="getPharmacyWhatsAppUrl(pharmacy.phone)"
-                                  :href="getPharmacyWhatsAppUrl(pharmacy.phone)"
-                                  target="_blank"
-                                  rel="noopener"
-                                  class="text-[10px] font-bold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                  title="WhatsApp"
-                                >
-                                  WhatsApp
-                                </a>
-                                <button
-                                  @click="routePharmacyAction(pharmacy)"
-                                  class="text-[10px] font-black px-3 py-1.5 rounded-lg bg-[#4F217A] text-white hover:bg-[#381659] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                  :disabled="loading || pharmacy.coverage_score === 0"
-                                  title="Route entire order to this pharmacy"
-                                >
-                                  Route here
-                                </button>
                               </div>
-                            </div>
 
                             <!-- Coverage bar -->
                             <div class="coverage-bar-row">
@@ -845,7 +860,8 @@
                                   <button
                                     v-else
                                     type="button"
-                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-600 hover:bg-violet-100 shrink-0 transition-colors"
+                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-600 hover:bg-violet-100 shrink-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    :disabled="isComposeLocked"
                                     @click="startCoverageSubSearch(pharmacy, ui)"
                                   >find substitute</button>
                                 </div>
@@ -873,8 +889,8 @@
                                     >
                                       <span class="text-xs font-bold text-gray-900 block truncate">{{ sp.product_description || sp.brand_name }}</span>
                                       <span class="text-[10px] text-gray-500">
-                                        GHâ‚µ{{ Number(sp.price || 0).toFixed(2) }} Â· {{ sp.available_quantity || 0 }} in stock
-                                        <template v-if="sp.distance_km !== null"> Â· {{ Number(sp.distance_km).toFixed(2) }} km</template>
+                                        GH₵{{ Number(sp.price || 0).toFixed(2) }} · {{ sp.available_quantity || 0 }} in stock
+                                        <template v-if="sp.distance_km !== null"> · {{ Number(sp.distance_km).toFixed(2) }} km</template>
                                       </span>
                                     </button>
                                   </div>
@@ -890,12 +906,13 @@
 
                     </section>
                   </template>
-                  <div v-else class="simple-composer-empty workspace-board-empty">
+                  <div v-else-if="!isComposeLocked" class="simple-composer-empty workspace-board-empty">
                     <span class="pane-eyebrow">Composition Workspace</span>
                     <h5>Add items to get started</h5>
                     <p>Use the quick add bar on the left to create request items, then resolve each to a master product to see pharmacy coverage.</p>
                   </div>
                 </div>
+              </template>
           </section>
           </template>
 
@@ -907,8 +924,72 @@
                   <h4 class="section-title">Pharmacy Outreach</h4>
                   <p class="workspace-panel-subcopy">Contact nearby pharmacies to source this request.</p>
                 </div>
-                <span class="status-badge sourcing">{{ formatStatus(selectedRequest?.status) }}</span>
+                <div class="section-head-actions">
+                  <button type="button" class="btn-ghost btn-sm" :disabled="loading" @click="sendBackToCompose">↩ Back to Compose</button>
+                  <span class="status-badge sourcing">{{ formatStatus(selectedRequest?.status) }}</span>
+                </div>
               </div>
+
+              <!-- Sourcing mode banners -->
+              <template v-if="pharmacyQueue?.length">
+                <!-- Single mode: goal statement -->
+                <div v-if="sourcingMode === 'single'" class="sourcing-goal-banner">
+                  <span>Looking for <strong>one pharmacy</strong> to supply all {{ (selectedRequest?.items || []).length }} item{{ (selectedRequest?.items || []).length !== 1 ? 's' : '' }}</span>
+                  <span v-if="fullMatchQueue.length > 0" class="sourcing-goal-count">{{ fullMatchQueue.length }} full match{{ fullMatchQueue.length !== 1 ? 'es' : '' }}</span>
+                  <span v-else class="sourcing-goal-count sourcing-goal-count--warn">No single-pharmacy full match found</span>
+                </div>
+                <!-- Escalation prompt -->
+                <div v-if="escalationReady && sourcingMode === 'single'" class="sourcing-escalation-card">
+                  <div class="sourcing-escalation-copy">
+                    <strong>No single-pharmacy match confirmed</strong>
+                    <span>All full-match pharmacies have been contacted but none confirmed. Consider splitting the order.</span>
+                  </div>
+                  <div class="sourcing-escalation-actions">
+                    <button type="button" class="sourcing-esc-btn sourcing-esc-btn--keep">Keep trying</button>
+                    <button type="button" class="sourcing-esc-btn sourcing-esc-btn--split" @click="sourcingMode = 'split'">Switch to split sourcing →</button>
+                  </div>
+                </div>
+                <!-- Split mode header -->
+                <div v-if="sourcingMode === 'split'" class="sourcing-split-header">
+                  <div class="sourcing-split-header-left">
+                    <span class="sourcing-split-badge">Split mode</span>
+                    <span>Sourcing items across multiple pharmacies</span>
+                  </div>
+                  <button type="button" class="sourcing-split-back" @click="sourcingMode = 'single'">← Back to single-source</button>
+                </div>
+                <!-- All items covered banner -->
+                <div v-if="sourcingMode === 'split' && allItemsCovered" class="sourcing-covered-banner">
+                  ✅ All items sourced — ready to finalize fulfillment
+                </div>
+                <!-- Item coverage tracker (split mode only) -->
+                <div v-if="sourcingMode === 'split'" class="sourcing-item-tracker">
+                  <div
+                    v-for="item in (selectedRequest?.items || [])"
+                    :key="item.id"
+                    class="tracker-item-row"
+                    :class="Number(item.sourced_quantity || 0) >= Number(item.requested_quantity || item.quantity || 1) ? 'tracker-item-row--covered' : 'tracker-item-row--pending'"
+                  >
+                    <div class="tracker-item-info">
+                      <span class="tracker-item-name">{{ item.product_name }}</span>
+                      <span class="tracker-item-qty">×{{ item.requested_quantity || item.quantity }}</span>
+                    </div>
+                    <div class="tracker-item-allocs">
+                      <template v-for="plan in fulfillmentPlans" :key="plan.plan_key">
+                        <template v-for="pi in (plan.items || [])" :key="pi.item_id">
+                          <span
+                            v-if="pi.item_id === item.id && pi.allocated_quantity > 0"
+                            class="tracker-alloc-chip"
+                          >{{ plan.pharmacies?.[0]?.pharmacy_name }} ×{{ pi.allocated_quantity }}</span>
+                        </template>
+                      </template>
+                      <span
+                        v-if="Number(item.sourced_quantity || 0) < Number(item.requested_quantity || item.quantity || 1)"
+                        class="tracker-remaining-badge"
+                      >{{ Number(item.requested_quantity || item.quantity || 1) - Number(item.sourced_quantity || 0) }} still needed</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
 
               <!-- Summary bar -->
               <div v-if="pharmacyQueue?.length" class="outreach-summary-bar">
@@ -925,72 +1006,108 @@
               </div>
 
               <div v-if="pharmacyQueue?.length" class="pharmacy-outreach-list">
-                <div
-                  v-for="pharm in pharmacyQueue"
-                  :key="pharm.pharmacy_id"
-                  class="pharmacy-outreach-row"
-                  :class="{ 'pharmacy-outreach-row--next': nextRecommendedPharmacy?.pharmacy_id === pharm.pharmacy_id }"
-                >
-                  <!-- Left: info -->
-                  <div class="pharmacy-outreach-info">
-                    <strong>{{ pharm.pharmacy_name }}</strong>
-                    <span class="muted">{{ Number(pharm.distance_km).toFixed(1) }} km</span>
-                    <span
-                      class="outreach-queue-chip"
-                      :class="'outreach-queue-chip--' + pharm.queue_state"
-                    >{{ { not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' }[pharm.queue_state] || pharm.queue_state }}</span>
-                    <span v-if="pharm.matched_item_count > 0" class="outreach-coverage-chip" :class="pharm.fully_covers_request ? 'outreach-coverage-chip--full' : ''">
-                      {{ pharm.fully_covers_request ? 'Full match' : `${pharm.matched_item_count} item${pharm.matched_item_count !== 1 ? 's' : ''}` }}
-                    </span>
+                <!-- Full coverage pharmacies -->
+                <template v-if="fullMatchQueue.length > 0">
+                  <div class="outreach-section-head">
+                    <span class="outreach-section-label outreach-section-label--full">Full coverage</span>
+                    <span class="outreach-section-note">These pharmacies have all items in stock</span>
                   </div>
-
-                  <!-- Right: action buttons -->
-                  <div class="pharmacy-outreach-actions">
-                    <!-- WhatsApp -->
-                    <a
-                      v-if="pharm.phone"
-                      :href="`https://wa.me/${String(pharm.phone).replace(/[^0-9]/g, '')}`"
-                      target="_blank"
-                      class="outreach-btn outreach-btn--wa"
-                      :title="`WhatsApp ${pharm.pharmacy_name}`"
-                      @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"
-                    >
-                      <span>WhatsApp</span>
-                    </a>
-                    <!-- Call -->
-                    <a
-                      v-if="pharm.phone"
-                      :href="`tel:${pharm.phone}`"
-                      class="outreach-btn outreach-btn--call"
-                      :title="`Call ${pharm.pharmacy_name}`"
-                      @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"
-                    >
-                      <span>Call</span>
-                    </a>
-
-                    <!-- Response buttons (shown after first contact) -->
-                    <template v-if="pharm.queue_state !== 'not_contacted'">
-                      <button
-                        type="button"
-                        class="outreach-btn outreach-btn--confirm"
-                        :class="{ active: pharm.queue_state === 'full' }"
-                        @click="openResponseModal(pharm, 'full')"
-                      >Available ✓</button>
-                      <button
-                        type="button"
-                        class="outreach-btn outreach-btn--partial"
-                        :class="{ active: pharm.queue_state === 'partial' }"
-                        @click="openResponseModal(pharm, 'partial')"
-                      >Partial</button>
-                      <button
-                        type="button"
-                        class="outreach-btn outreach-btn--decline"
-                        :class="{ active: pharm.queue_state === 'declined' }"
-                        @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'declined', { showSuccess: true })"
-                      >Unavailable ✗</button>
-                    </template>
+                  <div
+                    v-for="pharm in fullMatchQueue"
+                    :key="pharm.pharmacy_id"
+                    class="pharmacy-outreach-row"
+                    :class="{ 'pharmacy-outreach-row--next': nextRecommendedPharmacy?.pharmacy_id === pharm.pharmacy_id }"
+                  >
+                    <div class="pharmacy-outreach-info">
+                      <strong>{{ pharm.pharmacy_name }}</strong>
+                      <span class="muted">{{ Number(pharm.distance_km).toFixed(1) }} km</span>
+                      <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ { not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' }[pharm.queue_state] || pharm.queue_state }}</span>
+                      <span class="outreach-coverage-chip outreach-coverage-chip--full">Full match</span>
+                      <span v-if="pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0) === 0 }">
+                        {{ pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0 }} orders
+                        <template v-if="pharmacyLedgerMap[pharm.pharmacy_id]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id].last_transaction_at) }}</template>
+                      </span>
+                      <span v-else-if="Object.keys(pharmacyLedgerMap).length > 0" class="outreach-orders-chip outreach-orders-chip--low">0 orders</span>
+                    </div>
+                    <div class="pharmacy-outreach-actions">
+                      <a v-if="pharm.phone" :href="`https://wa.me/${String(pharm.phone).replace(/[^0-9]/g, '')}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
+                      <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>Call</span></a>
+                      <template v-if="!pharm.phone">
+                        <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id]?.editing">
+                          <input
+                            v-model="pharmacyPhoneEdit[pharm.pharmacy_id].value"
+                            type="tel"
+                            class="outreach-phone-input"
+                            placeholder="e.g. 0241234567"
+                            :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving"
+                            @keydown.enter="savePharmacyPhone(pharm)"
+                            @keydown.esc="cancelPharmacyPhoneEdit(pharm.pharmacy_id)"
+                          />
+                          <button type="button" class="outreach-btn outreach-btn--confirm" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving || !pharmacyPhoneEdit[pharm.pharmacy_id].value" @click="savePharmacyPhone(pharm)">{{ pharmacyPhoneEdit[pharm.pharmacy_id].saving ? 'Saving…' : 'Save' }}</button>
+                          <button type="button" class="outreach-btn outreach-btn--cancel" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving" @click="cancelPharmacyPhoneEdit(pharm.pharmacy_id)">✕</button>
+                        </template>
+                        <button v-else type="button" class="outreach-btn outreach-btn--add-phone" @click="startPharmacyPhoneEdit(pharm.pharmacy_id)">+ Add phone</button>
+                      </template>
+                      <template v-if="pharm.queue_state !== 'not_contacted'">
+                        <button type="button" class="outreach-btn outreach-btn--confirm" :class="{ active: pharm.queue_state === 'full' }" @click="openResponseModal(pharm, 'full')">Available ✓</button>
+                        <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
+                        <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'declined', { showSuccess: true })">Unavailable ✗</button>
+                      </template>
+                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading" @click="routePharmacyAction(pharm)">Route here</button>
+                    </div>
                   </div>
-                </div>
+                </template>
+
+                <!-- Partial coverage pharmacies -->
+                <template v-if="partialMatchQueue.length > 0">
+                  <div class="outreach-section-head" :class="{ 'outreach-section-head--spaced': fullMatchQueue.length > 0 }">
+                    <span class="outreach-section-label outreach-section-label--partial">Partial coverage</span>
+                    <span class="outreach-section-note">These pharmacies have some but not all items</span>
+                  </div>
+                  <div
+                    v-for="pharm in partialMatchQueue"
+                    :key="pharm.pharmacy_id"
+                    class="pharmacy-outreach-row"
+                    :class="{ 'pharmacy-outreach-row--next': nextRecommendedPharmacy?.pharmacy_id === pharm.pharmacy_id }"
+                  >
+                    <div class="pharmacy-outreach-info">
+                      <strong>{{ pharm.pharmacy_name }}</strong>
+                      <span class="muted">{{ Number(pharm.distance_km).toFixed(1) }} km</span>
+                      <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ { not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' }[pharm.queue_state] || pharm.queue_state }}</span>
+                      <span v-if="pharm.matched_item_count > 0" class="outreach-coverage-chip">{{ pharm.matched_item_count }} item{{ pharm.matched_item_count !== 1 ? 's' : '' }}</span>
+                      <span v-if="pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0) === 0 }">
+                        {{ pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0 }} orders
+                        <template v-if="pharmacyLedgerMap[pharm.pharmacy_id]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id].last_transaction_at) }}</template>
+                      </span>
+                      <span v-else-if="Object.keys(pharmacyLedgerMap).length > 0" class="outreach-orders-chip outreach-orders-chip--low">0 orders</span>
+                    </div>
+                    <div class="pharmacy-outreach-actions">
+                      <a v-if="pharm.phone" :href="`https://wa.me/${String(pharm.phone).replace(/[^0-9]/g, '')}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
+                      <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>Call</span></a>
+                      <template v-if="!pharm.phone">
+                        <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id]?.editing">
+                          <input
+                            v-model="pharmacyPhoneEdit[pharm.pharmacy_id].value"
+                            type="tel"
+                            class="outreach-phone-input"
+                            placeholder="e.g. 0241234567"
+                            :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving"
+                            @keydown.enter="savePharmacyPhone(pharm)"
+                            @keydown.esc="cancelPharmacyPhoneEdit(pharm.pharmacy_id)"
+                          />
+                          <button type="button" class="outreach-btn outreach-btn--confirm" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving || !pharmacyPhoneEdit[pharm.pharmacy_id].value" @click="savePharmacyPhone(pharm)">{{ pharmacyPhoneEdit[pharm.pharmacy_id].saving ? 'Saving…' : 'Save' }}</button>
+                          <button type="button" class="outreach-btn outreach-btn--cancel" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving" @click="cancelPharmacyPhoneEdit(pharm.pharmacy_id)">✕</button>
+                        </template>
+                        <button v-else type="button" class="outreach-btn outreach-btn--add-phone" @click="startPharmacyPhoneEdit(pharm.pharmacy_id)">+ Add phone</button>
+                      </template>
+                      <template v-if="pharm.queue_state !== 'not_contacted'">
+                        <button type="button" class="outreach-btn outreach-btn--confirm" :class="{ active: pharm.queue_state === 'full' }" @click="openResponseModal(pharm, 'full')">Available ✓</button>
+                        <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
+                        <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'declined', { showSuccess: true })">Unavailable ✗</button>
+                      </template>
+                    </div>
+                  </div>
+                </template>
               </div>
 
               <div v-else class="items-empty-state">
@@ -1011,15 +1128,87 @@
                 </div>
                 <span class="status-badge awaiting_input">{{ formatStatus(selectedRequest?.status) }}</span>
               </div>
+
               <div v-if="selectedRequest?.customer_decisions?.length" class="decisions-list">
-                <div v-for="dec in selectedRequest.customer_decisions" :key="dec.id" class="decision-row">
-                  <div class="decision-row-info">
-                    <strong>{{ dec.item_name || dec.item_id }}</strong>
-                    <span class="status-badge" :class="dec.status">{{ dec.status }}</span>
+                <div v-for="dec in selectedRequest.customer_decisions" :key="dec.id" class="decision-card" :class="'decision-card--' + dec.status">
+
+                  <!-- Decision header -->
+                  <div class="decision-card-header">
+                    <div class="decision-card-header-left">
+                      <span v-if="dec.payload?.summary?.decision_context" class="decision-context-chip" :class="'decision-context-chip--' + dec.payload.summary.decision_context">
+                        {{ { partial_availability: 'Partial availability', split_fulfillment: 'Split sourcing', substitute_approval: 'Substitute offer', mixed_availability: 'Multiple issues' }[dec.payload.summary.decision_context] || dec.payload.summary.decision_context }}
+                      </span>
+                      <span v-else-if="dec.decision_type" class="decision-context-chip">{{ dec.decision_type.replace(/_/g, ' ') }}</span>
+                      <span class="status-badge" :class="dec.status">{{ dec.status }}</span>
+                    </div>
+                    <div class="decision-card-header-right">
+                      <span v-if="dec.expires_at" class="decision-meta-chip" :class="new Date(dec.expires_at) < new Date() ? 'decision-meta-chip--expired' : ''">
+                        {{ new Date(dec.expires_at) < new Date() ? 'Expired' : 'Expires ' + formatRelativeTime(dec.expires_at) }}
+                      </span>
+                      <span v-if="dec.customer_notified_at" class="decision-meta-chip">Sent {{ formatRelativeTime(dec.customer_notified_at) }}</span>
+                    </div>
                   </div>
-                  <p v-if="dec.note" class="muted">{{ dec.note }}</p>
+
+                  <!-- Customer-facing message -->
+                  <div v-if="dec.title || dec.message" class="decision-message-block">
+                    <p v-if="dec.title" class="decision-message-title">{{ dec.title }}</p>
+                    <p v-if="dec.message" class="decision-message-body">{{ dec.message }}</p>
+                  </div>
+
+                  <!-- Summary stats -->
+                  <div v-if="dec.payload?.summary" class="decision-summary-bar">
+                    <span class="decision-stat">
+                      <span class="decision-stat-label">Requested</span>
+                      <span class="decision-stat-value">{{ dec.payload.summary.requested_items }}</span>
+                    </span>
+                    <span class="decision-stat decision-stat--ok">
+                      <span class="decision-stat-label">Available</span>
+                      <span class="decision-stat-value">{{ dec.payload.summary.available_items }}</span>
+                    </span>
+                    <span v-if="dec.payload.summary.missing_items > 0" class="decision-stat decision-stat--warn">
+                      <span class="decision-stat-label">Missing</span>
+                      <span class="decision-stat-value">{{ dec.payload.summary.missing_items }}</span>
+                    </span>
+                    <span v-if="dec.payload.summary.substitute_proposals > 0" class="decision-stat decision-stat--sub">
+                      <span class="decision-stat-label">Substitutes</span>
+                      <span class="decision-stat-value">{{ dec.payload.summary.substitute_proposals }}</span>
+                    </span>
+                    <span v-if="dec.payload.summary.is_split_source" class="decision-stat decision-stat--split">
+                      <span class="decision-stat-label">Pharmacies</span>
+                      <span class="decision-stat-value">{{ dec.payload.summary.source_pharmacy_count }}</span>
+                    </span>
+                  </div>
+
+                  <!-- Decision items table -->
+                  <div v-if="dec.payload?.decision_items?.length" class="decision-items-table">
+                    <div class="decision-items-head">
+                      <span>Item</span><span>Status</span><span>Source</span><span>Notes</span>
+                    </div>
+                    <div v-for="ditem in dec.payload.decision_items" :key="ditem.item_id" class="decision-items-row">
+                      <span class="decision-item-name">{{ ditem.product_name || ditem.item_name || ditem.item_id }}</span>
+                      <span class="decision-item-status-chip" :class="'decision-item-status--' + (ditem.status || 'unknown')">
+                        {{ { available: '✓ Available', not_available: '✗ Unavailable', substitute_available: '~ Substitute', partially_available: '⊙ Partial', enquiring: '? Checking' }[ditem.status] || ditem.status }}
+                      </span>
+                      <span class="decision-item-source muted">{{ ditem.source_pharmacy_name || (ditem.source_pharmacy_id ? `Pharmacy ${ditem.source_pharmacy_id}` : '—') }}</span>
+                      <span class="decision-item-note muted">
+                        <template v-if="ditem.substitute_name">Alt: {{ ditem.substitute_name }}<template v-if="ditem.substitute_note"> — {{ ditem.substitute_note }}</template></template>
+                        <template v-else-if="ditem.substitute_option?.name">Alt: {{ ditem.substitute_option.name }}</template>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Admin override actions (only for pending decisions) -->
+                  <div v-if="dec.status === 'pending'" class="decision-admin-actions">
+                    <p class="decision-admin-note">Customer hasn't responded yet. You can resolve on their behalf:</p>
+                    <div class="decision-admin-btns">
+                      <button type="button" class="btn-sm btn-success" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id, 'approved')">Approve for customer</button>
+                      <button type="button" class="btn-sm btn-danger-outline" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id, 'declined')">Decline</button>
+                    </div>
+                  </div>
+
                 </div>
               </div>
+
               <div v-else class="items-empty-state">
                 <strong>No decisions found.</strong>
                 <p>Customer decisions will appear here once created.</p>
@@ -1027,21 +1216,116 @@
             </section>
           </template>
 
-          <!-- payment mode: items + totals, informational -->
+          <!-- payment mode: order details + bill + fulfillment plan -->
           <template v-else-if="workspaceMode === 'payment'">
+
+            <!-- Order & customer info -->
             <section class="section-card workspace-main-card">
               <div class="section-head">
                 <div>
-                  <h4 class="section-title">Payment Pending</h4>
-                  <p class="workspace-panel-subcopy">The order is confirmed and awaiting payment from the customer.</p>
+                  <h4 class="section-title">Awaiting Payment</h4>
+                  <p class="workspace-panel-subcopy">
+                    Order confirmed — pending payment for {{ formatRelativeTime(selectedRequest?.updated_at) }}.
+                  </p>
                 </div>
                 <span class="status-badge payment_pending">{{ formatStatus(selectedRequest?.status) }}</span>
+              </div>
+              <div class="workspace-overview-grid">
+                <div class="workspace-overview-item">
+                  <span class="workspace-overview-key">Order #</span>
+                  <strong>{{ selectedRequest?.request_number || selectedRequest?.id }}</strong>
+                </div>
+                <div class="workspace-overview-item">
+                  <span class="workspace-overview-key">Placed</span>
+                  <strong>{{ formatDateTime(selectedRequest?.created_at) }}</strong>
+                </div>
+                <div class="workspace-overview-item">
+                  <span class="workspace-overview-key">Pending Since</span>
+                  <strong :title="formatDateTime(selectedRequest?.updated_at)">{{ formatRelativeTime(selectedRequest?.updated_at) }}</strong>
+                </div>
+                <div class="workspace-overview-item">
+                  <span class="workspace-overview-key">Fulfillment</span>
+                  <strong>{{ selectedRequest?.fulfillment_type || '-' }}</strong>
+                </div>
+                <div class="workspace-overview-item">
+                  <span class="workspace-overview-key">Customer</span>
+                  <strong>{{ selectedRequest?.customer_name || '-' }}</strong>
+                </div>
+                <div class="workspace-overview-item">
+                  <span class="workspace-overview-key">Phone</span>
+                  <strong>{{ selectedRequest?.customer_phone || '-' }}</strong>
+                </div>
+              </div>
+              <div v-if="selectedRequest?.customer_address" class="workspace-overview-grid" style="margin-top: 0.5rem;">
+                <div class="workspace-overview-item" style="grid-column: 1 / -1;">
+                  <span class="workspace-overview-key">Delivery Address</span>
+                  <strong>{{ selectedRequest.customer_address }}</strong>
+                </div>
+              </div>
+              <div v-if="selectedRequest?.customer_notes" class="workspace-overview-grid" style="margin-top: 0.5rem;">
+                <div class="workspace-overview-item" style="grid-column: 1 / -1;">
+                  <span class="workspace-overview-key">Customer Notes</span>
+                  <span>{{ selectedRequest.customer_notes }}</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Bill breakdown -->
+            <section class="section-card workspace-main-card">
+              <div class="section-head">
+                <h4 class="section-title">Order Bill</h4>
+              </div>
+              <div v-if="paymentModeItems.length" class="paid-breakdown-list">
+                <div v-for="entry in paymentModeItems" :key="`pay-${entry.item_id}`" class="paid-breakdown-item">
+                  <div class="paid-breakdown-item-top">
+                    <strong>{{ entry.product_name }}</strong>
+                    <span>{{ formatCurrency(entry.line_total) }}</span>
+                  </div>
+                  <div class="paid-breakdown-item-meta">
+                    {{ entry.quantity }} × {{ formatCurrency(entry.unit_price) }}
+                    <template v-if="entry.pharmacy_name"> · {{ entry.pharmacy_name }}</template>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="items-empty-state">
+                <strong>No priced items found.</strong>
+                <p>Run the fulfillment process to generate item pricing.</p>
+              </div>
+              <div v-if="paidSnapshotExcludedItems.length" class="paid-breakdown-excluded">
+                <h5>Not Included</h5>
+                <ul>
+                  <li v-for="entry in paidSnapshotExcludedItems" :key="`pay-excl-${entry.item_id}`">
+                    {{ entry.product_name }} ({{ formatExcludedReason(entry.reason) }})
+                  </li>
+                </ul>
+              </div>
+              <div v-if="paymentModeItems.length" class="payment-cost-totals">
+                <div class="payment-cost-row">
+                  <span>Items Subtotal</span>
+                  <span>{{ formatCurrency(paymentModeSubtotal) }}</span>
+                </div>
+                <div v-if="selectedRequest?.fulfillment_type === 'delivery'" class="payment-cost-row">
+                  <span>Delivery Fee</span>
+                  <span>{{ formatCurrency(selectedRequest?.delivery_fee) }}</span>
+                </div>
+                <div class="payment-cost-row payment-cost-row--total">
+                  <strong>Total</strong>
+                  <strong>{{ formatCurrency(paymentModeTotal) }}</strong>
+                </div>
+              </div>
+            </section>
+
+            <!-- Fulfillment plan -->
+            <section class="section-card workspace-main-card">
+              <div class="section-head">
+                <h4 class="section-title">Fulfillment Plan</h4>
               </div>
               <div v-if="pharmacyQueue?.length" class="pharmacy-queue-list">
                 <div v-for="plan in pharmacyQueue" :key="plan.pharmacy_id" class="pharmacy-queue-row">
                   <div class="pharmacy-queue-info">
                     <strong>{{ plan.pharmacy_name }}</strong>
                     <span v-if="plan.subtotal !== undefined">{{ formatCurrency(plan.subtotal) }}</span>
+                    <span v-if="plan.distance_km !== undefined" style="color: #6b7280; font-size: 0.8rem;">{{ formatDistance(plan.distance_km) }}</span>
                   </div>
                   <div v-if="plan.items?.length" class="pharmacy-queue-items">
                     <span v-for="item in plan.items" :key="item.item_id" class="queue-item-chip">{{ item.product_name }} ×{{ item.quantity }}</span>
@@ -1053,6 +1337,7 @@
                 <p>Run the fulfillment process to see which pharmacies are fulfilling this order.</p>
               </div>
             </section>
+
           </template>
 
           <!-- fulfillment mode: preparing order -->
@@ -1087,6 +1372,55 @@
               </div>
               <p class="workspace-panel-subcopy">Order is being prepared at the pharmacy. Payment snapshot not available yet.</p>
             </section>
+
+            <!-- Deliveries section -->
+            <section class="section-card workspace-main-card deliveries-section">
+              <div class="section-head">
+                <h4 class="section-title">Deliveries</h4>
+                <button v-if="!loadingDeliveries && requestDeliveries.length === 0" class="btn btn-sm btn-primary" @click="initiateDeliveries">
+                  Initiate Deliveries
+                </button>
+                <button v-else class="btn btn-sm btn-ghost" @click="fetchRequestDeliveries(selectedRequest.id)">
+                  Refresh
+                </button>
+              </div>
+              <div v-if="loadingDeliveries" class="items-empty-state"><p>Loading deliveries…</p></div>
+              <div v-else-if="!requestDeliveries.length" class="items-empty-state">
+                <p>No delivery records yet. Click "Initiate Deliveries" to create them.</p>
+              </div>
+              <div v-else class="delivery-cards">
+                <div v-for="d in requestDeliveries" :key="d.id" class="delivery-card">
+                  <div class="delivery-card-head">
+                    <strong>{{ d.pharmacy_name || `Pharmacy #${d.pickup_pharmacy_id}` }}</strong>
+                    <span class="delivery-status-chip" :class="`delivery-status-chip--${d.delivery_status}`">{{ d.delivery_status }}</span>
+                  </div>
+                  <div class="delivery-meta">
+                    <span v-if="d.distance_km">{{ Number(d.distance_km).toFixed(1) }} km</span>
+                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }}</span>
+                    <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
+                    <span v-if="d.pharmacy_claim_deadline">Claim by: {{ formatDateTime(d.pharmacy_claim_deadline) }}</span>
+                  </div>
+                  <div v-if="!['assigned','picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
+                    <button class="btn btn-sm btn-outline" @click="openForceAssign(d)">Force Assign Rider</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Force-assign modal -->
+            <div v-if="forceAssignModal" class="modal-backdrop" @click.self="closeForceAssign">
+              <div class="modal-box">
+                <h4 class="modal-title">Force Assign Rider</h4>
+                <p class="modal-subtitle">Delivery #{{ forceAssignModal.delivery.id }} · {{ forceAssignModal.delivery.pharmacy_name }}</p>
+                <label class="form-label">Rider ID</label>
+                <input v-model="forceAssignModal.driverId" type="number" class="form-input" placeholder="Enter driver ID" />
+                <div class="modal-actions">
+                  <button class="btn btn-ghost" @click="closeForceAssign">Cancel</button>
+                  <button class="btn btn-primary" @click="submitForceAssign">Assign</button>
+                </div>
+              </div>
+            </div>
+
             <section v-if="logisticsAssessment" class="section-card workspace-main-card">
               <div class="section-head">
                 <h4 class="section-title">Logistics</h4>
@@ -1117,6 +1451,30 @@
               </div>
               <div v-else class="items-empty-state">
                 <p>Transit details not available.</p>
+              </div>
+            </section>
+            <section class="section-card workspace-main-card deliveries-section">
+              <div class="section-head">
+                <h4 class="section-title">Deliveries</h4>
+                <button class="btn btn-sm btn-ghost" @click="fetchRequestDeliveries(selectedRequest.id)">Refresh</button>
+              </div>
+              <div v-if="loadingDeliveries" class="items-empty-state"><p>Loading…</p></div>
+              <div v-else-if="!requestDeliveries.length" class="items-empty-state"><p>No delivery records found.</p></div>
+              <div v-else class="delivery-cards">
+                <div v-for="d in requestDeliveries" :key="`transit-d-${d.id}`" class="delivery-card">
+                  <div class="delivery-card-head">
+                    <strong>{{ d.pharmacy_name || `Pharmacy #${d.pickup_pharmacy_id}` }}</strong>
+                    <span class="delivery-status-chip" :class="`delivery-status-chip--${d.delivery_status}`">{{ d.delivery_status }}</span>
+                  </div>
+                  <div class="delivery-meta">
+                    <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
+                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }}</span>
+                    <span v-if="d.distance_km">{{ Number(d.distance_km).toFixed(1) }} km</span>
+                  </div>
+                  <div v-if="!['assigned','picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
+                    <button class="btn btn-sm btn-outline" @click="openForceAssign(d)">Force Assign Rider</button>
+                  </div>
+                </div>
               </div>
             </section>
           </template>
@@ -1261,7 +1619,7 @@
                     <span class="alternative-preview-text">
                       {{ alternativeModal.item.product_name }}
                       <template v-if="Number(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price || 0) > 0">
-                        â€¢ {{ formatCurrency(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price) }}
+                        • {{ formatCurrency(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price) }}
                       </template>
                     </span>
                   </div>
@@ -1270,7 +1628,7 @@
                     <span class="alternative-preview-text">
                       {{ alternativePreviewName }}
                       <template v-if="alternativeModal.price !== '' && alternativeModal.price !== null && alternativeModal.price !== undefined">
-                        â€¢ {{ formatCurrency(alternativeModal.price) }}
+                        • {{ formatCurrency(alternativeModal.price) }}
                       </template>
                     </span>
                   </div>
@@ -1418,6 +1776,13 @@
                 {{ responseModal.mode === 'full' ? 'Full availability' : 'Partial availability' }}
               </span>
             </h4>
+            <p v-if="pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id]" class="response-modal-pharmacy-summary">
+              <template v-if="pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].request_count > 0">
+                {{ pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].request_count }} order{{ pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].request_count !== 1 ? 's' : '' }} fulfilled
+                <template v-if="pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].last_transaction_at) }}</template>
+              </template>
+              <template v-else>No orders fulfilled yet</template>
+            </p>
           </div>
           <button type="button" class="modal-close" @click="closeResponseModal">
             <XMarkIcon class="close-svg" />
@@ -1431,6 +1796,9 @@
             </span>
             <span v-if="responseModal.mode === 'partial'" class="response-modal-summary-hint">
               Check each item the pharmacy has in stock
+            </span>
+            <span v-if="sourcingMode === 'split'" class="response-modal-split-note">
+              Split mode — showing {{ responseModal.items.length }} unsourced item{{ responseModal.items.length !== 1 ? 's' : '' }}
             </span>
           </div>
 
@@ -1466,20 +1834,26 @@
                 </div>
                 <div class="response-field-group">
                   <label>Unit price (GHS)</label>
-                  <input
-                    v-model="item.unit_price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="form-control response-price-input"
-                    placeholder="e.g. 12.50"
-                  />
-                </div>
-                <div class="response-field-group response-field-substitute-toggle">
-                  <label>
-                    <input type="checkbox" v-model="item.showSubstitute" @change="if (!item.showSubstitute) { item.allocation_type = 'exact'; item.substitute_name = ''; item.substitute_note = '' }" />
-                    Substitute?
-                  </label>
+                  <div class="response-price-row">
+                    <input
+                      v-model="item.unit_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      class="form-control response-price-input"
+                      :class="{ 'response-price-input--catalog': item.is_price_from_catalog }"
+                      placeholder="e.g. 12.50"
+                      @input="item.is_price_from_catalog = false"
+                    />
+                    <label class="response-substitute-inline">
+                      <input type="checkbox" v-model="item.showSubstitute" @change="if (!item.showSubstitute) { item.allocation_type = 'exact'; item.substitute_name = ''; item.substitute_note = '' }" />
+                      Substitute?
+                    </label>
+                  </div>
+                  <div v-if="item.catalog_price != null" class="response-price-hint">
+                    <span class="response-price-hint-label">Catalog: GHS {{ Number(item.catalog_price).toFixed(2) }}</span>
+                    <span v-if="item.catalog_synced_at" class="response-price-hint-sync">· synced {{ formatRelativeTime(item.catalog_synced_at) }}</span>
+                  </div>
                 </div>
                 <template v-if="item.showSubstitute">
                   <div class="response-field-group response-field-wide" style="grid-column: 1 / -1;">
@@ -1765,7 +2139,14 @@ const allocationSummary = ref(null)
 const pharmacyQueue = ref([])
 const nextRecommendedPharmacy = ref(null)
 const logisticsAssessment = ref(null)
+const pharmacyLedgerMap = ref({}) // keyed by pharmacy_id
+const pharmacyPhoneEdit = ref({}) // keyed by pharmacy_id: { editing, value, saving }
 const message = ref(null)
+
+// --- Delivery management state ---
+const requestDeliveries = ref([])
+const loadingDeliveries = ref(false)
+const forceAssignModal = ref(null) // { delivery, driverId }
 
 // --- Coverage matrix state ---
 const pharmacyCoverage = ref(null)
@@ -1776,6 +2157,7 @@ const masterSearchQuery = ref('')
 const resolvingItemId = ref(null)
 let masterSearchDebounce = null
 const showStatusOverride = ref(false)
+const showAdminNotes = ref(false)
 const resolveSearchMode = ref('master') // 'master' | 'pharmacy'
 const pharmResolveResults = ref([])
 const pharmResolveLoading = ref(false)
@@ -1786,14 +2168,18 @@ const coverageSubSearch = ref({ pharmacyId: null, itemId: null, query: '', resul
 let coverageSubDebounce = null
 // --- End coverage substitute search state ---
 
+const isItemResolved = (item) =>
+  item.resolution_status === 'resolved' || Boolean(item.master_product_id)
 const resolvedItemCount = computed(() => {
   const items = requestItems.value || []
-  return items.filter(i => i.master_product_id).length
+  return items.filter(isItemResolved).length
 })
 const allItemsResolved = computed(() => {
   const items = requestItems.value || []
-  return items.length > 0 && items.every(i => i.master_product_id)
+  return items.length > 0 && items.every(isItemResolved)
 })
+// Write actions are locked until admin clicks "Start Composing" (status moves off 'pending')
+const isComposeLocked = computed(() => selectedRequest.value?.status === 'pending')
 // --- End coverage matrix state ---
 
 const REQUEST_POLL_MS = 5000
@@ -1847,6 +2233,7 @@ const responseModal = ref({
   note: '',
   items: []         // per-item working state
 })
+const sourcingMode = ref('single') // 'single' | 'split'
 const prescriptionPreview = ref({
   open: false,
   url: '',
@@ -2257,7 +2644,7 @@ const selectSourcingOption = (item, option, options = {}) => {
   if (isChangingSource) {
     showMessage(`Changed source to ${option.name} for ${name}`, 'success')
   } else {
-    showMessage(`Selected ${option.name} for ${name} â€” click Save Allocation to confirm`, 'success')
+    showMessage(`Selected ${option.name} for ${name} — click Save Allocation to confirm`, 'success')
   }
 }
 
@@ -2597,17 +2984,17 @@ const canMarkRequestComposed = computed(() => {
   if (!selectedRequest.value || loading.value) return false
   const currentStatus = normalizeRequestStatus(selectedRequest.value.status)
   if (!['pending', 'composing', 'sourcing', 'processing', 'composed', 'confirming_with_pharm'].includes(currentStatus)) return false
-  return hasComposableItems.value && composedCoverageSummary.value.covered > 0
+  return hasComposableItems.value && allItemsResolved.value
 })
 
 const composedStatusHint = computed(() => {
   if (!selectedRequest.value) return 'Open a request to prepare a composed order.'
   if (!hasComposableItems.value) return 'Add or confirm at least one request item first.'
-  if (composedCoverageSummary.value.covered <= 0) return 'Select at least one pharmacy-backed item before marking this request composed.'
-  if (composedCoverageSummary.value.uncovered > 0) {
-    return `${composedCoverageSummary.value.covered} item(s) composed, ${composedCoverageSummary.value.uncovered} still need sourcing.`
+  if (!allItemsResolved.value) {
+    const unresolved = (requestItems.value || []).filter(i => !isItemResolved(i)).length
+    return `${unresolved} item(s) still need to be identified before sourcing can begin.`
   }
-  return 'All request items have sourcing details and are ready for the composed queue.'
+  return 'All items identified — ready to start sourcing.'
 })
 
 const currentPipelineStageIndex = computed(() => {
@@ -2636,7 +3023,7 @@ const autoAdvanceSuggestion = computed(() => {
     return { message: 'All items routed — ready to start composing?', status: 'composing', label: 'Start Composing' }
   }
   if (['composing', 'sourcing', 'confirming_with_pharm'].includes(status) && canMarkRequestComposed.value) {
-    return { message: 'All items sourced — ready to start sourcing?', status: 'sourcing', label: 'Start Sourcing' }
+    return { message: 'All items identified — ready to start sourcing?', status: 'sourcing', label: 'Start Sourcing' }
   }
   return null
 })
@@ -2745,6 +3132,26 @@ const paidSnapshotExcludedItems = computed(() => {
   return Array.isArray(items) ? items : []
 })
 
+const paymentModeItems = computed(() => {
+  if (paidSnapshotItems.value.length) return paidSnapshotItems.value
+  return (selectedRequest.value?.items || [])
+    .filter(i => Number(i?.marked_up_price || i?.unit_price || 0) > 0 || Number(i?.line_total || 0) > 0)
+    .map(i => ({
+      item_id: i.id,
+      product_name: i.product_name || 'Item',
+      quantity: Number(i.quantity || i.requested_quantity || 1),
+      unit_price: Number(i.marked_up_price || i.unit_price || 0),
+      line_total: Number(i.line_total || (Number(i.marked_up_price || i.unit_price || 0) * Number(i.quantity || i.requested_quantity || 1))),
+      pharmacy_name: i.pharmacy_name,
+    }))
+})
+const paymentModeSubtotal = computed(() =>
+  paymentModeItems.value.reduce((s, i) => s + Number(i.line_total || 0), 0)
+)
+const paymentModeTotal = computed(() =>
+  Number((paymentModeSubtotal.value + Number(selectedRequest.value?.delivery_fee || 0)).toFixed(2))
+)
+
 const isPaidRequest = computed(() => normalizeRequestStatus(selectedRequest.value?.status) === 'paid')
 
 const workspaceMode = computed(() => {
@@ -2760,6 +3167,20 @@ const workspaceMode = computed(() => {
   if (['delivered', 'picked_up', 'completed'].includes(status)) return 'done'
   if (['cancelled', 'returned', 'expired'].includes(status)) return 'terminal'
   return 'compose'
+})
+
+const fullMatchQueue = computed(() => pharmacyQueue.value.filter(p => p.fully_covers_request))
+const partialMatchQueue = computed(() => pharmacyQueue.value.filter(p => !p.fully_covers_request))
+const escalationReady = computed(() => {
+  const full = fullMatchQueue.value
+  if (!full.length) return false
+  return full.every(p => p.queue_state !== 'not_contacted') && full.every(p => !p.is_confirmed)
+})
+const allItemsCovered = computed(() => {
+  const items = selectedRequest.value?.items || []
+  return items.length > 0 && items.every(i =>
+    Number(i.sourced_quantity || 0) >= Number(i.requested_quantity || i.quantity || 1)
+  )
 })
 
 // API helper
@@ -3016,8 +3437,64 @@ const viewRequest = async (req) => {
     } else if (['source', 'fulfillment', 'transit', 'pickup'].includes(mode)) {
       loadFulfillment({ silent: true })
     }
+    if (['fulfillment', 'transit', 'done'].includes(mode)) {
+      fetchRequestDeliveries(req.id)
+    } else {
+      requestDeliveries.value = []
+    }
   } catch (e) {
     showMessage('Failed to load request details', 'error')
+  }
+}
+
+// ============================
+// DELIVERY MANAGEMENT
+// ============================
+
+const fetchRequestDeliveries = async (requestId) => {
+  if (!requestId) return
+  loadingDeliveries.value = true
+  try {
+    const res = await apiCall('GET', `/api/order-requests/admin/${requestId}/deliveries`)
+    requestDeliveries.value = Array.isArray(res.data) ? res.data : []
+  } catch (e) {
+    requestDeliveries.value = []
+  } finally {
+    loadingDeliveries.value = false
+  }
+}
+
+const initiateDeliveries = async () => {
+  if (!selectedRequest.value?.id) return
+  try {
+    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/initiate-deliveries`)
+    requestDeliveries.value = Array.isArray(res.data) ? res.data : []
+    showMessage(res.message || 'Deliveries initiated', 'success')
+  } catch (e) {
+    showMessage(e.message || 'Failed to initiate deliveries', 'error')
+  }
+}
+
+const openForceAssign = (delivery) => {
+  forceAssignModal.value = { delivery, driverId: '' }
+}
+
+const closeForceAssign = () => {
+  forceAssignModal.value = null
+}
+
+const submitForceAssign = async () => {
+  const modal = forceAssignModal.value
+  if (!modal || !modal.driverId) return showMessage('Please enter a rider ID', 'error')
+  try {
+    await apiCall('POST', `/api/deliveries/${modal.delivery.id}/force-assign`, {
+      driver_id: Number(modal.driverId)
+    })
+    showMessage('Rider force-assigned', 'success')
+    forceAssignModal.value = null
+    fetchRequestDeliveries(selectedRequest.value.id)
+  } catch (e) {
+    showMessage(e.message || 'Force assign failed', 'error')
   }
 }
 
@@ -3119,13 +3596,14 @@ const cancelResolving = () => {
 const resolveItemToPharmProduct = async (item, pharmProduct) => {
   if (!item?.id || !pharmProduct?.id) return
   try {
-    const payload = { product_name: pharmProduct.product_description || pharmProduct.brand_name || pharmProduct.product_name }
+    const payload = { product_name: pharmProduct.product_description || pharmProduct.brand_name || pharmProduct.product_name, resolution_status: 'resolved' }
     if (pharmProduct.uniqid) payload.master_product_id = pharmProduct.uniqid
     await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, payload)
     if (selectedRequest.value?.items) {
       const localItem = selectedRequest.value.items.find(i => i.id === item.id)
       if (localItem) {
         localItem.product_name = payload.product_name
+        localItem.resolution_status = 'resolved'
         if (payload.master_product_id) localItem.master_product_id = payload.master_product_id
       }
     }
@@ -3249,7 +3727,8 @@ const resolveItemToMaster = async (item, masterProduct) => {
   try {
     await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
       master_product_id: masterProduct.id,
-      product_name: masterProduct.product_description
+      product_name: masterProduct.product_description,
+      resolution_status: 'resolved'
     })
     // Update local state
     if (selectedRequest.value?.items) {
@@ -3260,6 +3739,7 @@ const resolveItemToMaster = async (item, masterProduct) => {
         localItem.master_product_strength = masterProduct.strength
         localItem.master_product_unit = masterProduct.unit
         localItem.product_name = masterProduct.product_description
+        localItem.resolution_status = 'resolved'
       }
     }
     resolvingItemId.value = null
@@ -3276,7 +3756,8 @@ const unresolveItem = async (item) => {
   if (!item?.id) return
   try {
     await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-      master_product_id: null
+      master_product_id: null,
+      resolution_status: 'unresolved'
     })
     if (selectedRequest.value?.items) {
       const localItem = selectedRequest.value.items.find(i => i.id === item.id)
@@ -3285,6 +3766,7 @@ const unresolveItem = async (item) => {
         localItem.master_product_description = null
         localItem.master_product_strength = null
         localItem.master_product_unit = null
+        localItem.resolution_status = 'unresolved'
       }
     }
     fetchPharmacyCoverage()
@@ -3578,20 +4060,100 @@ const recordPharmacyContactAction = async (pharm, action, options = {}) => {
   }
 }
 
+const loadPharmacyLedger = async () => {
+  try {
+    const res = await apiCall('GET', '/api/order-requests/admin/pharmacy-ledger?limit=100')
+    const pharmacies = res.data?.pharmacies || []
+    const map = {}
+    for (const entry of pharmacies) {
+      if (entry.pharmacy_id) map[Number(entry.pharmacy_id)] = entry
+    }
+    pharmacyLedgerMap.value = map
+  } catch {
+    // Non-critical — ledger is supplementary info, silently ignore failures
+  }
+}
+
+const startPharmacyPhoneEdit = (pharmId) => {
+  pharmacyPhoneEdit.value = {
+    ...pharmacyPhoneEdit.value,
+    [pharmId]: { editing: true, value: '', saving: false }
+  }
+}
+
+const cancelPharmacyPhoneEdit = (pharmId) => {
+  const updated = { ...pharmacyPhoneEdit.value }
+  delete updated[pharmId]
+  pharmacyPhoneEdit.value = updated
+}
+
+const savePharmacyPhone = async (pharm) => {
+  const pharmId = pharm.pharmacy_id
+  const editState = pharmacyPhoneEdit.value[pharmId]
+  if (!editState) return
+  const phone = String(editState.value || '').trim()
+  if (!phone) return
+  pharmacyPhoneEdit.value = { ...pharmacyPhoneEdit.value, [pharmId]: { ...editState, saving: true } }
+  try {
+    await apiCall('PATCH', `/api/order-requests/admin/pharmacies/${pharmId}/phone`, { whatsapp_number: phone })
+    // Update phone on all matching entries in pharmacyQueue
+    pharmacyQueue.value = pharmacyQueue.value.map(p =>
+      Number(p.pharmacy_id) === Number(pharmId) ? { ...p, phone } : p
+    )
+    cancelPharmacyPhoneEdit(pharmId)
+    showMessage(`Phone saved for ${pharm.pharmacy_name}`, 'success')
+  } catch (e) {
+    pharmacyPhoneEdit.value = { ...pharmacyPhoneEdit.value, [pharmId]: { ...editState, saving: false } }
+    showMessage(e.message || 'Failed to save phone number', 'error')
+  }
+}
+
 const openResponseModal = (pharm, mode) => {
-  const items = (selectedRequest.value?.items || []).map((item) => ({
-    item_id: item.id,
-    product_name: item.product_name,
-    requested_quantity: Number(item.requested_quantity || item.quantity || 1),
-    requested_unit: item.requested_unit || '',
-    available: mode === 'full',
-    available_quantity: Number(item.requested_quantity || item.quantity || 1),
-    unit_price: null,
-    allocation_type: 'exact',
-    substitute_name: '',
-    substitute_note: '',
-    showSubstitute: false
-  }))
+  const allItems = selectedRequest.value?.items || []
+  // Build lookup of existing active allocations for this pharmacy
+  const existingAllocsByItemId = new Map()
+  for (const item of allItems) {
+    const activeAlloc = (item.allocations || []).find(
+      a => Number(a.pharmacy_id) === Number(pharm.pharmacy_id) &&
+           ['confirmed', 'proposed'].includes(a.status)
+    )
+    if (activeAlloc) existingAllocsByItemId.set(item.id, activeAlloc)
+  }
+  // In split mode, only show items still needing sourcing
+  const sourceItems = sourcingMode.value === 'split'
+    ? allItems.filter(i => Number(i.sourced_quantity || 0) < Number(i.requested_quantity || i.quantity || 1))
+    : allItems
+  const items = sourceItems.map((item) => {
+    const existingAlloc = existingAllocsByItemId.get(item.id)
+    const coverageItem = (pharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
+    const fullRequestedQty = Number(item.requested_quantity || item.quantity || 1)
+    const remainingQty = sourcingMode.value === 'split'
+      ? Math.max(fullRequestedQty - Number(item.sourced_quantity || 0), 1)
+      : fullRequestedQty
+    const defaultQty = existingAlloc ? Number(existingAlloc.allocated_quantity) : remainingQty
+    const catalogPrice = coverageItem?.unit_price != null && Number(coverageItem.unit_price) > 0
+      ? Number(coverageItem.unit_price)
+      : null
+    const prefillPrice = existingAlloc?.unit_price != null
+      ? String(existingAlloc.unit_price)
+      : (catalogPrice != null ? String(catalogPrice) : null)
+    return {
+      item_id: item.id,
+      product_name: item.product_name,
+      requested_quantity: remainingQty,
+      requested_unit: item.requested_unit || '',
+      available: existingAlloc ? true : (mode === 'full'),
+      available_quantity: defaultQty,
+      unit_price: prefillPrice,
+      catalog_price: catalogPrice,
+      catalog_synced_at: coverageItem?.catalog_synced_at || null,
+      is_price_from_catalog: existingAlloc?.unit_price == null && catalogPrice != null,
+      allocation_type: existingAlloc?.allocation_type || 'exact',
+      substitute_name: existingAlloc?.substitute_name || '',
+      substitute_note: existingAlloc?.substitute_note || '',
+      showSubstitute: existingAlloc?.allocation_type === 'substitute'
+    }
+  })
   responseModal.value = {
     open: true,
     pharmacy: pharm,
@@ -3646,6 +4208,14 @@ const submitResponseModal = async () => {
     )
     closeResponseModal()
     await fetchFulfillmentPlans({ silent: true })
+    // Refresh request items so allocations are current for next modal open
+    try {
+      const freshReq = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value?.id}`)
+      if (freshReq?.data?.items) {
+        selectedRequest.value = { ...selectedRequest.value, ...freshReq.data }
+        hydrateItemUiState(selectedRequest.value.items || [])
+      }
+    } catch { /* non-critical */ }
   } catch (e) {
     showMessage(e.message || 'Failed to submit pharmacy response', 'error')
   } finally {
@@ -3740,6 +4310,7 @@ const loadFulfillment = async (options = {}) => {
       logisticsAssessment.value = res.data.logistics_assessment || null
       syncPharmacyCoverageFromQueue(pharmacyQueue.value)
       hydrateItemUiState(selectedRequest.value.items || [])
+      loadPharmacyLedger()
       if (refreshLists) {
         await fetchRequests()
         await fetchStats()
@@ -3861,7 +4432,19 @@ const markRequestComposed = async () => {
 const applyNextStep = async (statusOverride) => {
   const targetStatus = statusOverride || nextStepAction.value?.status
   if (!targetStatus || !selectedRequest.value) return
+  // Advancing to awaiting_input must create a decision record (not just a status bump)
+  if (targetStatus === 'awaiting_input') {
+    return requestCustomerDecision('action_needed')
+  }
   selectedStatus.value = targetStatus
+  await updateStatus()
+}
+
+const sendBackToCompose = async () => {
+  if (!selectedRequest.value) return
+  const ok = window.confirm('Send this request back to Compose? Existing allocations will be preserved.')
+  if (!ok) return
+  selectedStatus.value = 'composing'
   await updateStatus()
 }
 
@@ -3904,6 +4487,7 @@ const fetchFulfillmentPlans = async (options = {}) => {
       nextRecommendedPharmacy.value = data.next_recommended_pharmacy || null
       logisticsAssessment.value = data.logistics_assessment || null
       syncPharmacyCoverageFromQueue(pharmacyQueue.value)
+      loadPharmacyLedger()
     } catch (e) {
       if (!silent) showMessage('Failed to load fulfillment plans', 'error')
     }
@@ -3945,6 +4529,25 @@ const requestCustomerDecision = async (decisionType) => {
     showMessage(successMessage, 'success')
   } catch (e) {
     showMessage(e.message || 'Failed to create customer decision', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const resolveDecisionAsAdmin = async (decisionId, response) => {
+  if (!selectedRequest.value) return
+  const label = response === 'approved' ? 'approve' : 'decline'
+  const ok = window.confirm(`${response === 'approved' ? 'Approve' : 'Decline'} this decision on behalf of the customer?`)
+  if (!ok) return
+  loading.value = true
+  try {
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/decisions/${decisionId}/resolve`, { response })
+    await fetchRequests()
+    const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+    selectedRequest.value = detailRes.data
+    showMessage(`Decision ${label}d on behalf of customer`, 'success')
+  } catch (e) {
+    showMessage(e.message || `Failed to ${label} decision`, 'error')
   } finally {
     loading.value = false
   }
@@ -4031,7 +4634,7 @@ const getProductResultMeta = (result) => {
   if (!parts.length && result?.strength) {
     parts.push(String(result.strength))
   }
-  return parts.join(' â€¢ ')
+  return parts.join(' • ')
 }
 
 const fetchProductSearchResults = async (query, options = {}) => {
@@ -4755,6 +5358,18 @@ const formatStatus = (status) => (status || 'unknown').replace(/_/g, ' ').replac
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
 const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-'
 const formatCurrency = (value) => `GHS ${Number(value || 0).toFixed(2)}`
+const formatRelativeTime = (d) => {
+  if (!d) return null
+  const diffMs = Date.now() - new Date(d).getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 60) return diffMins <= 1 ? 'just now' : `${diffMins}m ago`
+  const diffHrs = Math.floor(diffMins / 60)
+  if (diffHrs < 24) return `${diffHrs}h ago`
+  const diffDays = Math.floor(diffHrs / 24)
+  if (diffDays < 30) return `${diffDays}d ago`
+  const diffMonths = Math.floor(diffDays / 30)
+  return `${diffMonths}mo ago`
+}
 const formatSignedCurrency = (value) => {
   const amount = Number(value || 0)
   const sign = amount > 0 ? '+' : amount < 0 ? '-' : ''
@@ -4762,7 +5377,7 @@ const formatSignedCurrency = (value) => {
 }
 const formatRatingStars = (rating) => {
   const safeRating = Math.max(0, Math.min(5, Number(rating || 0)))
-  return `${'â˜…'.repeat(safeRating)}${'â˜†'.repeat(Math.max(5 - safeRating, 0))}`
+  return `${'★'.repeat(safeRating)}${'☆'.repeat(Math.max(5 - safeRating, 0))}`
 }
 const formatExcludedReason = (reason) => {
   const key = String(reason || '').toLowerCase()
@@ -7740,6 +8355,13 @@ definePageMeta({
   align-items: start;
 }
 
+.workspace-board-grid--locked {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.4);
+  transition: opacity 0.2s, filter 0.2s;
+}
+
 .pane-eyebrow {
   display: inline-block;
   margin-bottom: 0.2rem;
@@ -7983,6 +8605,18 @@ definePageMeta({
   gap: 0.5rem;
 }
 
+.pane-quick-add-lock {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.6rem;
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
 .request-item-row {
   width: 100%;
   text-align: left;
@@ -8098,6 +8732,98 @@ definePageMeta({
   color: #6b7280;
 }
 
+.composer-meta-label--toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.35rem;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+.composer-meta-label--toggle:hover {
+  background: #f3f4f6;
+}
+
+.composer-notes-preview {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #9ca3af;
+  font-size: 0.65rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compose-cta-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 1px solid #c4b5fd;
+  border-radius: 12px;
+}
+
+.compose-cta-banner--full {
+  margin-bottom: 0;
+}
+
+.compose-cta-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: #4F217A;
+  border-radius: 8px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.compose-cta-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+.compose-cta-copy strong {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #3b0764;
+}
+.compose-cta-copy span {
+  font-size: 0.68rem;
+  color: #6d28d9;
+  line-height: 1.4;
+}
+
+.compose-cta-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.9rem;
+  background: #4F217A;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.compose-cta-btn:hover:not(:disabled) {
+  background: #381659;
+}
+.compose-cta-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .composer-meta-textarea {
   width: 100%;
   font-size: 0.72rem;
@@ -8122,6 +8848,15 @@ definePageMeta({
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.composer-action-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #f3f4f6;
 }
 
 .workspace-panel-head {
@@ -8152,9 +8887,176 @@ definePageMeta({
 .decisions-list {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.75rem;
   margin-top: 0.75rem;
 }
+
+/* ---- Decision card ---- */
+.decision-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.decision-card--pending { border-left: 3px solid #f59e0b; }
+.decision-card--approved { border-left: 3px solid #22c55e; background: #f0fdf4; }
+.decision-card--declined { border-left: 3px solid #ef4444; background: #fff5f5; }
+.decision-card--expired { border-left: 3px solid #94a3b8; opacity: 0.75; }
+
+.decision-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.decision-card-header-left, .decision-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.decision-context-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 5px;
+  background: #e2e8f0;
+  color: #334155;
+  text-transform: capitalize;
+}
+
+.decision-meta-chip {
+  font-size: 0.72rem;
+  color: #64748b;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+}
+.decision-meta-chip--expired { color: #ef4444; background: #fee2e2; }
+
+.decision-message-block { display: flex; flex-direction: column; gap: 0.2rem; }
+.decision-message-title { font-size: 0.88rem; font-weight: 600; color: #1e293b; margin: 0; }
+.decision-message-body  { font-size: 0.82rem; color: #475569; margin: 0; }
+
+/* Summary stats */
+.decision-summary-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.6rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+}
+.decision-stat { display: flex; flex-direction: column; align-items: center; min-width: 3.5rem; }
+.decision-stat-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+.decision-stat-value { font-size: 1rem; font-weight: 700; color: #1e293b; line-height: 1.2; }
+.decision-stat--ok   .decision-stat-value { color: #16a34a; }
+.decision-stat--warn .decision-stat-value { color: #dc2626; }
+.decision-stat--sub  .decision-stat-value { color: #d97706; }
+.decision-stat--split .decision-stat-value { color: #2563eb; }
+
+/* Decision items table */
+.decision-items-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  overflow: hidden;
+  font-size: 0.81rem;
+}
+.decision-items-head {
+  display: grid;
+  grid-template-columns: 1fr 8rem 10rem 1fr;
+  gap: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  background: #f1f5f9;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.decision-items-row {
+  display: grid;
+  grid-template-columns: 1fr 8rem 10rem 1fr;
+  gap: 0.5rem;
+  padding: 0.4rem 0.65rem;
+  border-top: 1px solid #e2e8f0;
+  align-items: center;
+}
+.decision-items-row:nth-child(even) { background: #f8fafc; }
+.decision-item-name { font-weight: 500; color: #1e293b; }
+.decision-item-status-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #475569;
+  white-space: nowrap;
+}
+.decision-item-status--available        { background: #dcfce7; color: #15803d; }
+.decision-item-status--not_available    { background: #fee2e2; color: #dc2626; }
+.decision-item-status--substitute_available { background: #fef9c3; color: #b45309; }
+.decision-item-status--partially_available  { background: #fff7ed; color: #c2410c; }
+.decision-item-note { color: #64748b; font-size: 0.78rem; }
+
+/* Admin override row */
+.decision-admin-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #cbd5e1;
+}
+.decision-admin-note { font-size: 0.78rem; color: #64748b; margin: 0; }
+.decision-admin-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Small utility buttons */
+.btn-sm {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-success { background: #22c55e; color: #fff; border-color: #16a34a; }
+.btn-success:hover:not(:disabled) { background: #16a34a; }
+.btn-danger-outline { background: #fff; color: #dc2626; border-color: #fca5a5; }
+.btn-danger-outline:hover:not(:disabled) { background: #fee2e2; }
+
+/* Ghost button */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.65rem;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.btn-ghost:hover:not(:disabled) { background: #f1f5f9; }
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Section head with actions */
+.section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 
 .outreach-summary-bar {
   display: flex;
@@ -8198,8 +9100,7 @@ definePageMeta({
   background: #f0f9ff;
 }
 
-.pharmacy-queue-row,
-.decision-row {
+.pharmacy-queue-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -8212,8 +9113,7 @@ definePageMeta({
 }
 
 .pharmacy-outreach-info,
-.pharmacy-queue-info,
-.decision-row-info {
+.pharmacy-queue-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -8257,6 +9157,43 @@ definePageMeta({
   background: #dcfce7;
   color: #166534;
 }
+.outreach-orders-chip {
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 5px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+.outreach-orders-chip--low {
+  background: #fff7ed;
+  color: #92400e;
+}
+.outreach-phone-input {
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  font-size: 0.78rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  width: 9rem;
+  outline: none;
+}
+.outreach-phone-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+}
+.outreach-btn--add-phone {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #86efac;
+}
+.outreach-btn--add-phone:hover { background: #dcfce7; }
+.outreach-btn--cancel {
+  background: #f9fafb;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+.outreach-btn--cancel:hover { background: #f3f4f6; }
 
 /* Action buttons */
 .outreach-btn {
@@ -8312,6 +9249,169 @@ definePageMeta({
   background: #fee2e2;
   border-color: #f87171;
 }
+.outreach-btn--route {
+  background: #4F217A;
+  color: #fff;
+  border-color: #4F217A;
+  font-weight: 800;
+}
+.outreach-btn--route:hover:not(:disabled) {
+  background: #381659;
+  border-color: #381659;
+}
+.outreach-btn--route:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sourcing mode: goal banner */
+.sourcing-goal-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+.sourcing-goal-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 5px;
+  padding: 0.1rem 0.45rem;
+}
+.sourcing-goal-count--warn {
+  background: #fff7ed;
+  color: #9a3412;
+}
+/* Escalation card */
+.sourcing-escalation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+.sourcing-escalation-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.sourcing-escalation-copy strong {
+  font-size: 0.82rem;
+  color: #92400e;
+}
+.sourcing-escalation-copy span {
+  color: #78350f;
+  font-size: 0.78rem;
+}
+.sourcing-escalation-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.sourcing-esc-btn {
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.sourcing-esc-btn--keep { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+.sourcing-esc-btn--keep:hover { background: #e2e8f0; }
+.sourcing-esc-btn--split { background: #f59e0b; color: #fff; border-color: #d97706; }
+.sourcing-esc-btn--split:hover { background: #d97706; }
+/* Split mode header */
+.sourcing-split-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+.sourcing-split-header-left { display: flex; align-items: center; gap: 0.5rem; }
+.sourcing-split-badge {
+  background: #7c3aed;
+  color: #fff;
+  border-radius: 5px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.sourcing-split-back { font-size: 0.75rem; color: #7c3aed; background: none; border: none; cursor: pointer; padding: 0; font-weight: 600; }
+.sourcing-split-back:hover { text-decoration: underline; }
+/* All covered banner */
+.sourcing-covered-banner {
+  padding: 0.5rem 0.75rem;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #166534;
+  margin-top: 0.5rem;
+}
+/* Item coverage tracker */
+.sourcing-item-tracker {
+  border: 1px solid #e9d5ff;
+  border-radius: 8px;
+  background: #faf5ff;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+.tracker-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  border-bottom: 1px solid #ede9fe;
+  flex-wrap: wrap;
+}
+.tracker-item-row:last-child { border-bottom: none; }
+.tracker-item-row--covered { background: #f0fdf4; }
+.tracker-item-row--pending { background: #faf5ff; }
+.tracker-item-info { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.tracker-item-name { font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tracker-item-qty { font-size: 0.72rem; color: #64748b; white-space: nowrap; }
+.tracker-item-allocs { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
+.tracker-alloc-chip { background: #dcfce7; color: #166534; border-radius: 5px; padding: 0.1rem 0.45rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+.tracker-remaining-badge { background: #fff7ed; color: #9a3412; border-radius: 5px; padding: 0.1rem 0.45rem; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+/* Outreach section headers */
+.outreach-section-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; margin-top: 0.5rem; }
+.outreach-section-head--spaced { margin-top: 0.85rem; }
+.outreach-section-label { font-size: 0.72rem; font-weight: 700; border-radius: 5px; padding: 0.1rem 0.45rem; }
+.outreach-section-label--full { background: #dcfce7; color: #166534; }
+.outreach-section-label--partial { background: #fff7ed; color: #9a3412; }
+.outreach-section-note { font-size: 0.72rem; color: #94a3b8; }
+/* Response modal split note */
+.response-modal-split-note {
+  font-size: 0.72rem;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 5px;
+  padding: 0.1rem 0.45rem;
+  font-weight: 600;
+}
 
 /* ============================================================
    PHARMACY RESPONSE MODAL
@@ -8360,6 +9460,11 @@ definePageMeta({
 .response-modal-summary-hint {
   color: #6b7280;
 }
+.response-modal-pharmacy-summary {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: 0.15rem 0 0;
+}
 .response-items-list {
   display: flex;
   flex-direction: column;
@@ -8371,7 +9476,7 @@ definePageMeta({
 .response-item-row {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.65rem 0.85rem;
+  padding: 0.45rem 0.75rem;
   background: #fff;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -8408,22 +9513,45 @@ definePageMeta({
 }
 .response-item-fields {
   display: grid;
-  grid-template-columns: auto auto auto 1fr;
-  gap: 0.5rem 0.75rem;
-  margin-top: 0.65rem;
-  align-items: end;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.4rem;
+  align-items: start;
 }
 .response-field-group {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 .response-field-group label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+.response-price-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.response-substitute-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.response-substitute-inline input[type="checkbox"] {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 .response-qty-input {
   width: 5.5rem;
@@ -8431,20 +9559,22 @@ definePageMeta({
 .response-price-input {
   width: 8rem;
 }
-.response-field-substitute-toggle label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  text-transform: none;
-  letter-spacing: 0;
+.response-price-input--catalog {
+  border-color: #a5b4fc;
+  background: #f5f3ff;
 }
-.response-field-substitute-toggle input[type="checkbox"] {
-  width: 0.9rem;
-  height: 0.9rem;
+.response-price-hint {
+  font-size: 0.68rem;
+  color: #6b7280;
+  margin-top: 0.15rem;
+  line-height: 1.2;
+}
+.response-price-hint-label {
+  color: #4f46e5;
+  font-weight: 500;
+}
+.response-price-hint-sync {
+  color: #9ca3af;
 }
 .response-note-field {
   display: flex;
@@ -9064,7 +10194,7 @@ definePageMeta({
   color: #fff;
 }
 
-/* â”€â”€ Pipeline status bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Pipeline status bar ──────────────────────────────────────────────────── */
 .pipeline-bar {
   display: flex;
   align-items: center;
@@ -9153,7 +10283,7 @@ definePageMeta({
   border: 1px solid #fca5a5;
 }
 
-/* â”€â”€ Status action row (next step + override) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Status action row (next step + override) ──────────────────────────────── */
 .status-nudge-banner {
   display: flex;
   align-items: center;
@@ -9190,21 +10320,21 @@ definePageMeta({
 .next-step-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .override-toggle-btn {
-  padding: 0.28rem 0.55rem;
-  border-radius: 6px;
-  background: #f3f4f6;
-  color: #6b7280;
-  font-size: 0.68rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.65rem;
   font-weight: 700;
-  border: 1px solid #e5e7eb;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.12s;
   white-space: nowrap;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
 }
 .override-toggle-btn:hover,
 .override-toggle-btn.active {
-  background: #e5e7eb;
-  color: #374151;
+  color: #4b5563;
 }
 
 .status-override-row {
@@ -9955,6 +11085,29 @@ definePageMeta({
   color: #6b7280;
 }
 
+.payment-cost-totals {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.payment-cost-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #374151;
+}
+.payment-cost-row--total {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+}
+
 .paid-breakdown-note {
   margin-top: 0.3rem;
   font-size: 0.78rem;
@@ -9981,6 +11134,61 @@ definePageMeta({
   color: #374151;
   font-size: 0.82rem;
 }
+
+/* ---- Delivery management styles ---- */
+.deliveries-section {}
+
+.delivery-cards {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.delivery-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: #f9fafb;
+}
+
+.delivery-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.delivery-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.delivery-card-actions {
+  margin-top: 0.55rem;
+}
+
+.delivery-status-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  text-transform: capitalize;
+  background: #f3f4f6;
+  color: #374151;
+}
+.delivery-status-chip--open { background: #eff6ff; color: #2563eb; }
+.delivery-status-chip--rider_proposed { background: #fef9c3; color: #854d0e; }
+.delivery-status-chip--assigned { background: #fef9c3; color: #854d0e; }
+.delivery-status-chip--picking_up,
+.delivery-status-chip--picked_up { background: #f0fdf4; color: #166534; }
+.delivery-status-chip--in_transit { background: #e0f2fe; color: #0369a1; }
+.delivery-status-chip--delivered { background: #dcfce7; color: #15803d; }
+.delivery-status-chip--failed { background: #fee2e2; color: #991b1b; }
+.delivery-status-chip--cancelled { background: #f3f4f6; color: #9ca3af; }
 
 .customer-feedback-card {
   border: 1px solid #e5e7eb;

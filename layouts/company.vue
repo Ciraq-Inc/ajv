@@ -144,7 +144,10 @@ import {
   UserGroupIcon,
   BriefcaseIcon,
   Bars3Icon,
-  PresentationChartLineIcon
+  PresentationChartLineIcon,
+  ClipboardDocumentListIcon,
+  TruckIcon,
+  BanknotesIcon,
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -190,6 +193,26 @@ const servicePath = (slug = '') => {
 }
 
 const allNavigationSections = computed(() => [
+  {
+    title: 'Orders & Deliveries',
+    items: [
+      {
+        path: servicePath('orders'),
+        label: 'Order Requests',
+        icon: ClipboardDocumentListIcon,
+      },
+      {
+        path: servicePath('deliveries'),
+        label: 'Deliveries',
+        icon: TruckIcon,
+      },
+      {
+        path: servicePath('wallet'),
+        label: 'Wallet',
+        icon: BanknotesIcon,
+      },
+    ],
+  },
   {
     title: 'SMS',
     items: [
