@@ -17,10 +17,10 @@
           </div>
           <div class="container mx-auto px-8 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
             <div class="max-w-2xl">
-              <h1 class="text-[3.5rem] font-semibold leading-[1.1] tracking-tight text-[#1e1a22] mb-6">
+              <h1 class="text-[2rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.1] tracking-tight text-[#520094] mb-6">
                 Find any medication, <span class="text-[#520094]">anywhere.</span>
               </h1>
-              <p class="text-lg text-[#4c4453] mb-10 font-medium leading-relaxed">
+              <p class="text-base sm:text-[1rem] text-[#4c4453] mb-10 font-medium leading-relaxed">
                 Expert care, delivered. Connecting you to over 210+ verified pharmacies across Ghana for seamless healthcare access.
               </p>
               <!-- Search & CTA -->
