@@ -52,6 +52,7 @@
         >
           <span>{{ tab.label }}</span>
           <span class="status-tab-count" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 0.5rem; font-size: 0.65rem; font-weight: 700; border-radius: 999px; height: 1.25rem;" :style="statusFilter === tab.value ? 'background: rgba(255,255,255,0.2); color: #fff;' : 'background: #e5e7eb; color: #374151;'">{{ tab.count }}</span>
+          <span v-if="tab.value === 'pending' && expiringSoonCount > 0" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 0.4rem; font-size: 0.6rem; font-weight: 700; border-radius: 999px; height: 1.1rem; background: #ef4444; color: #fff;" title="Requests closing soon">{{ expiringSoonCount }}</span>
         </button>
 
           <!-- Status Changer on the Far Right -->
@@ -143,9 +144,9 @@
             @click="handleProcessRequest(req)"
             @keydown.enter.prevent="handleProcessRequest(req)"
             @keydown.space.prevent="handleProcessRequest(req)"
-            style="border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background-color 0.15s ease;"
+            :style="`border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background-color 0.15s ease; ${rowUrgencyStyle(req)}`"
             onmouseover="this.style.backgroundColor='#f9fafb'"
-            onmouseout="this.style.backgroundColor='transparent'"
+            onmouseout="this.style.backgroundColor=''"
           >
             <td class="request-number" style="padding: 0.875rem 1.25rem; font-weight: 600; color: #111827; font-size: 0.85rem;">{{ req.request_number }}</td>
             <td style="padding: 0.875rem 1.25rem;">
@@ -485,15 +486,15 @@
                                   <button
                                     type="button"
                                     class="resolve-mode-tab"
-                                    :class="{ active: resolveSearchMode === 'master' }"
-                                    @click="setResolveMode('master')"
-                                  >Master catalog</button>
-                                  <button
-                                    type="button"
-                                    class="resolve-mode-tab"
                                     :class="{ active: resolveSearchMode === 'pharmacy' }"
                                     @click="setResolveMode('pharmacy')"
                                   >Pharmacy stock</button>
+                                  <button
+                                    type="button"
+                                    class="resolve-mode-tab"
+                                    :class="{ active: resolveSearchMode === 'master' }"
+                                    @click="setResolveMode('master')"
+                                  >Master catalog</button>
                                 </div>
                                 <!-- Master catalog results -->
                                 <template v-if="resolveSearchMode === 'master'">
@@ -550,7 +551,7 @@
                               <div class="request-item-row-meta">
                                 <span>Qty {{ getRequestedQuantity(item) }}</span>
                                 <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
-                                <template v-if="item.master_product_id">
+                                <template v-if="item.master_product_id || item.source_pharmacy_id || item.resolution_status === 'resolved'">
                                   <span
                                     class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-700"
                                     :class="isComposeLocked ? 'cursor-default opacity-60' : 'cursor-pointer'"
@@ -672,7 +673,7 @@
                               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
                             </svg>
                             <span class="flex-1 text-[10px] text-amber-800 font-semibold">{{ autoAdvanceSuggestion.message }}</span>
-                            <button @click="applyNextStep(autoAdvanceSuggestion.status)" class="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="loading">{{ autoAdvanceSuggestion.label }}</button>
+                            <button @click="applyNextStep(autoAdvanceSuggestion.status)" class="shrink-0 text-xs font-black px-4 py-1.5 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="loading">{{ autoAdvanceSuggestion.label }}</button>
                           </div>
                           <div class="status-action-row">
                             <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
@@ -1030,7 +1031,7 @@
                       <span v-else-if="Object.keys(pharmacyLedgerMap).length > 0" class="outreach-orders-chip outreach-orders-chip--low">0 orders</span>
                     </div>
                     <div class="pharmacy-outreach-actions">
-                      <a v-if="pharm.phone" :href="`https://wa.me/${String(pharm.phone).replace(/[^0-9]/g, '')}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
+                      <a v-if="pharm.phone" :href="pharm.whatsapp_url || `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
                       <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>Call</span></a>
                       <template v-if="!pharm.phone">
                         <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id]?.editing">
@@ -1082,7 +1083,7 @@
                       <span v-else-if="Object.keys(pharmacyLedgerMap).length > 0" class="outreach-orders-chip outreach-orders-chip--low">0 orders</span>
                     </div>
                     <div class="pharmacy-outreach-actions">
-                      <a v-if="pharm.phone" :href="`https://wa.me/${String(pharm.phone).replace(/[^0-9]/g, '')}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
+                      <a v-if="pharm.phone" :href="pharm.whatsapp_url || `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
                       <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>Call</span></a>
                       <template v-if="!pharm.phone">
                         <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id]?.editing">
@@ -1113,7 +1114,13 @@
               <div v-else class="items-empty-state">
                 <strong>No pharmacy data loaded.</strong>
                 <p>Run the fulfillment process to discover nearby pharmacies.</p>
-                <button type="button" class="btn-secondary" style="margin-top: 0.75rem" @click="loadFulfillment({ silent: false })">Run fulfillment process</button>
+                <div v-if="fulfillmentProcessLoading" class="fulfillment-loading-state">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor" class="fulfillment-sparkle">
+                    <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+                  </svg>
+                  <span class="fulfillment-loading-label">loading</span>
+                </div>
+                <button v-else type="button" class="btn-secondary" style="margin-top: 0.75rem" @click="runFulfillmentManually">Run fulfillment process</button>
               </div>
             </section>
           </template>
@@ -1126,7 +1133,29 @@
                   <h4 class="section-title">Awaiting Customer Decision</h4>
                   <p class="workspace-panel-subcopy">Decisions have been sent to the customer. Once resolved, the request advances.</p>
                 </div>
-                <span class="status-badge awaiting_input">{{ formatStatus(selectedRequest?.status) }}</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end;">
+                  <a
+                    v-if="selectedRequest?.customer_phone"
+                    :href="`tel:${selectedRequest.customer_phone}`"
+                    class="btn-call-nudge"
+                    :title="`Call ${selectedRequest.customer_phone}`"
+                  >
+                    <i class="ri-phone-line"></i>
+                    {{ selectedRequest.customer_phone }}
+                  </a>
+                  <a
+                    v-if="customerDecisionWhatsAppUrl"
+                    :href="customerDecisionWhatsAppUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-whatsapp-nudge"
+                    title="Send WhatsApp reminder to customer"
+                  >
+                    <i class="ri-whatsapp-line"></i>
+                    WhatsApp
+                  </a>
+                  <span class="status-badge awaiting_input">{{ formatStatus(selectedRequest?.status) }}</span>
+                </div>
               </div>
 
               <div v-if="selectedRequest?.customer_decisions?.length" class="decisions-list">
@@ -1142,10 +1171,20 @@
                       <span class="status-badge" :class="dec.status">{{ dec.status }}</span>
                     </div>
                     <div class="decision-card-header-right">
+                      <span
+                        v-if="dec.status === 'pending' && dec.customer_notified_at && formatWaitingTime(dec.customer_notified_at)"
+                        class="decision-meta-chip decision-meta-chip--waiting"
+                        :class="{
+                          'decision-meta-chip--waiting-warn': (Date.now() - new Date(dec.customer_notified_at).getTime()) > 4 * 60 * 60 * 1000,
+                          'decision-meta-chip--waiting-critical': (Date.now() - new Date(dec.customer_notified_at).getTime()) > 12 * 60 * 60 * 1000
+                        }"
+                        :title="`Customer notified ${formatRelativeTime(dec.customer_notified_at)}`"
+                      >
+                        Waiting {{ formatWaitingTime(dec.customer_notified_at) }}
+                      </span>
                       <span v-if="dec.expires_at" class="decision-meta-chip" :class="new Date(dec.expires_at) < new Date() ? 'decision-meta-chip--expired' : ''">
                         {{ new Date(dec.expires_at) < new Date() ? 'Expired' : 'Expires ' + formatRelativeTime(dec.expires_at) }}
                       </span>
-                      <span v-if="dec.customer_notified_at" class="decision-meta-chip">Sent {{ formatRelativeTime(dec.customer_notified_at) }}</span>
                     </div>
                   </div>
 
@@ -1177,6 +1216,10 @@
                       <span class="decision-stat-label">Pharmacies</span>
                       <span class="decision-stat-value">{{ dec.payload.summary.source_pharmacy_count }}</span>
                     </span>
+                    <span v-if="decisionOrderValue(dec) !== null" class="decision-stat decision-stat--value">
+                      <span class="decision-stat-label">Order value</span>
+                      <span class="decision-stat-value">GHS {{ decisionOrderValue(dec).toFixed(2) }}</span>
+                    </span>
                   </div>
 
                   <!-- Decision items table -->
@@ -1199,8 +1242,19 @@
 
                   <!-- Admin override actions (only for pending decisions) -->
                   <div v-if="dec.status === 'pending'" class="decision-admin-actions">
+                    <p v-if="decisionDeclineConsequence(dec)" class="decision-decline-consequence">{{ decisionDeclineConsequence(dec) }}</p>
                     <p class="decision-admin-note">Customer hasn't responded yet. You can resolve on their behalf:</p>
                     <div class="decision-admin-btns">
+                      <button
+                        type="button"
+                        class="btn-sm btn-renotify"
+                        :disabled="!!decisionNotifyingId || loading"
+                        @click="renotifyDecision(dec.id)"
+                        :title="`Re-send SMS to ${selectedRequest?.customer_phone || 'customer'}`"
+                      >
+                        <span v-if="decisionNotifyingId === dec.id">Sending…</span>
+                        <span v-else>Re-send SMS</span>
+                      </button>
                       <button type="button" class="btn-sm btn-success" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id, 'approved')">Approve for customer</button>
                       <button type="button" class="btn-sm btn-danger-outline" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id, 'declined')">Decline</button>
                     </div>
@@ -1228,7 +1282,20 @@
                     Order confirmed — pending payment for {{ formatRelativeTime(selectedRequest?.updated_at) }}.
                   </p>
                 </div>
-                <span class="status-badge payment_pending">{{ formatStatus(selectedRequest?.status) }}</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+                  <a
+                    v-if="customerPaymentWhatsAppUrl"
+                    :href="customerPaymentWhatsAppUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-whatsapp-nudge"
+                    title="Send WhatsApp payment reminder to customer"
+                  >
+                    <i class="ri-whatsapp-line"></i>
+                    WhatsApp Customer
+                  </a>
+                  <span class="status-badge payment_pending">{{ formatStatus(selectedRequest?.status) }}</span>
+                </div>
               </div>
               <div class="workspace-overview-grid">
                 <div class="workspace-overview-item">
@@ -1396,16 +1463,49 @@
                   </div>
                   <div class="delivery-meta">
                     <span v-if="d.distance_km">{{ Number(d.distance_km).toFixed(1) }} km</span>
-                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }}</span>
+                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
+                    <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
-                    <span v-if="d.pharmacy_claim_deadline">Claim by: {{ formatDateTime(d.pharmacy_claim_deadline) }}</span>
                   </div>
-                  <div v-if="!['assigned','picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
-                    <button class="btn btn-sm btn-outline" @click="openForceAssign(d)">Force Assign Rider</button>
+                  <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
+                    <a
+                      v-if="d.pharmacy_whatsapp_number"
+                      :href="buildPharmacyWhatsAppUrl(d)"
+                      target="_blank"
+                      rel="noopener"
+                      class="btn btn-sm"
+                      style="background:#25d366;color:#fff;border:none;"
+                    >WhatsApp Pharmacy</a>
+                    <span v-else style="font-size:0.72rem;color:#9ca3af;">No WhatsApp on file</span>
+                    <button
+                      v-if="d.delivery_status === 'open'"
+                      class="btn btn-sm btn-primary"
+                      @click="openAssignToPharmacy(d)"
+                    >Assign to Pharmacy</button>
+                    <button
+                      v-if="d.delivery_status !== 'assigned'"
+                      class="btn btn-sm btn-outline"
+                      @click="openForceAssign(d)"
+                    >Force Assign Rider</button>
                   </div>
                 </div>
               </div>
             </section>
+
+            <!-- Assign-to-pharmacy modal -->
+            <div v-if="assignPharmacyModal" class="modal-backdrop" @click.self="closeAssignToPharmacy">
+              <div class="modal-box">
+                <h4 class="modal-title">Assign to Pharmacy</h4>
+                <p class="modal-subtitle">Delivery #{{ assignPharmacyModal.delivery.id }} · {{ assignPharmacyModal.delivery.pharmacy_name }}</p>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.5rem;">The pharmacy will assign one of their own riders.</p>
+                <div class="modal-actions">
+                  <button class="btn btn-ghost" @click="closeAssignToPharmacy">Cancel</button>
+                  <button class="btn btn-primary" @click="submitAssignToPharmacy" :disabled="assigningPharmacy">
+                    {{ assigningPharmacy ? 'Assigning...' : 'Confirm' }}
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <!-- Force-assign modal -->
             <div v-if="forceAssignModal" class="modal-backdrop" @click.self="closeForceAssign">
@@ -1468,11 +1568,29 @@
                   </div>
                   <div class="delivery-meta">
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
-                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }}</span>
+                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
+                    <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
                     <span v-if="d.distance_km">{{ Number(d.distance_km).toFixed(1) }} km</span>
                   </div>
-                  <div v-if="!['assigned','picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
-                    <button class="btn btn-sm btn-outline" @click="openForceAssign(d)">Force Assign Rider</button>
+                  <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
+                    <a
+                      v-if="d.pharmacy_whatsapp_number"
+                      :href="buildPharmacyWhatsAppUrl(d)"
+                      target="_blank"
+                      rel="noopener"
+                      class="btn btn-sm"
+                      style="background:#25d366;color:#fff;border:none;"
+                    >WhatsApp Pharmacy</a>
+                    <button
+                      v-if="d.delivery_status === 'open'"
+                      class="btn btn-sm btn-primary"
+                      @click="openAssignToPharmacy(d)"
+                    >Assign to Pharmacy</button>
+                    <button
+                      v-if="d.delivery_status !== 'assigned'"
+                      class="btn btn-sm btn-outline"
+                      @click="openForceAssign(d)"
+                    >Force Assign Rider</button>
                   </div>
                 </div>
               </div>
@@ -2135,6 +2253,7 @@ const adminNotes = ref('')
 const nearbyPharmacies = ref([])
 const candidatePlans = ref([])
 const fulfillmentPlans = ref([])
+const fulfillmentProcessLoading = ref(false)
 const allocationSummary = ref(null)
 const pharmacyQueue = ref([])
 const nextRecommendedPharmacy = ref(null)
@@ -2147,6 +2266,8 @@ const message = ref(null)
 const requestDeliveries = ref([])
 const loadingDeliveries = ref(false)
 const forceAssignModal = ref(null) // { delivery, driverId }
+const assignPharmacyModal = ref(null)
+const assigningPharmacy = ref(false)
 
 // --- Coverage matrix state ---
 const pharmacyCoverage = ref(null)
@@ -2158,7 +2279,7 @@ const resolvingItemId = ref(null)
 let masterSearchDebounce = null
 const showStatusOverride = ref(false)
 const showAdminNotes = ref(false)
-const resolveSearchMode = ref('master') // 'master' | 'pharmacy'
+const resolveSearchMode = ref('pharmacy') // 'master' | 'pharmacy'
 const pharmResolveResults = ref([])
 const pharmResolveLoading = ref(false)
 let pharmResolveDebounce = null
@@ -2169,7 +2290,7 @@ let coverageSubDebounce = null
 // --- End coverage substitute search state ---
 
 const isItemResolved = (item) =>
-  item.resolution_status === 'resolved' || Boolean(item.master_product_id)
+  item.resolution_status === 'resolved' || Boolean(item.master_product_id) || Boolean(item.source_pharmacy_id)
 const resolvedItemCount = computed(() => {
   const items = requestItems.value || []
   return items.filter(isItemResolved).length
@@ -2303,6 +2424,15 @@ const getRequestComposedCost = (req) => {
 
 const filteredRequests = computed(() => {
   const filtered = requests.value.filter((request) => matchesStatusFilter(request))
+  // Pending tab: sort by expires_at ascending so most urgent appear first
+  if (statusFilter.value === 'pending') {
+    return [...filtered].sort((a, b) => {
+      if (!a.expires_at && !b.expires_at) return 0
+      if (!a.expires_at) return 1
+      if (!b.expires_at) return -1
+      return new Date(a.expires_at) - new Date(b.expires_at)
+    })
+  }
   const key = sortKey.value
   const dir = sortDir.value === 'asc' ? 1 : -1
   return [...filtered].sort((a, b) => {
@@ -2330,6 +2460,27 @@ const filteredRequests = computed(() => {
     return 0
   })
 })
+
+const EXPIRY_WARN_MS = 20 * 60 * 1000
+const EXPIRY_CRITICAL_MS = 10 * 60 * 1000
+
+const expiringSoonCount = computed(() =>
+  requests.value.filter(r =>
+    r.status === 'pending' &&
+    r.expires_at &&
+    new Date(r.expires_at) - Date.now() > 0 &&
+    new Date(r.expires_at) - Date.now() < EXPIRY_WARN_MS
+  ).length
+)
+
+const rowUrgencyStyle = (req) => {
+  if (req.status !== 'pending' || !req.expires_at) return ''
+  const remaining = new Date(req.expires_at) - Date.now()
+  if (remaining <= 0) return ''
+  if (remaining < EXPIRY_CRITICAL_MS) return 'background: #fff1f2 !important; border-left: 3px solid #f87171;'
+  if (remaining < EXPIRY_WARN_MS) return 'background: #fffbeb !important; border-left: 3px solid #fbbf24;'
+  return ''
+}
 
 const statusTabs = computed(() => STATUS_TAB_CONFIG.map((tab) => ({
   ...tab,
@@ -2390,6 +2541,36 @@ const getCustomerWhatsAppUrl = (phone) => {
   const digits = phoneUtils.formatWhatsApp(phone)
   return digits ? `https://wa.me/${digits}` : ''
 }
+
+const buildCustomerOrderLink = (id) => {
+  if (!id) return ''
+  const base = typeof window !== 'undefined' ? window.location.origin : ''
+  return `${base}/customer?tab=requests&requestId=${encodeURIComponent(id)}`
+}
+
+const customerDecisionWhatsAppUrl = computed(() => {
+  const phone = selectedRequest.value?.customer_phone
+  const digits = phoneUtils.formatWhatsApp(phone)
+  if (!digits) return ''
+  const name = String(selectedRequest.value?.customer_name || '').trim() || 'there'
+  const num = String(selectedRequest.value?.request_number || '').trim()
+  const link = buildCustomerOrderLink(selectedRequest.value?.id)
+  const text = `Hi ${name}, your MedsGH request${num ? ` ${num}` : ''} needs your attention — we've found options for your medications. Please review and confirm here:\n${link}\n- MedsGH Team`
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
+})
+
+const customerPaymentWhatsAppUrl = computed(() => {
+  const phone = selectedRequest.value?.customer_phone
+  const digits = phoneUtils.formatWhatsApp(phone)
+  if (!digits) return ''
+  const name = String(selectedRequest.value?.customer_name || '').trim() || 'there'
+  const num = String(selectedRequest.value?.request_number || '').trim()
+  const total = paymentModeTotal.value
+  const totalStr = total > 0 ? ` GHS ${total.toFixed(2)}` : ''
+  const link = buildCustomerOrderLink(selectedRequest.value?.id)
+  const text = `Hi ${name}, your MedsGH order${num ? ` ${num}` : ''} is confirmed and awaiting payment.${totalStr ? ` Total:${totalStr}.` : ''} Please complete your payment here:\n${link}\n- MedsGH Team`
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
+})
 
 const alternativePreviewName = computed(() => {
   const typed = String(alternativeModal.value.name || '').trim()
@@ -3475,6 +3656,61 @@ const initiateDeliveries = async () => {
   }
 }
 
+const openAssignToPharmacy = (delivery) => {
+  assignPharmacyModal.value = { delivery }
+}
+const closeAssignToPharmacy = () => {
+  assignPharmacyModal.value = null
+}
+const submitAssignToPharmacy = async () => {
+  const modal = assignPharmacyModal.value
+  if (!modal) return
+  assigningPharmacy.value = true
+  try {
+    await apiCall('POST', `/api/deliveries/${modal.delivery.id}/assign-pharmacy`, {
+      pharmacy_id: modal.delivery.pickup_pharmacy_id
+    })
+    showMessage('Delivery assigned to pharmacy', 'success')
+    assignPharmacyModal.value = null
+    fetchRequestDeliveries(selectedRequest.value.id)
+  } catch (e) {
+    showMessage(e.message || 'Assign to pharmacy failed', 'error')
+  } finally {
+    assigningPharmacy.value = false
+  }
+}
+
+const buildPharmacyWhatsAppUrl = (delivery) => {
+  if (!delivery.pharmacy_whatsapp_number) return '#'
+  const phone = phoneUtils.formatWhatsApp(delivery.pharmacy_whatsapp_number)
+  const req = selectedRequest.value
+  if (!req) return `https://wa.me/${phone}`
+
+  const pharmacyItems = (paidSnapshotItems.value || []).filter(
+    (item) => item.source_pharmacy_id === delivery.pickup_pharmacy_id
+  )
+  const itemLines = pharmacyItems.length
+    ? pharmacyItems.map((i) => `• ${i.product_name} × ${i.quantity} — GHS ${Number(i.line_total || 0).toFixed(2)}`).join('\n')
+    : '(items on record)'
+  const pharmacyTotal = pharmacyItems.reduce((sum, i) => sum + Number(i.line_total || 0), 0)
+  const netFee = Number(delivery.net_delivery_fee ?? delivery.delivery_fee ?? 0).toFixed(2)
+  const deliveriesLink = delivery.pharmacy_domain
+    ? `${window.location.origin}/${delivery.pharmacy_domain}/services/deliveries`
+    : `${window.location.origin}/services/deliveries`
+
+  const message =
+    `Hi ${delivery.pharmacy_name},\n\n` +
+    `Payment confirmed for Order *${req.request_number}* ✓\n\n` +
+    `Your items to prepare:\n${itemLines}\n` +
+    `Drug earnings: GHS ${pharmacyTotal.toFixed(2)}\n\n` +
+    `Delivery to: ${req.customer_address || 'customer location'}\n` +
+    `Delivery earnings (net): GHS ${netFee}\n\n` +
+    `Accept delivery & assign your rider here:\n${deliveriesLink}\n\n` +
+    `Reply YES to confirm you will handle delivery.`
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+}
+
 const openForceAssign = (delivery) => {
   forceAssignModal.value = { delivery, driverId: '' }
 }
@@ -3579,9 +3815,8 @@ const startResolvingItem = (item) => {
   masterSearchQuery.value = item.product_name || ''
   masterSearchResults.value = []
   pharmResolveResults.value = []
-  resolveSearchMode.value = 'master'
-  // Pre-search with the existing product name
-  searchMasterProductsForResolve(item.product_name)
+  resolveSearchMode.value = 'pharmacy'
+  searchPharmResolve(item.product_name)
 }
 
 const cancelResolving = () => {
@@ -3589,14 +3824,19 @@ const cancelResolving = () => {
   masterSearchQuery.value = ''
   masterSearchResults.value = []
   pharmResolveResults.value = []
-  resolveSearchMode.value = 'master'
+  resolveSearchMode.value = 'pharmacy'
 }
 
 // --- Pharmacy stock resolution (no master catalog needed) ---
 const resolveItemToPharmProduct = async (item, pharmProduct) => {
   if (!item?.id || !pharmProduct?.id) return
   try {
-    const payload = { product_name: pharmProduct.product_description || pharmProduct.brand_name || pharmProduct.product_name, resolution_status: 'resolved' }
+    const payload = {
+      product_name: pharmProduct.product_description || pharmProduct.brand_name || pharmProduct.product_name,
+      resolution_status: 'resolved',
+      source_pharmacy_id: pharmProduct.pharmacy_id || pharmProduct.company_id || null,
+      source_product_id: pharmProduct.id || null,
+    }
     if (pharmProduct.uniqid) payload.master_product_id = pharmProduct.uniqid
     await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, payload)
     if (selectedRequest.value?.items) {
@@ -3604,6 +3844,9 @@ const resolveItemToPharmProduct = async (item, pharmProduct) => {
       if (localItem) {
         localItem.product_name = payload.product_name
         localItem.resolution_status = 'resolved'
+        localItem.source_pharmacy_id = payload.source_pharmacy_id
+        localItem.source_product_id = payload.source_product_id
+        localItem.pharmacy_name = pharmProduct.pharmacy_name || null
         if (payload.master_product_id) localItem.master_product_id = payload.master_product_id
       }
     }
@@ -3714,7 +3957,6 @@ const selectCoverageSubstitute = async (pharmacy, uncoveredItem, selectedProduct
           distance_km: pharmacy.distance_km || null
         }]
       })
-      await refreshSelectedRequestDetails()
     } catch (e) {
       showMessage('Substitute selected locally but failed to save to server', 'error')
     }
@@ -3806,9 +4048,9 @@ const routePharmacyAction = async (pharmacy) => {
 
 const getPharmacyWhatsAppUrl = (phone) => {
   if (!phone) return null
-  const cleaned = String(phone).replace(/[^0-9+]/g, '')
-  if (cleaned.length < 8) return null
-  return `https://wa.me/${cleaned.replace(/^\+/, '')}`
+  const digits = phoneUtils.formatWhatsApp(phone)
+  if (digits.length < 10) return null
+  return `https://wa.me/${digits}`
 }
 
 const getCoverageColor = (score, total) => {
@@ -4323,6 +4565,15 @@ const loadFulfillment = async (options = {}) => {
   }
 }
 
+const runFulfillmentManually = async () => {
+  fulfillmentProcessLoading.value = true
+  try {
+    await loadFulfillment({ silent: false })
+  } finally {
+    fulfillmentProcessLoading.value = false
+  }
+}
+
 const contactPharmacy = async (payload) => {
   if (!selectedRequest.value) return
   const pharm = payload?.pharmacy || payload
@@ -4531,6 +4782,61 @@ const requestCustomerDecision = async (decisionType) => {
     showMessage(e.message || 'Failed to create customer decision', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+const decisionOrderValue = (dec) => {
+  const items = Array.isArray(dec.payload?.decision_items) ? dec.payload.decision_items : []
+  const total = items.reduce((sum, item) => {
+    if (['available', 'substitute_available', 'partially_available'].includes(item.status)) {
+      const price = Number(item.unit_price ?? item.substitute_option?.marked_up_price ?? 0)
+      const qty = Number(item.quantity || 1)
+      return sum + price * qty
+    }
+    return sum
+  }, 0)
+  return total > 0 ? total : null
+}
+
+const decisionDeclineConsequence = (dec) => {
+  const items = Array.isArray(dec.payload?.decision_items) ? dec.payload.decision_items : []
+  if (!items.length) return null
+  const sourceable = items.filter(i => ['available', 'substitute_available', 'partially_available'].includes(i.status)).length
+  const unsourceable = items.filter(i => i.status === 'not_available').length
+  const parts = []
+  if (sourceable > 0) parts.push(`${sourceable} item${sourceable > 1 ? 's' : ''} return to sourcing`)
+  if (unsourceable > 0) parts.push(`${unsourceable} item${unsourceable > 1 ? 's' : ''} cannot be sourced`)
+  return parts.length ? `If declined: ${parts.join(', ')}.` : null
+}
+
+const formatWaitingTime = (d) => {
+  if (!d) return null
+  const ms = Date.now() - new Date(d).getTime()
+  if (ms < 0) return null
+  const mins = Math.floor(ms / 60000)
+  if (mins < 60) return `${mins}m`
+  const hrs = Math.floor(mins / 60)
+  const remMins = mins % 60
+  if (hrs < 24) return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs}h`
+  const days = Math.floor(hrs / 24)
+  const remHrs = hrs % 24
+  return remHrs > 0 ? `${days}d ${remHrs}h` : `${days}d`
+}
+
+const decisionNotifyingId = ref(null)
+
+const renotifyDecision = async (decisionId) => {
+  if (!selectedRequest.value || decisionNotifyingId.value) return
+  decisionNotifyingId.value = decisionId
+  try {
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/decisions/${decisionId}/notify`)
+    const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+    selectedRequest.value = detailRes.data
+    showMessage('Customer notified via SMS', 'success')
+  } catch (e) {
+    showMessage(e.message || 'Failed to notify customer', 'error')
+  } finally {
+    decisionNotifyingId.value = null
   }
 }
 
@@ -5528,6 +5834,30 @@ definePageMeta({
 </script>
 
 <style scoped>
+.fulfillment-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0;
+}
+.fulfillment-sparkle {
+  width: 28px;
+  height: 28px;
+  color: #5A2468;
+  animation: fulfillmentSpin 1s linear infinite;
+}
+.fulfillment-loading-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9B4A88;
+  letter-spacing: 0.04em;
+}
+@keyframes fulfillmentSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .order-requests-page {
   max-width: 1600px;
   margin: 0 auto;
@@ -8938,6 +9268,9 @@ definePageMeta({
   background: #f1f5f9;
 }
 .decision-meta-chip--expired { color: #ef4444; background: #fee2e2; }
+.decision-meta-chip--waiting { color: #0369a1; background: #e0f2fe; font-weight: 600; }
+.decision-meta-chip--waiting-warn { color: #92400e; background: #fef3c7; }
+.decision-meta-chip--waiting-critical { color: #991b1b; background: #fee2e2; }
 
 .decision-message-block { display: flex; flex-direction: column; gap: 0.2rem; }
 .decision-message-title { font-size: 0.88rem; font-weight: 600; color: #1e293b; margin: 0; }
@@ -8960,6 +9293,7 @@ definePageMeta({
 .decision-stat--warn .decision-stat-value { color: #dc2626; }
 .decision-stat--sub  .decision-stat-value { color: #d97706; }
 .decision-stat--split .decision-stat-value { color: #2563eb; }
+.decision-stat--value .decision-stat-value { color: #0f766e; font-weight: 700; }
 
 /* Decision items table */
 .decision-items-table {
@@ -9015,6 +9349,7 @@ definePageMeta({
   padding-top: 0.5rem;
   border-top: 1px dashed #cbd5e1;
 }
+.decision-decline-consequence { font-size: 0.78rem; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px; padding: 0.25rem 0.5rem; margin: 0 0 0.4rem 0; }
 .decision-admin-note { font-size: 0.78rem; color: #64748b; margin: 0; }
 .decision-admin-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
@@ -9033,6 +9368,26 @@ definePageMeta({
 .btn-success:hover:not(:disabled) { background: #16a34a; }
 .btn-danger-outline { background: #fff; color: #dc2626; border-color: #fca5a5; }
 .btn-danger-outline:hover:not(:disabled) { background: #fee2e2; }
+.btn-renotify { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.btn-renotify:hover:not(:disabled) { background: #dcfce7; border-color: #86efac; }
+
+.btn-call-nudge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-call-nudge:hover { background: #e0f2fe; border-color: #7dd3fc; }
+.btn-call-nudge i { font-size: 1rem; }
 
 /* Ghost button */
 .btn-ghost {
@@ -10765,6 +11120,31 @@ definePageMeta({
   transform: translateY(-1px);
 }
 
+.btn-whatsapp-nudge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-whatsapp-nudge:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.btn-whatsapp-nudge i {
+  font-size: 1rem;
+}
+
 /* Notes */
 .notes-section h4 {
   font-size: 1rem;
@@ -11169,6 +11549,9 @@ definePageMeta({
 
 .delivery-card-actions {
   margin-top: 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .delivery-status-chip {

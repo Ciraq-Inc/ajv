@@ -207,6 +207,11 @@ const allNavigationSections = computed(() => [
         icon: TruckIcon,
       },
       {
+        path: servicePath('riders'),
+        label: 'Fleet',
+        icon: TruckIcon,
+      },
+      {
         path: servicePath('wallet'),
         label: 'Wallet',
         icon: BanknotesIcon,

@@ -7,38 +7,27 @@
 
     <template v-else>
       <div v-if="currentTab === 'home'" class="space-y-6">
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <article class="p-5 bg-gradient-to-br from-[#4F217A] to-[#381659] border border-[#2b1046] h-full flex flex-col justify-center relative overflow-hidden text-white shadow-md">
-            <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 border border-white/5 rounded-full blur-xl"></div>
-            <div class="absolute -left-6 -bottom-6 w-24 h-24 bg-purple-500/20 border border-purple-500/10 rounded-full blur-xl"></div>
-            <p class="text-[0.65rem] font-bold uppercase tracking-widest text-[#d5bdf3] relative z-10">Active Requests</p>
+        <section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#7b3faa] via-[#5c2490] to-[#381659] p-6 text-white shadow-xl">
+          <!-- decorative blobs -->
+          <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div class="absolute right-16 top-4 w-20 h-20 bg-purple-300/10 rounded-full blur-xl pointer-events-none"></div>
+          <div class="absolute -left-6 -bottom-8 w-32 h-32 bg-purple-900/30 rounded-full blur-2xl pointer-events-none"></div>
+          <!-- rig sparkle -->
+          <img src="/brand/rig-sparkle.svg" class="absolute right-4 top-1/2 -translate-y-1/2 w-44 h-44 opacity-[0.07] pointer-events-none select-none" aria-hidden="true" />
 
-            <div class="mt-3 flex items-center justify-between relative z-10">
-              <div class="flex items-baseline gap-3">
-                <h3 class="text-4xl font-bold tracking-tight text-white drop-shadow-sm" style="font-variant-numeric: tabular-nums;">{{ activeRequestCount }}</h3>
-              </div>
-              <div class="hidden items-center -space-x-2 sm:flex">
-                  <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#4F217A] bg-[#f4e8fb] text-[9px] uppercase font-bold tracking-widest text-[#4F217A]">JD</div>
-                  <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#4F217A] bg-[#f4e8fb] text-[9px] uppercase font-bold tracking-widest text-[#4F217A]">MK</div>
-                  <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#4F217A] bg-[#ebd5fb] text-[9px] font-bold text-[#4F217A]">+8</div>
-              </div>
-            </div>
-          </article>
+          <p class="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-purple-200 relative z-10">Active Requests</p>
+          <h3 class="mt-2 text-[2.4rem] font-black tracking-tight leading-none relative z-10" style="font-variant-numeric: tabular-nums;">{{ activeRequestCount }}</h3>
 
-          <article
-            class="flex h-full cursor-pointer flex-col justify-between border border-[#e5e7eb] bg-gradient-to-br from-[#f8fafc] to-[#e0f2fe] p-5 hover:border-blue-300 hover:shadow-[0_4px_20px_-4px_rgba(59,130,246,0.15)] transition-all group"
-            @click="goTab('wallet')"
-          >
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-[0.65rem] font-bold uppercase tracking-widest text-slate-500 group-hover:text-blue-600 transition-colors">Available Credits</p>
-                <h3 class="mt-2 text-2xl font-semibold tracking-tight text-slate-900 group-hover:text-blue-700 transition-colors" style="font-variant-numeric: tabular-nums;">GHS {{ walletBalance.toFixed(2) }}</h3>
-              </div>
-              <button class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 shadow-sm border border-blue-200 group-hover:bg-blue-600 group-hover:text-white transition-all" title="Top up wallet">
-                <span class="material-symbols-outlined text-sm">account_balance_wallet</span>
-              </button>
+          <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between relative z-10">
+            <div class="cursor-pointer" @click="goTab('wallet')">
+              <p class="text-[0.6rem] font-bold uppercase tracking-[0.15em] text-purple-300">Available Balance</p>
+              <p class="text-xl font-black mt-0.5 tabular-nums">GHS {{ walletBalance.toFixed(2) }}</p>
             </div>
-          </article>
+            <button @click="goTab('wallet')" class="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 transition-colors rounded-xl px-4 py-2 text-xs font-bold tracking-wide border border-white/10">
+              <span class="material-symbols-outlined text-[15px]">account_balance_wallet</span>
+              Top Up
+            </button>
+          </div>
         </section>
 
         <div class="dashboard-middle grid grid-cols-1 lg:grid-cols-3 gap-6">

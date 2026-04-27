@@ -1,17 +1,42 @@
 <template>
-  <div
-    class="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100">
-    <!-- Backdrop -->
-    <div class="fixed inset-0 bg-black opacity-10"></div>
+  <div class="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto bg-gradient-to-br from-white via-purple-50 to-purple-100">
+    <!-- Background sparkle decorations -->
+    <svg class="absolute top-10 left-12 w-6 h-6 text-purple-400 opacity-20 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+      <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+    </svg>
+    <svg class="absolute top-1/4 right-16 w-10 h-10 text-purple-300 opacity-10 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+      <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+    </svg>
+    <svg class="absolute bottom-20 left-1/4 w-8 h-8 text-fuchsia-300 opacity-15 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+      <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+    </svg>
+    <svg class="absolute bottom-12 right-20 w-5 h-5 text-purple-200 opacity-20 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+      <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+    </svg>
+    <svg class="absolute top-1/3 left-1/3 w-4 h-4 text-purple-300 opacity-10 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+      <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+    </svg>
 
     <!-- Modal Container -->
-    <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md mx-4 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-2xl z-10 w-full max-w-md mx-4 overflow-hidden">
+
       <!-- Modal Header -->
-      <div class="bg-indigo-600 text-white py-4 px-6">
-        <h3 class="text-lg font-medium">
+      <div class="bg-gradient-to-br from-[#2A1130] to-[#5A2468] text-white py-8 px-6 text-center relative overflow-hidden">
+        <!-- Header background sparkle -->
+        <svg class="absolute -top-4 -right-4 w-24 h-24 text-white opacity-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+          <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+        </svg>
+        <svg class="absolute -bottom-6 -left-6 w-28 h-28 text-fuchsia-300 opacity-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+          <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+        </svg>
+
+        <!-- Rig Mark logo -->
+        <img src="/brand/rig-mark.svg" alt="Rigelis" class="w-16 h-16 mx-auto mb-4" />
+
+        <h3 class="text-lg font-semibold tracking-wide">
           {{ currentView === 'login' ? 'Rigelis Admin Portal' : 'Reset Password' }}
         </h3>
-        <p class="text-indigo-100 text-sm mt-1">
+        <p class="text-purple-200 text-sm mt-1">
           {{ currentView === 'login' ? 'Sign in to access the admin dashboard' : 'Reset your admin password' }}
         </p>
       </div>
@@ -55,26 +80,20 @@
           <div class="mb-4">
             <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
             <input v-model="username" type="text" id="username"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+              class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
               placeholder="Enter your username" required :disabled="isLoading" />
           </div>
 
           <div class="mb-4">
             <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input v-model="password" type="password" id="password"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+              class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
               placeholder="Enter your password" required :disabled="isLoading" />
           </div>
 
-          <!-- <div class="mb-4 flex items-center justify-end">
-            <button type="button" @click="showResetForm" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-              Forgot password?
-            </button>
-          </div> -->
-
           <div class="mt-6">
             <button type="submit" :disabled="isLoading"
-              class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center justify-center">
+              class="w-full px-4 py-2.5 text-sm font-medium text-white bg-[#5A2468] hover:bg-[#4A1A55] rounded-lg disabled:opacity-50 flex items-center justify-center transition-colors">
               <span v-if="isLoading" class="flex items-center">
                 <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24">
@@ -85,31 +104,36 @@
                 </svg>
                 Signing in...
               </span>
-              <span v-else>Sign In</span>
+              <span v-else class="flex items-center gap-2">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+                  <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+                </svg>
+                Sign In
+              </span>
             </button>
           </div>
         </form>
 
         <!-- Password Reset Form -->
         <form v-else-if="currentView === 'reset'" @submit.prevent="handlePasswordReset">
-          <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
+          <div class="mb-4 text-sm text-gray-600 bg-purple-50 border border-purple-100 p-3 rounded-lg">
             <p>Enter your admin username or email to receive reset instructions</p>
           </div>
 
           <div class="mb-4">
             <label for="resetIdentifier" class="block text-sm font-medium text-gray-700 mb-1">Username or Email</label>
             <input v-model="resetIdentifier" type="text" id="resetIdentifier"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
+              class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
               placeholder="Enter your username or email" required :disabled="isLoading" />
           </div>
 
           <div class="mt-6 flex justify-end space-x-3">
             <button type="button" @click="showLoginForm" :disabled="isLoading"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
               Back to Login
             </button>
             <button type="submit" :disabled="isLoading"
-              class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center">
+              class="px-4 py-2 text-sm font-medium text-white bg-[#5A2468] hover:bg-[#4A1A55] rounded-lg disabled:opacity-50 flex items-center transition-colors">
               <span v-if="isLoading" class="flex items-center">
                 <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24">

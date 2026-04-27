@@ -6,7 +6,6 @@
             <!-- Page Header -->
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Pharmacy Concierge</p>
                     <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">New Request
                     </h2>
                     <p class="text-sm font-medium text-zinc-600 mt-1">Describe the medicines you need. A pharmacist will
@@ -43,105 +42,42 @@
                 <div class="flex-1 min-w-0 space-y-4">
 
                     <!-- Section 1: Add Medication -->
-                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                    <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
                                 class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
                                 1</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Add Medication</h3>
                         </div>
-                        <div class="flex flex-col gap-4">
-                            <div v-for="(item, index) in requestItems" :key="index"
-                                class="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 transition-all"
-                                :class="{ 'bg-white shadow-sm border-[#4F217A]/20': !!item.product_name.trim() }">
-                                <div class="flex flex-col gap-3">
-                                    <div class="relative">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <MagnifyingGlassIcon v-if="!item.product_name.trim()"
-                                                class="h-5 w-5 text-zinc-400" />
-                                            <div v-else
-                                                class="h-5 w-5 rounded bg-[#4F217A]/10 text-[#4F217A] flex items-center justify-center">
-                                                <span class="material-symbols-outlined text-[14px]">pill</span>
-                                            </div>
-                                        </div>
-                                        <input v-model="item.product_name" type="text"
-                                            placeholder="Enter medicine name, brand, or strength"
-                                            class="block w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl leading-5 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 text-sm font-semibold transition-colors" />
+                        <div class="flex flex-col divide-y divide-zinc-100">
+                            <div v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3 py-4 first:pt-0">
+                                <input v-model="item.product_name" type="text"
+                                    placeholder="Medicine name, brand, or strength"
+                                    class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
+
+                                <div v-if="item.product_name.trim()" class="flex items-center gap-2">
+                                    <select v-model="item.requested_unit"
+                                        class="flex-1 h-10 bg-zinc-50 border border-zinc-200 rounded-xl px-3 text-sm font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 cursor-pointer">
+                                        <option value="">Unit</option>
+                                        <option v-for="option in medicineUnitOptions" :key="option" :value="option">{{ option }}</option>
+                                    </select>
+
+                                    <div class="flex items-center h-10 bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden">
+                                        <button type="button"
+                                            class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 transition-colors"
+                                            @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
+                                        <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
+                                            class="w-10 h-full text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-200 appearance-none bg-transparent p-0" />
+                                        <button type="button"
+                                            class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                                            @click="incrementQty(item)">+</button>
                                     </div>
 
-                                    <div v-if="item.product_name" class="pl-2">
-                                        <span class="text-xs text-zinc-500 font-medium">Enter the medicine name exactly
-                                            as you know it. The pharmacy team will verify the match.</span>
-                                    </div>
-
-                                    <div v-if="item.product_name.trim()" class="flex flex-wrap items-center gap-3 pt-2">
-                                        <div
-                                            class="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-3 py-1.5 shadow-sm">
-                                            <label
-                                                class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Unit</label>
-                                            <select v-model="item.requested_unit"
-                                                class="bg-transparent text-sm font-bold text-zinc-800 focus:outline-none cursor-pointer">
-                                                <option value="">Select unit</option>
-                                                <option v-for="option in medicineUnitOptions" :key="option"
-                                                    :value="option">{{ option }}</option>
-                                            </select>
-                                        </div>
-
-                                        <label
-                                            class="flex items-center gap-1.5 cursor-pointer bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 transition-colors shadow-sm"
-                                            :title="item.imageFiles.length ? `${item.imageFiles.length} photo${item.imageFiles.length !== 1 ? 's' : ''} added` : 'Add item photo'">
-                                            <CameraIcon class="w-4 h-4 text-zinc-500" />
-                                            <span v-if="item.imageFiles.length"
-                                                class="text-xs font-bold text-zinc-700">{{ item.imageFiles.length }}
-                                                added</span>
-                                            <span v-else class="text-xs font-semibold text-zinc-600">Add Photo</span>
-                                            <input type="file" accept="image/*" multiple class="hidden"
-                                                @change="onItemImagesSelected($event, item)" />
-                                        </label>
-
-                                        <div
-                                            class="flex items-center bg-white border border-zinc-200 rounded-lg overflow-hidden shadow-sm ml-auto">
-                                            <button type="button"
-                                                class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                @click="decrementQty(item)"
-                                                :disabled="Number(item.quantity || 1) <= 1">−</button>
-                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
-                                                class="w-12 h-8 text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-100 appearance-none bg-transparent m-0 p-0" />
-                                            <button type="button"
-                                                class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-                                                @click="incrementQty(item)">+</button>
-                                        </div>
-
-                                        <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
-                                            class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                                            type="button" title="Remove Item">
-                                            <XMarkIcon class="w-4 h-4" />
-                                        </button>
-                                    </div>
-
-                                    <!-- Image Previews -->
-                                    <div v-if="item.imageFiles.length"
-                                        class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                                        <div v-for="(image, imageIndex) in item.imageFiles" :key="image.id"
-                                            class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100">
-                                            <img :src="image.previewUrl"
-                                                :alt="`${item.product_name || 'Requested item'} photo ${imageIndex + 1}`"
-                                                class="w-full h-full object-cover" />
-                                            <div
-                                                class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                                <label
-                                                    class="text-[10px] font-bold text-white uppercase tracking-wider cursor-pointer hover:underline">
-                                                    Replace
-                                                    <input type="file" accept="image/*" class="hidden"
-                                                        @change="replaceItemImage($event, item, imageIndex)" />
-                                                </label>
-                                                <button type="button"
-                                                    class="text-[10px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline"
-                                                    @click="removeItemImage(item, imageIndex)">Delete</button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
+                                        class="w-10 h-10 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0"
+                                        type="button">
+                                        <XMarkIcon class="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -152,7 +88,7 @@
                     </section>
 
                     <!-- Section 2: Prescription -->
-                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                    <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
                                 class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
@@ -160,7 +96,7 @@
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Prescription <span
                                     class="text-sm font-normal text-zinc-400">(optional)</span></h3>
                         </div>
-                        <div class="grid grid-cols-1 gap-3">
+                        <div class="grid grid-cols-2 gap-3">
                             <label
                                 class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
                                 <div
@@ -223,7 +159,7 @@
                     </section>
 
                     <!-- Section 3: Delivery Details -->
-                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                    <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
                                 class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
@@ -232,19 +168,17 @@
                         </div>
                         <div class="grid grid-cols-1 gap-3">
                             <button @click="selectFulfillment('delivery')" type="button"
-                                class="flex flex-col items-center gap-2.5 rounded-xl border-2 px-4 py-4 text-center transition-all"
+                                class="flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-all"
                                 :class="fulfillmentType === 'delivery' ? 'border-[#4F217A] bg-[#f4e8fb]' : 'border-zinc-200 bg-white hover:border-zinc-300'">
-                                <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                                     :class="fulfillmentType === 'delivery' ? 'bg-[#4F217A] text-white' : 'bg-zinc-100 text-zinc-500'">
-                                    <TruckIcon class="w-5 h-5" />
+                                    <TruckIcon class="w-4 h-4" />
                                 </div>
                                 <div>
                                     <strong class="block text-sm font-black"
-                                        :class="fulfillmentType === 'delivery' ? 'text-[#4F217A]' : 'text-zinc-800'">Home
-                                        Delivery</strong>
+                                        :class="fulfillmentType === 'delivery' ? 'text-[#4F217A]' : 'text-zinc-800'">Home Delivery</strong>
                                     <span class="text-xs"
-                                        :class="fulfillmentType === 'delivery' ? 'text-[#5e3a86]' : 'text-zinc-400'">Arrives
-                                        within 2–4 hours</span>
+                                        :class="fulfillmentType === 'delivery' ? 'text-[#5e3a86]' : 'text-zinc-400'">Arrives within 2–4 hours</span>
                                 </div>
                             </button>
                         </div>
@@ -257,8 +191,9 @@
                         </div>
                     </section>
 
+
                     <!-- Section 4: Address & Location -->
-                    <section class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
+                    <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
                                 class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -275,62 +210,15 @@
                                 <MapPinIcon v-else class="w-5 h-5" />
                             </div>
                             <div class="flex-1 text-left min-w-0">
-                                <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel
-                                    }}</strong>
-                                <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{
-                                    locationSublabel }}</span>
+                                <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel }}</strong>
+                                <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{ locationSublabel }}</span>
                             </div>
-                            <CheckCircleIconSolid v-if="customerLat" class="w-5 h-5 text-emerald-500 opacity-80" />
+                            <div v-if="customerLat" class="flex flex-col items-center gap-0.5 flex-shrink-0">
+                                <CheckCircleIconSolid class="w-4 h-4 text-emerald-500" />
+                                <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Edit</span>
+                            </div>
                         </button>
-                        <div v-if="gettingLocation"
-                            class="mb-4 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-800">
-                            <div class="flex items-center gap-3 animate-pulse">
-                                <div class="h-11 w-11 rounded-xl bg-blue-200/80"></div>
-                                <div class="flex-1 min-w-0 space-y-2">
-                                    <div class="h-4 w-44 rounded bg-blue-200/80"></div>
-                                    <div class="h-3 w-3/4 rounded bg-blue-100/90"></div>
-                                </div>
-                                <div class="h-5 w-5 rounded-full bg-blue-200/80"></div>
-                            </div>
-                            <div class="mt-4 grid grid-cols-2 gap-2 animate-pulse">
-                                <div class="h-10 rounded-lg border border-blue-100 bg-white/80"></div>
-                                <div class="h-10 rounded-lg border border-blue-100 bg-white/80"></div>
-                            </div>
-                            <p class="mt-3 text-xs font-bold text-blue-700/70">Refreshing request location...</p>
-                        </div>
-                        <div v-else class="rounded-xl p-4 text-sm"
-                            :class="locationIssue ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-blue-50/50 text-blue-800 border border-blue-100'">
-                            <p class="font-medium text-sm leading-relaxed mb-3">
-                                {{ locationIssue ? locationIssue.message : 'Helps find pharmacies near you for faster delivery.' }}
-                            </p>
-                            <div v-if="homeLocationAvailable && locationMode !== 'current-request' && !locationIssue"
-                                class="flex flex-wrap gap-2">
-                                <button type="button" :disabled="gettingLocation"
-                                    class="w-full bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                    @click="getLocation">Use Different Location For This Request</button>
-                            </div>
-                            <div v-if="homeLocationAvailable && locationMode === 'current-request'"
-                                class="flex flex-wrap gap-2">
-                                <button type="button" :disabled="gettingLocation"
-                                    class="flex-1 bg-white border border-blue-200 text-blue-700 rounded-lg px-4 py-2 font-bold hover:bg-blue-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                    @click="restoreSavedHomeLocation">Use Saved Home Address</button>
-                                <button type="button" :disabled="gettingLocation"
-                                    class="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 font-bold hover:bg-blue-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                    @click="getLocation">Refresh Request Location</button>
-                            </div>
-                            <div v-if="locationIssue" class="flex flex-wrap gap-2">
-                                <button type="button" :disabled="gettingLocation"
-                                    class="flex-1 bg-red-600 text-white border border-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-700 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                    @click="getLocation">Try Again</button>
-                                <button type="button" :disabled="gettingLocation"
-                                    class="flex-1 bg-white border border-red-200 text-red-700 rounded-lg px-4 py-2 font-bold hover:bg-red-50 shadow-sm transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                    @click="openLocationSettings">Open Settings</button>
-                            </div>
-                            <p v-if="locationIssue"
-                                class="text-xs text-red-600/80 font-bold mt-2 pt-2 border-t border-red-200/60">{{
-                                locationIssue.instructions }}</p>
-                        </div>
-                        <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-2 mt-4">
+                        <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-2">
                             <div class="relative">
                                 <label
                                     class="block text-xs font-black uppercase tracking-[0.12em] text-zinc-500 mb-2">Search
@@ -344,7 +232,6 @@
                                     <span v-if="deliveryAutocompleteLoading"
                                         class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
                                 </div>
-
                                 <div v-if="deliveryAddressSuggestions.length"
                                     class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain">
                                     <div
@@ -358,18 +245,14 @@
                                         @click="applyDeliveryAddressSuggestion(suggestion)">
                                         <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{
                                             suggestion.display_name }}</p>
-                                        <p
-                                            class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">
+                                        <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">
                                             {{ suggestion.type || 'Address' }}</p>
                                     </button>
                                 </div>
                             </div>
-
                             <textarea v-model="deliveryAddress" rows="2"
                                 placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
                                 class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
-                            <p class="text-xs text-zinc-400">Required for delivery requests. You can refine the address
-                                below if needed.</p>
                         </div>
                     </section>
 
@@ -401,12 +284,12 @@
                                 <span class="font-semibold text-zinc-900">Home Delivery</span>
                             </div>
                             <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
-                                <span class="text-zinc-500">Priority Fee</span>
+                                <span class="text-zinc-500">Charge</span>
                                 <span class="font-black text-zinc-900">GHS {{ requestFee.toFixed(2) }}</span>
                             </div>
                         </div>
                         <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                            class="w-full bg-zinc-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            class="w-full bg-purple-700 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
                             <template v-else>Send Request ›</template>
                         </button>
@@ -418,15 +301,15 @@
 
             </div><!-- /main content row -->
 
-            <!-- Mobile sticky footer -->
+            <!-- Mobile submit bar -->
             <div
-                class="lg:hidden fixed bottom-[4.75rem] left-0 right-0 z-40 bg-white border-t border-zinc-200 px-4 py-3 flex items-center gap-3 shadow-[0_-2px_12px_0_rgba(0,0,0,0.06)]">
+                class="lg:hidden bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Priority Fee</p>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
                     <p class="text-lg font-black text-zinc-900 leading-tight">GHS {{ requestFee.toFixed(2) }}</p>
                 </div>
                 <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                    class="bg-zinc-900 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
+                    class="bg-purple-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
                     <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
                     <template v-else>Send Request ›</template>
                 </button>
@@ -823,8 +706,7 @@
             <div class="modal-content priority-modal">
                 <div class="modal-header">
                     <div>
-                        <h3>Activate Priority Search</h3>
-                        <span class="status-badge confirming_with_pharm">GHS {{ requestFee.toFixed(2) }} charge</span>
+                        <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">GHS {{ requestFee.toFixed(2) }} charge</span>
                     </div>
                     <button @click="showPriorityModal = false" class="modal-close">
                         <XMarkIcon class="close-svg" />
@@ -833,23 +715,9 @@
 
                 <div class="modal-body">
                     <div class="priority-hero">
-                        <p class="priority-kicker">Before you send</p>
                         <p class="priority-copy">
-                            A small fee of GHS {{ requestFee.toFixed(2) }} is charged from your wallet when you send
-                            this
-                            request.
+                            A GHS {{ requestFee.toFixed(2) }} search fee is deducted from your wallet — it's credited back against your order if you proceed, or kept if you don't.
                         </p>
-                    </div>
-
-                    <div class="priority-points">
-                        <div class="priority-point">
-                            <strong>✅ If you place an order</strong>
-                            <span>The GHS {{ requestFee.toFixed(2) }} is taken off your final bill</span>
-                        </div>
-                        <div class="priority-point">
-                            <strong>❌ If you don't place an order</strong>
-                            <span>The GHS {{ requestFee.toFixed(2) }} is kept as a search fee.</span>
-                        </div>
                     </div>
 
                     <div v-if="submitShortfall > 0" class="priority-shortfall">
@@ -870,7 +738,7 @@
                                 <ArrowPathIcon class="nav-svg spin" /> Sending...
                             </template>
                             <template v-else>
-                                Charge GHS {{ requestFee.toFixed(2) }} &amp; Send Request
+                             Send Request
                             </template>
                         </button>
                     </div>
@@ -1031,6 +899,7 @@ const newItem = () => ({
 })
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
+const HOMEPAGE_PRESCRIPTION_DRAFT_KEY = 'medsgh_homepage_prescription_image'
 const FORM_DRAFT_KEY = 'medsgh_order_form_draft'
 let formDraftSaveTimer = null
 
@@ -1147,6 +1016,21 @@ const consumeHomepageRequestDraft = () => {
     } catch (_error) {
         return []
     }
+}
+
+const consumeHomepagePrescriptionDraft = async () => {
+    if (!process.client) return
+    try {
+        const raw = sessionStorage.getItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY)
+        if (!raw) return
+        sessionStorage.removeItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY)
+        const { name, type, data } = JSON.parse(raw)
+        if (!data) return
+        const file = dataUrlToFile(data, name, type)
+        const compressed = await compressRequestImage(file)
+        prescriptionFiles.value = [createPrescriptionPreview(compressed)]
+        await persistPrescriptionsToSession()
+    } catch (_) {}
 }
 
 const applyHomepageRequestDraft = (draftItems = []) => {
@@ -1406,6 +1290,48 @@ const createPrescriptionPreview = (file) => ({
     previewUrl: URL.createObjectURL(file)
 })
 
+const RX_SESSION_KEY = 'medsgh_pending_rx'
+
+const fileToDataUrl = (file) => new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target.result)
+    reader.readAsDataURL(file)
+})
+
+const dataUrlToFile = (dataUrl, name, type) => {
+    const [, base64] = dataUrl.split(',')
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+    return new File([bytes], name, { type })
+}
+
+const persistPrescriptionsToSession = async () => {
+    try {
+        const entries = await Promise.all(
+            prescriptionFiles.value.map(async (p) => ({
+                name: p.file.name,
+                type: p.file.type,
+                dataUrl: await fileToDataUrl(p.file)
+            }))
+        )
+        sessionStorage.setItem(RX_SESSION_KEY, JSON.stringify(entries))
+    } catch (_) {}
+}
+
+const restorePrescriptionsFromSession = async () => {
+    try {
+        const raw = sessionStorage.getItem(RX_SESSION_KEY)
+        if (!raw) return
+        const entries = JSON.parse(raw)
+        if (!Array.isArray(entries) || !entries.length) return
+        const files = entries.map(({ dataUrl, name, type }) => dataUrlToFile(dataUrl, name, type))
+        prescriptionFiles.value = files.map(createPrescriptionPreview)
+    } catch (_) {}
+}
+
+const clearPrescriptionSession = () => {
+    try { sessionStorage.removeItem(RX_SESSION_KEY) } catch (_) {}
+}
+
 const compressRequestImage = async (file) => {
     const options = {
         maxSizeMB: 0.8,
@@ -1451,10 +1377,12 @@ const appendPrescriptionFiles = async (files = []) => {
     const compressedFiles = await Promise.all(accepted.map(compressRequestImage))
     const nextFiles = compressedFiles.map(createPrescriptionPreview)
     prescriptionFiles.value = [...prescriptionFiles.value, ...nextFiles]
+    await persistPrescriptionsToSession()
 }
 
 const onPrescriptionFilesSelected = async (event) => {
     await appendPrescriptionFiles(event.target.files || [])
+    if (event.target) event.target.value = ''
     resetPickerInput(prescriptionPicker)
 }
 
@@ -1477,12 +1405,14 @@ const onReplacePrescriptionFile = async (event) => {
     prescriptionFiles.value.splice(index, 1, createPrescriptionPreview(compressedReplacement))
     resetPickerInput(prescriptionReplacePicker)
     prescriptionReplaceIndex.value = null
+    await persistPrescriptionsToSession()
 }
 
 const removePrescriptionFile = (index) => {
     const current = prescriptionFiles.value[index]
     revokePrescriptionPreview(current)
     prescriptionFiles.value.splice(index, 1)
+    persistPrescriptionsToSession()
 }
 
 const appendItemImages = async (item, files = []) => {
@@ -1807,9 +1737,10 @@ const submitRequest = async () => {
         requestItems.value = [newItem()]
         prescriptionFiles.value.forEach(revokePrescriptionPreview)
         prescriptionFiles.value = []
+        clearPrescriptionSession()
         resetPickerInput(prescriptionPicker)
         resetPickerInput(prescriptionReplacePicker)
-        fulfillmentType.value = ''
+        fulfillmentType.value = 'delivery'
         customerAddress.value = ''
         deliveryAddress.value = ''
         deliveryAddressSearch.value = ''
@@ -2426,11 +2357,13 @@ const statusProgress = (s) => ({
 const showToast = (text, type = 'success') => { toast.value = { text, type }; setTimeout(() => { toast.value = null }, 4000) }
 
 onMounted(async () => {
+    await restorePrescriptionsFromSession()
     await loadSavedHomeLocation()
     await fetchRequestSettings()
     await fetchWalletBalance()
     if (isNewView.value && !props.initialRequestId) {
         applyHomepageRequestDraft(consumeHomepageRequestDraft())
+        await consumeHomepagePrescriptionDraft()
         // Restore form auto-save draft if no homepage draft was applied
         restoreFormDraft()
     }
@@ -5074,7 +5007,7 @@ defineExpose({ fetchMyRequests })
     border: none;
     border-radius: 10px;
     padding: 0.75rem 1rem;
-    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
     color: #ffffff;
     font-weight: 700;
     font-size: 0.875rem;
@@ -5095,7 +5028,7 @@ defineExpose({ fetchMyRequests })
 
 .pay-request-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 8px 16px rgba(2, 132, 199, 0.25);
+    box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
 }
 
 .secondary-pay-btn:hover:not(:disabled) {

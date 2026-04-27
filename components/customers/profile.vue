@@ -13,7 +13,7 @@
         </div>
     </header>
 
-    <div class="px-5 max-w-3xl">
+    <div class="max-w-3xl">
       <!-- Success Alert -->
       <div v-if="updateSuccess" class="flex items-center justify-between px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 mb-5 text-sm font-semibold shadow-sm">
         <div class="flex items-center gap-3">

@@ -71,17 +71,31 @@ const loading = ref(true)
 const orders = ref([])
 const activeTab = ref('all')
 
+const STATUS_GROUPS = {
+  processing: new Set([
+    'composing', 'sourcing', 'enquiry_sent', 'partially_available',
+    'confirming_with_pharm', 'confirmed_in_pharm', 'awaiting_input', 'awaiting_customer'
+  ]),
+  awaiting_payment: new Set(['payment_pending']),
+  fulfillment: new Set([
+    'paid', 'preparing', 'out_for_delivery', 'in_transit',
+    'ready_for_pickup', 'picking_up', 'picked_up'
+  ]),
+  completed: new Set(['delivered', 'completed', 'returned']),
+}
+
 const tabs = [
   { label: 'All Active', value: 'all' },
   { label: 'Processing', value: 'processing' },
   { label: 'Awaiting Payment', value: 'awaiting_payment' },
-  { label: 'Fulfillment', value: 'fulfillment_in_progress' },
+  { label: 'Fulfillment', value: 'fulfillment' },
   { label: 'Completed', value: 'completed' },
 ]
 
 const filtered = computed(() => {
   if (activeTab.value === 'all') return orders.value
-  return orders.value.filter(o => o.status === activeTab.value)
+  const group = STATUS_GROUPS[activeTab.value]
+  return group ? orders.value.filter(o => group.has(o.status)) : orders.value
 })
 
 const statusClass = (status) => {

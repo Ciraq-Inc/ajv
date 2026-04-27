@@ -49,7 +49,7 @@
       </div>
     </aside>
 
-    <main class="lg:ml-64 min-h-screen bg-[#f4f4f5] pb-28 lg:pb-0">
+    <main class="lg:ml-64 min-h-screen bg-gradient-to-br from-[#e8dff5] to-[#ddd5ef] pb-28 lg:pb-0">
       <!-- TopAppBar: hidden on concierge new-request and list views -->
       <header
         v-if="activeNav !== 'new' && activeNav !== 'requests'"

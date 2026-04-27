@@ -5,7 +5,7 @@
       <!-- Logo/Brand -->
       <div class="sidebar-header">
         <div class="logo">
-          <BuildingOfficeIcon class="logo-icon" />
+          <img src="/brand/rig-mark.svg" alt="Rigelis" class="logo-icon" />
           <span v-if="!isSidebarCollapsed" class="logo-text">Rigel Portal</span>
         </div>
         <button @click="toggleSidebar" class="collapse-btn"
@@ -226,7 +226,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
-  BuildingOfficeIcon,
   BuildingOffice2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -389,8 +388,8 @@ onUnmounted(() => {
 .sidebar {
   width: 256px;
   /* w-64 */
-  background: linear-gradient(180deg, #1F2937 0%, #111827 100%);
-  /* gray-800 to gray-900 */
+  background: linear-gradient(180deg, #2A1130 0%, #1A0B20 100%);
+  /* brand purple */
   color: white;
   display: flex;
   flex-direction: column;
@@ -474,8 +473,8 @@ onUnmounted(() => {
   height: 48px;
   border-radius: 9999px;
   /* rounded-full */
-  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-  /* blue-500 to blue-700 */
+  background: linear-gradient(135deg, #C073A7 0%, #5A2468 100%);
+  /* brand magenta to purple */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -559,11 +558,11 @@ onUnmounted(() => {
 }
 
 .nav-item.active {
-  background: #3B82F6;
-  /* blue-500 */
+  background: #5A2468;
+  /* brand purple */
   color: white;
-  border-left: 2px solid #3B82F6;
-  /* emphasis border */
+  border-left: 2px solid #C073A7;
+  /* magenta accent */
 }
 
 .nav-child-item {
@@ -778,8 +777,8 @@ onUnmounted(() => {
   height: 36px;
   border-radius: 9999px;
   /* rounded-full */
-  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-  /* blue-500 to blue-700 */
+  background: linear-gradient(135deg, #C073A7 0%, #5A2468 100%);
+  /* brand magenta to purple */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -925,8 +924,8 @@ onUnmounted(() => {
 .mark-read-btn {
   background: transparent;
   border: none;
-  color: #3B82F6;
-  /* blue-500 */
+  color: #9B4A88;
+  /* brand magenta */
   font-size: 12px;
   /* xs */
   cursor: pointer;
