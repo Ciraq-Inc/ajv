@@ -28,13 +28,22 @@
       </div>
 
       <!-- Navigation -->
-      <nav class="sidebar-nav">
-        <NuxtLink v-for="item in navigationItems" :key="item.path" :to="item.path" class="nav-item"
-          :title="sidebarCollapsed ? item.label : ''">
-          <component :is="item.icon" class="nav-icon" />
-          <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
-          <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
-        </NuxtLink>
+      <nav class="sidebar-nav" aria-label="Company navigation">
+        <div v-for="section in navigationSections" :key="section.title" class="nav-section">
+          <p v-if="!sidebarCollapsed" class="nav-section-title">{{ section.title }}</p>
+
+          <NuxtLink
+            v-for="item in section.items"
+            :key="item.path"
+            :to="item.path"
+            class="nav-item"
+            :title="sidebarCollapsed ? item.label : ''"
+          >
+            <component :is="item.icon" class="nav-icon" />
+            <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+            <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
+          </NuxtLink>
+        </div>
       </nav>
 
       <!-- Sidebar Footer (User Info) -->
@@ -123,17 +132,22 @@ import {
   UserIcon,
   BellIcon,
   Cog6ToothIcon,
+  SwatchIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowLeftOnRectangleIcon,
   ChatBubbleLeftIcon,
-  PlusIcon,
   BoltIcon,
   CreditCardIcon,
   ArrowPathIcon,
   UserGroupIcon,
-  Bars3Icon
+  BriefcaseIcon,
+  Bars3Icon,
+  PresentationChartLineIcon,
+  ClipboardDocumentListIcon,
+  TruckIcon,
+  BanknotesIcon,
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -157,6 +171,13 @@ const userRole = computed(() => {
   const role = companyStore.userRole || 'user'
   return role.charAt(0).toUpperCase() + role.slice(1)
 })
+const normalizedRole = computed(() =>
+  String(companyStore.userRole || 'user')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_')
+)
 const companyName = computed(() => companyStore.currentCompany?.name || 'Company')
 
 // Page title from route meta or default
@@ -165,33 +186,117 @@ const pageTitle = computed(() => {
 })
 
 // Navigation items
-const navigationItems = computed(() => [
+const servicePath = (slug = '') => {
+  return slug
+    ? `/${companyDomain.value}/services/${slug}`
+    : `/${companyDomain.value}/services`
+}
+
+const allNavigationSections = computed(() => [
   {
-    path: `/${companyDomain.value}/services/sms-campaigns`,
-    label: 'SMS Campaigns',
-    icon: ChatBubbleLeftIcon,
+    title: 'Orders & Deliveries',
+    items: [
+      {
+        path: servicePath('orders'),
+        label: 'Order Requests',
+        icon: ClipboardDocumentListIcon,
+      },
+      {
+        path: servicePath('deliveries'),
+        label: 'Deliveries',
+        icon: TruckIcon,
+      },
+      {
+        path: servicePath('riders'),
+        label: 'Fleet',
+        icon: TruckIcon,
+      },
+      {
+        path: servicePath('wallet'),
+        label: 'Wallet',
+        icon: BanknotesIcon,
+      },
+    ],
   },
   {
-    path: `/${companyDomain.value}/services/sms-credits`,
-    label: 'SMS Credits',
-    icon: BoltIcon,
+    title: 'SMS',
+    items: [
+      {
+        path: servicePath('sms-campaigns'),
+        label: 'SMS Campaigns',
+        icon: ChatBubbleLeftIcon,
+      },
+      {
+        path: servicePath('sms-credits'),
+        label: 'SMS Credits',
+        icon: BoltIcon,
+      },
+    ],
   },
   {
-    path: `/${companyDomain.value}/services/sms-billing`,
-    label: 'Billing',
-    icon: CreditCardIcon,
+    title: 'Billing',
+    items: [
+      {
+        path: servicePath('sms-billing'),
+        label: 'Billing',
+        icon: CreditCardIcon,
+      },
+    ],
   },
   {
-    path: `/${companyDomain.value}/services/user-access`,
-    label: 'User Access',
-    icon: UserGroupIcon,
+    title: 'Reports',
+    items: [
+      {
+        path: servicePath('monthly-reports'),
+        label: 'Monthly Reports',
+        icon: PresentationChartLineIcon,
+      },
+    ],
   },
   {
-    path: `/${companyDomain.value}/services/store-settings`,
-    label: 'Store Settings',
-    icon: Cog6ToothIcon,
+    title: 'Administration',
+    items: [
+      {
+        path: servicePath('user-access'),
+        label: 'User Access',
+        icon: UserGroupIcon,
+      },
+      {
+        path: servicePath('store-settings'),
+        label: 'Shopfront',
+        icon: SwatchIcon,
+      },
+    ],
+  },
+  {
+    title: 'Hiring',
+    items: [
+      {
+        path: servicePath('rigel-boards'),
+        label: 'Rigel Boards',
+        icon: BriefcaseIcon,
+      },
+    ],
   },
 ])
+
+const navigationSections = computed(() => {
+  if (normalizedRole.value !== 'third_party_poster') {
+    return allNavigationSections.value
+  }
+
+  return allNavigationSections.value
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        return (
+          item.path.endsWith('/services/rigel-boards') ||
+          item.path.endsWith('/services/sms-billing')
+        )
+      }),
+    }))
+    .filter((section) => section.items.length > 0)
+})
 
 // Toggle sidebar
 const toggleSidebar = () => {
@@ -362,6 +467,23 @@ watchEffect(() => {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+}
+
+.nav-section {
+  margin-bottom: 1rem;
+}
+
+.nav-section:last-child {
+  margin-bottom: 0;
+}
+
+.nav-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin: 0 0 0.5rem 0.75rem;
 }
 
 .nav-item {

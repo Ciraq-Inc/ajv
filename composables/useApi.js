@@ -3,7 +3,7 @@
 
 export const useApi = () => {
   const config = useRuntimeConfig();
-  const baseURL = config.public.apiBase;
+  const baseURL = config.public.apiBase || '';
 
   /**
    * Make an authenticated API request
@@ -37,12 +37,23 @@ export const useApi = () => {
           }
         }
 
-        // Fallback to other token types (admin and customer tokens)
+        // Fallback to other token types
         if (!token) {
-          token = localStorage.getItem('adminToken') ||
-            localStorage.getItem('customerAuthToken') ||
-            localStorage.getItem('token') ||
-            localStorage.getItem('companyAuthToken');
+          if (endpoint.startsWith('/api/driver')) {
+            token = localStorage.getItem('driver_token');
+          } else if (endpoint.startsWith('/api/dispatch')) {
+            token = localStorage.getItem('dispatch_token');
+          } else if (endpoint.startsWith('/api/admin')) {
+            token = localStorage.getItem('adminToken');
+          }
+          
+          if (!token) {
+            token = localStorage.getItem('adminToken') ||
+              localStorage.getItem('driver_token') ||
+              localStorage.getItem('customerAuthToken') ||
+              localStorage.getItem('token') ||
+              localStorage.getItem('companyAuthToken');
+          }
           console.log('Checked fallback tokens, found:', !!token);
         }
       }

@@ -1,480 +1,718 @@
-<!-- pages/index.vue -->
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-20 pb-8">
-    <div class="container mx-auto px-4 flex items-center">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 w-full items-center">
-        <!-- Left Side - Content -->
-        <div class="space-y-6 lg:space-y-8">
-          <div>
-            <h1 class="text-3xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-4 leading-tight">
-              Need Meds? Get Them Delivered, <span class="text-indigo-600">Fast.</span>
-            </h1>
-            <p class="text-lg lg:text-xl text-gray-700 font-medium">
-              Stop Driving Around. Check Inventory and Order from Pharmacies Near You.
-            </p>
-          </div>
+  <div class="min-h-screen bg-[#f6f1ff] text-slate-900">
+    <Transition enter-from-class="opacity-0 translate-y-2" enter-active-class="transition duration-200" leave-to-class="opacity-0 translate-y-2" leave-active-class="transition duration-200">
+      <div v-if="toast" class="fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold text-white" :class="toast.type === 'success' ? 'bg-[#520094]' : 'bg-red-600'">
+        {{ toast.text }}
+      </div>
+    </Transition>
 
-          <div class="bg-white rounded-xl  p-6 lg:p-8 border border-indigo-100">
-            <p class="text-base lg:text-lg text-gray-700 leading-relaxed mb-4">
-              Tired of calling every pharmacy only to find out they don't have what you need?
-              <span class="font-semibold text-indigo-600">The RigelOS Online Pharmacy Portal</span> is making life
-              easier.
-            </p>
-            <div class="space-y-3">
-              <div class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd" />
-                </svg>
-                <p class="text-gray-700 text-sm lg:text-base">Check what's in stock at all partner pharmacies nearby</p>
+    <div class="font-primary bg-[#fff7ff]">
+      <main class="pt-20 bg-[#fff7ff]">
+        <!-- Hero Section -->
+        <section class="relative min-h-[calc(100svh-80px)] flex items-center overflow-hidden">
+          <!-- Background Image -->
+          <div class="absolute inset-0 z-0">
+            <img :src="heroOrderingImage" alt="" class="w-full h-full object-cover" />
+            <div class="absolute inset-0 bg-gradient-to-r from-[#fff7ff]/95 via-[#fff7ff]/40 to-transparent"></div>
+          </div>
+          <div class="container mx-auto px-8 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+            <div class="max-w-2xl">
+              <h1 class="text-[2rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.1] tracking-tight text-[#520094] mb-6">
+                Find any medication, <span class="text-[#520094]">anywhere.</span>
+              </h1>
+              <p class="text-base sm:text-[1rem] text-[#4c4453] mb-10 font-medium leading-relaxed">
+                Expert care, delivered. Connecting you to over 210+ verified pharmacies across Ghana for seamless healthcare access.
+              </p>
+              <!-- Search & CTA -->
+              <div class="flex flex-col space-y-4 max-w-lg">
+                <form class="space-y-4" @submit.prevent="submitHomepageSearch">
+                  <!-- Unified Input Bar -->
+                  <div class="relative flex flex-row items-center bg-white rounded-[2.5rem] p-1.5 border border-[#ead6fd] shadow-[0_8px_30px_rgb(82,0,148,0.12)] transition-all duration-200 focus-within:ring-4 focus-within:ring-[#520094]/10 focus-within:shadow-[0_10px_40px_rgb(82,0,148,0.2)] focus-within:-translate-y-0.5">
+                    <!-- Main Input Area -->
+                    <div class="relative flex-1 min-w-0 flex items-center">
+                      <label for="medicine-search" class="sr-only">Medicine name</label>
+                      <span class="material-symbols-outlined shrink-0 text-[#cbb5e1] !text-[24px] pl-3 pr-1">search</span>
+                      <input
+                        id="medicine-search"
+                        v-model="homepageSearchTerm"
+                        class="w-full bg-transparent border-none py-3 text-[#1e1a22] focus:ring-0 placeholder:text-[#d3c2e1] outline-none font-semibold text-[14px] md:text-[15px] pr-2"
+                        placeholder="Type the medicine you need..."
+                        type="text"
+                      />
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="w-px h-8 bg-gradient-to-b from-transparent via-[#ead6fd] to-transparent mx-1.5 opacity-80 shrink-0"></div>
+
+                    <!-- Right Controls: Unit & Submit -->
+                    <div class="flex items-center gap-1.5 pr-1 shrink-0">
+                      <div class="w-[90px] md:w-[110px] relative h-[44px]">
+                        <label for="medicine-unit" class="sr-only">Quantity and unit</label>
+                        <select
+                          id="medicine-unit"
+                          v-model="homepageRequestedUnit"
+                          class="w-full h-full rounded-[2rem] border-2 border-transparent hover:border-[#ead6fd] focus:border-[#cbb5e1] bg-[#fbf5ff] pl-3 pr-8 py-0 text-[13px] font-semibold text-[#520094] outline-none transition-all duration-200 focus:ring-0 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23520094%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:16px_16px] bg-[right_10px_center] bg-no-repeat cursor-pointer"
+                        >
+                          <option value="" class="text-[#a890bd] font-semibold">Unit</option>
+                          <option v-for="option in medicineUnitOptions" :key="option" :value="option" class="font-semibold text-[#1e1a22]">{{ option }}</option>
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        @click="addHomepageCurrentItem"
+                        :disabled="!homepageSearchTerm.trim()"
+                        class="h-[44px] flex-shrink-0 inline-flex items-center justify-center gap-1 rounded-[2rem] bg-gradient-to-r from-[#6c24b3] to-[#520094] pl-4 pr-5 text-[13px] font-bold text-white transition-all duration-200 hover:shadow-lg hover:shadow-[#520094]/40 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:from-[#efe2ff] disabled:to-[#efe2ff] disabled:text-[#cbb5e1] disabled:shadow-none disabled:transform-none"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- hidden file input -->
+                  <input
+                    ref="homepageImagePicker"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="onHomepagePrescriptionImageSelected"
+                  />
+
+                  <!-- "or upload prescription" divider + button -->
+                  <div class="flex items-center gap-3">
+                    <div class="flex-1 h-px bg-[#ead6fd]"></div>
+                    <span class="text-xs font-semibold text-[#c4abde] uppercase tracking-widest">or</span>
+                    <div class="flex-1 h-px bg-[#ead6fd]"></div>
+                  </div>
+                  <button
+                    type="button"
+                    @click="homepageImagePicker?.click()"
+                    class="w-full flex items-center justify-center gap-2 rounded-[2rem] border-2 border-dashed border-[#d4b0f7] bg-white py-3.5 text-[14px] font-semibold text-[#520094] transition hover:border-[#b98ae0] hover:bg-[#faf5ff]"
+                  >
+                    <span class="material-symbols-outlined !text-[20px]">upload_file</span>
+                    Upload prescription image
+                  </button>
+
+                  <div v-if="homepagePrescriptionImagePreview" class="flex items-center gap-3 rounded-2xl border border-[#d9bcfa] bg-white px-3 py-2.5 shadow-sm">
+                    <img :src="homepagePrescriptionImagePreview" alt="Prescription preview" class="h-12 w-12 rounded-xl object-cover flex-shrink-0 border border-[#efdbff]" />
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-bold text-[#1e1a22] truncate">{{ homepagePrescriptionImage?.name }}</p>
+                      <p class="text-[11px] text-[#7d7484] mt-0.5">Prescription · {{ homepagePrescriptionImage ? (homepagePrescriptionImage.size / 1024).toFixed(0) + ' KB' : '' }}</p>
+                    </div>
+                    <button type="button" @click="removeHomepagePrescriptionImage" class="flex-shrink-0 h-8 w-8 rounded-full bg-[#f3e8ff] text-[#520094] flex items-center justify-center hover:bg-[#e9d5ff] transition-colors" aria-label="Remove prescription image">
+                      <span class="material-symbols-outlined text-[1rem]">close</span>
+                    </button>
+                  </div>
+
+                  <div v-if="homepageSelectedItems.length" class="rounded-[1.75rem] border border-[#d9bcfa] bg-gradient-to-br from-white via-[#fff8ff] to-[#f8edff] px-4 py-4 shadow-[0_24px_55px_-28px_rgba(82,0,148,0.42)] ring-1 ring-[#f3e3ff]">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-start gap-3">
+                        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#520094] text-white shadow-[0_14px_30px_-18px_rgba(82,0,148,0.7)]">
+                          <span class="material-symbols-outlined text-[1.3rem]">medication</span>
+                        </div>
+                        <div>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <p class="text-sm font-bold text-[#1e1a22]">Request list</p>
+                            <span class="inline-flex min-w-[1.8rem] items-center justify-center rounded-full bg-[#520094] px-2 py-1 text-[11px] font-extrabold text-white">
+                              {{ homepageSelectedItems.length }}
+                            </span>
+                          </div>
+                          <p class="mt-1 text-xs font-medium text-[#655b6d]">{{ homepageSelectedItems.length }} product<span v-if="homepageSelectedItems.length !== 1">s</span> selected · {{ homepageSelectedQuantity }} unit<span v-if="homepageSelectedQuantity !== 1">s</span> queued</p>
+                        </div>
+                      </div>
+                      <button type="button" @click="clearHomepageSelectedItems" class="inline-flex items-center gap-1 rounded-full border border-[#e4ccfb] bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#520094] transition hover:border-[#d4b0f7] hover:bg-[#faf3ff]">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                        Clear
+                      </button>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-2.5">
+                      <div
+                        v-for="(item, index) in homepageSelectedItems"
+                        :key="`${item.product_name}-${item.requested_unit || 'none'}-${index}`"
+                        class="inline-flex items-center gap-2 rounded-full border border-[#ead6fd] bg-white px-3.5 py-2.5 text-sm font-semibold text-[#1e1a22] shadow-[0_10px_26px_-22px_rgba(82,0,148,0.55)]"
+                      >
+                        <span>{{ item.product_name }}</span>
+                        <span v-if="item.requested_unit" class="rounded-full bg-[#faf5ff] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#6f35ad]">{{ item.requested_unit }}</span>
+                        <div class="inline-flex items-center rounded-full border border-[#ead6fd] bg-[#faf5ff] p-1">
+                          <button
+                            type="button"
+                            @click="decreaseHomepageSelectedItemQuantity(index)"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#520094] transition hover:bg-[#efdbff]"
+                            aria-label="Decrease quantity"
+                          >
+                            <span class="material-symbols-outlined text-base">remove</span>
+                          </button>
+                          <span class="min-w-[2rem] text-center text-[11px] font-bold uppercase tracking-[0.12em] text-[#6f35ad]">Qty {{ item.quantity }}</span>
+                          <button
+                            type="button"
+                            @click="increaseHomepageSelectedItemQuantity(index)"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#520094] transition hover:bg-[#efdbff]"
+                            aria-label="Increase quantity"
+                          >
+                            <span class="material-symbols-outlined text-base">add</span>
+                          </button>
+                        </div>
+                        <button type="button" @click="removeHomepageSelectedItem(index)" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#efdbff] text-[#520094] transition hover:bg-[#e5cffc]" :aria-label="`Remove ${item.product_name}`">
+                          <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button class="w-full md:w-fit px-10 py-5 bg-[#520094] hover:bg-[#6c24b3] text-white rounded-full font-semibold text-lg shadow-lg shadow-[#520094]/20 transition-all active:scale-95" type="submit">
+                    Request medication<span v-if="homepageSelectedQuantity"> ({{ homepageSelectedQuantity }})</span>
+                  </button>
+                </form>
               </div>
-              <div class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd" />
-                </svg>
-                <p class="text-gray-700 text-sm lg:text-base">See it, buy it—right from your phone</p>
-              </div>
-              <div class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd" />
-                </svg>
-                <p class="text-gray-700 text-sm lg:text-base">Get it dropped off quickly at your home or office</p>
+              <!-- Trust Bar -->
+              <div class="mt-12 flex items-center gap-4">
+                <div class="flex -space-x-3">
+                  <div class="w-10 h-10 rounded-full border-2 border-[#fff7ff] bg-[#efdbff] flex items-center justify-center text-[10px] font-bold text-[#520094]">AK</div>
+                  <div class="w-10 h-10 rounded-full border-2 border-[#fff7ff] bg-[#e8def8] flex items-center justify-center text-[10px] font-bold text-[#625b71]">KA</div>
+                  <div class="w-10 h-10 rounded-full border-2 border-[#fff7ff] bg-[#dbb8ff] flex items-center justify-center text-[10px] font-bold text-[#6c24b3]">AO</div>
+                </div>
+                <p class="text-sm font-semibold text-[#4c4453]">Secure &amp; trusted by 5,000+ Ghanaians</p>
               </div>
             </div>
-            <p class="text-base text-gray-800 font-semibold mt-4 text-center">
-              It's stress-free healthcare access!
+          </div>
+        </section>
+
+        <!-- Quick Stats -->
+        <section class="bg-[#faf0fd] py-16">
+          <div class="container mx-auto px-8">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div class="bg-white p-8 rounded-lg flex items-center gap-6">
+                <div class="w-14 h-14 bg-[#efdbff] rounded-2xl flex items-center justify-center text-[#520094]">
+                  <span class="material-symbols-outlined text-3xl">local_pharmacy</span>
+                </div>
+                <div>
+                  <div class="text-2xl font-bold text-[#1e1a22]">210+</div>
+                  <div class="text-sm text-[#4c4453] font-medium">Verified pharmacies</div>
+                </div>
+              </div>
+              <div class="bg-white p-8 rounded-lg flex items-center gap-6">
+                <div class="w-14 h-14 bg-[#e8def8] rounded-2xl flex items-center justify-center text-[#625b71]">
+                  <span class="material-symbols-outlined text-3xl">speed</span>
+                </div>
+                <div>
+                  <div class="text-2xl font-bold text-[#1e1a22]">45min</div>
+                  <div class="text-sm text-[#4c4453] font-medium">Avg. delivery time</div>
+                </div>
+              </div>
+              <div class="bg-white p-8 rounded-lg flex items-center gap-6">
+                <div class="w-14 h-14 bg-[#ffdcbf] rounded-2xl flex items-center justify-center text-[#552e00]">
+                  <span class="material-symbols-outlined text-3xl">verified</span>
+                </div>
+                <div>
+                  <div class="text-2xl font-bold text-[#1e1a22]">100%</div>
+                  <div class="text-sm text-[#4c4453] font-medium">Genuine meds</div>
+                </div>
+              </div>
+              <div class="bg-white p-8 rounded-lg flex items-center gap-6">
+                <div class="w-14 h-14 bg-[#dbb8ff] rounded-2xl flex items-center justify-center text-[#6c24b3]">
+                  <span class="material-symbols-outlined text-3xl">support_agent</span>
+                </div>
+                <div>
+                  <div class="text-2xl font-bold text-[#1e1a22]">24/7</div>
+                  <div class="text-sm text-[#4c4453] font-medium">Expert support</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- How It Works -->
+        <section id="how-it-works" class="py-24 bg-[#fff7ff] overflow-hidden">
+          <div class="container mx-auto px-8">
+            <div class="text-center mb-20">
+              <h2 class="text-[2.5rem] font-semibold text-[#1e1a22] mb-4">How it works</h2>
+              <p class="text-[#4c4453] max-w-xl mx-auto">Get your prescriptions filled in three simple steps without leaving your home.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-12 relative">
+              <!-- Step 1 -->
+              <div class="group">
+                <div class="relative mb-8 rounded-lg overflow-hidden h-[400px]">
+                  <img class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" alt="Doctor using a smartphone to review a prescription" :src="'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80&auto=format&fit=crop'" />
+                  <div class="absolute top-6 left-6 w-12 h-12 bg-[#520094] text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg">1</div>
+                </div>
+                <h3 class="text-xl font-semibold text-[#1e1a22] mb-3">Upload or list</h3>
+                <p class="text-[#4c4453] leading-relaxed">Securely upload your prescription or search for over-the-counter essentials from our database.</p>
+              </div>
+              <!-- Step 2 -->
+              <div class="group">
+                <div class="relative mb-8 rounded-lg overflow-hidden h-[400px]">
+                  <img class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" alt="Pharmacist sourcing medication from pharmacy shelves" :src="'https://images.unsplash.com/photo-1580281657527-47f249e8f4df?w=800&q=80&auto=format&fit=crop'" />
+                  <div class="absolute top-6 left-6 w-12 h-12 bg-[#520094] text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg">2</div>
+                </div>
+                <h3 class="text-xl font-semibold text-[#1e1a22] mb-3">We source and verify</h3>
+                <p class="text-[#4c4453] leading-relaxed">Our system checks stock across 210+ verified pharmacies to find the best price and availability.</p>
+              </div>
+              <!-- Step 3 -->
+              <div class="group">
+                <div class="relative mb-8 rounded-lg overflow-hidden h-[400px]">
+                  <img class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" alt="Delivery person handing a package to a customer" :src="'https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?w=800&q=80&auto=format&fit=crop'" />
+                  <div class="absolute top-6 left-6 w-12 h-12 bg-[#520094] text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg">3</div>
+                </div>
+                <h3 class="text-xl font-semibold text-[#1e1a22] mb-3">Confirm and receive</h3>
+                <p class="text-[#4c4453] leading-relaxed">Confirm your order with a secure payment and have it delivered to your doorstep in under 45 minutes.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section class="py-24 bg-[#f4ebf7]">
+          <div class="container mx-auto px-8">
+            <h2 class="text-3xl font-semibold text-[#1e1a22] mb-12">What customers are saying</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+              <!-- Testimonial 1 -->
+              <div class="bg-white p-10 rounded-lg">
+                <div class="flex gap-1 mb-6 text-[#E8A33A]">
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                </div>
+                <p class="text-[#1e1a22] text-lg leading-relaxed italic mb-8">"I couldn't find my father's chronic medication anywhere in Kumasi. MedsGh found it in 15 minutes and delivered it the same hour. Lifesavers!"</p>
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-[#efdbff] flex items-center justify-center font-bold text-[#520094]">KA</div>
+                  <div>
+                    <div class="font-bold text-[#1e1a22]">Kofi Adjei</div>
+                    <div class="text-sm text-[#7d7484]">Verified patient</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Testimonial 2 -->
+              <div class="bg-white p-10 rounded-lg">
+                <div class="flex gap-1 mb-6 text-[#E8A33A]">
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                </div>
+                <p class="text-[#1e1a22] text-lg leading-relaxed italic mb-8">"The telehealth integration is seamless. Had a consultation and my meds were on their way before I even hung up the call. Amazing service."</p>
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-[#e8def8] flex items-center justify-center font-bold text-[#625b71]">AM</div>
+                  <div>
+                    <div class="font-bold text-[#1e1a22]">Ama Mensah</div>
+                    <div class="text-sm text-[#7d7484]">Verified patient</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Testimonial 3 -->
+              <div class="bg-white p-10 rounded-lg">
+                <div class="flex gap-1 mb-6 text-[#E8A33A]">
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                </div>
+                <p class="text-[#1e1a22] text-lg leading-relaxed italic mb-8">"As a busy professional, I don't have time to hop from pharmacy to pharmacy. MedsGh makes medication management effortless and secure."</p>
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-[#ffdcbf] flex items-center justify-center font-bold text-[#552e00]">DO</div>
+                  <div>
+                    <div class="font-bold text-[#1e1a22]">Dr. Owusu</div>
+                    <div class="text-sm text-[#7d7484]">Healthcare provider</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="support" class="py-24 bg-[#fff7ff]">
+          <div class="container mx-auto px-8 max-w-4xl">
+            <h2 class="text-[2.5rem] font-semibold text-[#1e1a22] mb-12 text-center">You may be wondering</h2>
+            <div class="space-y-4">
+              <details class="group bg-[#faf0fd] rounded-lg p-6 cursor-pointer" open>
+                <summary class="flex items-center justify-between font-bold text-lg text-[#1e1a22] list-none">
+                  Are the pharmacies on MedsGh licensed?
+                  <span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span>
+                </summary>
+                <p class="mt-4 text-[#4c4453] leading-relaxed">
+                  Yes, every pharmacy in our network is fully accredited by the Pharmacy Council of Ghana. We strictly verify licenses and compliance records before onboarding any partner to ensure your safety.
+                </p>
+              </details>
+              <details class="group bg-[#faf0fd] rounded-lg p-6 cursor-pointer">
+                <summary class="flex items-center justify-between font-bold text-lg text-[#1e1a22] list-none">
+                  How do you handle prescription medications?
+                  <span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span>
+                </summary>
+                <p class="mt-4 text-[#4c4453] leading-relaxed">
+                  For prescription-only medicines, you are required to upload a clear photo or digital copy of a valid prescription. Our pharmacists verify these documents before processing your order.
+                </p>
+              </details>
+              <details class="group bg-[#faf0fd] rounded-lg p-6 cursor-pointer">
+                <summary class="flex items-center justify-between font-bold text-lg text-[#1e1a22] list-none">
+                  What is the delivery radius?
+                  <span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span>
+                </summary>
+                <p class="mt-4 text-[#4c4453] leading-relaxed">
+                  We currently operate across all major cities in Ghana, including Accra, Kumasi, Takoradi, and Tamale. We are rapidly expanding our partner network to reach more rural areas soon.
+                </p>
+              </details>
+            </div>
+          </div>
+        </section>
+
+        <!-- Quality Badges -->
+        <section class="py-12 bg-[#faf0fd]">
+          <div class="container mx-auto px-8">
+            <div class="flex flex-wrap justify-center items-center gap-12 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-[#520094] text-3xl">security</span>
+                <span class="font-semibold text-[#1e1a22] text-sm uppercase tracking-wider">Pharmacy Council accredited member</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-[#520094] text-3xl">payments</span>
+                <span class="font-semibold text-[#1e1a22] text-sm uppercase tracking-wider">PCI-DSS compliant</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-[#520094] text-3xl">health_and_safety</span>
+                <span class="font-semibold text-[#1e1a22] text-sm uppercase tracking-wider">G-Health certified</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="bg-[#faf0fd] w-full py-12 px-8 border-t border-[#cec2d5]/15">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-screen-2xl mx-auto">
+          <div class="col-span-1 md:col-span-1">
+            <div class="text-lg font-bold text-[#520094] mb-4">MedsGh</div>
+            <p class="text-slate-500 text-sm leading-relaxed">
+              Pioneering digital healthcare access in Ghana. Connecting patients with verified pharmacies for a healthier tomorrow.
             </p>
           </div>
-        </div>
-
-        <!-- Right Side - Sign Up -->
-        <div>
-          <!-- Success Message -->
-          <div v-if="showCongratulations" class="bg-white rounded-2xl shadow-2xl p-6 lg:p-8">
-            <div class="text-center">
-              <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </div>
-              <h3 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
-                🎉 Congratulations!
-              </h3>
-              <p class="text-base text-gray-700 mb-4">
-                Your account has been successfully created, <span class="font-semibold text-indigo-600">{{ customerName
-                }}</span>!
-              </p>
-              <div class="bg-indigo-50 rounded-lg p-4 mb-4">
-                <p class="text-sm text-gray-700 mb-2">
-                  We've sent you a welcome SMS to <strong>{{ customerPhone }}</strong>
-                </p>
-                <p class="text-xs text-gray-600">
-                  You'll be the first to know when we launch in your area!
-                </p>
-              </div>
-              <button @click="resetForm"
-                class="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                Got it, thanks!
+          <div class="col-span-1">
+            <h4 class="font-bold text-[#520094] mb-4 text-sm">Quick links</h4>
+            <ul class="space-y-3 text-sm">
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Find a pharmacy</a></li>
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Request meds</a></li>
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Partner login</a></li>
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Wellness blog</a></li>
+            </ul>
+          </div>
+          <div class="col-span-1">
+            <h4 class="font-bold text-[#520094] mb-4 text-sm">Legal</h4>
+            <ul class="space-y-3 text-sm">
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Privacy policy</a></li>
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Terms of service</a></li>
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Cookie settings</a></li>
+              <li><a class="text-slate-500 hover:text-[#6c24b3] underline-offset-4 hover:underline transition-opacity" href="#">Accessibility</a></li>
+            </ul>
+          </div>
+          <div class="col-span-1">
+            <h4 class="font-bold text-[#520094] mb-4 text-sm">Connect</h4>
+            <div class="flex gap-4 mb-6">
+              <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#520094] shadow-sm hover:bg-[#520094] hover:text-white transition-all">
+                <span class="material-symbols-outlined">alternate_email</span>
+              </button>
+              <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#520094] shadow-sm hover:bg-[#520094] hover:text-white transition-all">
+                <span class="material-symbols-outlined">share</span>
+              </button>
+              <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#520094] shadow-sm hover:bg-[#520094] hover:text-white transition-all">
+                <span class="material-symbols-outlined">call</span>
               </button>
             </div>
-          </div>
-
-          <!-- Signup Form -->
-          <div v-else class="bg-white rounded-2xl  overflow-hidden">
-            <!-- Header Section -->
-            <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-6 py-3 text-center text-white">
-              <h2 class="text-xl lg:text-2xl font-extrabold drop-shadow-lg">
-                Join the Waitlist
-              </h2>
-              <p class="text-xs text-white/90">
-                Be first the first to know when we launch!
-              </p>
-            </div>
-
-            <!-- Account Setup Form -->
-            <div class="px-6 py-3">
-              <div class="mb-3">
-                <div class="flex items-center justify-center gap-2 mb-2">
-                  <div class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-                    :class="!otpSent ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'">
-                    1
-                  </div>
-                  <div class="w-8 h-0.5" :class="otpSent ? 'bg-indigo-600' : 'bg-gray-200'"></div>
-                  <div class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-                    :class="otpSent ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'">
-                    2
-                  </div>
-                </div>
-                <h3 class="text-base font-bold text-gray-900 text-center">
-                  {{ !otpSent ? 'Your Information' : 'Verify & Secure' }}
-                </h3>
-              </div>
-
-              <form @submit.prevent="handleSignUp" class="space-y-2">
-                <!-- Step 1: Personal Information -->
-                <div v-if="!otpSent">
-                  <!-- Name Fields -->
-                  <div class="grid grid-cols-2 gap-2 mb-2">
-                    <div>
-                      <label for="firstName" class="block text-xs font-semibold text-gray-700 mb-1">
-                        First Name <span class="text-red-500">*</span>
-                      </label>
-                      <input type="text" id="firstName" v-model="signUpForm.firstName" required
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                        placeholder="John" />
-                    </div>
-                    <div>
-                      <label for="lastName" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Last Name <span class="text-red-500">*</span>
-                      </label>
-                      <input type="text" id="lastName" v-model="signUpForm.lastName" required
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                        placeholder="Doe" />
-                    </div>
-                  </div>
-
-                  <!-- Phone Number -->
-                  <div class="mb-2">
-                    <label for="phone" class="block text-xs font-semibold text-gray-700 mb-1">
-                      Phone Number <span class="text-red-500">*</span>
-                    </label>
-                    <div
-                      class="flex rounded-lg overflow-hidden border border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
-                      <span
-                        class="inline-flex items-center px-2 text-xs font-medium text-gray-700 bg-gray-50 border-r border-gray-300">
-                        +233
-                      </span>
-                      <input type="tel" id="phone" v-model="signUpForm.phone" required
-                        class="flex-1 px-3 py-1.5 text-sm border-0 focus:ring-0 text-gray-900"
-                        placeholder="24 123 4567" />
-                    </div>
-                  </div>
-
-                  <!-- Email -->
-                  <div class="mb-2">
-                    <label for="email" class="block text-xs font-semibold text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <input type="email" id="email" v-model="signUpForm.email"
-                      class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                      placeholder="john@example.com" />
-                  </div>
-
-                  <!-- Gender & City Row -->
-                  <div class="grid grid-cols-2 gap-2 mb-2">
-                    <div>
-                      <label for="gender" class="block text-xs font-semibold text-gray-700 mb-1">
-                        Gender <span class="text-red-500">*</span>
-                      </label>
-                      <select id="gender" v-model="signUpForm.gender" required
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900">
-                        <option value="">Select</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <!-- <option value="other">Other</option>
-                        <option value="prefer_not_to_say">Prefer not to say</option> -->
-                      </select>
-                    </div>
-
-                    <div class="mb-2">
-                      <label for="city" class="block text-xs font-semibold text-gray-700 mb-1">
-                        City <span class="text-red-500">*</span>
-                      </label>
-                      <input type="text" id="city" v-model="signUpForm.city" required
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                        placeholder="Accra" />
-                    </div>
-                  </div>
-
-                  <!-- Age Verification -->
-                  <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-2 mb-2">
-                    <div class="flex items-start">
-                      <input id="ageVerification" v-model="signUpForm.isOver18" type="checkbox" required
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-0.5 cursor-pointer" />
-                      <label for="ageVerification" class="ml-2 block text-xs text-gray-800 cursor-pointer">
-                        I'm <strong>18+</strong> and agree to receive SMS updates
-                      </label>
-                    </div>
-                  </div>
-
-                  <button type="button" @click="sendOTP" :disabled="!isFormValid || isSubmitting"
-                    class="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-2.5 px-4 rounded-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                    <span v-if="!isSubmitting" class="flex items-center justify-center">
-                      Get Verification Code
-                    </span>
-                    <span v-else class="flex items-center justify-center">
-                      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
-                        fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                      </svg>
-                      Sending Code...
-                    </span>
-                  </button>
-                </div>
-
-                <!-- Step 2: OTP and Password Section -->
-                <div v-else>
-                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
-                    <p class="text-xs text-blue-800">
-                      Code sent to <strong>+233{{ signUpForm.phone }}</strong>
-                    </p>
-                  </div>
-
-                  <div class="mb-2">
-                    <label for="otp" class="block text-xs font-semibold text-gray-700 mb-1">
-                      Code <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="otp" v-model="signUpForm.otp" required maxlength="6"
-                      class="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 text-center text-lg tracking-widest font-mono"
-                      placeholder="000000" />
-                  </div>
-
-                  <div class="mb-2">
-                    <label for="password" class="block text-xs font-semibold text-gray-700 mb-1">
-                      Password <span class="text-red-500">*</span>
-                    </label>
-                    <input type="password" id="password" v-model="signUpForm.password" required minlength="6"
-                      class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                      placeholder="Min 6 characters" />
-                  </div>
-
-                  <div class="mb-2">
-                    <label for="confirmPassword" class="block text-xs font-semibold text-gray-700 mb-1">
-                      Confirm <span class="text-red-500">*</span>
-                    </label>
-                    <input type="password" id="confirmPassword" v-model="signUpForm.confirmPassword" required
-                      minlength="6"
-                      class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-                      :class="signUpForm.password && signUpForm.confirmPassword && signUpForm.password !== signUpForm.confirmPassword ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''"
-                      placeholder="Re-enter password" />
-                    <p v-if="signUpForm.password && signUpForm.confirmPassword && signUpForm.password !== signUpForm.confirmPassword"
-                      class="mt-1 text-xs text-red-600">
-                      Passwords don't match
-                    </p>
-                  </div>
-
-                  <div class="flex gap-2">
-                    <button type="button" @click="otpSent = false"
-                      class="px-4 py-2 text-xs bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors border border-gray-300">
-                      ← Back
-                    </button>
-                    <button type="submit"
-                      :disabled="isSubmitting || !signUpForm.otp || signUpForm.password !== signUpForm.confirmPassword"
-                      class="flex-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-2.5 px-4 rounded-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                      <span v-if="!isSubmitting" class="flex items-center justify-center">
-                        🎉 Create My Account
-                      </span>
-                      <span v-else class="flex items-center justify-center">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
-                          fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                          </circle>
-                          <path class="opacity-75" fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                          </path>
-                        </svg>
-                        Creating Account...
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </form>
-
-              <div v-if="errorMessage" class="mt-2 p-2 rounded-lg bg-red-50 border border-red-200">
-                <p class="text-xs text-red-800">{{ errorMessage }}</p>
-              </div>
-            </div>
+            <p class="text-xs text-slate-500">Contact us: support@medsgh.com</p>
           </div>
         </div>
-      </div>
+        <div class="mt-12 pt-8 border-t border-[#cec2d5]/15 max-w-screen-2xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <p class="text-slate-500 text-sm">© {{ currentYear }} MedsGh Digital Care. All rights reserved.</p>
+          <div class="flex items-center gap-6">
+            <img alt="Visa" class="h-6 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all" :src="'https://cdn.jsdelivr.net/npm/credit-card-logos@1.0.5/img/card-logo-visa.svg'" />
+            <img alt="Mastercard" class="h-6 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all" :src="'https://cdn.jsdelivr.net/npm/credit-card-logos@1.0.5/img/card-logo-mastercard.svg'" />
+            <img alt="MTN Mobile Money" class="h-6 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all" :src="'https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/mtn-mobile-logo-icon.svg'" />
+          </div>
+        </div>
+      </footer>
     </div>
+
+    <Login :is-open="showLoginModal" @close="showLoginModal = false" @login-success="handleLoginSuccess" />
   </div>
 </template>
+
 <script setup>
-import { ref, computed } from 'vue';
-import { useUserStore } from '~/stores/user';
+import { useHead } from '#imports'
+import { computed, onMounted, ref, watch } from 'vue'
+import Login from '~/components/Login.vue'
+import { useUserStore } from '~/stores/user'
 
-const userStore = useUserStore();
-const config = useRuntimeConfig();
+useHead({
+  link: [
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap' }
+  ]
+})
 
-const signUpForm = ref({
-  firstName: '',
-  lastName: '',
-  phone: '',
-  email: '',
-  gender: '',
-  city: '',
-  isOver18: false,
-  otp: '',
-  password: '',
-  confirmPassword: ''
-});
+const userStore = useUserStore()
+const route = useRoute()
+const heroOrderingImage = '/user_ordering_med.jpg'
+const currentYear = new Date().getFullYear()
 
-const isSubmitting = ref(false);
-const errorMessage = ref('');
-const otpSent = ref(false);
-const showCongratulations = ref(false);
-const customerName = ref('');
-const customerPhone = ref('');
+const showLoginModal = ref(false)
+const toast = ref(null)
+const homepageSearchTerm = ref('')
+const homepageRequestedUnit = ref('')
+const homepageSelectedItems = ref([])
+const homepageImagePicker = ref(null)
+const homepagePrescriptionImage = ref(null)
+const homepagePrescriptionImagePreview = ref(null)
 
-const isFormValid = computed(() => {
-  return signUpForm.value.firstName &&
-    signUpForm.value.lastName &&
-    signUpForm.value.phone &&
-    signUpForm.value.gender &&
-    signUpForm.value.city &&
-    signUpForm.value.isOver18;
-});
+const HOMEPAGE_PRESCRIPTION_DRAFT_KEY = 'medsgh_homepage_prescription_image'
 
-const sendOTP = async () => {
-  errorMessage.value = '';
-  isSubmitting.value = true;
+const onHomepagePrescriptionImageSelected = (e) => {
+  const file = e.target?.files?.[0]
+  if (!file) return
+  if (homepagePrescriptionImagePreview.value) URL.revokeObjectURL(homepagePrescriptionImagePreview.value)
+  homepagePrescriptionImage.value = file
+  homepagePrescriptionImagePreview.value = URL.createObjectURL(file)
 
-  try {
-    const formattedPhone = userStore.formatPhoneNumber(signUpForm.value.phone);
-    const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone: formattedPhone,
-        email: signUpForm.value.email || null
-      })
-    });
-
-    const data = await response.json();
-
-    // Handle case where phone or email already exists
-    if (!data.success) {
-      if (data.exists) {
-        errorMessage.value = data.message;
-      } else {
-        throw new Error(data.message || 'Failed to send OTP');
-      }
-      return;
-    }
-
-    otpSent.value = true;
-  } catch (error) {
-    console.error('Error sending OTP:', error);
-    errorMessage.value = error.message || 'Failed to send verification code. Please try again.';
-  } finally {
-    isSubmitting.value = false;
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    if (!process.client) return
+    sessionStorage.setItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY, JSON.stringify({
+      name: file.name,
+      type: file.type,
+      data: ev.target.result
+    }))
   }
-};
+  reader.readAsDataURL(file)
+}
 
-const handleSignUp = async () => {
-  if (signUpForm.value.password !== signUpForm.value.confirmPassword) {
-    errorMessage.value = 'Passwords do not match';
-    return;
+const removeHomepagePrescriptionImage = () => {
+  if (homepagePrescriptionImagePreview.value) URL.revokeObjectURL(homepagePrescriptionImagePreview.value)
+  homepagePrescriptionImage.value = null
+  homepagePrescriptionImagePreview.value = null
+  if (homepageImagePicker.value) homepageImagePicker.value.value = ''
+  if (process.client) sessionStorage.removeItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY)
+}
+
+const homepageSelectedQuantity = computed(() => homepageSelectedItems.value.reduce((total, item) => {
+  return total + Math.max(1, Number(item?.quantity || 1))
+}, 0))
+
+const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
+const medicineUnitOptions = [
+  'tab',
+  'capsule',
+  'bottle',
+  'suppository',
+  'tube',
+  'vial',
+  'ampoule',
+  'sachet',
+  'pack',
+  'other'
+]
+
+const showToast = (text, type = 'success') => {
+  toast.value = { text, type }
+  setTimeout(() => {
+    toast.value = null
+  }, 4000)
+}
+
+const normalizeHomepageDraftItem = (item) => {
+  const productName = String(typeof item === 'string' ? item : item?.product_name || '').trim()
+  if (!productName) return null
+
+  return {
+    product_name: productName,
+    requested_unit: String(item?.requested_unit || '').trim().toLowerCase(),
+    quantity: Math.max(1, Number(item?.quantity || 1))
+  }
+}
+
+const persistHomepageRequestDraft = (items = []) => {
+  if (!process.client) return
+  const normalizedItems = (Array.isArray(items) ? items : [items])
+    .map(normalizeHomepageDraftItem)
+    .filter(Boolean)
+
+  if (!normalizedItems.length) {
+    sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY)
+    return
   }
 
-  errorMessage.value = '';
-  isSubmitting.value = true;
+  sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({
+    items: normalizedItems,
+    source: 'homepage-search'
+  }))
+}
 
-  try {
-    const formattedPhone = userStore.formatPhoneNumber(signUpForm.value.phone);
+const hasHomepageRequestDraft = () => {
+  if (!process.client) return false
+  return homepageSelectedItems.value.length > 0
+    || Boolean(sessionStorage.getItem(HOMEPAGE_REQUEST_DRAFT_KEY))
+    || Boolean(sessionStorage.getItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY))
+}
 
-    // Register the user
-    const response = await fetch(`${config.public.apiBase}/api/auth/customer/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        company_id: 1, // Default company for waitlist
-        fname: signUpForm.value.firstName,
-        lname: signUpForm.value.lastName,
-        phone: formattedPhone,
-        email: signUpForm.value.email || null,
-        password: signUpForm.value.password,
-        otp: signUpForm.value.otp,
-        gender: signUpForm.value.gender,
-        city: signUpForm.value.city,
-        customer_type: 'retail'
-      })
-    });
+const syncHomepageDraftItems = () => {
+  persistHomepageRequestDraft(homepageSelectedItems.value)
+}
 
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message || 'Registration failed');
+const addHomepageSelectedItem = (item) => {
+  const normalized = normalizeHomepageDraftItem(item)
+  if (!normalized) return false
 
-    // Store customer info for congratulations message
-    customerName.value = `${signUpForm.value.firstName} ${signUpForm.value.lastName}`;
-    customerPhone.value = formattedPhone;
+  const existingIndex = homepageSelectedItems.value.findIndex((entry) =>
+    entry.product_name.trim().toLowerCase() === normalized.product_name.trim().toLowerCase()
+    && String(entry.requested_unit || '').trim().toLowerCase() === String(normalized.requested_unit || '').trim().toLowerCase()
+  )
 
-    // Send congratulations SMS
-    await sendCongratulationsSMS(formattedPhone, signUpForm.value.firstName);
-
-    // Show congratulations
-    showCongratulations.value = true;
-
-  } catch (error) {
-    console.error('Sign up error:', error);
-    errorMessage.value = error.message || 'Something went wrong. Please try again.';
-  } finally {
-    isSubmitting.value = false;
+  if (existingIndex >= 0) {
+    homepageSelectedItems.value = homepageSelectedItems.value.map((entry, index) => (
+      index === existingIndex
+        ? { ...entry, quantity: Math.max(1, Number(entry.quantity || 1)) + Math.max(1, Number(normalized.quantity || 1)) }
+        : entry
+    ))
+    syncHomepageDraftItems()
+    return true
   }
-};
 
-const sendCongratulationsSMS = async (phone, firstName) => {
-  try {
-    const message = `Congratulations ${firstName}! Welcome to RigelOS Online Pharmacy Portal. You're now on our priority list and will be the first to know when we launch in your area. Get ready for stress-free medicine delivery!`;
+  homepageSelectedItems.value = [...homepageSelectedItems.value, normalized]
+  syncHomepageDraftItems()
+  return true
+}
 
-    await fetch(`${config.public.apiBase}/api/sms/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone: phone,
-        message: message
-      })
-    });
-  } catch (error) {
-    console.error('Error sending congratulations SMS:', error);
-    // Don't throw error - SMS is not critical
+const addHomepageCurrentItem = () => {
+  const added = addHomepageSelectedItem({
+    product_name: homepageSearchTerm.value,
+    requested_unit: homepageRequestedUnit.value,
+    quantity: 1
+  })
+
+  if (!added) return
+
+  homepageSearchTerm.value = ''
+  homepageRequestedUnit.value = ''
+}
+
+const updateHomepageSelectedItemQuantity = (index, nextQuantity) => {
+  const parsedQuantity = Math.max(1, Number(nextQuantity || 1))
+  homepageSelectedItems.value = homepageSelectedItems.value.map((item, itemIndex) => (
+    itemIndex === index
+      ? { ...item, quantity: parsedQuantity }
+      : item
+  ))
+  syncHomepageDraftItems()
+}
+
+const increaseHomepageSelectedItemQuantity = (index) => {
+  const item = homepageSelectedItems.value[index]
+  if (!item) return
+  updateHomepageSelectedItemQuantity(index, Number(item.quantity || 1) + 1)
+}
+
+const decreaseHomepageSelectedItemQuantity = (index) => {
+  const item = homepageSelectedItems.value[index]
+  if (!item) return
+  updateHomepageSelectedItemQuantity(index, Math.max(1, Number(item.quantity || 1) - 1))
+}
+
+const removeHomepageSelectedItem = (index) => {
+  homepageSelectedItems.value = homepageSelectedItems.value.filter((_, itemIndex) => itemIndex !== index)
+  syncHomepageDraftItems()
+}
+
+const clearHomepageSelectedItems = () => {
+  homepageSelectedItems.value = []
+  syncHomepageDraftItems()
+}
+
+const openOrderFlow = (draftItems = []) => {
+  persistHomepageRequestDraft(draftItems)
+  if (userStore.isLoggedIn) {
+    navigateTo('/customer?tab=new')
+    return
   }
-};
+  showLoginModal.value = true
+}
 
-const resetForm = () => {
-  showCongratulations.value = false;
-  otpSent.value = false;
-  signUpForm.value = {
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    gender: '',
-    city: '',
-    isOver18: false,
-    otp: '',
-    password: '',
-    confirmPassword: ''
-  };
-  errorMessage.value = '';
-};
+const submitHomepageSearch = () => {
+  const query = homepageSearchTerm.value.trim()
+  if (query) {
+    addHomepageCurrentItem()
+  }
+  openOrderFlow(homepageSelectedItems.value)
+}
+
+const scrollToHowItWorks = () => {
+  const target = document.getElementById('how-it-works')
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+  navigateTo('/#how-it-works')
+}
+
+const handleLoginSuccess = async (payload = {}) => {
+  showLoginModal.value = false
+  if (payload.destination === 'new' || hasHomepageRequestDraft()) {
+    await navigateTo('/customer?tab=new')
+    return
+  }
+  await navigateTo('/customer')
+}
+
+const handleLoggedOutNotice = async (flag) => {
+  if (!flag) return
+  showToast('You have been logged out.', 'success')
+  await navigateTo({ path: '/', query: {} }, { replace: true })
+}
+
+const redirectLoggedInUsers = async () => {
+  if (!userStore.isLoggedIn) return false
+  if (hasHomepageRequestDraft()) {
+    await navigateTo('/customer?tab=new', { replace: true })
+    return true
+  }
+  await navigateTo('/customer', { replace: true })
+  return true
+}
+
+onMounted(async () => {
+  await userStore.checkAuthState()
+  await redirectLoggedInUsers()
+})
+
+watch(() => route.query.logged_out, handleLoggedOutNotice, { immediate: true })
+watch(
+  () => userStore.isLoggedIn,
+  async (isLoggedIn) => {
+    if (!isLoggedIn) return
+    await redirectLoggedInUsers()
+  }
+)
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 10px;
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #6366f1, #a855f7);
-  border-radius: 10px;
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #4f46e5, #9333ea);
+details summary::-webkit-details-marker {
+  display: none;
 }
 </style>

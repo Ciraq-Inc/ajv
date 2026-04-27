@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" fill="none">
+  <defs>
+    <linearGradient id="wmBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5A63D8"></stop><stop offset="1" stop-color="#3E46CB"></stop></linearGradient>
+    <linearGradient id="wmCoral" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FB8D74"></stop><stop offset="1" stop-color="#F15733"></stop></linearGradient>
+    <linearGradient id="wmMagenta" x1="1" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#C073A7"></stop><stop offset="1" stop-color="#9B4A88"></stop></linearGradient>
+    <linearGradient id="wmPurple" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#2A1130"></stop><stop offset="1" stop-color="#5A2468"></stop></linearGradient>
+  </defs>
+  <g transform="translate(4 4)">
+    <g fill="none" stroke-width="8.5" stroke-linecap="butt" transform="rotate(-90 44 44)">
+      <circle cx="44" cy="44" r="38.5" stroke="url(#wmBlue)" stroke-dasharray="57.7 184" stroke-dashoffset="0"></circle>
+      <circle cx="44" cy="44" r="38.5" stroke="url(#wmCoral)" stroke-dasharray="57.7 184" stroke-dashoffset="-60.5"></circle>
+      <circle cx="44" cy="44" r="38.5" stroke="url(#wmMagenta)" stroke-dasharray="57.7 184" stroke-dashoffset="-121"></circle>
+      <circle cx="44" cy="44" r="38.5" stroke="url(#wmPurple)" stroke-dasharray="57.7 184" stroke-dashoffset="-181.5"></circle>
+    </g>
+    <circle cx="44" cy="44" r="32" fill="#000000"></circle>
+    <path d="M44 24 L47.6 40.4 L64 44 L47.6 47.6 L44 64 L40.4 47.6 L24 44 L40.4 40.4 Z" fill="#FFFFFF"></path>
+  </g>
+  <text x="104" y="62" font-family="'Poppins', system-ui, sans-serif" font-weight="700" font-size="54" letter-spacing="-2" fill="currentColor">rigel</text>
+</svg>

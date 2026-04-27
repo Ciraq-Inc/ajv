@@ -13,6 +13,20 @@
       </div>
     </div>
 
+    <!-- Expiry warning banner -->
+    <AlertBanner
+      v-if="expiringOrder && !dismissedExpiryBanner"
+      :event="{
+        type: 'warning',
+        title: 'Request closing soon',
+        description: `Your request ${expiringOrder.request_number || ''} hasn't been matched and closes in ${minutesRemaining(expiringOrder.expires_at)} min. We're still searching.`,
+        actionLabel: 'View',
+        id: expiringOrder.id
+      }"
+      @dismiss="dismissedExpiryBanner = true"
+      @action="scrollToOrder(expiringOrder.id)"
+    />
+
     <!-- Filter card with improved layout -->
     <div class="mb-8 bg-white rounded-xl shadow-lg p-5 border border-gray-100 transition-all duration-300 hover:shadow-xl">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -148,7 +162,7 @@
       </div>
 
       <!-- Order cards with improved styling -->
-      <div v-for="order in filteredOrders" :key="order.id" 
+      <div v-for="order in filteredOrders" :key="order.id" :id="`order-${order.id}`"
            class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-xl">
         <!-- Order header with gradient background based on status -->
         <div :class="[
@@ -247,6 +261,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
+import AlertBanner from '~/components/customers/AlertBanner.vue';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -257,6 +272,7 @@ const cartStore = useCartStore();
 const orders = ref([]);
 const isLoading = ref(false);
 const error = ref('');
+const dismissedExpiryBanner = ref(false);
 const showLoginModal = ref(false);
 const showCancelModal = ref(false);
 const orderToCancel = ref('');
@@ -311,6 +327,25 @@ const filteredOrders = computed(() => {
     return isInRange;
   });
 });
+
+const EXPIRY_WARN_MS = 20 * 60 * 1000;
+
+const expiringOrder = computed(() =>
+  orders.value.find(o =>
+    o.status === 'pending' &&
+    o.expires_at &&
+    new Date(o.expires_at) - Date.now() > 0 &&
+    new Date(o.expires_at) - Date.now() < EXPIRY_WARN_MS
+  )
+);
+
+const minutesRemaining = (expiresAt) =>
+  Math.max(0, Math.ceil((new Date(expiresAt) - Date.now()) / 60000));
+
+const scrollToOrder = (id) => {
+  const el = document.getElementById(`order-${id}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
 
 // Fetch order history from user store
 const fetchOrders = async () => {
@@ -422,7 +457,11 @@ const goShopping = () => {
 };
 
 // Handle login success
-const handleLoginSuccess = async () => {
+const handleLoginSuccess = async (payload = {}) => {
+  if (payload.destination === 'new') {
+    navigateTo('/customer?tab=new');
+    return;
+  }
   showLoginModal.value = false;
   await fetchOrders();
 };

@@ -2,7 +2,7 @@
   <div class="company-user-access">
     <div class="section-header">
       <h2>User Access Management</h2>
-      <button @click="exportUsers" class="btn-secondary" v-if="users.length > 0">
+      <button @click="exportUsers" class="btn-secondary" v-if="users.length > 0 && canManageAccess">
         <ArrowDownTrayIcon class="btn-icon-sm" />
         Export Users
       </button>
@@ -13,8 +13,13 @@
       <p>Enable online access for users to allow them to login to the SMS campaigns and services portal.</p>
     </div>
 
+    <div v-if="!canManageAccess" class="error-container">
+      <ExclamationTriangleIcon class="error-icon" />
+      <p>Access denied. Only managers and above can manage users on this page.</p>
+    </div>
+
     <!-- Stats Cards -->
-    <div class="stats-grid">
+    <div v-if="canManageAccess" class="stats-grid">
       <div class="stat-card">
         <UserGroupIcon class="stat-icon blue" />
         <div class="stat-details">
@@ -46,7 +51,7 @@
     </div>
 
     <!-- Search -->
-    <div class="filters-bar">
+    <div v-if="canManageAccess" class="filters-bar">
       <div class="search-box">
         <MagnifyingGlassIcon class="search-icon" />
         <input 
@@ -71,20 +76,20 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
+    <div v-if="canManageAccess && loading" class="loading-container">
       <div class="spinner"></div>
       <p>Loading users...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-container">
+    <div v-else-if="canManageAccess && error" class="error-container">
       <ExclamationTriangleIcon class="error-icon" />
       <p>{{ error }}</p>
       <button @click="loadUsers" class="btn-retry">Retry</button>
     </div>
 
     <!-- Users Table -->
-    <div v-else class="table-container">
+    <div v-else-if="canManageAccess" class="table-container">
       <div class="table-header">
         <div class="showing-count">
           Showing {{ filteredUsers.length }} of {{ users.length }} users
@@ -129,8 +134,24 @@
               </div>
             </td>
             <td>
-              <span v-if="user.userrole" class="role-badge">{{ user.userrole }}</span>
-              <span v-else class="text-muted">-</span>
+              <div class="role-editor">
+                <select
+                  v-model="roleDrafts[user.id]"
+                  class="role-select"
+                  :disabled="updating === user.id"
+                >
+                  <option v-for="role in roleOptions" :key="role" :value="role">
+                    {{ role }}
+                  </option>
+                </select>
+                <button
+                  class="btn-role-save"
+                  :disabled="updating === user.id || roleDrafts[user.id] === (user.userrole || 'user')"
+                  @click="updateUserRole(user)"
+                >
+                  Save
+                </button>
+              </div>
             </td>
             <td>
               <span class="status-badge" :class="user.isactive ? 'active' : 'inactive'">
@@ -204,6 +225,19 @@ const updating = ref(null)
 const searchQuery = ref('')
 const filterAccess = ref('')
 const filterActive = ref('')
+const roleDrafts = ref({})
+
+const baseRoleOptions = [
+  'user',
+  'cashier',
+  'assistant',
+  'pharmacist',
+  'manager',
+  'company',
+  'third_party_poster',
+  'admin',
+  'super_admin'
+]
 
 // Computed
 const filteredUsers = computed(() => {
@@ -247,8 +281,42 @@ const usersWithPassword = computed(() => {
   return users.value.filter(u => u.password_hash).length
 })
 
+const roleOptions = computed(() => {
+  const discoveredRoles = users.value
+    .map((u) => String(u.userrole || '').trim().toLowerCase().replace(/\s+/g, '_'))
+    .filter(Boolean)
+
+  return Array.from(new Set([...baseRoleOptions, ...discoveredRoles]))
+})
+
+const normalizeRole = (value = '') => String(value).trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+
+const roleRank = {
+  user: 1,
+  cashier: 1,
+  assistant: 1,
+  pharmacist: 2,
+  third_party_poster: 2,
+  manager: 3,
+  company: 4,
+  admin: 5,
+  super_admin: 6,
+}
+
+const canManageAccess = computed(() => {
+  const normalized = normalizeRole(companyStore.userRole || '')
+  const rank = roleRank[normalized] || 0
+  return rank >= roleRank.manager
+})
+
 // Methods
 const loadUsers = async () => {
+  if (!canManageAccess.value) {
+    loading.value = false
+    users.value = []
+    return
+  }
+
   loading.value = true
   error.value = null
   
@@ -257,6 +325,9 @@ const loadUsers = async () => {
     
     if (response.success) {
       users.value = response.data.users || []
+      roleDrafts.value = Object.fromEntries(
+        users.value.map((u) => [u.id, (u.userrole || 'user').toLowerCase().replace(/\s+/g, '_')])
+      )
     } else {
       error.value = response.message || 'Failed to load users'
     }
@@ -268,7 +339,42 @@ const loadUsers = async () => {
   }
 }
 
+const updateUserRole = async (user) => {
+  if (!canManageAccess.value) return
+
+  const selectedRole = String(roleDrafts.value[user.id] || '').trim().toLowerCase().replace(/\s+/g, '_')
+  if (!selectedRole) return
+
+  updating.value = user.id
+  try {
+    const response = await companyStore.makeAuthRequest(
+      `/api/company/users/${user.id}/role`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          userrole: selectedRole
+        })
+      }
+    )
+
+    if (response.success) {
+      user.userrole = selectedRole
+    } else {
+      alert(response.message || 'Failed to update role')
+      roleDrafts.value[user.id] = user.userrole || 'user'
+    }
+  } catch (err) {
+    alert(err.message || 'Failed to update role')
+    roleDrafts.value[user.id] = user.userrole || 'user'
+    console.error('Error updating role:', err)
+  } finally {
+    updating.value = null
+  }
+}
+
 const toggleUserAccess = async (user) => {
+  if (!canManageAccess.value) return
+
   const newValue = !user.allowed_online_access
   updating.value = user.id
 
@@ -499,6 +605,37 @@ onMounted(() => {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
+}
+
+.role-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-select {
+  min-width: 140px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.btn-role-save {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-role-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .table-header {

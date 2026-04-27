@@ -1,0 +1,333 @@
+/* Rigelis Inc — Design Tokens
+   Source of truth: Rigelis Inc Design System/colors_and_type.css
+   Fonts (Poppins) loaded via Google Fonts in nuxt.config.ts head.
+   Update both copies when the design system changes. */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* =========================================================
+     COLOR — Primitives
+     ========================================================= */
+
+  /* Brand: Purple (primary) */
+  --rig-purple-50:  #F6EEFB;
+  --rig-purple-100: #EAD5F5;
+  --rig-purple-200: #D4AEEB;
+  --rig-purple-300: #B983DC;
+  --rig-purple-400: #9B5FC9;
+  --rig-purple-500: #7C3FB4;
+  --rig-purple-600: #62309A;
+  --rig-purple-700: #4A2178;
+  --rig-purple-800: #33155A;
+  --rig-purple-900: #1F0B3C;
+  --rig-purple-950: #120621;
+
+  /* Accent: Coral (from logo) */
+  --rig-coral-300: #FFB49E;
+  --rig-coral-400: #FB8D74;
+  --rig-coral-500: #F15733;
+  --rig-coral-600: #D13E1C;
+
+  /* Accent: Indigo (from logo) */
+  --rig-indigo-300: #8F97E6;
+  --rig-indigo-400: #5A63D8;
+  --rig-indigo-500: #3E46CB;
+  --rig-indigo-600: #2A30A0;
+
+  /* Accent: Magenta (from logo) */
+  --rig-magenta-300: #D7A3C5;
+  --rig-magenta-400: #C073A7;
+  --rig-magenta-500: #9B4A88;
+  --rig-magenta-600: #782A67;
+
+  /* Neutrals */
+  --rig-ink-0:   #FFFFFF;
+  --rig-ink-25:  #FAF8FC;
+  --rig-ink-50:  #F3F0F7;
+  --rig-ink-100: #E7E2EE;
+  --rig-ink-200: #D0C8DB;
+  --rig-ink-300: #A89EB8;
+  --rig-ink-400: #776B89;
+  --rig-ink-500: #544A64;
+  --rig-ink-600: #3A3248;
+  --rig-ink-700: #26202F;
+  --rig-ink-800: #171320;
+  --rig-ink-900: #0D0915;
+  --rig-ink-950: #070410;
+
+  /* Semantic */
+  --rig-success: #2E9D6C;
+  --rig-warning: #E8A33A;
+  --rig-danger:  #E04B4B;
+  --rig-info:    var(--rig-indigo-400);
+
+  /* =========================================================
+     COLOR — Semantic tokens
+     ========================================================= */
+  --bg: var(--rig-ink-25);
+  --bg-subtle: var(--rig-ink-50);
+  --bg-muted: var(--rig-ink-100);
+  --bg-elevated: var(--rig-ink-0);
+  --bg-inverse: var(--rig-ink-950);
+
+  --fg: var(--rig-ink-900);
+  --fg-secondary: var(--rig-ink-600);
+  --fg-muted: var(--rig-ink-400);
+  --fg-inverse: var(--rig-ink-0);
+  --fg-brand: var(--rig-purple-500);
+  --fg-on-brand: var(--rig-ink-0);
+
+  --border: var(--rig-ink-100);
+  --border-strong: var(--rig-ink-200);
+  --border-brand: var(--rig-purple-500);
+
+  --brand: var(--rig-purple-500);
+  --brand-hover: var(--rig-purple-600);
+  --brand-active: var(--rig-purple-700);
+  --brand-subtle: var(--rig-purple-50);
+
+  /* Gradients */
+  --gradient-spectrum: linear-gradient(135deg, var(--rig-indigo-500) 0%, var(--rig-purple-500) 45%, var(--rig-magenta-500) 75%, var(--rig-coral-500) 100%);
+  --gradient-spectrum-soft: linear-gradient(135deg, var(--rig-indigo-400) 0%, var(--rig-purple-400) 50%, var(--rig-magenta-400) 100%);
+  --gradient-hero-wash: radial-gradient(ellipse 900px 600px at 85% -10%, rgba(124,63,180,0.18) 0%, rgba(124,63,180,0.06) 35%, transparent 65%);
+  --gradient-deep-purple: linear-gradient(135deg, #2C0A4A 0%, #5A2A86 55%, #7C3FB4 100%);
+  --gradient-cosmic: var(--gradient-spectrum);
+
+  /* =========================================================
+     RADII
+     ========================================================= */
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+
+  /* =========================================================
+     SPACING
+     ========================================================= */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* =========================================================
+     SHADOWS
+     ========================================================= */
+  --shadow-xs: 0 1px 2px rgba(18, 6, 33, 0.06);
+  --shadow-sm: 0 2px 4px rgba(18, 6, 33, 0.06), 0 1px 2px rgba(18, 6, 33, 0.04);
+  --shadow-md: 0 4px 12px rgba(18, 6, 33, 0.08), 0 2px 4px rgba(18, 6, 33, 0.04);
+  --shadow-lg: 0 12px 32px rgba(18, 6, 33, 0.12), 0 4px 8px rgba(18, 6, 33, 0.06);
+  --shadow-xl: 0 24px 64px rgba(18, 6, 33, 0.18);
+  --shadow-glow: 0 0 0 4px rgba(124, 63, 180, 0.18);
+  --shadow-glow-coral: 0 0 32px rgba(241, 87, 51, 0.35);
+  --shadow-glow-purple: 0 0 48px rgba(124, 63, 180, 0.45);
+
+  /* =========================================================
+     MOTION
+     ========================================================= */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-decel: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accel: cubic-bezier(0.4, 0, 1, 1);
+  --ease-snappy: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 360ms;
+
+  /* =========================================================
+     TYPOGRAPHY
+     ========================================================= */
+  --font-display: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Type scale */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 44px;
+  --text-4xl: 60px;
+  --text-5xl: 80px;
+  --text-6xl: 108px;
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  --tracking-tight: -0.035em;
+  --tracking-snug:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-wider:  0.14em;
+
+  /* =========================================================
+     LAYOUT
+     ========================================================= */
+  --container-sm: 640px;
+  --container-md: 960px;
+  --container-lg: 1200px;
+  --container-xl: 1440px;
+}
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+[data-theme="dark"], .rig-dark {
+  --bg: var(--rig-ink-950);
+  --bg-subtle: var(--rig-ink-900);
+  --bg-muted: var(--rig-ink-800);
+  --bg-elevated: var(--rig-ink-800);
+  --bg-inverse: var(--rig-ink-0);
+
+  --fg: var(--rig-ink-25);
+  --fg-secondary: var(--rig-ink-200);
+  --fg-muted: var(--rig-ink-400);
+  --fg-inverse: var(--rig-ink-900);
+  --fg-brand: var(--rig-purple-300);
+  --fg-on-brand: var(--rig-ink-0);
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --brand: var(--rig-purple-400);
+  --brand-hover: var(--rig-purple-300);
+  --brand-active: var(--rig-purple-200);
+  --brand-subtle: rgba(124, 63, 180, 0.14);
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.45);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.55);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,0.65);
+}
+
+/* =========================================================
+   SEMANTIC ELEMENTS
+   ========================================================= */
+
+body.rig, .rig {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.rig-eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--fg-secondary);
+}
+
+.rig-h1, h1.rig {
+  font-family: var(--font-display);
+  font-size: var(--text-5xl);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+.rig-h2, h2.rig {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+.rig-h3, h3.rig {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-snug);
+  color: var(--fg);
+}
+
+.rig-h4, h4.rig {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  color: var(--fg);
+}
+
+.rig-display {
+  font-family: var(--font-display);
+  font-size: var(--text-6xl);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+.rig-lead {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
+.rig-body, p.rig {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg);
+  text-wrap: pretty;
+}
+
+.rig-small {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--fg-secondary);
+}
+
+.rig-caption {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+}
+
+.rig-mono, code.rig {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--bg-muted);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+}
+
+.rig-gradient-text {
+  background: var(--gradient-spectrum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

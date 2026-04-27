@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="rigBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5A63D8"></stop>
+      <stop offset="1" stop-color="#3E46CB"></stop>
+    </linearGradient>
+    <linearGradient id="rigCoral" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FB8D74"></stop>
+      <stop offset="1" stop-color="#F15733"></stop>
+    </linearGradient>
+    <linearGradient id="rigMagenta" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#C073A7"></stop>
+      <stop offset="1" stop-color="#9B4A88"></stop>
+    </linearGradient>
+    <linearGradient id="rigPurple" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2A1130"></stop>
+      <stop offset="1" stop-color="#5A2468"></stop>
+    </linearGradient>
+  </defs>
+
+  <g fill="none" stroke-width="18" stroke-linecap="butt" transform="rotate(-90 100 100)">
+    <circle cx="100" cy="100" r="88" stroke="url(#rigBlue)" stroke-dasharray="132 421" stroke-dashoffset="0"></circle>
+    <circle cx="100" cy="100" r="88" stroke="url(#rigCoral)" stroke-dasharray="132 421" stroke-dashoffset="-138"></circle>
+    <circle cx="100" cy="100" r="88" stroke="url(#rigMagenta)" stroke-dasharray="132 421" stroke-dashoffset="-277"></circle>
+    <circle cx="100" cy="100" r="88" stroke="url(#rigPurple)" stroke-dasharray="132 421" stroke-dashoffset="-415"></circle>
+  </g>
+
+  <circle cx="100" cy="100" r="74" fill="#000000"></circle>
+
+  <path d="M100 55 L108 92 L145 100 L108 108 L100 145 L92 108 L55 100 L92 92 Z" fill="#FFFFFF"></path>
+</svg>

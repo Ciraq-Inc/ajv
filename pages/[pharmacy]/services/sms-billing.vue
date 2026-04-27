@@ -2,8 +2,8 @@
   <div class="sms-billing-page">
     <!-- Header -->
     <div class="mb-4 md:mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">SMS Billing</h1>
-      <p class="text-sm md:text-base text-gray-600">Manage your SMS credits and view transaction history</p>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2"> Billing</h1>
+      <p class="text-sm md:text-base text-gray-600">Manage your billing and view transaction history</p>
     </div>
 
     <!-- Balance Section with Top-Up Button -->

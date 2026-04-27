@@ -23,6 +23,13 @@
           <BuildingOfficeIcon class="tab-icon" />
           Multi-Tenant Users
         </button>
+        <button
+          @click="activeTab = 'store-settings'"
+          :class="['tab', { active: activeTab === 'store-settings' }]"
+        >
+          <Cog6ToothIcon class="tab-icon" />
+          Store Settings
+        </button>
       
       </div>
     </div>
@@ -30,16 +37,19 @@
     <div class="tab-content">
       <CompanyAccessMgt v-if="activeTab === 'api-keys'" />
       <MultiTenantUserAccess v-else-if="activeTab === 'user-access'" />
+      <CompanyStoreSettings v-else-if="activeTab === 'store-settings'" />
       <CompaniesManagement v-else-if="activeTab === 'companies'" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { KeyIcon, BuildingOfficeIcon, BuildingStorefrontIcon } from '@heroicons/vue/24/outline'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { KeyIcon, BuildingOfficeIcon, BuildingStorefrontIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 import CompanyAccessMgt from '~/components/access/companyAccessMgt.vue'
 import MultiTenantUserAccess from '~/components/access/multiTenantUserAccess.vue'
+import CompanyStoreSettings from '~/components/access/CompanyStoreSettings.vue'
 import CompaniesManagement from '~/components/analytics/companies.vue'
 
 definePageMeta({
@@ -47,7 +57,18 @@ definePageMeta({
   layout: 'admin-layout'
 })
 
-const activeTab = ref('api-keys')
+const route = useRoute()
+const validTabs = ['api-keys', 'user-access', 'companies', 'store-settings']
+const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'api-keys')
+
+watch(
+  () => route.query.tab,
+  (nextTab) => {
+    if (validTabs.includes(nextTab)) {
+      activeTab.value = nextTab
+    }
+  }
+)
 </script>
 
 <style scoped>

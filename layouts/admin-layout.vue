@@ -5,7 +5,7 @@
       <!-- Logo/Brand -->
       <div class="sidebar-header">
         <div class="logo">
-          <BuildingOfficeIcon class="logo-icon" />
+          <img src="/brand/rig-mark.svg" alt="Rigelis" class="logo-icon" />
           <span v-if="!isSidebarCollapsed" class="logo-text">Rigel Portal</span>
         </div>
         <button @click="toggleSidebar" class="collapse-btn"
@@ -29,47 +29,42 @@
       <!-- Navigation Menu -->
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Main</div>
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Dashboard</div>
 
           <NuxtLink to="/admin/data" class="nav-item" active-class="active">
             <ChartBarIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Data</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
-            <UserGroupIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Waitlist Signups</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/access" class="nav-item" active-class="active">
-            <KeyIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Company Management</span>
-          </NuxtLink>
-
-
-          <NuxtLink to="/admin/useraccess" class="nav-item" active-class="active">
-            <UserGroupIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">User Access Management</span>
+            <span v-if="!isSidebarCollapsed" class="nav-text">Overview</span>
           </NuxtLink>
         </div>
 
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">SMS Management</div>
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
 
-          <NuxtLink to="/admin/sms-campaigns" class="nav-item" active-class="active">
-            <DevicePhoneMobileIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Campaigns</span>
-          </NuxtLink>
+          <!-- Fulfillment parent label -->
+          <div class="nav-item" :class="{ active: isInFulfillment }" style="cursor:default; pointer-events:none;">
+            <ClipboardDocumentListIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Fulfillment</span>
+          </div>
 
-          <NuxtLink to="/admin/sms-billing" class="nav-item" active-class="active">
-            <CreditCardIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Billing</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
-            <Cog6ToothIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Settings</span>
-          </NuxtLink>
+          <!-- Fulfillment child links -->
+          <template v-if="isInFulfillment || !isSidebarCollapsed">
+            <NuxtLink to="/admin/fulfillment/requests" class="nav-item nav-child-item" active-class="active">
+              <ClipboardDocumentListIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Order Requests</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/fulfillment/deliveries" class="nav-item nav-child-item" active-class="active">
+              <TruckIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Deliveries</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/fulfillment/dispatch-companies" class="nav-item nav-child-item" active-class="active">
+              <BuildingOffice2Icon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Dispatch Companies</span>
+            </NuxtLink>
+            <NuxtLink to="/admin/fulfillment/pharmacy-ledger" class="nav-item nav-child-item" active-class="active">
+              <BanknotesIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
+              <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Ledger</span>
+            </NuxtLink>
+          </template>
         </div>
 
         <div class="nav-section">
@@ -82,67 +77,72 @@
         </div>
 
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Store</div>
-
-          <NuxtLink to="/admin/store-settings" class="nav-item" active-class="active">
-            <Cog6ToothIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Store Settings</span>
-          </NuxtLink>
-        </div>
-
-        <!-- <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
-          
-          <NuxtLink 
-            to="/admin/orders" 
-            class="nav-item"
-            active-class="active"
-          >
-            <span class="nav-icon">📦</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Orders</span>
-            <span v-if="!isSidebarCollapsed && pendingOrders > 0" class="badge">{{ pendingOrders }}</span>
-          </NuxtLink>
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Companies & Users</div>
 
           <NuxtLink 
-            to="/admin/companies" 
+            to="/admin/access?tab=companies" 
             class="nav-item"
-            active-class="active"
+            exact-active-class="active"
           >
-            <span class="nav-icon">🏢</span>
+            <KeyIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Companies</span>
           </NuxtLink>
 
           <NuxtLink 
-            to="/admin/products" 
+            to="/admin/useraccess" 
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">💊</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Products</span>
+            <UserGroupIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">User Access</span>
           </NuxtLink>
-        </div>  -->
 
-        <!-- <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">System</div>
-          
-          <NuxtLink 
-            to="/admin/settings" 
-            class="nav-item"
-            active-class="active"
-          >
-            <span class="nav-icon">⚙️</span>
+          <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
+            <ClipboardDocumentCheckIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Waitlist Signups</span>
+          </NuxtLink>
+        </div>
+
+        <div class="nav-section">
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">SMS</div>
+
+          <NuxtLink to="/admin/sms-campaigns" class="nav-item" active-class="active">
+            <DevicePhoneMobileIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Campaigns</span>
+          </NuxtLink>
+
+          <NuxtLink to="/admin/sms-billing" class="nav-item" active-class="active">
+            <CreditCardIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Billing</span>
+          </NuxtLink>
+
+          <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
+            <Cog6ToothIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Settings</span>
           </NuxtLink>
+        </div>
+
+        <div class="nav-section">
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Settings</div>
 
           <NuxtLink 
-            to="/admin/logs" 
+            to="/admin/platform-settings" 
             class="nav-item"
             active-class="active"
           >
-            <span class="nav-icon">📋</span>
-            <span v-if="!isSidebarCollapsed" class="nav-text">Activity Logs</span>
+            <Cog6ToothIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Platform Settings</span>
           </NuxtLink>
-        </div>  -->
+
+          <NuxtLink 
+            to="/admin/store-settings" 
+            class="nav-item"
+            active-class="active"
+          >
+            <SwatchIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Store Settings</span>
+          </NuxtLink>
+        </div>
       </nav>
 
       <!-- Logout Button -->
@@ -226,7 +226,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
-  BuildingOfficeIcon,
+  BuildingOffice2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChartBarIcon,
@@ -237,6 +237,11 @@ import {
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
   CubeIcon,
+  ClipboardDocumentListIcon,
+  ClipboardDocumentCheckIcon,
+  TruckIcon,
+  BanknotesIcon,
+  SwatchIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute } from 'vue-router'
@@ -277,21 +282,27 @@ const adminInitials = computed(() => {
 
 const pageTitle = computed(() => {
   const path = route.path
-  if (path.includes('/admin/data')) return 'Data Overview'
+  const tab = route.query.tab
+  if (path.includes('/admin/data')) return 'Dashboard'
   if (path.includes('/admin/signups')) return 'Waitlist Signups'
-  if (path.includes('/admin/user-access')) return 'User Access Management'
-  if (path.includes('/admin/access')) return 'Company Management'
-  if (path.includes('/admin/sms-campaigns')) return 'SMS Campaign Management'
-  if (path.includes('/admin/sms-billing')) return 'SMS Billing Management'
+  if (path.includes('/admin/access')) return 'Companies'
+  if (path.includes('/admin/useraccess')) return 'User Access'
+  if (path.includes('/admin/sms-campaigns')) return 'SMS Campaigns'
+  if (path.includes('/admin/sms-billing')) return 'SMS Billing'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
-  if (path.includes('/admin/masterlist')) return 'Master Products Management'
+  if (path.includes('/admin/masterlist')) return 'Master Products'
+  if (path.includes('/admin/fulfillment/requests')) return 'Order Requests'
+  if (path.includes('/admin/fulfillment/deliveries')) return 'Deliveries'
+  if (path.includes('/admin/fulfillment/dispatch-companies')) return 'Dispatch Companies'
+  if (path.includes('/admin/fulfillment/pharmacy-ledger')) return 'Pharmacy Ledger'
+  if (path.includes('/admin/fulfillment')) return 'Fulfillment'
+  if (path.includes('/admin/platform-settings')) return 'Platform Settings'
   if (path.includes('/admin/store-settings')) return 'Store Settings'
-  if (path.includes('/admin/orders')) return 'Orders Management'
-  if (path.includes('/admin/companies')) return 'Companies'
-  if (path.includes('/admin/products')) return 'Products'
-  if (path.includes('/admin/settings')) return 'Settings'
-  if (path.includes('/admin/logs')) return 'Activity Logs'
   return 'Dashboard'
+})
+
+const isInFulfillment = computed(() => {
+  return route.path.includes('/admin/fulfillment')
 })
 
 // Methods
@@ -377,8 +388,8 @@ onUnmounted(() => {
 .sidebar {
   width: 256px;
   /* w-64 */
-  background: linear-gradient(180deg, #1F2937 0%, #111827 100%);
-  /* gray-800 to gray-900 */
+  background: linear-gradient(180deg, #2A1130 0%, #1A0B20 100%);
+  /* brand purple */
   color: white;
   display: flex;
   flex-direction: column;
@@ -462,8 +473,8 @@ onUnmounted(() => {
   height: 48px;
   border-radius: 9999px;
   /* rounded-full */
-  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-  /* blue-500 to blue-700 */
+  background: linear-gradient(135deg, #C073A7 0%, #5A2468 100%);
+  /* brand magenta to purple */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -547,11 +558,17 @@ onUnmounted(() => {
 }
 
 .nav-item.active {
-  background: #3B82F6;
-  /* blue-500 */
+  background: #5A2468;
+  /* brand purple */
   color: white;
-  border-left: 2px solid #3B82F6;
-  /* emphasis border */
+  border-left: 2px solid #C073A7;
+  /* magenta accent */
+}
+
+.nav-child-item {
+  padding-left: 36px;
+  font-size: 13px;
+  margin-top: 1px;
 }
 
 .nav-icon {
@@ -760,8 +777,8 @@ onUnmounted(() => {
   height: 36px;
   border-radius: 9999px;
   /* rounded-full */
-  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-  /* blue-500 to blue-700 */
+  background: linear-gradient(135deg, #C073A7 0%, #5A2468 100%);
+  /* brand magenta to purple */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -907,8 +924,8 @@ onUnmounted(() => {
 .mark-read-btn {
   background: transparent;
   border: none;
-  color: #3B82F6;
-  /* blue-500 */
+  color: #9B4A88;
+  /* brand magenta */
   font-size: 12px;
   /* xs */
   cursor: pointer;

@@ -8,16 +8,25 @@
           v-model="searchInput"
           @keyup.enter="handleSearch"
           type="text" 
-          placeholder="Search products or companies..."
+          placeholder="Search products..."
           class="search-input"
         >
-        <button @click="handleSearch" class="btn-search" :disabled="loading">
+        <input
+          v-if="showPharmacySearch"
+          v-model="pharmacySearchInput"
+          @keyup.enter="handleSearch"
+          type="text"
+          placeholder="Search pharmacy..."
+          class="search-input"
+        >
+        <button @click="handleSearch" class="btn-search" :disabled="loading || !hasSearchCriteria">
           <Icon name="Search" size="16" />
           Search
         </button>
         <select 
           v-if="showCompanyFilter && companies.length > 0" 
           v-model="selectedCompany"
+          @change="onCompanyChange"
           class="company-filter"
         >
           <option value="">All Companies</option>
@@ -35,6 +44,12 @@
     </div>
 
     <!-- Empty State -->
+    <div v-else-if="!loading && !hasSearched" class="empty-state">
+      <Icon name="Search" size="48" class="empty-icon" />
+      <p>Search to view products</p>
+      <p class="empty-subtext">Enter a product name, and optionally a pharmacy name, then run the search.</p>
+    </div>
+
     <div v-else-if="!loading && products.length === 0" class="empty-state">
       <Icon name="Package" size="48" class="empty-icon" />
       <p>No products found</p>
@@ -122,8 +137,9 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import phoneUtils from '~/utils/phone'
 
 // Props
 const props = defineProps({
@@ -147,6 +163,14 @@ const props = defineProps({
     type: Number,
     default: 50
   },
+  autoload: {
+    type: Boolean,
+    default: true
+  },
+  showPharmacySearch: {
+    type: Boolean,
+    default: false
+  },
   apiEndpoint: {
     type: String,
     default: '/api/inventory-analytics/search-products'
@@ -162,28 +186,59 @@ const adminStore = useAdminStore()
 // State
 const loading = ref(false)
 const searchInput = ref('')
+const pharmacySearchInput = ref('')
 const selectedCompany = ref(props.initialCompanyId || '')
 const products = ref([])
 const companies = ref([])
+const hasSearched = ref(false)
 const pagination = ref({
   total: 0,
   limit: props.pageSize,
   offset: 0,
   has_more: false
 })
+const emptyPagination = () => ({
+  total: 0,
+  limit: props.pageSize,
+  offset: 0,
+  has_more: false
+})
+const hasSearchCriteria = computed(() => {
+  return Boolean(
+    String(searchInput.value || '').trim() ||
+    String(pharmacySearchInput.value || '').trim() ||
+    selectedCompany.value
+  )
+})
 
 // Methods
 const handleSearch = () => {
+  if (!hasSearchCriteria.value) {
+    hasSearched.value = false
+    products.value = []
+    pagination.value = emptyPagination()
+    return
+  }
+
+  hasSearched.value = true
   pagination.value.offset = 0
   loadProducts()
 }
 
 const onCompanyChange = () => {
   pagination.value.offset = 0
-  loadProducts()
+  if (props.autoload || hasSearched.value) {
+    loadProducts()
+  }
 }
 
 const loadProducts = async () => {
+  if (!props.autoload && !hasSearched.value) {
+    products.value = []
+    pagination.value = emptyPagination()
+    return
+  }
+
   loading.value = true
   
   try {
@@ -194,6 +249,10 @@ const loadProducts = async () => {
     
     if (searchInput.value) {
       params.search = searchInput.value
+    }
+
+    if (pharmacySearchInput.value) {
+      params.pharmacySearch = pharmacySearchInput.value
     }
     
     if (selectedCompany.value) {
@@ -215,6 +274,7 @@ const loadProducts = async () => {
   } catch (error) {
     console.error('Error loading products:', error)
     products.value = []
+    pagination.value = emptyPagination()
   } finally {
     loading.value = false
   }
@@ -257,14 +317,7 @@ const formatPrice = (price) => {
 }
 
 const formatWhatsApp = (whatsapp) => {
-  if (!whatsapp) return ''
-  // Remove any non-digit characters
-  let cleaned = whatsapp.replace(/\D/g, '')
-  // Add country code if not present (assuming Ghana +233)
-  if (cleaned.length === 10 && !cleaned.startsWith('233')) {
-    cleaned = '233' + cleaned
-  }
-  return cleaned
+  return phoneUtils.formatWhatsApp(whatsapp)
 }
 
 const formatDate = (dateString) => {
@@ -304,17 +357,29 @@ defineExpose({
   refresh: loadProducts,
   reset: () => {
     searchInput.value = ''
+    pharmacySearchInput.value = ''
     selectedCompany.value = props.initialCompanyId || ''
     pagination.value.offset = 0
-    loadProducts()
+    hasSearched.value = props.autoload
+    if (props.autoload) {
+      loadProducts()
+    } else {
+      products.value = []
+      pagination.value = emptyPagination()
+    }
   }
 })
 
 // Lifecycle
 onMounted(() => {
-  // Load companies for filter dropdown only, don't auto-load products
+  hasSearched.value = props.autoload
+
   if (props.showCompanyFilter) {
     loadCompanies()
+  }
+
+  if (props.autoload) {
+    loadProducts()
   }
 })
 
@@ -322,7 +387,9 @@ onMounted(() => {
 watch(() => props.initialCompanyId, (newVal) => {
   selectedCompany.value = newVal || ''
   pagination.value.offset = 0
-  loadProducts()
+  if (props.autoload || hasSearched.value) {
+    loadProducts()
+  }
 })
 </script>
 
