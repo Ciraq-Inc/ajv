@@ -44,7 +44,7 @@ export default defineNuxtConfig({
       ],
 
       charset: "utf-8",
-      viewport: "width=device-width, initial-scale=1",
+      viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
     },
     // Add page transitions for smoother navigation with pharmacy routing
     pageTransition: { name: 'page', mode: 'out-in' }

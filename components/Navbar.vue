@@ -10,18 +10,18 @@
     >
       <div class="flex items-center gap-3 px-3 py-2.5 sm:px-5 sm:py-3.5">
         <nuxt-link to="/" class="flex items-center gap-2.5">
-          <img src="../assets/images/rigellogo.png" alt="Rigelis" width="46" height="46" class="rounded-xl" />
+          <img src="/brand/rig-mark.svg" alt="MedsGh" width="36" height="36" />
           <div>
             <p class="text-lg font-bold leading-none text-[#520094] sm:text-xl">MedsGh</p>
-            <p class="mt-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">Trusted Pharmacy Network</p>
           </div>
         </nuxt-link>
 
-        <nav class="ml-6 hidden items-center gap-5 text-sm font-medium text-slate-600 lg:flex">
+        <nav class="ml-12 hidden items-center gap-5 text-sm font-medium text-slate-600 lg:flex">
           <nuxt-link to="/" class="transition hover:text-[#520094]">Home</nuxt-link>
           <nuxt-link to="/drugs" class="transition hover:text-[#520094]">Products</nuxt-link>
           <a href="/#how-it-works" class="transition hover:text-[#520094]">How It Works</a>
           <a href="/#support" class="transition hover:text-[#520094]">Support</a>
+          <a href="/#for-pharmacies" class="transition hover:text-[#520094]">For Pharmacies</a>
           <nuxt-link to="/jobs" class="transition hover:text-[#520094]">Jobs</nuxt-link>
         </nav>
 
@@ -38,7 +38,7 @@
             target="_blank"
             rel="noopener noreferrer"
             href="https://wa.me/+233552587974"
-            class="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700"
+            class="inline-flex items-center gap-2 rounded-full bg-[#520094] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6c24b3]"
           >
             <i class="ri-whatsapp-line text-base"></i>
             Contact Us
@@ -152,7 +152,11 @@
             <span>Support</span>
             <i class="ri-arrow-right-line"></i>
           </a>
-           <nuxt-link to="/jobs" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
+          <a href="/#for-pharmacies" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
+            <span>For Pharmacies</span>
+            <i class="ri-arrow-right-line"></i>
+          </a>
+          <nuxt-link to="/jobs" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
             <span>Jobs</span>
             <i class="ri-arrow-right-line"></i>
           </nuxt-link>
@@ -166,7 +170,7 @@
               target="_blank"
               rel="noopener noreferrer"
               href="https://wa.me/+233552587974"
-              class="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#520094] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6c24b3] transition"
             >
               <i class="ri-whatsapp-line text-base"></i>
               Contact Us on WhatsApp

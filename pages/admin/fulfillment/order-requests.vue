@@ -115,8 +115,9 @@
               Items <span style="opacity: 0.5;">{{ sortKey === 'items' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
             <th @click="toggleSort('status')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; cursor: pointer; user-select: none; white-space: nowrap;">
-              Status <span style="opacity: 0.5;">{{ sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+              Stage <span style="opacity: 0.5;">{{ sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
+            <th style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; white-space: nowrap;">Next Stage</th>
             <th @click="toggleSort('cost')" style="padding: 0.75rem 1.25rem; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border: none; text-align: right; cursor: pointer; user-select: none; white-space: nowrap;">
               Cost <span style="opacity: 0.5;">{{ sortKey === 'cost' ? (sortDir === 'asc' ? '↑' : '↓') : '↕' }}</span>
             </th>
@@ -129,10 +130,10 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="8" class="loading-cell" style="padding: 3rem; text-align: center; color: #6b7280; font-size: 0.85rem;">Loading requests...</td>
+            <td colspan="9" class="loading-cell" style="padding: 3rem; text-align: center; color: #6b7280; font-size: 0.85rem;">Loading requests...</td>
           </tr>
           <tr v-else-if="filteredRequests.length === 0">
-            <td colspan="8" class="empty-cell" style="padding: 3rem; text-align: center; color: #6b7280; font-size: 0.85rem;">No requests found</td>
+            <td colspan="9" class="empty-cell" style="padding: 3rem; text-align: center; color: #6b7280; font-size: 0.85rem;">No requests found</td>
           </tr>
           <tr
             v-for="req in filteredRequests"
@@ -172,9 +173,13 @@
               <span class="item-count" style="display: inline-flex; align-items: center; justify-content: center; height: 1.5rem; min-width: 1.5rem; padding: 0 0.4rem; background: #f3f4f6; color: #374151; border-radius: 999px; font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums;">{{ formatRequestItemsLabel(req) }}</span>
             </td>
             <td style="padding: 0.875rem 1.25rem;">
-              <span class="status-badge" :class="req.status" 
+              <span class="status-badge" :class="req.status"
                 :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border: 1px solid #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border: 1px solid #d8b4fe;' : 'background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;'"
                 style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 4px; white-space: nowrap; text-transform: uppercase;">{{ formatStatus(req.status) }}</span>
+            </td>
+            <td style="padding: 0.875rem 1.25rem;">
+              <span v-if="getNextStageLabel(req)" style="font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 4px; white-space: nowrap; background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd;">→ {{ getNextStageLabel(req) }}</span>
+              <span v-else style="color: #9ca3af; font-size: 0.8rem;">—</span>
             </td>
             <td style="padding: 0.875rem 1.25rem; text-align: right; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">
               <template v-if="getRequestComposedCost(req) !== null">
@@ -2409,7 +2414,20 @@ const toggleSort = (key) => {
   }
 }
 
+const getNextStageLabel = (req) => {
+  const status = normalizeRequestStatus(req?.status)
+  if (!status) return null
+  const idx = PIPELINE_STAGES.findIndex(s => s.statuses.includes(status))
+  if (idx < 0 || idx >= PIPELINE_STAGES.length - 1) return null
+  const isPickup = String(req?.fulfillment_type || '').toLowerCase().includes('pickup')
+  if (idx === 5) return isPickup ? 'Ready for Pickup' : 'In Transit'
+  if (idx === 6) return isPickup ? 'Picked Up' : 'Delivered'
+  return PIPELINE_STAGES[idx + 1].label
+}
+
 const getRequestComposedCost = (req) => {
+  const precomputed = Number(req?.computed_cost ?? null)
+  if (Number.isFinite(precomputed) && precomputed > 0) return precomputed
   const items = Array.isArray(req?.items) ? req.items : []
   const sourcedItems = items.filter((item) => isSavedSelectionItem(item))
   if (!sourcedItems.length) return null

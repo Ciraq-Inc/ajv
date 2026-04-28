@@ -11,11 +11,19 @@
                     <p class="text-sm font-medium text-zinc-600 mt-1">Describe the medicines you need. A pharmacist will
                         source and confirm pricing.</p>
                 </div>
-                <button @click="goToRequestHistory" type="button"
-                    class="mt-1 flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">history</span>
-                    My Requests
-                </button>
+                <div class="flex flex-col items-end gap-2 flex-shrink-0 mt-1">
+                    <button @click="goToRequestHistory" type="button"
+                        class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">history</span>
+                        My Requests
+                    </button>
+                    <button @click="openWalletTab" type="button"
+                        class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors"
+                        :class="canSearchProducts ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'">
+                        <span class="material-symbols-outlined text-[14px]">account_balance_wallet</span>
+                        GHS {{ walletBalance.toFixed(2) }}
+                    </button>
+                </div>
             </div>
 
             <!-- Wallet lock banner -->
@@ -287,6 +295,11 @@
                                 <span class="text-zinc-500">Charge</span>
                                 <span class="font-black text-zinc-900">GHS {{ requestFee.toFixed(2) }}</span>
                             </div>
+                            <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
+                                <span class="text-zinc-500">Wallet Balance</span>
+                                <span class="font-black tabular-nums"
+                                    :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">GHS {{ walletBalance.toFixed(2) }}</span>
+                            </div>
                         </div>
                         <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
                             class="w-full bg-purple-700 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
@@ -307,6 +320,10 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
                     <p class="text-lg font-black text-zinc-900 leading-tight">GHS {{ requestFee.toFixed(2) }}</p>
+                    <p class="text-[11px] font-semibold mt-0.5"
+                        :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">
+                        Balance: GHS {{ walletBalance.toFixed(2) }}
+                    </p>
                 </div>
                 <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
                     class="bg-purple-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">

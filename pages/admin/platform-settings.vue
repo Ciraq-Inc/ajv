@@ -185,7 +185,7 @@ const sections = [
     id: 'delivery',
     short: 'LOG',
     title: 'Delivery and Routing',
-    description: 'Distance-based pricing and route service integration',
+    description: 'Distance-based pricing, dispatch visibility, and route service integration',
     settings: [
       {
         key: 'delivery_fee_per_km',
@@ -195,6 +195,14 @@ const sections = [
         inputType: 'number',
         step: '0.01',
         defaultValue: '2.00'
+      },
+      {
+        key: 'delivery_visibility_radius_km',
+        label: 'Dispatch Visibility Radius (km)',
+        help: 'How far from a pickup pharmacy a dispatch company can be and still see the delivery. Set high (e.g. 100) to show all open deliveries regardless of location.',
+        type: 'number',
+        inputType: 'number',
+        defaultValue: '20'
       },
       {
         key: 'openrouteservice_api_key',

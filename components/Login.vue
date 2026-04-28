@@ -7,39 +7,26 @@
       <!-- Modal Container -->
       <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-[#fff7ff] border-none shadow-[0_24px_32px_rgba(30,26,34,0.06)]">
         <!-- Modal Header -->
-        <div class="bg-[#faf0fd] border-b border-[#cec2d5]/15 px-6 py-5 text-[#1e1a22]">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <span class="inline-flex items-center rounded-full border-none bg-[#efdbff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#520094]">
-                Customer Access
-              </span>
-              <h3 class="mt-3 text-2xl font-semibold tracking-tight">{{ stepTitle }}</h3>
-              <p class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
-            </div>
-            <div class="hidden rounded-2xl border-none bg-[#ffffff] px-3 py-2 text-right text-xs text-[#7d7484] sm:block">
-              <div class="font-semibold text-[#1e1a22]">Secure Flow</div>
-              <div>{{ isSecondStep ? 'Step 2 of 2' : 'Step 1 of 2' }}</div>
-            </div>
+        <div class="relative px-6 pt-6 pb-5 border-b border-[#f0e6fa]">
+          <button
+            type="button"
+            @click="closeModal"
+            class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#f4ebf7] text-[#7d7484] transition hover:bg-[#ead6fd] hover:text-[#520094]"
+            aria-label="Close"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div class="pr-10">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#520094] mb-2">MedsGh</p>
+            <h3 class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
+            <p class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
           </div>
         </div>
 
         <!-- Modal Body -->
         <div class="bg-[#ffffff] p-6">
-        <!-- Progress indicator -->
-        <div class="mb-6 rounded-2xl border-none bg-[#f4ebf7] p-4">
-          <div class="flex items-center gap-3">
-            <div :class="['inline-flex min-w-[108px] items-center justify-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em]',
-              isSecondStep ? 'bg-emerald-500 text-white' : 'bg-[#520094] text-white']">
-              <span v-if="isSecondStep" class="mr-2">&#10003;</span>
-              Phone
-            </div>
-            <div :class="['h-px flex-1', isSecondStep ? 'bg-[#6c24b3]' : 'bg-[#cec2d5]']"></div>
-            <div :class="['inline-flex min-w-[108px] items-center justify-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em]',
-              isSecondStep ? 'bg-[#520094] text-white' : 'bg-white text-[#7d7484] border border-[#cec2d5]']">
-              {{ stepStageLabel }}
-            </div>
-          </div>
-        </div>
 
         <div v-if="errorMessage" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
           <div class="flex">
@@ -59,10 +46,6 @@
         <!-- Step 1: Phone Number Input -->
         <div v-if="currentStep === 'phone'">
           <form @submit.prevent="checkPhone">
-            <div :class="subtleCardClass">
-              Enter your number once. We will route you to login, password setup, or registration based on your account status.
-            </div>
-
             <div class="mb-4">
               <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
               <div class="flex">
@@ -79,10 +62,6 @@
             </div>
 
             <div class="mt-6 flex justify-end space-x-3">
-              <button type="button" @click="closeModal"
-                :class="secondaryButtonClass">
-                Cancel
-              </button>
               <button type="submit" :disabled="isLoading"
                 :class="primaryButtonClass">
                 <span v-if="isLoading" class="flex items-center">
@@ -435,21 +414,21 @@ const registrationHint = computed(() => (
 ));
 
 const stepTitle = computed(() => {
-  if (currentStep.value === 'phone') return 'Start with your phone';
-  if (currentStep.value === 'password') return 'Enter Password';
-  if (currentStep.value === 'setup') return 'Setup Your Password';
-  if (currentStep.value === 'reset') return 'Reset Password';
-  return "Let's find your medicine.";
+  if (currentStep.value === 'phone') return "What's your phone number?";
+  if (currentStep.value === 'password') return 'Welcome back';
+  if (currentStep.value === 'setup') return 'Set up your password';
+  if (currentStep.value === 'reset') return 'Reset your password';
+  return "Create your account";
 });
 
 const stepSubtitle = computed(() => {
-  if (currentStep.value === 'phone') return 'Enter your phone number and we will move you to the right next step.';
-  if (currentStep.value === 'password') return 'Use your password to access your account.';
-  if (currentStep.value === 'setup') return 'Create a password to activate your account, then continue into your first request.';
+  if (currentStep.value === 'phone') return "We'll find your account or create one for you.";
+  if (currentStep.value === 'password') return 'Enter your password to continue.';
+  if (currentStep.value === 'setup') return 'Create a password to activate your account.';
   if (currentStep.value === 'reset') return 'Verify your number and set a new password.';
   return registrationCompany.value
-    ? 'Create your account now and we will take you straight into the request flow.'
-    : 'Create your account in one short step, then continue into your first medicine request.';
+    ? `Registering with ${registrationCompany.value}. Orders will be available there right after signup.`
+    : 'One short step, then straight into your first medicine request.';
 });
 
 const stepStageLabel = computed(() => {

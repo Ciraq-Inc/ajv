@@ -1,287 +1,284 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-    <!-- Modal Container -->
-    <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md mx-4 overflow-hidden">
-      <!-- Modal Header -->
-      <div class="bg-indigo-600 text-white py-4 px-6">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="bg-white/20 p-2 rounded-lg">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-            </svg>
-          </div>
-          <div>
-            <h3 class="text-lg font-medium">{{ companyName }} Services</h3>
-          </div>
-        </div>
-        <h2 class="text-xl font-semibold">
-          {{ step === 'phone' ? 'Login to Continue' : 
-             step === 'password' ? 'Enter Password' :
-             step === 'setup' ? 'Setup Your Password' :
-             'Reset Password' }}
+  <div class="fixed inset-0 flex items-center justify-center overflow-y-auto py-8 px-4" style="background-color: #2A1130;">
+
+    <!-- Decorative sparkles -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden select-none" aria-hidden="true">
+      <svg class="absolute -top-6 -right-6 w-48 h-48 opacity-[0.06]" viewBox="0 0 100 100" fill="white">
+        <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+      </svg>
+      <svg class="absolute bottom-10 -left-8 w-36 h-36 opacity-[0.05]" viewBox="0 0 100 100" fill="white">
+        <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+      </svg>
+      <svg class="absolute top-1/2 right-8 w-20 h-20 opacity-[0.04]" viewBox="0 0 100 100" fill="white">
+        <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+      </svg>
+      <svg class="absolute bottom-1/3 left-1/4 w-10 h-10 opacity-[0.05]" viewBox="0 0 100 100" fill="white">
+        <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+      </svg>
+    </div>
+
+    <!-- Card -->
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+      <!-- Brand header -->
+      <div class="flex flex-col items-center pt-8 pb-6 px-6">
+        <img src="/brand/rig-mark.svg" alt="Rigel" class="w-14 h-14 mb-4" />
+        <p class="text-[10px] font-black uppercase tracking-[0.18em] mb-2" style="color: #4F217A;">
+          {{ companyName }} Services
+        </p>
+        <h2 class="text-xl font-black text-zinc-900 tracking-tight text-center leading-tight">
+          {{ step === 'phone' ? 'Welcome back' :
+             step === 'password' ? 'Enter your password' :
+             step === 'setup' ? 'Set up your password' :
+             'Reset your password' }}
         </h2>
-        <p class="text-indigo-100 text-sm mt-1">
-          {{ step === 'phone' ? 'Enter your phone number' : 
-             step === 'password' ? 'Enter your password to login' :
-             step === 'setup' ? 'Create a password for your account' :
-             'Reset your password with OTP' }}
+        <p class="text-xs text-zinc-500 mt-1.5 text-center font-medium">
+          {{ step === 'phone' ? 'Enter your phone number to continue' :
+             step === 'password' ? 'Enter your password to log in' :
+             step === 'setup' ? 'Create a secure password for your account' :
+             'Reset your password with a verification code' }}
         </p>
       </div>
 
-      <!-- Modal Body -->
-      <div class="p-6">
-        <!-- Progress indicator -->
-        <div class="flex items-center mb-6">
-          <div :class="['flex items-center justify-center w-8 h-8 rounded-full transition-all',
-            step === 'phone' ? 'bg-indigo-600 text-white' : 'bg-green-500 text-white']">
-            <span v-if="step === 'phone'">1</span>
-            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-          <div class="flex-1 h-1 mx-2 transition-all" :class="[step !== 'phone' ? 'bg-indigo-600' : 'bg-gray-200']"></div>
-          <div :class="['flex items-center justify-center w-8 h-8 rounded-full transition-all',
-            step !== 'phone' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600']">
-            <span>2</span>
-          </div>
+      <!-- Progress indicator -->
+      <div class="flex items-center px-8 mb-6">
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all text-white"
+          :style="{ backgroundColor: '#4F217A' }">
+          <svg v-if="step !== 'phone'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+          </svg>
+          <span v-else>1</span>
+        </div>
+        <div class="flex-1 h-0.5 mx-2 rounded-full transition-all"
+          :class="step !== 'phone' ? '' : 'bg-zinc-200'"
+          :style="step !== 'phone' ? { backgroundColor: '#4F217A' } : {}"></div>
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all"
+          :class="step !== 'phone' ? 'text-white' : 'bg-zinc-100 text-zinc-400'"
+          :style="step !== 'phone' ? { backgroundColor: '#4F217A' } : {}">
+          <span>2</span>
+        </div>
+      </div>
+
+      <!-- Form body -->
+      <div class="px-6 pb-2">
+
+        <!-- Error -->
+        <div v-if="error" class="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 mb-4">
+          <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+          <p class="text-sm text-red-700 font-medium">{{ error }}</p>
         </div>
 
-        <!-- Error Message -->
-        <div v-if="error" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm">{{ error }}</p>
-            </div>
-          </div>
+        <!-- Success -->
+        <div v-if="successMessage" class="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 mb-4">
+          <svg class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <p class="text-sm text-emerald-700 font-medium">{{ successMessage }}</p>
         </div>
 
-        <!-- Success Message -->
-        <div v-if="successMessage" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm">{{ successMessage }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 1: Phone Number Input -->
+        <!-- Step 1: Phone -->
         <div v-if="step === 'phone'">
           <form @submit.prevent="checkPhone">
             <div class="mb-4">
-              <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <label for="phoneNumber" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Phone Number</label>
               <div class="flex">
-                <span
-                  class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-md">
+                <span class="inline-flex items-center px-3 text-sm font-semibold text-zinc-600 bg-zinc-100 border border-r-0 border-zinc-200 rounded-l-xl">
                   +233
                 </span>
                 <input v-model="phone" type="tel" id="phoneNumber"
-                  class="block w-full rounded-none rounded-r-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="eg. 24 123 4567" required @input="validatePhoneNumber" :disabled="loading">
+                  class="block w-full rounded-none rounded-r-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                  placeholder="24 123 4567" required @input="validatePhoneNumber" :disabled="loading"
+                  @focus="e => e.target.style.borderColor = '#4F217A80'"
+                  @blur="e => e.target.style.borderColor = ''" />
               </div>
-              <p v-if="phoneNumberError" class="mt-1 text-sm text-red-600">{{ phoneNumberError }}</p>
-              <p v-else class="mt-1 text-xs text-gray-500">Enter your registered phone number</p>
+              <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 font-medium">{{ phoneNumberError }}</p>
+              <p v-else class="mt-1.5 text-xs text-zinc-400 font-medium">Enter your registered phone number</p>
             </div>
-
-            <div class="mt-6">
+            <div class="mt-5 pb-2">
               <button type="submit" :disabled="loading || phoneNumberError !== ''"
-                class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center justify-center gap-2">
-                <span v-if="loading" class="flex items-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                  </svg>
-                  Checking...
-                </span>
-                <span v-else>Continue</span>
+                class="w-full py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
+                style="background-color: #4F217A;">
+                <svg v-if="loading" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ loading ? 'Checking…' : 'Continue' }}</span>
               </button>
             </div>
           </form>
         </div>
 
-        <!-- Step 2a: Password Login (Registered) -->
+        <!-- Step 2a: Password login -->
         <div v-else-if="step === 'password'">
           <form @submit.prevent="handleLogin">
-            <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
-              <p>Logging in as: <strong>{{ formatPhoneDisplay(phone) }}</strong></p>
+            <div class="mb-4 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-zinc-600 border border-zinc-100 bg-zinc-50">
+              Logging in as <strong class="text-zinc-900">{{ formatPhoneDisplay(phone) }}</strong>
             </div>
-
             <div class="mb-4">
-              <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label for="password" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Password</label>
               <input v-model="password" type="password" id="password"
-                class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Enter your password" required minlength="6" :disabled="loading">
+                class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                placeholder="Enter your password" required minlength="6" :disabled="loading"
+                @focus="e => e.target.style.borderColor = '#4F217A80'"
+                @blur="e => e.target.style.borderColor = ''" />
             </div>
-
-            <div class="mb-4 flex items-center justify-between">
-              <div class="flex items-center">
+            <div class="mb-5 flex items-center justify-between">
+              <label class="flex items-center gap-2 cursor-pointer">
                 <input id="remember-me" v-model="rememberMe" type="checkbox"
-                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                <label for="remember-me" class="ml-2 block text-sm text-gray-700">
-                  Keep me logged in
-                </label>
-              </div>
-              <button type="button" @click="forgotPassword" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                  class="h-4 w-4 rounded border-zinc-300"
+                  :style="{ accentColor: '#4F217A' }" />
+                <span class="text-xs font-semibold text-zinc-600">Keep me logged in</span>
+              </label>
+              <button type="button" @click="forgotPassword"
+                class="text-xs font-bold transition-opacity hover:opacity-70"
+                style="color: #4F217A;">
                 Forgot password?
               </button>
             </div>
-
-            <div class="mt-6 flex justify-end space-x-3">
-              <button type="button" @click="goBack"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md" :disabled="loading">
+            <div class="flex justify-end gap-2 pb-2">
+              <button type="button" @click="goBack" :disabled="loading"
+                class="px-4 py-2.5 text-sm font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded-xl disabled:opacity-50 transition-colors">
                 Back
               </button>
               <button type="submit" :disabled="loading"
-                class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center gap-2">
-                <span v-if="loading" class="flex items-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                  </svg>
-                  Logging in...
-                </span>
-                <span v-else>Login</span>
+                class="px-5 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center gap-2 transition-opacity"
+                style="background-color: #4F217A;">
+                <svg v-if="loading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ loading ? 'Logging in…' : 'Login' }}</span>
               </button>
             </div>
           </form>
         </div>
 
-        <!-- Step 2b: Setup Password (First Time) -->
+        <!-- Step 2b: Setup password -->
         <div v-else-if="step === 'setup'">
           <form @submit.prevent="handleSetupPassword">
-            <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
-              <p>Setting up password for: <strong>{{ formatPhoneDisplay(phone) }}</strong></p>
-              <p class="text-xs mt-1">We'll send you a verification code</p>
+            <div class="mb-4 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-zinc-600 border border-zinc-100 bg-zinc-50">
+              Setting up for <strong class="text-zinc-900">{{ formatPhoneDisplay(phone) }}</strong>
+              <span class="block text-zinc-400 mt-0.5">We'll send you a verification code via SMS</span>
             </div>
-
             <div class="mb-4" v-if="!otpSent">
               <button type="button" @click="sendOTP" :disabled="loading"
-                class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 flex items-center justify-center gap-2">
-                <span v-if="loading">Sending OTP...</span>
-                <span v-else>Send Verification Code</span>
+                class="w-full py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
+                style="background-color: #4F217A;">
+                <span>{{ loading ? 'Sending code…' : 'Send Verification Code' }}</span>
               </button>
             </div>
-
-            <div v-if="otpSent">
-              <div class="mb-4">
-                <label for="otp" class="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+            <div v-if="otpSent" class="space-y-4">
+              <div>
+                <label for="otp" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Verification Code</label>
                 <input v-model="otp" type="text" id="otp"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}" :disabled="loading">
+                  class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none tracking-[0.2em] transition-colors"
+                  placeholder="6-digit code" required maxlength="6" pattern="[0-9]{6}" :disabled="loading"
+                  @focus="e => e.target.style.borderColor = '#4F217A80'"
+                  @blur="e => e.target.style.borderColor = ''" />
               </div>
-
-              <div class="mb-4">
-                <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+              <div>
+                <label for="newPassword" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">New Password</label>
                 <input v-model="newPassword" type="password" id="newPassword"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Create a password (min. 6 characters)" required minlength="6" :disabled="loading">
+                  class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                  placeholder="Min. 6 characters" required minlength="6" :disabled="loading"
+                  @focus="e => e.target.style.borderColor = '#4F217A80'"
+                  @blur="e => e.target.style.borderColor = ''" />
               </div>
-
-              <div class="mb-4">
-                <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <div>
+                <label for="confirmPassword" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Confirm Password</label>
                 <input v-model="confirmPassword" type="password" id="confirmPassword"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Re-enter your password" required minlength="6" :disabled="loading">
-                <p v-if="newPassword && confirmPassword && newPassword !== confirmPassword" class="mt-1 text-sm text-red-600">
+                  class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                  placeholder="Re-enter your password" required minlength="6" :disabled="loading"
+                  @focus="e => e.target.style.borderColor = '#4F217A80'"
+                  @blur="e => e.target.style.borderColor = ''" />
+                <p v-if="newPassword && confirmPassword && newPassword !== confirmPassword" class="mt-1.5 text-xs text-red-600 font-medium">
                   Passwords do not match
                 </p>
               </div>
-
-              <div class="mt-6 flex justify-end space-x-3">
-                <button type="button" @click="goBack"
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md" :disabled="loading">
+              <div class="flex justify-end gap-2 pb-2">
+                <button type="button" @click="goBack" :disabled="loading"
+                  class="px-4 py-2.5 text-sm font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded-xl disabled:opacity-50 transition-colors">
                   Back
                 </button>
                 <button type="submit" :disabled="loading || !otp || newPassword !== confirmPassword"
-                  class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50">
-                  <span v-if="loading">Setting up...</span>
-                  <span v-else>Setup Password</span>
+                  class="px-5 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-opacity"
+                  style="background-color: #4F217A;">
+                  {{ loading ? 'Setting up…' : 'Set Password' }}
                 </button>
               </div>
             </div>
           </form>
         </div>
 
-        <!-- Step 2c: Password Reset -->
+        <!-- Step 2c: Reset password -->
         <div v-else-if="step === 'reset'">
           <form @submit.prevent="resetPassword">
-            <div class="mb-4 text-sm text-gray-600 bg-blue-50 p-3 rounded">
-              <p>Resetting password for: <strong>{{ formatPhoneDisplay(phone) }}</strong></p>
-              <p class="text-xs mt-1">We'll send you a verification code</p>
+            <div class="mb-4 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-zinc-600 border border-zinc-100 bg-zinc-50">
+              Resetting for <strong class="text-zinc-900">{{ formatPhoneDisplay(phone) }}</strong>
+              <span class="block text-zinc-400 mt-0.5">We'll send you a verification code via SMS</span>
             </div>
-
             <div class="mb-4" v-if="!otpSent">
               <button type="button" @click="requestPasswordReset" :disabled="loading"
-                class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50">
-                <span v-if="loading">Sending Reset Code...</span>
-                <span v-else>Send Reset Code</span>
+                class="w-full py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
+                style="background-color: #4F217A;">
+                <span>{{ loading ? 'Sending code…' : 'Send Reset Code' }}</span>
               </button>
             </div>
-
-            <div v-if="otpSent">
-              <div class="mb-4">
-                <label for="resetOtp" class="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+            <div v-if="otpSent" class="space-y-4">
+              <div>
+                <label for="resetOtp" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Verification Code</label>
                 <input v-model="otp" type="text" id="resetOtp"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Enter 6-digit code" required maxlength="6" :disabled="loading">
+                  class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none tracking-[0.2em] transition-colors"
+                  placeholder="6-digit code" required maxlength="6" :disabled="loading"
+                  @focus="e => e.target.style.borderColor = '#4F217A80'"
+                  @blur="e => e.target.style.borderColor = ''" />
               </div>
-
-              <div class="mb-4">
-                <label for="resetPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+              <div>
+                <label for="resetPassword" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">New Password</label>
                 <input v-model="newPassword" type="password" id="resetPassword"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Enter new password" required minlength="6" :disabled="loading">
+                  class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                  placeholder="Enter new password" required minlength="6" :disabled="loading"
+                  @focus="e => e.target.style.borderColor = '#4F217A80'"
+                  @blur="e => e.target.style.borderColor = ''" />
               </div>
-
-              <div class="mb-4">
-                <label for="resetConfirm" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+              <div>
+                <label for="resetConfirm" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Confirm New Password</label>
                 <input v-model="confirmPassword" type="password" id="resetConfirm"
-                  class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Confirm new password" required minlength="6" :disabled="loading">
-                <p v-if="newPassword && confirmPassword && newPassword !== confirmPassword" class="mt-1 text-sm text-red-600">
+                  class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                  placeholder="Confirm new password" required minlength="6" :disabled="loading"
+                  @focus="e => e.target.style.borderColor = '#4F217A80'"
+                  @blur="e => e.target.style.borderColor = ''" />
+                <p v-if="newPassword && confirmPassword && newPassword !== confirmPassword" class="mt-1.5 text-xs text-red-600 font-medium">
                   Passwords do not match
                 </p>
               </div>
-
-              <div class="mt-6 flex justify-end space-x-3">
-                <button type="button" @click="goBack"
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md" :disabled="loading">
-                  Back to Login
+              <div class="flex justify-end gap-2 pb-2">
+                <button type="button" @click="goBack" :disabled="loading"
+                  class="px-4 py-2.5 text-sm font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded-xl disabled:opacity-50 transition-colors">
+                  Back
                 </button>
                 <button type="submit" :disabled="loading || !otp || newPassword !== confirmPassword"
-                  class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50">
-                  <span v-if="loading">Resetting...</span>
-                  <span v-else>Reset Password</span>
+                  class="px-5 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-opacity"
+                  style="background-color: #4F217A;">
+                  {{ loading ? 'Resetting…' : 'Reset Password' }}
                 </button>
               </div>
             </div>
           </form>
         </div>
+
       </div>
 
       <!-- Footer -->
-      <div class="border-t border-gray-200 px-6 py-4 bg-gray-50">
-        <p class="text-center text-sm text-gray-600">
-          Need help? Contact your administrator
-        </p>
+      <div class="px-6 py-4 mt-2 border-t border-zinc-100 flex items-center justify-center gap-2">
+        <svg class="w-3 h-3 opacity-30" viewBox="0 0 100 100" fill="#4F217A">
+          <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
+        </svg>
+        <p class="text-xs text-zinc-400 font-medium">Need help? Contact your administrator</p>
       </div>
+
     </div>
   </div>
 </template>
@@ -342,14 +339,14 @@ const formatPhoneDisplay = (phoneNum) => {
 // Validate phone number input
 const validatePhoneNumber = () => {
   const digitsOnly = phone.value.replace(/\D/g, '')
-  
+
   if (digitsOnly.length === 0) {
     phoneNumberError.value = ''
     return false
   }
-  
+
   const validPrefixes = ['20', '23', '24', '25', '26', '27', '50', '53', '54', '55', '59', '57', '56', ]
-  
+
   // 10 digits with leading 0
   if (digitsOnly.length === 10 && digitsOnly.startsWith('0')) {
     const prefix = digitsOnly.substring(1, 3)
@@ -360,7 +357,7 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = ''
     return true
   }
-  
+
   // 9 digits without leading 0
   if (digitsOnly.length === 9) {
     const prefix = digitsOnly.substring(0, 2)
@@ -371,7 +368,7 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = ''
     return true
   }
-  
+
   // Full number with country code
   if (digitsOnly.length === 12 && digitsOnly.startsWith('233')) {
     const prefix = digitsOnly.substring(3, 5)
@@ -382,7 +379,7 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = ''
     return true
   }
-  
+
   if (digitsOnly.length < 9) {
     phoneNumberError.value = 'Phone number is too short.'
     return false
@@ -390,7 +387,7 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = 'Phone number is too long.'
     return false
   }
-  
+
   phoneNumberError.value = 'Please enter a valid phone number.'
   return false
 }
@@ -400,13 +397,13 @@ const checkPhone = async () => {
   if (!validatePhoneNumber()) {
     return
   }
-  
+
   error.value = ''
   loading.value = true
 
   try {
     const result = await companyStore.checkPhoneStatus(phone.value)
-    
+
     if (result.status === 'setup_required') {
       step.value = 'setup'
     } else if (result.status === 'registered') {
@@ -427,11 +424,11 @@ const checkPhone = async () => {
 const handleLogin = async () => {
   error.value = ''
   loading.value = true
-  
+
   try {
     await companyStore.login(phone.value, password.value)
     successMessage.value = 'Login successful!'
-    
+
     setTimeout(() => {
       router.push(`/${companyDomain.value}/services/sms-campaigns`)
     }, 500)
@@ -451,7 +448,7 @@ const sendOTP = async () => {
     await companyStore.sendOTP(phone.value)
     otpSent.value = true
     successMessage.value = 'Verification code sent to your phone'
-    
+
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
@@ -468,14 +465,14 @@ const handleSetupPassword = async () => {
     error.value = 'Passwords do not match'
     return
   }
-  
+
   error.value = ''
   loading.value = true
-  
+
   try {
     await companyStore.setupPassword(phone.value, otp.value, newPassword.value)
     successMessage.value = 'Password setup successful! Redirecting...'
-    
+
     setTimeout(() => {
       router.push(`/${companyDomain.value}/services/sms-campaigns`)
     }, 1000)
@@ -505,7 +502,7 @@ const requestPasswordReset = async () => {
     await companyStore.requestPasswordReset(phone.value)
     otpSent.value = true
     successMessage.value = 'Reset code sent to your phone'
-    
+
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
@@ -519,7 +516,7 @@ const requestPasswordReset = async () => {
 // Reset password
 const resetPassword = async () => {
   error.value = ''
-  
+
   if (!otp.value || !newPassword.value || !confirmPassword.value) {
     error.value = 'Please fill in all fields'
     return
@@ -540,7 +537,7 @@ const resetPassword = async () => {
   try {
     await companyStore.resetPassword(phone.value, otp.value, newPassword.value)
     successMessage.value = 'Password reset successful!'
-    
+
     // Go back to login
     setTimeout(() => {
       step.value = 'password'
@@ -570,24 +567,3 @@ const goBack = () => {
   phoneNumberError.value = ''
 }
 </script>
-
-<style scoped>
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Mobile responsive */
-@media (max-width: 640px) {
-  .bg-white.rounded-lg {
-    margin: 1rem;
-  }
-}
-</style>

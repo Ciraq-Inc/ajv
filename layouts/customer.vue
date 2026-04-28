@@ -6,7 +6,6 @@
         <img src="~/assets/images/rigellogo.png" class="h-10 w-auto object-contain" alt="MedsGH Logo" />
         <div>
           <h1 class="text-[1.7rem] font-semibold text-zinc-900 leading-none tracking-tight">MedsGh</h1>
-          <p class="text-[10px] uppercase tracking-[0.18em] text-[#71717a] font-medium opacity-60">Clinical Sanctuary</p>
         </div>
       </div>
 
