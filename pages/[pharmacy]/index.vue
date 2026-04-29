@@ -354,10 +354,10 @@
 
         <!-- Products display -->
         <template v-else>
-          <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="''"
+          <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="searchQuery"
             :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex" />
 
-          <ProductsGrid v-else :products="displayProducts" :search-query="''"
+          <ProductsGrid v-else :products="displayProducts" :search-query="searchQuery"
             :hide-prices="pharmacyStore.pharmacyData?.hide_prices" />
         </template>
       </div>
