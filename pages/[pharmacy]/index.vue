@@ -225,9 +225,7 @@
             </button>
           </form>
 
-          <p class="mt-3 px-1 text-sm text-gray-500">
-            This search starts a medicine request. Our team will confirm stock and pricing after you submit it.
-          </p>
+     
         </div>
       </div>
 
