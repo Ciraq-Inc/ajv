@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">Platform Settings</h1>
-        <p class="page-subtitle">Configure request flow, payment keys, delivery, and system behavior</p>
+        <p class="page-subtitle">Configure request flow, payment keys, delivery, SMS, and system behavior</p>
       </div>
       <div class="header-actions">
         <button @click="fetchSettings" class="btn-secondary" :disabled="loading">
@@ -43,6 +43,14 @@
             >
               <option value="true">Yes</option>
               <option value="false">No</option>
+            </select>
+
+            <select
+              v-else-if="setting.type === 'select'"
+              v-model="editedSettings[setting.key]"
+              class="form-control"
+            >
+              <option v-for="opt in setting.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             </select>
 
             <input
@@ -211,6 +219,78 @@ const sections = [
         type: 'string',
         inputType: 'text',
         defaultValue: ''
+      }
+    ]
+  },
+  {
+    id: 'sms',
+    short: 'SMS',
+    title: 'SMS Providers',
+    description: 'Active provider, credentials, and sender IDs. Changes take effect within 5 minutes (cache TTL).',
+    settings: [
+      {
+        key: 'sms_active_provider',
+        label: 'Active Provider',
+        help: 'Primary SMS provider. MNotify is used as fallback if the primary fails.',
+        type: 'select',
+        options: [{ value: 'nalo', label: 'Nalo Solutions' }, { value: 'mnotify', label: 'MNotify' }],
+        defaultValue: 'nalo'
+      },
+      {
+        key: 'sms_nalo_username',
+        label: 'Nalo Username',
+        help: 'Nalo Solutions API username',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: ''
+      },
+      {
+        key: 'sms_nalo_password',
+        label: 'Nalo Password',
+        help: 'Nalo Solutions API password',
+        type: 'string',
+        inputType: 'password',
+        defaultValue: ''
+      },
+      {
+        key: 'sms_nalo_sender_platform',
+        label: 'Nalo — Platform Sender ID',
+        help: 'Sender name for OTP, verification, and system alerts via Nalo (max 11 chars)',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: 'RigelOS'
+      },
+      {
+        key: 'sms_nalo_sender_medsgh',
+        label: 'Nalo — MedsGH Sender ID',
+        help: 'Sender name for order, delivery, and pharmacy notifications via Nalo (max 11 chars)',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: 'RigelOS'
+      },
+      {
+        key: 'sms_mnotify_api_key',
+        label: 'MNotify API Key',
+        help: 'MNotify API key from the MNotify dashboard',
+        type: 'string',
+        inputType: 'password',
+        defaultValue: ''
+      },
+      {
+        key: 'sms_mnotify_sender_platform',
+        label: 'MNotify — Platform Sender ID',
+        help: 'Sender name for OTP, verification, and system alerts via MNotify (must be approved)',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: 'MedsGh'
+      },
+      {
+        key: 'sms_mnotify_sender_medsgh',
+        label: 'MNotify — MedsGH Sender ID',
+        help: 'Sender name for order, delivery, and pharmacy notifications via MNotify (must be approved)',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: 'MedsGh'
       }
     ]
   },

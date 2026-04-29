@@ -116,10 +116,7 @@
             <span v-if="!isSidebarCollapsed" class="nav-text">Billing</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
-            <Cog6ToothIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Settings</span>
-          </NuxtLink>
+         
         </div>
 
         <div class="nav-section">
@@ -141,6 +138,11 @@
           >
             <SwatchIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Store Settings</span>
+          </NuxtLink>
+
+           <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
+            <Cog6ToothIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Settings</span>
           </NuxtLink>
         </div>
       </nav>

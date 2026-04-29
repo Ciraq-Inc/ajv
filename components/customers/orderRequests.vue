@@ -519,6 +519,16 @@
                         </div>
                     </div>
 
+                    <!-- Rider contact (shown when delivery is active and rider is assigned) -->
+                    <div v-if="selectedRequest.rider_phone" class="rider-contact-card">
+                        <span class="detail-label">Your Rider</span>
+                        <p v-if="selectedRequest.rider_name" class="rider-name">{{ selectedRequest.rider_name }}</p>
+                        <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
+                            <span class="material-symbols-outlined text-[16px]">chat</span>
+                            Message on WhatsApp
+                        </a>
+                    </div>
+
                     <!-- Totals -->
                     <div v-if="selectedRequest.estimated_total" class="totals-box">
                         <div class="total-row"><span>Items total</span><span>GHS {{
@@ -1853,6 +1863,13 @@ const getStatusClasses = (status) => {
 }
 const formatStatus = (s) => getCustomerStatus(s).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''
+const riderWhatsAppNumber = (phone) => {
+    if (!phone) return ''
+    const clean = String(phone).replace(/\D/g, '')
+    if (clean.startsWith('233')) return clean
+    if (clean.startsWith('0')) return '233' + clean.slice(1)
+    return '233' + clean
+}
 const formatMoney = (v) => Number(v || 0).toFixed(2)
 const getRequestTotal = (req) => {
     const estimated = Number(req?.estimated_total)
@@ -4684,6 +4701,37 @@ defineExpose({ fetchMyRequests })
     color: #9ca3af;
     font-style: italic;
     display: block;
+}
+
+.rider-contact-card {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.rider-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #111;
+    margin: 0;
+}
+.rider-whatsapp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #25D366;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    align-self: flex-start;
+    margin-top: 0.25rem;
 }
 
 .totals-box {

@@ -392,7 +392,7 @@
                 </p>
               </div>
               <template v-else>
-                <div v-if="isComposeLocked && requestItems.length" class="compose-cta-banner compose-cta-banner--full">
+                <div v-if="isComposeLocked" class="compose-cta-banner compose-cta-banner--full">
                   <div class="compose-cta-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
                       <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
@@ -783,8 +783,8 @@
                                   <strong class="text-sm font-bold text-gray-900 truncate">{{ pharmacy.pharmacy_name }}</strong>
                                 </div>
                                 <div class="flex items-center gap-2 mt-0.5">
-                                  <span class="text-[10px] text-gray-500 font-semibold">
-                                    {{ Number.isFinite(Number(pharmacy.distance_km)) ? `${Number(pharmacy.distance_km).toFixed(1)} km` : '-' }}
+                                  <span class="text-[10px] text-gray-500 font-semibold" title="Straight-line distance (approximate)">
+                                    {{ Number.isFinite(Number(pharmacy.distance_km)) ? `~${Number(pharmacy.distance_km).toFixed(1)} km` : '-' }}
                                   </span>
                                   <span v-if="pharmacy.location" class="text-[10px] text-gray-400">{{ pharmacy.location }}</span>
                                 </div>
@@ -1026,7 +1026,7 @@
                   >
                     <div class="pharmacy-outreach-info">
                       <strong>{{ pharm.pharmacy_name }}</strong>
-                      <span class="muted">{{ Number(pharm.distance_km).toFixed(1) }} km</span>
+                      <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
                       <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ { not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' }[pharm.queue_state] || pharm.queue_state }}</span>
                       <span class="outreach-coverage-chip outreach-coverage-chip--full">Full match</span>
                       <span v-if="pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0) === 0 }">
@@ -1078,7 +1078,7 @@
                   >
                     <div class="pharmacy-outreach-info">
                       <strong>{{ pharm.pharmacy_name }}</strong>
-                      <span class="muted">{{ Number(pharm.distance_km).toFixed(1) }} km</span>
+                      <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
                       <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ { not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' }[pharm.queue_state] || pharm.queue_state }}</span>
                       <span v-if="pharm.matched_item_count > 0" class="outreach-coverage-chip">{{ pharm.matched_item_count }} item{{ pharm.matched_item_count !== 1 ? 's' : '' }}</span>
                       <span v-if="pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0) === 0 }">
@@ -1467,7 +1467,7 @@
                     <span class="delivery-status-chip" :class="`delivery-status-chip--${d.delivery_status}`">{{ d.delivery_status }}</span>
                   </div>
                   <div class="delivery-meta">
-                    <span v-if="d.distance_km">{{ Number(d.distance_km).toFixed(1) }} km</span>
+                    <span v-if="d.distance_km" :title="d.distance_method === 'haversine' ? 'Estimated distance (straight-line × 1.3)' : 'Driving distance (ORS)'">{{ d.distance_method === 'haversine' ? '~' : '' }}{{ Number(d.distance_km).toFixed(1) }} km<template v-if="d.duration_minutes"> · {{ Math.round(d.duration_minutes) }} min</template></span>
                     <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
                     <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
@@ -1575,7 +1575,7 @@
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
                     <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
                     <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
-                    <span v-if="d.distance_km">{{ Number(d.distance_km).toFixed(1) }} km</span>
+                    <span v-if="d.distance_km" :title="d.distance_method === 'haversine' ? 'Estimated distance (straight-line × 1.3)' : 'Driving distance (ORS)'">{{ d.distance_method === 'haversine' ? '~' : '' }}{{ Number(d.distance_km).toFixed(1) }} km<template v-if="d.duration_minutes"> · {{ Math.round(d.duration_minutes) }} min</template></span>
                   </div>
                   <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
                     <a
