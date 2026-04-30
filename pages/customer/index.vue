@@ -240,7 +240,7 @@ const userStore = useUserStore()
 const route = useRoute()
 const config = useRuntimeConfig()
 
-const isCheckingAuth = ref(true)
+const isCheckingAuth = ref(!userStore.authInitialized)
 const walletBalance = useState('walletBalance', () => 0)
 const recentRequests = ref([])
 const ongoingOrders = ref([])
@@ -471,11 +471,10 @@ onMounted(async () => {
   try {
     if (!userStore.authInitialized) await userStore.checkAuthState()
     if (!userStore.customerAuthToken) {
-      isCheckingAuth.value = false
       await navigateTo('/')
       return
     }
-
+    isCheckingAuth.value = false
     await loadDashboard()
     if (currentTab.value === 'home') await startHomeStatsPolling()
   } catch (error) {

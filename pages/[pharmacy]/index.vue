@@ -424,6 +424,8 @@ import { usePharmacyStore } from "~/stores/pharmacy";
 import { useCartStore } from "~/stores/cart";
 import { useUserStore } from "~/stores/user";
 
+const config = useRuntimeConfig();
+
 const themePresets = {
   indigo: { accent: "#4f46e5", gradient: "linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #312e81 100%)" },
   teal: { accent: "#0f766e", gradient: "linear-gradient(135deg, #115e59 0%, #14b8a6 50%, #0f172a 100%)" },
@@ -454,7 +456,14 @@ const viewMode = ref("table");
 const cartSidebar = ref(null);
 const searchInput = ref(null);
 const showLoginModal = ref(false);
-const activeAds = ref([]);
+const { data: _adsResult, refresh: refreshAds } = useAsyncData(
+  `pharmacy-ads-${route.params.pharmacy}`,
+  () => pharmacyStore.currentPharmacy
+    ? $fetch(`${config.public.apiBase}/api/companies/${pharmacyStore.currentPharmacy}/ads/public`).catch(() => null)
+    : Promise.resolve(null),
+  { lazy: true }
+);
+const activeAds = computed(() => _adsResult.value?.data ?? []);
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = "medsgh_homepage_request_draft";
 
@@ -538,28 +547,6 @@ const whatsappLink = computed(() => {
 
   return `https://wa.me/${formattedPhone}?text=${message}`;
 });
-
-const fetchActiveAds = async () => {
-  if (!pharmacyStore.currentPharmacy) {
-    activeAds.value = [];
-    return;
-  }
-
-  try {
-    const config = useRuntimeConfig();
-    const response = await fetch(`${config.public.apiBase}/api/companies/${pharmacyStore.currentPharmacy}/ads/public`);
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || "Failed to load ads");
-    }
-
-    activeAds.value = data.data || [];
-  } catch (error) {
-    console.error("Error fetching public ads:", error);
-    activeAds.value = [];
-  }
-};
 
 const formatAdWindow = (startDate, endDate) => {
   if (!startDate && !endDate) {
@@ -702,7 +689,7 @@ const handleOrderSuccess = (orderData) => {
 // Data & Authentication Methods
 const refreshData = async () => {
   if (pharmacyStore.currentPharmacy) {
-    await Promise.all([pharmacyStore.fetchPharmacyData(), fetchActiveAds()]);
+    await Promise.all([pharmacyStore.fetchPharmacyData(), refreshAds()]);
   }
 };
 
@@ -735,21 +722,9 @@ const handleLoginSuccess = async () => {
 };
 
 // Lifecycle hooks
-onMounted(async () => {
-  // Load pharmacy data if needed
-  if (pharmacyStore.currentPharmacy && !pharmacyStore.pharmacyData) {
-    await pharmacyStore.fetchPharmacyData();
-  }
-
-  if (pharmacyStore.currentPharmacy) {
-    await fetchActiveAds();
-  }
-
+onMounted(() => {
   updateViewMode();
   window.addEventListener("resize", updateViewMode);
-
-  // Check auth state when app loads
-  await userStore.checkAuthState();
 });
 
 onUnmounted(() => {
@@ -770,7 +745,7 @@ watch(
         if (pharmacyId) {
           await pharmacyStore.setCurrentPharmacy(pharmacyId);
           cartStore.setActivePharmacy(pharmacyId, newPharmacy);
-          await fetchActiveAds();
+          await refreshAds();
         }
       }
     }
