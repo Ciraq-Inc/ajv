@@ -53,15 +53,26 @@
                     <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
-                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0">
                                 1</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Add Medication</h3>
                         </div>
                         <div class="flex flex-col divide-y divide-zinc-100">
                             <div v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3 py-4 first:pt-0">
+                                <label :for="`request-medicine-${index}`" class="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">
+                                    Medication {{ requestItems.length > 1 ? `#${index + 1}` : '' }}
+                                </label>
                                 <input v-model="item.product_name" type="text"
+                                    :id="`request-medicine-${index}`"
+                                    autocomplete="off"
+                                    autocapitalize="words"
+                                    inputmode="text"
                                     placeholder="Medicine name, brand, or strength"
+                                    aria-describedby="request-medicine-help"
                                     class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
+                                <p v-if="index === 0" id="request-medicine-help" class="text-[11px] font-medium text-zinc-500">
+                                    Include the strength if you know it (e.g. Paracetamol 500mg).
+                                </p>
 
                                 <div v-if="item.product_name.trim()" class="flex items-center gap-2">
                                     <select v-model="item.requested_unit"
@@ -99,7 +110,7 @@
                     <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
-                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0">
                                 2</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Prescription <span
                                     class="text-sm font-normal text-zinc-400">(optional)</span></h3>
@@ -170,7 +181,7 @@
                     <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
-                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0">
                                 3</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Details</h3>
                         </div>
@@ -191,9 +202,12 @@
                             </button>
                         </div>
                         <div class="flex flex-col gap-1.5 mt-4">
-                            <label class="text-sm font-semibold text-zinc-700">Notes <span
+                            <label for="request-notes" class="text-sm font-semibold text-zinc-700">Notes <span
                                     class="font-normal text-zinc-400">(optional)</span></label>
                             <textarea v-model="customerNotes" rows="2"
+                                id="request-notes"
+                                inputmode="text"
+                                autocapitalize="sentences"
                                 placeholder="e.g. brand preference, dosage form..."
                                 class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
                         </div>
@@ -204,7 +218,7 @@
                     <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
-                                class="w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">
+                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">
                                 4</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Address</h3>
                         </div>
@@ -228,38 +242,58 @@
                         </button>
                         <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-2">
                             <div class="relative">
-                                <label
+                                <label for="delivery-address-search"
                                     class="block text-xs font-black uppercase tracking-[0.12em] text-zinc-500 mb-2">Search
                                     delivery address</label>
                                 <div
                                     class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
                                     <span class="material-symbols-outlined text-[18px] text-zinc-400">search</span>
                                     <input v-model="deliveryAddressSearch" type="text"
+                                        id="delivery-address-search"
                                         placeholder="Type an address or landmark"
+                                        role="combobox"
+                                        aria-autocomplete="list"
+                                        aria-controls="delivery-address-suggestions"
+                                        :aria-expanded="deliveryAddressSuggestions.length > 0"
+                                        :aria-activedescendant="deliveryAddressActiveIndex >= 0 ? `delivery-address-option-${deliveryAddressActiveIndex}` : undefined"
+                                        autocomplete="street-address"
+                                        inputmode="text"
+                                        @keydown="onDeliveryAddressKeydown"
                                         class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
                                     <span v-if="deliveryAutocompleteLoading"
                                         class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
                                 </div>
-                                <div v-if="deliveryAddressSuggestions.length"
-                                    class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain">
-                                    <div
-                                        class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400">
+                                <ul v-if="deliveryAddressSuggestions.length"
+                                    id="delivery-address-suggestions"
+                                    role="listbox"
+                                    aria-label="Delivery address suggestions"
+                                    class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain list-none m-0 p-0">
+                                    <li class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400" aria-hidden="true">
                                         <span>Suggestions</span>
                                         <span>{{ deliveryAddressSuggestions.length }}</span>
-                                    </div>
-                                    <button v-for="(suggestion, index) in deliveryAddressSuggestions"
-                                        :key="`${suggestion.display_name}-${index}`" type="button"
-                                        class="w-full border-b border-zinc-100 px-4 py-3.5 text-left last:border-b-0 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
-                                        @click="applyDeliveryAddressSuggestion(suggestion)">
-                                        <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{
-                                            suggestion.display_name }}</p>
-                                        <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">
-                                            {{ suggestion.type || 'Address' }}</p>
-                                    </button>
-                                </div>
+                                    </li>
+                                    <li v-for="(suggestion, index) in deliveryAddressSuggestions"
+                                        :key="`${suggestion.display_name}-${index}`"
+                                        :id="`delivery-address-option-${index}`"
+                                        role="option"
+                                        :aria-selected="deliveryAddressActiveIndex === index"
+                                        class="border-b border-zinc-100 last:border-b-0 cursor-pointer transition-colors"
+                                        :class="deliveryAddressActiveIndex === index ? 'bg-[#f7f1ff]' : 'hover:bg-zinc-50'"
+                                        @click="applyDeliveryAddressSuggestion(suggestion)"
+                                        @mouseenter="deliveryAddressActiveIndex = index">
+                                        <div class="px-4 py-3.5">
+                                            <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{
+                                                suggestion.display_name }}</p>
+                                            <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">
+                                                {{ suggestion.type || 'Address' }}</p>
+                                        </div>
+                                    </li>
+                                </ul>
                             </div>
                             <textarea v-model="deliveryAddress" rows="2"
                                 placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
+                                autocomplete="street-address"
+                                inputmode="text"
                                 class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
                         </div>
                     </section>
@@ -389,8 +423,8 @@
                     <p class="text-base font-bold text-zinc-900 mb-1">No requests yet</p>
                     <p class="text-sm font-medium text-zinc-500 mb-6">Submit your first order request to get started</p>
                     <button @click="goToNewRequest"
-                        class="px-5 py-2.5 bg-zinc-900 text-white rounded-xl font-bold text-sm hover:bg-zinc-800 transition-colors inline-flex items-center gap-2 shadow-sm">
-                        <PlusIcon class="w-4 h-4" /> Create Request
+                        class="px-5 py-2.5 bg-[#4F217A] text-white rounded-xl font-bold text-sm hover:bg-[#3d1861] transition-colors inline-flex items-center gap-2 shadow-sm">
+                        <PlusIcon class="w-4 h-4" /> Create request
                     </button>
                 </div>
 
@@ -667,7 +701,7 @@
                                 class="pay-request-btn secondary-pay-btn" :disabled="payingRequest">
                                 <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'"
                                     class="pay-svg spin" />
-                                <i v-else class="ri-bank-card-line pay-svg"></i>
+                                <CreditCardIcon v-else class="pay-svg" />
                                 <span>{{ payingRequest && payingMethod === 'paystack' ? 'Redirecting to Paystack...' :
                                     'Pay with Paystack' }}</span>
                             </button>
@@ -706,11 +740,11 @@
                     </div>
 
                     <div v-if="canCancelRequest(selectedRequest)" class="cancel-action">
-                        <button @click="cancelRequest(selectedRequest.id)" class="cancel-request-btn"
+                        <button @click="requestCancelConfirmation(selectedRequest.id)" class="cancel-request-btn"
                             :disabled="cancelingRequest || payingRequest">
                             <ArrowPathIcon v-if="cancelingRequest" class="pay-svg spin" />
                             <XMarkIcon v-else class="pay-svg" />
-                            <span>{{ cancelingRequest ? 'Cancelling request...' : 'Cancel Request' }}</span>
+                            <span>{{ cancelingRequest ? 'Cancelling request...' : 'Cancel request' }}</span>
                         </button>
                         <p class="payment-note">This only works while the request is still pending.</p>
                     </div>
@@ -785,6 +819,18 @@
                 <button @click="goToRequestHistory" class="nav-submit" style="width:100%">View My Requests</button>
             </div>
         </div>
+
+        <!-- Cancel request confirmation -->
+        <ConfirmDialog
+            :is-open="!!pendingCancelRequestId"
+            title="Cancel this request?"
+            message="The pharmacy will stop sourcing for you. You can submit a new request anytime."
+            confirm-text="Yes, cancel"
+            cancel-text="Keep request"
+            variant="danger"
+            @close="pendingCancelRequestId = null"
+            @confirm="performCancelRequest"
+        />
 
         <!-- Toast -->
         <div v-if="toast"
@@ -868,10 +914,11 @@ import {
     CameraIcon, ArrowUpTrayIcon, MapPinIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon,
     PaperClipIcon, InformationCircleIcon, CubeIcon, CurrencyDollarIcon, TruckIcon, StarIcon,
     ChatBubbleLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon,
-    MinusSmallIcon, PlusSmallIcon,
+    MinusSmallIcon, PlusSmallIcon, CreditCardIcon,
     ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
+import ConfirmDialog from '~/components/ConfirmDialog.vue'
 
 const props = defineProps({
     defaultSubTab: { type: String, default: 'new' },
@@ -1109,6 +1156,7 @@ const customerAddress = ref('')
 const deliveryAddress = ref('')
 const deliveryAddressSearch = ref('')
 const deliveryAddressSuggestions = ref([])
+const deliveryAddressActiveIndex = ref(-1)
 const deliveryAutocompleteLoading = ref(false)
 const customerNotes = ref('')
 const locationIssue = ref(null)
@@ -1199,6 +1247,7 @@ const buildLocationIssue = (message, instructions) => ({ message, instructions }
 
 const clearDeliveryAddressSuggestions = () => {
     deliveryAddressSuggestions.value = []
+    deliveryAddressActiveIndex.value = -1
     deliveryAutocompleteLoading.value = false
 }
 
@@ -1213,10 +1262,29 @@ const fetchDeliveryAddressSuggestions = async (query) => {
         deliveryAutocompleteLoading.value = true
         const res = await apiCall('GET', `/api/auth/customer/autocomplete-location?q=${encodeURIComponent(trimmed)}&limit=5`)
         deliveryAddressSuggestions.value = Array.isArray(res.data) ? res.data : []
+        deliveryAddressActiveIndex.value = deliveryAddressSuggestions.value.length > 0 ? 0 : -1
     } catch (_error) {
         deliveryAddressSuggestions.value = []
+        deliveryAddressActiveIndex.value = -1
     } finally {
         deliveryAutocompleteLoading.value = false
+    }
+}
+
+const onDeliveryAddressKeydown = (event) => {
+    const count = deliveryAddressSuggestions.value.length
+    if (!count) return
+    if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        deliveryAddressActiveIndex.value = (deliveryAddressActiveIndex.value + 1) % count
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        deliveryAddressActiveIndex.value = deliveryAddressActiveIndex.value <= 0 ? count - 1 : deliveryAddressActiveIndex.value - 1
+    } else if (event.key === 'Enter' && deliveryAddressActiveIndex.value >= 0) {
+        event.preventDefault()
+        applyDeliveryAddressSuggestion(deliveryAddressSuggestions.value[deliveryAddressActiveIndex.value])
+    } else if (event.key === 'Escape') {
+        clearDeliveryAddressSuggestions()
     }
 }
 
@@ -2339,14 +2407,21 @@ const getDecisionDeclineLabel = (decision) => {
     return 'Decline'
 }
 
-const cancelRequest = async (id) => {
+const pendingCancelRequestId = ref(null)
+
+const requestCancelConfirmation = (id) => {
     if (!id || cancelingRequest.value) return
-    const confirmed = window.confirm('Cancel this pending request?')
-    if (!confirmed) return
+    pendingCancelRequestId.value = id
+}
+
+const performCancelRequest = async () => {
+    const id = pendingCancelRequestId.value
+    if (!id || cancelingRequest.value) return
 
     cancelingRequest.value = true
     try {
         const res = await apiCall('PUT', `/api/order-requests/customer/${id}/cancel`)
+        pendingCancelRequestId.value = null
         showToast(res.message || 'Request cancelled')
         await fetchMyRequests({ silent: true })
         if (selectedRequest.value?.id === id) {

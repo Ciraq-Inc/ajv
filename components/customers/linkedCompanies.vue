@@ -8,11 +8,27 @@
         <p class="text-sm font-medium text-zinc-600 mt-1">Browse the pharmacies connected to your account and jump into any linked storefront.</p>
       </div>
       <button @click="triggerLinking" :disabled="isLinking"
-        class="inline-flex items-center gap-2 bg-zinc-900 text-white py-3 px-5 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0">
+        class="inline-flex items-center gap-2 bg-[#4F217A] text-white py-3 px-5 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0">
         <span v-if="isLinking" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
         <span v-else class="material-symbols-outlined text-[16px]">link</span>
         {{ isLinking ? 'Linking...' : 'Link Accounts' }}
       </button>
+    </div>
+
+    <!-- Link feedback -->
+    <div
+      v-if="linkingMessage"
+      role="status"
+      aria-live="polite"
+      class="flex items-start gap-3 rounded-xl border px-4 py-3 mb-4"
+      :class="linkingMessageType === 'error'
+        ? 'border-red-200 bg-red-50 text-red-700'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-700'"
+    >
+      <span class="material-symbols-outlined text-[18px] mt-0.5">
+        {{ linkingMessageType === 'error' ? 'error' : 'check_circle' }}
+      </span>
+      <p class="text-sm font-semibold leading-snug">{{ linkingMessage }}</p>
     </div>
 
     <!-- Loading State -->
@@ -29,7 +45,7 @@
         :class="isActiveCompany(company) ? 'border-[#c9a8f0]' : 'border-zinc-200'"
       >
         <div class="flex items-start justify-between gap-3">
-          <div class="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#4F217A] to-[#381659] shadow-[0_8px_18px_-12px_rgba(53,0,98,0.55)]">
             <span class="material-symbols-outlined text-white">local_pharmacy</span>
           </div>
           <span
@@ -85,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 
 const userStore = useUserStore();
@@ -94,6 +110,8 @@ const userStore = useUserStore();
 const isLoading = ref(false);
 const isLinking = ref(false);
 const linkingMessage = ref('');
+const linkingMessageType = ref('success');
+let linkingMessageTimer = null;
 const companies = computed(() => userStore.companies || []);
 
 // Check if company is active
@@ -125,25 +143,28 @@ const goToCompanyStore = (company) => {
   navigateTo(`/${slug}`);
 };
 
+const setLinkingMessage = (message, type = 'success') => {
+  linkingMessage.value = message;
+  linkingMessageType.value = type;
+  if (linkingMessageTimer) clearTimeout(linkingMessageTimer);
+  linkingMessageTimer = setTimeout(() => {
+    linkingMessage.value = '';
+  }, 5000);
+};
+
 // Trigger customer linking
 const triggerLinking = async () => {
   try {
     isLinking.value = true;
     linkingMessage.value = '';
     const result = await userStore.triggerCustomerLinking();
-    linkingMessage.value = result.message;
-
-    // Refresh companies list
+    setLinkingMessage(result?.message || 'Linked successfully', 'success');
     await loadCompanies();
   } catch (error) {
     console.error('Error triggering linking:', error);
-    linkingMessage.value = error.message || 'Failed to link accounts';
+    setLinkingMessage(error?.message || 'Failed to link accounts', 'error');
   } finally {
     isLinking.value = false;
-    // Clear message after 5 seconds
-    setTimeout(() => {
-      linkingMessage.value = '';
-    }, 5000);
   }
 };
 
@@ -162,6 +183,10 @@ const loadCompanies = async () => {
 // Initialize
 onMounted(() => {
   loadCompanies();
+});
+
+onUnmounted(() => {
+  if (linkingMessageTimer) clearTimeout(linkingMessageTimer);
 });
 </script>
 

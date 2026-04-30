@@ -18,7 +18,7 @@
             </button>
         </header>
 
-        <div class="px-5 space-y-6">
+        <div class="space-y-6">
             <!-- Hero grid: balance card + stat cards -->
             <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
                 <!-- Bright balance card -->
@@ -49,8 +49,9 @@
                             <ArrowDownIcon class="w-5 h-5" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Credits</p>
-                            <h3 class="text-xl font-black text-zinc-900 leading-none mt-0.5 tabular-nums">{{ creditTransactions.length }}</h3>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Credited</p>
+                            <h3 class="text-base font-black text-zinc-900 leading-none mt-1 tabular-nums">GHS {{ creditTotal.toFixed(2) }}</h3>
+                            <p class="text-[10px] font-medium text-zinc-400 mt-1 tabular-nums">{{ creditTransactions.length }} {{ creditTransactions.length === 1 ? 'entry' : 'entries' }}</p>
                         </div>
                     </article>
 
@@ -59,8 +60,9 @@
                             <ArrowUpIcon class="w-5 h-5" />
                         </div>
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Total Debits</p>
-                            <h3 class="text-xl font-black text-zinc-900 leading-none mt-0.5 tabular-nums">{{ debitTransactions.length }}</h3>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Debited</p>
+                            <h3 class="text-base font-black text-zinc-900 leading-none mt-1 tabular-nums">GHS {{ debitTotal.toFixed(2) }}</h3>
+                            <p class="text-[10px] font-medium text-zinc-400 mt-1 tabular-nums">{{ debitTransactions.length }} {{ debitTransactions.length === 1 ? 'entry' : 'entries' }}</p>
                         </div>
                     </article>
                 </div>
@@ -105,7 +107,7 @@
                         <div class="min-w-0 flex-1">
                             <h4 class="text-sm font-bold text-zinc-900 leading-tight mb-1" :title="formatTransactionDescription(tx)">{{ formatTransactionDescription(tx) }}</h4>
                             <p class="text-[11px] font-medium text-zinc-500 flex items-center gap-1.5">
-                                {{ formatDate(tx.created_at) }}, {{ new Date(tx.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) }}
+                                {{ formatDate(tx.created_at) }}
                             </p>
                         </div>
                     </div>
@@ -142,7 +144,7 @@
                     <div class="flex gap-2">
                         <button v-for="amt in [10, 20, 50, 100]" :key="amt" @click="topUpAmount = amt"
                             class="flex-1 py-2 rounded-xl border text-sm font-semibold transition-colors"
-                            :class="topUpAmount === amt ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'">
+                            :class="topUpAmount === amt ? 'bg-[#4F217A] text-white border-[#4F217A]' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'">
                             {{ amt }}
                         </button>
                     </div>
@@ -151,9 +153,10 @@
                             class="flex-1 border border-zinc-200 bg-white text-zinc-700 py-3 rounded-xl text-sm font-semibold hover:bg-zinc-50 transition-colors">
                             Cancel
                         </button>
-                        <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0"
-                            class="flex-1 bg-zinc-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            Pay GHS {{ (topUpAmount || 0).toFixed(2) }}
+                        <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0 || isPaying"
+                            class="flex-1 inline-flex items-center justify-center gap-2 bg-[#4F217A] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span v-if="isPaying" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                            <span>{{ isPaying ? 'Starting…' : `Pay GHS ${(topUpAmount || 0).toFixed(2)}` }}</span>
                         </button>
                     </div>
                 </div>
@@ -196,6 +199,7 @@ const transactions = ref([])
 const loading = ref(false)
 const showTopUp = ref(false)
 const topUpAmount = ref(50)
+const isPaying = ref(false)
 const toast = ref(null)
 let topUpRefreshTimer = null
 let topUpRefreshTicks = 0
@@ -290,6 +294,9 @@ const sortWalletTransactions = (entries = []) => {
 
 const creditTransactions = computed(() => transactions.value.filter(tx => getTransactionDirection(tx) === 'credit'))
 const debitTransactions = computed(() => transactions.value.filter(tx => getTransactionDirection(tx) === 'debit'))
+const sumAmount = (entries) => entries.reduce((acc, tx) => acc + (parseFloat(tx?.amount) || 0), 0)
+const creditTotal = computed(() => sumAmount(creditTransactions.value))
+const debitTotal = computed(() => sumAmount(debitTransactions.value))
 
 const currentMonthLabel = computed(() => new Date().toLocaleDateString('en-GB', { month: 'long' }))
 
@@ -361,15 +368,23 @@ const startTopUpRefreshPolling = () => {
 
 const initiateTopUp = async () => {
     if (!topUpAmount.value || topUpAmount.value <= 0) return
+    if (isPaying.value) return
+    isPaying.value = true
     try {
         const res = await apiCall('POST', '/api/wallet/topup', { amount: topUpAmount.value })
         if (res.data?.authorization_url) {
+            showToast('Redirecting to payment...')
+            startTopUpRefreshPolling()
             window.location.assign(res.data.authorization_url)
+            return
         }
         showTopUp.value = false
-        showToast('Redirecting to payment...')
-        startTopUpRefreshPolling()
-    } catch (e) { showToast(e.message || 'Failed to initiate payment', 'error') }
+        showToast('Could not start payment. Please try again.', 'error')
+    } catch (e) {
+        showToast(e.message || 'Failed to initiate payment', 'error')
+    } finally {
+        isPaying.value = false
+    }
 }
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', {

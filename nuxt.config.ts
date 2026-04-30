@@ -59,11 +59,6 @@ export default defineNuxtConfig({
     '~/plugins/init-stores.js'
   ],
 
-  // Add global middleware for pharmacy routing
-  router: {
-    middleware: ['pharmacy']
-  },
-
   gtag: {
 		id: process.env.GTAG_ID,
 	},

@@ -1,8 +1,37 @@
 <template>
   <div class="customer-app">
-    <div v-if="isCheckingAuth" class="auth-loading">
-      <div class="pulse-ring"></div>
-      <p>Loading...</p>
+    <!-- Auth-check skeleton: mirror of the home layout to avoid layout pop-in -->
+    <div v-if="isCheckingAuth" class="space-y-6" aria-busy="true" aria-label="Loading your dashboard">
+      <section class="rounded-2xl bg-gradient-to-br from-[#7b3faa] via-[#5c2490] to-[#381659] p-6 shadow-xl">
+        <div class="h-3 w-24 rounded bg-white/15 animate-pulse"></div>
+        <div class="mt-3 h-10 w-20 rounded bg-white/15 animate-pulse"></div>
+        <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
+          <div class="space-y-2">
+            <div class="h-2.5 w-28 rounded bg-white/15 animate-pulse"></div>
+            <div class="h-5 w-32 rounded bg-white/15 animate-pulse"></div>
+          </div>
+          <div class="h-9 w-24 rounded-xl bg-white/15 animate-pulse"></div>
+        </div>
+      </section>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="space-y-3 lg:col-span-2">
+          <div class="h-3 w-32 rounded bg-zinc-200 animate-pulse"></div>
+          <div v-for="n in 2" :key="`sk-req-${n}`" class="flex gap-4 border border-zinc-100 bg-white px-4 py-4 rounded-xl">
+            <div class="h-10 w-10 rounded-full bg-zinc-100 animate-pulse"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-3 w-1/2 rounded bg-zinc-100 animate-pulse"></div>
+              <div class="h-2.5 w-1/3 rounded bg-zinc-100 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <aside class="space-y-3">
+          <div class="h-3 w-28 rounded bg-zinc-200 animate-pulse"></div>
+          <div class="border border-zinc-100 bg-white rounded-xl p-4 space-y-3">
+            <div class="h-3 w-2/3 rounded bg-zinc-100 animate-pulse"></div>
+            <div class="h-2.5 w-1/2 rounded bg-zinc-100 animate-pulse"></div>
+          </div>
+        </aside>
+      </div>
     </div>
 
     <template v-else>
@@ -37,12 +66,24 @@
                 <div class="w-2 h-2 rounded-full bg-[#4F217A]"></div>
                 <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-[#4F217A]">Activity Stream</h3>
               </div>
-              <button class="text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('requests')">
-                Full History &rarr;
+              <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('requests')">
+                Full History
+                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
               </button>
             </div>
 
-            <div v-if="recentRequestItems.length === 0" class="flex items-center gap-4 border border-[#e5d5f5] bg-[#faf4ff] px-5 py-4">
+            <div v-if="isDashboardLoading" class="space-y-3" aria-busy="true">
+              <div v-for="n in 2" :key="`req-sk-${n}`" class="flex w-full items-center gap-3 sm:gap-4 border border-[#e5e7eb] bg-white px-4 py-4 rounded-xl">
+                <div class="h-10 w-10 rounded-full bg-zinc-100 animate-pulse"></div>
+                <div class="flex-1 space-y-2">
+                  <div class="h-3 w-1/2 rounded bg-zinc-100 animate-pulse"></div>
+                  <div class="h-2.5 w-1/3 rounded bg-zinc-100 animate-pulse"></div>
+                </div>
+                <div class="h-3 w-16 rounded bg-zinc-100 animate-pulse"></div>
+              </div>
+            </div>
+
+            <div v-else-if="recentRequestItems.length === 0" class="flex items-center gap-4 border border-[#e5d5f5] bg-[#faf4ff] px-5 py-4">
               <div class="flex h-10 w-10 items-center justify-center bg-[#ebd5fb] text-[#4F217A] rounded-full">
                 <span class="material-symbols-outlined text-[1.2rem]">description</span>
               </div>
@@ -98,24 +139,34 @@
           </div>
 
           <aside class="space-y-4">
-            <div class="flex items-center justify-between pb-2 border-b border-blue-200">
+            <div class="flex items-center justify-between pb-2 border-b border-[#e5d5f5]">
               <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-                <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-blue-700">Ongoing Orders</h3>
+                <div class="w-2 h-2 rounded-full bg-[#4F217A]"></div>
+                <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-[#4F217A]">Ongoing Orders</h3>
               </div>
-              <button class="text-[0.65rem] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors" @click="goTab('orders')">
-                View All &rarr;
+              <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('orders')">
+                View All
+                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
               </button>
             </div>
 
-            <div class="border border-blue-100 bg-[#f8fbff] shadow-sm rounded-xl overflow-hidden mt-3">
-              <div v-if="ongoingOrderItems.length === 0" class="flex items-center gap-3 px-4 py-5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center bg-blue-100 text-blue-500 rounded-full border border-blue-200">
+            <div class="border border-[#ede5ff] bg-[#faf6ff] shadow-sm rounded-xl overflow-hidden mt-3">
+              <div v-if="isDashboardLoading" class="px-4 py-4 space-y-3" aria-busy="true">
+                <div class="flex gap-3">
+                  <div class="h-8 w-8 rounded-full bg-[#ede5ff] animate-pulse"></div>
+                  <div class="flex-1 space-y-2">
+                    <div class="h-3 w-1/3 rounded bg-[#ede5ff] animate-pulse"></div>
+                    <div class="h-2.5 w-1/2 rounded bg-[#ede5ff] animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="ongoingOrderItems.length === 0" class="flex items-center gap-3 px-4 py-5">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center bg-[#ede5ff] text-[#4F217A] rounded-full border border-[#d9c7f5]">
                   <span class="material-symbols-outlined text-[1.1rem]">package_2</span>
                 </div>
                 <div>
                   <p class="text-sm font-bold text-slate-800">No active orders</p>
-                  <p class="text-xs font-medium text-blue-500 mt-0.5">Orders in progress will show here.</p>
+                  <p class="text-xs font-medium text-[#7a5fa0] mt-0.5">Orders in progress will show here.</p>
                 </div>
               </div>
 
@@ -123,23 +174,23 @@
                 <button
                   v-for="order in ongoingOrderItems"
                   :key="order.order_id"
-                  class="flex w-full items-start gap-3 px-4 py-4 text-left transition-all hover:bg-blue-50/50 group bg-white border-x-0"
-                  :class="{ 'border-t border-blue-50': ongoingOrderItems.indexOf(order) > 0 }"
+                  class="flex w-full items-start gap-3 px-4 py-4 text-left transition-all hover:bg-[#f0e6ff]/50 group bg-white border-x-0"
+                  :class="{ 'border-t border-[#ede5ff]': ongoingOrderItems.indexOf(order) > 0 }"
                   @click="goTab('orders')"
                 >
-                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-100 mt-0.5 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] text-[#4F217A] border border-[#d9c7f5] mt-0.5 group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
                     <span class="material-symbols-outlined text-[1.1rem]">package_2</span>
                   </div>
 
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-2 overflow-hidden">
-                      <h4 class="truncate text-xs font-black tracking-tight text-slate-800 group-hover:text-blue-800 transition-colors" :title="'#' + shortOrderId(order.order_id)">#{{ shortOrderId(order.order_id) }}</h4>
-                      <strong class="text-xs font-black text-slate-900 group-hover:text-blue-800 transition-colors shrink-0 tabular-nums">GHS {{ formatMoney(order.total_amount) }}</strong>
+                      <h4 class="truncate text-xs font-black tracking-tight text-slate-800 group-hover:text-[#4F217A] transition-colors" :title="'#' + shortOrderId(order.order_id)">#{{ shortOrderId(order.order_id) }}</h4>
+                      <strong class="text-xs font-black text-slate-900 group-hover:text-[#4F217A] transition-colors shrink-0 tabular-nums">GHS {{ formatMoney(order.total_amount) }}</strong>
                     </div>
                     <p class="mt-1 truncate text-[0.7rem] font-medium text-slate-500 group-hover:text-slate-700 transition-colors">{{ getOrderSummary(order) }}</p>
                     <div class="mt-2 flex items-center gap-1.5 flex-wrap">
-                      <span class="h-1.5 w-1.5 shrink-0 rounded-full shadow-sm" :class="getOrderDotClass(order.status) || 'bg-blue-400'"></span>
-                      <span class="text-[0.65rem] font-black uppercase tracking-widest text-blue-600">{{ getOrderStatusLabel(order.status) }}</span>
+                      <span class="h-1.5 w-1.5 shrink-0 rounded-full shadow-sm" :class="getOrderDotClass(order.status) || 'bg-[#4F217A]'"></span>
+                      <span class="text-[0.65rem] font-black uppercase tracking-widest text-[#4F217A]">{{ getOrderStatusLabel(order.status) }}</span>
                     </div>
                   </div>
                 </button>
@@ -148,24 +199,25 @@
           </aside>
         </div>
 
-        <section class="section-wrap space-y-4 pt-4 border-t border-orange-100">
-          <div class="flex items-center justify-between pb-2 border-b border-orange-200">
+        <section class="section-wrap space-y-4 pt-4 border-t border-[#ede5ff]">
+          <div class="flex items-center justify-between pb-2 border-b border-[#e5d5f5]">
             <div class="flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full bg-orange-500"></div>
-              <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-orange-700">Verified Partners</h3>
+              <div class="w-2 h-2 rounded-full bg-[#4F217A]"></div>
+              <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-[#4F217A]">Verified Partners</h3>
             </div>
-            <button class="text-[0.65rem] font-bold uppercase tracking-widest text-orange-600 hover:text-orange-800 transition-colors" @click="goTab('companies')">
-              Directory &rarr;
+            <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('companies')">
+              Directory
+              <span class="material-symbols-outlined text-[14px]">chevron_right</span>
             </button>
           </div>
 
-          <div v-if="verifiedPartners.length === 0" class="flex items-center gap-4 border border-orange-100 bg-[#fffaf5] px-5 py-4 shadow-sm">
-            <div class="flex h-10 w-10 items-center justify-center bg-orange-100 border border-orange-200 text-orange-500 rounded-full">
+          <div v-if="verifiedPartners.length === 0" class="flex items-center gap-4 border border-[#ede5ff] bg-[#faf6ff] px-5 py-4 shadow-sm rounded-xl">
+            <div class="flex h-10 w-10 items-center justify-center bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] rounded-full">
               <span class="material-symbols-outlined text-[1.2rem]">local_pharmacy</span>
             </div>
             <div>
-              <p class="text-sm font-semibold text-orange-900">No pharmacies linked yet</p>
-              <p class="text-xs text-orange-600">Your verified pharmacy network will appear here.</p>
+              <p class="text-sm font-semibold text-zinc-900">No pharmacies linked yet</p>
+              <p class="text-xs text-[#7a5fa0]">Your verified pharmacy network will appear here.</p>
             </div>
           </div>
 
@@ -173,23 +225,23 @@
             <button
               v-for="company in verifiedPartners"
               :key="company.id"
-              class="flex items-center sm:items-start gap-4 rounded-xl border border-orange-100 bg-gradient-to-br from-white to-[#fffaf5] px-5 py-4 text-left hover:border-orange-300 hover:shadow-[0_4px_16px_-4px_rgba(249,115,22,0.15)] transition-all group"
+              class="flex items-center sm:items-start gap-4 rounded-xl border border-[#ede5ff] bg-gradient-to-br from-white to-[#faf6ff] px-5 py-4 text-left hover:border-[#c9a8f0] hover:shadow-[0_4px_16px_-4px_rgba(79,33,122,0.15)] transition-all group"
               @click="goTab('companies')"
             >
-              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-50 border border-orange-200 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-all shadow-sm">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
                 <span class="material-symbols-outlined text-[1.3rem]">local_pharmacy</span>
               </div>
 
               <div class="min-w-0 flex-1">
-                <h4 class="truncate text-sm font-bold text-slate-800 group-hover:text-orange-800 transition-colors">{{ company.company_name || company.name }}</h4>
-                <div class="mt-1 flex items-center gap-1.5 text-[0.7rem] font-bold text-orange-600/80 group-hover:text-orange-700 transition-colors flex-wrap">
-                  <span class="material-symbols-outlined text-[0.8rem] ![font-variation-settings:'FILL'_1] text-orange-400 shrink-0">star</span>
+                <h4 class="truncate text-sm font-bold text-slate-800 group-hover:text-[#4F217A] transition-colors">{{ company.company_name || company.name }}</h4>
+                <div class="mt-1 flex items-center gap-1.5 text-[0.7rem] font-bold text-[#7a5fa0] group-hover:text-[#4F217A] transition-colors flex-wrap">
+                  <span class="material-symbols-outlined text-[0.8rem] ![font-variation-settings:'FILL'_1] text-[#a589c3] shrink-0">verified</span>
                   <span class="truncate">{{ getCompanyMeta(company) }}</span>
                 </div>
               </div>
 
-              <div class="hidden sm:flex shrink-0 h-8 w-8 items-center justify-center rounded-full bg-white border border-zinc-200 text-zinc-400 group-hover:text-zinc-600 group-hover:bg-zinc-50 transition-colors">
-                <span class="material-symbols-outlined text-[1.1rem]">arrow_forward</span>
+              <div class="hidden sm:flex shrink-0 h-8 w-8 items-center justify-center rounded-full bg-white border border-zinc-200 text-zinc-400 group-hover:text-[#4F217A] group-hover:bg-[#faf6ff] transition-colors">
+                <span class="material-symbols-outlined text-[1.1rem]">chevron_right</span>
               </div>
             </button>
           </div>
@@ -233,14 +285,17 @@ import Profile from '~/components/customers/profile.vue'
 import Wallet from '~/components/customers/wallet.vue'
 import { useUserStore } from '~/stores/user'
 import { getCompactAddressLines } from '~/utils/addressFormat'
+import { useOrderStatus } from '~/composables/useOrderStatus'
 
 definePageMeta({ layout: 'customer' })
 
 const userStore = useUserStore()
 const route = useRoute()
 const config = useRuntimeConfig()
+const orderStatus = useOrderStatus()
 
 const isCheckingAuth = ref(!userStore.authInitialized)
+const isDashboardLoading = ref(true)
 const walletBalance = useState('walletBalance', () => 0)
 const recentRequests = ref([])
 const ongoingOrders = ref([])
@@ -265,8 +320,8 @@ const ongoingOrderItems = computed(() => {
 
 const goTab = (tab) => navigateTo({ path: '/customer', query: { tab } })
 
-const isActiveRequestStatus = (status) => !['driver_unavailable', 'picked_up', 'delivered', 'completed', 'cancelled', 'returned'].includes(status)
-const isOngoingOrderStatus = (status) => !['completed', 'delivered', 'cancelled', 'picked_up'].includes(status)
+const isActiveRequestStatus = orderStatus.isActiveRequestStatus
+const isOngoingOrderStatus = orderStatus.isOngoingStoreStatus
 
 const formatDate = (value) => (
   value
@@ -297,55 +352,8 @@ const getRequestAmount = (request) => {
   return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
 }
 
-const getRequestStatusLabel = (status) => {
-  const map = {
-    paid: 'Settled',
-    verified: 'Settled',
-    pending: 'Pending',
-    composing: 'Processing',
-    sourcing: 'Sourcing',
-    searching: 'Searching',
-    finding_pharmacist: 'Searching',
-    confirming_with_pharm: 'Sourcing',
-    awaiting_input: 'Awaiting Your Input',
-    payment_pending: 'Ready to Pay',
-    quote_available: 'Quoted',
-    processing: 'Processing',
-    preparing: 'Preparing',
-    in_transit: 'In Transit',
-    driver_assigned: 'Driver Assigned',
-    out_for_delivery: 'In Transit',
-    delivered: 'Delivered',
-    picked_up: 'Picked Up',
-    cancelled: 'Cancelled',
-    returned: 'Returned'
-  }
-  return map[status] || String(status || 'active').replace(/_/g, ' ')
-}
-
-const getRequestStatusClass = (status) => {
-  switch (status) {
-    case 'paid':
-    case 'verified':
-      return 'bg-[#e7f7ea] text-[#1f8a45]'
-    case 'payment_pending':
-      return 'bg-[#fff7e0] text-[#b07300]'
-    case 'awaiting_input':
-      return 'bg-[#edf4ff] text-[#285db8]'
-    case 'composing':
-    case 'sourcing':
-    case 'processing':
-    case 'confirming_with_pharm':
-      return 'bg-[#f3daff] text-[#5d357a]'
-    case 'quote_available':
-      return 'bg-[#edf4ff] text-[#285db8]'
-    case 'cancelled':
-    case 'rejected':
-      return 'bg-[#ffe7e7] text-[#c03a3a]'
-    default:
-      return 'bg-[#f4eff6] text-[#736a7a]'
-  }
-}
+const getRequestStatusLabel = orderStatus.formatRequestStatus
+const getRequestStatusClass = orderStatus.requestStatusBadgeClass
 
 const requestIcon = (request) => {
   if (request.fulfillment_type === 'delivery') return 'local_shipping'
@@ -353,22 +361,7 @@ const requestIcon = (request) => {
   return 'description'
 }
 
-const getOrderStatusLabel = (status) => {
-  const map = {
-    pending: 'Pending',
-    processing: 'Preparing',
-    preparing: 'Preparing',
-    shipped: 'In Transit',
-    in_transit: 'In Transit',
-    driver_assigned: 'Driver Assigned',
-    logistics_pending: 'Logistics Pending',
-    out_for_delivery: 'In Transit',
-    delivered: 'Delivered',
-    completed: 'Completed',
-    cancelled: 'Cancelled'
-  }
-  return map[status] || String(status || 'order').replace(/_/g, ' ')
-}
+const getOrderStatusLabel = orderStatus.formatStoreStatus
 
 const getOrderDotClass = (status) => {
   switch (status) {
@@ -377,10 +370,15 @@ const getOrderDotClass = (status) => {
       return 'bg-[#f59e0b]'
     case 'shipped':
     case 'out_for_delivery':
-      return 'bg-[#3b82f6]'
+    case 'driver_assigned':
+    case 'ready_for_pickup':
+      return 'bg-[#4F217A]'
     case 'delivered':
     case 'completed':
+    case 'picked_up':
       return 'bg-[#22c55e]'
+    case 'cancelled':
+      return 'bg-[#ef4444]'
     default:
       return 'bg-[#8b5cf6]'
   }
@@ -450,20 +448,26 @@ const stopHomeStatsPolling = () => {
   homeStatsPollTimer = null
 }
 
-const loadDashboard = async () => {
-  await Promise.allSettled([
-    loadCompanies(),
-    loadWalletBalance(),
-    loadRequestActivity(),
-    loadOrderActivity()
-  ])
+const loadDashboard = async ({ silent = false } = {}) => {
+  if (!silent) isDashboardLoading.value = true
+  try {
+    await Promise.allSettled([
+      loadCompanies(),
+      loadWalletBalance(),
+      loadRequestActivity(),
+      loadOrderActivity()
+    ])
+  } finally {
+    if (!silent) isDashboardLoading.value = false
+  }
 }
 
 const startHomeStatsPolling = async () => {
   stopHomeStatsPolling()
   await loadDashboard()
   homeStatsPollTimer = setInterval(() => {
-    loadDashboard()
+    if (typeof document !== 'undefined' && document.hidden) return
+    loadDashboard({ silent: true })
   }, HOME_STATS_POLL_MS)
 }
 
