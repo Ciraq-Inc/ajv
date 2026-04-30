@@ -128,14 +128,15 @@ const handleAction = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   cursor: pointer;
   opacity: 0.7;
   transition: opacity 0.2s;
   flex-shrink: 0;
+  border-radius: 0.5rem;
 }
 
 .alert-close:hover {

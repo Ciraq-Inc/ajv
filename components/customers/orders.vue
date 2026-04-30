@@ -64,6 +64,19 @@
         <p class="text-sm font-medium text-zinc-500">Loading your history...</p>
     </div>
 
+    <!-- Error with retry -->
+    <div v-else-if="hasLoadError" class="flex flex-col items-center justify-center py-16 mx-5 border border-red-200 bg-red-50 rounded-xl">
+        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 ring-1 ring-red-100">
+          <span class="material-symbols-outlined text-2xl text-red-500">cloud_off</span>
+        </div>
+        <p class="text-base font-bold text-zinc-900 mb-1 text-center">Couldn't load your history</p>
+        <p class="text-sm font-medium text-zinc-600 text-center mb-4 max-w-xs">Check your connection and try again.</p>
+        <button @click="loadOrders()" class="inline-flex items-center gap-2 bg-[#4F217A] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#3d1861] transition-colors">
+          <span class="material-symbols-outlined text-[18px]">refresh</span>
+          Retry
+        </button>
+    </div>
+
     <!-- ─── Merged Timeline ─── -->
     <div v-else>
       <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-white rounded-xl shadow-sm">
@@ -113,9 +126,10 @@
             </div>
             
             <button v-if="item._type === 'store' && item.status === 'pending'" @click.stop="confirmCancelOrder(item)"
-              class="w-7 h-7 hidden sm:flex items-center justify-center rounded border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-colors flex-shrink-0"
-              title="Cancel Order">
-              <span class="material-symbols-outlined text-[14px]">close</span>
+              class="w-10 h-10 hidden sm:flex items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-colors flex-shrink-0"
+              :aria-label="`Cancel order ${item._displayId}`"
+              title="Cancel order">
+              <span class="material-symbols-outlined text-[18px]">close</span>
             </button>
             
             <!-- Hover Chevron -->
@@ -209,12 +223,33 @@
         </div>
       </div>
     </div>
+
+    <!-- Cancel confirmation -->
+    <ConfirmDialog
+      :is-open="!!pendingCancelOrder"
+      title="Cancel this order?"
+      :message="pendingCancelOrder ? `Order #${String(pendingCancelOrder.order_id).substring(0, 8)} will be cancelled. This can't be undone.` : ''"
+      confirm-text="Yes, cancel"
+      cancel-text="Keep order"
+      variant="danger"
+      @close="pendingCancelOrder = null"
+      @confirm="performCancel"
+    />
+
+    <!-- Toast -->
+    <div v-if="toast"
+      class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold"
+      :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'">
+      <span class="material-symbols-outlined text-[18px]">{{ toast.type === 'error' ? 'error' : 'check_circle' }}</span>
+      {{ toast.text }}
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
+import { useOrderStatus } from '~/composables/useOrderStatus';
 
 const props = defineProps({
   initialOrderId: { type: String, default: null }
@@ -222,16 +257,33 @@ const props = defineProps({
 
 const userStore = useUserStore();
 const config = useRuntimeConfig();
+const {
+  formatStoreStatus: formatStatus,
+  formatRequestStatus,
+  storeStatusBadgeClass: orderStatusClass,
+  requestStatusBadgeClass: requestOrderStatusClass
+} = useOrderStatus();
 
 // State
 const isLoading = ref(false);
+const hasLoadError = ref(false);
 const orders = ref([]);
 const paidRequests = ref([]);
 const selectedOrder = ref(null);
 const selectedRequestOrder = ref(null);
 const selectedStatus = ref('');
+const pendingCancelOrder = ref(null);
+const isCancelling = ref(false);
+const toast = ref(null);
 const POLL_INTERVAL_MS = 15000;
 let pollTimer = null;
+let toastTimer = null;
+
+const showToast = (text, type = 'success') => {
+  toast.value = { text, type };
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.value = null; }, 4000);
+};
 const paidRequestStatuses = new Set([
   'paid',
   'logistics_pending',
@@ -255,62 +307,6 @@ const formatDate = (dateString) => {
   });
 };
 
-// Format status
-const formatStatus = (status) => {
-  const statusMap = {
-    'pending': 'Pending',
-    'processing': 'Processing',
-    'shipped': 'Shipped',
-    'completed': 'Completed',
-    'delivered': 'Completed',
-    'picked_up': 'Completed',
-    'cancelled': 'Cancelled'
-  };
-  return statusMap[status] || status;
-};
-
-// Tailwind class helpers for status badges
-const orderStatusClass = (status) => {
-  const map = {
-    pending: 'bg-amber-50 text-amber-700',
-    processing: 'bg-[#f4e8fb] text-[#5e3a86]',
-    shipped: 'bg-[#e8f0fe] text-[#2856c3]',
-    completed: 'bg-[#e7f7ea] text-[#228847]',
-    delivered: 'bg-[#e7f7ea] text-[#228847]',
-    picked_up: 'bg-[#e7f7ea] text-[#228847]',
-    cancelled: 'bg-red-50 text-red-600'
-  };
-  return map[status] || 'bg-zinc-100 text-zinc-600';
-};
-
-const orderIconClass = (status) => {
-  const map = {
-    pending: 'bg-amber-50 text-amber-600',
-    processing: 'bg-[#e8f0fe] text-[#2856c3]',
-    shipped: 'bg-[#e8f0fe] text-[#2856c3]',
-    completed: 'bg-[#edf9ef] text-[#1d9154]',
-    delivered: 'bg-[#edf9ef] text-[#1d9154]',
-    picked_up: 'bg-[#edf9ef] text-[#1d9154]',
-    cancelled: 'bg-[#fff0f1] text-[#d14b5c]'
-  };
-  return map[status] || 'bg-zinc-100 text-zinc-500';
-};
-
-const requestOrderStatusClass = (status) => {
-  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
-  const map = {
-    paid: 'bg-[#f4e8fb] text-[#5e3a86]',
-    logistics_pending: 'bg-[#f4e8fb] text-[#5e3a86]',
-    driver_unavailable: 'bg-red-50 text-red-600',
-    ready_for_pickup: 'bg-[#e8f0fe] text-[#2856c3]',
-    out_for_delivery: 'bg-[#e8f0fe] text-[#2856c3]',
-    completed: 'bg-[#e7f7ea] text-[#228847]',
-    returned: 'bg-red-50 text-red-600',
-    cancelled: 'bg-red-50 text-red-600'
-  };
-  return map[normalized] || 'bg-zinc-100 text-zinc-600';
-};
-
 // Format amount
 const formatAmount = (amount) => {
   return parseFloat(amount || 0).toFixed(2);
@@ -330,36 +326,6 @@ const requestApiCall = async (method, url) => {
     throw new Error(json.message || `Request failed (${response.status})`);
   }
   return json;
-};
-
-const formatRequestStatus = (status) => {
-  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
-  const statusMap = {
-    paid: 'Paid',
-    logistics_pending: 'Logistics Pending',
-    driver_unavailable: 'Driver Unavailable',
-    ready_for_pickup: 'Ready For Pickup',
-    out_for_delivery: 'Out For Delivery',
-    completed: 'Completed',
-    returned: 'Returned',
-    cancelled: 'Cancelled'
-  };
-  return statusMap[normalized] || (normalized || '').replace(/_/g, ' ');
-};
-
-const getRequestStatusClass = (status) => {
-  const normalized = ['picked_up', 'delivered'].includes(status) ? 'completed' : status;
-  const classes = {
-    paid: 'status-processing',
-    logistics_pending: 'status-processing',
-    driver_unavailable: 'status-cancelled',
-    ready_for_pickup: 'status-shipped',
-    out_for_delivery: 'status-shipped',
-    completed: 'status-delivered',
-    returned: 'status-cancelled',
-    cancelled: 'status-cancelled'
-  };
-  return classes[normalized] || 'status-default';
 };
 
 const getRequestTotalAmount = (request) => {
@@ -430,14 +396,17 @@ const viewRequestOrder = async (request) => {
     selectedRequestOrder.value = res.data;
   } catch (error) {
     console.error('Error loading request details:', error);
-    alert('Failed to load request details');
+    showToast('Failed to load request details', 'error');
   }
 };
 
 // Load orders + paid requests
 const loadOrders = async ({ silent = false } = {}) => {
   try {
-    if (!silent) isLoading.value = true;
+    if (!silent) {
+      isLoading.value = true;
+      hasLoadError.value = false;
+    }
 
     const [ordersResult, requestsResult] = await Promise.allSettled([
       userStore.getAllOrders({}),
@@ -452,6 +421,13 @@ const loadOrders = async ({ silent = false } = {}) => {
     }
     if (requestsResult.status === 'rejected') {
       console.error('Error loading paid request orders:', requestsResult.reason);
+    }
+
+    const bothFailed = ordersResult.status === 'rejected' && requestsResult.status === 'rejected';
+    if (!silent) {
+      hasLoadError.value = bothFailed;
+    } else if (bothFailed) {
+      showToast('Could not refresh history', 'error');
     }
 
     orders.value = nextOrders;
@@ -475,6 +451,7 @@ const loadOrders = async ({ silent = false } = {}) => {
     }
   } catch (error) {
     console.error('Error loading orders:', error);
+    if (!silent) hasLoadError.value = true;
   } finally {
     if (!silent) isLoading.value = false;
   }
@@ -483,39 +460,32 @@ const loadOrders = async ({ silent = false } = {}) => {
 // View order details
 const viewOrder = async (order) => {
   try {
-    const userStore = useUserStore();
-
-    // Fetch order details with company_id
     const details = await userStore.getOrderDetails(order.order_id, order.company_id);
     selectedOrder.value = details;
-
   } catch (error) {
     console.error('Error loading order details:', error);
-    alert('Failed to load order details');
+    showToast('Failed to load order details', 'error');
   }
 };
 
-// Confirm cancel order
 const confirmCancelOrder = (order) => {
-  if (confirm(`Are you sure you want to cancel order #${order.order_id.substring(0, 8)}?`)) {
-    cancelOrder(order.order_id, order.company_id);
-  }
+  pendingCancelOrder.value = order;
 };
 
-// Cancel order
-const cancelOrder = async (orderId, companyId) => {
+const performCancel = async () => {
+  if (!pendingCancelOrder.value || isCancelling.value) return;
+  const { order_id, company_id } = pendingCancelOrder.value;
+  isCancelling.value = true;
   try {
-    const userStore = useUserStore();
-
-    // Cancel the order with the specific company_id
-    await userStore.cancelOrder(orderId, companyId);
-    alert('Order cancelled successfully');
-
-    // Reload orders
-    loadOrders();
+    await userStore.cancelOrder(order_id, company_id);
+    pendingCancelOrder.value = null;
+    showToast('Order cancelled');
+    loadOrders({ silent: true });
   } catch (error) {
     console.error('Error cancelling order:', error);
-    alert('Failed to cancel order');
+    showToast(error?.message || 'Failed to cancel order', 'error');
+  } finally {
+    isCancelling.value = false;
   }
 };
 
@@ -539,6 +509,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer);
+  if (toastTimer) clearTimeout(toastTimer);
 });
 </script>
 

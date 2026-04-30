@@ -1,8 +1,9 @@
 <template>
-  <div class="state-message" :class="`state-message--${state}`" role="status">
+  <div class="state-message" :class="`state-message--${state}`" role="status" aria-live="polite">
     <div class="state-message-inner">
       <div class="state-message-icon-wrap">
-        <component :is="resolvedIcon" v-if="resolvedIcon" class="state-message-icon" aria-hidden="true" />
+        <component :is="resolvedIcon" v-if="resolvedIcon && typeof resolvedIcon !== 'string'" class="state-message-icon" aria-hidden="true" />
+        <span v-else-if="typeof resolvedIcon === 'string'" class="material-symbols-outlined state-message-icon-symbol" :class="{ 'is-spinning': state === 'loading' }" aria-hidden="true">{{ resolvedIcon }}</span>
         <span v-else-if="state === 'loading'" class="state-message-spinner" aria-hidden="true" />
       </div>
       <div class="state-message-body">
@@ -23,12 +24,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import {
-  ExclamationCircleIcon,
-  InboxIcon,
-  CheckCircleIcon,
-  ArrowPathIcon
-} from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   state: {
@@ -36,7 +31,7 @@ const props = defineProps({
     default: 'empty',
     validator: (v) => ['error', 'empty', 'loading', 'success'].includes(v)
   },
-  icon: { type: [Object, Function], default: null },
+  icon: { type: [Object, Function, String], default: null },
   heading: { type: String, default: '' },
   message: { type: String, default: '' },
   actionLabel: { type: String, default: '' }
@@ -45,10 +40,10 @@ const props = defineProps({
 defineEmits(['action'])
 
 const defaultIcons = {
-  error: ExclamationCircleIcon,
-  empty: InboxIcon,
-  loading: ArrowPathIcon,
-  success: CheckCircleIcon
+  error: 'error',
+  empty: 'inbox',
+  loading: 'sync',
+  success: 'check_circle'
 }
 
 const resolvedIcon = computed(() => props.icon || defaultIcons[props.state] || null)
@@ -108,6 +103,31 @@ const resolvedIcon = computed(() => props.icon || defaultIcons[props.state] || n
   width: 24px;
   height: 24px;
   color: #9ca3af;
+}
+
+.state-message-icon-symbol {
+  font-size: 24px;
+  color: #9ca3af;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.state-message-icon-symbol.is-spinning {
+  animation: spin 0.9s linear infinite;
+}
+
+.state-message--error .state-message-icon-symbol {
+  color: #ef4444;
+}
+
+.state-message--success .state-message-icon-symbol {
+  color: #22c55e;
+}
+
+.state-message--loading .state-message-icon-symbol {
+  color: #6b7280;
 }
 
 .state-message--error .state-message-icon {
