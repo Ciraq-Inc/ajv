@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <teleport to="body">
     <transition name="modal">
       <div 
@@ -62,7 +62,7 @@
                 type="button"
                 :class="[
                   'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
-                  'bg-blue-600 text-white hover:bg-blue-700'
+                  'cs-btn text-white'
                 ]"
                 :disabled="isRetrying"
               >
@@ -186,7 +186,7 @@ const iconBgClass = computed(() => {
     warning: 'bg-yellow-100',
     danger: 'bg-red-100',
     error: 'bg-red-100',
-    info: 'bg-blue-100',
+    info: 'bg-purple-100',
     success: 'bg-green-100'
   }
   return classes[props.type] || 'bg-yellow-100'
@@ -197,7 +197,7 @@ const iconColorClass = computed(() => {
     warning: 'text-yellow-600',
     danger: 'text-red-600',
     error: 'text-red-600',
-    info: 'text-blue-600',
+    info: 'cs-text',
     success: 'text-green-600'
   }
   return classes[props.type] || 'text-yellow-600'
@@ -208,7 +208,7 @@ const confirmButtonClass = computed(() => {
     warning: 'bg-yellow-600 text-white hover:bg-yellow-700',
     danger: 'bg-red-600 text-white hover:bg-red-700',
     error: 'bg-red-600 text-white hover:bg-red-700',
-    info: 'bg-blue-600 text-white hover:bg-blue-700',
+    info: 'cs-btn text-white',
     success: 'bg-green-600 text-white hover:bg-green-700'
   }
   return classes[props.type] || 'bg-yellow-600 text-white hover:bg-yellow-700'

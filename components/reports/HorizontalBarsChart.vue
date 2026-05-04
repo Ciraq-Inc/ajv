@@ -16,7 +16,7 @@
         </div>
         <div class="h-2.5 overflow-hidden rounded-full bg-[#efe9f6]">
           <div
-            class="h-full rounded-full bg-gradient-to-r from-[#6d28d9] to-[#9d5cff]"
+            class="h-full rounded-full cs-gradient-light"
             :style="{ width: `${item.percent}%` }"
           />
         </div>

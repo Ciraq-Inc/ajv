@@ -18,18 +18,18 @@
       </div>
       
       <!-- Quick Top-Up Action Card -->
-      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 md:p-6 text-white shadow-lg">
+      <div class="cs-gradient rounded-lg p-4 md:p-6 text-white shadow-lg">
         <div class="flex flex-col h-full justify-between">
           <div>
             <Icon name="CreditCard" class="h-8 w-8 md:h-10 md:w-10 mb-3 md:mb-4 opacity-90" />
             <h3 class="text-lg md:text-xl font-bold mb-2">Top Up Money</h3>
-            <p class="text-blue-100 text-xs md:text-sm mb-3 md:mb-4">
+            <p class="text-white/70 text-xs md:text-sm mb-3 md:mb-4">
               Add money to your account instantly with Paystack
             </p>
           </div>
           <button
             @click="showTopUpModal = true"
-            class="w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors shadow-md flex items-center justify-center gap-2"
+            class="w-full bg-white cs-text font-semibold py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors shadow-md flex items-center justify-center gap-2"
           >
             <Icon name="Plus" class="h-5 w-5" />
             Top Up Now
@@ -60,7 +60,7 @@
         <p class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{{ formatCurrency(todayStats.topupAmount) }}</p>
         <p class="text-xs md:text-sm text-gray-600">Money Topped Up</p>
         <div class="mt-2 md:mt-3 flex items-center text-xs md:text-sm">
-          <span class="text-blue-600 font-medium">{{ todayStats.topups }} top-ups</span>
+          <span class="cs-text font-medium">{{ todayStats.topups }} top-ups</span>
         </div>
       </div>
 
@@ -95,7 +95,7 @@
           <select
             v-model="transactionFilters.type"
             @change="applyTransactionFilters"
-            class="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base w-full sm:w-auto"
+            class="px-3 md:px-4 py-2 border border-gray-300 rounded-lg cs-input text-sm md:text-base w-full sm:w-auto"
           >
             <option value="">All Money Transactions</option>
             <option value="money_topup">Money Top-ups</option>
@@ -108,7 +108,7 @@
           <select
             v-model="transactionFilters.period"
             @change="applyTransactionFilters"
-            class="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base w-full sm:w-auto"
+            class="px-3 md:px-4 py-2 border border-gray-300 rounded-lg cs-input text-sm md:text-base w-full sm:w-auto"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -120,7 +120,7 @@
 
       <!-- Loading State -->
       <div v-if="loading && transactions.length === 0" class="p-12 text-center">
-        <Icon name="Loader2" class="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+        <Icon name="Loader2" class="h-12 w-12 animate-spin mx-auto mb-4 cs-text" />
         <p class="text-gray-600">Loading transactions...</p>
       </div>
 

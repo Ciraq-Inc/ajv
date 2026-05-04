@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="p-8">
     <h1 class="text-2xl font-bold mb-4">Authentication Debug</h1>
     
@@ -15,7 +15,7 @@
 
       <button
         @click="testApiCall"
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        class="bg-[#7C3FB4] text-white px-4 py-2 rounded hover:bg-[#62309A]"
       >
         Test Paystack Initialize API
       </button>

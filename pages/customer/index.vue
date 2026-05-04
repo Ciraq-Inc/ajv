@@ -98,7 +98,7 @@
                 v-for="request in recentRequestItems"
                 :key="request.id"
                 class="flex w-full items-start sm:items-center gap-3 sm:gap-4 border border-[#e5e7eb] bg-white px-4 py-3 sm:py-4 text-left hover:border-[#4F217A]/30 hover:bg-[#faf4ff] hover:shadow-sm transition-all group rounded-xl"
-                @click="goTab('requests')"
+                @click="navigateTo({ path: '/customer', query: { tab: 'requests', requestId: request.id } })"
               >
                 <div
                   class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[1rem] mt-0.5 sm:mt-0"

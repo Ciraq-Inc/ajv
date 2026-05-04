@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Transition name="modal">
     <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" @click.self="close">
       <!-- Backdrop -->
@@ -26,7 +26,7 @@
           <!-- Loading State -->
           <div v-if="loading" class="px-6 py-12 flex items-center justify-center">
             <div class="flex flex-col items-center gap-3">
-              <ArrowPathIcon class="h-8 w-8 text-blue-600 animate-spin" />
+              <ArrowPathIcon class="h-8 w-8 cs-text animate-spin" />
               <p class="text-sm text-gray-600">Loading campaign...</p>
             </div>
           </div>
@@ -60,7 +60,7 @@
                     type="text"
                     placeholder="e.g., Monthly Promotion"
                     required
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input"
                   />
                 </div>
 
@@ -86,19 +86,19 @@
               </div>
 
               <!-- Cost Summary -->
-              <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
+              <div class="cs-gradient text-white rounded-lg p-6">
                 <h4 class="text-lg font-semibold mb-4">Cost Summary</h4>
                 <div class="grid grid-cols-2 gap-6">
                   <div>
-                    <p class="text-sm text-blue-100">Total Recipients</p>
+                    <p class="text-sm text-purple-100">Total Recipients</p>
                     <p class="text-3xl font-bold">{{ getTotalRecipients() }}</p>
                   </div>
                   <div>
-                    <p class="text-sm text-blue-100">Total Cost</p>
+                    <p class="text-sm text-purple-100">Total Cost</p>
                     <p class="text-3xl font-bold">{{ getTotalCost() }} credits</p>
                   </div>
                 </div>
-                <div class="mt-4 pt-4 border-t border-blue-400">
+                <div class="mt-4 pt-4 border-t border-purple-400">
                   <div class="flex items-center justify-between">
                     <span class="text-sm">Your Current Balance:</span>
                     <span class="text-lg font-semibold">{{ balance?.sms_balance || 0 }} credits</span>
@@ -145,7 +145,7 @@
                 <button
                   @click="saveChanges"
                   :disabled="saving || !canSave()"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="px-4 py-2 cs-btn text-white rounded-lg transition-colors font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ArrowPathIcon v-if="saving" class="h-4 w-4 animate-spin" />
                   <span>{{ saving ? 'Saving...' : 'Save Changes' }}</span>
