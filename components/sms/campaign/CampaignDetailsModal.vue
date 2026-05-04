@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Transition name="modal">
     <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" @click.self="close">
       <!-- Backdrop -->
@@ -41,7 +41,7 @@
           <div class="px-6 py-6 max-h-[70vh] overflow-y-auto">
             <!-- Loading State -->
             <div v-if="loading" class="text-center py-12">
-              <ArrowPathIcon class="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+              <ArrowPathIcon class="h-12 w-12 animate-spin mx-auto mb-4 cs-text" />
               <p class="text-gray-600">Loading campaign details...</p>
             </div>
 
@@ -51,8 +51,8 @@
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <div class="flex items-center gap-3">
-                    <div class="bg-blue-100 p-2 rounded-lg">
-                      <UsersIcon class="h-5 w-5 text-blue-600" />
+                    <div class="bg-purple-100 p-2 rounded-lg">
+                      <UsersIcon class="h-5 w-5 cs-text" />
                     </div>
                     <div>
                       <p class="text-xs text-gray-600">Total Recipients</p>
@@ -171,7 +171,7 @@
                       log.log_type === 'error' ? 'bg-red-600' :
                       log.log_type === 'warning' ? 'bg-yellow-600' :
                       log.log_type === 'success' ? 'bg-green-600' :
-                      'bg-blue-600'
+                      'cs-btn'
                     ]"></div>
                     <div class="flex-1">
                       <p class="text-sm text-gray-900">{{ log.message }}</p>
@@ -200,7 +200,7 @@
 
                 <!-- Logs Loading -->
                 <div v-if="loadingLogs" class="text-center py-8">
-                  <ArrowPathIcon class="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
+                  <ArrowPathIcon class="h-8 w-8 animate-spin mx-auto mb-2 cs-text" />
                   <p class="text-gray-600 text-sm">Loading logs...</p>
                 </div>
 
@@ -224,7 +224,7 @@
                               log.log_type === 'error' ? 'bg-red-100 text-red-800' :
                               log.log_type === 'success' ? 'bg-green-100 text-green-800' :
                               log.log_type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
+                              'cs-badge'
                             ]"
                           >
                             {{ log.log_type }}
@@ -261,7 +261,7 @@
                 <button
                   v-if="['draft', 'paused'].includes(campaign.status)"
                   @click="$emit('edit', campaign.id)"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+                  class="px-4 py-2 cs-btn text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
                 >
                   <PencilIcon class="h-4 w-4" />
                   Edit Campaign
@@ -477,7 +477,7 @@ const formatCurrency = (value) => {
 const getStatusClass = (status) => {
   const classes = {
     draft: 'bg-gray-100 text-gray-800',
-    sending: 'bg-blue-100 text-blue-800',
+    sending: 'cs-badge',
     completed: 'bg-green-100 text-green-800',
     paused: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-red-100 text-red-800',

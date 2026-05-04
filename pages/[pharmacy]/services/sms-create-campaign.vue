@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="campaign-creator-page">
     <!-- Header -->
     <div class="mb-6">
@@ -6,7 +6,7 @@
         <div>
           <nuxt-link
             :to="`/${route.params.pharmacy}/services/sms-campaigns`"
-            class="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-2"
+            class="cs-text flex items-center gap-2 mb-2"
           >
             <Icon name="ArrowLeft" class="h-4 w-4" />
             Back to Campaigns
@@ -26,7 +26,7 @@
             <div
               :class="[
                 'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
-                currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                currentStep >= 1 ? 'cs-btn text-white' : 'bg-gray-200 text-gray-600'
               ]"
             >
               1
@@ -39,14 +39,14 @@
           </div>
 
           <!-- Connector -->
-          <div :class="['w-24 h-1 mx-4', currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200']"></div>
+          <div :class="['w-24 h-1 mx-4', currentStep >= 2 ? 'cs-btn' : 'bg-gray-200']"></div>
 
           <!-- Step 2 -->
           <div class="flex items-center">
             <div
               :class="[
                 'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
-                currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                currentStep >= 2 ? 'cs-btn text-white' : 'bg-gray-200 text-gray-600'
               ]"
             >
               2
@@ -59,14 +59,14 @@
           </div>
 
           <!-- Connector -->
-          <div :class="['w-24 h-1 mx-4', currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-200']"></div>
+          <div :class="['w-24 h-1 mx-4', currentStep >= 3 ? 'cs-btn' : 'bg-gray-200']"></div>
 
           <!-- Step 3 -->
           <div class="flex items-center">
             <div
               :class="[
                 'w-10 h-10 rounded-full flex items-center justify-center font-semibold',
-                currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                currentStep >= 3 ? 'cs-btn text-white' : 'bg-gray-200 text-gray-600'
               ]"
             >
               3
@@ -98,7 +98,7 @@
               type="text"
               placeholder="e.g., Monthly Promotion"
               required
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input"
             />
           </div>
 
@@ -129,7 +129,7 @@
                   :class="[
                     'px-4 py-2 border-b-2 font-medium text-sm',
                     selectedType === 'all'
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'cs-selected'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   ]"
                 >
@@ -141,7 +141,7 @@
                   :class="[
                     'px-4 py-2 border-b-2 font-medium text-sm',
                     selectedType === 'filtered'
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'cs-selected'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   ]"
                 >
@@ -153,7 +153,7 @@
                   :class="[
                     'px-4 py-2 border-b-2 font-medium text-sm',
                     selectedType === 'custom'
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'cs-selected'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   ]"
                 >
@@ -165,12 +165,12 @@
 
             <!-- All Customers -->
             <div v-if="selectedType === 'all'" class="space-y-4">
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <div class="flex items-start gap-3">
-                  <Icon name="Info" class="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <Icon name="Info" class="h-5 w-5 cs-text flex-shrink-0" />
                   <div>
-                    <p class="text-sm font-medium text-blue-900 mb-1">Send to All Customers</p>
-                    <p class="text-sm text-blue-800">
+                    <p class="text-sm font-medium cs-text mb-1">Send to All Customers</p>
+                    <p class="text-sm cs-text">
                       Your message will be sent to all customers in your database.
                     </p>
                   </div>
@@ -186,7 +186,7 @@
                   </div>
                   <div class="text-right">
                     <p class="text-sm text-gray-600">Estimated Cost</p>
-                    <p class="text-2xl font-bold text-blue-600">{{ estimatedCost }} credits</p>
+                    <p class="text-2xl font-bold cs-text">{{ estimatedCost }} credits</p>
                   </div>
                 </div>
               </div>
@@ -198,7 +198,7 @@
                   <button
                     @click="toggleCustomerList"
                     :disabled="isLoadingCustomers"
-                    class="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="text-xs cs-text font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {{ showCustomerList ? 'Hide' : 'Show' }} All
                   </button>
@@ -207,7 +207,7 @@
                 <!-- Loading State -->
                 <div v-if="isLoadingCustomers" class="flex items-center justify-center py-8">
                   <div class="flex flex-col items-center gap-2">
-                    <Icon name="Loader2" class="h-6 w-6 text-blue-600 animate-spin" />
+                    <Icon name="Loader2" class="h-6 w-6 cs-text animate-spin" />
                     <p class="text-sm text-gray-600">Loading customers...</p>
                   </div>
                 </div>
@@ -256,12 +256,12 @@
 
             <!-- Filtered Recipients -->
             <div v-else-if="selectedType === 'filtered'" class="space-y-4">
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <div class="flex items-start gap-3">
-                  <Icon name="Info" class="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <Icon name="Info" class="h-5 w-5 cs-text flex-shrink-0" />
                   <div>
-                    <p class="text-sm font-medium text-blue-900 mb-1">Select Specific Customers</p>
-                    <p class="text-sm text-blue-800">
+                    <p class="text-sm font-medium cs-text mb-1">Select Specific Customers</p>
+                    <p class="text-sm cs-text">
                       Choose individual customers to receive this campaign message.
                     </p>
                   </div>
@@ -277,12 +277,12 @@
                       v-model="customerSearchQuery"
                       type="text"
                       placeholder="Search customers by name or phone..."
-                      class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                      class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg cs-input text-sm"
                     />
                   </div>
                   <button
                     @click="toggleSelectAllFiltered"
-                    class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50"
+                    class="px-4 py-2 text-sm font-medium cs-text cs-border rounded-lg hover:bg-gray-50"
                   >
                     {{ selectedCustomers.length === filteredCustomersList.length ? 'Deselect All' : 'Select All' }}
                   </button>
@@ -291,7 +291,7 @@
                 <!-- Loading State -->
                 <div v-if="isLoadingCustomers" class="flex items-center justify-center py-8">
                   <div class="flex flex-col items-center gap-2">
-                    <Icon name="Loader2" class="h-6 w-6 text-blue-600 animate-spin" />
+                    <Icon name="Loader2" class="h-6 w-6 cs-text animate-spin" />
                     <p class="text-sm text-gray-600">Loading customers...</p>
                   </div>
                 </div>
@@ -325,7 +325,7 @@
                       type="checkbox"
                       :checked="isCustomerSelected(customer)"
                       @click.stop="toggleCustomerSelection(customer)"
-                      class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      class="h-4 w-4 cs-text border-gray-300 rounded cs-input"
                     />
                     <div class="flex items-center gap-2 flex-1">
                       <Icon name="User" class="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -349,7 +349,7 @@
                   </div>
                   <div class="text-right">
                     <p class="text-sm text-gray-600">Estimated Cost</p>
-                    <p class="text-2xl font-bold text-blue-600">{{ filteredCost }} credits</p>
+                    <p class="text-2xl font-bold cs-text">{{ filteredCost }} credits</p>
                   </div>
                 </div>
               </div>
@@ -374,7 +374,7 @@
                 />
                 <button
                   @click="$refs.fileInput.click()"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  class="px-4 py-2 cs-btn text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   Choose File
                 </button>
@@ -392,7 +392,7 @@
                   @input="updateCustomIds"
                   rows="3"
                   placeholder="e.g., 1, 2, 3, 4, 5"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg cs-input text-sm"
                 ></textarea>
               </div>
 
@@ -405,7 +405,7 @@
                   </div>
                   <div class="text-right">
                     <p class="text-sm text-gray-600">Estimated Cost</p>
-                    <p class="text-2xl font-bold text-blue-600">{{ customCost }} credits</p>
+                    <p class="text-2xl font-bold cs-text">{{ customCost }} credits</p>
                   </div>
                 </div>
               </div>
@@ -421,7 +421,7 @@
               </div>
               <div class="text-right">
                 <p class="text-sm font-medium text-gray-700">Total Cost</p>
-                <p class="text-3xl font-bold text-blue-600">{{ totalCost }}</p>
+                <p class="text-3xl font-bold cs-text">{{ totalCost }}</p>
                 <p class="text-xs text-gray-500">SMS credits</p>
               </div>
             </div>
@@ -458,19 +458,19 @@
         </div>
 
         <!-- Cost Summary -->
-        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
+        <div class="cs-gradient text-white rounded-lg p-6">
           <h3 class="text-lg font-semibold mb-4">Cost Summary</h3>
           <div class="grid grid-cols-2 gap-6">
             <div>
-              <p class="text-sm text-blue-100">Total Recipients</p>
+              <p class="text-sm text-purple-100">Total Recipients</p>
               <p class="text-3xl font-bold">{{ getTotalRecipients() }}</p>
             </div>
             <div>
-              <p class="text-sm text-blue-100">Total Cost</p>
+              <p class="text-sm text-purple-100">Total Cost</p>
               <p class="text-3xl font-bold">{{ getTotalCost() }} credits</p>
             </div>
           </div>
-          <div class="mt-4 pt-4 border-t border-blue-400">
+          <div class="mt-4 pt-4 border-t border-purple-400">
             <div class="flex items-center justify-between">
               <span class="text-sm">Your Current Balance:</span>
               <span class="text-lg font-semibold">{{ balance?.sms_balance || 0 }} credits</span>
@@ -527,7 +527,7 @@
             v-if="currentStep < 3"
             @click="nextStep"
             :disabled="!canProceed()"
-            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-6 py-3 cs-btn text-white rounded-lg transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
             <Icon name="ArrowRight" class="h-4 w-4" />

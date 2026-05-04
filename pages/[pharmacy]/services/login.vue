@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center overflow-y-auto py-8 px-4" style="background-color: #2A1130;">
+  <div class="fixed inset-0 flex items-center justify-center overflow-y-auto py-8 px-4" :style="{ backgroundColor: bgColor }">
 
     <!-- Decorative sparkles -->
     <div class="pointer-events-none absolute inset-0 overflow-hidden select-none" aria-hidden="true">
@@ -23,7 +23,7 @@
       <!-- Brand header -->
       <div class="flex flex-col items-center pt-8 pb-6 px-6">
         <img src="/brand/rig-mark.svg" alt="Rigel" class="w-14 h-14 mb-4" />
-        <p class="text-[10px] font-black uppercase tracking-[0.18em] mb-2" style="color: #4F217A;">
+        <p class="text-[10px] font-black uppercase tracking-[0.18em] mb-2" :style="{ color: accentColor }">
           {{ companyName }} Services
         </p>
         <h2 class="text-xl font-black text-zinc-900 tracking-tight text-center leading-tight">
@@ -44,7 +44,7 @@
       <div class="flex items-center px-8 mb-6">
         <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all"
           :class="step === 'phone' ? 'text-white' : 'text-white'"
-          :style="{ backgroundColor: '#4F217A' }">
+          :style="{ backgroundColor: accentColor }">
           <svg v-if="step !== 'phone'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
           </svg>
@@ -52,10 +52,10 @@
         </div>
         <div class="flex-1 h-0.5 mx-2 rounded-full transition-all"
           :class="step !== 'phone' ? '' : 'bg-zinc-200'"
-          :style="step !== 'phone' ? { backgroundColor: '#4F217A' } : {}"></div>
+          :style="step !== 'phone' ? { backgroundColor: accentColor } : {}"></div>
         <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 transition-all"
           :class="step !== 'phone' ? 'text-white' : 'bg-zinc-100 text-zinc-400'"
-          :style="step !== 'phone' ? { backgroundColor: '#4F217A' } : {}">
+          :style="step !== 'phone' ? { backgroundColor: accentColor } : {}">
           <span>2</span>
         </div>
       </div>
@@ -90,11 +90,9 @@
                 </span>
                 <input v-model="phone" type="tel" id="phoneNumber"
                   class="block w-full rounded-none rounded-r-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
-                  style="--tw-ring-color: #4F217A20;"
-                  :style="{ '--focus-border': '#4F217A' }"
                   placeholder="24 123 4567" required @input="validatePhoneNumber" :disabled="loading"
-                  @focus="e => e.target.style.borderColor = '#4F217A80'"
-                  @blur="e => e.target.style.borderColor = ''" />
+                  @focus="handleFocusBorder"
+                  @blur="handleBlurBorder" />
               </div>
               <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 font-medium">{{ phoneNumberError }}</p>
               <p v-else class="mt-1.5 text-xs text-zinc-400 font-medium">Enter your registered phone number</p>
@@ -102,7 +100,7 @@
             <div class="mt-5 pb-2">
               <button type="submit" :disabled="loading || phoneNumberError !== ''"
                 class="w-full py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
-                style="background-color: #4F217A;">
+                :style="{ backgroundColor: accentColor }">
                 <svg v-if="loading" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -124,19 +122,19 @@
               <input v-model="password" type="password" id="password"
                 class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
                 placeholder="Enter your password" required minlength="6" :disabled="loading"
-                @focus="e => e.target.style.borderColor = '#4F217A80'"
-                @blur="e => e.target.style.borderColor = ''" />
+                @focus="handleFocusBorder"
+                @blur="handleBlurBorder" />
             </div>
             <div class="mb-5 flex items-center justify-between">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input id="remember-me" v-model="rememberMe" type="checkbox"
                   class="h-4 w-4 rounded border-zinc-300"
-                  :style="{ accentColor: '#4F217A' }" />
+                  :style="{ accentColor: accentColor }" />
                 <span class="text-xs font-semibold text-zinc-600">Keep me logged in</span>
               </label>
               <button type="button" @click="forgotPassword"
                 class="text-xs font-bold transition-opacity hover:opacity-70"
-                style="color: #4F217A;">
+                :style="{ color: accentColor }">
                 Forgot password?
               </button>
             </div>
@@ -147,7 +145,7 @@
               </button>
               <button type="submit" :disabled="loading"
                 class="px-5 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center gap-2 transition-opacity"
-                style="background-color: #4F217A;">
+                :style="{ backgroundColor: accentColor }">
                 <svg v-if="loading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -168,7 +166,7 @@
             <div class="mb-4" v-if="!otpSent">
               <button type="button" @click="sendOTP" :disabled="loading"
                 class="w-full py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
-                style="background-color: #4F217A;">
+                :style="{ backgroundColor: accentColor }">
                 <span>{{ loading ? 'Sending code…' : 'Send Verification Code' }}</span>
               </button>
             </div>
@@ -178,24 +176,24 @@
                 <input v-model="otp" type="text" id="otp"
                   class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none tracking-[0.2em] transition-colors"
                   placeholder="6-digit code" required maxlength="6" pattern="[0-9]{6}" :disabled="loading"
-                  @focus="e => e.target.style.borderColor = '#4F217A80'"
-                  @blur="e => e.target.style.borderColor = ''" />
+                  @focus="handleFocusBorder"
+                  @blur="handleBlurBorder" />
               </div>
               <div>
                 <label for="newPassword" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">New Password</label>
                 <input v-model="newPassword" type="password" id="newPassword"
                   class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
                   placeholder="Min. 6 characters" required minlength="6" :disabled="loading"
-                  @focus="e => e.target.style.borderColor = '#4F217A80'"
-                  @blur="e => e.target.style.borderColor = ''" />
+                  @focus="handleFocusBorder"
+                  @blur="handleBlurBorder" />
               </div>
               <div>
                 <label for="confirmPassword" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Confirm Password</label>
                 <input v-model="confirmPassword" type="password" id="confirmPassword"
                   class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
                   placeholder="Re-enter your password" required minlength="6" :disabled="loading"
-                  @focus="e => e.target.style.borderColor = '#4F217A80'"
-                  @blur="e => e.target.style.borderColor = ''" />
+                  @focus="handleFocusBorder"
+                  @blur="handleBlurBorder" />
                 <p v-if="newPassword && confirmPassword && newPassword !== confirmPassword" class="mt-1.5 text-xs text-red-600 font-medium">
                   Passwords do not match
                 </p>
@@ -207,7 +205,7 @@
                 </button>
                 <button type="submit" :disabled="loading || !otp || newPassword !== confirmPassword"
                   class="px-5 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-opacity"
-                  style="background-color: #4F217A;">
+                  :style="{ backgroundColor: accentColor }">
                   {{ loading ? 'Setting up…' : 'Set Password' }}
                 </button>
               </div>
@@ -225,7 +223,7 @@
             <div class="mb-4" v-if="!otpSent">
               <button type="button" @click="requestPasswordReset" :disabled="loading"
                 class="w-full py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-opacity"
-                style="background-color: #4F217A;">
+                :style="{ backgroundColor: accentColor }">
                 <span>{{ loading ? 'Sending code…' : 'Send Reset Code' }}</span>
               </button>
             </div>
@@ -235,24 +233,24 @@
                 <input v-model="otp" type="text" id="resetOtp"
                   class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none tracking-[0.2em] transition-colors"
                   placeholder="6-digit code" required maxlength="6" :disabled="loading"
-                  @focus="e => e.target.style.borderColor = '#4F217A80'"
-                  @blur="e => e.target.style.borderColor = ''" />
+                  @focus="handleFocusBorder"
+                  @blur="handleBlurBorder" />
               </div>
               <div>
                 <label for="resetPassword" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">New Password</label>
                 <input v-model="newPassword" type="password" id="resetPassword"
                   class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
                   placeholder="Enter new password" required minlength="6" :disabled="loading"
-                  @focus="e => e.target.style.borderColor = '#4F217A80'"
-                  @blur="e => e.target.style.borderColor = ''" />
+                  @focus="handleFocusBorder"
+                  @blur="handleBlurBorder" />
               </div>
               <div>
                 <label for="resetConfirm" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Confirm New Password</label>
                 <input v-model="confirmPassword" type="password" id="resetConfirm"
                   class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
                   placeholder="Confirm new password" required minlength="6" :disabled="loading"
-                  @focus="e => e.target.style.borderColor = '#4F217A80'"
-                  @blur="e => e.target.style.borderColor = ''" />
+                  @focus="handleFocusBorder"
+                  @blur="handleBlurBorder" />
                 <p v-if="newPassword && confirmPassword && newPassword !== confirmPassword" class="mt-1.5 text-xs text-red-600 font-medium">
                   Passwords do not match
                 </p>
@@ -264,7 +262,7 @@
                 </button>
                 <button type="submit" :disabled="loading || !otp || newPassword !== confirmPassword"
                   class="px-5 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-opacity"
-                  style="background-color: #4F217A;">
+                  :style="{ backgroundColor: accentColor }">
                   {{ loading ? 'Resetting…' : 'Reset Password' }}
                 </button>
               </div>
@@ -276,7 +274,7 @@
 
       <!-- Footer -->
       <div class="px-6 py-4 mt-2 border-t border-zinc-100 flex items-center justify-center gap-2">
-        <svg class="w-3 h-3 opacity-30" viewBox="0 0 100 100" fill="#4F217A">
+        <svg class="w-3 h-3 opacity-30" viewBox="0 0 100 100" :fill="accentColor">
           <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
         </svg>
         <p class="text-xs text-zinc-400 font-medium">Need help? Contact your administrator</p>
@@ -287,7 +285,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 
@@ -298,6 +296,60 @@ definePageMeta({
 const router = useRouter()
 const route = useRoute()
 const companyStore = useCompanyStore()
+
+const THEME_PRESETS = {
+  indigo:  { bg: '#1e1b4b', accent: '#6366f1' },
+  teal:    { bg: '#042f2e', accent: '#0d9488' },
+  rose:    { bg: '#4c0519', accent: '#e11d48' },
+  emerald: { bg: '#022c22', accent: '#059669' },
+  orange:  { bg: '#431407', accent: '#ea580c' },
+  slate:   { bg: '#0f172a', accent: '#475569' },
+}
+
+const accentColor = ref('#6366f1')
+const bgColor = ref('#1e1b4b')
+
+const applyTheme = (company) => {
+  if (!company) return
+  const preset = THEME_PRESETS[company.theme_preset] || THEME_PRESETS.indigo
+  if (company.theme_preset === 'custom' && company.theme_color) {
+    accentColor.value = company.theme_color
+    bgColor.value = '#0f172a'
+  } else {
+    accentColor.value = preset.accent
+    bgColor.value = preset.bg
+  }
+}
+
+onMounted(async () => {
+  await companyStore.checkAuthState()
+  // If already logged in, fetch full theme from store settings
+  if (companyStore.currentCompany) {
+    await companyStore.fetchTheme()
+    applyTheme(companyStore.currentCompany)
+    return
+  }
+  // Not logged in — fetch company info by domain to get theme preset
+  try {
+    const config = useRuntimeConfig()
+    const domain = route.path.match(/\/([^/]+)\/services/)?.[1]
+    if (!domain) return
+    const res = await fetch(`${config.public.apiBase}/api/companies/domain/${domain}`)
+    if (res.ok) {
+      const data = await res.json()
+      applyTheme(data.data || data)
+    }
+  } catch {
+    // keep defaults
+  }
+})
+
+const handleFocusBorder = (e) => {
+  e.target.style.borderColor = accentColor.value + '80'
+}
+const handleBlurBorder = (e) => {
+  e.target.style.borderColor = ''
+}
 
 // Get company domain from route
 const companyDomain = computed(() => {

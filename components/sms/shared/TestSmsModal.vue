@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <teleport to="body">
     <transition name="modal">
       <div 
@@ -63,7 +63,7 @@
                   type="tel"
                   placeholder="+233XXXXXXXXX"
                   required
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg cs-input"
                   :disabled="loading"
                 />
                 <p class="text-xs text-gray-500 mt-1">
@@ -81,7 +81,7 @@
                   rows="4"
                   placeholder="Enter your test message..."
                   required
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg cs-input resize-none"
                   :disabled="loading"
                 ></textarea>
                 <p class="text-xs text-gray-500 mt-1">
@@ -96,7 +96,7 @@
                 </label>
                 <select
                   v-model="form.sms_provider"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg cs-input"
                   :disabled="loading"
                 >
                   <option value="nalo">Nalo Solutions</option>
@@ -114,7 +114,7 @@
                   type="text"
                   placeholder="e.g., MyBrand"
                   maxlength="11"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg cs-input"
                   :disabled="loading"
                 />
                 <p class="text-xs text-gray-500 mt-1">
@@ -135,7 +135,7 @@
                 
                 <button
                   type="submit"
-                  class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="flex-1 px-4 py-2 cs-btn text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   :disabled="loading"
                 >
                   <span v-if="loading" class="flex items-center justify-center">

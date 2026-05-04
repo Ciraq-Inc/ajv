@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <teleport to="body">
     <div
       v-if="isOpen"
@@ -22,11 +22,11 @@
         </div>
 
         <!-- Current Balance Display -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mb-4 md:mb-6 mx-4 md:mx-6">
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 md:p-4 mb-4 md:mb-6 mx-4 md:mx-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-xs md:text-sm text-blue-600 font-medium mb-1">Current Money Balance</p>
-              <p class="text-xl md:text-2xl font-bold text-blue-900">GH₵ {{ formatMoney(currentBalance) }}</p>
+              <p class="text-xs md:text-sm cs-text font-medium mb-1">Current Money Balance</p>
+              <p class="text-xl md:text-2xl font-bold cs-text">GH₵ {{ formatMoney(currentBalance) }}</p>
             </div>
             <Icon name="Wallet" class="h-8 w-8 md:h-10 md:w-10 text-blue-400" />
           </div>
@@ -49,7 +49,7 @@
                 max="10000"
                 required
                 placeholder="0.00"
-                class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
+                class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg cs-input text-sm md:text-base"
                 :disabled="processing"
                 @input="calculateTotal"
               />
@@ -69,7 +69,7 @@
               type="email"
               required
               placeholder="your@email.com"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg cs-input text-sm md:text-base"
               :disabled="processing"
             />
             <p class="text-xs text-gray-500 mt-1">
@@ -78,23 +78,23 @@
           </div>
 
           <!-- Auto-Purchase SMS Credits Toggle -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 md:p-4">
             <div class="flex items-start gap-2 md:gap-3">
               <input
                 id="autoPurchaseSMS"
                 v-model="form.autoPurchaseSMS"
                 type="checkbox"
-                class="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
+                class="mt-0.5 h-4 w-4 cs-text cs-input border-gray-300 rounded flex-shrink-0"
                 :disabled="processing"
               />
               <div class="flex-1">
-                <label for="autoPurchaseSMS" class="block text-xs md:text-sm font-medium text-blue-900 cursor-pointer">
+                <label for="autoPurchaseSMS" class="block text-xs md:text-sm font-medium cs-text cursor-pointer">
                   Automatically convert to SMS credits
                 </label>
-                <p class="text-xs text-blue-700 mt-1">
+                <p class="text-xs cs-text mt-1">
                   After payment, your money balance will be automatically converted to SMS credits at the current rate (GH₵{{ smsRate }} per SMS)
                 </p>
-                <p v-if="form.amount && form.autoPurchaseSMS" class="text-xs font-medium text-blue-800 mt-2">
+                <p v-if="form.amount && form.autoPurchaseSMS" class="text-xs font-medium cs-text mt-2">
                   → You'll receive approximately {{ estimatedSMSCredits }} SMS credits
                 </p>
               </div>
@@ -114,7 +114,7 @@
             <div class="border-t border-gray-300 pt-1.5 md:pt-2 mt-1.5 md:mt-2">
               <div class="flex justify-between">
                 <span class="font-semibold text-gray-900 text-xs md:text-sm">Total to Pay:</span>
-                <span class="font-bold text-blue-600 text-base md:text-lg">GH₵ {{ formatMoney(totalAmount) }}</span>
+                <span class="font-bold cs-text text-base md:text-lg">GH₵ {{ formatMoney(totalAmount) }}</span>
               </div>
             </div>
           </div>
@@ -151,7 +151,7 @@
             <button
               type="submit"
               :disabled="!canSubmit || processing"
-              class="px-4 md:px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-md text-sm md:text-base"
+              class="px-4 md:px-6 py-2 cs-btn text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-md text-sm md:text-base"
             >
               <Icon v-if="processing" name="Loader2" class="animate-spin h-4 w-4 md:h-5 md:w-5" />
               <Icon v-else name="CreditCard" class="h-4 w-4 md:h-5 md:w-5" />

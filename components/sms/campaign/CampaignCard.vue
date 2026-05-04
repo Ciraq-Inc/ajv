@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
     <!-- Header -->
     <div class="flex items-start justify-between mb-4">
@@ -37,7 +37,7 @@
       </div>
       <div>
         <p class="text-xs text-gray-500 mb-1">Cost</p>
-        <p class="text-lg font-semibold text-blue-600">
+        <p class="text-lg font-semibold cs-text">
            {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}
         </p>
       </div>
@@ -51,7 +51,7 @@
       </div>
       <div class="w-full bg-gray-200 rounded-full h-2">
         <div 
-          class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+          class="cs-btn h-2 rounded-full transition-all duration-300"
           :style="{ width: `${progressPercentage}%` }"
         ></div>
       </div>
@@ -69,7 +69,7 @@
       <!-- Edit Button (for draft/paused campaigns) -->
       <!-- <button
         @click="$emit('update', campaign.id)"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1"
+        class="px-4 py-2 cs-btn text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
         title="Edit campaign"
       >
         <PencilIcon class="h-4 w-4" />
@@ -97,7 +97,7 @@
       <button
         v-else-if="campaign.status === 'paused'"
         @click="$emit('resume', campaign.id)"
-        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+        class="flex-1 px-4 py-2 cs-btn text-white rounded-lg transition-colors text-sm font-medium"
       >
         <PlayIcon class="h-4 w-4 inline mr-1" />
         Resume

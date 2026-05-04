@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="recipient-selector space-y-4">
     <div class="mb-4">
       <label class="block text-sm font-medium text-gray-700 mb-3">
@@ -13,7 +13,7 @@
             :class="[
               'px-4 py-2 border-b-2 font-medium text-sm',
               selectedType === 'all'
-                ? 'border-blue-500 text-blue-600'
+                ? 'cs-selected'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
@@ -25,7 +25,7 @@
             :class="[
               'px-4 py-2 border-b-2 font-medium text-sm',
               selectedType === 'filtered'
-                ? 'border-blue-500 text-blue-600'
+                ? 'cs-selected'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
@@ -37,7 +37,7 @@
             :class="[
               'px-4 py-2 border-b-2 font-medium text-sm',
               selectedType === 'custom'
-                ? 'border-blue-500 text-blue-600'
+                ? 'cs-selected'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
@@ -49,12 +49,12 @@
 
       <!-- All Customers -->
       <div v-if="selectedType === 'all'" class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
           <div class="flex items-start gap-3">
-            <InformationCircleIcon class="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <InformationCircleIcon class="h-5 w-5 cs-text flex-shrink-0" />
             <div>
-              <p class="text-sm font-medium text-blue-900 mb-1">Send to All Customers</p>
-              <p class="text-sm text-blue-800">
+              <p class="text-sm font-medium cs-text mb-1">Send to All Customers</p>
+              <p class="text-sm cs-text">
                 Your message will be sent to all customers in your database.
               </p>
             </div>
@@ -70,7 +70,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm text-gray-600">Estimated Cost</p>
-              <p class="text-2xl font-bold text-blue-600">{{ estimatedCount * messageParts }} credits</p>
+              <p class="text-2xl font-bold cs-text">{{ estimatedCount * messageParts }} credits</p>
             </div>
           </div>
         </div>
@@ -78,12 +78,12 @@
 
       <!-- Filtered Recipients -->
       <div v-else-if="selectedType === 'filtered'" class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
           <div class="flex items-start gap-3">
-            <InformationCircleIcon class="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <InformationCircleIcon class="h-5 w-5 cs-text flex-shrink-0" />
             <div>
-              <p class="text-sm font-medium text-blue-900 mb-1">Select Specific Customers</p>
-              <p class="text-sm text-blue-800">
+              <p class="text-sm font-medium cs-text mb-1">Select Specific Customers</p>
+              <p class="text-sm cs-text">
                 Choose individual customers to receive this campaign message.
               </p>
             </div>
@@ -99,12 +99,12 @@
                 v-model="customerSearchQuery"
                 type="text"
                 placeholder="Search customers by name or phone..."
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg cs-input text-sm"
               />
             </div>
             <button
               @click="toggleSelectAll"
-              class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50"
+              class="px-4 py-2 text-sm font-medium cs-text cs-border rounded-lg"
             >
               {{ localSelectedCustomers.length === filteredCustomers.length ? 'Deselect All' : 'Select All' }}
             </button>
@@ -113,7 +113,7 @@
           <!-- Loading State -->
           <div v-if="isLoadingCustomers" class="flex items-center justify-center py-8">
             <div class="flex flex-col items-center gap-2">
-              <ArrowPathIcon class="h-6 w-6 text-blue-600 animate-spin" />
+              <ArrowPathIcon class="h-6 w-6 cs-text animate-spin" />
               <p class="text-sm text-gray-600">Loading customers...</p>
             </div>
           </div>
@@ -147,7 +147,7 @@
                 type="checkbox"
                 :checked="isCustomerSelected(customer)"
                 @click.stop="toggleCustomer(customer)"
-                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                class="h-4 w-4 cs-text border-gray-300 rounded cs-input"
               />
               <div class="flex items-center gap-2 flex-1">
                 <UserIcon class="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -171,7 +171,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm text-gray-600">Estimated Cost</p>
-              <p class="text-2xl font-bold text-blue-600">{{ localSelectedCustomers.length * messageParts }} credits</p>
+              <p class="text-2xl font-bold cs-text">{{ localSelectedCustomers.length * messageParts }} credits</p>
             </div>
           </div>
         </div>
@@ -203,7 +203,7 @@
           />
           <button
             @click="$refs.fileInput.click()"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            class="px-4 py-2 cs-btn text-white rounded-lg transition-colors text-sm font-medium"
           >
             Choose File
           </button>
@@ -221,7 +221,7 @@
             @input="updateCustomIds"
             rows="5"
             placeholder="Prince Boateng, 0557706385&#10;Agadzi Desmond, 0592014589&#10;or just:&#10;0557706385&#10;0592014589"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm font-mono"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg cs-input text-sm font-mono"
           ></textarea>
         </div>
 
@@ -262,7 +262,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm text-gray-600">Estimated Cost</p>
-              <p class="text-2xl font-bold text-blue-600">{{ customCount * messageParts }} credits</p>
+              <p class="text-2xl font-bold cs-text">{{ customCount * messageParts }} credits</p>
             </div>
           </div>
         </div>
@@ -278,7 +278,7 @@
         </div>
         <div class="text-right">
           <p class="text-sm font-medium text-gray-700">Total Cost</p>
-          <p class="text-3xl font-bold text-blue-600">{{ totalCost }}</p>
+          <p class="text-3xl font-bold cs-text">{{ totalCost }}</p>
           <p class="text-xs text-gray-500">SMS credits</p>
         </div>
       </div>

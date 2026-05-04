@@ -341,7 +341,7 @@
                             <template v-else>Send Request ›</template>
                         </button>
                         <p v-if="!canSubmit && !isSubmitting" class="text-[11px] text-zinc-400 text-center mt-2">
-                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add delivery address' : '' }}
+                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add delivery address' : !canSearchProducts ? `Top up your wallet to GHS ${requestFee.toFixed(2)} to send` : '' }}
                         </p>
                     </div>
                 </div><!-- /right sidebar -->
@@ -793,7 +793,7 @@
                         <button v-if="submitShortfall > 0" @click="openWalletTab" class="nav-next priority-topup">
                             Top Up Wallet
                         </button>
-                        <button @click="confirmPriorityAndSubmit" :disabled="isSubmitting"
+                        <button v-if="submitShortfall <= 0" @click="confirmPriorityAndSubmit" :disabled="isSubmitting"
                             class="nav-submit priority-submit">
                             <template v-if="isSubmitting">
                                 <ArrowPathIcon class="nav-svg spin" /> Sending...
@@ -1199,7 +1199,11 @@ const canSearchProducts = computed(() => Number(walletBalance.value || 0) >= Num
 const canSubmit = computed(() => {
     const hasRequestContent = validItems.value.length > 0 || prescriptionFiles.value.length > 0
     if (!(hasRequestContent && customerLat.value && fulfillmentType.value)) return false
-    if (fulfillmentType.value === 'delivery') return !!deliveryAddress.value.trim()
+    if (fulfillmentType.value === 'delivery' && !deliveryAddress.value.trim()) return false
+    // Block submission when the wallet can't cover the priority search fee —
+    // the server enforces this too, but disabling here avoids a confusing
+    // round-trip and matches the amber "top up first" warning already shown.
+    if (!canSearchProducts.value) return false
     return true
 })
 

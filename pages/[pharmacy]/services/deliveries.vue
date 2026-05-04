@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Deliveries</h1>
         <p class="text-sm text-gray-500 mt-1">Manage deliveries for your pharmacy</p>
       </div>
-      <button @click="fetchAll" class="text-sm text-blue-600 hover:underline">Refresh</button>
+      <button @click="fetchAll" class="text-sm cs-text hover:underline">Refresh</button>
     </div>
 
     <!-- Loading -->
@@ -26,19 +26,19 @@
                 <div class="text-sm text-gray-500 mt-0.5">To: {{ d.delivery_address }}</div>
                 <div v-if="d.request_number" class="text-xs text-gray-400 mt-0.5">Ref: {{ d.request_number }}</div>
               </div>
-              <span class="text-xs font-medium px-2 py-1 rounded-full shrink-0 bg-blue-100 text-blue-700">
+              <span class="text-xs font-medium px-2 py-1 rounded-full shrink-0 cs-badge">
                 rider proposed
               </span>
             </div>
-            <div v-if="d.driver_id" class="mb-3 p-3 bg-blue-50 rounded-lg">
-              <div class="text-sm font-medium text-blue-800 mb-1">Proposed Rider</div>
-              <div class="text-sm text-blue-700">{{ d.driver_name }} — {{ d.driver_phone }}</div>
+            <div v-if="d.driver_id" class="mb-3 p-3 bg-purple-50 rounded-lg">
+              <div class="text-sm font-medium cs-text mb-1">Proposed Rider</div>
+              <div class="text-sm cs-text">{{ d.driver_name }} — {{ d.driver_phone }}</div>
             </div>
             <div class="flex flex-wrap gap-2">
               <button
                 @click="confirmRider(d.id)"
                 :disabled="acting === d.id"
-                class="flex-1 py-2 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-md transition disabled:opacity-50"
+                class="flex-1 py-2 px-4 text-sm font-medium cs-btn text-white rounded-md transition disabled:opacity-50"
               >
                 {{ acting === d.id ? '...' : 'Confirm Rider' }}
               </button>
@@ -84,12 +84,12 @@
             <div v-else-if="d.delivery_status === 'assigned'">
               <div v-if="riders.length === 0" class="text-sm text-gray-500 mb-2">
                 No riders in your fleet.
-                <NuxtLink :to="`/${pharmacy}/services/riders`" class="text-blue-600 hover:underline">Add a rider →</NuxtLink>
+                <NuxtLink :to="`/${pharmacy}/services/riders`" class="cs-text hover:underline">Add a rider →</NuxtLink>
               </div>
               <div v-else class="flex gap-2">
                 <select
                   v-model="riderSelections[d.id]"
-                  class="flex-1 border border-gray-300 rounded-md text-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="flex-1 border border-gray-300 rounded-md text-sm px-3 py-2 cs-input"
                 >
                   <option value="">Select a rider...</option>
                   <option v-for="r in riders" :key="r.id" :value="r.id">
@@ -99,7 +99,7 @@
                 <button
                   @click="assignRider(d.id)"
                   :disabled="acting === d.id || !riderSelections[d.id]"
-                  class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-md transition disabled:opacity-50"
+                  class="px-4 py-2 text-sm font-medium cs-btn text-white rounded-md transition disabled:opacity-50"
                 >
                   {{ acting === d.id ? '...' : 'Assign' }}
                 </button>
@@ -151,7 +151,7 @@ const claimed = computed(() => claimedDeliveries.value)
 const statusClass = (status) => {
   const map = {
     open: 'bg-orange-100 text-orange-700',
-    rider_proposed: 'bg-blue-100 text-blue-700',
+    rider_proposed: 'cs-badge',
     assigned: 'bg-purple-100 text-purple-700',
     picking_up: 'bg-yellow-100 text-yellow-700',
     picked_up: 'bg-indigo-100 text-indigo-700',

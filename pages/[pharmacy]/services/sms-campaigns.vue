@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sms-campaigns-page">
     <!-- Header -->
     <div class="mb-4 md:mb-6">
@@ -9,7 +9,7 @@
         </div>
         <button
           @click="showCreateModal = true"
-          class="px-4 md:px-6 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium text-sm md:text-base whitespace-nowrap"
+          class="px-4 md:px-6 py-2.5 md:py-3 cs-btn text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm md:text-base whitespace-nowrap"
         >
           <PlusIcon class="h-5 w-5" />
           <span class="hidden xs:inline">Create Campaign</span>
@@ -30,8 +30,8 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
       <div class="bg-white p-3 md:p-4 rounded-lg border border-gray-200">
         <div class="flex items-center gap-2 md:gap-3">
-          <div class="bg-blue-100 p-2 md:p-3 rounded-lg">
-            <InboxIcon class="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
+          <div class="bg-purple-100 p-2 md:p-3 rounded-lg">
+            <InboxIcon class="h-5 w-5 md:h-6 md:w-6 cs-text" />
           </div>
           <div>
             <p class="text-xs md:text-sm text-gray-600">Total Campaigns</p>
@@ -104,7 +104,7 @@
           <select
             v-model="filters.status"
             @change="applyFilters"
-            class="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
+            class="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg cs-input text-sm md:text-base"
           >
             <option value="">All Statuses</option>
             <option value="draft">Draft</option>
@@ -122,7 +122,7 @@
           <select
             v-model="filters.provider"
             @change="applyFilters"
-            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="px-4 py-2 border border-gray-300 rounded-lg cs-input"
           >
             <option value="">All Providers</option>
             <option value="nalo">Nalo Solutions</option>
@@ -137,7 +137,7 @@
           @click="toggleShowArchived"
           class="px-3 md:px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium text-sm md:text-base"
           :class="showArchived 
-            ? 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200' 
+            ? 'cs-badge border cs-border hover:opacity-90'
             : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'"
         >
           <ArchiveBoxIcon class="h-4 w-4" />
@@ -158,7 +158,7 @@
 
     <!-- Loading State -->
     <div v-if="loading && campaigns.length === 0" class="text-center py-12">
-      <ArrowPathIcon class="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+      <ArrowPathIcon class="h-12 w-12 animate-spin mx-auto mb-4 cs-text" />
       <p class="text-gray-600">Loading campaigns...</p>
     </div>
 
@@ -172,7 +172,7 @@
       <button
         v-if="campaigns.length === 0"
         @click="showCreateModal = true"
-        class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        class="inline-flex items-center gap-2 px-6 py-3 cs-btn text-white rounded-lg transition-colors font-medium"
       >
         <PlusIcon class="h-5 w-5" />
         Create Your First Campaign
@@ -277,11 +277,11 @@
                 v-model="reuseFormData.newName"
                 type="text"
                 placeholder="Enter campaign name"
-                class="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
+                class="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg cs-input text-sm md:text-base"
               />
             </div>
 
-            <p class="text-xs md:text-sm text-gray-600 bg-blue-50 p-3 rounded">
+            <p class="text-xs md:text-sm text-gray-600 bg-purple-50 p-3 rounded">
               ℹ️ A copy of this campaign will be created as a draft. You can edit it before sending.
             </p>
           </div>
@@ -296,7 +296,7 @@
           </button>
           <button
             @click="handleReuseSubmit"
-            class="px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm md:text-base"
+            class="px-3 md:px-4 py-2 cs-btn text-white rounded-lg font-medium text-sm md:text-base"
           >
             Reuse Campaign
           </button>
@@ -319,11 +319,11 @@
           
           <div class="space-y-3 md:space-y-4">
             <!-- Campaign Info -->
-            <div class="bg-blue-50 p-3 md:p-4 rounded border border-blue-200">
-              <p class="text-xs md:text-sm text-blue-900 font-medium mb-2">
+            <div class="bg-purple-50 p-3 md:p-4 rounded border border-purple-200">
+              <p class="text-xs md:text-sm cs-text font-medium mb-2">
                 {{ campaigns.find(c => c.id === resendFormData.campaignId)?.name }}
               </p>
-              <div class="grid grid-cols-2 gap-2 text-xs text-blue-800">
+              <div class="grid grid-cols-2 gap-2 text-xs cs-text">
                 <div>
                   <span class="font-medium">Total Recipients:</span>
                   <span class="ml-1">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.total_recipients || 0 }}</span>
@@ -347,12 +347,12 @@
 
             <div class="space-y-3">
               <label class="flex items-start gap-3 cursor-pointer p-3 rounded border-2 transition-all hover:bg-gray-50"
-                     :class="!resendFormData.toFailedOnly ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
+                     :class="!resendFormData.toFailedOnly ? 'cs-selected' : 'border-gray-200'">
                 <input
                   v-model="resendFormData.toFailedOnly"
                   :value="false"
                   type="radio"
-                  class="w-4 h-4 text-blue-600 mt-0.5"
+                  class="w-4 h-4 cs-text mt-0.5"
                 />
                 <div class="flex-1">
                   <span class="text-gray-900 font-medium">Resend to all recipients</span>

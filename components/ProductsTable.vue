@@ -25,6 +25,7 @@
       <table class="w-full min-w-full table-fixed">
         <thead class="bg-gray-600 border-b">
           <tr>
+            <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider w-16">Image</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
             <th v-if="!props.hidePrices" class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">
               Price</th>
@@ -36,6 +37,16 @@
         </thead>
         <tbody class="divide-y divide-gray-200">
           <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-gray-50 transition-colors">
+            <td class="p-3">
+              <div class="h-10 w-10 rounded overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
+                <img v-if="product.productImageUrl" :src="product.productImageUrl" :alt="product.brandName"
+                  class="h-full w-full object-cover" @error="handleImageError" />
+                <svg v-else class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </td>
             <td class="p-3 text-sm font-medium text-gray-900">
               {{ product.brandName }}
             </td>
@@ -71,11 +82,10 @@
             </td>
             <td class="p-3">
               <button @click="handleAddToCart(product)" :disabled="product.stockQty <= 0 || !isProductActive(product)" :class="[
-                'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out',
+                'px-4 py-2 text-sm rounded transition-all duration-300 ease-in-out text-white add-btn',
                 {
-                  'bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400': !product.justAdded,
-                  'bg-green-700 text-white transform scale-95 cursor-default': product.justAdded,
-                  'cursor-not-allowed': product.stockQty <= 0 || !isProductActive(product)
+                  'opacity-50 cursor-not-allowed': product.stockQty <= 0 || !isProductActive(product),
+                  'scale-95': product.justAdded,
                 }
               ]">
                 <i class="ri-shopping-cart-line text-xs mr-1"></i>
@@ -119,6 +129,10 @@ const productItems = ref([]);
 
 const isProductActive = (product) =>
   !(product?.isActive === false || product?.isActive === 0 || product?.isActive === '0');
+
+const handleImageError = (event) => {
+  event.target.style.display = 'none';
+};
 
 // Add loading state
 const loading = ref(true);
@@ -264,7 +278,7 @@ const handleAddToCart = (product) => {
     name: product.brandName,
     price: product.sellingPrice,
     quantity: product.quantity || 1,  // Use the quantity from UI
-    image: product.imageUrl,
+    image: product.productImageUrl,
     pharmacyId: pharmacyStore.currentPharmacy,
     unit: product.unit || 'unit'
   });
@@ -280,3 +294,15 @@ const handleAddToCart = (product) => {
   emit('itemAddedToCart', product);
 };
 </script>
+
+<style scoped>
+.add-btn {
+  background-color: var(--shopfront-accent, #16a34a);
+}
+.add-btn:hover:not(:disabled) {
+  filter: brightness(0.9);
+}
+.add-btn:active:not(:disabled) {
+  filter: brightness(0.82);
+}
+</style>

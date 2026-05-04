@@ -1,19 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 160">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <!-- Background -->
-  <rect width="180" height="160" fill="#f3f4f6" rx="8" ry="8"/>
-  
-  <!-- Pharmacy Cross -->
-  <rect x="75" y="40" width="30" height="80" fill="#60a5fa" rx="4" ry="4"/>
-  <rect x="50" y="65" width="80" height="30" fill="#60a5fa" rx="4" ry="4"/>
-  
-  <!-- Medicine Pill -->
-  <ellipse cx="50" cy="120" rx="25" ry="15" fill="#e5e7eb" stroke="#d1d5db" stroke-width="2"/>
-  <line x1="38" y1="120" x2="62" y2="120" stroke="#d1d5db" stroke-width="2"/>
-  
-  <!-- Medicine Bottle -->
-  <path d="M130,120 L145,120 L145,85 C145,80 140,80 140,80 L135,80 C135,80 130,80 130,85 Z" fill="#e5e7eb" stroke="#d1d5db" stroke-width="2"/>
-  <rect x="130" y="75" width="15" height="5" fill="#e5e7eb" stroke="#d1d5db" stroke-width="2"/>
-  
-  <!-- Text -->
-  <text x="90" y="145" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#6b7280">No Image</text>
+  <rect width="200" height="200" fill="#f8fafc"/>
+
+  <!-- Soft circle backdrop -->
+  <circle cx="100" cy="97" r="54" fill="#f1f5f9"/>
+
+  <!-- Pill drop shadow -->
+  <g transform="translate(103,101) rotate(-35)">
+    <rect x="-39" y="-14" width="78" height="28" rx="14" fill="#94a3b8" opacity="0.18"/>
+  </g>
+
+  <!-- Two-tone capsule pill -->
+  <g transform="translate(100,97) rotate(-35)">
+    <!-- Left half: indigo -->
+    <rect x="-39" y="-14" width="78" height="28" rx="14" fill="#a5b4fc"/>
+    <!-- Right cap: lighter lavender -->
+    <path d="M0,-14 L25,-14 A14,14 0 0,1 39,0 A14,14 0 0,1 25,14 L0,14 Z" fill="#e0e7ff"/>
+    <!-- Outer ring -->
+    <rect x="-39" y="-14" width="78" height="28" rx="14" fill="none" stroke="#818cf8" stroke-width="1.5" opacity="0.35"/>
+    <!-- Centre divider -->
+    <line x1="0" y1="-14" x2="0" y2="14" stroke="white" stroke-width="2" opacity="0.65"/>
+    <!-- Shine highlight on left half -->
+    <ellipse cx="-16" cy="-5" rx="10" ry="4.5" fill="white" opacity="0.22" transform="rotate(5,-16,-5)"/>
+  </g>
+
+  <!-- Corner accent dots -->
+  <circle cx="40" cy="40" r="6" fill="#e0e7ff"/>
+  <circle cx="160" cy="40" r="9" fill="#ede9fe" opacity="0.75"/>
+  <circle cx="40" cy="160" r="9" fill="#ede9fe" opacity="0.75"/>
+  <circle cx="160" cy="160" r="6" fill="#e0e7ff"/>
 </svg>

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="campaign-details-page">
     <!-- Header with back button -->
     <div class="mb-6">
@@ -30,7 +30,7 @@
           <button
             v-if="campaign.status === 'draft'"
             @click="startCampaign"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            class="px-4 py-2 cs-btn text-white rounded-lg transition-colors flex items-center gap-2"
           >
             <Icon name="Play" class="h-4 w-4" />
             Start Campaign
@@ -68,7 +68,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <Icon name="Loader2" class="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+      <Icon name="Loader2" class="h-12 w-12 animate-spin mx-auto mb-4 cs-text" />
       <p class="text-gray-600">Loading campaign details...</p>
     </div>
 
@@ -91,8 +91,8 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-white p-4 rounded-lg border border-gray-200">
           <div class="flex items-center gap-3">
-            <div class="bg-blue-100 p-3 rounded-lg">
-              <Icon name="Users" class="h-6 w-6 text-blue-600" />
+            <div class="bg-purple-100 p-3 rounded-lg">
+              <Icon name="Users" class="h-6 w-6 cs-text" />
             </div>
             <div>
               <p class="text-sm text-gray-600">Total Recipients</p>
@@ -194,7 +194,7 @@
 
         <!-- Logs Loading -->
         <div v-if="loadingLogs" class="text-center py-8">
-          <Icon name="Loader2" class="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
+          <Icon name="Loader2" class="h-8 w-8 animate-spin mx-auto mb-2 cs-text" />
           <p class="text-gray-600">Loading logs...</p>
         </div>
 
@@ -233,7 +233,7 @@
                     v-if="log.billing_status"
                     :class="[
                       'px-2 py-1 rounded-full text-xs font-medium',
-                      log.billing_status === 'billed' ? 'bg-blue-100 text-blue-800' :
+                      log.billing_status === 'billed' ? 'cs-badge' :
                       log.billing_status === 'refunded' ? 'bg-purple-100 text-purple-800' :
                       'bg-gray-100 text-gray-800'
                     ]"
@@ -379,7 +379,7 @@ const formatDate = (date) => {
 const getStatusClass = (status) => {
   const classes = {
     draft: 'bg-gray-100 text-gray-800',
-    sending: 'bg-blue-100 text-blue-800',
+    sending: 'cs-badge',
     completed: 'bg-green-100 text-green-800',
     paused: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-red-100 text-red-800'
