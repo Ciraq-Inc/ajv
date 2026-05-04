@@ -3671,12 +3671,15 @@ const fetchRequestDeliveries = async (requestId) => {
 
 const initiateDeliveries = async () => {
   if (!selectedRequest.value?.id) return
+  loadingDeliveries.value = true
   try {
     const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/initiate-deliveries`)
     requestDeliveries.value = Array.isArray(res.data) ? res.data : []
     showMessage(res.message || 'Deliveries initiated', 'success')
   } catch (e) {
     showMessage(e.message || 'Failed to initiate deliveries', 'error')
+  } finally {
+    loadingDeliveries.value = false
   }
 }
 
