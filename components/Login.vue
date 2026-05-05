@@ -28,338 +28,211 @@
         <!-- Modal Body -->
         <div class="bg-[#ffffff] p-6">
 
-        <div v-if="errorMessage" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm">{{ errorMessage }}</p>
+          <div v-if="errorMessage" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm">{{ errorMessage }}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Step 1: Phone Number Input -->
-        <div v-if="currentStep === 'phone'">
-          <form @submit.prevent="checkPhone">
-            <div class="mb-4">
-              <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
-              <div class="flex">
-                <span
-                  class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453]">
-                  +233
-                </span>
-                <input v-model="phoneNumber" type="tel" id="phoneNumber"
-                  :class="phoneInputClass"
-                  placeholder="eg. 24 123 4567" required @input="validatePhoneNumber">
-              </div>
-              <p v-if="phoneNumberError" class="mt-1 text-sm text-red-600">{{ phoneNumberError }}</p>
-              <p v-else class="mt-1 text-xs text-[#7d7484]">Enter your registered phone number</p>
-            </div>
-
-            <div class="mt-6 flex justify-end space-x-3">
-              <button type="submit" :disabled="isLoading"
-                :class="primaryButtonClass">
-                <span v-if="isLoading" class="flex items-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                  </svg>
-                  Checking...
-                </span>
-                <span v-else>Continue</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Step 2a: Password Login (Registered Customer) -->
-        <div v-else-if="currentStep === 'password'">
-          <form @submit.prevent="handleLogin">
-            <div :class="subtleCardClass">
-              <p>Logging in as: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
-            </div>
-
-            <div class="mb-4">
-              <label for="password" class="mb-1 block text-sm font-semibold text-[#4c4453]">Password</label>
-              <input v-model="password" type="password" id="password"
-                :class="inputClass"
-                placeholder="Enter your password" required minlength="6">
-            </div>
-
-            <div class="mb-4 flex items-center justify-between gap-3 rounded-2xl border-none bg-[#f4ebf7] px-4 py-3 text-sm">
-              <div class="flex items-center">
-                <input id="remember-me" v-model="rememberMe" type="checkbox"
-                  class="h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]">
-                <label for="remember-me" class="ml-2 block text-sm text-[#4c4453]">
-                  Keep me logged in
-                </label>
-              </div>
-              <button type="button" @click="forgotPassword" class="text-sm font-medium text-[#520094] hover:text-[#6c24b3]">
-                Forgot password?
-              </button>
-            </div>
-
-            <div class="mt-6 flex justify-end space-x-3">
-              <button type="button" @click="backToPhone"
-                :class="secondaryButtonClass">
-                Back
-              </button>
-              <button type="submit" :disabled="isLoading"
-                :class="primaryButtonClass">
-                <span v-if="isLoading" class="flex items-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                  </svg>
-                  Logging in...
-                </span>
-                <span v-else>Login</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Step 2b: Setup Password (Existing Customer, No Password) -->
-        <div v-else-if="currentStep === 'setup'">
-          <form @submit.prevent="handleSetupPassword">
-            <div :class="subtleCardClass">
-              <p>Setting up password for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
-              <p class="text-xs mt-1 text-[#7d7484]">Complete your profile and we'll send you a verification code</p>
-            </div>
-
-            <div class="mb-4" v-if="!otpSent">
-              <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label for="setupFirstName" class="block text-sm font-medium text-[#4c4453] mb-1">First Name</label>
-                  <input v-model="firstName" type="text" id="setupFirstName"
-                    :class="inputClass"
-                    placeholder="John" required>
+          <!-- Sign in (unified single screen) -->
+          <div v-if="currentStep === 'signin'">
+            <form @submit.prevent="onSignInSubmit">
+              <!-- Always visible: phone -->
+              <div class="mb-4">
+                <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
+                <div class="flex">
+                  <span
+                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453]">
+                    +233
+                  </span>
+                  <input v-model="phoneNumber" type="tel" id="phoneNumber"
+                    :class="phoneInputClass"
+                    placeholder="eg. 24 123 4567" required @input="onPhoneInput">
                 </div>
-                <div>
-                  <label for="setupLastName" class="block text-sm font-medium text-[#4c4453] mb-1">Last Name</label>
-                  <input v-model="lastName" type="text" id="setupLastName"
-                    :class="inputClass"
-                    placeholder="Doe" required>
-                </div>
+                <p v-if="phoneNumberError" class="mt-1 text-sm text-red-600">{{ phoneNumberError }}</p>
               </div>
 
-              <div class="mb-4">
-                <label for="setupEmail" class="block text-sm font-medium text-[#4c4453] mb-1">Email (Optional)</label>
-                <input v-model="email" type="email" id="setupEmail"
+              <!-- Always visible: password -->
+              <div class="mb-3">
+                <label for="password" class="mb-1 block text-sm font-semibold text-[#4c4453]">Password</label>
+                <input v-model="password" type="password" id="password"
                   :class="inputClass"
-                  placeholder="john@example.com">
+                  placeholder="Enter your password" required minlength="6">
               </div>
 
-              <div class="mb-4">
-                <label for="setupGender" class="block text-sm font-medium text-[#4c4453] mb-1">Gender</label>
-                <select v-model="gender" id="setupGender"
-                  :class="inputClass"
-                  required>
-                  <option value="">Select your gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
-                </select>
-              </div>
-
-              <div class="mb-4">
-                <div class="flex items-start">
-                  <input id="ageVerification" v-model="isOver18" type="checkbox"
-                    class="mt-1 h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]" required>
-                  <label for="ageVerification" class="ml-2 block text-sm text-[#4c4453]">
-                    I confirm that I am 18 years or older <span class="text-red-500">*</span>
+              <!-- Remember + forgot -->
+              <div class="mb-4 flex items-center justify-between gap-3 rounded-2xl border-none bg-[#f4ebf7] px-4 py-3 text-sm">
+                <div class="flex items-center">
+                  <input id="remember-me" v-model="rememberMe" type="checkbox"
+                    class="h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]">
+                  <label for="remember-me" class="ml-2 block text-sm text-[#4c4453]">
+                    Keep me logged in
                   </label>
                 </div>
+                <button type="button" @click="forgotPassword" class="text-sm font-medium text-[#520094] hover:text-[#6c24b3]">
+                  Forgot password?
+                </button>
               </div>
 
-              <button type="button" @click="sendOTP" :disabled="isLoading || !firstName || !lastName || !gender || !isOver18"
-                :class="fullPrimaryButtonClass">
-                <span v-if="isLoading">Sending OTP...</span>
-                <span v-else>Send Verification Code</span>
+              <!-- Reveal: verify (existing customer, no password) -->
+              <Transition
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-active-class="transition duration-200 ease-out"
+                leave-to-class="opacity-0 -translate-y-2"
+                leave-active-class="transition duration-150 ease-in"
+              >
+                <div v-if="mode === 'verify'" class="mb-4 rounded-2xl bg-[#f7efff] border border-[#e9d6fb] p-4">
+                  <p class="text-sm font-semibold text-[#1e1a22]">Quick verification</p>
+                  <p class="mt-1 text-xs text-[#4c4453]">
+                    We sent a 6-digit code to <strong>{{ formattedPhoneNumber }}</strong> to confirm it's you.
+                  </p>
+                  <div class="mt-3">
+                    <label for="verifyOtp" class="sr-only">Verification code</label>
+                    <input v-model="otp" type="text" id="verifyOtp"
+                      :class="inputClass"
+                      placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+                  </div>
+                  <button type="button" @click="resendVerifyOTP" :disabled="isLoading"
+                    class="mt-2 text-xs font-medium text-[#520094] hover:text-[#6c24b3] disabled:opacity-50">
+                    Resend code
+                  </button>
+                </div>
+              </Transition>
+
+              <!-- Reveal: register (new customer) -->
+              <Transition
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-active-class="transition duration-200 ease-out"
+                leave-to-class="opacity-0 -translate-y-2"
+                leave-active-class="transition duration-150 ease-in"
+              >
+                <div v-if="mode === 'register'" class="mb-4 rounded-2xl bg-[#f7efff] border border-[#e9d6fb] p-4 space-y-3">
+                  <div>
+                    <p class="text-sm font-semibold text-[#1e1a22]">Almost there</p>
+                    <p class="mt-1 text-xs text-[#4c4453]">
+                      A couple more details and we'll create your account for <strong>{{ formattedPhoneNumber }}</strong>.
+                    </p>
+                    <div v-if="registrationCompany" class="mt-2 inline-flex items-center rounded-full border border-[#cec2d5] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#520094]">
+                      Linked at signup: {{ registrationCompany }}
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="fname" class="block text-sm font-medium text-[#4c4453] mb-1">First name</label>
+                      <input v-model="firstName" type="text" id="fname"
+                        :class="inputClass" placeholder="John" required>
+                    </div>
+                    <div>
+                      <label for="lname" class="block text-sm font-medium text-[#4c4453] mb-1">Last name</label>
+                      <input v-model="lastName" type="text" id="lname"
+                        :class="inputClass" placeholder="Doe" required>
+                    </div>
+                  </div>
+                  <div>
+                    <label for="email" class="block text-sm font-medium text-[#4c4453] mb-1">Email (optional)</label>
+                    <input v-model="email" type="email" id="email"
+                      :class="inputClass" placeholder="john@example.com">
+                  </div>
+                  <div>
+                    <label for="regOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification code</label>
+                    <input v-model="otp" type="text" id="regOtp"
+                      :class="inputClass"
+                      placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+                    <button type="button" @click="resendRegisterOTP" :disabled="isLoading"
+                      class="mt-1 text-xs font-medium text-[#520094] hover:text-[#6c24b3] disabled:opacity-50">
+                      Resend code
+                    </button>
+                  </div>
+                  <div class="flex items-start">
+                    <input id="ageVerification" v-model="isOver18" type="checkbox"
+                      class="mt-1 h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]" required>
+                    <label for="ageVerification" class="ml-2 block text-xs text-[#4c4453]">
+                      I confirm I am 18 years or older <span class="text-red-500">*</span>
+                    </label>
+                  </div>
+                </div>
+              </Transition>
+
+              <!-- Single primary button - label changes by mode -->
+              <button type="submit" :disabled="isLoading || !canSubmit" :class="fullPrimaryButtonClass">
+                <span v-if="isLoading" class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                  </svg>
+                  {{ submittingLabel }}
+                </span>
+                <span v-else>{{ submitLabel }}</span>
               </button>
-            </div>
+            </form>
+          </div>
 
-            <div v-if="otpSent">
-              <div class="mb-4">
-                <label for="otp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
-                <input v-model="otp" type="text" id="otp"
-                  :class="inputClass"
-                  placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+          <!-- Reset Password (separate flow) -->
+          <div v-else-if="currentStep === 'reset'">
+            <form @submit.prevent="handleResetPassword">
+              <div :class="subtleCardClass">
+                <p>Resetting password for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
+                <p class="text-xs mt-1 text-[#7d7484]">We'll send you a verification code</p>
               </div>
 
-              <div class="mb-4">
-                <label for="newPassword" class="block text-sm font-medium text-[#4c4453] mb-1">New Password</label>
-                <input v-model="password" type="password" id="newPassword"
-                  :class="inputClass"
-                  placeholder="Create a password (min. 6 characters)" required minlength="6">
-              </div>
-
-              <div class="mb-4">
-                <label for="confirmPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm Password</label>
-                <input v-model="confirmPassword" type="password" id="confirmPassword"
-                  :class="inputClass"
-                  placeholder="Re-enter your password" required minlength="6">
-                <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
-                  Passwords do not match
-                </p>
-              </div>
-
-              <div class="mt-6 flex justify-end space-x-3">
-                <button type="button" @click="backToPhone"
-                  :class="secondaryButtonClass">
-                  Back
-                </button>
-                <button type="submit" :disabled="isLoading || !otp || password !== confirmPassword"
-                  :class="primaryButtonClass">
-                  <span v-if="isLoading">Setting up...</span>
-                  <span v-else>Setup Password</span>
+              <div class="mb-4" v-if="!otpSent">
+                <button type="button" @click="sendResetOTP" :disabled="isLoading"
+                  :class="fullPrimaryButtonClass">
+                  <span v-if="isLoading">Sending Reset Code...</span>
+                  <span v-else>Send Reset Code</span>
                 </button>
               </div>
-            </div>
-          </form>
-        </div>
 
-        <!-- Step 2c: Register (New Customer) -->
-        <div v-else-if="currentStep === 'register'">
-          <form @submit.prevent="handleRegister">
-            <div :class="subtleCardClass">
-              <p>Creating new account for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
-              <p class="mt-2 text-xs text-[#7d7484]">{{ registrationHint }}</p>
-              <div v-if="registrationCompany" class="mt-3 inline-flex items-center rounded-full border border-[#cec2d5] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#520094]">
-                Linked at signup: {{ registrationCompany }}
+              <div v-if="otpSent">
+                <div class="mb-4">
+                  <label for="resetOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
+                  <input v-model="otp" type="text" id="resetOtp"
+                    :class="inputClass"
+                    placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+                </div>
+
+                <div class="mb-4">
+                  <label for="resetPassword" class="block text-sm font-medium text-[#4c4453] mb-1">New Password</label>
+                  <input v-model="password" type="password" id="resetPassword"
+                    :class="inputClass"
+                    placeholder="Enter new password (min. 6 characters)" required minlength="6">
+                </div>
+
+                <div class="mb-4">
+                  <label for="resetConfirmPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm New Password</label>
+                  <input v-model="confirmPassword" type="password" id="resetConfirmPassword"
+                    :class="inputClass"
+                    placeholder="Re-enter new password" required minlength="6">
+                  <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
+                    Passwords do not match
+                  </p>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                  <button type="button" @click="backToSignIn"
+                    :class="secondaryButtonClass">
+                    Cancel
+                  </button>
+                  <button type="submit" :disabled="isLoading || !otp || password !== confirmPassword"
+                    :class="primaryButtonClass">
+                    <span v-if="isLoading">Resetting...</span>
+                    <span v-else>Reset Password</span>
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label for="fname" class="block text-sm font-medium text-[#4c4453] mb-1">First Name</label>
-                <input v-model="firstName" type="text" id="fname"
-                  :class="inputClass"
-                  placeholder="John" required>
-              </div>
-              <div>
-                <label for="lname" class="block text-sm font-medium text-[#4c4453] mb-1">Last Name</label>
-                <input v-model="lastName" type="text" id="lname"
-                  :class="inputClass"
-                  placeholder="Doe" required>
-              </div>
-            </div>
-
-            <div class="mb-4">
-                <label for="email" class="block text-sm font-medium text-[#4c4453] mb-1">Email (Optional)</label>
-                <input v-model="email" type="email" id="email"
-                  :class="inputClass"
-                placeholder="john@example.com">
-            </div>
-
-            <div class="mb-4" v-if="!otpSent">
-              <button type="button" @click="sendRegistrationOTP" :disabled="isLoading"
-                :class="fullPrimaryButtonClass">
-                <span v-if="isLoading">Sending OTP...</span>
-                <span v-else>Continue</span>
-              </button>
-            </div>
-
-            <div v-if="otpSent">
-              <div class="mb-4">
-                <label for="regOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
-                <input v-model="otp" type="text" id="regOtp"
-                  :class="inputClass"
-                  placeholder="Enter 6-digit code" required maxlength="6">
-              </div>
-
-              <div class="mb-4">
-                <label for="regPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Password</label>
-                <input v-model="password" type="password" id="regPassword"
-                  :class="inputClass"
-                  placeholder="Create a password (min. 6 characters)" required minlength="6">
-              </div>
-
-              <div class="mt-6 flex justify-end space-x-3">
-                <button type="button" @click="backToPhone"
-                  :class="secondaryButtonClass">
-                  Back
-                </button>
-                <button type="submit" :disabled="isLoading || !otp || !firstName || !lastName"
-                  :class="primaryButtonClass">
-                  <span v-if="isLoading">Registering...</span>
-                  <span v-else>Create Account</span>
-                </button>
-              </div>
-            </div>
-            <div class="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              Join 5,000+ Ghanaians using MedsGH to skip the pharmacy queue.
-            </div>
-          </form>
-        </div>
-
-        <!-- Step 2d: Reset Password -->
-        <div v-else-if="currentStep === 'reset'">
-          <form @submit.prevent="handleResetPassword">
-            <div :class="subtleCardClass">
-              <p>Resetting password for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
-              <p class="text-xs mt-1 text-[#7d7484]">We'll send you a verification code</p>
-            </div>
-
-            <div class="mb-4" v-if="!otpSent">
-              <button type="button" @click="sendResetOTP" :disabled="isLoading"
-                :class="fullPrimaryButtonClass">
-                <span v-if="isLoading">Sending Reset Code...</span>
-                <span v-else>Send Reset Code</span>
-              </button>
-            </div>
-
-            <div v-if="otpSent">
-              <div class="mb-4">
-                <label for="resetOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
-                <input v-model="otp" type="text" id="resetOtp"
-                  :class="inputClass"
-                  placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
-              </div>
-
-              <div class="mb-4">
-                <label for="resetPassword" class="block text-sm font-medium text-[#4c4453] mb-1">New Password</label>
-                <input v-model="password" type="password" id="resetPassword"
-                  :class="inputClass"
-                  placeholder="Enter new password (min. 6 characters)" required minlength="6">
-              </div>
-
-              <div class="mb-4">
-                <label for="resetConfirmPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm New Password</label>
-                <input v-model="confirmPassword" type="password" id="resetConfirmPassword"
-                  :class="inputClass"
-                  placeholder="Re-enter new password" required minlength="6">
-                <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
-                  Passwords do not match
-                </p>
-              </div>
-
-              <div class="mt-6 flex justify-end space-x-3">
-                <button type="button" @click="backToPhone"
-                  :class="secondaryButtonClass">
-                  Cancel
-                </button>
-                <button type="submit" :disabled="isLoading || !otp || password !== confirmPassword"
-                  :class="primaryButtonClass">
-                  <span v-if="isLoading">Resetting...</span>
-                  <span v-else>Reset Password</span>
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -387,8 +260,9 @@ const secondaryButtonClass = 'rounded-full border-none bg-[#e9dfec] px-6 py-3 te
 const primaryButtonClass = 'rounded-xl bg-[#520094] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
 const fullPrimaryButtonClass = 'w-full rounded-xl bg-[#520094] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
 
-// State management
-const currentStep = ref('phone'); // 'phone' | 'password' | 'setup' | 'register' | 'reset'
+// State
+const currentStep = ref('signin'); // 'signin' | 'reset'
+const mode = ref('login'); // within signin: 'login' | 'verify' | 'register'
 const phoneNumber = ref('');
 const password = ref('');
 const confirmPassword = ref('');
@@ -404,39 +278,51 @@ const errorMessage = ref('');
 const phoneNumberError = ref('');
 const rememberMe = ref(true);
 
-const isSecondStep = computed(() => currentStep.value !== 'phone');
 const registrationCompany = computed(() => pharmacyStore.pharmacyData?.name || null);
 
-const registrationHint = computed(() => (
-  registrationCompany.value
-    ? `You are registering with ${registrationCompany.value}. Store orders will be available there immediately after signup.`
-    : 'This creates your main customer account for requests and wallet access. Right after signup, we move you straight into your first request.'
-));
-
 const stepTitle = computed(() => {
-  if (currentStep.value === 'phone') return "What's your phone number?";
-  if (currentStep.value === 'password') return 'Welcome back';
-  if (currentStep.value === 'setup') return 'Set up your password';
   if (currentStep.value === 'reset') return 'Reset your password';
-  return "Create your account";
+  if (mode.value === 'verify') return 'Quick verification';
+  if (mode.value === 'register') return 'Create your account';
+  return 'Sign in to MedsGh';
 });
 
 const stepSubtitle = computed(() => {
-  if (currentStep.value === 'phone') return "We'll find your account or create one for you.";
-  if (currentStep.value === 'password') return 'Enter your password to continue.';
-  if (currentStep.value === 'setup') return 'Create a password to activate your account.';
   if (currentStep.value === 'reset') return 'Verify your number and set a new password.';
-  return registrationCompany.value
-    ? `Registering with ${registrationCompany.value}. Orders will be available there right after signup.`
-    : 'One short step, then straight into your first medicine request.';
+  if (mode.value === 'verify') return 'Confirm the code we sent and we\'ll activate your account.';
+  if (mode.value === 'register') {
+    return registrationCompany.value
+      ? `Registering with ${registrationCompany.value}. Orders will be available there right after signup.`
+      : 'A couple more details and you\'re in.';
+  }
+  return 'Welcome back. Enter your phone and password.';
 });
 
-const stepStageLabel = computed(() => {
-  if (currentStep.value === 'phone') return 'Access';
-  if (currentStep.value === 'password') return 'Login';
-  if (currentStep.value === 'setup') return 'Setup';
-  if (currentStep.value === 'reset') return 'Reset';
-  return 'Register';
+const submitLabel = computed(() => {
+  if (mode.value === 'verify') return 'Activate account';
+  if (mode.value === 'register') return 'Create account';
+  return 'Sign in';
+});
+
+const submittingLabel = computed(() => {
+  if (mode.value === 'verify') return 'Activating...';
+  if (mode.value === 'register') return 'Creating...';
+  return 'Signing in...';
+});
+
+const canSubmit = computed(() => {
+  if (mode.value === 'login') {
+    return Boolean(phoneNumber.value) && Boolean(password.value) && password.value.length >= 6;
+  }
+  if (mode.value === 'verify') {
+    return Boolean(otp.value) && otp.value.length === 6;
+  }
+  if (mode.value === 'register') {
+    return Boolean(otp.value) && otp.value.length === 6
+      && Boolean(firstName.value) && Boolean(lastName.value)
+      && isOver18.value;
+  }
+  return false;
 });
 
 const resolveCurrentPharmacyId = () => {
@@ -459,7 +345,6 @@ const resolveCurrentPharmacyId = () => {
   return null;
 };
 
-// Format phone number for display
 const formattedPhoneNumber = computed(() => {
   if (!phoneNumber.value) return '';
   let formatted = phoneNumber.value;
@@ -471,18 +356,16 @@ const formattedPhoneNumber = computed(() => {
   return formatted;
 });
 
-// Validate phone number input
 const validatePhoneNumber = () => {
   const digitsOnly = phoneNumber.value.replace(/\D/g, '');
-  
+
   if (digitsOnly.length === 0) {
     phoneNumberError.value = '';
     return false;
   }
-  
-  const validPrefixes = ['20', '23', '24', '25', '26', '27', '50', '53', '54', '55', '59', '57', '56', ]
-  
-  // 10 digits with leading 0
+
+  const validPrefixes = ['20', '23', '24', '25', '26', '27', '50', '53', '54', '55', '59', '57', '56'];
+
   if (digitsOnly.length === 10 && digitsOnly.startsWith('0')) {
     const prefix = digitsOnly.substring(1, 3);
     if (!validPrefixes.includes(prefix)) {
@@ -492,8 +375,7 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = '';
     return true;
   }
-  
-  // 9 digits without leading 0
+
   if (digitsOnly.length === 9) {
     const prefix = digitsOnly.substring(0, 2);
     if (!validPrefixes.includes(prefix)) {
@@ -503,8 +385,7 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = '';
     return true;
   }
-  
-  // Full number with country code
+
   if (digitsOnly.length === 12 && digitsOnly.startsWith('233')) {
     const prefix = digitsOnly.substring(3, 5);
     if (!validPrefixes.includes(prefix)) {
@@ -514,7 +395,7 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = '';
     return true;
   }
-  
+
   if (digitsOnly.length < 9) {
     phoneNumberError.value = 'Phone number is too short.';
     return false;
@@ -522,143 +403,119 @@ const validatePhoneNumber = () => {
     phoneNumberError.value = 'Phone number is too long.';
     return false;
   }
-  
+
   phoneNumberError.value = 'Please enter a valid phone number.';
   return false;
 };
 
-// Check phone status and route to appropriate flow
-const checkPhone = async () => {
-  if (!validatePhoneNumber()) {
+// If user edits phone after a reveal, snap back to login mode
+const onPhoneInput = () => {
+  validatePhoneNumber();
+  if (mode.value !== 'login') {
+    mode.value = 'login';
+    otp.value = '';
+    otpSent.value = false;
+    firstName.value = '';
+    lastName.value = '';
+    email.value = '';
+    isOver18.value = false;
+    errorMessage.value = '';
+  }
+};
+
+// Send registration OTP via the same backend endpoint used by the original flow
+const sendNewCustomerOTP = async () => {
+  const config = useRuntimeConfig();
+  const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: userStore.formatPhoneNumber(phoneNumber.value) })
+  });
+  const data = await response.json();
+  if (!data.success) throw new Error(data.message || 'Failed to send verification code');
+};
+
+// Unified submit dispatcher
+const onSignInSubmit = async () => {
+  if (mode.value === 'login') return submitLogin();
+  if (mode.value === 'verify') return submitVerify();
+  if (mode.value === 'register') return submitRegister();
+};
+
+// Path A: phone + password submitted. Decide what to do.
+const submitLogin = async () => {
+  if (!validatePhoneNumber()) return;
+  if (!password.value || password.value.length < 6) {
+    errorMessage.value = 'Enter your password (min. 6 characters).';
     return;
   }
-  
+
   errorMessage.value = '';
   isLoading.value = true;
-  
+
   try {
     const result = await userStore.checkPhoneStatus(phoneNumber.value);
-    
-    // Route based on status
-    switch (result.status) {
-      case 'registered':
-        currentStep.value = 'password';
-        break;
-      case 'existing_customer_no_password':
-        currentStep.value = 'setup';
-        break;
-      case 'new_customer':
-        currentStep.value = 'register';
-        break;
-      default:
-        throw new Error('Unknown customer status');
+
+    if (result.status === 'registered') {
+      try {
+        await userStore.login(phoneNumber.value, password.value);
+        emit('login-success', { destination: 'home', action: 'login' });
+        closeModal();
+      } catch (loginError) {
+        console.error('Login error:', loginError);
+        errorMessage.value = `Wrong password for ${formattedPhoneNumber.value}. Try again or reset.`;
+      }
+      return;
     }
+
+    if (result.status === 'existing_customer_no_password') {
+      await userStore.sendSetupOTP(phoneNumber.value);
+      otpSent.value = true;
+      mode.value = 'verify';
+      return;
+    }
+
+    if (result.status === 'new_customer') {
+      await sendNewCustomerOTP();
+      otpSent.value = true;
+      mode.value = 'register';
+      return;
+    }
+
+    throw new Error('Unknown account status.');
   } catch (error) {
-    console.error('Error checking phone:', error);
-    errorMessage.value = error.message || 'Failed to verify phone number. Please try again.';
+    console.error('Sign-in error:', error);
+    errorMessage.value = error.message || 'Something went wrong. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-// Handle login with password
-const handleLogin = async () => {
+// Path B: existing customer activates with OTP; reuse already-typed password.
+const submitVerify = async () => {
   errorMessage.value = '';
   isLoading.value = true;
-  
-  try {
-    await userStore.login(phoneNumber.value, password.value);
-    emit('login-success', { destination: 'home', action: 'login' });
-    closeModal();
-  } catch (error) {
-    console.error('Login error:', error);
-    errorMessage.value = error.message || 'Invalid credentials. Please try again.';
-  } finally {
-    isLoading.value = false;
-  }
-};
 
-// Send OTP for password setup
-const sendOTP = async () => {
-  errorMessage.value = '';
-  isLoading.value = true;
-  
   try {
-    await userStore.sendSetupOTP(phoneNumber.value);
-    otpSent.value = true;
-  } catch (error) {
-    console.error('Error sending OTP:', error);
-    errorMessage.value = error.message || 'Failed to send OTP. Please try again.';
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Handle password setup for existing customers
-const handleSetupPassword = async () => {
-  if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Passwords do not match';
-    return;
-  }
-  
-  errorMessage.value = '';
-  isLoading.value = true;
-  
-  try {
-    console.log('Setting up password and logging in...');
     await userStore.setupPassword(phoneNumber.value, otp.value, password.value);
-    
-    console.log('Password setup completed, user is now logged in');
     emit('login-success', { destination: 'new', action: 'setup' });
     closeModal();
   } catch (error) {
-    console.error('Setup password error:', error);
-    errorMessage.value = error.message || 'Failed to setup password. Please try again.';
+    console.error('Activate account error:', error);
+    errorMessage.value = error.message || 'Failed to activate account. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-// Send OTP for registration
-const sendRegistrationOTP = async () => {
-  if (!firstName.value || !lastName.value) {
-    errorMessage.value = 'Please enter your name';
-    return;
-  }
-  
+// Path C: new customer registers; reuse already-typed password.
+const submitRegister = async () => {
   errorMessage.value = '';
   isLoading.value = true;
-  
-  try {
-    // Use the backend send-otp endpoint for registration
-    const config = useRuntimeConfig();
-    const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: userStore.formatPhoneNumber(phoneNumber.value) })
-    });
-    
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message || 'Failed to send OTP');
-    
-    otpSent.value = true;
-  } catch (error) {
-    console.error('Error sending registration OTP:', error);
-    errorMessage.value = error.message || 'Failed to send OTP. Please try again.';
-  } finally {
-    isLoading.value = false;
-  }
-};
 
-// Handle new customer registration
-const handleRegister = async () => {
-  errorMessage.value = '';
-  isLoading.value = true;
-  
   try {
     const companyId = resolveCurrentPharmacyId();
 
-    console.log('Attempting registration...');
     await userStore.register({
       company_id: companyId || undefined,
       fname: firstName.value,
@@ -668,8 +525,7 @@ const handleRegister = async () => {
       email: email.value,
       otp: otp.value
     });
-    
-    console.log('Registration completed, user is now logged in');
+
     emit('login-success', { destination: 'new', action: 'register' });
     closeModal();
   } catch (error) {
@@ -680,9 +536,35 @@ const handleRegister = async () => {
   }
 };
 
-// Forgot password - navigate to reset step
+const resendVerifyOTP = async () => {
+  errorMessage.value = '';
+  isLoading.value = true;
+  try {
+    await userStore.sendSetupOTP(phoneNumber.value);
+  } catch (error) {
+    console.error('Resend verify OTP error:', error);
+    errorMessage.value = error.message || 'Failed to resend code. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const resendRegisterOTP = async () => {
+  errorMessage.value = '';
+  isLoading.value = true;
+  try {
+    await sendNewCustomerOTP();
+  } catch (error) {
+    console.error('Resend register OTP error:', error);
+    errorMessage.value = error.message || 'Failed to resend code. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 const forgotPassword = () => {
   currentStep.value = 'reset';
+  mode.value = 'login';
   otpSent.value = false;
   otp.value = '';
   password.value = '';
@@ -690,11 +572,10 @@ const forgotPassword = () => {
   errorMessage.value = '';
 };
 
-// Send OTP for password reset
 const sendResetOTP = async () => {
   errorMessage.value = '';
   isLoading.value = true;
-  
+
   try {
     await userStore.sendResetOTP(phoneNumber.value);
     otpSent.value = true;
@@ -706,28 +587,25 @@ const sendResetOTP = async () => {
   }
 };
 
-// Handle password reset
 const handleResetPassword = async () => {
   if (password.value !== confirmPassword.value) {
     errorMessage.value = 'Passwords do not match';
     return;
   }
-  
+
   errorMessage.value = '';
   isLoading.value = true;
-  
+
   try {
     await userStore.resetPassword(phoneNumber.value, otp.value, password.value);
-    
-    // Show success and redirect to password login
+
     errorMessage.value = '';
-    currentStep.value = 'password';
-    password.value = '';
+    currentStep.value = 'signin';
+    mode.value = 'login';
     confirmPassword.value = '';
     otp.value = '';
     otpSent.value = false;
-    
-    // Show a temporary success message
+
     const tempSuccess = 'Password reset successful! Please login with your new password.';
     setTimeout(() => {
       alert(tempSuccess);
@@ -740,9 +618,9 @@ const handleResetPassword = async () => {
   }
 };
 
-// Back to phone input
-const backToPhone = () => {
-  currentStep.value = 'phone';
+const backToSignIn = () => {
+  currentStep.value = 'signin';
+  mode.value = 'login';
   password.value = '';
   confirmPassword.value = '';
   otp.value = '';
@@ -754,11 +632,11 @@ const backToPhone = () => {
   errorMessage.value = '';
 };
 
-// Close the modal and reset state
 const closeModal = () => {
   emit('close');
   setTimeout(() => {
-    currentStep.value = 'phone';
+    currentStep.value = 'signin';
+    mode.value = 'login';
     phoneNumber.value = '';
     password.value = '';
     confirmPassword.value = '';
@@ -774,7 +652,6 @@ const closeModal = () => {
   }, 300);
 };
 
-// Try to restore previously used phone number
 const tryToRestorePhone = () => {
   if (typeof localStorage !== 'undefined') {
     const savedPhone = localStorage.getItem('lastPhoneNumber');
@@ -785,14 +662,12 @@ const tryToRestorePhone = () => {
   }
 };
 
-// Initialize on component mount
 onMounted(() => {
   if (props.isOpen) {
     tryToRestorePhone();
   }
 });
 
-// Reload when modal is opened
 watch(() => props.isOpen, (newValue) => {
   if (newValue) {
     tryToRestorePhone();
