@@ -4,7 +4,7 @@
     <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
-                <span class="material-symbols-outlined text-[18px]">person</span>
+                <UserIcon class="w-[18px] h-[18px]" />
             </div>
             <div>
                 <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Profile Information</h1>
@@ -17,17 +17,17 @@
       <!-- Success Alert -->
       <div v-if="updateSuccess" class="flex items-center justify-between px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 mb-5 text-sm font-semibold shadow-sm">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-[18px]">check_circle</span>
+          <CheckCircleIcon class="w-[18px] h-[18px]" />
           Profile updated successfully!
         </div>
         <button @click="updateSuccess = false" class="text-emerald-500 hover:text-emerald-700">
-          <span class="material-symbols-outlined text-[16px]">close</span>
+          <XMarkIcon class="w-4 h-4" />
         </button>
       </div>
 
       <!-- Error Alert -->
       <div v-if="error" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 mb-5 text-sm font-semibold shadow-sm">
-        <span class="material-symbols-outlined text-[18px]">error</span>
+        <ExclamationCircleIcon class="w-[18px] h-[18px]" />
         {{ error }}
       </div>
 
@@ -38,7 +38,7 @@
           <div class="min-w-0">
             <p class="text-lg font-bold text-zinc-900 leading-tight truncate">{{ profileDisplayName }}</p>
             <p class="text-sm font-semibold text-zinc-500 mt-0.5 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[14px]">phone_iphone</span>
+              <DevicePhoneMobileIcon class="w-3.5 h-3.5 flex-shrink-0" />
               {{ formatPhoneNumber(userStore.userPhoneNumber) || 'No phone number' }}
             </p>
           </div>
@@ -48,7 +48,7 @@
             class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em]"
             :class="profile.address ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'"
           >
-            <span class="material-symbols-outlined text-[14px]">{{ profile.address ? 'my_location' : 'location_off' }}</span>
+            <MapPinIcon class="w-3.5 h-3.5" />
             {{ profile.address ? 'Location Saved' : 'Location Needed' }}
           </span>
         </div>
@@ -101,7 +101,7 @@
               <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
                   <p class="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[18px]">home</span>
+                    <HomeIcon class="w-[18px] h-[18px]" />
                     Saved Home Address
                   </p>
                   <p class="text-xs font-medium text-zinc-500 mt-1">Used by default for delivery requests until you manually change it on the request screen.</p>
@@ -109,8 +109,8 @@
                 <div class="flex items-center gap-2">
                   <button type="button" :disabled="isLocating" @click="captureHomeLocation"
                     class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
-                    <span v-if="isLocating" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                    <span v-else class="material-symbols-outlined text-[16px]">my_location</span>
+                    <ArrowPathIcon v-if="isLocating" class="w-4 h-4 animate-spin" />
+                    <MapPinIcon v-else class="w-4 h-4" />
                     <template v-if="isLocating">Finding GPS...</template>
                     <template v-else-if="profile.latitude && profile.longitude">Update GPS</template>
                     <template v-else>Set from GPS</template>
@@ -121,7 +121,7 @@
                     @click="clearHomeLocation"
                     class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors shadow-sm disabled:opacity-60"
                     title="Clear location">
-                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                    <TrashIcon class="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -129,7 +129,7 @@
               <div class="relative">
                 <label for="profile-address-search" class="block text-xs font-bold uppercase tracking-[0.12em] text-zinc-500 mb-2">Search address</label>
                 <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
-                  <span class="material-symbols-outlined text-[18px] text-zinc-400">search</span>
+                  <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
                   <input
                     v-model="addressSearch"
                     id="profile-address-search"
@@ -145,7 +145,7 @@
                     @keydown="onAddressKeydown"
                     class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
                   />
-                  <span v-if="autocompleteLoading" class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
+                  <ArrowPathIcon v-if="autocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
                 </div>
 
                 <ul
@@ -186,9 +186,7 @@
                   {{ profile.address ? 'Location Successfully Saved' : 'No Location Set' }}
                 </p>
                 <div class="flex items-start gap-2">
-                  <span class="material-symbols-outlined text-[16px] mt-0.5" :class="profile.address ? 'text-emerald-500' : 'text-zinc-400'">
-                    {{ profile.address ? 'check_circle' : 'info' }}
-                  </span>
+                  <component :is="profile.address ? CheckCircleIcon : InformationCircleIcon" class="w-4 h-4 mt-0.5 flex-shrink-0" :class="profile.address ? 'text-emerald-500' : 'text-zinc-400'" />
                   <p class="text-xs font-medium leading-relaxed" :class="profile.address ? 'text-emerald-700' : 'text-zinc-500'">
                     {{ profile.address || 'Tap "Set from GPS" above to automatically link your current physical coordinates. We rely on GPS logic for optimal driver assignment.' }}
                   </p>
@@ -202,7 +200,7 @@
           <div class="border-t border-zinc-200 bg-white p-5 flex justify-end">
             <button type="submit" :disabled="isLoading"
               class="inline-flex items-center justify-center gap-2 bg-[#4F217A] text-white py-2.5 px-6 rounded-xl text-sm font-bold hover:bg-[#3d1861] transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
-              <span v-if="isLoading" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+              <ArrowPathIcon v-if="isLoading" class="w-4 h-4 animate-spin" />
               {{ isLoading ? 'Saving Profile...' : 'Save Changes' }}
             </button>
           </div>
@@ -216,6 +214,19 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useUserStore } from '~/stores/user';
+import {
+  UserIcon,
+  CheckCircleIcon,
+  XMarkIcon,
+  ExclamationCircleIcon,
+  DevicePhoneMobileIcon,
+  MapPinIcon,
+  HomeIcon,
+  ArrowPathIcon,
+  TrashIcon,
+  MagnifyingGlassIcon,
+  InformationCircleIcon,
+} from '@heroicons/vue/24/outline'
 
 const userStore = useUserStore();
 const config = useRuntimeConfig();

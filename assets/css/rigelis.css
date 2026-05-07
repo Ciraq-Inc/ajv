@@ -1,9 +1,7 @@
 /* Rigelis Inc — Design Tokens
    Source of truth: Rigelis Inc Design System/colors_and_type.css
-   Fonts (Poppins) loaded via Google Fonts in nuxt.config.ts head.
+   Fonts (Poppins, JetBrains Mono) self-hosted via @nuxt/fonts in nuxt.config.ts.
    Update both copies when the design system changes. */
-
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
   /* =========================================================

@@ -53,7 +53,7 @@
               <p class="text-xl font-black mt-0.5 tabular-nums">GHS {{ walletBalance.toFixed(2) }}</p>
             </div>
             <button @click="goTab('wallet')" class="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 transition-colors rounded-xl px-4 py-2 text-xs font-bold tracking-wide border border-white/10">
-              <span class="material-symbols-outlined text-[15px]">account_balance_wallet</span>
+              <WalletIcon class="w-[15px] h-[15px]" />
               Top Up
             </button>
           </div>
@@ -68,7 +68,7 @@
               </div>
               <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('requests')">
                 Full History
-                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                <ChevronRightIcon class="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -85,7 +85,7 @@
 
             <div v-else-if="recentRequestItems.length === 0" class="flex items-center gap-4 border border-[#e5d5f5] bg-[#faf4ff] px-5 py-4">
               <div class="flex h-10 w-10 items-center justify-center bg-[#ebd5fb] text-[#4F217A] rounded-full">
-                <span class="material-symbols-outlined text-[1.2rem]">description</span>
+                <DocumentTextIcon class="w-5 h-5" />
               </div>
               <div>
                 <p class="text-sm font-semibold text-zinc-900">No requests yet</p>
@@ -104,7 +104,7 @@
                   class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[1rem] mt-0.5 sm:mt-0"
                   :class="request.status === 'paid' || request.status === 'verified' ? 'bg-green-50 text-green-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-600'"
                 >
-                  <span class="material-symbols-outlined text-[1.2rem]">{{ requestIcon(request) }}</span>
+                  <component :is="requestIcon(request)" class="w-5 h-5" />
                 </div>
 
                 <div class="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -146,7 +146,7 @@
               </div>
               <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('orders')">
                 View All
-                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                <ChevronRightIcon class="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -162,7 +162,7 @@
               </div>
               <div v-else-if="ongoingOrderItems.length === 0" class="flex items-center gap-3 px-4 py-5">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center bg-[#ede5ff] text-[#4F217A] rounded-full border border-[#d9c7f5]">
-                  <span class="material-symbols-outlined text-[1.1rem]">package_2</span>
+                  <ArchiveBoxIcon class="w-5 h-5" />
                 </div>
                 <div>
                   <p class="text-sm font-bold text-slate-800">No active orders</p>
@@ -179,7 +179,7 @@
                   @click="goTab('orders')"
                 >
                   <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] text-[#4F217A] border border-[#d9c7f5] mt-0.5 group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
-                    <span class="material-symbols-outlined text-[1.1rem]">package_2</span>
+                    <ArchiveBoxIcon class="w-4 h-4" />
                   </div>
 
                   <div class="min-w-0 flex-1">
@@ -207,13 +207,13 @@
             </div>
             <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('companies')">
               Directory
-              <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+              <ChevronRightIcon class="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div v-if="verifiedPartners.length === 0" class="flex items-center gap-4 border border-[#ede5ff] bg-[#faf6ff] px-5 py-4 shadow-sm rounded-xl">
             <div class="flex h-10 w-10 items-center justify-center bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] rounded-full">
-              <span class="material-symbols-outlined text-[1.2rem]">local_pharmacy</span>
+              <BuildingStorefrontIcon class="w-5 h-5" />
             </div>
             <div>
               <p class="text-sm font-semibold text-zinc-900">No pharmacies linked yet</p>
@@ -229,19 +229,19 @@
               @click="goTab('companies')"
             >
               <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
-                <span class="material-symbols-outlined text-[1.3rem]">local_pharmacy</span>
+                <BuildingStorefrontIcon class="w-5 h-5" />
               </div>
 
               <div class="min-w-0 flex-1">
                 <h4 class="truncate text-sm font-bold text-slate-800 group-hover:text-[#4F217A] transition-colors">{{ company.company_name || company.name }}</h4>
                 <div class="mt-1 flex items-center gap-1.5 text-[0.7rem] font-bold text-[#7a5fa0] group-hover:text-[#4F217A] transition-colors flex-wrap">
-                  <span class="material-symbols-outlined text-[0.8rem] ![font-variation-settings:'FILL'_1] text-[#a589c3] shrink-0">verified</span>
+                  <CheckBadgeIconSolid class="w-3.5 h-3.5 text-[#a589c3] shrink-0" />
                   <span class="truncate">{{ getCompanyMeta(company) }}</span>
                 </div>
               </div>
 
               <div class="hidden sm:flex shrink-0 h-8 w-8 items-center justify-center rounded-full bg-white border border-zinc-200 text-zinc-400 group-hover:text-[#4F217A] group-hover:bg-[#faf6ff] transition-colors">
-                <span class="material-symbols-outlined text-[1.1rem]">chevron_right</span>
+                <ChevronRightIcon class="w-4 h-4" />
               </div>
             </button>
           </div>
@@ -278,6 +278,16 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import {
+  WalletIcon,
+  ChevronRightIcon,
+  DocumentTextIcon,
+  ArchiveBoxIcon,
+  BuildingStorefrontIcon,
+  TruckIcon,
+  BeakerIcon,
+} from '@heroicons/vue/24/outline'
+import { CheckBadgeIcon as CheckBadgeIconSolid } from '@heroicons/vue/24/solid'
 import LinkedCompanies from '~/components/customers/linkedCompanies.vue'
 import Orders from '~/components/customers/orders.vue'
 import OrderRequests from '~/components/customers/orderRequests.vue'
@@ -356,9 +366,9 @@ const getRequestStatusLabel = orderStatus.formatRequestStatus
 const getRequestStatusClass = orderStatus.requestStatusBadgeClass
 
 const requestIcon = (request) => {
-  if (request.fulfillment_type === 'delivery') return 'local_shipping'
-  if ((request.item_count || request.items?.length || 0) > 0) return 'pill'
-  return 'description'
+  if (request.fulfillment_type === 'delivery') return TruckIcon
+  if ((request.item_count || request.items?.length || 0) > 0) return BeakerIcon
+  return DocumentTextIcon
 }
 
 const getOrderStatusLabel = orderStatus.formatStoreStatus

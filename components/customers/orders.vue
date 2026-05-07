@@ -4,7 +4,7 @@
     <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
-                <span class="material-symbols-outlined text-[18px]">history</span>
+                <ClockIcon class="w-[18px] h-[18px]" />
             </div>
             <div>
                 <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Order History</h1>
@@ -60,19 +60,19 @@
 
     <!-- Loading -->
     <div v-if="isLoading" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-zinc-50 rounded-xl">
-        <span class="material-symbols-outlined text-3xl text-zinc-400 animate-spin mb-3">sync</span>
+        <ArrowPathIcon class="w-7 h-7 text-zinc-400 animate-spin mb-3" />
         <p class="text-sm font-medium text-zinc-500">Loading your history...</p>
     </div>
 
     <!-- Error with retry -->
     <div v-else-if="hasLoadError" class="flex flex-col items-center justify-center py-16 mx-5 border border-red-200 bg-red-50 rounded-xl">
         <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 ring-1 ring-red-100">
-          <span class="material-symbols-outlined text-2xl text-red-500">cloud_off</span>
+          <ExclamationCircleIcon class="w-6 h-6 text-red-500" />
         </div>
         <p class="text-base font-bold text-zinc-900 mb-1 text-center">Couldn't load your history</p>
         <p class="text-sm font-medium text-zinc-600 text-center mb-4 max-w-xs">Check your connection and try again.</p>
         <button @click="loadOrders()" class="inline-flex items-center gap-2 bg-[#4F217A] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#3d1861] transition-colors">
-          <span class="material-symbols-outlined text-[18px]">refresh</span>
+          <ArrowPathIcon class="w-[18px] h-[18px]" />
           Retry
         </button>
     </div>
@@ -81,7 +81,7 @@
     <div v-else>
       <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-white rounded-xl shadow-sm">
         <div class="max-w-[48px] max-h-[48px] w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100 mx-auto">
-          <span class="material-symbols-outlined text-2xl text-zinc-300">receipt_long</span>
+          <ClipboardDocumentListIcon class="w-6 h-6 text-zinc-300" />
         </div>
         <p class="text-base font-bold text-zinc-900 mb-1 text-center">No history yet</p>
         <p class="text-sm font-medium text-zinc-500 text-center">Your orders and requests will appear here</p>
@@ -96,7 +96,7 @@
             <!-- Colored Icon Box based on status -->
             <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
               :class="item.status === 'completed' || item.status === 'delivered' || item.status === 'picked_up' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (item.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : (item.status === 'processing' || item.status === 'shipped' || item.status === 'out_for_delivery' || item.status === 'ready_for_pickup' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100'))">
-              <span class="material-symbols-outlined text-[20px]">{{ item._type === 'store' ? 'shopping_bag' : 'package_2' }}</span>
+              <component :is="item._type === 'store' ? ShoppingBagIcon : ArchiveBoxIcon" class="w-5 h-5" />
             </div>
             <div class="min-w-0">
               <div class="flex items-center gap-2 mb-0.5">
@@ -129,9 +129,9 @@
               class="w-10 h-10 hidden sm:flex items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-colors flex-shrink-0"
               :aria-label="`Cancel order ${item._displayId}`"
               title="Cancel order">
-              <span class="material-symbols-outlined text-[18px]">close</span>
+              <XMarkIcon class="w-[18px] h-[18px]" />
             </button>
-            
+
             <!-- Hover Chevron -->
             <div class="ml-2 hidden sm:flex w-6 h-6 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
@@ -149,7 +149,7 @@
         <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <h3 class="font-black text-zinc-900 tracking-tight">Order Details</h3>
           <button @click="selectedOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
-            <span class="material-symbols-outlined text-[18px]">close</span>
+            <XMarkIcon class="w-[18px] h-[18px]" />
           </button>
         </div>
 
@@ -189,7 +189,7 @@
         <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <h3 class="font-black text-zinc-900 tracking-tight">Request Order Details</h3>
           <button @click="selectedRequestOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
-            <span class="material-symbols-outlined text-[18px]">close</span>
+            <XMarkIcon class="w-[18px] h-[18px]" />
           </button>
         </div>
 
@@ -240,7 +240,7 @@
     <div v-if="toast"
       class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold"
       :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'">
-      <span class="material-symbols-outlined text-[18px]">{{ toast.type === 'error' ? 'error' : 'check_circle' }}</span>
+      <component :is="toast.type === 'error' ? ExclamationCircleIcon : CheckCircleIcon" class="w-[18px] h-[18px]" />
       {{ toast.text }}
     </div>
   </div>
@@ -250,6 +250,16 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 import { useOrderStatus } from '~/composables/useOrderStatus';
+import {
+  ClockIcon,
+  ArrowPathIcon,
+  ExclamationCircleIcon,
+  CheckCircleIcon,
+  ClipboardDocumentListIcon,
+  ShoppingBagIcon,
+  ArchiveBoxIcon,
+  XMarkIcon,
+} from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   initialOrderId: { type: String, default: null }

@@ -219,6 +219,14 @@ const sections = [
         type: 'string',
         inputType: 'text',
         defaultValue: ''
+      },
+      {
+        key: 'pickup_close_buffer_minutes',
+        label: 'Pickup Close Buffer (minutes)',
+        help: 'A pharmacy must remain open for at least this many minutes after payment for pickup to be offered to the customer',
+        type: 'number',
+        inputType: 'number',
+        defaultValue: '30'
       }
     ]
   },

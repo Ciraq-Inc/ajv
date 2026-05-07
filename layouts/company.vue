@@ -114,6 +114,18 @@
         </div>
       </header>
 
+      <!-- Hours-not-confirmed nudge -->
+      <div v-if="showHoursNudge" class="hours-nudge">
+        <ClockIcon class="hours-nudge-icon" />
+        <div class="hours-nudge-text">
+          <p class="hours-nudge-title">Set your store hours</p>
+          <p class="hours-nudge-body">Customers can't request pickup until your weekly hours are confirmed.</p>
+        </div>
+        <NuxtLink :to="servicePath('store-hours')" class="hours-nudge-cta">
+          Set hours
+        </NuxtLink>
+      </div>
+
       <!-- Page Content -->
       <main class="page-content">
         <slot />
@@ -123,9 +135,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
+import { useApi } from '~/composables/useApi'
 import {
   UserIcon,
   BellIcon,
@@ -146,6 +159,7 @@ import {
   ClipboardDocumentListIcon,
   TruckIcon,
   BanknotesIcon,
+  ClockIcon,
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -294,6 +308,11 @@ const allNavigationSections = computed(() => [
         label: 'Shopfront',
         icon: SwatchIcon,
       },
+      {
+        path: servicePath('store-hours'),
+        label: 'Store Hours',
+        icon: ClockIcon,
+      },
     ],
   },
   {
@@ -385,7 +404,6 @@ onMounted(async () => {
 })
 
 // Watch for mobile menu changes to handle body scroll
-import { watch } from 'vue'
 watch(mobileMenuOpen, (isOpen) => {
   if (typeof document !== 'undefined') {
     if (isOpen) {
@@ -402,6 +420,33 @@ watchEffect(() => {
   route.path // trigger on route change
   closeMobileMenu()
 })
+
+// Hours-not-confirmed nudge
+const hoursConfirmed = ref(true) // optimistic: hide until we know otherwise
+const api = useApi()
+
+const isOnHoursPage = computed(() => route.path.endsWith('/services/store-hours'))
+
+const showHoursNudge = computed(() => {
+  if (!companyStore.isLoggedIn) return false
+  if (isOnHoursPage.value) return false
+  return hoursConfirmed.value === false
+})
+
+const refreshHoursStatus = async () => {
+  if (!companyStore.isLoggedIn) return
+  try {
+    const response = await api.get('/api/pharmacy-portal/hours')
+    const data = response.data || response
+    hoursConfirmed.value = Boolean(data?.hours_confirmed_at)
+  } catch (error) {
+    // Silent: a transient error shouldn't spam a banner the user can't act on
+    console.warn('Failed to fetch hours status', error)
+  }
+}
+
+onMounted(refreshHoursStatus)
+watch(() => route.path, refreshHoursStatus)
 </script>
 
 <style scoped>
@@ -773,6 +818,69 @@ watchEffect(() => {
   padding: 2rem;
   background: var(--ls-soft, #f8fafc);
   min-height: 100%;
+}
+
+/* Hours-not-confirmed nudge */
+.hours-nudge {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1.5rem;
+  background: #fef3c7;
+  border-bottom: 1px solid #fde68a;
+  color: #78350f;
+}
+
+.hours-nudge-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.hours-nudge-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.hours-nudge-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.hours-nudge-body {
+  font-size: 0.8125rem;
+  margin: 0.125rem 0 0;
+  color: #92400e;
+}
+
+.hours-nudge-cta {
+  flex-shrink: 0;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.625rem;
+  background: #78350f;
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.hours-nudge-cta:hover {
+  background: #451a03;
+}
+
+@media (max-width: 640px) {
+  .hours-nudge {
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+  }
+  .hours-nudge-text {
+    flex-basis: 100%;
+  }
+  .hours-nudge-cta {
+    margin-left: auto;
+  }
 }
 
 /* Mobile Overlay */

@@ -9,8 +9,8 @@
       </div>
       <button @click="triggerLinking" :disabled="isLinking"
         class="inline-flex items-center gap-2 bg-[#4F217A] text-white py-3 px-5 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0">
-        <span v-if="isLinking" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-        <span v-else class="material-symbols-outlined text-[16px]">link</span>
+        <ArrowPathIcon v-if="isLinking" class="w-4 h-4 animate-spin" />
+        <LinkIcon v-else class="w-4 h-4" />
         {{ isLinking ? 'Linking...' : 'Link Accounts' }}
       </button>
     </div>
@@ -25,15 +25,13 @@
         ? 'border-red-200 bg-red-50 text-red-700'
         : 'border-emerald-200 bg-emerald-50 text-emerald-700'"
     >
-      <span class="material-symbols-outlined text-[18px] mt-0.5">
-        {{ linkingMessageType === 'error' ? 'error' : 'check_circle' }}
-      </span>
+      <component :is="linkingMessageType === 'error' ? ExclamationCircleIcon : CheckCircleIcon" class="w-[18px] h-[18px] mt-0.5 flex-shrink-0" />
       <p class="text-sm font-semibold leading-snug">{{ linkingMessage }}</p>
     </div>
 
     <!-- Loading State -->
     <div v-if="isLoading" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-8 shadow-sm">
-      <span class="material-symbols-outlined text-2xl text-zinc-400 animate-spin">sync</span>
+      <ArrowPathIcon class="w-6 h-6 text-zinc-400 animate-spin" />
       <p class="text-sm font-medium text-zinc-500">Loading your pharmacies...</p>
     </div>
 
@@ -46,7 +44,7 @@
       >
         <div class="flex items-start justify-between gap-3">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#4F217A] to-[#381659] shadow-[0_8px_18px_-12px_rgba(53,0,98,0.55)]">
-            <span class="material-symbols-outlined text-white">local_pharmacy</span>
+            <BuildingStorefrontIcon class="w-6 h-6 text-white" />
           </div>
           <span
             class="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em]"
@@ -59,18 +57,18 @@
         <div class="flex-1">
           <h3 class="font-black text-zinc-900 text-lg tracking-tight leading-tight">{{ company.company_name }}</h3>
           <p v-if="company.location" class="flex items-center gap-1.5 text-sm text-zinc-500 mt-1.5">
-            <span class="material-symbols-outlined text-[14px]">location_on</span>
+            <MapPinIcon class="w-3.5 h-3.5 flex-shrink-0" />
             {{ company.location }}
           </p>
           <p v-if="company.phone" class="flex items-center gap-1.5 text-sm text-zinc-500 mt-1">
-            <span class="material-symbols-outlined text-[14px]">phone</span>
+            <PhoneIcon class="w-3.5 h-3.5 flex-shrink-0" />
             {{ company.phone }}
           </p>
         </div>
 
         <button @click="goToCompanyStore(company)"
           class="w-full inline-flex items-center justify-center gap-2 border border-zinc-200 bg-white text-zinc-700 py-2.5 px-4 rounded-xl text-sm font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-          <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+          <ArrowTopRightOnSquareIcon class="w-4 h-4" />
           Visit Store
         </button>
       </div>
@@ -79,7 +77,7 @@
     <!-- Empty State -->
     <div v-if="!isLoading && companies.length === 0" class="flex flex-col items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-12 shadow-sm text-center mb-6">
       <div class="w-14 h-14 bg-zinc-100 rounded-full flex items-center justify-center">
-        <span class="material-symbols-outlined text-2xl text-zinc-400">local_pharmacy</span>
+        <BuildingStorefrontIcon class="w-6 h-6 text-zinc-400" />
       </div>
       <div>
         <p class="font-black text-zinc-800 text-lg">No linked pharmacies</p>
@@ -90,7 +88,7 @@
     <!-- Info box -->
     <div class="flex items-start gap-4 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4">
       <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4ecfb] text-[#5e3a86] flex-shrink-0 mt-0.5">
-        <span class="material-symbols-outlined text-[18px]">info</span>
+        <InformationCircleIcon class="w-[18px] h-[18px]" />
       </div>
       <div>
         <p class="font-semibold text-zinc-800 text-sm">About Linked Pharmacies</p>
@@ -103,6 +101,17 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
+import {
+  ArrowPathIcon,
+  LinkIcon,
+  ExclamationCircleIcon,
+  CheckCircleIcon,
+  BuildingStorefrontIcon,
+  MapPinIcon,
+  PhoneIcon,
+  ArrowTopRightOnSquareIcon,
+  InformationCircleIcon,
+} from '@heroicons/vue/24/outline'
 
 const userStore = useUserStore();
 
@@ -189,4 +198,3 @@ onUnmounted(() => {
   if (linkingMessageTimer) clearTimeout(linkingMessageTimer);
 });
 </script>
-

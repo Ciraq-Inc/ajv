@@ -141,8 +141,6 @@ onMounted(loadSeekers)
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Manrope:wght@400;500;700&display=swap');
-
 .jobs-page {
   --accent: #ef3f78;
   --accent-strong: #db2f67;

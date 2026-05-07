@@ -4,7 +4,7 @@
         <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
-                    <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                    <WalletIcon class="w-[18px] h-[18px]" />
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Wallet</h1>
@@ -79,14 +79,14 @@
 
                 <!-- Loading -->
                 <div v-if="loading" class="flex flex-col items-center justify-center py-12 text-zinc-400 border-t border-zinc-200 bg-zinc-50">
-                    <span class="material-symbols-outlined text-3xl animate-spin mb-3">sync</span>
+                    <ArrowPathIcon class="w-7 h-7 animate-spin mb-3" />
                     <p class="text-sm font-medium text-zinc-500">Loading transactions...</p>
                 </div>
 
                 <!-- Empty -->
                 <div v-else-if="transactions.length === 0" class="flex flex-col items-center justify-center py-16 border-t border-zinc-200 bg-zinc-50">
                     <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center border border-zinc-200 shadow-sm mb-4">
-                        <span class="material-symbols-outlined text-2xl text-zinc-300">receipt_long</span>
+                        <ClipboardDocumentListIcon class="w-6 h-6 text-zinc-300" />
                     </div>
                     <p class="text-base font-bold text-zinc-900 mb-1 leading-tight">No transactions yet</p>
                     <p class="text-sm font-medium text-zinc-500">Top up your wallet to start building transaction history.</p>
@@ -155,7 +155,7 @@
                         </button>
                         <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0 || isPaying"
                             class="flex-1 inline-flex items-center justify-center gap-2 bg-[#4F217A] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span v-if="isPaying" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                            <ArrowPathIcon v-if="isPaying" class="w-[18px] h-[18px] animate-spin" />
                             <span>{{ isPaying ? 'Starting…' : `Pay GHS ${(topUpAmount || 0).toFixed(2)}` }}</span>
                         </button>
                     </div>
@@ -185,7 +185,9 @@ import {
     ArrowsRightLeftIcon,
     ExclamationTriangleIcon as ExcTriIcon,
     CheckCircleIcon,
-    ShieldCheckIcon
+    ShieldCheckIcon,
+    WalletIcon,
+    ClipboardDocumentListIcon,
 } from '@heroicons/vue/24/outline'
 
 const userStore = useUserStore()

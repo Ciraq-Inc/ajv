@@ -44,6 +44,12 @@
             <div class="font-medium text-gray-900">{{ order.request_number }}</div>
             <div class="text-sm text-gray-500 mt-0.5">{{ order.customer_address }}</div>
             <div class="text-xs text-gray-400 mt-1">{{ formatDate(order.created_at) }}</div>
+            <div v-if="isAwaitingMethodSelection(order)" class="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[11px] font-semibold text-amber-800">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Awaiting customer payment — do not prep yet
+            </div>
           </div>
           <div class="text-right shrink-0">
             <div class="text-sm font-semibold text-green-600">GH₵{{ fmt(order.pharmacy_total) }}</div>
@@ -211,8 +217,14 @@ const statusClass = (status) => {
     composing: 'cs-badge',
     sourcing: 'cs-badge',
     payment_pending: 'bg-yellow-100 text-yellow-700',
+    awaiting_method_selection: 'bg-amber-100 text-amber-800',
   }
   return map[status] || 'bg-gray-100 text-gray-700'
+}
+
+const isAwaitingMethodSelection = (order) => {
+  if (!order) return false
+  return String(order.status || '').toLowerCase() === 'awaiting_method_selection'
 }
 
 const sourcingClass = (status) => {
