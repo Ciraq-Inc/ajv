@@ -9,14 +9,10 @@
     <!-- Illustration -->
     <div class="relative mb-8 select-none" aria-hidden="true">
       <div class="w-36 h-36 rounded-full bg-[#f3e8ff] flex items-center justify-center mx-auto">
-        <span class="material-symbols-outlined text-[#520094]" style="font-size: 72px; font-variation-settings: 'FILL' 0, 'wght' 200;">
-          {{ is404 ? 'search_off' : 'error' }}
-        </span>
+        <component :is="is404 ? MagnifyingGlassIcon : ExclamationCircleIcon" class="w-[72px] h-[72px] text-[#520094]" />
       </div>
       <div class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#ead6fd] flex items-center justify-center">
-        <span class="material-symbols-outlined text-[#9b5fc9]" style="font-size: 16px;">
-          medication
-        </span>
+        <BeakerIcon class="w-4 h-4 text-[#9b5fc9]" />
       </div>
     </div>
 
@@ -43,14 +39,14 @@
         @click="handleError"
         class="flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#520094] hover:bg-[#6c24b3] text-white font-semibold text-sm shadow-lg shadow-[#520094]/30 transition-all active:scale-95"
       >
-        <span class="material-symbols-outlined !text-[18px]">home</span>
+        <HomeIcon class="w-[18px] h-[18px]" />
         Back to home
       </button>
       <button
         @click="$router.back()"
         class="flex items-center justify-center gap-2 px-7 py-3.5 rounded-full border border-[#ead6fd] text-[#520094] font-semibold text-sm hover:bg-[#f3e8ff] transition-all active:scale-95"
       >
-        <span class="material-symbols-outlined !text-[18px]">arrow_back</span>
+        <ArrowLeftIcon class="w-[18px] h-[18px]" />
         Go back
       </button>
     </div>
@@ -59,14 +55,13 @@
 </template>
 
 <script setup>
-useHead({
-  link: [
-    {
-      rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200'
-    }
-  ]
-})
+import {
+  MagnifyingGlassIcon,
+  ExclamationCircleIcon,
+  BeakerIcon,
+  HomeIcon,
+  ArrowLeftIcon,
+} from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   error: Object

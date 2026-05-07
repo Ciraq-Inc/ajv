@@ -36,7 +36,7 @@
                 @click="openOrderFlow([])"
                 class="lg:hidden w-full flex items-center justify-center gap-2 rounded-full bg-[#520094] hover:bg-[#6c24b3] px-8 py-3.5 text-white font-bold text-base shadow-lg shadow-[#520094]/30 transition-all active:scale-95 mb-4"
               >
-                <span class="material-symbols-outlined !text-[22px]">medication</span>
+                <BeakerIcon class="w-[22px] h-[22px]" />
                 Request medication
               </button>
 
@@ -48,7 +48,7 @@
                     <!-- Main Input Area -->
                     <div class="relative flex-1 min-w-0 flex items-center">
                       <label for="medicine-search" class="sr-only">Medicine name</label>
-                      <span class="material-symbols-outlined shrink-0 text-[#cbb5e1] !text-[24px] pl-3 pr-1">search</span>
+                      <MagnifyingGlassIcon class="w-6 h-6 shrink-0 text-[#cbb5e1] pl-3 pr-1" />
                       <input
                         id="medicine-search"
                         v-model="homepageSearchTerm"
@@ -105,7 +105,7 @@
                     @click="homepageImagePicker?.click()"
                     class="w-full flex items-center justify-center gap-2 rounded-[2rem] border-2 border-dashed border-[#d4b0f7] bg-white py-3.5 text-[14px] font-semibold text-[#520094] transition hover:border-[#b98ae0] hover:bg-[#faf5ff]"
                   >
-                    <span class="material-symbols-outlined !text-[20px]">upload_file</span>
+                    <ArrowUpTrayIcon class="w-5 h-5" />
                     Upload prescription image
                   </button>
 
@@ -116,7 +116,7 @@
                       <p class="text-[11px] text-[#7d7484] mt-0.5">Prescription · {{ homepagePrescriptionImage ? (homepagePrescriptionImage.size / 1024).toFixed(0) + ' KB' : '' }}</p>
                     </div>
                     <button type="button" @click="removeHomepagePrescriptionImage" class="flex-shrink-0 h-8 w-8 rounded-full bg-[#f3e8ff] text-[#520094] flex items-center justify-center hover:bg-[#e9d5ff] transition-colors" aria-label="Remove prescription image">
-                      <span class="material-symbols-outlined text-[1rem]">close</span>
+                      <XMarkIcon class="w-4 h-4" />
                     </button>
                   </div>
 
@@ -124,7 +124,7 @@
                     <div class="flex items-center justify-between gap-3">
                       <div class="flex items-start gap-3">
                         <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#520094] text-white shadow-[0_14px_30px_-18px_rgba(82,0,148,0.7)]">
-                          <span class="material-symbols-outlined text-[1.3rem]">medication</span>
+                          <BeakerIcon class="w-5 h-5" />
                         </div>
                         <div>
                           <div class="flex flex-wrap items-center gap-2">
@@ -137,7 +137,7 @@
                         </div>
                       </div>
                       <button type="button" @click="clearHomepageSelectedItems" class="inline-flex items-center gap-1 rounded-full border border-[#e4ccfb] bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#520094] transition hover:border-[#d4b0f7] hover:bg-[#faf3ff]">
-                        <span class="material-symbols-outlined text-sm">delete</span>
+                        <TrashIcon class="w-3.5 h-3.5" />
                         Clear
                       </button>
                     </div>
@@ -156,7 +156,7 @@
                             class="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#520094] transition hover:bg-[#efdbff]"
                             aria-label="Decrease quantity"
                           >
-                            <span class="material-symbols-outlined text-base">remove</span>
+                            <MinusIcon class="w-4 h-4" />
                           </button>
                           <span class="min-w-[2rem] text-center text-[11px] font-bold uppercase tracking-[0.12em] text-[#6f35ad]">Qty {{ item.quantity }}</span>
                           <button
@@ -165,11 +165,11 @@
                             class="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#520094] transition hover:bg-[#efdbff]"
                             aria-label="Increase quantity"
                           >
-                            <span class="material-symbols-outlined text-base">add</span>
+                            <PlusIcon class="w-4 h-4" />
                           </button>
                         </div>
                         <button type="button" @click="removeHomepageSelectedItem(index)" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#efdbff] text-[#520094] transition hover:bg-[#e5cffc]" :aria-label="`Remove ${item.product_name}`">
-                          <span class="material-symbols-outlined text-sm">close</span>
+                          <XMarkIcon class="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -199,7 +199,7 @@
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div class="bg-white p-8 rounded-lg flex items-center gap-6">
                 <div class="w-14 h-14 bg-[#efdbff] rounded-2xl flex items-center justify-center text-[#520094]">
-                  <span class="material-symbols-outlined text-3xl">local_pharmacy</span>
+                  <BuildingStorefrontIcon class="w-7 h-7" />
                 </div>
                 <div>
                   <div class="text-2xl font-bold text-[#1e1a22]">210+</div>
@@ -208,7 +208,7 @@
               </div>
               <div class="bg-white p-8 rounded-lg flex items-center gap-6">
                 <div class="w-14 h-14 bg-[#e8def8] rounded-2xl flex items-center justify-center text-[#625b71]">
-                  <span class="material-symbols-outlined text-3xl">speed</span>
+                  <BoltIcon class="w-7 h-7" />
                 </div>
                 <div>
                   <div class="text-2xl font-bold text-[#1e1a22]">45min</div>
@@ -217,7 +217,7 @@
               </div>
               <div class="bg-white p-8 rounded-lg flex items-center gap-6">
                 <div class="w-14 h-14 bg-[#ffdcbf] rounded-2xl flex items-center justify-center text-[#552e00]">
-                  <span class="material-symbols-outlined text-3xl">verified</span>
+                  <CheckBadgeIcon class="w-7 h-7" />
                 </div>
                 <div>
                   <div class="text-2xl font-bold text-[#1e1a22]">100%</div>
@@ -226,7 +226,7 @@
               </div>
               <div class="bg-white p-8 rounded-lg flex items-center gap-6">
                 <div class="w-14 h-14 bg-[#dbb8ff] rounded-2xl flex items-center justify-center text-[#6c24b3]">
-                  <span class="material-symbols-outlined text-3xl">support_agent</span>
+                  <ChatBubbleLeftRightIcon class="w-7 h-7" />
                 </div>
                 <div>
                   <div class="text-2xl font-bold text-[#1e1a22]">24/7</div>
@@ -242,22 +242,22 @@
           <div class="container mx-auto px-8">
             <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-white text-sm font-medium">
               <span class="flex items-center gap-1.5">
-                <span class="material-symbols-outlined !text-[18px] text-[#dbb8ff]">location_on</span>
+                <MapPinIcon class="w-[18px] h-[18px] text-[#dbb8ff]" />
                 Accra
               </span>
               <span class="text-[#dbb8ff] select-none" aria-hidden="true">·</span>
               <span class="flex items-center gap-1.5">
-                <span class="material-symbols-outlined !text-[18px] text-[#dbb8ff]">location_on</span>
+                <MapPinIcon class="w-[18px] h-[18px] text-[#dbb8ff]" />
                 Kumasi
               </span>
               <span class="text-[#dbb8ff] select-none" aria-hidden="true">·</span>
               <span class="flex items-center gap-1.5">
-                <span class="material-symbols-outlined !text-[18px] text-[#dbb8ff]">location_on</span>
+                <MapPinIcon class="w-[18px] h-[18px] text-[#dbb8ff]" />
                 Takoradi
               </span>
               <span class="text-[#dbb8ff] select-none" aria-hidden="true">·</span>
               <span class="flex items-center gap-1.5">
-                <span class="material-symbols-outlined !text-[18px] text-[#dbb8ff]">location_on</span>
+                <MapPinIcon class="w-[18px] h-[18px] text-[#dbb8ff]" />
                 Tamale
               </span>
               <span class="text-[#dbb8ff] select-none mx-2" aria-hidden="true">|</span>
@@ -313,11 +313,11 @@
               <!-- Testimonial 1 -->
               <div class="bg-white p-10 rounded-lg">
                 <div class="flex gap-1 mb-6 text-[#E8A33A]">
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
                 </div>
                 <p class="text-[#1e1a22] text-lg leading-relaxed italic mb-8">"I couldn't find my father's chronic medication anywhere in Kumasi. MedsGh found it in 15 minutes and delivered it the same hour. Lifesavers!"</p>
                 <div class="flex items-center gap-4">
@@ -331,11 +331,11 @@
               <!-- Testimonial 2 -->
               <div class="bg-white p-10 rounded-lg">
                 <div class="flex gap-1 mb-6 text-[#E8A33A]">
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
                 </div>
                 <p class="text-[#1e1a22] text-lg leading-relaxed italic mb-8">"The telehealth integration is seamless. Had a consultation and my meds were on their way before I even hung up the call. Amazing service."</p>
                 <div class="flex items-center gap-4">
@@ -349,11 +349,11 @@
               <!-- Testimonial 3 -->
               <div class="bg-white p-10 rounded-lg">
                 <div class="flex gap-1 mb-6 text-[#E8A33A]">
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
+                  <StarIcon class="w-5 h-5" />
                 </div>
                 <p class="text-[#1e1a22] text-lg leading-relaxed italic mb-8">"As a busy professional, I don't have time to hop from pharmacy to pharmacy. MedsGh makes medication management effortless and secure."</p>
                 <div class="flex items-center gap-4">
@@ -377,7 +377,7 @@
               <!-- Left Column -->
               <div>
                 <span class="inline-flex items-center gap-2 rounded-full border border-[#5c2d8a] bg-[#2d1050] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#dbb8ff] mb-6">
-                  <span class="material-symbols-outlined !text-[14px]">storefront</span>
+                  <BuildingStorefrontIcon class="w-[14px] h-[14px]" />
                   For Pharmacies
                 </span>
 
@@ -391,7 +391,7 @@
                 <ul class="space-y-4 mb-10">
                   <li class="flex items-start gap-3">
                     <span class="flex-shrink-0 mt-0.5 w-7 h-7 rounded-full bg-[#520094] flex items-center justify-center">
-                      <span class="material-symbols-outlined !text-[16px] text-white">trending_up</span>
+                      <ArrowTrendingUpIcon class="w-4 h-4 text-white" />
                     </span>
                     <div>
                       <p class="font-semibold text-white text-sm">More orders, zero effort</p>
@@ -400,7 +400,7 @@
                   </li>
                   <li class="flex items-start gap-3">
                     <span class="flex-shrink-0 mt-0.5 w-7 h-7 rounded-full bg-[#520094] flex items-center justify-center">
-                      <span class="material-symbols-outlined !text-[16px] text-white">monetization_on</span>
+                      <CurrencyDollarIcon class="w-4 h-4 text-white" />
                     </span>
                     <div>
                       <p class="font-semibold text-white text-sm">Zero setup cost</p>
@@ -409,7 +409,7 @@
                   </li>
                   <li class="flex items-start gap-3">
                     <span class="flex-shrink-0 mt-0.5 w-7 h-7 rounded-full bg-[#520094] flex items-center justify-center">
-                      <span class="material-symbols-outlined !text-[16px] text-white">bar_chart</span>
+                      <ChartBarIcon class="w-4 h-4 text-white" />
                     </span>
                     <div>
                       <p class="font-semibold text-white text-sm">Real-time analytics</p>
@@ -423,14 +423,14 @@
                     href="mailto:support@medsgh.com?subject=Pharmacy+Partner+Application"
                     class="inline-flex items-center gap-2 rounded-full bg-[#520094] hover:bg-[#6c24b3] px-6 py-3 text-sm font-bold text-white transition-all shadow-lg shadow-[#520094]/40 hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    <span class="material-symbols-outlined !text-[18px]">mail</span>
+                    <EnvelopeIcon class="w-[18px] h-[18px]" />
                     Apply to Partner
                   </a>
                   <a
                     href="tel:+233552587974"
                     class="inline-flex items-center gap-2 rounded-full border border-[#5c2d8a] bg-[#2d1050] hover:bg-[#3d1a66] px-6 py-3 text-sm font-bold text-[#dbb8ff] transition-all"
                   >
-                    <span class="material-symbols-outlined !text-[18px]">call</span>
+                    <PhoneIcon class="w-[18px] h-[18px]" />
                     Call Us
                   </a>
                 </div>
@@ -441,22 +441,22 @@
                 <div class="rounded-2xl border border-[#3d1a66] bg-[#2a0f45] p-6">
                   <div class="text-3xl font-bold text-white mb-1">210+</div>
                   <div class="text-sm text-[#a390b8] font-medium">Partner pharmacies</div>
-                  <span class="material-symbols-outlined text-[#520094] text-2xl mt-3 block">local_pharmacy</span>
+                  <BuildingStorefrontIcon class="w-6 h-6 text-[#520094] mt-3 block" />
                 </div>
                 <div class="rounded-2xl border border-[#3d1a66] bg-[#2a0f45] p-6">
                   <div class="text-3xl font-bold text-white mb-1">5k+</div>
                   <div class="text-sm text-[#a390b8] font-medium">Patients served</div>
-                  <span class="material-symbols-outlined text-[#520094] text-2xl mt-3 block">groups</span>
+                  <UserGroupIcon class="w-6 h-6 text-[#520094] mt-3 block" />
                 </div>
                 <div class="rounded-2xl border border-[#3d1a66] bg-[#2a0f45] p-6">
                   <div class="text-3xl font-bold text-white mb-1">45min</div>
                   <div class="text-sm text-[#a390b8] font-medium">Avg. fulfillment</div>
-                  <span class="material-symbols-outlined text-[#520094] text-2xl mt-3 block">speed</span>
+                  <BoltIcon class="w-6 h-6 text-[#520094] mt-3 block" />
                 </div>
                 <div class="rounded-2xl border border-[#3d1a66] bg-[#2a0f45] p-6">
                   <div class="text-3xl font-bold text-white mb-1">100%</div>
                   <div class="text-sm text-[#a390b8] font-medium">Verified partners</div>
-                  <span class="material-symbols-outlined text-[#520094] text-2xl mt-3 block">verified</span>
+                  <CheckBadgeIcon class="w-6 h-6 text-[#520094] mt-3 block" />
                 </div>
               </div>
 
@@ -473,7 +473,7 @@
               <details class="group bg-[#faf0fd] rounded-lg p-6 cursor-pointer" open>
                 <summary class="flex items-center justify-between font-bold text-lg text-[#1e1a22] list-none">
                   Are the pharmacies on MedsGh licensed?
-                  <span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span>
+                  <ChevronDownIcon class="w-5 h-5 transition group-open:rotate-180" />
                 </summary>
                 <p class="mt-4 text-[#4c4453] leading-relaxed">
                   Yes, every pharmacy in our network is fully accredited by the Pharmacy Council of Ghana. We strictly verify licenses and compliance records before onboarding any partner to ensure your safety.
@@ -482,7 +482,7 @@
               <details class="group bg-[#faf0fd] rounded-lg p-6 cursor-pointer">
                 <summary class="flex items-center justify-between font-bold text-lg text-[#1e1a22] list-none">
                   How do you handle prescription medications?
-                  <span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span>
+                  <ChevronDownIcon class="w-5 h-5 transition group-open:rotate-180" />
                 </summary>
                 <p class="mt-4 text-[#4c4453] leading-relaxed">
                   For prescription-only medicines, you are required to upload a clear photo or digital copy of a valid prescription. Our pharmacists verify these documents before processing your order.
@@ -491,7 +491,7 @@
               <details class="group bg-[#faf0fd] rounded-lg p-6 cursor-pointer">
                 <summary class="flex items-center justify-between font-bold text-lg text-[#1e1a22] list-none">
                   What is the delivery radius?
-                  <span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span>
+                  <ChevronDownIcon class="w-5 h-5 transition group-open:rotate-180" />
                 </summary>
                 <p class="mt-4 text-[#4c4453] leading-relaxed">
                   We currently operate across all major cities in Ghana, including Accra, Kumasi, Takoradi, and Tamale. We are rapidly expanding our partner network to reach more rural areas soon.
@@ -506,15 +506,15 @@
           <div class="container mx-auto px-8">
             <div class="flex flex-wrap justify-center items-center gap-12 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#520094] text-3xl">security</span>
+                <ShieldCheckIcon class="w-7 h-7 text-[#520094]" />
                 <span class="font-semibold text-[#1e1a22] text-sm uppercase tracking-wider">Pharmacy Council accredited member</span>
               </div>
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#520094] text-3xl">payments</span>
+                <CreditCardIcon class="w-7 h-7 text-[#520094]" />
                 <span class="font-semibold text-[#1e1a22] text-sm uppercase tracking-wider">PCI-DSS compliant</span>
               </div>
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#520094] text-3xl">health_and_safety</span>
+                <HeartIcon class="w-7 h-7 text-[#520094]" />
                 <span class="font-semibold text-[#1e1a22] text-sm uppercase tracking-wider">G-Health certified</span>
               </div>
             </div>
@@ -533,7 +533,7 @@
               @click="openOrderFlow([])"
               class="flex-shrink-0 inline-flex items-center gap-2 rounded-full bg-[#520094] hover:bg-[#6c24b3] px-5 py-2.5 text-sm font-bold text-white transition-all shadow-md shadow-[#520094]/30 active:scale-95"
             >
-              <span class="material-symbols-outlined !text-[18px]">medication</span>
+              <BeakerIcon class="w-[18px] h-[18px]" />
               Request Meds
             </button>
           </div>
@@ -570,16 +570,16 @@
             <h4 class="font-bold text-[#520094] mb-4 text-sm">Connect</h4>
             <div class="flex gap-4 mb-6">
               <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#520094] shadow-sm hover:bg-[#520094] hover:text-white transition-all">
-                <span class="material-symbols-outlined">alternate_email</span>
+                <EnvelopeIcon class="w-5 h-5" />
               </button>
               <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#520094] shadow-sm hover:bg-[#520094] hover:text-white transition-all">
-                <span class="material-symbols-outlined">share</span>
+                <ShareIcon class="w-5 h-5" />
               </button>
               <button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#520094] shadow-sm hover:bg-[#520094] hover:text-white transition-all">
-                <span class="material-symbols-outlined">call</span>
+                <PhoneIcon class="w-5 h-5" />
               </button>
             </div>
-            <p class="text-xs text-slate-500">Contact us: support@medsgh.com</p>
+            <p class="text-xs text-slate-500">Contact us: rigelis@rigelisinc.com</p>
           </div>
         </div>
         <div class="mt-12 pt-8 border-t border-[#cec2d5]/15 max-w-screen-2xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
@@ -598,17 +598,37 @@
 </template>
 
 <script setup>
-import { useHead } from '#imports'
 import { computed, onMounted, ref, watch } from 'vue'
 import Login from '~/components/Login.vue'
 import { useUserStore } from '~/stores/user'
-
-useHead({
-  link: [
-    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap' },
-    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap' }
-  ]
-})
+import {
+  BeakerIcon,
+  MagnifyingGlassIcon,
+  ArrowUpTrayIcon,
+  XMarkIcon,
+  TrashIcon,
+  MinusIcon,
+  PlusIcon,
+  BuildingStorefrontIcon,
+  BoltIcon,
+  ChatBubbleLeftRightIcon,
+  MapPinIcon,
+  ArrowTrendingUpIcon,
+  CurrencyDollarIcon,
+  ChartBarIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  UserGroupIcon,
+  ChevronDownIcon,
+  ShieldCheckIcon,
+  CreditCardIcon,
+  HeartIcon,
+  ShareIcon,
+} from '@heroicons/vue/24/outline'
+import {
+  StarIcon,
+  CheckBadgeIcon,
+} from '@heroicons/vue/24/solid'
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -867,10 +887,6 @@ watch(
 
 .animate-fade-up {
   animation: fade-up 0.4s ease-out;
-}
-
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 details summary::-webkit-details-marker {

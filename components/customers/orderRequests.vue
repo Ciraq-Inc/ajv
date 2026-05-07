@@ -14,13 +14,13 @@
                 <div class="flex flex-col items-end gap-2 flex-shrink-0 mt-1">
                     <button @click="goToRequestHistory" type="button"
                         class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
-                        <span class="material-symbols-outlined text-[18px]">history</span>
+                        <ClockIcon class="w-[18px] h-[18px]" />
                         My Requests
                     </button>
                     <button @click="openWalletTab" type="button"
                         class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors"
                         :class="canSearchProducts ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'">
-                        <span class="material-symbols-outlined text-[14px]">account_balance_wallet</span>
+                        <WalletIcon class="w-3.5 h-3.5" />
                         GHS {{ walletBalance.toFixed(2) }}
                     </button>
                 </div>
@@ -177,30 +177,15 @@
                         </div>
                     </section>
 
-                    <!-- Section 3: Delivery Details -->
+                    <!-- Section 3: Notes -->
                     <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
                             <div
                                 class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0">
                                 3</div>
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Details</h3>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Notes</h3>
                         </div>
-                        <div class="grid grid-cols-1 gap-3">
-                            <button @click="selectFulfillment('delivery')" type="button"
-                                class="flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-all"
-                                :class="fulfillmentType === 'delivery' ? 'border-[#4F217A] bg-[#f4e8fb]' : 'border-zinc-200 bg-white hover:border-zinc-300'">
-                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                                    :class="fulfillmentType === 'delivery' ? 'bg-[#4F217A] text-white' : 'bg-zinc-100 text-zinc-500'">
-                                    <TruckIcon class="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <strong class="block text-sm font-black"
-                                        :class="fulfillmentType === 'delivery' ? 'text-[#4F217A]' : 'text-zinc-800'">Home Delivery</strong>
-                                    <span class="text-xs"
-                                        :class="fulfillmentType === 'delivery' ? 'text-[#5e3a86]' : 'text-zinc-400'">Arrives within 2–4 hours</span>
-                                </div>
-                            </button>
-                        </div>
+                        <p class="text-xs text-zinc-500 mb-3">You'll choose pickup or delivery on the payment screen, where you can compare prices and pharmacy distance.</p>
                         <div class="flex flex-col gap-1.5 mt-4">
                             <label for="request-notes" class="text-sm font-semibold text-zinc-700">Notes <span
                                     class="font-normal text-zinc-400">(optional)</span></label>
@@ -220,7 +205,7 @@
                             <div
                                 class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">
                                 4</div>
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Delivery Address</h3>
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Your Address</h3>
                         </div>
                         <button @click="getLocation" :disabled="gettingLocation"
                             class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300"
@@ -240,14 +225,14 @@
                                 <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Edit</span>
                             </div>
                         </button>
-                        <div v-if="fulfillmentType === 'delivery'" class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2">
                             <div class="relative">
                                 <label for="delivery-address-search"
                                     class="block text-xs font-black uppercase tracking-[0.12em] text-zinc-500 mb-2">Search
-                                    delivery address</label>
+                                    address</label>
                                 <div
                                     class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
-                                    <span class="material-symbols-outlined text-[18px] text-zinc-400">search</span>
+                                    <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
                                     <input v-model="deliveryAddressSearch" type="text"
                                         id="delivery-address-search"
                                         placeholder="Type an address or landmark"
@@ -260,13 +245,12 @@
                                         inputmode="text"
                                         @keydown="onDeliveryAddressKeydown"
                                         class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
-                                    <span v-if="deliveryAutocompleteLoading"
-                                        class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
+                                    <ArrowPathIcon v-if="deliveryAutocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
                                 </div>
                                 <ul v-if="deliveryAddressSuggestions.length"
                                     id="delivery-address-suggestions"
                                     role="listbox"
-                                    aria-label="Delivery address suggestions"
+                                    aria-label="Address suggestions"
                                     class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain list-none m-0 p-0">
                                     <li class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400" aria-hidden="true">
                                         <span>Suggestions</span>
@@ -299,14 +283,7 @@
                     </section>
 
                     <!-- Privacy note -->
-                    <p class="flex items-center gap-2 text-xs text-zinc-400 px-1 pb-2">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                        Your data is encrypted and HIPAA-compliant. We only share prescription details with our pharmacy
-                        partners.
-                    </p>
+                  
                 </div><!-- /left form column -->
 
                 <!-- Right sidebar (desktop only) -->
@@ -341,7 +318,7 @@
                             <template v-else>Send Request ›</template>
                         </button>
                         <p v-if="!canSubmit && !isSubmitting" class="text-[11px] text-zinc-400 text-center mt-2">
-                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !fulfillmentType ? 'Delivery required' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add delivery address' : !canSearchProducts ? `Top up your wallet to GHS ${requestFee.toFixed(2)} to send` : '' }}
+                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add your address' : !canSearchProducts ? `Top up your wallet to GHS ${requestFee.toFixed(2)} to send` : '' }}
                         </p>
                     </div>
                 </div><!-- /right sidebar -->
@@ -418,7 +395,7 @@
                     class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-white rounded-xl shadow-sm">
                     <div
                         class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100">
-                        <span class="material-symbols-outlined text-3xl text-zinc-300">inbox</span>
+                        <InboxIcon class="w-7 h-7 text-zinc-300" />
                     </div>
                     <p class="text-base font-bold text-zinc-900 mb-1">No requests yet</p>
                     <p class="text-sm font-medium text-zinc-500 mb-6">Submit your first order request to get started</p>
@@ -438,8 +415,7 @@
                                 <!-- Colored Icon Box based on status -->
                                 <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
                                     :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (req.status === 'processing' || req.status === 'composed' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100')">
-                                    <span class="material-symbols-outlined text-[20px]">{{ req.status === 'completed' ?
-                                        'check_circle' : 'medication' }}</span>
+                                    <component :is="req.status === 'completed' ? CheckCircleIcon : BeakerIcon" class="w-5 h-5" />
                                 </div>
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-2 mb-0.5">
@@ -558,13 +534,14 @@
                         <span class="detail-label">Your Rider</span>
                         <p v-if="selectedRequest.rider_name" class="rider-name">{{ selectedRequest.rider_name }}</p>
                         <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
-                            <span class="material-symbols-outlined text-[16px]">chat</span>
+                            <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
                             Message on WhatsApp
                         </a>
                     </div>
 
-                    <!-- Totals -->
-                    <div v-if="selectedRequest.estimated_total" class="totals-box">
+                    <!-- Totals (hidden while pickup vs delivery is still being chosen — the
+                         comparison cards below carry per-method totals) -->
+                    <div v-if="selectedRequest.estimated_total && !requiresMethodSelection(selectedRequest)" class="totals-box">
                         <div class="total-row"><span>Items total</span><span>GHS {{
                             parseFloat(selectedRequest.items_total ||
                                 0).toFixed(2) }}</span></div>
@@ -688,22 +665,145 @@
 
                     <div v-if="canPayRequest(selectedRequest) && !selectedRequest.pending_decisions?.length"
                         class="payment-action">
+                        <!-- Pickup vs delivery comparison (flag-gated) -->
+                        <div v-if="requiresMethodSelection(selectedRequest)" class="fulfillment-picker">
+                            <div class="fulfillment-picker-header">
+                                <h4>How would you like to receive your order?</h4>
+                                <p>Compare pickup and delivery before paying.</p>
+                            </div>
+
+                            <div v-if="paymentOptionsLoading[selectedRequest.id]" class="fulfillment-picker-loading">
+                                <ArrowPathIcon class="pay-svg spin" />
+                                <span>Loading options…</span>
+                            </div>
+
+                            <div v-else-if="paymentOptionsByRequest[selectedRequest.id]" class="fulfillment-options">
+                                <!-- Pickup card -->
+                                <button
+                                    type="button"
+                                    class="fulfillment-option"
+                                    :class="{
+                                        'fulfillment-option--selected': selectedPaymentMethodByRequest[selectedRequest.id] === 'pickup',
+                                        'fulfillment-option--disabled': !paymentOptionsByRequest[selectedRequest.id].pickup.available
+                                    }"
+                                    :disabled="!paymentOptionsByRequest[selectedRequest.id].pickup.available"
+                                    @click="choosePaymentMethod(selectedRequest.id, 'pickup')"
+                                >
+                                    <div class="fulfillment-option-head">
+                                        <span class="fulfillment-option-title">Pickup</span>
+                                        <span class="fulfillment-option-price">
+                                            <template v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available">
+                                                GHS {{ paymentOptionsByRequest[selectedRequest.id].pickup.total.toFixed(2) }}
+                                            </template>
+                                            <template v-else>—</template>
+                                        </span>
+                                    </div>
+                                    <div v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available && paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy" class="fulfillment-option-meta">
+                                        <span>{{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.name }}</span>
+                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area">
+                                            · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area }}
+                                        </span>
+                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km != null">
+                                            · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km }} km away
+                                        </span>
+                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.is_24_hours">
+                                            · Open 24 hours
+                                        </span>
+                                        <span v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at">
+                                            · Open until {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at }}
+                                        </span>
+                                    </div>
+                                    <div v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
+                                        {{ formatPickupReason(paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason) }}
+                                    </div>
+                                </button>
+
+                                <!-- Delivery card -->
+                                <button
+                                    type="button"
+                                    class="fulfillment-option"
+                                    :class="{ 'fulfillment-option--selected': selectedPaymentMethodByRequest[selectedRequest.id] === 'delivery' }"
+                                    @click="choosePaymentMethod(selectedRequest.id, 'delivery')"
+                                >
+                                    <div class="fulfillment-option-head">
+                                        <span class="fulfillment-option-title">Delivery</span>
+                                        <span class="fulfillment-option-price">
+                                            GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.total.toFixed(2) }}
+                                        </span>
+                                    </div>
+                                    <div class="fulfillment-option-meta">
+                                        <span>Delivery fee GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.fee.toFixed(2) }}</span>
+                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.distance_km != null">
+                                            · {{ paymentOptionsByRequest[selectedRequest.id].delivery.distance_km }} km
+                                        </span>
+                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes">
+                                            · ~{{ paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes }} min
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Fee credit toggle: shown when the request fee can be applied or returned -->
+                        <div v-if="paymentOptionsByRequest[selectedRequest.id]?.fee_applicable" class="fee-credit-picker">
+                            <div class="fee-credit-header">
+                                <span class="fee-credit-label">GHS {{ parseFloat(paymentOptionsByRequest[selectedRequest.id].request_fee).toFixed(2) }} search fee</span>
+                                <span class="fee-credit-sub">How would you like to use it?</span>
+                            </div>
+                            <div class="fee-credit-options">
+                                <button
+                                    type="button"
+                                    class="fee-credit-option"
+                                    :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] !== false }"
+                                    @click="setApplyFee(selectedRequest.id, true)"
+                                >
+                                    <span class="fee-credit-option-title">Apply to this order</span>
+                                    <span class="fee-credit-option-sub">Pay less now</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="fee-credit-option"
+                                    :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] === false }"
+                                    @click="setApplyFee(selectedRequest.id, false)"
+                                >
+                                    <span class="fee-credit-option-title">Return to wallet</span>
+                                    <span class="fee-credit-option-sub">Save for a future request</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Live total row — shown whenever a total is computable -->
+                        <div v-if="selectedMethodTotal != null" class="payment-total-row">
+                            <span>Total</span>
+                            <span class="payment-total-amount">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
+                        </div>
+
                         <div class="payment-method-grid">
                             <button @click="payForRequest(selectedRequest.id, 'wallet')" class="pay-request-btn"
-                                :disabled="payingRequest">
+                                :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
                                 <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
                                 <CurrencyDollarIcon v-else class="pay-svg" />
-                                <span>{{ payingRequest && payingMethod === 'wallet' ? 'Processing wallet payment...' :
-                                    `Pay with
-                                    Wallet` }}</span>
+                                <span>
+                                    {{ payingRequest && payingMethod === 'wallet'
+                                        ? 'Processing wallet payment...'
+                                        : selectedMethodTotal != null
+                                            ? `Pay with Wallet · GHS ${selectedMethodTotal.toFixed(2)}`
+                                            : 'Pay with Wallet' }}
+                                </span>
                             </button>
                             <button @click="payForRequest(selectedRequest.id, 'paystack')"
-                                class="pay-request-btn secondary-pay-btn" :disabled="payingRequest">
+                                class="pay-request-btn secondary-pay-btn"
+                                :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
                                 <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'"
                                     class="pay-svg spin" />
                                 <CreditCardIcon v-else class="pay-svg" />
-                                <span>{{ payingRequest && payingMethod === 'paystack' ? 'Redirecting to Paystack...' :
-                                    'Pay with Paystack' }}</span>
+                                <span>
+                                    {{ payingRequest && payingMethod === 'paystack'
+                                        ? 'Redirecting to Paystack...'
+                                        : selectedMethodTotal != null
+                                            ? `Pay with Paystack · GHS ${selectedMethodTotal.toFixed(2)}`
+                                            : 'Pay with Paystack' }}
+                                </span>
                             </button>
                         </div>
                         <p class="payment-note">Choose wallet or Paystack. Direct Paystack payments are also recorded in
@@ -915,7 +1015,8 @@ import {
     PaperClipIcon, InformationCircleIcon, CubeIcon, CurrencyDollarIcon, TruckIcon, StarIcon,
     ChatBubbleLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon,
     MinusSmallIcon, PlusSmallIcon, CreditCardIcon,
-    ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon
+    ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon,
+    ClockIcon, WalletIcon, InboxIcon, BeakerIcon, ChatBubbleLeftEllipsisIcon,
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
@@ -946,6 +1047,13 @@ const showPriorityModal = ref(false)
 const submittedNumber = ref('')
 const requestFee = ref(5)
 const requestRefundMinutes = ref(30)
+const paymentOptionsByRequest = ref({}) // { [requestId]: { pickup, delivery, ... } }
+const paymentOptionsLoading = ref({}) // { [requestId]: bool }
+const selectedPaymentMethodByRequest = ref({}) // { [requestId]: 'pickup'|'delivery' }
+const applyFeeByRequest = ref({}) // { [requestId]: boolean } — true = apply fee to bill, false = return to wallet
+const setApplyFee = (requestId, value) => {
+    applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: value }
+}
 const walletBalance = ref(0)
 const submitShortfall = ref(0)
 const paymentShortfall = ref({
@@ -1166,6 +1274,16 @@ let deliveryAutocompleteSuspend = false
 
 const myRequests = ref([])
 const selectedRequest = ref(null)
+
+// Auto-fetch payment options when the customer opens a payable request.
+// The payment-options endpoint is the source of truth for pickup viability
+// + fee/distance/ETA.
+watch(selectedRequest, (req) => {
+    if (!req) return
+    if (!canPayRequest(req)) return
+    if (paymentOptionsByRequest.value[req.id]) return
+    loadPaymentOptions(req.id)
+})
 const requestListTab = ref('active')
 const respondingDecisionId = ref(null)
 const decisionSelections = ref({})
@@ -1198,8 +1316,10 @@ const homeLocationAvailable = computed(() => !!(savedHomeLocation.value?.latitud
 const canSearchProducts = computed(() => Number(walletBalance.value || 0) >= Number(requestFee.value || 5))
 const canSubmit = computed(() => {
     const hasRequestContent = validItems.value.length > 0 || prescriptionFiles.value.length > 0
-    if (!(hasRequestContent && customerLat.value && fulfillmentType.value)) return false
-    if (fulfillmentType.value === 'delivery' && !deliveryAddress.value.trim()) return false
+    if (!hasRequestContent || !customerLat.value) return false
+    // fulfillment_type is chosen later on the payment screen; address is still
+    // required here because we use it for sourcing nearby pharmacies.
+    if (!deliveryAddress.value.trim()) return false
     // Block submission when the wallet can't cover the priority search fee —
     // the server enforces this too, but disabling here avoids a confusing
     // round-trip and matches the amber "top up first" warning already shown.
@@ -1800,11 +1920,13 @@ const submitRequest = async () => {
     isSubmitting.value = true
     uploadProgress.value = 0
     try {
+        // fulfillment_type is always null at submission — the customer chooses
+        // pickup vs delivery on the payment screen after sourcing completes.
         const payload = {
             items: validItems.value.map(buildItemPayload),
             customer_latitude: customerLat.value,
             customer_longitude: customerLng.value,
-            fulfillment_type: fulfillmentType.value,
+            fulfillment_type: null,
             delivery_address: deliveryAddress.value.trim(),
             customer_address: (customerAddress.value || deliveryAddress.value).trim(),
             customer_notes: customerNotes.value.trim(),
@@ -1815,7 +1937,9 @@ const submitRequest = async () => {
             formData.append('items', JSON.stringify(payload.items))
             formData.append('customer_latitude', String(payload.customer_latitude))
             formData.append('customer_longitude', String(payload.customer_longitude))
-            formData.append('fulfillment_type', payload.fulfillment_type)
+            if (payload.fulfillment_type) {
+                formData.append('fulfillment_type', payload.fulfillment_type)
+            }
             formData.append('delivery_address', payload.delivery_address)
             formData.append('customer_address', payload.customer_address)
             formData.append('customer_notes', payload.customer_notes)
@@ -1986,15 +2110,132 @@ const clearRequestPaymentQuery = async (requestId = null) => {
     if (requestId) nextQuery.requestId = String(requestId)
     await router.replace({ query: nextQuery })
 }
+const loadPaymentOptions = async (requestId) => {
+    if (!requestId) return
+    if (paymentOptionsLoading.value[requestId]) return
+    paymentOptionsLoading.value = { ...paymentOptionsLoading.value, [requestId]: true }
+    try {
+        const res = await apiCall('GET', `/api/order-requests/customer/${requestId}/payment-options`)
+        paymentOptionsByRequest.value = { ...paymentOptionsByRequest.value, [requestId]: res.data }
+        const serverSelected = res.data?.selected
+        if (serverSelected && !selectedPaymentMethodByRequest.value[requestId]) {
+            selectedPaymentMethodByRequest.value = {
+                ...selectedPaymentMethodByRequest.value,
+                [requestId]: serverSelected
+            }
+        }
+        if (res.data?.fee_applicable && !(requestId in applyFeeByRequest.value)) {
+            applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: true }
+        }
+    } catch (e) {
+        console.warn('Failed to load payment options', e)
+    } finally {
+        const next = { ...paymentOptionsLoading.value }
+        delete next[requestId]
+        paymentOptionsLoading.value = next
+    }
+}
+
+const choosePaymentMethod = (requestId, method) => {
+    if (!requestId || !['pickup', 'delivery'].includes(method)) return
+    const opts = paymentOptionsByRequest.value[requestId]
+    if (method === 'pickup' && opts && !opts.pickup?.available) return
+    selectedPaymentMethodByRequest.value = {
+        ...selectedPaymentMethodByRequest.value,
+        [requestId]: method
+    }
+}
+
+const requiresMethodSelection = (request) => {
+    if (!request) return false
+    return !request.fulfillment_type
+}
+
+const canPayWithSelection = (request) => {
+    if (!request) return false
+    if (!requiresMethodSelection(request)) return true
+    return Boolean(selectedPaymentMethodByRequest.value[request.id])
+}
+
+// Live total reflecting the chosen fulfillment method and fee preference.
+// Returns null while the customer hasn't yet picked pickup/delivery (em-dash in UI).
+const selectedMethodTotal = computed(() => {
+    const req = selectedRequest.value
+    if (!req) return null
+    const opts = paymentOptionsByRequest.value[req.id]
+    if (!opts) return null
+
+    // Fulfillment method: either already locked on the request or actively chosen by the customer
+    const method = req.fulfillment_type || selectedPaymentMethodByRequest.value[req.id]
+    // If method selection is still required but none chosen yet, show nothing
+    if (requiresMethodSelection(req) && !selectedPaymentMethodByRequest.value[req.id]) return null
+
+    const applyFee = applyFeeByRequest.value[req.id] !== false // default true
+    if (method === 'pickup' && opts.pickup?.available) {
+        const total = applyFee ? opts.pickup.total_fee_applied : opts.pickup.total
+        return total != null ? Number(total) : null
+    }
+    if (method === 'delivery') {
+        const total = applyFee ? opts.delivery.total_fee_applied : opts.delivery.total
+        return total != null ? Number(total) : null
+    }
+    return null
+})
+
+const formatPickupReason = (reason) => {
+    switch (reason) {
+        case 'multi_pharmacy': return 'Pickup is only available when one pharmacy fulfills the whole order'
+        case 'closed': return 'The pharmacy is currently closed'
+        case 'outside_buffer': return 'The pharmacy is closing too soon for pickup'
+        case 'no_pharmacy': return 'No pharmacy is yet sourced'
+        default: return 'Pickup is not available right now'
+    }
+}
+
+const submitFulfillmentChoice = async (requestId, method) => {
+    const res = await apiCall('PUT', `/api/order-requests/customer/${requestId}/fulfillment`, {
+        fulfillment_type: method
+    })
+    if (selectedRequest.value?.id === requestId) {
+        selectedRequest.value = {
+            ...selectedRequest.value,
+            fulfillment_type: method,
+            status: 'payment_pending'
+        }
+    }
+    return res
+}
+
 const payForRequest = async (id, method = 'wallet') => {
     if (!id || payingRequest.value) return
+
+    const request = selectedRequest.value
+    if (requiresMethodSelection(request)) {
+        const chosen = selectedPaymentMethodByRequest.value[id]
+        if (!chosen) {
+            showToast('Please select pickup or delivery first', 'error')
+            return
+        }
+        try {
+            await submitFulfillmentChoice(id, chosen)
+        } catch (e) {
+            showToast(e.message || 'Could not save your fulfillment choice', 'error')
+            return
+        }
+    }
+
     payingRequest.value = true
     payingMethod.value = method
     try {
         paymentShortfall.value = { requestId: null, amount: 0 }
 
+        const opts = paymentOptionsByRequest.value[id]
+        const feeApplicable = Boolean(opts?.fee_applicable)
+        const applyFee = feeApplicable ? applyFeeByRequest.value[id] !== false : undefined
+        const payBody = feeApplicable ? { apply_fee: applyFee } : undefined
+
         if (method === 'paystack') {
-            const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay/paystack/initialize`)
+            const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay/paystack/initialize`, payBody)
             if (!res.data?.authorization_url) {
                 throw new Error('Paystack checkout could not be started')
             }
@@ -2002,7 +2243,7 @@ const payForRequest = async (id, method = 'wallet') => {
             return
         }
 
-        const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay`)
+        const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay`, payBody)
         await fetchMyRequests({ silent: true })
         if (selectedRequest.value?.id === id) {
             await refreshSelectedRequest()
@@ -5144,6 +5385,200 @@ defineExpose({ fetchMyRequests })
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.7rem;
+}
+
+.payment-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.65rem 0.85rem;
+    margin-bottom: 0.7rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.payment-total-amount {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #4F217A;
+    font-variant-numeric: tabular-nums;
+}
+
+.fulfillment-picker {
+    margin-bottom: 0.85rem;
+    padding: 0.85rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.fulfillment-picker-header h4 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.fulfillment-picker-header p {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.fulfillment-picker-loading {
+    margin-top: 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.fulfillment-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+}
+
+@media (max-width: 480px) {
+    .fulfillment-options { grid-template-columns: 1fr; }
+}
+
+.fulfillment-option {
+    display: block;
+    text-align: left;
+    padding: 0.7rem 0.85rem;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.fulfillment-option:hover:not(:disabled) {
+    border-color: #cbd5e1;
+}
+
+.fulfillment-option--selected {
+    border-color: #4F217A;
+    background: #f4e8fb;
+}
+
+.fulfillment-option--disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.fulfillment-option-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fulfillment-option-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #0f172a;
+}
+
+.fulfillment-option-price {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #4F217A;
+}
+
+.fulfillment-option-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    margin-top: 0.3rem;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.fulfillment-option-meta--muted {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.fee-credit-picker {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 0.85rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.fee-credit-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.55rem;
+}
+
+.fee-credit-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.fee-credit-sub {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.fee-credit-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.fee-credit-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-radius: 9px;
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.fee-credit-option:hover {
+    border-color: #cbd5e1;
+}
+
+.fee-credit-option--selected {
+    border-color: #4F217A;
+    background: #f4e8fb;
+}
+
+.fee-credit-option-title {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.fee-credit-option-sub {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.fee-credit-option--selected .fee-credit-option-title {
+    color: #4F217A;
+}
+
+@media (max-width: 480px) {
+    .fee-credit-options { grid-template-columns: 1fr; }
 }
 
 .pay-request-btn {

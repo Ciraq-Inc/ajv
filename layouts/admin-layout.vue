@@ -29,11 +29,11 @@
       <!-- Navigation Menu -->
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Dashboard</div>
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Analytics</div>
 
           <NuxtLink to="/admin/data" class="nav-item" active-class="active">
             <ChartBarIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Overview</span>
+            <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Data</span>
           </NuxtLink>
         </div>
 
@@ -122,13 +122,22 @@
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Settings</div>
 
-          <NuxtLink 
-            to="/admin/platform-settings" 
+          <NuxtLink
+            to="/admin/platform-settings"
             class="nav-item"
             active-class="active"
           >
             <Cog6ToothIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Platform Settings</span>
+          </NuxtLink>
+
+          <NuxtLink
+            to="/admin/fee-schedules"
+            class="nav-item"
+            active-class="active"
+          >
+            <BanknotesIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Fee Schedules</span>
           </NuxtLink>
 
           <NuxtLink 
@@ -326,7 +335,7 @@ const adminInitials = computed(() => {
 const pageTitle = computed(() => {
   const path = route.path
   const tab = route.query.tab
-  if (path.includes('/admin/data')) return 'Dashboard'
+  if (path.includes('/admin/data')) return 'Pharmacy Data'
   if (path.includes('/admin/signups')) return 'Waitlist Signups'
   if (path.includes('/admin/access')) return 'Companies'
   if (path.includes('/admin/useraccess')) return 'User Access'
@@ -340,6 +349,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/fulfillment/pharmacy-ledger')) return 'Pharmacy Ledger'
   if (path.includes('/admin/fulfillment')) return 'Fulfillment'
   if (path.includes('/admin/platform-settings')) return 'Platform Settings'
+  if (path.includes('/admin/fee-schedules')) return 'Fee Schedules'
   if (path.includes('/admin/store-settings')) return 'Store Settings'
   return 'Dashboard'
 })
@@ -794,21 +804,23 @@ onUnmounted(() => {
 .notification-badge,
 .alert-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
   background: #EF4444;
-  /* red-500 */
   color: white;
   font-size: 10px;
-  /* xs - 12px but smaller */
   font-weight: 700;
-  /* bold */
-  padding: 2px 6px;
-  /* py-0.5 px-1.5 */
+  line-height: 1;
+  padding: 0 4px;
   border-radius: 9999px;
-  /* rounded-full */
   min-width: 18px;
-  text-align: center;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .admin-profile {
