@@ -1,7 +1,6 @@
 // store/pharmacy.js
 
 import { defineStore } from "pinia";
-import { otpService } from "~/utils/otpService";
 
 export const usePharmacyStore = defineStore("pharmacy", {
   state: () => ({
@@ -306,50 +305,6 @@ export const usePharmacyStore = defineStore("pharmacy", {
         this.isLoading = false;
       }
     },
-
-    // Find a customer by phone number (with flexible matching)
-    findCustomerByPhone(phone) {
-      console.log(`Finding customer with phone: ${phone}`);
-
-      // Note: With the new REST API architecture, customer lookup
-      // should happen server-side during authentication
-      console.warn('findCustomerByPhone: This method is deprecated. Use authentication API instead.');
-
-      if (!this.customers || !Array.isArray(this.customers) || this.customers.length === 0) {
-        console.log("No customers loaded in store");
-        return null;
-      }
-
-      if (!phone) {
-        console.error("No phone number provided to find customer");
-        return null;
-      }
-
-      // Format the input phone number for consistent comparison
-      const formattedInputPhone = otpService.formatPhoneNumber(phone);
-
-      // First try to find an exact match
-      const exactMatch = this.customers.find(customer =>
-        customer.phone === formattedInputPhone
-      );
-
-      if (exactMatch) {
-        console.log(`Found exact phone match: ${exactMatch.id}`);
-        return exactMatch;
-      }
-
-      console.warn(`No customer found with phone number: ${formattedInputPhone}`);
-      return null;
-    },
-
-    // Helper method to ensure customers are loaded
-    async ensureCustomersLoaded() {
-      // With REST API, customers are managed via authentication endpoints
-      // This method is kept for backward compatibility
-      console.warn('ensureCustomersLoaded: Customer management now handled via authentication API');
-      return;
-    },
-
 
     // Restore pharmacy context from localStorage if needed
     async restoreFromStorage() {

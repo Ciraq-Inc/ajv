@@ -18,7 +18,6 @@
 
         <nav class="ml-12 hidden items-center gap-5 text-sm font-medium text-slate-600 lg:flex">
           <nuxt-link to="/" class="transition hover:text-[#520094]">Home</nuxt-link>
-          <nuxt-link to="/drugs" class="transition hover:text-[#520094]">Products</nuxt-link>
           <a href="/#how-it-works" class="transition hover:text-[#520094]">How It Works</a>
           <a href="/#support" class="transition hover:text-[#520094]">Support</a>
           <a href="/#for-pharmacies" class="transition hover:text-[#520094]">For Pharmacies</a>
@@ -139,11 +138,7 @@
             <span>Home</span>
             <i class="ri-arrow-right-line"></i>
           </nuxt-link>
-          <nuxt-link to="/drugs" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
-            <span>Products</span>
-            <i class="ri-arrow-right-line"></i>
-          </nuxt-link>
-         
+
           <a href="/#how-it-works" @click="showMobileMenu = false" class="flex items-center justify-between rounded-lg px-3 py-2 transition hover:bg-white">
             <span>How It Works</span>
             <i class="ri-arrow-right-line"></i>
