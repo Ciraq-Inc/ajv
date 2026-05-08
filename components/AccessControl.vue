@@ -49,32 +49,41 @@
   <script setup>
   const isAuthenticated = ref(false)
   const error = ref('')
-  const config = useRuntimeConfig()
-  
+  const submitting = ref(false)
+
   const credentials = ref({
     username: '',
     password: ''
   })
-  
-  const authenticate = () => {
-    const validUsername = String(config.public.accessControlUsername || '').trim()
-    const validPassword = String(config.public.accessControlPassword || '')
 
-    if (!validUsername || !validPassword) {
-      error.value = 'Access control credentials are not configured.'
-      isAuthenticated.value = false
-      return
-    }
-  
-    if (
-      credentials.value.username === validUsername && 
-      credentials.value.password === validPassword
-    ) {
+  // Credentials are verified server-side via /api/access/verify so the password
+  // is no longer bundled into the client JS. This remains a soft gate only;
+  // proper admin auth replaces it in the auth rebuild.
+  const authenticate = async () => {
+    if (submitting.value) return
+    submitting.value = true
+    error.value = ''
+    try {
+      await $fetch('/api/access/verify', {
+        method: 'POST',
+        body: {
+          username: credentials.value.username,
+          password: credentials.value.password,
+        },
+      })
       isAuthenticated.value = true
-      error.value = ''
-    } else {
-      error.value = 'Invalid credentials. Please try again.'
+    } catch (err) {
+      const status = err?.response?.status ?? err?.statusCode
+      if (status === 401) {
+        error.value = 'Invalid credentials. Please try again.'
+      } else if (status === 503) {
+        error.value = 'Access control is not configured.'
+      } else {
+        error.value = 'Could not verify credentials. Please try again.'
+      }
       isAuthenticated.value = false
+    } finally {
+      submitting.value = false
     }
   }
   </script>

@@ -79,30 +79,20 @@ export const usePaystack = () => {
    */
   const verifyPayment = async (reference) => {
     try {
-      // Get your secret key from runtime config
-      const secretKey = config.public.paystackSecretKey2
+      // Verification runs on our Nitro server (server/api/paystack/verify.post.ts)
+      // so the Paystack secret key stays out of the browser bundle.
+      const data = await $fetch('/api/paystack/verify', {
+        method: 'POST',
+        body: { reference },
+      })
 
-      // Verify the transaction
-      const response = await fetch(
-        `https://api.paystack.co/transaction/verify/${reference}`,
-        {
-          headers: {
-            Authorization: `Bearer ${secretKey}`
-          }
-        }
-      )
-
-      const data = await response.json()
-      console.log('Payment verification data:', data)
-
-      if (data.status) {
+      if (data?.status === 'success') {
         return {
           status: 'success',
-          data: data.data
+          data: data.data,
         }
-      } else {
-        throw new Error('Payment verification failed')
       }
+      throw new Error(data?.message || 'Payment verification failed')
     } catch (error) {
       console.error('Payment verification error:', error)
 

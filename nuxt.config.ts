@@ -88,14 +88,19 @@ export default defineNuxtConfig({
     "/**": { prerender: false },
   },
 
-  // Runtime configuration for API endpoints
+  // Runtime configuration for API endpoints.
+  // Server-only secrets MUST live at the top level — anything under `public`
+  // is bundled into client JS and visible via View Source. Do not re-add
+  // `paystackSecretKey2` / `accessControlPassword` to `public` for any reason.
   runtimeConfig: {
+    // Server-only (never sent to the browser)
+    paystackSecretKey: process.env.PAYSTACK_SECRET_KEY || '',
+    accessControlUsername: process.env.ACCESS_CONTROL_USERNAME || '',
+    accessControlPassword: process.env.ACCESS_CONTROL_PASSWORD || '',
+
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.API_BASE_URL,
       paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
-      paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || '',
-      accessControlUsername: process.env.NUXT_PUBLIC_ACCESS_CONTROL_USERNAME || process.env.ACCESS_CONTROL_USERNAME || 'admin',
-      accessControlPassword: process.env.NUXT_PUBLIC_ACCESS_CONTROL_PASSWORD || process.env.ACCESS_CONTROL_PASSWORD || ''
     }
   },
 
