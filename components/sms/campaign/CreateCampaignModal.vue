@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Transition name="modal">
     <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" @click.self="close">
       <!-- Backdrop -->
@@ -32,7 +32,7 @@
                   <div
                     :class="[
                       'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm',
-                      currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                      currentStep >= 1 ? 'cs-btn text-white' : 'bg-gray-200 text-gray-600'
                     ]"
                   >
                     1
@@ -45,14 +45,14 @@
                 </div>
 
                 <!-- Connector -->
-                <div :class="['w-16 h-1 mx-3', currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200']"></div>
+                <div :class="['w-16 h-1 mx-3', currentStep >= 2 ? 'cs-btn' : 'bg-gray-200']"></div>
 
                 <!-- Step 2 -->
                 <div class="flex items-center">
                   <div
                     :class="[
                       'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm',
-                      currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                      currentStep >= 2 ? 'cs-btn text-white' : 'bg-gray-200 text-gray-600'
                     ]"
                   >
                     2
@@ -65,14 +65,14 @@
                 </div>
 
                 <!-- Connector -->
-                <div :class="['w-16 h-1 mx-3', currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-200']"></div>
+                <div :class="['w-16 h-1 mx-3', currentStep >= 3 ? 'cs-btn' : 'bg-gray-200']"></div>
 
                 <!-- Step 3 -->
                 <div class="flex items-center">
                   <div
                     :class="[
                       'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm',
-                      currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                      currentStep >= 3 ? 'cs-btn text-white' : 'bg-gray-200 text-gray-600'
                     ]"
                   >
                     3
@@ -104,7 +104,7 @@
                     type="text"
                     placeholder="e.g., Monthly Promotion"
                     required
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input"
                   />
                 </div>
 
@@ -159,19 +159,19 @@
               </div>
 
               <!-- Cost Summary -->
-              <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
+              <div class="cs-gradient text-white rounded-lg p-6">
                 <h4 class="text-lg font-semibold mb-4">Cost Summary</h4>
                 <div class="grid grid-cols-2 gap-6">
                   <div>
-                    <p class="text-sm text-blue-100">Total Recipients</p>
+                    <p class="text-sm text-purple-100">Total Recipients</p>
                     <p class="text-3xl font-bold">{{ getTotalRecipients() }}</p>
                   </div>
                   <div>
-                    <p class="text-sm text-blue-100">Total Cost</p>
+                    <p class="text-sm text-purple-100">Total Cost</p>
                     <p class="text-3xl font-bold">{{ getTotalCost() }} credits</p>
                   </div>
                 </div>
-                <div class="mt-4 pt-4 border-t border-blue-400">
+                <div class="mt-4 pt-4 border-t border-purple-400">
                   <div class="flex items-center justify-between">
                     <span class="text-sm">Your Current Balance:</span>
                     <span class="text-lg font-semibold">{{ balance?.sms_balance || 0 }} credits</span>
@@ -230,7 +230,7 @@
                   v-if="currentStep < 3"
                   @click="nextStep"
                   :disabled="!canProceed()"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="px-4 py-2 cs-btn text-white rounded-lg transition-colors font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                   <ArrowRightIcon class="h-4 w-4" />

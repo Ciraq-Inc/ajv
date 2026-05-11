@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div>
@@ -14,7 +14,7 @@
         </NuxtLink>
         <button
           class="px-4 py-2 rounded-lg text-white"
-          :class="canPostJobs ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
+          :class="canPostJobs ? 'cs-btn' : 'bg-gray-400 cursor-not-allowed'"
           :disabled="!canPostJobs"
           @click="openCreateModal"
         >
@@ -64,7 +64,7 @@
     </div>
 
     <p v-if="jobsError || localError" class="text-sm text-red-600">{{ localError || jobsError }}</p>
-    <p v-if="jobsNotice" class="text-sm text-blue-700">{{ jobsNotice }}</p>
+    <p v-if="jobsNotice" class="text-sm cs-text">{{ jobsNotice }}</p>
 
     <div v-if="jobsLoading" class="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-600">
       Loading jobs...
@@ -114,7 +114,7 @@
 
         <div class="mt-4 flex justify-end gap-2">
           <button class="px-3 py-2 rounded-lg bg-gray-100" @click="showCreateModal = false">Cancel</button>
-          <button class="px-3 py-2 rounded-lg bg-blue-600 text-white" @click="handleCreateJob">Publish Job</button>
+          <button class="px-3 py-2 rounded-lg cs-btn text-white" @click="handleCreateJob">Publish Job</button>
         </div>
       </div>
     </div>

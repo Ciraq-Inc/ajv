@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sms-credits-page">
     <!-- Header -->
     <div class="page-header">
@@ -497,7 +497,7 @@ definePageMeta({
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--ls-accent), var(--ls-sidebar));
   color: white;
   border: none;
   border-radius: 8px;
@@ -508,7 +508,7 @@ definePageMeta({
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(124, 63, 180, 0.4);
 }
 
 .btn-primary:disabled {
@@ -538,8 +538,8 @@ definePageMeta({
 .btn-outline {
   padding: 0.5rem 1rem;
   background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: var(--ls-accent);
+  border: 2px solid var(--ls-accent);
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
@@ -547,7 +547,7 @@ definePageMeta({
 }
 
 .btn-outline:hover {
-  background: #f0f9ff;
+  background: #faf5ff;
 }
 
 /* Content Grid */
@@ -573,27 +573,27 @@ definePageMeta({
 }
 
 .balance-card.primary {
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--ls-accent), var(--ls-sidebar));
   color: white;
-  border: 1px solid #3b82f6;
+  border: none;
 }
 
 .balance-card.secondary {
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--ls-accent), var(--ls-sidebar));
   color: white;
-  border: 1px solid #3b82f6;
+  border: none;
 }
 
 .balance-card.info {
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--ls-accent), var(--ls-sidebar));
   color: white;
-  border: 1px solid #3b82f6;
+  border: none;
 }
 
 .balance-card.warning {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
   color: white;
-  border: 1px solid #3b82f6;
+  border: none;
 }
 
 .card-header {
@@ -640,12 +640,12 @@ definePageMeta({
 }
 
 .action-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  border-color: var(--ls-accent);
+  box-shadow: 0 4px 12px rgba(124, 63, 180, 0.1);
 }
 
 .action-card svg {
-  color: #667eea;
+  color: var(--ls-accent);
   margin-bottom: 1rem;
 }
 
@@ -691,12 +691,12 @@ definePageMeta({
 }
 
 .tab-button:hover {
-  color: #667eea;
+  color: var(--ls-accent);
 }
 
 .tab-button.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
+  color: var(--ls-accent);
+  border-bottom-color: var(--ls-accent);
 }
 
 .tab-content {
@@ -765,8 +765,8 @@ definePageMeta({
 
 .form-control:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--ls-accent);
+  box-shadow: 0 0 0 3px rgba(124, 63, 180, 0.1);
 }
 
 /* Tables */
@@ -825,8 +825,8 @@ definePageMeta({
 
 .badge-sent,
 .badge-sms_deduction {
-  background: #dbeafe;
-  color: #0c4a6e;
+  background: #f3e8ff;
+  color: var(--ls-accent);
 }
 
 .badge-topup,
@@ -964,7 +964,7 @@ definePageMeta({
 
 .small-table-row .value {
   font-weight: 600;
-  color: #667eea;
+  color: var(--ls-accent);
 }
 
 /* Modals */
@@ -1033,16 +1033,16 @@ definePageMeta({
 
 /* Purchase Info */
 .purchase-info {
-  background: #f0f9ff;
+  background: #faf5ff;
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #e9d5ff;
 }
 
 .purchase-info p {
   margin: 0.5rem 0;
-  color: #0c4a6e;
+  color: var(--ls-accent);
   font-size: 0.875rem;
 }
 
@@ -1068,7 +1068,7 @@ definePageMeta({
   border: none;
   font-weight: 700;
   font-size: 1rem;
-  color: #667eea;
+  color: var(--ls-accent);
   padding: 1rem 0 0 0;
 }
 
@@ -1101,7 +1101,7 @@ definePageMeta({
   border: none;
   font-weight: 700;
   font-size: 1rem;
-  color: #667eea;
+  color: var(--ls-accent);
   padding: 1rem 0 0 0;
 }
 
@@ -1178,7 +1178,7 @@ definePageMeta({
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667eea;
+  color: var(--ls-accent);
 }
 
 /* Responsive */

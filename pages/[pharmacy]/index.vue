@@ -1,6 +1,50 @@
 <!-- pages/[pharmacy]/index.vue -->
 <template>
   <div class="storefront-shell container mx-auto w-full max-w-7xl px-4 py-6" :style="themeCssVars">
+    <!-- Sticky mini header (outside v-if chain so it doesn't break v-else) -->
+    <Transition name="sticky-header">
+      <div
+        v-if="showStickyHeader && pharmacyStore.pharmacyData"
+        class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100 px-4 py-2 flex items-center justify-between gap-3"
+      >
+        <div class="flex items-center gap-2.5 min-w-0">
+          <img
+            v-if="pharmacyStore.pharmacyData.logo"
+            :src="pharmacyStore.pharmacyData.logo"
+            class="h-7 w-7 rounded-full object-cover flex-shrink-0 border border-gray-100"
+            :alt="pharmacyStore.pharmacyData.name"
+          />
+          <div v-else class="h-7 w-7 rounded-full shopfront-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {{ (pharmacyStore.pharmacyData.name || '')[0]?.toUpperCase() }}
+          </div>
+          <span class="font-semibold text-gray-900 text-sm truncate">{{ pharmacyStore.pharmacyData.name }}</span>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <a
+            v-if="pharmacyStore.pharmacyData.phone"
+            :href="`tel:${pharmacyStore.pharmacyData.phone}`"
+            class="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+            aria-label="Call pharmacy"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+          </a>
+          <a
+            v-if="pharmacyStore.pharmacyData.phone"
+            :href="whatsappLink"
+            target="_blank"
+            class="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+            aria-label="WhatsApp pharmacy"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Loading Indicator with improved animation -->
     <div v-if="pharmacyStore.isLoading" class="flex flex-col items-center justify-center py-24">
       <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 shopfront-spinner mb-4"></div>
@@ -58,7 +102,7 @@
 
     <div v-else class="space-y-6">
       <!-- Pharmacy Header with enhanced design -->
-      <div class="">
+      <div ref="pharmacyHeaderRef" class="">
         <div
           class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-xl">
           <div class="shopfront-hero h-20 md:h-28 flex items-end p-4 md:p-6 relative" :style="heroStyle">
@@ -92,7 +136,6 @@
               <div>
                 <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
                   {{ pharmacyStore.pharmacyData?.name || "Welcome" }}
-                  <span class="ml-2 bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">Open</span>
                 </h1>
 
                 <div class="flex items-center mt-2 text-sm md:text-base text-gray-600">
@@ -108,7 +151,7 @@
                   </p>
                 </div>
 
-                <p class="hidden md:block mt-3 text-gray-700 max-w-2xl">
+                <p class="mt-3 text-gray-700 max-w-2xl line-clamp-2 md:line-clamp-none">
                   {{
                     pharmacyStore.pharmacyData?.description ||
                     "Browse our available products and place your order online. Fast delivery within the area."
@@ -158,7 +201,7 @@
                     </svg>
                     WhatsApp
                   </a>
-                  <a @click="openLoginModal" v-if="!userStore.isLoggedIn"
+                  <button @click="openLoginModal" v-if="!userStore.isLoggedIn"
                     class="shopfront-primary text-white px-3 py-3 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor">
@@ -166,7 +209,7 @@
                         d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                     Login
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -201,11 +244,11 @@
         </article>
       </section>
 
-      <!-- Request Search Bar -->
+      <!-- Search Bar -->
       <div class="bg-opacity-80 backdrop-blur-md py-3 mt-3 sticky top-0 z-40">
         <div
           class="bg-white rounded-xl shadow-lg p-3 border border-gray-100 transition-all duration-300 hover:shadow-xl">
-          <form class="relative" @submit.prevent="submitRequestSearch">
+          <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shopfront-text" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor">
@@ -214,7 +257,7 @@
               </svg>
             </div>
             <input v-model="searchQuery" ref="searchInput" type="text"
-              placeholder="Search medicine name to start a request..."
+              placeholder="Search products..."
               class="w-full pl-12 px-4 py-3 md:py-4 border border-gray-200 rounded-lg shopfront-input bg-gray-50 text-gray-700 shadow-sm transition-all duration-200 text-lg" />
             <button v-if="searchQuery" type="button" @click="clearSearch"
               class="absolute right-4 top-3 md:top-4 text-gray-500 hover:text-gray-700 cursor-pointer p-1 rounded-full hover:bg-gray-100">
@@ -223,9 +266,16 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-          </form>
-
-     
+          </div>
+          <div class="mt-2 flex justify-end">
+            <button type="button" @click="submitRequestSearch"
+              class="text-sm shopfront-text font-medium hover:underline inline-flex items-center gap-1">
+              Can't find what you need? Request it
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -355,10 +405,45 @@
         <!-- Products display -->
         <template v-else>
           <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="searchQuery"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex" />
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex"
+            @item-added-to-cart="onItemAddedToCart" />
 
           <ProductsGrid v-else :products="displayProducts" :search-query="searchQuery"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" />
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices"
+            @item-added-to-cart="onItemAddedToCart"
+            @request-product="onRequestProduct" />
+
+          <!-- Pagination -->
+          <div v-if="pharmacyStore.productPagination.totalPages > 1"
+            class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3">
+            <p class="text-sm text-gray-500">
+              Showing
+              <span class="font-medium text-gray-700">{{ paginationFrom }}</span>
+              –
+              <span class="font-medium text-gray-700">{{ paginationTo }}</span>
+              of
+              <span class="font-medium text-gray-700">{{ pharmacyStore.productPagination.total }}</span>
+              products
+            </p>
+            <nav class="flex items-center gap-1">
+              <button @click="changePage(pharmacyStore.productPagination.currentPage - 1)"
+                :disabled="pharmacyStore.productPagination.currentPage === 1"
+                class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                Previous
+              </button>
+              <button v-for="p in paginationPages" :key="p" @click="changePage(p)" :class="[
+                'px-3 py-1.5 text-sm rounded-lg border transition-colors',
+                p === pharmacyStore.productPagination.currentPage
+                  ? 'shopfront-primary text-white border-transparent'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              ]">{{ p }}</button>
+              <button @click="changePage(pharmacyStore.productPagination.currentPage + 1)"
+                :disabled="pharmacyStore.productPagination.currentPage === pharmacyStore.productPagination.totalPages"
+                class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                Next
+              </button>
+            </nav>
+          </div>
         </template>
       </div>
     </div>
@@ -370,15 +455,30 @@
     <OrderSuccessModal :is-open="showOrderSuccessModal" :order-id="successOrderId" :order-summary="successOrderSummary"
       @close="showOrderSuccessModal = false" />
 
-    <!-- Cart Float Button with improved styling -->
+    <!-- Cart toast (shows above FAB on add-to-cart) -->
+    <Transition name="cart-toast">
+      <div
+        v-if="cartToast.show"
+        class="fixed bottom-24 right-6 z-50 bg-gray-900/95 backdrop-blur-sm text-white text-xs font-medium px-3.5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 max-w-[210px]"
+      >
+        <div class="w-4 h-4 bg-green-400 rounded-full flex items-center justify-center flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <span class="truncate">{{ cartToast.name }} added</span>
+      </div>
+    </Transition>
+
+    <!-- Cart Float Button -->
     <button v-if="showButton" @click="openCart"
-      class="flex fixed bottom-6 right-6 shopfront-primary text-white p-4 rounded-full shadow-xl transition-all duration-200 animate-fadeIn">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      class="flex items-center gap-2 fixed bottom-6 right-6 shopfront-primary text-white px-4 py-3 rounded-2xl shadow-xl transition-all duration-200 animate-fadeIn hover:brightness-95 active:brightness-90">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
       </svg>
-      <span
-        class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+      <span class="text-sm font-bold">GHS {{ formatCartTotal }}</span>
+      <span class="bg-white/25 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center leading-none">
         {{ cartStore.cartItemCount }}
       </span>
     </button>
@@ -456,6 +556,11 @@ const viewMode = ref("table");
 const cartSidebar = ref(null);
 const searchInput = ref(null);
 const showLoginModal = ref(false);
+const pharmacyHeaderRef = ref(null);
+const showStickyHeader = ref(false);
+const cartToast = ref({ show: false, name: '' });
+let cartToastTimer = null;
+let headerObserver = null;
 const { data: _adsResult, refresh: refreshAds } = useAsyncData(
   `pharmacy-ads-${route.params.pharmacy}`,
   () => pharmacyStore.currentPharmacy
@@ -558,9 +663,27 @@ const formatAdWindow = (startDate, endDate) => {
   return `${start} to ${end}`;
 };
 
-// Computed property for products to display - either search results or all products
-const displayProducts = computed(() => {
-  return pharmacyStore.inStockProducts;
+const displayProducts = computed(() => pharmacyStore.products);
+
+const paginationFrom = computed(() => {
+  const { currentPage, pageSize } = pharmacyStore.productPagination;
+  return (currentPage - 1) * pageSize + 1;
+});
+
+const paginationTo = computed(() => {
+  const { currentPage, pageSize, total } = pharmacyStore.productPagination;
+  return Math.min(currentPage * pageSize, total);
+});
+
+const paginationPages = computed(() => {
+  const { currentPage, totalPages } = pharmacyStore.productPagination;
+  const maxVisible = 5;
+  let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let end = Math.min(totalPages, start + maxVisible - 1);
+  if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+  const pages = [];
+  for (let i = start; i <= end; i++) pages.push(i);
+  return pages;
 });
 
 // UI Methods
@@ -590,6 +713,13 @@ const updateViewMode = () => {
 
 const clearSearch = () => {
   searchQuery.value = "";
+};
+
+let searchDebounceTimer = null;
+const changePage = (page) => {
+  const { totalPages } = pharmacyStore.productPagination;
+  if (page < 1 || page > totalPages) return;
+  pharmacyStore.fetchProducts({ page, limit: pharmacyStore.productPagination.pageSize, search: searchQuery.value.trim() });
 };
 
 const normalizeRequestDraftItem = (item) => {
@@ -641,9 +771,7 @@ const openRequestFlow = async (draftItems = []) => {
 
 const submitRequestSearch = async () => {
   const query = searchQuery.value.trim();
-  if (!query) return;
-
-  await openRequestFlow([{ product_name: query, quantity: 1 }]);
+  await openRequestFlow(query ? [{ product_name: query, quantity: 1 }] : []);
   clearSearch();
 };
 
@@ -721,14 +849,46 @@ const handleLoginSuccess = async () => {
   }
 };
 
+const onItemAddedToCart = (product) => {
+  clearTimeout(cartToastTimer);
+  cartToast.value = { show: true, name: product.brandName || product.name || 'Item' };
+  cartToastTimer = setTimeout(() => { cartToast.value = { ...cartToast.value, show: false }; }, 2500);
+};
+
+const onRequestProduct = (name) => {
+  if (name) searchQuery.value = name;
+  submitRequestSearch();
+};
+
 // Lifecycle hooks
 onMounted(() => {
   updateViewMode();
   window.addEventListener("resize", updateViewMode);
 });
 
+watch(pharmacyHeaderRef, (el) => {
+  headerObserver?.disconnect();
+  if (!el) return;
+  headerObserver = new IntersectionObserver(
+    ([entry]) => { showStickyHeader.value = !entry.isIntersecting; },
+    { threshold: 0 }
+  );
+  headerObserver.observe(el);
+});
+
 onUnmounted(() => {
   window.removeEventListener("resize", updateViewMode);
+  clearTimeout(searchDebounceTimer);
+  clearTimeout(cartToastTimer);
+  headerObserver?.disconnect();
+});
+
+// Debounced search — re-fetch from page 1 on query change
+watch(searchQuery, (newQuery) => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    pharmacyStore.fetchProducts({ page: 1, limit: pharmacyStore.productPagination.pageSize, search: newQuery.trim() });
+  }, 400);
 });
 
 // Watch for route changes
@@ -736,7 +896,6 @@ watch(
   () => route.params.pharmacy,
   async (newPharmacy, oldPharmacy) => {
     if (newPharmacy !== oldPharmacy) {
-      // Only update if the pharmacy has changed
       if (pharmacyStore.pharmacySlug !== newPharmacy) {
         const pharmacyId = await pharmacyStore.getPharmacyIdFromSlug(
           newPharmacy
@@ -782,6 +941,28 @@ watch(
 
 .animate-fadeIn {
   animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Sticky header slide down */
+.sticky-header-enter-active,
+.sticky-header-leave-active {
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+.sticky-header-enter-from,
+.sticky-header-leave-to {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+/* Cart toast pop up */
+.cart-toast-enter-active,
+.cart-toast-leave-active {
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.cart-toast-enter-from,
+.cart-toast-leave-to {
+  transform: translateY(6px);
+  opacity: 0;
 }
 
 .animate-slideIn {
@@ -877,8 +1058,8 @@ watch(
   padding: 1.1rem;
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--shopfront-accent) 22%, #d9f99d),
-    color-mix(in srgb, var(--shopfront-accent) 16%, #bef264)
+    color-mix(in srgb, var(--shopfront-accent) 14%, #ffffff),
+    color-mix(in srgb, var(--shopfront-accent) 8%, #f0f4f8)
   );
 }
 

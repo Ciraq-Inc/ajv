@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="message-composer">
     <div class="mb-4">
       <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -14,7 +14,7 @@
         @keyup="updateCursorPosition"
         rows="6"
         placeholder="Type your message here... Use variables like [name], [phone], [customer_code]"
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input resize-none"
         :class="{ 'border-red-500': hasInvalidVariables }"
       ></textarea>
 
@@ -44,7 +44,7 @@
         <button
           v-if="showVariablePicker"
           @click="isVariablePickerOpen = !isVariablePickerOpen"
-          class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+          class="cs-text font-medium flex items-center gap-1"
         >
           <Icon name="Code" class="h-4 w-4" />
           Insert Variable
@@ -61,9 +61,9 @@
             v-for="variable in availableVariables"
             :key="variable.key"
             @click="insertVariable(variable.key)"
-            class="text-left px-3 py-2 bg-white border border-gray-200 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors group"
+            class="text-left px-3 py-2 bg-white border border-gray-200 rounded hover:bg-purple-50 hover:border-purple-300 transition-colors group"
           >
-            <div class="font-mono text-sm text-blue-600 group-hover:text-blue-700">
+            <div class="font-mono text-sm cs-text">
               {{ variable.key }}
             </div>
             <div class="text-xs text-gray-600 mt-0.5">
@@ -80,7 +80,7 @@
         <h4 class="text-sm font-semibold text-gray-900">Preview</h4>
         <button
           @click="useCustomPreviewData = !useCustomPreviewData"
-          class="text-xs text-blue-600 hover:text-blue-700"
+          class="text-xs cs-text"
         >
           {{ useCustomPreviewData ? 'Use sample data' : 'Customize preview' }}
         </button>
@@ -113,7 +113,7 @@
       </div>
 
       <!-- Preview message -->
-      <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg">
+      <div class="cs-gradient text-white p-4 rounded-lg">
         <div class="flex items-start gap-3">
           <Icon name="MessageSquare" class="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div class="flex-1">
@@ -125,12 +125,12 @@
     </div>
 
     <!-- Tips -->
-    <div v-if="showTips" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div v-if="showTips" class="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
       <div class="flex items-start gap-3">
-        <Icon name="Lightbulb" class="h-5 w-5 text-blue-600 flex-shrink-0" />
+        <Icon name="Lightbulb" class="h-5 w-5 cs-text flex-shrink-0" />
         <div>
-          <h4 class="text-sm font-semibold text-blue-900 mb-2">Message Tips</h4>
-          <ul class="text-sm text-blue-800 space-y-1">
+          <h4 class="text-sm font-semibold cs-text mb-2">Message Tips</h4>
+          <ul class="text-sm cs-text space-y-1">
             <li>• Keep messages concise and clear</li>
             <li>• Use variables to personalize each message</li>
             <li>• Each SMS can contain up to 160 characters</li>

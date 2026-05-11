@@ -493,5 +493,28 @@ export const useCompanyStore = defineStore('company', {
       
       return data;
     },
+
+    async fetchTheme() {
+      if (!this.company?.id) return
+      try {
+        const config = useRuntimeConfig()
+        const res = await fetch(
+          `${config.public.apiBase}/api/companies/${this.company.id}/store-settings`,
+          { headers: this.getApiHeaders() }
+        )
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.success && data.data && this.company) {
+          this.company = {
+            ...this.company,
+            theme_preset: data.data.theme_preset || this.company.theme_preset,
+            theme_color: data.data.theme_color || this.company.theme_color,
+          }
+          this.persistAuthData()
+        }
+      } catch {
+        // keep defaults
+      }
+    },
   },
 });

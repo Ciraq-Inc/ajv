@@ -11,38 +11,38 @@
 
       <nav class="flex-1 space-y-2">
         <button @click="goTo('home')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'home' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'" >
-          <span class="material-symbols-outlined" :style="activeNav === 'home' ? 'font-variation-settings: \'FILL\' 1;' : ''">home</span>
+          <component :is="activeNav === 'home' ? HomeSolid : HomeOutline" class="w-6 h-6" />
           Home
         </button>
         <button @click="goTo('requests')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'requests' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <span class="material-symbols-outlined" :style="activeNav === 'requests' ? 'font-variation-settings: \'FILL\' 1;' : ''">description</span>
+          <component :is="activeNav === 'requests' ? DocumentSolid : DocumentOutline" class="w-6 h-6" />
           My Requests
         </button>
         <button @click="goTo('wallet')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'wallet' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <span class="material-symbols-outlined" :style="activeNav === 'wallet' ? 'font-variation-settings: \'FILL\' 1;' : ''">account_balance_wallet</span>
+          <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-6 h-6" />
           Wallet
         </button>
         <button @click="goTo('orders')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'orders' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <span class="material-symbols-outlined" :style="activeNav === 'orders' ? 'font-variation-settings: \'FILL\' 1;' : ''">receipt_long</span>
+          <component :is="activeNav === 'orders' ? ReceiptSolid : ReceiptOutline" class="w-6 h-6" />
           History
         </button>
         <button @click="goTo('companies')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'companies' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <span class="material-symbols-outlined" :style="activeNav === 'companies' ? 'font-variation-settings: \'FILL\' 1;' : ''">local_pharmacy</span>
+          <component :is="activeNav === 'companies' ? PharmacySolid : PharmacyOutline" class="w-6 h-6" />
           Pharmacies
         </button>
         <button @click="goTo('profile')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'profile' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <span class="material-symbols-outlined" :style="activeNav === 'profile' ? 'font-variation-settings: \'FILL\' 1;' : ''">person</span>
+          <component :is="activeNav === 'profile' ? UserSolid : UserOutline" class="w-6 h-6" />
           Profile
         </button>
       </nav>
 
       <div class="mt-auto pt-6 border-t border-[#ede3f2]">
-        <button @click="goTo('new')" class="w-full bg-zinc-900 text-white py-3.5 rounded-xl flex items-center justify-center gap-2 font-semibold shadow-[0_15px_30px_-15px_rgba(53,0,98,0.5)] hover:scale-[0.98] transition-transform">
-          <span class="material-symbols-outlined">add</span>
+        <button @click="goTo('new')" class="w-full primary-gradient text-white py-3.5 rounded-xl flex items-center justify-center gap-2 font-semibold shadow-[0_15px_30px_-15px_rgba(53,0,98,0.5)] hover:scale-[0.98] transition-transform">
+          <PlusIcon class="w-5 h-5" />
           New Request
         </button>
         <button @click="handleLogout" class="w-full flex items-center gap-3 px-4 py-4 mt-4 text-[#5d5564] hover:text-[#ba1a1a] transition-colors font-medium text-sm rounded-xl hover:bg-red-50">
-          <span class="material-symbols-outlined">logout</span>
+          <ArrowRightOnRectangleIcon class="w-6 h-6" />
           Logout
         </button>
       </div>
@@ -59,10 +59,10 @@
           <div v-if="activeNav === 'home' && !canGoBack" class="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#e9daf7] bg-white shadow-sm">
             <img :src="brandLogo" alt="MedsGH Logo" class="h-7 w-7 object-contain" />
           </div>
-          <button v-else-if="canGoBack" @click="goTo('home')" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
-            <span class="material-symbols-outlined">arrow_back</span>
+          <button v-else-if="canGoBack" @click="goTo('home')" aria-label="Back to home" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
+            <ArrowLeftIcon class="w-6 h-6" />
           </button>
-          
+
           <div v-if="activeNav === 'home'" class="min-w-0 flex-1">
             <h2 class="truncate text-[1.05rem] font-bold leading-tight tracking-tight text-zinc-900 lg:text-[2rem]">
               {{ headerGreeting }}
@@ -74,18 +74,16 @@
               class="mt-1 flex min-w-0 w-full items-center gap-2 rounded-full border border-transparent bg-white/0 px-0 py-1 text-left text-[#7a7280] transition-all hover:bg-[#f7f1ff] hover:text-[#4F217A] focus:outline-none focus-visible:border-[#4F217A]/20 focus-visible:bg-[#f7f1ff] focus-visible:text-[#4F217A]"
               :title="headerLocation === 'Set your delivery location' ? 'Set your delivery location' : 'Update delivery location'"
             >
-              <span class="material-symbols-outlined shrink-0 text-[14px]" :class="isRefreshingLocation ? 'animate-spin' : ''">
-                {{ isRefreshingLocation ? 'sync' : 'location_on' }}
-              </span>
-              <span class="truncate text-[10px] font-semibold uppercase tracking-[0.1em] lg:text-[11px] lg:tracking-[0.12em]">{{ headerLocation }}</span>
-              <span class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full border border-[#4F217A]/15 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#4F217A] shadow-sm transition-colors">
+              <component :is="isRefreshingLocation ? ArrowPathIcon : MapPinIcon" class="w-3.5 h-3.5 shrink-0" :class="isRefreshingLocation ? 'animate-spin' : ''" />
+              <span class="truncate text-xs font-semibold uppercase tracking-[0.08em] lg:text-[12px] lg:tracking-[0.1em]">{{ headerLocation }}</span>
+              <span class="ml-auto shrink-0 hidden sm:inline-flex items-center gap-1 rounded-full border border-[#4F217A]/15 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#4F217A] shadow-sm transition-colors">
                 <template v-if="isRefreshingLocation">
                   Updating
-                  <span class="material-symbols-outlined text-[11px] animate-spin">sync</span>
+                  <ArrowPathIcon class="w-3 h-3 animate-spin" />
                 </template>
                 <template v-else>
                   Update
-                  <span class="material-symbols-outlined text-[11px]">chevron_right</span>
+                  <ChevronRightIcon class="w-3 h-3" />
                 </template>
               </span>
             </button>
@@ -93,15 +91,18 @@
         </div>
 
         <div class="flex items-center gap-3 lg:gap-5" :class="activeNav === 'home' ? '' : 'ml-auto'">
-          <button class="w-10 h-10 hidden lg:flex items-center justify-center rounded-xl text-[#71717a] hover:bg-[#e8e0e8] transition-colors">
-            <span class="material-symbols-outlined">notifications</span>
+          <button aria-label="Notifications" class="relative w-10 h-10 hidden lg:flex items-center justify-center rounded-xl text-[#71717a] hover:bg-[#e8e0e8] transition-colors">
+            <BellIcon class="w-6 h-6" />
+            <span v-if="notificationCount > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none pointer-events-none">
+              {{ notificationCount > 99 ? '99+' : notificationCount }}
+            </span>
           </button>
           <button class="flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm group" @click="toggleMenu">
             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F217A] to-[#381659] text-white flex items-center justify-center text-xs font-black shadow-inner">
               {{ displayUserInitials }}
             </div>
             <span class="text-xs font-bold text-zinc-700 group-hover:text-zinc-900 transition-colors hidden sm:block">Menu</span>
-            <span class="material-symbols-outlined text-[16px] text-zinc-400 group-hover:text-zinc-600 transition-colors hidden sm:block">expand_more</span>
+            <ChevronDownIcon class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 transition-colors hidden sm:block" />
           </button>
         </div>
       </header>
@@ -113,32 +114,32 @@
 
       <!-- Mobile Bottom Nav -->
       <nav class="lg:hidden fixed bottom-3 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-md -translate-x-1/2 items-center justify-around rounded-xl border border-[#e8dff0] bg-white/92 px-2 py-2 shadow-[0_20px_45px_-25px_rgba(53,0,98,0.4)] backdrop-blur-md pb-safe">
-        <button @click="goTo('home')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'home' ? 'text-[#4F217A]' : 'text-zinc-500'">
-          <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'home' ? 'bg-[#efdbff]' : ''">
-            <span class="material-symbols-outlined" :style="activeNav === 'home' ? 'font-variation-settings: \'FILL\' 1;' : ''">home</span>
+        <button @click="goTo('home')" :aria-label="'Home'" :aria-current="activeNav === 'home' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'home' ? 'text-[#4F217A]' : 'text-zinc-500'">
+          <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'home' ? 'bg-[#efdbff]' : ''">
+            <component :is="activeNav === 'home' ? HomeSolid : HomeOutline" class="w-6 h-6" />
           </div>
           <span class="text-[10px] font-semibold">Home</span>
         </button>
-        <button @click="goTo('requests')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'requests' ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'requests' ? 'bg-[#efdbff]' : ''">
-             <span class="material-symbols-outlined" :style="activeNav === 'requests' ? 'font-variation-settings: \'FILL\' 1;' : ''">description</span>
+        <button @click="goTo('requests')" :aria-label="'My requests'" :aria-current="activeNav === 'requests' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'requests' ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'requests' ? 'bg-[#efdbff]' : ''">
+             <component :is="activeNav === 'requests' ? DocumentSolid : DocumentOutline" class="w-6 h-6" />
            </div>
            <span class="text-[10px] font-semibold">Requests</span>
         </button>
         <div class="relative -top-5">
-           <button @click="goTo('new')" class="w-14 h-14 primary-gradient text-white rounded-full flex items-center justify-center shadow-[0_18px_34px_-18px_rgba(53,0,98,0.7)] hover:scale-95 transition-transform border-[4px] border-white">
-              <span class="material-symbols-outlined">add</span>
+           <button @click="goTo('new')" :aria-label="'New request'" class="w-14 h-14 primary-gradient text-white rounded-full flex items-center justify-center shadow-[0_18px_34px_-18px_rgba(53,0,98,0.7)] hover:scale-95 transition-transform border-[4px] border-white">
+              <PlusIcon class="w-6 h-6" />
            </button>
         </div>
-        <button @click="goTo('wallet')" class="flex flex-col items-center gap-1 p-2" :class="activeNav === 'wallet' ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="activeNav === 'wallet' ? 'bg-[#efdbff]' : ''">
-             <span class="material-symbols-outlined" :style="activeNav === 'wallet' ? 'font-variation-settings: \'FILL\' 1;' : ''">account_balance_wallet</span>
+        <button @click="goTo('wallet')" :aria-label="'Wallet'" :aria-current="activeNav === 'wallet' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'wallet' ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'wallet' ? 'bg-[#efdbff]' : ''">
+             <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-6 h-6" />
            </div>
            <span class="text-[10px] font-semibold">Wallet</span>
         </button>
-        <button @click="showMenu = true" class="flex flex-col items-center gap-1 p-2" :class="['orders','profile','companies'].includes(activeNav) ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-8 rounded-xl flex items-center justify-center" :class="['orders','profile','companies'].includes(activeNav) ? 'bg-[#efdbff]' : ''">
-             <span class="material-symbols-outlined" :style="['orders','profile','companies'].includes(activeNav) ? 'font-variation-settings: \'FILL\' 1;' : ''">more_horiz</span>
+        <button @click="showMenu = true" :aria-label="'More'" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="['orders','profile','companies'].includes(activeNav) ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="['orders','profile','companies'].includes(activeNav) ? 'bg-[#efdbff]' : ''">
+             <component :is="['orders','profile','companies'].includes(activeNav) ? MoreSolid : MoreOutline" class="w-6 h-6" />
            </div>
            <span class="text-[10px] font-semibold">More</span>
         </button>
@@ -151,7 +152,7 @@
         <div class="bg-white w-full lg:w-96 rounded-t-3xl lg:rounded-[2rem] p-6 pb-safe shadow-2xl relative" @click.stop>
           <div class="w-12 h-1.5 bg-[#e8e0e8] rounded-xl mx-auto mb-6 lg:hidden"></div>
           <div class="flex items-center gap-4 mb-6">
-            <div class="w-14 h-14 bg-zinc-900 rounded-xl text-white font-semibold flex items-center justify-center text-xl">{{ displayUserInitials }}</div>
+            <div class="w-14 h-14 primary-gradient rounded-xl text-white font-semibold flex items-center justify-center text-xl shadow-inner">{{ displayUserInitials }}</div>
             <div>
               <p class="font-semibold text-[#1d1a20] text-lg leading-tight">{{ displayUserName }}</p>
               <p class="text-[#71717a] text-sm">{{ displayUserPhone }}</p>
@@ -159,17 +160,17 @@
           </div>
           <div class="space-y-2">
             <button @click="showMenu = false; goTo('profile')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
-              <span class="material-symbols-outlined text-[#71717a]">person</span> View Profile
+              <UserOutline class="w-6 h-6 text-[#71717a]" /> View Profile
             </button>
             <button @click="showMenu = false; goTo('companies')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
-              <span class="material-symbols-outlined text-[#71717a]">local_pharmacy</span> Linked Pharmacies
+              <PharmacyOutline class="w-6 h-6 text-[#71717a]" /> Linked Pharmacies
             </button>
             <button @click="showMenu = false; goTo('orders')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
-              <span class="material-symbols-outlined text-[#71717a]">receipt_long</span> History
+              <ReceiptOutline class="w-6 h-6 text-[#71717a]" /> History
             </button>
             <div class="h-px w-full bg-[#f3ebf3] my-2"></div>
             <button @click="handleLogout" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-[#ffdad6] text-[#ba1a1a] transition-colors text-left font-semibold">
-              <span class="material-symbols-outlined">logout</span> Log Out
+              <ArrowRightOnRectangleIcon class="w-6 h-6" /> Log Out
             </button>
           </div>
         </div>
@@ -186,29 +187,60 @@
       @close="showLogoutConfirm = false"
       @confirm="confirmLogout"
     />
+
+    <!-- Layout toast -->
+    <div v-if="toast"
+      role="status"
+      aria-live="polite"
+      class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold"
+      :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'">
+      <component :is="toast.type === 'error' ? ErrorIcon : CheckIcon" class="w-5 h-5" />
+      {{ toast.text }}
+    </div>
   </div>
 </template>
 
 <script setup>
-import { useHead } from '#imports'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import brandLogo from '~/assets/images/rigellogo.png'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
 import { getCompactAddressLines } from '~/utils/addressFormat'
-
-useHead({
-  link: [
-    {
-      rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
-    }
-  ]
-})
+import { useOrderStatus } from '~/composables/useOrderStatus'
+import {
+  HomeIcon as HomeOutline,
+  DocumentTextIcon as DocumentOutline,
+  WalletIcon as WalletOutline,
+  ClipboardDocumentListIcon as ReceiptOutline,
+  BuildingStorefrontIcon as PharmacyOutline,
+  UserIcon as UserOutline,
+  ArrowRightOnRectangleIcon,
+  PlusIcon,
+  BellIcon,
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  MapPinIcon,
+  ChevronRightIcon,
+  ChevronDownIcon,
+  EllipsisHorizontalIcon as MoreOutline,
+  ExclamationCircleIcon as ErrorIcon,
+  CheckCircleIcon as CheckIcon,
+} from '@heroicons/vue/24/outline'
+import {
+  HomeIcon as HomeSolid,
+  DocumentTextIcon as DocumentSolid,
+  WalletIcon as WalletSolid,
+  ClipboardDocumentListIcon as ReceiptSolid,
+  BuildingStorefrontIcon as PharmacySolid,
+  UserIcon as UserSolid,
+  EllipsisHorizontalIcon as MoreSolid,
+} from '@heroicons/vue/24/solid'
 
 const userStore = useUserStore()
 const route = useRoute()
+const { isActiveRequestStatus } = useOrderStatus()
+const notificationCount = ref(0)
 const showMenu = ref(false)
 const showLogoutConfirm = ref(false)
 const hasMounted = ref(false)
@@ -263,8 +295,27 @@ const reverseGeocodeLocation = async (latitude, longitude) => {
   }
   return data.data
 }
+const toast = ref(null)
+let toastTimer = null
+const showToast = (text, type = 'success') => {
+  toast.value = { text, type }
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value = null }, 4000)
+}
+
+const geolocationErrorMessage = (error) => {
+  if (!error) return "Couldn't update your location. Try again."
+  if (error.code === 1) return 'Allow location access to update your delivery address.'
+  if (error.code === 2) return 'Location unavailable. Check your GPS or network.'
+  if (error.code === 3) return 'Location lookup timed out. Try again.'
+  return error.message || "Couldn't update your location. Try again."
+}
+
 const refreshDeliveryLocation = async () => {
-  if (!navigator.geolocation) return
+  if (!navigator.geolocation) {
+    showToast('Location is not supported on this device.', 'error')
+    return
+  }
   if (isRefreshingLocation.value) return
 
   isRefreshingLocation.value = true
@@ -286,8 +337,10 @@ const refreshDeliveryLocation = async () => {
       home_latitude: latitude,
       home_longitude: longitude
     })
+    showToast('Delivery location updated')
   } catch (error) {
     console.error('Failed to update delivery location:', error)
+    showToast(geolocationErrorMessage(error), 'error')
   } finally {
     isRefreshingLocation.value = false
   }
@@ -311,21 +364,32 @@ const updateViewportWidth = () => {
   viewportWidth.value = window.innerWidth
 }
 
+const loadNotificationCount = async () => {
+  if (!userStore.customerAuthToken) return
+  try {
+    const config = useRuntimeConfig()
+    const response = await fetch(`${config.public.apiBase}/api/order-requests/customer`, {
+      headers: { Authorization: `Bearer ${userStore.customerAuthToken}` }
+    })
+    const json = await response.json()
+    notificationCount.value = (json.data || []).filter((r) => isActiveRequestStatus(r.status)).length
+  } catch (_) {}
+}
+
 onMounted(() => {
   hasMounted.value = true
   updateViewportWidth()
   window.addEventListener('resize', updateViewportWidth)
+  loadNotificationCount()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateViewportWidth)
+  if (toastTimer) clearTimeout(toastTimer)
 })
 </script>
 
 <style scoped>
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
 .primary-gradient {
   background: linear-gradient(135deg, #4F217A 0%, #520094 100%);
 }

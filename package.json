@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
+    "@nuxt/fonts": "^0.14.0",
     "@pinia/nuxt": "^0.7.0",
     "browser-image-compression": "^2.0.2",
     "cors": "^2.8.5",
@@ -21,10 +22,12 @@
     "firebase": "^10.14.1",
     "firebase-admin": "^12.7.0",
     "firebaseui": "^6.1.0",
+    "material-symbols": "^0.44.5",
     "nuxt": "^3.14.159",
     "nuxt-gtag": "^3.0.2",
     "nuxt-vuefire": "^1.0.4",
     "pinia": "^2.2.6",
+    "remixicon": "^4.9.1",
     "vue": "latest",
     "vue-router": "latest"
   },

@@ -1,3 +1,5 @@
+@import 'material-symbols/outlined.css';
+@import 'remixicon/fonts/remixicon.css';
 @import './rigelis.css';
 
 @tailwind base;

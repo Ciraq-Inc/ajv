@@ -1,8 +1,13 @@
 <template>
-  <div class="state-message" :class="`state-message--${state}`" role="status">
+  <div class="state-message" :class="`state-message--${state}`" role="status" aria-live="polite">
     <div class="state-message-inner">
       <div class="state-message-icon-wrap">
-        <component :is="resolvedIcon" v-if="resolvedIcon" class="state-message-icon" aria-hidden="true" />
+        <component
+          :is="resolvedIcon"
+          v-if="resolvedIcon"
+          class="state-message-icon"
+          aria-hidden="true"
+        />
         <span v-else-if="state === 'loading'" class="state-message-spinner" aria-hidden="true" />
       </div>
       <div class="state-message-body">
@@ -26,8 +31,8 @@ import { computed } from 'vue'
 import {
   ExclamationCircleIcon,
   InboxIcon,
+  ArrowPathIcon,
   CheckCircleIcon,
-  ArrowPathIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -48,7 +53,7 @@ const defaultIcons = {
   error: ExclamationCircleIcon,
   empty: InboxIcon,
   loading: ArrowPathIcon,
-  success: CheckCircleIcon
+  success: CheckCircleIcon,
 }
 
 const resolvedIcon = computed(() => props.icon || defaultIcons[props.state] || null)

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
@@ -7,7 +7,7 @@
       </div>
       <button
         @click="showForm = !showForm"
-        class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-md transition"
+        class="px-4 py-2 text-sm font-medium cs-btn text-white rounded-md transition"
       >
         + Add Rider
       </button>
@@ -20,27 +20,27 @@
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
           <input v-model="form.name" type="text" placeholder="Kofi Mensah"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm cs-input" />
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Phone *</label>
           <input v-model="form.phone" type="tel" placeholder="0244..."
-            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm cs-input" />
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Username *</label>
           <input v-model="form.username" type="text" placeholder="kofi.mensah"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm cs-input" />
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Password *</label>
           <input v-model="form.password" type="password" placeholder="••••••••"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm cs-input" />
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Vehicle Type</label>
           <select v-model="form.vehicle_type"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm cs-input"
           >
             <option value="">None / On foot</option>
             <option value="bicycle">Bicycle</option>
@@ -52,7 +52,7 @@
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Vehicle Registration</label>
           <input v-model="form.vehicle_registration" type="text" placeholder="GR-1234-23"
-            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm cs-input" />
         </div>
       </div>
       <div v-if="formError" class="text-sm text-red-600">{{ formError }}</div>
@@ -60,7 +60,7 @@
         <button
           @click="addRider"
           :disabled="saving"
-          class="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-md transition disabled:opacity-50"
+          class="px-5 py-2 text-sm font-medium cs-btn text-white rounded-md transition disabled:opacity-50"
         >
           {{ saving ? 'Saving...' : 'Add Rider' }}
         </button>

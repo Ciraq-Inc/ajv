@@ -13,6 +13,12 @@ export const usePharmacyStore = defineStore("pharmacy", {
     error: null,
     notFound: false,
     pharmacySlug: null,
+    productPagination: {
+      currentPage: 1,
+      pageSize: 50,
+      total: 0,
+      totalPages: 0,
+    },
   }),
 
   actions: {
@@ -112,15 +118,21 @@ export const usePharmacyStore = defineStore("pharmacy", {
     },
 
     // fetch products
-    async fetchProducts() {
+    async fetchProducts({ page = 1, limit = 50, search = '' } = {}) {
       if (!this.currentPharmacy) return [];
 
       try {
         const config = useRuntimeConfig();
         const baseURL = config.public.apiBase;
 
-        // Fetch products via API
-        const response = await fetch(`${baseURL}/api/products?company_id=${this.currentPharmacy}`);
+        const params = new URLSearchParams({
+          company_id: this.currentPharmacy,
+          page,
+          limit,
+          ...(search ? { search } : {}),
+        });
+
+        const response = await fetch(`${baseURL}/api/products?${params}`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -132,12 +144,15 @@ export const usePharmacyStore = defineStore("pharmacy", {
           throw new Error(data.message || 'Failed to fetch products');
         }
 
-        const activeProducts = (data.data || []).filter((product) =>
-          !(product?.is_active === false || product?.is_active === 0 || product?.is_active === '0')
-        );
+        this.productPagination = {
+          currentPage: data.page || page,
+          pageSize: limit,
+          total: data.total || 0,
+          totalPages: data.totalPages || 0,
+        };
 
         // Map API response to expected format
-        this.products = activeProducts.map(product => ({
+        this.products = (data.data || []).map(product => ({
           id: product.id,
           barcode: product.barcode,
           brandName: product.brand_name,
@@ -164,6 +179,7 @@ export const usePharmacyStore = defineStore("pharmacy", {
           isActive: product.is_active,
           inStock: product.stock_qty > 0,
           quantity: product.stock_qty,
+          productImageUrl: product.product_image_url || null,
         }));
 
         return this.products;

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="campaign-edit-page">
     <!-- Header -->
     <div class="mb-6">
@@ -6,7 +6,7 @@
         <div>
           <nuxt-link
             :to="`/${route.params.pharmacy}/services/sms-campaigns`"
-            class="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-2"
+            class="cs-text flex items-center gap-2 mb-2"
           >
             <ArrowLeftIcon class="h-4 w-4" />
             Back to Campaigns
@@ -19,7 +19,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 cs-border"></div>
       <p class="text-gray-600 mt-4">Loading campaign...</p>
     </div>
 
@@ -63,14 +63,14 @@
     <!-- Edit Form -->
     <div v-else-if="campaign" class="space-y-6">
       <!-- Campaign Status Info -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
         <div class="flex items-start gap-3">
-          <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-5 w-5 cs-text flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <p class="text-sm font-medium text-blue-900">Campaign Status: {{ campaign.status?.toUpperCase() }}</p>
-            <p class="text-xs text-blue-700 mt-1">
+            <p class="text-sm font-medium cs-text">Campaign Status: {{ campaign.status?.toUpperCase() }}</p>
+            <p class="text-xs cs-text mt-1">
               Created {{ new Date(campaign.created_at).toLocaleDateString() }}
               {{ campaign.total_recipients ? `• ${campaign.total_recipients} recipients` : '' }}
             </p>
@@ -109,7 +109,7 @@
             type="text"
             required
             maxlength="100"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input"
             placeholder="e.g., Monthly Promotion"
           />
           <p class="mt-1 text-xs text-gray-500">
@@ -127,7 +127,7 @@
               v-model="formData.message"
               required
               rows="6"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input resize-none"
               placeholder="Type your message here..."
               @input="validateMessage"
             ></textarea>
@@ -181,12 +181,12 @@
         </div>
 
         <!-- Recipients Info (Read-only) -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 class="text-sm font-semibold text-blue-900 mb-2">Recipients</h3>
-          <p class="text-sm text-blue-800">
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold cs-text mb-2">Recipients</h3>
+          <p class="text-sm cs-text">
             Total Recipients: <strong>{{ campaign.total_recipients || 0 }}</strong>
           </p>
-          <p class="text-xs text-blue-700 mt-1">
+          <p class="text-xs cs-text mt-1">
             To change recipients, please create a new campaign or use the "Reuse Campaign" feature.
           </p>
         </div>
@@ -196,7 +196,7 @@
           <button
             type="submit"
             :disabled="saving"
-            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+            class="px-6 py-3 cs-btn text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {{ saving ? 'Saving...' : 'Save Changes' }}
           </button>

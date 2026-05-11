@@ -1,12 +1,12 @@
-<template>
-  <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
+﻿<template>
+  <div class="cs-gradient text-white p-4 rounded-lg shadow-lg">
     <!-- Main Balance Section -->
     <div class="flex items-center justify-between mb-3">
       <div>
-        <p class="text-xs text-blue-100 mb-0.5">SMS Credits Balance</p>
+        <p class="text-xs text-white/70 mb-0.5">SMS Credits Balance</p>
         <div class="flex items-baseline gap-1">
           <p class="text-3xl font-bold">{{ formatNumber(availableBalance) }}</p>
-          <span class="text-sm text-blue-100">credits</span>
+          <span class="text-sm text-white/70">credits</span>
         </div>
       </div>
       <div class="bg-white bg-opacity-20 p-2 rounded-lg">
@@ -15,9 +15,9 @@
     </div>
 
     <!-- Reserved Credits (if any) -->
-    <div v-if="reservedCredits > 0" class="mb-3 pb-2 border-b border-blue-400">
+    <div v-if="reservedCredits > 0" class="mb-3 pb-2 border-b border-white/20">
       <div class="flex items-center justify-between text-xs">
-        <span class="text-blue-100">Reserved:</span>
+        <span class="text-white/70">Reserved:</span>
         <span class="font-semibold">{{ formatNumber(reservedCredits) }}</span>
       </div>
     </div>
@@ -25,19 +25,19 @@
     <!-- Stats Row -->
     <!-- <div class="grid grid-cols-2 gap-3 mb-3 text-xs">
       <div>
-        <p class="text-blue-100 mb-0.5">Loaded</p>
+        <p class="text-purple-100 mb-0.5">Loaded</p>
         <p class="font-semibold text-sm">{{ formatNumber(totalLoaded) }}</p>
       </div>
       <div>
-        <p class="text-blue-100 mb-0.5">Sent</p>
+        <p class="text-purple-100 mb-0.5">Sent</p>
         <p class="font-semibold text-sm">{{ formatNumber(totalSent) }}</p>
       </div>
     </div> -->
 
     <!-- Money Balance -->
-    <div v-if="balanceData?.money_balance !== undefined" class="mb-3 pb-2 border-t border-blue-400 pt-2">
+    <div v-if="balanceData?.money_balance !== undefined" class="mb-3 pb-2 border-t border-white/20 pt-2">
       <div class="flex items-center justify-between text-xs">
-        <span class="text-blue-100">Money:</span>
+        <span class="text-white/70">Money:</span>
         <span class="font-semibold">{{ formatCurrency(balanceData.money_balance) }}</span>
       </div>
     </div>
@@ -54,7 +54,7 @@
       <button
         v-if="showTopUp"
         @click="$emit('topup')"
-        class="flex-1 bg-white text-blue-600 hover:bg-blue-50 py-1.5 px-3 rounded text-xs transition-colors flex items-center justify-center gap-1 font-medium"
+        class="flex-1 bg-white cs-text hover:bg-gray-50 py-1.5 px-3 rounded text-xs transition-colors flex items-center justify-center gap-1 font-medium"
       >
         <PlusIcon class="h-3.5 w-3.5" />
         <span>Top Up</span>
@@ -62,7 +62,7 @@
     </div>
 
     <!-- Last Updated -->
-    <div v-if="lastUpdated" class="mt-2 text-xs text-blue-100 text-center opacity-75">
+    <div v-if="lastUpdated" class="mt-2 text-xs text-white/70 text-center opacity-75">
       {{ formatRelativeTime(lastUpdated) }}
     </div>
   </div>

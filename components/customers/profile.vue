@@ -4,7 +4,7 @@
     <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
-                <span class="material-symbols-outlined text-[18px]">person</span>
+                <UserIcon class="w-[18px] h-[18px]" />
             </div>
             <div>
                 <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Profile Information</h1>
@@ -17,17 +17,17 @@
       <!-- Success Alert -->
       <div v-if="updateSuccess" class="flex items-center justify-between px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 mb-5 text-sm font-semibold shadow-sm">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-[18px]">check_circle</span>
+          <CheckCircleIcon class="w-[18px] h-[18px]" />
           Profile updated successfully!
         </div>
         <button @click="updateSuccess = false" class="text-emerald-500 hover:text-emerald-700">
-          <span class="material-symbols-outlined text-[16px]">close</span>
+          <XMarkIcon class="w-4 h-4" />
         </button>
       </div>
 
       <!-- Error Alert -->
       <div v-if="error" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 mb-5 text-sm font-semibold shadow-sm">
-        <span class="material-symbols-outlined text-[18px]">error</span>
+        <ExclamationCircleIcon class="w-[18px] h-[18px]" />
         {{ error }}
       </div>
 
@@ -38,7 +38,7 @@
           <div class="min-w-0">
             <p class="text-lg font-bold text-zinc-900 leading-tight truncate">{{ profileDisplayName }}</p>
             <p class="text-sm font-semibold text-zinc-500 mt-0.5 flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[14px]">phone_iphone</span>
+              <DevicePhoneMobileIcon class="w-3.5 h-3.5 flex-shrink-0" />
               {{ formatPhoneNumber(userStore.userPhoneNumber) || 'No phone number' }}
             </p>
           </div>
@@ -48,7 +48,7 @@
             class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em]"
             :class="profile.address ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'"
           >
-            <span class="material-symbols-outlined text-[14px]">{{ profile.address ? 'my_location' : 'location_off' }}</span>
+            <MapPinIcon class="w-3.5 h-3.5" />
             {{ profile.address ? 'Location Saved' : 'Location Needed' }}
           </span>
         </div>
@@ -63,6 +63,7 @@
               <div class="flex flex-col gap-1.5">
                 <label for="fname" class="text-sm font-semibold text-zinc-700">First Name</label>
                 <input v-model="profile.fname" type="text" id="fname" placeholder="Enter first name" required
+                  autocomplete="given-name" autocapitalize="words" inputmode="text"
                   class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 font-semibold text-zinc-900 transition-shadow" />
               </div>
 
@@ -70,6 +71,7 @@
               <div class="flex flex-col gap-1.5">
                 <label for="lname" class="text-sm font-semibold text-zinc-700">Last Name</label>
                 <input v-model="profile.lname" type="text" id="lname" placeholder="Enter last name" required
+                  autocomplete="family-name" autocapitalize="words" inputmode="text"
                   class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 font-semibold text-zinc-900 transition-shadow" />
               </div>
 
@@ -77,6 +79,7 @@
               <div class="flex flex-col gap-1.5">
                 <label for="email" class="text-sm font-semibold text-zinc-700">Email Address</label>
                 <input v-model="profile.email" type="email" id="email" placeholder="Enter email address"
+                  autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false"
                   class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 font-semibold text-zinc-900 transition-shadow" />
               </div>
 
@@ -98,7 +101,7 @@
               <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
                   <p class="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[18px]">home</span>
+                    <HomeIcon class="w-[18px] h-[18px]" />
                     Saved Home Address
                   </p>
                   <p class="text-xs font-medium text-zinc-500 mt-1">Used by default for delivery requests until you manually change it on the request screen.</p>
@@ -106,8 +109,8 @@
                 <div class="flex items-center gap-2">
                   <button type="button" :disabled="isLocating" @click="captureHomeLocation"
                     class="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
-                    <span v-if="isLocating" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                    <span v-else class="material-symbols-outlined text-[16px]">my_location</span>
+                    <ArrowPathIcon v-if="isLocating" class="w-4 h-4 animate-spin" />
+                    <MapPinIcon v-else class="w-4 h-4" />
                     <template v-if="isLocating">Finding GPS...</template>
                     <template v-else-if="profile.latitude && profile.longitude">Update GPS</template>
                     <template v-else>Set from GPS</template>
@@ -118,43 +121,61 @@
                     @click="clearHomeLocation"
                     class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors shadow-sm disabled:opacity-60"
                     title="Clear location">
-                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                    <TrashIcon class="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               <div class="relative">
-                <label class="block text-xs font-bold uppercase tracking-[0.12em] text-zinc-500 mb-2">Search address</label>
+                <label for="profile-address-search" class="block text-xs font-bold uppercase tracking-[0.12em] text-zinc-500 mb-2">Search address</label>
                 <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
-                  <span class="material-symbols-outlined text-[18px] text-zinc-400">search</span>
+                  <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
                   <input
                     v-model="addressSearch"
+                    id="profile-address-search"
                     type="text"
                     placeholder="Type an address, landmark, or area"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="profile-address-suggestions"
+                    :aria-expanded="addressSuggestions.length > 0"
+                    :aria-activedescendant="addressActiveIndex >= 0 ? `profile-address-option-${addressActiveIndex}` : undefined"
+                    autocomplete="street-address"
+                    inputmode="text"
+                    @keydown="onAddressKeydown"
                     class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400"
                   />
-                  <span v-if="autocompleteLoading" class="material-symbols-outlined text-[18px] text-zinc-400 animate-spin">sync</span>
+                  <ArrowPathIcon v-if="autocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
                 </div>
 
-                <div
+                <ul
                   v-if="addressSuggestions.length"
-                  class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain"
+                  id="profile-address-suggestions"
+                  role="listbox"
+                  aria-label="Address suggestions"
+                  class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain list-none m-0 p-0"
                 >
-                  <div class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400">
+                  <li class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400" aria-hidden="true">
                     <span>Suggestions</span>
                     <span>{{ addressSuggestions.length }}</span>
-                  </div>
-                  <button
+                  </li>
+                  <li
                     v-for="(suggestion, index) in addressSuggestions"
                     :key="`${suggestion.display_name}-${index}`"
-                    type="button"
-                    class="w-full border-b border-zinc-100 px-4 py-3.5 text-left last:border-b-0 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
+                    :id="`profile-address-option-${index}`"
+                    role="option"
+                    :aria-selected="addressActiveIndex === index"
+                    class="border-b border-zinc-100 last:border-b-0 cursor-pointer transition-colors"
+                    :class="addressActiveIndex === index ? 'bg-[#f7f1ff]' : 'hover:bg-zinc-50'"
                     @click="applyAddressSuggestion(suggestion)"
+                    @mouseenter="addressActiveIndex = index"
                   >
-                    <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{ suggestion.display_name }}</p>
-                    <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">{{ suggestion.type || 'Address' }}</p>
-                  </button>
-                </div>
+                    <div class="px-4 py-3.5">
+                      <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{ suggestion.display_name }}</p>
+                      <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">{{ suggestion.type || 'Address' }}</p>
+                    </div>
+                  </li>
+                </ul>
               </div>
 
               <div
@@ -165,18 +186,12 @@
                   {{ profile.address ? 'Location Successfully Saved' : 'No Location Set' }}
                 </p>
                 <div class="flex items-start gap-2">
-                  <span class="material-symbols-outlined text-[16px] mt-0.5" :class="profile.address ? 'text-emerald-500' : 'text-zinc-400'">
-                    {{ profile.address ? 'check_circle' : 'info' }}
-                  </span>
+                  <component :is="profile.address ? CheckCircleIcon : InformationCircleIcon" class="w-4 h-4 mt-0.5 flex-shrink-0" :class="profile.address ? 'text-emerald-500' : 'text-zinc-400'" />
                   <p class="text-xs font-medium leading-relaxed" :class="profile.address ? 'text-emerald-700' : 'text-zinc-500'">
                     {{ profile.address || 'Tap "Set from GPS" above to automatically link your current physical coordinates. We rely on GPS logic for optimal driver assignment.' }}
                   </p>
                 </div>
                 
-                <div v-if="profile.latitude && profile.longitude" class="flex gap-4 mt-3 pt-2 border-t border-emerald-100/50 text-[10px] font-black uppercase tracking-widest" :class="profile.address ? 'text-emerald-600/70' : 'text-zinc-400'">
-                  <span>Lat: {{ Number(profile.latitude).toFixed(6) }}</span>
-                  <span>Lng: {{ Number(profile.longitude).toFixed(6) }}</span>
-                </div>
               </div>
             </div>
           </div>
@@ -184,8 +199,8 @@
           <!-- Footer Actions -->
           <div class="border-t border-zinc-200 bg-white p-5 flex justify-end">
             <button type="submit" :disabled="isLoading"
-              class="inline-flex items-center justify-center gap-2 bg-zinc-900 text-white py-2.5 px-6 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
-              <span v-if="isLoading" class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+              class="inline-flex items-center justify-center gap-2 bg-[#4F217A] text-white py-2.5 px-6 rounded-xl text-sm font-bold hover:bg-[#3d1861] transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
+              <ArrowPathIcon v-if="isLoading" class="w-4 h-4 animate-spin" />
               {{ isLoading ? 'Saving Profile...' : 'Save Changes' }}
             </button>
           </div>
@@ -193,73 +208,37 @@
       </div>
     </div>
 
-    <!-- Change Password Section -->
-    <!-- <div class="card" style="margin-top: 24px;">
-      <div class="section-header">
-        <h3>Change Password</h3>
-        <p class="section-description">Update your account password</p>
-      </div>
-
-      <div v-if="passwordSuccess" class="alert alert-success">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <span>Password changed successfully!</span>
-      </div>
-
-      <form @submit.prevent="changePassword">
-        <div class="form-group">
-          <label for="currentPassword">Current Password</label>
-          <input v-model="passwordForm.currentPassword" type="password" id="currentPassword" class="form-input"
-            placeholder="Enter current password" required />
-        </div>
-
-        <div class="form-group">
-          <label for="newPassword">New Password</label>
-          <input v-model="passwordForm.newPassword" type="password" id="newPassword" class="form-input"
-            placeholder="Enter new password" required minlength="6" />
-          <p class="field-hint">Password must be at least 6 characters</p>
-        </div>
-
-        <div class="form-group">
-          <label for="confirmPassword">Confirm New Password</label>
-          <input v-model="passwordForm.confirmPassword" type="password" id="confirmPassword" class="form-input"
-            placeholder="Confirm new password" required />
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-secondary" :disabled="isChangingPassword">
-            <svg v-if="isChangingPassword" class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none"
-              viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-              </path>
-            </svg>
-            <span v-else>Change Password</span>
-          </button>
-        </div>
-      </form>
-    </div> -->
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useUserStore } from '~/stores/user';
+import {
+  UserIcon,
+  CheckCircleIcon,
+  XMarkIcon,
+  ExclamationCircleIcon,
+  DevicePhoneMobileIcon,
+  MapPinIcon,
+  HomeIcon,
+  ArrowPathIcon,
+  TrashIcon,
+  MagnifyingGlassIcon,
+  InformationCircleIcon,
+} from '@heroicons/vue/24/outline'
 
 const userStore = useUserStore();
 const config = useRuntimeConfig();
 
 // State
 const isLoading = ref(false);
-const isChangingPassword = ref(false);
 const isLocating = ref(false);
 const updateSuccess = ref(false);
-const passwordSuccess = ref(false);
 const error = ref(null);
 const addressSearch = ref('');
 const addressSuggestions = ref([]);
+const addressActiveIndex = ref(-1);
 const autocompleteLoading = ref(false);
 let addressAutocompleteTimer = null;
 let addressAutocompleteSuspend = false;
@@ -282,13 +261,6 @@ const profileDisplayName = computed(() => {
 const profileInitials = computed(() => {
   const initials = `${(profile.fname || '')[0] || ''}${(profile.lname || '')[0] || ''}`.toUpperCase();
   return initials || 'CP';
-});
-
-// Password form
-const passwordForm = reactive({
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: ''
 });
 
 // Format phone number
@@ -323,7 +295,25 @@ const loadProfile = async () => {
 
 const clearAddressSuggestions = () => {
   addressSuggestions.value = [];
+  addressActiveIndex.value = -1;
   autocompleteLoading.value = false;
+};
+
+const onAddressKeydown = (event) => {
+  const count = addressSuggestions.value.length;
+  if (!count) return;
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    addressActiveIndex.value = (addressActiveIndex.value + 1) % count;
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    addressActiveIndex.value = addressActiveIndex.value <= 0 ? count - 1 : addressActiveIndex.value - 1;
+  } else if (event.key === 'Enter' && addressActiveIndex.value >= 0) {
+    event.preventDefault();
+    applyAddressSuggestion(addressSuggestions.value[addressActiveIndex.value]);
+  } else if (event.key === 'Escape') {
+    clearAddressSuggestions();
+  }
 };
 
 const fetchAddressSuggestions = async (query) => {
@@ -346,6 +336,7 @@ const fetchAddressSuggestions = async (query) => {
       throw new Error(data.message || 'Failed to load address suggestions');
     }
     addressSuggestions.value = Array.isArray(data.data) ? data.data : [];
+    addressActiveIndex.value = addressSuggestions.value.length > 0 ? 0 : -1;
   } catch (err) {
     console.error('Autocomplete failed:', err);
     addressSuggestions.value = [];
@@ -448,42 +439,6 @@ const saveProfile = async () => {
     }, 5000);
   } finally {
     isLoading.value = false;
-  }
-};
-
-// Change password
-const changePassword = async () => {
-  try {
-    error.value = null;
-
-    // Validate passwords match
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      error.value = 'New passwords do not match';
-      setTimeout(() => {
-        error.value = null;
-      }, 5000);
-      return;
-    }
-
-    isChangingPassword.value = true;
-
-    await userStore.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
-
-    passwordSuccess.value = true;
-    passwordForm.currentPassword = '';
-    passwordForm.newPassword = '';
-    passwordForm.confirmPassword = '';
-
-    setTimeout(() => {
-      passwordSuccess.value = false;
-    }, 3000);
-  } catch (err) {
-    error.value = err.message || 'Failed to change password';
-    setTimeout(() => {
-      error.value = null;
-    }, 5000);
-  } finally {
-    isChangingPassword.value = false;
   }
 };
 

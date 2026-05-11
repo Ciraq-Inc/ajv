@@ -3,7 +3,7 @@
     <div v-if="event" class="alert-banner" :class="`alert-${event.type}`">
       <div class="alert-content">
         <div class="alert-icon">
-          <span class="material-symbols-outlined">{{ alertIcon }}</span>
+          <component :is="alertIcon" class="w-5 h-5" />
         </div>
         <div class="alert-text">
           <p class="alert-title">{{ event.title }}</p>
@@ -11,11 +11,11 @@
         </div>
         <button class="alert-action" @click="handleAction">
           {{ event.actionLabel || 'View' }}
-          <span class="material-symbols-outlined">arrow_forward</span>
+          <ArrowRightIcon class="w-4 h-4" />
         </button>
       </div>
       <button class="alert-close" @click="dismiss" aria-label="Close alert">
-        <span class="material-symbols-outlined">close</span>
+        <XMarkIcon class="w-5 h-5" />
       </button>
     </div>
   </Transition>
@@ -23,26 +23,33 @@
 
 <script setup>
 import { computed } from 'vue'
+import {
+  ExclamationTriangleIcon,
+  ExclamationCircleIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
+  ArrowRightIcon,
+  XMarkIcon,
+} from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   event: {
     type: Object,
     default: null
-    // event shape: { type, title, description, actionLabel, actionTab, id }
   }
 })
 
 const emit = defineEmits(['dismiss', 'action'])
 
 const alertIcon = computed(() => {
-  if (!props.event) return 'info'
+  if (!props.event) return InformationCircleIcon
   const iconMap = {
-    warning: 'warning',
-    error: 'error',
-    success: 'check_circle',
-    info: 'info'
+    warning: ExclamationTriangleIcon,
+    error: ExclamationCircleIcon,
+    success: CheckCircleIcon,
+    info: InformationCircleIcon,
   }
-  return iconMap[props.event.type] || 'info'
+  return iconMap[props.event.type] || InformationCircleIcon
 })
 
 const dismiss = () => {
@@ -120,22 +127,19 @@ const handleAction = () => {
   transition: all 0.2s ease;
 }
 
-.alert-action span {
-  font-size: 16px;
-}
-
 .alert-close {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   cursor: pointer;
   opacity: 0.7;
   transition: opacity 0.2s;
   flex-shrink: 0;
+  border-radius: 0.5rem;
 }
 
 .alert-close:hover {

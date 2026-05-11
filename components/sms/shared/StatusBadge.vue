@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <span 
     :class="[
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border',
@@ -31,7 +31,7 @@ const colorClass = computed(() => getStatusColorClass(props.status))
 const dotColorClass = computed(() => {
   const baseClass = colorClass.value
   if (baseClass.includes('gray')) return 'bg-gray-600'
-  if (baseClass.includes('blue')) return 'bg-blue-600'
+  if (baseClass.includes('blue')) return 'cs-btn'
   if (baseClass.includes('green')) return 'bg-green-600'
   if (baseClass.includes('yellow')) return 'bg-yellow-600'
   if (baseClass.includes('red')) return 'bg-red-600'

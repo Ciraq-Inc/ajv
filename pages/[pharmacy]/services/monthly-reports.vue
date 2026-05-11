@@ -10,7 +10,7 @@
         <div class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-700 shadow-sm">
           {{ companyNameLabel }}
         </div>
-        <div class="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-purple-700">
+        <div class="rounded-lg px-3 py-1.5 text-[10.5px] font-semibold uppercase tracking-wider cs-sync-badge">
           {{ syncStateLabel }}
         </div>
       </div>
@@ -18,12 +18,12 @@
 
     <section
       class="rounded-xl border px-4 py-3 shadow-sm"
-      :class="showSyncFirstNotice ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-purple-100 bg-purple-50/50 text-purple-900'"
+      :class="showSyncFirstNotice ? 'border-amber-200 bg-amber-50 text-amber-900' : 'cs-status-ok'"
     >
       <div class="flex items-start gap-3">
         <div
           class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-          :class="showSyncFirstNotice ? 'bg-amber-100 text-amber-800' : 'bg-purple-200 text-purple-700'"
+          :class="showSyncFirstNotice ? 'bg-amber-100 text-amber-800' : 'cs-status-dot-ok'"
         >
           {{ showSyncFirstNotice ? '!' : 'OK' }}
         </div>
@@ -40,7 +40,7 @@
 
     <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
       <div class="space-y-4">
-        <article class="overflow-hidden rounded-xl bg-[linear-gradient(135deg,#5d2db8_0%,#6d46c1_52%,#7c4de0_100%)] shadow-sm">
+        <article class="overflow-hidden rounded-xl cs-pdf-card shadow-sm">
           <div class="grid gap-3 p-4 text-white lg:grid-cols-[minmax(0,1fr)_200px]">
             <div class="space-y-3">
               <div>
@@ -56,7 +56,7 @@
               <div class="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[12.5px] font-semibold text-[#5b21b6] shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-[12.5px] font-semibold cs-pdf-btn-text shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                   :disabled="primaryActionDisabled"
                   @click="handlePrimaryAction"
                 >
@@ -105,14 +105,14 @@
             <div class="flex flex-wrap gap-2">
               <button
                 v-if="showSuggestedReset"
-                class="rounded border border-gray-200 bg-white px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition hover:border-purple-600 hover:text-purple-600"
+                class="rounded border border-gray-200 bg-white px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition cs-subtle-btn"
                 @click="resetToSuggestedMonths"
               >
                 Use suggested
               </button>
               <button
                 v-if="selectedReportMonths.length > 1"
-                class="rounded border border-gray-200 bg-white px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition hover:border-purple-600 hover:text-purple-600"
+                class="rounded border border-gray-200 bg-white px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition cs-subtle-btn"
                 @click="keepLatestMonthOnly"
               >
                 Keep latest month
@@ -132,7 +132,7 @@
                   <p class="text-[11px] text-gray-400">{{ group.rangeLabel }} - {{ group.months.length }} month{{ group.months.length === 1 ? '' : 's' }}</p>
                 </div>
                 <button
-                  class="rounded border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition hover:border-purple-600 hover:text-purple-600"
+                  class="rounded border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition cs-subtle-btn"
                   @click="selectYearMonths(group.year)"
                 >
                   Select all
@@ -146,8 +146,8 @@
                   type="button"
                   class="rounded-md border px-2.5 py-2 text-left transition"
                   :class="month.selected
-                    ? 'border-transparent bg-[linear-gradient(145deg,#6d46c1_0%,#5d2db8_100%)] text-white shadow-sm'
-                    : 'border-gray-200 bg-gray-50 text-gray-800 hover:border-purple-300 hover:bg-white hover:shadow-sm'"
+                    ? 'cs-month-selected'
+                    : 'border-gray-200 bg-gray-50 text-gray-800 cs-month-hover'"
                   @click="toggleReportMonth(month.value)"
                 >
                   <div class="text-[0.95rem] font-semibold leading-none tracking-tight">{{ month.shortLabel }}</div>
@@ -167,13 +167,13 @@
           <div class="mt-4 space-y-3">
             <div class="flex items-center justify-between gap-4">
               <span class="text-[12.5px] font-medium text-gray-600">Sync Status</span>
-              <span class="rounded bg-purple-100 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-purple-700">
+              <span class="rounded px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider cs-status-badge">
                 {{ syncPillLabel }}
               </span>
             </div>
             <div class="flex items-center justify-between gap-4">
               <span class="text-[12.5px] font-medium text-gray-600">Report Status</span>
-              <span class="rounded bg-purple-100 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-purple-700">
+              <span class="rounded px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider cs-status-badge">
                 {{ reportPillLabel }}
               </span>
             </div>
@@ -188,21 +188,21 @@
           <h3 class="text-[1.1rem] font-semibold tracking-tight text-gray-900">PDF Structure</h3>
           <div class="mt-4 space-y-3.5">
             <div class="flex gap-3">
-              <span class="text-purple-600/70 text-sm">*</span>
+              <span class="cs-bullet text-sm">*</span>
               <div>
                 <p class="text-[13px] font-semibold text-gray-900">Executive Summary</p>
                 <p class="mt-0.5 text-[12px] leading-relaxed text-gray-500">High-level KPIs, revenue movement, and operating signals.</p>
               </div>
             </div>
             <div class="flex gap-3">
-              <span class="text-purple-600/70 text-sm">*</span>
+              <span class="cs-bullet text-sm">*</span>
               <div>
                 <p class="text-[13px] font-semibold text-gray-900">Customer &amp; Staff Insights</p>
                 <p class="mt-0.5 text-[12px] leading-relaxed text-gray-500">Selected customer activity, staff performance, and demand timing.</p>
               </div>
             </div>
             <div class="flex gap-3">
-              <span class="text-purple-600/70 text-sm">*</span>
+              <span class="cs-bullet text-sm">*</span>
               <div>
                 <p class="text-[13px] font-semibold text-gray-900">Inventory &amp; Finance</p>
                 <p class="mt-0.5 text-[12px] leading-relaxed text-gray-500">Stock value, expiry exposure, and key financial watchpoints.</p>
@@ -749,3 +749,49 @@ watch(selectedSelectionKey, async (nextKey, previousKey) => {
   }
 })
 </script>
+
+<style scoped>
+.cs-sync-badge {
+  background-color: var(--ls-soft);
+  color: var(--ls-accent);
+  border: 1px solid var(--ls-soft-border);
+}
+.cs-status-ok {
+  border-color: var(--ls-soft-border);
+  background-color: var(--ls-soft);
+  color: var(--ls-accent);
+}
+.cs-status-dot-ok {
+  background-color: var(--ls-active-bg);
+  color: var(--ls-accent);
+}
+.cs-pdf-card {
+  background: linear-gradient(135deg, var(--ls-accent) 0%, var(--ls-sidebar) 100%);
+}
+.cs-pdf-btn-text {
+  color: var(--ls-accent);
+}
+.cs-subtle-btn:hover {
+  border-color: var(--ls-accent);
+  color: var(--ls-accent);
+}
+.cs-month-selected {
+  background: linear-gradient(145deg, var(--ls-accent) 0%, var(--ls-sidebar) 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.cs-month-hover:hover {
+  border-color: var(--ls-active-border);
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.cs-status-badge {
+  background-color: var(--ls-soft);
+  color: var(--ls-accent);
+}
+.cs-bullet {
+  color: var(--ls-accent);
+  opacity: 0.7;
+}
+</style>

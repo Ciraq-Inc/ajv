@@ -552,31 +552,36 @@
                             </template>
                             <!-- Normal display -->
                             <template v-else>
-                              <strong>{{ item.product_name }}</strong>
-                              <div class="request-item-row-meta">
-                                <span>Qty {{ getRequestedQuantity(item) }}</span>
-                                <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
+                              <div class="flex items-center gap-2 min-w-0">
+                                <strong class="truncate">{{ item.product_name }}</strong>
                                 <template v-if="item.master_product_id || item.source_pharmacy_id || item.resolution_status === 'resolved'">
-                                  <span
-                                    class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-700"
-                                    :class="isComposeLocked ? 'cursor-default opacity-60' : 'cursor-pointer'"
+                                  <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                    :class="isComposeLocked ? 'cursor-default' : 'hover:bg-emerald-100 cursor-pointer'"
                                     @click.stop="!isComposeLocked && startResolvingItem(item)"
-                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Change master product'"
+                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Change resolution'"
                                   >
-                                    ✓ resolved
-                                  </span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    Resolved
+                                  </button>
                                 </template>
                                 <template v-else>
                                   <button
                                     type="button"
-                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer border-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 transition-colors cursor-pointer border-0 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                                     @click.stop="startResolvingItem(item)"
                                     :disabled="isComposeLocked"
                                     :title="isComposeLocked ? 'Start Composing to edit' : 'Resolve to master product'"
                                   >
-                                    resolve
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                    Resolve
                                   </button>
                                 </template>
+                              </div>
+                              <div class="request-item-row-meta">
+                                <span>Qty {{ getRequestedQuantity(item) }}</span>
+                                <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
                               </div>
                               <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
                                 → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
@@ -2210,6 +2215,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
 import {
@@ -3665,12 +3671,15 @@ const fetchRequestDeliveries = async (requestId) => {
 
 const initiateDeliveries = async () => {
   if (!selectedRequest.value?.id) return
+  loadingDeliveries.value = true
   try {
     const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/initiate-deliveries`)
     requestDeliveries.value = Array.isArray(res.data) ? res.data : []
     showMessage(res.message || 'Deliveries initiated', 'success')
   } catch (e) {
     showMessage(e.message || 'Failed to initiate deliveries', 'error')
+  } finally {
+    loadingDeliveries.value = false
   }
 }
 
@@ -5832,10 +5841,35 @@ const pollRequestList = async () => {
   ])
 }
 
-onMounted(() => {
-  fetchRequests()
+// Deep-link support: open a specific request when arriving with ?requestId=X
+// (used by the admin sidebar's Needs Attention dropdown so admins can jump
+// straight to a flagged request from anywhere in the portal).
+const route = useRoute()
+const router = useRouter()
+
+const openRequestByQueryId = async (rawId) => {
+  const id = Number(rawId || 0)
+  if (!id) return
+  if (Number(selectedRequest.value?.id || 0) === id) return
+  try {
+    await viewRequest({ id })
+  } catch (e) {
+    showMessage('Could not open that request', 'error')
+  } finally {
+    // Clean up the URL so a refresh doesn't re-open the same request.
+    router.replace({ query: { ...route.query, requestId: undefined } })
+  }
+}
+
+watch(() => route.query.requestId, (val) => {
+  if (val) openRequestByQueryId(val)
+})
+
+onMounted(async () => {
+  await fetchRequests()
   fetchStats()
   requestPollTimer = window.setInterval(pollRequestList, REQUEST_POLL_MS)
+  if (route.query.requestId) openRequestByQueryId(route.query.requestId)
 })
 
 onUnmounted(() => {

@@ -29,11 +29,11 @@
       <!-- Navigation Menu -->
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div v-if="!isSidebarCollapsed" class="nav-section-title">Dashboard</div>
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Analytics</div>
 
           <NuxtLink to="/admin/data" class="nav-item" active-class="active">
             <ChartBarIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Overview</span>
+            <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Data</span>
           </NuxtLink>
         </div>
 
@@ -122,13 +122,22 @@
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Settings</div>
 
-          <NuxtLink 
-            to="/admin/platform-settings" 
+          <NuxtLink
+            to="/admin/platform-settings"
             class="nav-item"
             active-class="active"
           >
             <Cog6ToothIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">Platform Settings</span>
+          </NuxtLink>
+
+          <NuxtLink
+            to="/admin/fee-schedules"
+            class="nav-item"
+            active-class="active"
+          >
+            <BanknotesIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Fee Schedules</span>
           </NuxtLink>
 
           <NuxtLink 
@@ -169,6 +178,18 @@
 
         <div class="topbar-right">
 
+          <!-- Needs Attention Bell -->
+          <button
+            class="topbar-btn attention-bell"
+            :class="{ 'has-critical': hasCriticalAttention }"
+            @click.stop="toggleAttention"
+            :title="attentionQueue.length ? `${attentionQueue.length} request${attentionQueue.length === 1 ? '' : 's'} need attention` : 'No items need attention'"
+          >
+            <BellIcon class="icon" />
+            <span v-if="attentionQueue.length" class="alert-badge">{{ attentionQueue.length > 99 ? '99+' : attentionQueue.length }}</span>
+            <span v-if="hasCriticalAttention" class="attention-bell-pulse" aria-hidden="true"></span>
+          </button>
+
 
           <!-- Admin Profile -->
           <div class="admin-profile" @click="toggleProfileMenu">
@@ -192,24 +213,46 @@
           </button>
         </div>
 
-        <!-- Notifications Panel -->
-        <div v-if="showNotifications" class="notifications-panel">
+        <!-- Needs Attention Panel -->
+        <div v-if="showAttention" class="notifications-panel attention-panel">
           <div class="notifications-header">
-            <h3>Notifications</h3>
-            <button @click="markAllAsRead" class="mark-read-btn">Mark all as read</button>
+            <div class="attention-header-title">
+              <span class="attention-header-dot" :class="hasCriticalAttention ? 'critical' : 'warning'"></span>
+              <h3>Needs Attention</h3>
+              <span v-if="attentionQueue.length" class="attention-header-count">{{ attentionQueue.length }}</span>
+            </div>
+            <button
+              @click.stop="soundMuted = !soundMuted"
+              class="mark-read-btn"
+              :title="soundMuted ? 'Unmute alerts' : 'Mute alerts'"
+            >
+              {{ soundMuted ? '🔇 Muted' : '🔔 Sound on' }}
+            </button>
           </div>
           <div class="notifications-list">
-            <div v-if="notifications.length === 0" class="no-notifications">
-              No new notifications
+            <div v-if="attentionQueue.length === 0" class="no-notifications">
+              All caught up — no items need attention.
             </div>
-            <div v-for="notification in notifications" :key="notification.id" class="notification-item"
-              :class="{ unread: !notification.read }">
-              <span class="notification-icon">{{ notification.icon }}</span>
-              <div class="notification-content">
-                <div class="notification-title">{{ notification.title }}</div>
-                <div class="notification-time">{{ notification.time }}</div>
+            <button
+              v-for="req in attentionQueue"
+              :key="req.id"
+              type="button"
+              class="attention-item"
+              :class="`attention-item--${req._urgency}`"
+              @click="openAttentionItem(req)"
+            >
+              <span class="attention-item-dot" :class="`attention-item-dot--${req._urgency}`"></span>
+              <div class="attention-item-body">
+                <div class="attention-item-top">
+                  <span class="attention-item-num">{{ req.request_number || `#${req.id}` }}</span>
+                  <span class="attention-item-name">{{ req.customer_name || '—' }}</span>
+                </div>
+                <div class="attention-item-reason" :class="`attention-item-reason--${req._urgency}`">
+                  {{ req._reason }}
+                </div>
               </div>
-            </div>
+              <span class="attention-item-arrow">›</span>
+            </button>
           </div>
         </div>
       </header>
@@ -244,20 +287,27 @@ import {
   TruckIcon,
   BanknotesIcon,
   SwatchIcon,
+  BellIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAttentionQueue } from '~/composables/useAttentionQueue'
 
 const adminStore = useAdminStore()
 const route = useRoute()
+const router = useRouter()
 
 // State
 const isReady = ref(false)
 const isSidebarCollapsed = ref(false)
 const isMobile = ref(false)
 const showProfileMenu = ref(false)
-const showNotifications = ref(false)
+const showAttention = ref(false)
 const pendingOrders = ref(0)
+
+// Needs-Attention feed (shared singleton; polls every 30s while mounted)
+const { attentionQueue, soundMuted, start: startAttentionPolling, stop: stopAttentionPolling, acknowledge: acknowledgeAttention } = useAttentionQueue()
+const hasCriticalAttention = computed(() => attentionQueue.value.some((r) => r._urgency === 'critical'))
 
 
 
@@ -285,7 +335,7 @@ const adminInitials = computed(() => {
 const pageTitle = computed(() => {
   const path = route.path
   const tab = route.query.tab
-  if (path.includes('/admin/data')) return 'Dashboard'
+  if (path.includes('/admin/data')) return 'Pharmacy Data'
   if (path.includes('/admin/signups')) return 'Waitlist Signups'
   if (path.includes('/admin/access')) return 'Companies'
   if (path.includes('/admin/useraccess')) return 'User Access'
@@ -299,6 +349,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/fulfillment/pharmacy-ledger')) return 'Pharmacy Ledger'
   if (path.includes('/admin/fulfillment')) return 'Fulfillment'
   if (path.includes('/admin/platform-settings')) return 'Platform Settings'
+  if (path.includes('/admin/fee-schedules')) return 'Fee Schedules'
   if (path.includes('/admin/store-settings')) return 'Store Settings'
   return 'Dashboard'
 })
@@ -323,7 +374,19 @@ const closeSidebar = () => {
 
 const toggleProfileMenu = () => {
   showProfileMenu.value = !showProfileMenu.value
-  showNotifications.value = false
+  showAttention.value = false
+}
+
+const toggleAttention = () => {
+  showAttention.value = !showAttention.value
+  showProfileMenu.value = false
+  if (showAttention.value) acknowledgeAttention()
+}
+
+const openAttentionItem = (req) => {
+  if (!req?.id) return
+  showAttention.value = false
+  router.push({ path: '/admin/fulfillment/requests', query: { requestId: String(req.id) } })
 }
 
 
@@ -347,8 +410,8 @@ const handleClickOutside = (e) => {
   if (!e.target.closest('.admin-profile') && !e.target.closest('.profile-dropdown')) {
     showProfileMenu.value = false
   }
-  if (!e.target.closest('.topbar-btn') && !e.target.closest('.notifications-panel')) {
-    showNotifications.value = false
+  if (!e.target.closest('.attention-bell') && !e.target.closest('.attention-panel')) {
+    showAttention.value = false
   }
 }
 
@@ -369,11 +432,15 @@ onMounted(async () => {
   // Wait for store to be ready
   await nextTick()
   isReady.value = true
+
+  // Start polling the attention queue once we're authenticated and mounted.
+  startAttentionPolling()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   document.removeEventListener('click', handleClickOutside)
+  stopAttentionPolling()
 })
 </script>
 
@@ -737,21 +804,23 @@ onUnmounted(() => {
 .notification-badge,
 .alert-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
   background: #EF4444;
-  /* red-500 */
   color: white;
   font-size: 10px;
-  /* xs - 12px but smaller */
   font-weight: 700;
-  /* bold */
-  padding: 2px 6px;
-  /* py-0.5 px-1.5 */
+  line-height: 1;
+  padding: 0 4px;
   border-radius: 9999px;
-  /* rounded-full */
   min-width: 18px;
-  text-align: center;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .admin-profile {
@@ -997,6 +1066,196 @@ onUnmounted(() => {
   /* gray-400 */
 }
 
+/* ── Needs Attention bell ── */
+.attention-bell {
+  position: relative;
+  color: #4B5563;
+}
+
+.attention-bell:hover {
+  color: #111827;
+}
+
+.attention-bell .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.attention-bell.has-critical {
+  color: #EF4444;
+}
+
+.attention-bell-pulse {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #EF4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+  animation: attentionPulse 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes attentionPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* ── Attention dropdown panel ── */
+.attention-panel {
+  width: 360px;
+  right: 200px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+}
+
+.attention-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attention-header-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.attention-header-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+}
+
+.attention-header-dot.critical {
+  background: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+}
+
+.attention-header-dot.warning {
+  background: #F59E0B;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+
+.attention-header-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #EF4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 9999px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+}
+
+.attention-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #F3F4F6;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+  border-left: 3px solid transparent;
+}
+
+.attention-item:last-child {
+  border-bottom: none;
+}
+
+.attention-item:hover {
+  background: #FAFAFA;
+}
+
+.attention-item--critical {
+  border-left-color: #EF4444;
+}
+
+.attention-item--warning {
+  border-left-color: #F59E0B;
+}
+
+.attention-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.attention-item-dot--critical {
+  background: #EF4444;
+}
+
+.attention-item-dot--warning {
+  background: #F59E0B;
+}
+
+.attention-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.attention-item-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.attention-item-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.attention-item-name {
+  font-size: 12px;
+  color: #4B5563;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-item-reason {
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.attention-item-reason--critical {
+  background: #FFF1F2;
+  color: #BE123C;
+}
+
+.attention-item-reason--warning {
+  background: #FFFBEB;
+  color: #92400E;
+}
+
+.attention-item-arrow {
+  font-size: 18px;
+  color: #9CA3AF;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
 /* Content Area */
 .content {
   flex: 1;
@@ -1061,6 +1320,12 @@ onUnmounted(() => {
     /* px-6 */
     width: calc(100vw - 48px);
     max-width: 320px;
+  }
+
+  .attention-panel {
+    right: 24px;
+    width: calc(100vw - 48px);
+    max-width: 360px;
   }
 }
 

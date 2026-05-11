@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Order Requests</h1>
         <p class="text-sm text-gray-500 mt-1">Orders where your pharmacy is supplying items</p>
       </div>
-      <button @click="fetchOrders" class="text-sm text-blue-600 hover:underline">Refresh</button>
+      <button @click="fetchOrders" class="text-sm cs-text hover:underline">Refresh</button>
     </div>
 
     <!-- Status filter tabs -->
@@ -16,7 +16,7 @@
           @click="activeTab = tab.value"
           class="pb-3 text-sm font-medium border-b-2 transition whitespace-nowrap"
           :class="activeTab === tab.value
-            ? 'border-blue-600 text-blue-600'
+            ? 'cs-border cs-text'
             : 'border-transparent text-gray-500 hover:text-gray-700'"
         >
           {{ tab.label }}
@@ -36,7 +36,7 @@
     <div v-else class="space-y-3">
       <div
         v-for="order in filtered" :key="order.id"
-        class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm cursor-pointer hover:border-blue-400 hover:shadow-md transition-all"
+        class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm cursor-pointer hover:border-purple-400 hover:shadow-md transition-all"
         @click="openDetail(order)"
       >
         <div class="flex items-start justify-between gap-4">
@@ -44,6 +44,12 @@
             <div class="font-medium text-gray-900">{{ order.request_number }}</div>
             <div class="text-sm text-gray-500 mt-0.5">{{ order.customer_address }}</div>
             <div class="text-xs text-gray-400 mt-1">{{ formatDate(order.created_at) }}</div>
+            <div v-if="isAwaitingMethodSelection(order)" class="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[11px] font-semibold text-amber-800">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Awaiting customer payment — do not prep yet
+            </div>
           </div>
           <div class="text-right shrink-0">
             <div class="text-sm font-semibold text-green-600">GH₵{{ fmt(order.pharmacy_total) }}</div>
@@ -201,18 +207,24 @@ const filtered = computed(() => {
 
 const statusClass = (status) => {
   const map = {
-    processing: 'bg-blue-100 text-blue-700',
+    processing: 'cs-badge',
     awaiting_payment: 'bg-yellow-100 text-yellow-700',
     payment_confirmed: 'bg-purple-100 text-purple-700',
     fulfillment_in_progress: 'bg-indigo-100 text-indigo-700',
     completed: 'bg-green-100 text-green-700',
     delivered: 'bg-green-100 text-green-700',
     paid: 'bg-green-100 text-green-700',
-    composing: 'bg-blue-50 text-blue-600',
-    sourcing: 'bg-blue-100 text-blue-700',
+    composing: 'cs-badge',
+    sourcing: 'cs-badge',
     payment_pending: 'bg-yellow-100 text-yellow-700',
+    awaiting_method_selection: 'bg-amber-100 text-amber-800',
   }
   return map[status] || 'bg-gray-100 text-gray-700'
+}
+
+const isAwaitingMethodSelection = (order) => {
+  if (!order) return false
+  return String(order.status || '').toLowerCase() === 'awaiting_method_selection'
 }
 
 const sourcingClass = (status) => {
