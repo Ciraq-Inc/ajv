@@ -23,50 +23,50 @@
         </div>
       </header>
 
-      <section class="hero mt-5 md:mt-7 rounded-3xl p-5 md:p-10 overflow-hidden">
-        <div class="grid md:grid-cols-2 items-center gap-6 md:gap-10 relative z-10">
-          <div class="hero-copy animate-rise">
-            <p class="text-xs md:text-sm tracking-[0.14em] text-slate-500 font-semibold">PHARMACY CAREERS</p>
-            <h1 class="mt-3 text-4xl md:text-6xl font-black leading-[1.05] text-slate-900">
+      <section class="hero mt-5 md:mt-7 rounded-2xl md:rounded-3xl p-4 md:p-10 overflow-hidden">
+        <div class="grid md:grid-cols-2 items-center gap-5 md:gap-10 relative z-10">
+          <div class="hero-copy animate-rise order-1">
+            <p class="text-[11px] md:text-sm tracking-[0.14em] text-slate-500 font-semibold">PHARMACY CAREERS</p>
+            <h1 class="mt-2 md:mt-3 text-[28px] leading-[1.1] sm:text-3xl md:text-6xl md:leading-[1.05] font-black text-slate-900">
               Find the most exciting pharmacy jobs
             </h1>
-            <p class="mt-4 text-sm md:text-base text-slate-600 max-w-xl">
+            <p class="mt-3 md:mt-4 text-sm md:text-base text-slate-600 max-w-xl">
               Discover verified openings from pharmacies, hospitals, and healthcare recruiters across Ghana.
             </p>
 
-            <div class="mt-4 flex gap-3">
+            <div class="mt-4 grid grid-cols-2 gap-2 md:flex md:gap-3">
               <NuxtLink to="/jobs/talent/post"
-                class="inline-flex items-center rounded-lg border-2 border-[var(--accent)] bg-[var(--accent)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--accent-strong)]">
+                class="inline-flex items-center justify-center text-center rounded-lg border-2 border-[var(--accent)] bg-[var(--accent)] px-3 md:px-4 py-2 text-[13px] md:text-sm font-bold text-white hover:bg-[var(--accent-strong)]">
                 Job Seeker? Post Profile
               </NuxtLink>
               <NuxtLink to="/jobs/post"
-                class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+                class="inline-flex items-center justify-center text-center rounded-lg border border-slate-300 bg-white px-3 md:px-4 py-2 text-[13px] md:text-sm font-semibold text-slate-800 hover:bg-slate-50">
                 Recruiter? Post a Job
               </NuxtLink>
             </div>
-
-            <div
-              class="mt-6 bg-white rounded-xl p-2 md:p-2.5 shadow-[0_12px_30px_rgba(35,53,84,0.08)] border border-slate-200/80">
-              <div class="grid grid-cols-1 md:grid-cols-[1fr_180px_150px] gap-2">
-                <input v-model="search" type="text" placeholder="Job title or keyword"
-                  class="h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800"
-                  @keyup.enter="loadJobs" />
-                <input v-model="location" type="text" placeholder="Location"
-                  class="h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800"
-                  @keyup.enter="loadJobs" />
-                <button
-                  class="h-11 rounded-lg font-semibold text-sm text-white bg-[var(--accent)] hover:bg-[var(--accent-strong)] transition-colors"
-                  @click="loadJobs">
-                  Find Jobs
-                </button>
-              </div>
-            </div>
           </div>
 
-          <div class="hero-art animate-rise-delay">
+          <div class="hero-art animate-rise-delay order-2">
             <div class="hero-image-wrap">
               <img src="/female-pharmacist.jpg" alt="Female pharmacist" class="hero-image" />
             </div>
+          </div>
+        </div>
+
+        <div
+          class="relative z-10 mt-5 md:mt-6 bg-white rounded-xl p-2 md:p-2.5 shadow-[0_12px_30px_rgba(35,53,84,0.08)] border border-slate-200/80">
+          <div class="grid grid-cols-1 md:grid-cols-[1fr_180px_150px] gap-2">
+            <input v-model="search" type="text" placeholder="Job title or keyword"
+              class="h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800"
+              @keyup.enter="loadJobs" />
+            <input v-model="location" type="text" placeholder="Location"
+              class="h-11 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-800"
+              @keyup.enter="loadJobs" />
+            <button
+              class="h-11 rounded-lg font-semibold text-sm text-white bg-[var(--accent)] hover:bg-[var(--accent-strong)] transition-colors"
+              @click="loadJobs">
+              Find Jobs
+            </button>
           </div>
         </div>
       </section>
@@ -76,7 +76,21 @@
       <section id="openings" class="mt-10 md:mt-14">
         <div class="flex items-center justify-between gap-4 mb-4">
           <h3 class="text-2xl md:text-3xl font-extrabold text-slate-900">Open Positions</h3>
-          <p class="text-sm text-slate-500">{{ openJobs.length }} opportunities</p>
+          <p class="text-sm text-slate-500">{{ filteredJobs.length }} opportunities</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mb-5">
+          <button
+            v-for="opt in filterOptions"
+            :key="opt.value"
+            type="button"
+            class="filter-pill"
+            :class="filter === opt.value ? 'filter-pill-active' : ''"
+            @click="filter = opt.value"
+          >
+            {{ opt.label }}
+            <span class="filter-count">{{ opt.count }}</span>
+          </button>
         </div>
 
         <p v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</p>
@@ -163,6 +177,7 @@ import phoneUtils from '~/utils/phone'
 const router = useRouter()
 const search = ref('')
 const location = ref('')
+const filter = ref('all')
 
 const { openJobs, loading, error, fetchJobs } = useJobs()
 
@@ -173,11 +188,23 @@ const categories = [
   'Operations & Sales',
 ]
 
+const filteredByType = computed(() => {
+  if (filter.value === 'jobs') return openJobs.value.filter((i) => i.itemType === 'job')
+  if (filter.value === 'seekers') return openJobs.value.filter((i) => i.itemType === 'seeker')
+  return openJobs.value
+})
+
 const filteredJobs = computed(() => {
   const locationTerm = location.value.trim().toLowerCase()
-  if (!locationTerm) return openJobs.value
-  return openJobs.value.filter((job) => String(job.location || '').toLowerCase().includes(locationTerm))
+  if (!locationTerm) return filteredByType.value
+  return filteredByType.value.filter((job) => String(job.location || '').toLowerCase().includes(locationTerm))
 })
+
+const filterOptions = computed(() => [
+  { label: 'All', value: 'all', count: openJobs.value.length },
+  { label: 'Open Positions', value: 'jobs', count: openJobs.value.filter((i) => i.itemType === 'job').length },
+  { label: 'Job Seekers', value: 'seekers', count: openJobs.value.filter((i) => i.itemType === 'seeker').length },
+])
 
 const loadJobs = async () => {
   await fetchJobs({ search: search.value, status: 'open' })
@@ -351,6 +378,44 @@ h4,
   padding: 4px 9px;
 }
 
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dfe5f6;
+  color: #33466e;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.filter-pill:hover {
+  background: #f3f6ff;
+}
+
+.filter-pill-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.filter-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(35, 70, 130, 0.08);
+  color: inherit;
+}
+
+.filter-pill-active .filter-count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .action-btn {
   height: 38px;
   border-radius: 10px;
@@ -403,14 +468,32 @@ h4,
 }
 
 @media (max-width: 768px) {
+  .hero-image-wrap {
+    border-width: 4px;
+    border-radius: 16px;
+  }
+
   .hero-image {
-    height: 300px;
+    height: 220px;
+    object-position: center 25%;
   }
 
   .hero-image-wrap::after {
-    width: 70px;
-    height: 180px;
-    right: -24px;
+    display: none;
+  }
+
+  .hero::before {
+    width: 200px;
+    height: 200px;
+    top: -70px;
+    left: -50px;
+  }
+
+  .hero::after {
+    width: 200px;
+    height: 200px;
+    bottom: -90px;
+    right: -40px;
   }
 }
 </style>
