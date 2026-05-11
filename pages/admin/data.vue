@@ -1,40 +1,30 @@
 <template>
-  <div class="analytics-page">
-    <!-- Grouped Tab Navigation -->
-    <div class="mb-6 overflow-x-auto pb-1">
-      <div class="flex items-end min-w-max bg-gray-100 p-2 rounded-xl gap-1">
-        <template v-for="(group, gi) in tabGroups" :key="group.label">
-          <!-- Group divider -->
-          <div v-if="gi > 0" class="flex-shrink-0 w-px bg-gray-300 self-stretch mx-1 my-0.5" />
-
-          <!-- Group block -->
-          <div class="flex flex-col gap-1">
-            <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-1 select-none leading-none">
-              {{ group.label }}
-            </span>
-            <div class="flex gap-0.5">
-              <button
-                v-for="tab in group.tabs"
-                :key="tab.id"
-                @click="activeTab = tab.id"
-                :class="[
-                  'py-1.5 px-3 text-xs font-medium rounded-md transition-all duration-150 whitespace-nowrap flex items-center gap-1.5',
-                  activeTab === tab.id
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-white/60',
-                ]"
-              >
-                <component :is="tab.icon" class="w-3.5 h-3.5 flex-shrink-0" />
-                {{ tab.short }}
-              </button>
-            </div>
-          </div>
-        </template>
+  <div class="analytics-page flex gap-6">
+    <!-- Vertical Grouped Nav -->
+    <aside class="data-sidebar bg-gray-100 rounded-xl p-3 flex flex-col gap-4">
+      <div v-for="group in tabGroups" :key="group.label" class="flex flex-col gap-1">
+        <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 select-none leading-none mb-1">
+          {{ group.label }}
+        </span>
+        <button
+          v-for="tab in group.tabs"
+          :key="tab.id"
+          @click="activeTab = tab.id"
+          :class="[
+            'py-2 px-3 text-xs font-medium rounded-md transition-all duration-150 whitespace-nowrap flex items-center gap-2 text-left',
+            activeTab === tab.id
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-800 hover:bg-white/60',
+          ]"
+        >
+          <component :is="tab.icon" class="w-4 h-4 flex-shrink-0" />
+          {{ tab.short }}
+        </button>
       </div>
-    </div>
+    </aside>
 
     <!-- Tab Content -->
-    <div class="tab-content">
+    <div class="tab-content flex-1 min-w-0">
       <div class="tab-panel">
         <!-- Entities -->
         <Companies v-if="activeTab === 'companies'" />
@@ -142,8 +132,30 @@ const tabGroups = [
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+.data-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
 .tab-content {
   min-height: 600px;
+}
+
+@media (max-width: 768px) {
+  .analytics-page {
+    flex-direction: column;
+  }
+
+  .data-sidebar {
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
 }
 
 .tab-panel {
