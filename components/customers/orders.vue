@@ -217,7 +217,7 @@
 
           <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
             <div class="flex justify-between text-sm text-zinc-600"><span>Items total</span><span>GHS {{ formatAmount(selectedRequestOrder.items_total || 0) }}</span></div>
-            <div v-if="selectedRequestOrder.delivery_fee" class="flex justify-between text-sm text-zinc-600"><span>Delivery fee</span><span>GHS {{ formatAmount(selectedRequestOrder.delivery_fee || 0) }}</span></div>
+            <div v-if="selectedRequestOrder.fulfillment_type === 'delivery' && selectedRequestOrder.delivery_fee" class="flex justify-between text-sm text-zinc-600"><span>Delivery fee</span><span>GHS {{ formatAmount(selectedRequestOrder.delivery_fee || 0) }}</span></div>
             <div class="flex justify-between text-base font-black text-zinc-900 pt-2 border-t border-zinc-200"><span>Total</span><span>GHS {{ formatAmount(getRequestTotalAmount(selectedRequestOrder)) }}</span></div>
           </div>
         </div>
@@ -343,7 +343,7 @@ const getRequestTotalAmount = (request) => {
   const estimated = Number(request.estimated_total);
   if (Number.isFinite(estimated) && estimated > 0) return estimated;
   const itemsTotal = Number(request.items_total || 0);
-  const deliveryFee = Number(request.delivery_fee || 0);
+  const deliveryFee = request.fulfillment_type === 'delivery' ? Number(request.delivery_fee || 0) : 0;
   return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0);
 };
 

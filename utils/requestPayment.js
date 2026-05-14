@@ -14,7 +14,7 @@ export const getRequestTotalAmount = (request) => {
   if (Number.isFinite(estimated) && estimated > 0) return estimated
 
   const itemsTotal = Number(request.items_total || 0)
-  const deliveryFee = Number(request.delivery_fee || 0)
+  const deliveryFee = request.fulfillment_type === 'delivery' ? Number(request.delivery_fee || 0) : 0
   const amount = itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
   return Number.isFinite(amount) && amount > 0 ? amount : 0
 }

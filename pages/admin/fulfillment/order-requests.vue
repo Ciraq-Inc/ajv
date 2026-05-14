@@ -237,6 +237,41 @@
             </div>
           </div>
           <div class="modal-header-actions">
+            <div class="header-status-override">
+              <button @click="showStatusOverride = !showStatusOverride" class="btn-secondary btn-sm" :class="{ 'header-status-override-btn--active': showStatusOverride }" :disabled="loading" type="button">
+                Override status
+              </button>
+              <div v-if="showStatusOverride" class="header-status-override-popover">
+                <select v-model="selectedStatus" class="header-status-override-select">
+                  <option value="">Change status…</option>
+                  <option value="pending">Pending</option>
+                  <option value="composing">Composing</option>
+                  <option value="composed">Composed</option>
+                  <option value="sourcing">Sourcing</option>
+                  <option value="enquiry_sent">Enquiry Sent</option>
+                  <option value="partially_available">Partially Available</option>
+                  <option value="confirming_with_pharm">Confirming With Pharm</option>
+                  <option value="awaiting_input">Awaiting Input</option>
+                  <option value="awaiting_customer">Awaiting Customer</option>
+                  <option value="payment_pending">Payment Pending</option>
+                  <option value="confirmed_in_pharm">Confirmed In Pharm</option>
+                  <option value="items_sourced">Items Sourced</option>
+                  <option value="paid">Paid</option>
+                  <option value="preparing">Preparing</option>
+                  <option value="driver_assigned">Driver Assigned</option>
+                  <option value="in_transit">In Transit</option>
+                  <option value="out_for_delivery">Out For Delivery</option>
+                  <option value="ready_for_pickup">Ready For Pickup</option>
+                  <option value="picked_up">Picked Up</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="returned">Returned</option>
+                  <option value="expired">Expired</option>
+                </select>
+                <button @click="updateStatus" class="header-status-override-apply" :disabled="!selectedStatus || loading" type="button">Apply</button>
+              </div>
+            </div>
             <button @click="refreshSelectedRequestDetails()" class="btn-secondary btn-sm" :disabled="loading">
               <ArrowPathIcon class="icon-sm" :class="{ 'animate-spin': loading }" />
               <span>Refresh</span>
@@ -3287,7 +3322,7 @@ const buildFallbackPaymentSnapshotFromRequest = (request) => {
     }))
 
   const itemsSubtotal = selectedItems.reduce((sum, item) => sum + Number(item?.line_total || 0), 0)
-  const deliveryFee = Number(request?.delivery_fee || 0)
+  const deliveryFee = request?.fulfillment_type === 'delivery' ? Number(request?.delivery_fee || 0) : 0
   const totalPaid = Number((itemsSubtotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)).toFixed(2))
   const sourceCount = new Set(
     selectedItems
@@ -3353,9 +3388,12 @@ const paymentModeItems = computed(() => {
 const paymentModeSubtotal = computed(() =>
   paymentModeItems.value.reduce((s, i) => s + Number(i.line_total || 0), 0)
 )
-const paymentModeTotal = computed(() =>
-  Number((paymentModeSubtotal.value + Number(selectedRequest.value?.delivery_fee || 0)).toFixed(2))
-)
+const paymentModeTotal = computed(() => {
+  const fee = selectedRequest.value?.fulfillment_type === 'delivery'
+    ? Number(selectedRequest.value?.delivery_fee || 0)
+    : 0
+  return Number((paymentModeSubtotal.value + fee).toFixed(2))
+})
 
 const isPaidRequest = computed(() => normalizeRequestStatus(selectedRequest.value?.status) === 'paid')
 
@@ -4600,6 +4638,23 @@ const runFulfillmentManually = async () => {
     fulfillmentProcessLoading.value = false
   }
 }
+
+const autoRanFulfillmentForRequestId = ref(null)
+watch(
+  () => ({
+    id: selectedRequest.value?.id || null,
+    mode: workspaceMode.value,
+    queueEmpty: !(pharmacyQueue.value?.length),
+    busy: loading.value || fulfillmentProcessLoading.value,
+  }),
+  (curr) => {
+    if (!curr.id || curr.mode !== 'source' || !curr.queueEmpty || curr.busy) return
+    if (autoRanFulfillmentForRequestId.value === curr.id) return
+    autoRanFulfillmentForRequestId.value = curr.id
+    runFulfillmentManually()
+  },
+  { immediate: true }
+)
 
 const contactPharmacy = async (payload) => {
   if (!selectedRequest.value) return
@@ -6650,6 +6705,72 @@ definePageMeta({
   flex-shrink: 0;
 }
 
+.header-status-override {
+  position: relative;
+}
+
+.header-status-override-btn--active {
+  border-color: #4F217A !important;
+  color: #4F217A !important;
+  background: #f4e8fb !important;
+}
+
+.header-status-override-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  min-width: 280px;
+}
+
+.header-status-override-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.header-status-override-select:focus {
+  outline: none;
+  border-color: #cbd5e1;
+  box-shadow: 0 0 0 2px rgba(79, 33, 122, 0.18);
+}
+
+.header-status-override-apply {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #4F217A;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.header-status-override-apply:hover:not(:disabled) {
+  background: #3b1860;
+}
+
+.header-status-override-apply:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .modal-title-row {
   display: flex;
   align-items: center;
@@ -7891,6 +8012,39 @@ definePageMeta({
   color: #64748b;
   font-size: 0.86rem;
   line-height: 1.5;
+}
+
+.workspace-nested-head .modal-close {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.workspace-nested-head .modal-close:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.workspace-nested-head .modal-close:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.workspace-nested-head .close-svg {
+  width: 18px;
+  height: 18px;
 }
 
 .workspace-nested-label {

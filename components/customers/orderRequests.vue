@@ -49,12 +49,9 @@
                 <!-- Left column: form sections -->
                 <div class="flex-1 min-w-0 space-y-4">
 
-                    <!-- Section 1: Add Medication -->
+                    <!-- Add Medication (with inline triggers for prescription + notes) -->
                     <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
-                            <div
-                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0">
-                                1</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Add Medication</h3>
                         </div>
                         <div class="flex flex-col divide-y divide-zinc-100">
@@ -104,107 +101,114 @@
                             class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors disabled:opacity-40">
                             <PlusIcon class="w-4 h-4" /> Add another medication
                         </button>
-                    </section>
 
-                    <!-- Section 2: Prescription -->
-                    <section class="bg-white rounded-2xl p-5">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div
-                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0">
-                                2</div>
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Prescription <span
-                                    class="text-sm font-normal text-zinc-400">(optional)</span></h3>
+                        <!-- Inline triggers for optional sections -->
+                        <div v-if="!showPrescriptionField || !showNotesField"
+                            class="mt-4 pt-4 border-t border-zinc-100 flex flex-wrap gap-x-6 gap-y-2">
+                            <button v-if="!showPrescriptionField" @click="openPrescriptionField" type="button"
+                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors">
+                                <PlusIcon class="w-4 h-4" /> Attach prescription
+                            </button>
+                            <button v-if="!showNotesField" @click="openNotesField" type="button"
+                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors">
+                                <PlusIcon class="w-4 h-4" /> Add a note
+                            </button>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label
-                                class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
-                                <div
-                                    class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
-                                    <CameraIcon class="w-5 h-5" />
+
+                        <!-- Prescription (revealed inline) -->
+                        <div v-if="showPrescriptionField" class="mt-5 pt-5 border-t border-zinc-100">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="text-sm font-semibold text-zinc-700">Prescription <span class="font-normal text-zinc-400">(optional)</span></h4>
+                                <button v-if="!prescriptionFiles.length" @click="dismissPrescriptionField" type="button"
+                                    class="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
+                                    × Cancel
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label
+                                    class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
+                                    <div
+                                        class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
+                                        <CameraIcon class="w-5 h-5" />
+                                    </div>
+                                    <span class="text-sm font-semibold text-zinc-700">Take a Photo</span>
+                                    <input ref="prescriptionPicker" type="file" accept="image/*" multiple
+                                        @change="onPrescriptionFilesSelected" class="hidden" />
+                                </label>
+                                <label
+                                    class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
+                                    <div
+                                        class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
+                                        <ArrowUpTrayIcon class="w-5 h-5" />
+                                    </div>
+                                    <span class="text-sm font-semibold text-zinc-700">Upload Document</span>
+                                    <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected"
+                                        class="hidden" />
+                                </label>
+                            </div>
+                            <input ref="prescriptionReplacePicker" type="file" accept="image/*" class="hidden"
+                                @change="onReplacePrescriptionFile" />
+                            <div v-if="prescriptionFiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                                <div v-for="(image, index) in prescriptionFiles" :key="image.id"
+                                    class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100 shadow-sm">
+                                    <img :src="image.previewUrl" :alt="image.file.name"
+                                        class="w-full h-full object-cover" />
+                                    <div
+                                        class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                                        <strong class="block text-[11px] text-white font-bold tracking-wider">Page {{ index
+                                            + 1 }}</strong>
+                                        <span class="block text-[9px] text-white/80 font-medium truncate">{{ image.file.name
+                                            }}</span>
+                                    </div>
+                                    <div
+                                        class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                                        <button type="button"
+                                            class="text-[11px] font-bold text-white uppercase tracking-wider hover:underline"
+                                            @click="queuePrescriptionReplace(index)">Retake</button>
+                                        <button type="button"
+                                            class="text-[11px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline"
+                                            @click="removePrescriptionFile(index)">Delete</button>
+                                    </div>
                                 </div>
-                                <span class="text-sm font-semibold text-zinc-700">Take a Photo</span>
-                                <input ref="prescriptionPicker" type="file" accept="image/*" multiple
-                                    @change="onPrescriptionFilesSelected" class="hidden" />
-                            </label>
-                            <label
-                                class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
-                                <div
-                                    class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
-                                    <ArrowUpTrayIcon class="w-5 h-5" />
+                            </div>
+
+                            <div v-if="isUploading"
+                                class="mt-5 rounded-xl border border-[#4F217A]/20 bg-[#fbf9fc] p-4 shadow-sm">
+                                <div class="flex items-center justify-between mb-2 pb-1 border-b border-[#4F217A]/10">
+                                    <strong class="text-xs font-black uppercase tracking-wider text-[#4F217A]">Uploading
+                                        prescription photos</strong>
+                                    <span class="text-xs font-black text-[#5d4679]">{{ Math.round(uploadProgress) }}%</span>
                                 </div>
-                                <span class="text-sm font-semibold text-zinc-700">Upload Document</span>
-                                <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected"
-                                    class="hidden" />
-                            </label>
-                        </div>
-                        <input ref="prescriptionReplacePicker" type="file" accept="image/*" class="hidden"
-                            @change="onReplacePrescriptionFile" />
-                        <div v-if="prescriptionFiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                            <div v-for="(image, index) in prescriptionFiles" :key="image.id"
-                                class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100 shadow-sm">
-                                <img :src="image.previewUrl" :alt="image.file.name"
-                                    class="w-full h-full object-cover" />
-                                <div
-                                    class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
-                                    <strong class="block text-[11px] text-white font-bold tracking-wider">Page {{ index
-                                        + 1 }}</strong>
-                                    <span class="block text-[9px] text-white/80 font-medium truncate">{{ image.file.name
-                                        }}</span>
-                                </div>
-                                <div
-                                    class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
-                                    <button type="button"
-                                        class="text-[11px] font-bold text-white uppercase tracking-wider hover:underline"
-                                        @click="queuePrescriptionReplace(index)">Retake</button>
-                                    <button type="button"
-                                        class="text-[11px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline"
-                                        @click="removePrescriptionFile(index)">Delete</button>
+                                <div class="w-full h-2 bg-[#4F217A]/10 rounded-full overflow-hidden">
+                                    <span class="block h-full bg-[#4F217A] transition-all duration-300"
+                                        :style="{ width: `${uploadProgress}%` }"></span>
                                 </div>
                             </div>
                         </div>
 
-                        <div v-if="isUploading"
-                            class="mt-5 rounded-xl border border-[#4F217A]/20 bg-[#fbf9fc] p-4 shadow-sm">
-                            <div class="flex items-center justify-between mb-2 pb-1 border-b border-[#4F217A]/10">
-                                <strong class="text-xs font-black uppercase tracking-wider text-[#4F217A]">Uploading
-                                    prescription photos</strong>
-                                <span class="text-xs font-black text-[#5d4679]">{{ Math.round(uploadProgress) }}%</span>
+                        <!-- Notes (revealed inline) -->
+                        <div v-if="showNotesField" class="mt-5 pt-5 border-t border-zinc-100">
+                            <div class="flex items-center justify-between mb-2">
+                                <label for="request-notes" class="text-sm font-semibold text-zinc-700">Notes <span class="font-normal text-zinc-400">(optional)</span></label>
+                                <button v-if="!customerNotes.trim()" @click="dismissNotesField" type="button"
+                                    class="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
+                                    × Cancel
+                                </button>
                             </div>
-                            <div class="w-full h-2 bg-[#4F217A]/10 rounded-full overflow-hidden">
-                                <span class="block h-full bg-[#4F217A] transition-all duration-300"
-                                    :style="{ width: `${uploadProgress}%` }"></span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Section 3: Notes -->
-                    <section class="bg-white rounded-2xl p-5">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div
-                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0">
-                                3</div>
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Notes</h3>
-                        </div>
-                        <p class="text-xs text-zinc-500 mb-3">You'll choose pickup or delivery on the payment screen, where you can compare prices and pharmacy distance.</p>
-                        <div class="flex flex-col gap-1.5 mt-4">
-                            <label for="request-notes" class="text-sm font-semibold text-zinc-700">Notes <span
-                                    class="font-normal text-zinc-400">(optional)</span></label>
                             <textarea v-model="customerNotes" rows="2"
+                                ref="notesTextarea"
                                 id="request-notes"
                                 inputmode="text"
                                 autocapitalize="sentences"
                                 placeholder="e.g. brand preference, dosage form..."
-                                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
+                                class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
                         </div>
                     </section>
 
 
-                    <!-- Section 4: Address & Location -->
+                    <!-- Address & Location -->
                     <section class="bg-white rounded-2xl p-5">
                         <div class="flex items-center gap-3 mb-4">
-                            <div
-                                class="w-7 h-7 rounded-full bg-[#4F217A] text-white text-xs font-black flex items-center justify-center flex-shrink-0 shadow-sm">
-                                4</div>
                             <h3 class="font-black text-zinc-900 text-base tracking-tight">Your Address</h3>
                         </div>
                         <button @click="getLocation" :disabled="gettingLocation"
@@ -312,6 +316,7 @@
                                     :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">GHS {{ walletBalance.toFixed(2) }}</span>
                             </div>
                         </div>
+                        <p class="text-[11px] text-zinc-500 leading-snug mb-3">You'll choose pickup or delivery on the next screen, where you can compare prices and pharmacy distance.</p>
                         <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
                             class="w-full bg-purple-700 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
@@ -326,21 +331,23 @@
             </div><!-- /main content row -->
 
             <!-- Mobile submit bar -->
-            <div
-                class="lg:hidden bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
-                <div class="flex-1 min-w-0">
-                    <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
-                    <p class="text-lg font-black text-zinc-900 leading-tight">GHS {{ requestFee.toFixed(2) }}</p>
-                    <p class="text-[11px] font-semibold mt-0.5"
-                        :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">
-                        Balance: GHS {{ walletBalance.toFixed(2) }}
-                    </p>
+            <div class="lg:hidden space-y-2">
+                <p class="text-[11px] text-zinc-500 leading-snug px-1">You'll choose pickup or delivery on the next screen, where you can compare prices and pharmacy distance.</p>
+                <div class="bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
+                        <p class="text-lg font-black text-zinc-900 leading-tight">GHS {{ requestFee.toFixed(2) }}</p>
+                        <p class="text-[11px] font-semibold mt-0.5"
+                            :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">
+                            Balance: GHS {{ walletBalance.toFixed(2) }}
+                        </p>
+                    </div>
+                    <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
+                        class="bg-purple-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
+                        <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+                        <template v-else>Send Request ›</template>
+                    </button>
                 </div>
-                <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                    class="bg-purple-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
-                    <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
-                    <template v-else>Send Request ›</template>
-                </button>
             </div>
         </div>
 
@@ -545,7 +552,7 @@
                         <div class="total-row"><span>Items total</span><span>GHS {{
                             parseFloat(selectedRequest.items_total ||
                                 0).toFixed(2) }}</span></div>
-                        <div v-if="selectedRequest.delivery_fee" class="total-row"><span>Delivery fee</span><span>GHS {{
+                        <div v-if="selectedRequest.fulfillment_type === 'delivery' && selectedRequest.delivery_fee" class="total-row"><span>Delivery fee</span><span>GHS {{
                             parseFloat(selectedRequest.delivery_fee).toFixed(2) }}</span></div>
                         <div class="total-row grand"><span>Estimated Total</span><span>GHS {{
                             parseFloat(selectedRequest.estimated_total).toFixed(2) }}</span></div>
@@ -689,32 +696,39 @@
                                     :disabled="!paymentOptionsByRequest[selectedRequest.id].pickup.available"
                                     @click="choosePaymentMethod(selectedRequest.id, 'pickup')"
                                 >
-                                    <div class="fulfillment-option-head">
-                                        <span class="fulfillment-option-title">Pickup</span>
-                                        <span class="fulfillment-option-price">
-                                            <template v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available">
-                                                GHS {{ paymentOptionsByRequest[selectedRequest.id].pickup.total.toFixed(2) }}
-                                            </template>
-                                            <template v-else>—</template>
-                                        </span>
-                                    </div>
-                                    <div v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available && paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy" class="fulfillment-option-meta">
-                                        <span>{{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.name }}</span>
-                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area">
-                                            · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area }}
-                                        </span>
-                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km != null">
-                                            · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km }} km away
-                                        </span>
-                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.is_24_hours">
-                                            · Open 24 hours
-                                        </span>
-                                        <span v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at">
-                                            · Open until {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at }}
-                                        </span>
-                                    </div>
-                                    <div v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
-                                        {{ formatPickupReason(paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason) }}
+                                    <div class="fulfillment-option-row">
+                                        <div class="fulfillment-option-icon fulfillment-option-icon--pickup" aria-hidden="true">
+                                            <BuildingStorefrontIcon />
+                                        </div>
+                                        <div class="fulfillment-option-body">
+                                            <div class="fulfillment-option-head">
+                                                <span class="fulfillment-option-title">Pickup</span>
+                                                <span class="fulfillment-option-price">
+                                                    <template v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available">
+                                                        GHS {{ paymentOptionsByRequest[selectedRequest.id].pickup.total.toFixed(2) }}
+                                                    </template>
+                                                    <template v-else>—</template>
+                                                </span>
+                                            </div>
+                                            <div v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available && paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy" class="fulfillment-option-meta">
+                                                <span>{{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.name }}</span>
+                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area">
+                                                    · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area }}
+                                                </span>
+                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km != null">
+                                                    · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km }} km away
+                                                </span>
+                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.is_24_hours">
+                                                    · Open 24 hours
+                                                </span>
+                                                <span v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at">
+                                                    · Open until {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at }}
+                                                </span>
+                                            </div>
+                                            <div v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
+                                                {{ formatPickupReason(paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason) }}
+                                            </div>
+                                        </div>
                                     </div>
                                 </button>
 
@@ -725,20 +739,27 @@
                                     :class="{ 'fulfillment-option--selected': selectedPaymentMethodByRequest[selectedRequest.id] === 'delivery' }"
                                     @click="choosePaymentMethod(selectedRequest.id, 'delivery')"
                                 >
-                                    <div class="fulfillment-option-head">
-                                        <span class="fulfillment-option-title">Delivery</span>
-                                        <span class="fulfillment-option-price">
-                                            GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.total.toFixed(2) }}
-                                        </span>
-                                    </div>
-                                    <div class="fulfillment-option-meta">
-                                        <span>Delivery fee GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.fee.toFixed(2) }}</span>
-                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.distance_km != null">
-                                            · {{ paymentOptionsByRequest[selectedRequest.id].delivery.distance_km }} km
-                                        </span>
-                                        <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes">
-                                            · ~{{ paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes }} min
-                                        </span>
+                                    <div class="fulfillment-option-row">
+                                        <div class="fulfillment-option-icon fulfillment-option-icon--delivery" aria-hidden="true">
+                                            <TruckIcon />
+                                        </div>
+                                        <div class="fulfillment-option-body">
+                                            <div class="fulfillment-option-head">
+                                                <span class="fulfillment-option-title">Delivery</span>
+                                                <span class="fulfillment-option-price">
+                                                    GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.total.toFixed(2) }}
+                                                </span>
+                                            </div>
+                                            <div class="fulfillment-option-meta">
+                                                <span>Delivery fee GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.fee.toFixed(2) }}</span>
+                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.distance_km != null">
+                                                    · {{ paymentOptionsByRequest[selectedRequest.id].delivery.distance_km }} km
+                                                </span>
+                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes">
+                                                    · ~{{ paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes }} min
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </button>
                             </div>
@@ -854,9 +875,6 @@
                         class="detail-info">
                         <MapPinIcon class="detail-svg" /> {{ compactAddress(selectedRequest.customer_address ||
                         selectedRequest.delivery_address) }}
-                    </div>
-                    <div v-if="selectedRequest.admin_notes" class="detail-info">
-                        <ChatBubbleLeftIcon class="detail-svg" /> {{ selectedRequest.admin_notes }}
                     </div>
                 </div>
             </div>
@@ -999,7 +1017,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, watchEffect, nextTick } from 'vue'
 import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
 import { formatCompactAddress } from '~/utils/addressFormat'
@@ -1017,6 +1035,7 @@ import {
     MinusSmallIcon, PlusSmallIcon, CreditCardIcon,
     ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon,
     ClockIcon, WalletIcon, InboxIcon, BeakerIcon, ChatBubbleLeftEllipsisIcon,
+    BuildingStorefrontIcon,
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
@@ -1082,8 +1101,27 @@ const newItem = () => ({
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
 const HOMEPAGE_PRESCRIPTION_DRAFT_KEY = 'medsgh_homepage_prescription_image'
-const FORM_DRAFT_KEY = 'medsgh_order_form_draft'
+const FORM_DRAFT_KEY_BASE = 'medsgh_order_form_draft'
+const DRAFT_TTL_MS = 14 * 24 * 60 * 60 * 1000
 let formDraftSaveTimer = null
+
+const draftStorageKey = () => {
+    const cid = userStore.masterCustomer?.id || 'anon'
+    return `${FORM_DRAFT_KEY_BASE}:${cid}`
+}
+
+const migrateLegacyDraftKey = () => {
+    try {
+        const legacy = localStorage.getItem(FORM_DRAFT_KEY_BASE)
+            ?? sessionStorage.getItem(FORM_DRAFT_KEY_BASE)
+        if (legacy) {
+            const target = draftStorageKey()
+            if (!localStorage.getItem(target)) localStorage.setItem(target, legacy)
+            localStorage.removeItem(FORM_DRAFT_KEY_BASE)
+            sessionStorage.removeItem(FORM_DRAFT_KEY_BASE)
+        }
+    } catch {}
+}
 
 const saveFormDraft = () => {
     if (!process.client) return
@@ -1105,7 +1143,7 @@ const saveFormDraft = () => {
             locationMode: locationMode.value,
             savedAt: Date.now()
         }
-        sessionStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(draft))
+        localStorage.setItem(draftStorageKey(), JSON.stringify(draft))
     } catch (error) {
         console.error('Failed to save form draft:', error)
     }
@@ -1120,16 +1158,28 @@ const restoreFormDraft = () => {
     if (!process.client) return
 
     try {
-        const raw = sessionStorage.getItem(FORM_DRAFT_KEY)
+        migrateLegacyDraftKey()
+
+        const key = draftStorageKey()
+        const raw = localStorage.getItem(key)
         if (!raw) return
 
         const draft = JSON.parse(raw)
         if (!draft) return
 
-        // Only restore if the items are mostly empty (user hasn't started typing)
+        const savedAt = Number(draft.savedAt || 0)
+        if (!savedAt || Date.now() - savedAt > DRAFT_TTL_MS) {
+            try { localStorage.removeItem(key) } catch {}
+            return
+        }
+
+        // Only restore if the items are mostly empty (user hasn't started typing).
+        // Note: fulfillmentType defaults to 'delivery' on mount so it can't be used
+        // as a "has the user interacted" signal — relying on items + location only.
         const hasSignificantContent = requestItems.value.some(item => item.product_name.trim()) ||
             customerLat.value ||
-            fulfillmentType.value
+            customerNotes.value.trim() ||
+            deliveryAddress.value.trim()
         if (hasSignificantContent) return
 
         // Restore items
@@ -1160,7 +1210,7 @@ const restoreFormDraft = () => {
 const clearFormDraft = () => {
     if (!process.client) return
     try {
-        sessionStorage.removeItem(FORM_DRAFT_KEY)
+        localStorage.removeItem(draftStorageKey())
         if (formDraftSaveTimer) clearTimeout(formDraftSaveTimer)
         formDraftSaveTimer = null
     } catch (error) {
@@ -1267,8 +1317,43 @@ const deliveryAddressSuggestions = ref([])
 const deliveryAddressActiveIndex = ref(-1)
 const deliveryAutocompleteLoading = ref(false)
 const customerNotes = ref('')
+const notesTextarea = ref(null)
+const showPrescriptionField = ref(false)
+const showNotesField = ref(false)
 const locationIssue = ref(null)
 const uploadProgress = ref(0)
+
+const openPrescriptionField = () => {
+    showPrescriptionField.value = true
+    nextTick(() => {
+        prescriptionPicker.value?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+    })
+}
+
+const openNotesField = () => {
+    showNotesField.value = true
+    nextTick(() => {
+        notesTextarea.value?.focus()
+    })
+}
+
+const dismissPrescriptionField = () => {
+    if (prescriptionFiles.value.length) return
+    showPrescriptionField.value = false
+}
+
+const dismissNotesField = () => {
+    if (customerNotes.value.trim().length) return
+    showNotesField.value = false
+}
+
+watch(prescriptionFiles, (files) => {
+    if (files.length > 0) showPrescriptionField.value = true
+}, { deep: true })
+
+watch(customerNotes, (val) => {
+    if (String(val || '').trim().length > 0) showNotesField.value = true
+})
 let deliveryAutocompleteTimer = null
 let deliveryAutocompleteSuspend = false
 
@@ -2125,7 +2210,7 @@ const loadPaymentOptions = async (requestId) => {
             }
         }
         if (res.data?.fee_applicable && !(requestId in applyFeeByRequest.value)) {
-            applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: true }
+            applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: false }
         }
     } catch (e) {
         console.warn('Failed to load payment options', e)
@@ -5458,6 +5543,42 @@ defineExpose({ fetchMyRequests })
     background: #ffffff;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
+}
+
+.fulfillment-option-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.fulfillment-option-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fulfillment-option-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.fulfillment-option-icon--pickup {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.fulfillment-option-icon--delivery {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.fulfillment-option-body {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .fulfillment-option:hover:not(:disabled) {
