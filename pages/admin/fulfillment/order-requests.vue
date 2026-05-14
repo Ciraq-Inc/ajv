@@ -2271,7 +2271,7 @@ const PIPELINE_STAGES = [
   { label: 'Composing',       statuses: ['composing', 'composed'],                                                                        nextStatus: 'sourcing',        nextLabel: 'Start Sourcing'       },
   { label: 'Sourcing',        statuses: ['sourcing', 'confirming_with_pharm', 'processing', 'enquiry_sent'],                              nextStatus: 'awaiting_input',  nextLabel: 'Send to Customer'     },
   { label: 'Awaiting Input',  statuses: ['awaiting_input', 'awaiting_customer'],                                                          nextStatus: 'payment_pending', nextLabel: 'Mark Payment Pending' },
-  { label: 'Payment Pending', statuses: ['payment_pending', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'],               nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
+  { label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'], nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
   { label: 'Paid',            statuses: ['paid', 'preparing', 'logistics_pending', 'driver_unavailable'],                                 nextStatus: null,              nextLabel: null                   },
   { label: 'In Transit',      statuses: ['in_transit', 'driver_assigned', 'out_for_delivery', 'ready_for_pickup', 'ready_to_order'],      nextStatus: null,              nextLabel: null                   },
   { label: 'Done',            statuses: ['delivered', 'picked_up', 'completed'],                                                          nextStatus: null,              nextLabel: null                   },
@@ -5754,7 +5754,13 @@ const deleteRequestItem = async (item) => {
 }
 
 // Helpers
-const formatStatus = (status) => (status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const STATUS_LABEL_OVERRIDES = {
+  awaiting_method_selection: 'Payment Pending',
+}
+const formatStatus = (status) => {
+  if (status && STATUS_LABEL_OVERRIDES[status]) return STATUS_LABEL_OVERRIDES[status]
+  return (status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
 const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-'
 const formatCurrency = (value) => `GHS ${Number(value || 0).toFixed(2)}`
