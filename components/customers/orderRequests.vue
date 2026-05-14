@@ -1504,6 +1504,16 @@ const applyDeliveryAddressSuggestion = (suggestion) => {
     deliveryAddress.value = address
     deliveryAddressSearch.value = address
     customerAddress.value = address
+
+    const lat = Number(suggestion?.latitude)
+    const lng = Number(suggestion?.longitude)
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        customerLat.value = lat
+        customerLng.value = lng
+        locationMode.value = 'current-request'
+        locationIssue.value = null
+    }
+
     deliveryAutocompleteSuspend = true
     clearDeliveryAddressSuggestions()
 }
