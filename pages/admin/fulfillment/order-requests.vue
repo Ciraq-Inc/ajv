@@ -3403,7 +3403,7 @@ const workspaceMode = computed(() => {
   if (['pending', 'composing'].includes(status)) return 'compose'
   if (['sourcing', 'confirming_with_pharm', 'processing', 'enquiry_sent', 'partially_available'].includes(status)) return 'source'
   if (['awaiting_input', 'awaiting_customer'].includes(status)) return 'decision'
-  if (['payment_pending', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'].includes(status)) return 'payment'
+  if (['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'].includes(status)) return 'payment'
   if (['paid', 'preparing'].includes(status)) return 'fulfillment'
   if (['driver_assigned', 'in_transit', 'out_for_delivery'].includes(status)) return 'transit'
   if (['ready_for_pickup'].includes(status)) return 'pickup'
