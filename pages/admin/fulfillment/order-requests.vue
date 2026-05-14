@@ -4415,13 +4415,25 @@ const savePharmacyPhone = async (pharm) => {
   }
 }
 
-const openResponseModal = (pharm, mode) => {
+const openResponseModal = async (pharm, mode) => {
+  // Refresh the cached pharmacy_queue so coverage prices reflect the current
+  // products table, not a stale snapshot from the last "Run fulfillment process".
+  // Best-effort: if it fails we still open the modal with whatever's cached.
+  try {
+    await loadFulfillment({ silent: true, refreshLists: false })
+  } catch {}
+  // Re-resolve the pharmacy from the refreshed queue (the original `pharm`
+  // reference points to the pre-refresh queue entry).
+  const freshPharm = (pharmacyQueue.value || []).find(
+    (p) => Number(p?.pharmacy_id) === Number(pharm?.pharmacy_id)
+  ) || pharm
+
   const allItems = selectedRequest.value?.items || []
   // Build lookup of existing active allocations for this pharmacy
   const existingAllocsByItemId = new Map()
   for (const item of allItems) {
     const activeAlloc = (item.allocations || []).find(
-      a => Number(a.pharmacy_id) === Number(pharm.pharmacy_id) &&
+      a => Number(a.pharmacy_id) === Number(freshPharm.pharmacy_id) &&
            ['confirmed', 'proposed'].includes(a.status)
     )
     if (activeAlloc) existingAllocsByItemId.set(item.id, activeAlloc)
@@ -4432,7 +4444,7 @@ const openResponseModal = (pharm, mode) => {
     : allItems
   const items = sourceItems.map((item) => {
     const existingAlloc = existingAllocsByItemId.get(item.id)
-    const coverageItem = (pharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
+    const coverageItem = (freshPharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
     const fullRequestedQty = Number(item.requested_quantity || item.quantity || 1)
     const remainingQty = sourcingMode.value === 'split'
       ? Math.max(fullRequestedQty - Number(item.sourced_quantity || 0), 1)
@@ -4463,7 +4475,7 @@ const openResponseModal = (pharm, mode) => {
   })
   responseModal.value = {
     open: true,
-    pharmacy: pharm,
+    pharmacy: freshPharm,
     mode,
     submitting: false,
     note: '',
