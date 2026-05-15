@@ -1,6 +1,7 @@
 ﻿// stores/user.js - Master Account Authentication System
 import { defineStore } from 'pinia';
 import { createOrdersService } from '~/services/orders/ordersService';
+import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -68,14 +69,8 @@ export const useUserStore = defineStore('user', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/check-phone`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: formattedPhone })
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().checkPhone({ phone: formattedPhone });
         if (!data.success) throw new Error(data.message || 'Failed to check phone status');
         this.phoneStatus = data.data.status;
         this.phoneVerifying = formattedPhone;
@@ -93,14 +88,8 @@ export const useUserStore = defineStore('user', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: formattedPhone })
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().sendSetupOtp({ phone: formattedPhone });
         if (!data.success) throw new Error(data.message || 'Failed to send OTP');
         this.otpSent = true;
         this.phoneVerifying = formattedPhone;
@@ -118,14 +107,12 @@ export const useUserStore = defineStore('user', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/setup-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: formattedPhone, otp, password })
+        const data = await this._customerAuthService().setupPassword({
+          phone: formattedPhone,
+          otp,
+          password,
         });
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to setup password');
         this.applyCustomerAuthPayload(data.data);
 
@@ -148,22 +135,16 @@ export const useUserStore = defineStore('user', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(registrationData.phone);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...(registrationData.company_id ? { company_id: registrationData.company_id } : {}),
-            fname: registrationData.fname,
-            lname: registrationData.lname,
-            phone: formattedPhone,
-            password: registrationData.password,
-            email: registrationData.email,
-            otp: registrationData.otp
-          })
+        const data = await this._customerAuthService().register({
+          companyId: registrationData.company_id || undefined,
+          fname: registrationData.fname,
+          lname: registrationData.lname,
+          phone: formattedPhone,
+          password: registrationData.password,
+          email: registrationData.email,
+          otp: registrationData.otp,
         });
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Registration failed');
         this.applyCustomerAuthPayload(data.data);
 
@@ -186,14 +167,11 @@ export const useUserStore = defineStore('user', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: formattedPhone, password })
+        const data = await this._customerAuthService().login({
+          phone: formattedPhone,
+          password,
         });
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Login failed');
         this.applyCustomerAuthPayload(data.data);
 
@@ -214,14 +192,7 @@ export const useUserStore = defineStore('user', {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/my-companies`, {
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().myCompanies();
         if (!data.success) throw new Error(data.message || 'Failed to fetch companies');
         this.companies = data.data || [];
         return this.companies;
@@ -237,15 +208,7 @@ export const useUserStore = defineStore('user', {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/trigger-linking`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().triggerLinking();
         if (!data.success) throw new Error(data.message || 'Failed to trigger linking');
 
         // Update companies list from response
@@ -267,16 +230,7 @@ export const useUserStore = defineStore('user', {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/switch-company`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ company_id: companyId })
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().switchCompany({ companyId });
         if (!data.success) throw new Error(data.message || 'Failed to switch company');
         this.applyCustomerAuthPayload(data.data);
         return this.selectedCompany;
@@ -291,14 +245,7 @@ export const useUserStore = defineStore('user', {
     async getProfile() {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       try {
-        const config = useRuntimeConfig();
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/profile`, {
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().getProfile();
         if (!data.success) throw new Error(data.message || 'Failed to fetch profile');
         this.applyProfileData(data.data);
         return data.data;
@@ -312,16 +259,7 @@ export const useUserStore = defineStore('user', {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/profile`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(profileData)
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().updateProfile(profileData);
         if (!data.success) throw new Error(data.message || 'Failed to update profile');
         this.applyProfileData(data.data);
         return data.data;
@@ -337,16 +275,10 @@ export const useUserStore = defineStore('user', {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/change-password`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        const data = await this._customerAuthService().changePassword({
+          currentPassword,
+          newPassword,
         });
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to change password');
         return data;
       } catch (error) {
@@ -361,14 +293,8 @@ export const useUserStore = defineStore('user', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/forgot-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: formattedPhone })
-        });
-        const data = await response.json();
+        const data = await this._customerAuthService().sendResetOtp({ phone: formattedPhone });
         if (!data.success) throw new Error(data.message || 'Failed to send reset code');
         this.otpSent = true;
         this.phoneVerifying = formattedPhone;
@@ -386,18 +312,12 @@ export const useUserStore = defineStore('user', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/reset-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: formattedPhone,
-            otp: otp,
-            new_password: newPassword
-          })
+        const data = await this._customerAuthService().resetPassword({
+          phone: formattedPhone,
+          otp,
+          newPassword,
         });
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to reset password');
 
         this.phoneVerifying = null;
@@ -422,6 +342,21 @@ export const useUserStore = defineStore('user', {
     // ---------------------------------------------------------------------
     _ordersService() {
       return createOrdersService(useApi());
+    },
+
+    // ---------------------------------------------------------------------
+    // Customer auth domain (refactored to use
+    // services/customerAuth/customerAuthService). Pure HTTP lives in the
+    // service; the store keeps loading/error state, auth-guard checks,
+    // envelope (`{ success, data, message }`) handling, phone-number
+    // formatting, and crucially `applyCustomerAuthPayload` /
+    // `applyProfileData` / `persistAuthData` — token persistence stays
+    // inside the store so the service has zero coupling to Pinia or
+    // localStorage. `useApi` reads the token back out of localStorage
+    // when sending authenticated requests.
+    // ---------------------------------------------------------------------
+    _customerAuthService() {
+      return createCustomerAuthService(useApi());
     },
 
     async processDirectOrder(cartItems, pharmacyId) {
