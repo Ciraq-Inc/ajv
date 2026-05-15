@@ -2,6 +2,7 @@
 
 import { defineStore } from "pinia";
 import { otpService } from "~/utils/otpService";
+import { createPharmacyService } from "~/services/pharmacy/pharmacyService";
 
 export const usePharmacyStore = defineStore("pharmacy", {
   state: () => ({
@@ -22,6 +23,17 @@ export const usePharmacyStore = defineStore("pharmacy", {
   }),
 
   actions: {
+    // -------------------------------------------------------------------
+    // Pharmacy domain (refactored to use services/pharmacy/pharmacyService).
+    // The store stays the orchestrator: loading flag, error surfacing,
+    // notFound flag, localStorage persistence, and envelope
+    // (`{ success, data, message }`) handling. All HTTP details live in
+    // the service. Public method names + return shapes are preserved 1:1.
+    // -------------------------------------------------------------------
+    _pharmacyService() {
+      return createPharmacyService(useApi());
+    },
+
     async setCurrentPharmacy(pharmacyId) {
       this.currentPharmacy = pharmacyId;
 
@@ -45,24 +57,19 @@ export const usePharmacyStore = defineStore("pharmacy", {
       this.notFound = false;
 
       try {
-        const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase;
-
-        // Fetch pharmacy info via API
-        const response = await fetch(`${baseURL}/api/companies/${this.currentPharmacy}`);
-
-        if (!response.ok) {
-          if (response.status === 404) {
+        let data;
+        try {
+          data = await this._pharmacyService().getById(this.currentPharmacy);
+        } catch (httpErr) {
+          if (httpErr && httpErr.status === 404) {
             this.notFound = true;
             this.pharmacyData = null;
             this.products = [];
             this.customers = [];
             return;
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${httpErr?.status || 'unknown'}`);
         }
-
-        const data = await response.json();
 
         if (!data.success) {
           throw new Error(data.message || 'Failed to fetch pharmacy data');
@@ -122,23 +129,17 @@ export const usePharmacyStore = defineStore("pharmacy", {
       if (!this.currentPharmacy) return [];
 
       try {
-        const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase;
-
-        const params = new URLSearchParams({
-          company_id: this.currentPharmacy,
-          page,
-          limit,
-          ...(search ? { search } : {}),
-        });
-
-        const response = await fetch(`${baseURL}/api/products?${params}`);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        let data;
+        try {
+          data = await this._pharmacyService().listProducts({
+            companyId: this.currentPharmacy,
+            page,
+            limit,
+            search,
+          });
+        } catch (httpErr) {
+          throw new Error(`HTTP error! status: ${httpErr?.status || 'unknown'}`);
         }
-
-        const data = await response.json();
 
         if (!data.success) {
           throw new Error(data.message || 'Failed to fetch products');
@@ -235,21 +236,16 @@ export const usePharmacyStore = defineStore("pharmacy", {
       console.log(`Looking up pharmacy ID for slug: '${slug}'`);
 
       try {
-        const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase;
-
-        // Fetch pharmacy by domain name
-        const response = await fetch(`${baseURL}/api/companies/domain/${encodeURIComponent(slug)}`);
-
-        if (!response.ok) {
-          if (response.status === 404) {
+        let data;
+        try {
+          data = await this._pharmacyService().getByDomainSlug(slug);
+        } catch (httpErr) {
+          if (httpErr && httpErr.status === 404) {
             console.log(`No pharmacy found for slug: '${slug}'`);
             return null;
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${httpErr?.status || 'unknown'}`);
         }
-
-        const data = await response.json();
 
         if (data.success && data.data) {
           console.log(`Found pharmacy ID: ${data.data.id} for slug: ${slug}`);
