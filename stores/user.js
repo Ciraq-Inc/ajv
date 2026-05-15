@@ -308,6 +308,23 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    async autocompleteLocation(query) {
+      const trimmed = String(query || '').trim();
+      if (trimmed.length < 3) return [];
+      const data = await this._customerAuthService().autocompleteLocation({
+        q: trimmed,
+        limit: 5,
+      });
+      if (!data.success) throw new Error(data.message || 'Failed to load address suggestions');
+      return Array.isArray(data.data) ? data.data : [];
+    },
+
+    async reverseGeocodeHomeLocation(lat, lng) {
+      const data = await this._customerAuthService().reverseGeocode({ lat, lng });
+      if (!data.success) throw new Error(data.message || 'Failed to look up your address');
+      return data.data;
+    },
+
     async resetPassword(phone, otp, newPassword) {
       this.isLoading = true;
       this.error = null;
