@@ -1,5 +1,11 @@
-@import 'material-symbols/outlined.css';
-@import 'remixicon/fonts/remixicon.css';
+/*
+ * remixicon-slim.css is a generated copy of remixicon/fonts/remixicon.css with
+ * the @font-face block rewritten to woff2-only. Source vendor stylesheet
+ * referenced 5 font formats (eot/ttf/svg/woff/woff2 = ~4.7 MB total of which
+ * woff2 is 189 KB). Slim variant ships only woff2; all target browsers support
+ * it. Generator: scripts/generate-remixicon-slim.mjs (runs in postinstall).
+ */
+@import './remixicon-slim.css';
 @import './rigelis.css';
 
 @tailwind base;

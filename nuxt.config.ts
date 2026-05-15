@@ -22,7 +22,26 @@ export default defineNuxtConfig({
           }
         }
       }
-    ]
+    ],
+    build: {
+      // Split Firebase + vuefire into their own chunk so route-level chunks
+      // are not bloated by Firebase code on pages that don't use it.
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes('node_modules')) {
+              if (id.includes('/firebase/') || id.includes('@firebase/') || id.includes('/vuefire/')) {
+                return 'firebase-vendor'
+              }
+              if (id.includes('/@heroicons/')) {
+                return 'heroicons-vendor'
+              }
+            }
+            return undefined
+          }
+        }
+      }
+    }
   },
 
   compatibilityDate: "2024-04-03",
