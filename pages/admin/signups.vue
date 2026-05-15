@@ -234,6 +234,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
+import { createAdminService } from '~/services/admin/adminService';
 
 definePageMeta({
   layout: 'admin-layout',
@@ -242,6 +243,7 @@ definePageMeta({
 
 const config = useRuntimeConfig();
 const adminStore = useAdminStore();
+const adminService = createAdminService(useApi());
 
 // State
 const signups = ref([]);
@@ -257,18 +259,12 @@ const fetchSignups = async () => {
   errorMessage.value = '';
   
   try {
-    const response = await fetch(`${config.public.apiBase}/api/admin/signups`, {
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`
-      }
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.message || data.error || `HTTP ${response.status}: Failed to fetch signups`);
-    }
-    
+    // Service-layer call. Bearer header is injected by `useApi` (admin-token
+    // fallback for `/api/admin/*`). `listSignups()` throws on non-2xx with
+    // `error.message` already populated from the server envelope's
+    // `message`/`error` field, matching the prior raw-fetch behavior.
+    const data = await adminService.listSignups();
+
     signups.value = data.data || [];
     console.log('Loaded signups:', signups.value.length);
   } catch (error) {
