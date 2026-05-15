@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
+  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="login-dialog-title" ref="dialogRef" tabindex="-1">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-[#1e1a22]/50 backdrop-blur-md" @click="closeModal"></div>
 
@@ -20,7 +20,7 @@
           </button>
           <div class="pr-10">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#520094] mb-2">MedsGh</p>
-            <h3 class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
+            <h3 id="login-dialog-title" class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
             <p class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
           </div>
         </div>
@@ -243,6 +243,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
+import { useModalA11y } from '~/composables/useModalA11y';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -252,6 +253,10 @@ const emit = defineEmits(['close', 'login-success']);
 
 const userStore = useUserStore();
 const pharmacyStore = usePharmacyStore();
+
+// Focus trap, ESC-to-close, restore focus to invoker (WAI-ARIA dialog pattern).
+const dialogRef = ref(null);
+useModalA11y(dialogRef, () => props.isOpen, () => emit('close'));
 
 const subtleCardClass = 'mb-4 rounded-2xl border-none bg-[#f4ebf7] p-4 text-sm text-[#4c4453]';
 const inputClass = 'w-full rounded-full border-none shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 transition-colors';

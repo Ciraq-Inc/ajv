@@ -5,10 +5,16 @@
     <div class="fixed inset-0 bg-black opacity-50" @click="closeModal"></div>
 
     <!-- Modal Container -->
-    <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md mx-4 overflow-hidden">
+    <div
+      ref="dialogRef"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-order-title"
+      tabindex="-1"
+      class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md mx-4 overflow-hidden">
       <!-- Modal Header -->
       <div class="bg-red-600 text-white py-4 px-6">
-        <h3 class="text-lg font-medium">Cancel Order</h3>
+        <h3 id="cancel-order-title" class="text-lg font-medium">Cancel Order</h3>
         <p class="text-red-100 text-sm mt-1">
           Order #{{ formatOrderId }}
         </p>
@@ -16,7 +22,7 @@
 
       <!-- Modal Body -->
       <div class="p-6">
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+        <div v-if="errorMessage" role="alert" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4">
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
@@ -109,6 +115,7 @@
 
 <script setup>
 import { useUserStore } from '~/stores/user';
+import { useModalA11y } from '~/composables/useModalA11y';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -117,6 +124,10 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'cancellation-success']);
 const userStore = useUserStore();
+
+// Focus trap, ESC-to-close, restore-focus-on-close (WAI-ARIA dialog pattern).
+const dialogRef = ref(null);
+useModalA11y(dialogRef, () => props.isOpen, () => emit('close'));
 
 // State management
 const isLoading = ref(false);

@@ -1,5 +1,6 @@
 <template>
   <div class="company-layout" :style="themeVars">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Mobile Overlay -->
     <div v-if="mobileMenuOpen" class="mobile-overlay" @click="closeMobileMenu"></div>
 
@@ -127,7 +128,7 @@
       </div>
 
       <!-- Page Content -->
-      <main class="page-content">
+      <main id="main-content" tabindex="-1" class="page-content">
         <slot />
       </main>
     </div>

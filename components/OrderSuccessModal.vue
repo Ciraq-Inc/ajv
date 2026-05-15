@@ -6,7 +6,13 @@
 
       <!-- Modal -->
       <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div class="transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div
+          ref="dialogRef"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-success-title"
+          tabindex="-1"
+          class="transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
           <!-- Success Icon & Header -->
           <div class="bg-green-50 px-4 py-8 sm:px-6 text-center">
             <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -15,7 +21,7 @@
               </svg>
             </div>
             <div class="mt-3 text-center sm:mt-5">
-              <h3 class="text-2xl font-semibold leading-6 text-green-700">
+              <h3 id="order-success-title" class="text-2xl font-semibold leading-6 text-green-700">
                 Order Successful!
               </h3>
               <div class="mt-2">
@@ -86,9 +92,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
+import { useModalA11y } from '~/composables/useModalA11y';
 
 const props = defineProps({
   isOpen: {
@@ -110,6 +117,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+const dialogRef = ref(null);
+useModalA11y(dialogRef, () => props.isOpen, () => emit('close'));
 
 const router = useRouter();
 const pharmacyStore = usePharmacyStore();
