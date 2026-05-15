@@ -61,8 +61,12 @@ export const useApi = () => {
       console.log('Final token for request:', endpoint, '- Token present:', !!token);
 
       // Set up headers
+      // For FormData bodies we must let the browser set Content-Type so it can
+      // emit the correct multipart boundary; injecting `application/json` here
+      // would corrupt the upload. Caller-supplied headers still win on merge.
+      const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
       const headers = {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
       };
 
