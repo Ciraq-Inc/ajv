@@ -416,63 +416,75 @@
                     <!-- Request List Items -->
                     <div class="space-y-0 text-sm">
                         <article v-for="req in filteredRequests" :key="req.id"
-                            class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
+                            class="border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
                             @click="viewDetail(req)">
-                            <div class="flex items-center gap-4 min-w-0">
-                                <!-- Colored Icon Box based on status -->
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-                                    :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (req.status === 'processing' || req.status === 'composed' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100')">
-                                    <component :is="req.status === 'completed' ? CheckCircleIcon : BeakerIcon" class="w-5 h-5" />
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 mb-0.5">
-                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{
-                                            req.request_number }}</h4>
+                            <div class="flex items-center justify-between px-5 py-4">
+                                <div class="flex items-center gap-4 min-w-0">
+                                    <!-- Colored Icon Box based on status -->
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
+                                        :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (req.status === 'processing' || req.status === 'composed' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100')">
+                                        <component :is="req.status === 'completed' ? CheckCircleIcon : BeakerIcon" class="w-5 h-5" />
                                     </div>
-                                    <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
-                                        <span>{{ formatDate(req.created_at) }}</span>
-                                        <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
-                                        <span>{{ req.item_count || 0 }} item(s)</span>
-                                    </p>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 mb-0.5">
+                                            <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{
+                                                req.request_number }}</h4>
+                                        </div>
+                                        <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
+                                            <span>{{ formatDate(req.created_at) }}</span>
+                                            <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                            <span>{{ req.item_count || 0 }} item(s)</span>
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex items-center ml-auto gap-3 sm:gap-6">
-                                <!-- Status Column (Middle) -->
-                                <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
-                                        :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
-                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
-                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
-                                        {{ formatStatus(getRequestStatus(req)) }}
-                                    </span>
-                                </div>
+                                <div class="flex items-center ml-auto gap-3 sm:gap-6">
+                                    <!-- Status Column (Middle) -->
+                                    <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
+                                            :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
+                                            <span v-if="req.status === 'pending' || req.status === 'searching'"
+                                                class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
+                                            {{ formatStatus(getRequestStatus(req)) }}
+                                        </span>
+                                    </div>
 
-                                <!-- Cost Column (Right) -->
+                                    <!-- Cost Column (Right) -->
+                                    <div
+                                        class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
+                                        <template
+                                            v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
+                                            <strong
+                                                class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS
+                                                {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
+                                        </template>
+                                        <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
+
+                                        <!-- Mobile Badge Fallback -->
+                                        <span
+                                            class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
+                                            :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
+                                            <span v-if="req.status === 'pending' || req.status === 'searching'"
+                                                class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
+                                            {{ formatStatus(getRequestStatus(req)) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- Hover Chevron -->
                                 <div
-                                    class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
-                                    <template
-                                        v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
-                                        <strong
-                                            class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS
-                                            {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
-                                    </template>
-                                    <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
-
-                                    <!-- Mobile Badge Fallback -->
-                                    <span
-                                        class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
-                                        :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
-                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
-                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
-                                        {{ formatStatus(getRequestStatus(req)) }}
-                                    </span>
+                                    class="ml-2 hidden sm:flex w-5 h-5 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors flex-shrink-0">
+                                    <ChevronRightIcon class="w-5 h-5" />
                                 </div>
                             </div>
-                            <!-- Hover Chevron -->
-                            <div
-                                class="ml-2 hidden sm:flex w-5 h-5 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors flex-shrink-0">
-                                <ChevronRightIcon class="w-5 h-5" />
+
+                            <!-- Pickup pharmacy info strip (only on pickup orders that are paid/ready) -->
+                            <div v-if="req.fulfillment_type === 'pickup' && req.pickup_pharmacy"
+                                class="mx-5 mb-4 -mt-1 px-3 py-2.5 bg-purple-50 border border-purple-100 rounded-lg flex items-center gap-2">
+                                <div class="flex items-center gap-1.5 text-xs text-zinc-700 min-w-0 flex-1">
+                                    <BuildingStorefrontIcon class="w-4 h-4 text-[#4F217A] flex-shrink-0" />
+                                    <span class="font-bold text-zinc-900 truncate">{{ req.pickup_pharmacy.name }}</span>
+                                    <span v-if="req.pickup_pharmacy.location" class="text-zinc-500 truncate hidden sm:inline">· {{ req.pickup_pharmacy.location }}</span>
+                                </div>
                             </div>
                         </article>
                     </div>
@@ -543,6 +555,30 @@
                         <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
                             <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
                             Message on WhatsApp
+                        </a>
+                    </div>
+
+                    <!-- Pickup pharmacy details (shown when fulfillment is pickup and we have pharmacy info) -->
+                    <div v-if="selectedRequest.fulfillment_type === 'pickup' && selectedRequest.pickup_pharmacy" class="pickup-pharmacy-card">
+                        <span class="detail-label">Pickup Pharmacy</span>
+                        <p class="pickup-pharmacy-name">{{ selectedRequest.pickup_pharmacy.name }}</p>
+                        <p v-if="selectedRequest.pickup_pharmacy.location" class="pickup-pharmacy-location">
+                            <BuildingStorefrontIcon class="w-4 h-4 flex-shrink-0" />
+                            <span>{{ selectedRequest.pickup_pharmacy.location }}</span>
+                        </p>
+                        <p v-if="selectedRequest.pickup_pharmacy.address" class="pickup-pharmacy-address">
+                            <MapPinIcon class="w-4 h-4 flex-shrink-0" />
+                            <span>{{ selectedRequest.pickup_pharmacy.address }}</span>
+                        </p>
+                        <a
+                            v-if="pickupPharmacyMapUrl(selectedRequest.pickup_pharmacy)"
+                            :href="pickupPharmacyMapUrl(selectedRequest.pickup_pharmacy)"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="pickup-map-btn"
+                        >
+                            <MapPinIconSolid class="w-4 h-4" />
+                            Open in Google Maps
                         </a>
                     </div>
 
@@ -2160,6 +2196,16 @@ const riderWhatsAppNumber = (phone) => {
     if (clean.startsWith('233')) return clean
     if (clean.startsWith('0')) return '233' + clean.slice(1)
     return '233' + clean
+}
+const pickupPharmacyMapUrl = (pharmacy) => {
+    if (!pharmacy) return ''
+    const lat = Number(pharmacy.latitude)
+    const lng = Number(pharmacy.longitude)
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    }
+    const query = [pharmacy.name, pharmacy.address, pharmacy.location].filter(Boolean).join(', ')
+    return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ''
 }
 const formatMoney = (v) => Number(v || 0).toFixed(2)
 const getRequestTotal = (req) => {
@@ -5139,6 +5185,56 @@ defineExpose({ fetchMyRequests })
     align-items: center;
     gap: 0.4rem;
     background: #25D366;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    align-self: flex-start;
+    margin-top: 0.25rem;
+}
+
+.pickup-pharmacy-card {
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.pickup-pharmacy-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111;
+    margin: 0;
+}
+.pickup-pharmacy-location {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.825rem;
+    color: #4F217A;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.35;
+}
+.pickup-pharmacy-address {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #4b5563;
+    margin: 0;
+    line-height: 1.35;
+}
+.pickup-map-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #4F217A;
     color: white;
     font-size: 0.85rem;
     font-weight: 600;

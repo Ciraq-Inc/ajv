@@ -89,9 +89,10 @@
 
       <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
         <article v-for="item in filteredItems" :key="item._key"
-          class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
+          class="border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
           @click="item._type === 'store' ? viewOrder(item) : viewRequestOrder(item)"
         >
+          <div class="flex items-center justify-between px-5 py-4">
           <div class="flex items-center gap-4 min-w-0">
             <!-- Colored Icon Box based on status -->
             <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
@@ -137,6 +138,17 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                     <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
                 </svg>
+            </div>
+          </div>
+          </div>
+
+          <!-- Pickup pharmacy info strip (request orders w/ pickup fulfillment) -->
+          <div v-if="item._type === 'request' && item.fulfillment_type === 'pickup' && item.pickup_pharmacy"
+            class="mx-5 mb-4 -mt-1 px-3 py-2.5 bg-purple-50 border border-purple-100 rounded-lg flex items-center gap-2">
+            <div class="flex items-center gap-1.5 text-xs text-zinc-700 min-w-0 flex-1">
+              <MapPinIcon class="w-4 h-4 text-[#4F217A] flex-shrink-0" />
+              <span class="font-bold text-zinc-900 truncate">{{ item.pickup_pharmacy.name }}</span>
+              <span v-if="item.pickup_pharmacy.location" class="text-zinc-500 truncate hidden sm:inline">· {{ item.pickup_pharmacy.location }}</span>
             </div>
           </div>
         </article>
@@ -215,6 +227,28 @@
             </div>
           </div>
 
+          <div v-if="selectedRequestOrder.fulfillment_type === 'pickup' && selectedRequestOrder.pickup_pharmacy" class="border border-purple-100 bg-purple-50 rounded-xl p-4 space-y-2">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-purple-700">Pickup Pharmacy</p>
+            <p class="text-sm font-bold text-zinc-900">{{ selectedRequestOrder.pickup_pharmacy.name }}</p>
+            <p v-if="selectedRequestOrder.pickup_pharmacy.location" class="text-xs font-semibold text-[#4F217A] leading-snug flex items-center gap-1.5">
+              <span>{{ selectedRequestOrder.pickup_pharmacy.location }}</span>
+            </p>
+            <p v-if="selectedRequestOrder.pickup_pharmacy.address" class="text-xs text-zinc-600 leading-snug flex items-start gap-1.5">
+              <MapPinIcon class="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{{ selectedRequestOrder.pickup_pharmacy.address }}</span>
+            </p>
+            <a
+              v-if="pickupPharmacyMapUrl(selectedRequestOrder.pickup_pharmacy)"
+              :href="pickupPharmacyMapUrl(selectedRequestOrder.pickup_pharmacy)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 bg-[#4F217A] text-white px-3 py-1.5 rounded-lg text-xs font-bold w-fit"
+            >
+              <MapPinIcon class="w-4 h-4" />
+              Open in Google Maps
+            </a>
+          </div>
+
           <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
             <div class="flex justify-between text-sm text-zinc-600"><span>Items total</span><span>GHS {{ formatAmount(selectedRequestOrder.items_total || 0) }}</span></div>
             <div v-if="selectedRequestOrder.fulfillment_type === 'delivery' && selectedRequestOrder.delivery_fee" class="flex justify-between text-sm text-zinc-600"><span>Delivery fee</span><span>GHS {{ formatAmount(selectedRequestOrder.delivery_fee || 0) }}</span></div>
@@ -259,6 +293,7 @@ import {
   ShoppingBagIcon,
   ArchiveBoxIcon,
   XMarkIcon,
+  MapPinIcon,
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -336,6 +371,25 @@ const requestApiCall = async (method, url) => {
     throw new Error(json.message || `Request failed (${response.status})`);
   }
   return json;
+};
+
+const pharmacyWhatsAppNumber = (phone) => {
+  if (!phone) return '';
+  const clean = String(phone).replace(/\D/g, '');
+  if (clean.startsWith('233')) return clean;
+  if (clean.startsWith('0')) return '233' + clean.slice(1);
+  return '233' + clean;
+};
+
+const pickupPharmacyMapUrl = (pharmacy) => {
+  if (!pharmacy) return '';
+  const lat = Number(pharmacy.latitude);
+  const lng = Number(pharmacy.longitude);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+  const query = [pharmacy.name, pharmacy.address, pharmacy.location].filter(Boolean).join(', ');
+  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : '';
 };
 
 const getRequestTotalAmount = (request) => {
