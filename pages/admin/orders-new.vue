@@ -432,10 +432,17 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
+import { createAdminOrdersService } from '~/services/adminOrders/adminOrdersService';
 
 const router = useRouter();
 const pharmacyStore = usePharmacyStore();
-const config = useRuntimeConfig();
+
+// All HTTP for this page now goes through the admin-orders service.
+// useApi() owns base URL + bearer-token injection (it picks up the
+// adminToken from localStorage). Per ADR 0001 the page keeps UI state
+// (loading flags, modal state, stats) and the response-envelope check;
+// only the wire calls moved out.
+const adminOrdersService = createAdminOrdersService(useApi());
 
 // Define page metadata
 definePageMeta({
@@ -498,34 +505,20 @@ const filteredOrders = computed(() => {
 const fetchOrders = async () => {
   isLoading.value = true;
   error.value = '';
-  
+
   try {
-    // Get admin token (implement your auth logic)
-    const adminToken = localStorage.getItem('adminToken') || '';
-    
-    // Build query params
-    const params = new URLSearchParams();
-    if (statusFilter.value) params.append('status', statusFilter.value);
-    if (limitFilter.value) params.append('limit', limitFilter.value);
-    
-    const url = `${config.public.apiBase}/api/orders?${params.toString()}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      }
+    const data = await adminOrdersService.list({
+      status: statusFilter.value,
+      limit: limitFilter.value,
     });
-    
-    const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.message || 'Failed to fetch orders');
     }
-    
+
     orders.value = data.data || [];
     updateOrderStats();
-    
+
   } catch (err) {
     console.error('Error fetching orders:', err);
     error.value = err.message || 'Failed to load orders. Please try again.';
@@ -537,26 +530,16 @@ const fetchOrders = async () => {
 // Fetch order details
 const fetchOrderDetails = async (orderId) => {
   orderDetailsLoading.value = true;
-  
+
   try {
-    const adminToken = localStorage.getItem('adminToken') || '';
-    const url = `${config.public.apiBase}/api/orders/${orderId}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const data = await response.json();
-    
+    const data = await adminOrdersService.getById(orderId);
+
     if (!data.success) {
       throw new Error(data.message || 'Failed to fetch order details');
     }
-    
+
     orderDetails.value = data.data;
-    
+
   } catch (err) {
     console.error('Error fetching order details:', err);
     alert('Failed to load order details: ' + err.message);
@@ -570,35 +553,25 @@ const updateOrderStatus = async (order, newStatus) => {
   if (!confirm(`Are you sure you want to change this order to "${newStatus}"?`)) {
     return;
   }
-  
+
   try {
-    const adminToken = localStorage.getItem('adminToken') || '';
-    const url = `${config.public.apiBase}/api/orders/${order.order_id}/status`;
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ status: newStatus })
+    const data = await adminOrdersService.updateStatus(order.order_id, {
+      status: newStatus,
     });
-    
-    const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.message || 'Failed to update order status');
     }
-    
+
     // Update local state
     const orderIndex = orders.value.findIndex(o => o.order_id === order.order_id);
     if (orderIndex !== -1) {
       orders.value[orderIndex].status = newStatus;
       updateOrderStats();
     }
-    
+
     alert('Order status updated successfully!');
-    
+
   } catch (err) {
     console.error('Error updating order status:', err);
     alert('Failed to update order status: ' + err.message);
@@ -608,28 +581,19 @@ const updateOrderStatus = async (order, newStatus) => {
 // Update order status from modal
 const updateOrderStatusFromModal = async () => {
   if (!orderDetails.value) return;
-  
+
   updatingStatus.value = true;
-  
+
   try {
-    const adminToken = localStorage.getItem('adminToken') || '';
-    const url = `${config.public.apiBase}/api/orders/${orderDetails.value.order_id}/status`;
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ status: selectedStatus.value })
-    });
-    
-    const data = await response.json();
-    
+    const data = await adminOrdersService.updateStatus(
+      orderDetails.value.order_id,
+      { status: selectedStatus.value },
+    );
+
     if (!data.success) {
       throw new Error(data.message || 'Failed to update order status');
     }
-    
+
     // Update local state
     orderDetails.value.status = selectedStatus.value;
     const orderIndex = orders.value.findIndex(o => o.order_id === orderDetails.value.order_id);
@@ -637,9 +601,9 @@ const updateOrderStatusFromModal = async () => {
       orders.value[orderIndex].status = selectedStatus.value;
       updateOrderStats();
     }
-    
+
     alert('Order status updated successfully!');
-    
+
   } catch (err) {
     console.error('Error updating order status:', err);
     alert('Failed to update order status: ' + err.message);
