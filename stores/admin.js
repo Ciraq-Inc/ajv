@@ -1,5 +1,19 @@
 // Admin Store - Manages admin authentication state
+//
+// Refactored to use services/admin/adminService.js. The store stays the
+// orchestrator: loading flag, error surfacing, token persistence to
+// localStorage, 401 -> logout side effect, and response-envelope
+// (`{ success, data, message }`) handling. All HTTP details live in the
+// service. Public method names + return shapes are preserved 1:1.
+//
+// The legacy `makeAuthRequest(endpoint, options)` action is kept because
+// ~9 components/pages outside this PR's scope still call it directly.
+// Its body now delegates to the service's generic `request` and the
+// 401-side-effect (call `this.logout()` + friendly error) is preserved
+// here. Migrating those external callers onto per-domain services so
+// `makeAuthRequest` can be removed is tracked as a follow-up.
 import { defineStore } from 'pinia';
+import { createAdminService } from '~/services/admin/adminService';
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
@@ -12,16 +26,16 @@ export const useAdminStore = defineStore('admin', {
   getters: {
     // Get admin details
     getAdmin: (state) => state.admin,
-    
+
     // Check if admin is authenticated
     isAdminAuthenticated: (state) => state.isAuthenticated,
-    
+
     // Get admin role
     getRole: (state) => state.admin?.role || null,
-    
+
     // Keep legacy "admin" role equivalent to super_admin privileges
     isSuperAdmin: (state) => ['super_admin', 'admin'].includes(state.admin?.role),
-    
+
     // Get dashboard route based on role
     getDashboardRoute: (state) => {
       if (state.admin?.role === 'data_consumer') {
@@ -29,7 +43,7 @@ export const useAdminStore = defineStore('admin', {
       }
       return '/admin/data'
     },
-    
+
     // Check if admin has at least a certain role level
     hasRole: (state) => (requiredRole) => {
       const roleHierarchy = {
@@ -42,32 +56,25 @@ export const useAdminStore = defineStore('admin', {
         'admin': 6,
         'super_admin': 6,
       };
-      
+
       const adminLevel = roleHierarchy[state.admin?.role] || 0;
       const requiredLevel = roleHierarchy[requiredRole] || 0;
-      
+
       return adminLevel >= requiredLevel;
     },
   },
 
   actions: {
+    _adminService() {
+      return createAdminService(useApi());
+    },
+
     // Login admin
     async login(username, password) {
       this.isLoading = true;
-      
-      try {
-        const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase;
-        
-        const response = await fetch(`${baseURL}/api/admin/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ username, password }),
-        });
 
-        const data = await response.json();
+      try {
+        const data = await this._adminService().login({ username, password });
 
         if (data.success) {
           // Store token and admin data
@@ -116,10 +123,10 @@ export const useAdminStore = defineStore('admin', {
           try {
             this.token = token;
             this.admin = JSON.parse(adminData);
-            
+
             // Verify token is still valid
             const isValid = await this.verifyToken();
-            
+
             if (isValid) {
               this.isAuthenticated = true;
               return true;
@@ -142,17 +149,7 @@ export const useAdminStore = defineStore('admin', {
       if (!this.token) return false;
 
       try {
-        const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase ;
-        
-        const response = await fetch(`${baseURL}/api/admin/profile`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${this.token}`,
-          },
-        });
-
-        const data = await response.json();
+        const data = await this._adminService().getProfile();
 
         if (data.success) {
           // Update admin data with fresh data from server
@@ -167,35 +164,23 @@ export const useAdminStore = defineStore('admin', {
       }
     },
 
-    // Make authenticated API request
+    // Make authenticated API request (legacy public helper; kept for
+    // external callers across components/pages — see file-top note).
     async makeAuthRequest(endpoint, options = {}) {
       if (!this.token) {
         throw new Error('No authentication token available');
       }
 
-      const config = useRuntimeConfig();
-      const baseURL = config.public.apiBase ;
-
       try {
-        const response = await fetch(`${baseURL}${endpoint}`, {
-          ...options,
-          headers: {
-            ...options.headers,
-            'Authorization': `Bearer ${this.token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const data = await response.json();
-
-        // Handle 401 Unauthorized - token expired
-        if (response.status === 401) {
+        return await this._adminService().request(endpoint, options);
+      } catch (error) {
+        // Preserve legacy 401 side effect: clear session and surface a
+        // friendly message. `useApi` attaches `status` to the thrown
+        // Error.
+        if (error && error.status === 401) {
           this.logout();
           throw new Error('Session expired. Please login again.');
         }
-
-        return data;
-      } catch (error) {
         console.error('Auth request error:', error);
         throw error;
       }
@@ -204,9 +189,12 @@ export const useAdminStore = defineStore('admin', {
     // Get all admins (super_admin only)
     async getAllAdmins() {
       try {
-        const data = await this.makeAuthRequest('/api/admin/admins');
-        return data;
+        return await this._adminService().listAdmins();
       } catch (error) {
+        if (error && error.status === 401) {
+          this.logout();
+          throw new Error('Session expired. Please login again.');
+        }
         console.error('Error fetching admins:', error);
         throw error;
       }
@@ -215,12 +203,12 @@ export const useAdminStore = defineStore('admin', {
     // Create new admin (super_admin only)
     async createAdmin(adminData) {
       try {
-        const data = await this.makeAuthRequest('/api/admin/admins', {
-          method: 'POST',
-          body: JSON.stringify(adminData),
-        });
-        return data;
+        return await this._adminService().createAdmin(adminData);
       } catch (error) {
+        if (error && error.status === 401) {
+          this.logout();
+          throw new Error('Session expired. Please login again.');
+        }
         console.error('Error creating admin:', error);
         throw error;
       }
@@ -229,12 +217,12 @@ export const useAdminStore = defineStore('admin', {
     // Update admin (super_admin only)
     async updateAdmin(adminId, adminData) {
       try {
-        const data = await this.makeAuthRequest(`/api/admin/admins/${adminId}`, {
-          method: 'PUT',
-          body: JSON.stringify(adminData),
-        });
-        return data;
+        return await this._adminService().updateAdmin(adminId, adminData);
       } catch (error) {
+        if (error && error.status === 401) {
+          this.logout();
+          throw new Error('Session expired. Please login again.');
+        }
         console.error('Error updating admin:', error);
         throw error;
       }
@@ -243,11 +231,12 @@ export const useAdminStore = defineStore('admin', {
     // Delete admin (super_admin only)
     async deleteAdmin(adminId) {
       try {
-        const data = await this.makeAuthRequest(`/api/admin/admins/${adminId}`, {
-          method: 'DELETE',
-        });
-        return data;
+        return await this._adminService().deleteAdmin(adminId);
       } catch (error) {
+        if (error && error.status === 401) {
+          this.logout();
+          throw new Error('Session expired. Please login again.');
+        }
         console.error('Error deleting admin:', error);
         throw error;
       }
@@ -256,18 +245,7 @@ export const useAdminStore = defineStore('admin', {
     // Request password reset
     async requestPasswordReset(identifier) {
       try {
-        const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase;
-
-        const response = await fetch(`${baseURL}/api/admin/forgot-password`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ identifier }),
-        });
-
-        const data = await response.json();
+        const data = await this._adminService().requestPasswordReset({ identifier });
 
         if (data.success) {
           return { success: true, message: data.message };
@@ -283,18 +261,7 @@ export const useAdminStore = defineStore('admin', {
     // Reset password with token
     async resetPassword(token, newPassword) {
       try {
-        const config = useRuntimeConfig();
-        const baseURL = config.public.apiBase;
-
-        const response = await fetch(`${baseURL}/api/admin/reset-password`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token, new_password: newPassword }),
-        });
-
-        const data = await response.json();
+        const data = await this._adminService().resetPassword({ token, newPassword });
 
         if (data.success) {
           return { success: true, message: data.message };
