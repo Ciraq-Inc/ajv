@@ -1,5 +1,7 @@
 <template>
   <div class="text-[#1d1a20] antialiased overflow-x-hidden min-h-screen bg-[#f4f4f5]">
+    <!-- WCAG 2.4.1 Bypass Blocks: keyboard skip-link, visible on focus -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- SideNavBar -->
     <aside class="fixed left-0 top-0 h-full hidden lg:flex flex-col p-5 gap-2 bg-white border-r border-zinc-200 w-64 z-50 ">
       <div class="flex items-center gap-3 mb-10 px-2 cursor-pointer" @click="goTo('home')">
@@ -48,7 +50,7 @@
       </div>
     </aside>
 
-    <main class="lg:ml-64 min-h-screen bg-gradient-to-br from-[#e8dff5] to-[#ddd5ef] pb-28 lg:pb-0">
+    <main id="main-content" tabindex="-1" class="lg:ml-64 min-h-screen bg-gradient-to-br from-[#e8dff5] to-[#ddd5ef] pb-28 lg:pb-0">
       <!-- TopAppBar: hidden on concierge new-request and list views -->
       <header
         v-if="activeNav !== 'new' && activeNav !== 'requests'"

@@ -1,5 +1,6 @@
 <template>
   <div v-if="isReady" class="dataconsumer-layout">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ 'sidebar-collapsed': !isSidebarExpanded, 'is-open': isSidebarExpanded }">
       <!-- Logo & Collapse Button -->
@@ -87,7 +88,7 @@
       </header>
 
       <!-- Page Content -->
-      <main class="main-content">
+      <main id="main-content" tabindex="-1" class="main-content">
         <div class="content-container">
           <slot />
         </div>

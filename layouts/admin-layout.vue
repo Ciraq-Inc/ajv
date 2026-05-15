@@ -1,5 +1,7 @@
 <template>
   <div v-if="isReady" class="admin-layout">
+    <!-- WCAG 2.4.1 Bypass Blocks -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Sidebar -->
     <aside class="sidebar" :class="{ collapsed: isSidebarCollapsed }">
       <!-- Logo/Brand -->
@@ -258,7 +260,7 @@
       </header>
 
       <!-- Page Content -->
-      <main class="content">
+      <main id="main-content" tabindex="-1" class="content">
         <slot />
       </main>
     </div>

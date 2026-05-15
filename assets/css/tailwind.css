@@ -12,4 +12,45 @@
     overflow-x: hidden;
     max-width: 100%;
   }
+
+  /* Accessible "skip to main content" link.
+     Visually hidden until it receives keyboard focus; required by
+     WCAG 2.4.1 (Bypass Blocks) so keyboard / screen-reader users
+     can jump past the nav landmark. */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #3C0753;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    z-index: 1000;
+    border-radius: 0 0 0.5rem 0;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .skip-link:focus {
+    top: 0;
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+}
+
+/* WCAG 2.3.3 / 2.2.2: honour the OS-level reduced-motion preference.
+   Strips animations, transitions, and Nuxt's `page-*` route transition
+   so users with vestibular sensitivities aren't pulled by motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .page-enter-active,
+  .page-leave-active {
+    transition: none !important;
+  }
 }
