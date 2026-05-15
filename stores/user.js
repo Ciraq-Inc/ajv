@@ -1,5 +1,6 @@
 ﻿// stores/user.js - Master Account Authentication System
 import { defineStore } from 'pinia';
+import { createOrdersService } from '~/services/orders/ordersService';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -412,11 +413,21 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    // ---------------------------------------------------------------------
+    // Orders domain (refactored to use services/orders/ordersService).
+    // The store stays the orchestrator: loading flag, auth guard, error
+    // surfacing, and envelope (`{ success, data, message }`) handling. All
+    // HTTP details live in the service. Public method names + return
+    // shapes are preserved 1:1 — consumers do not change.
+    // ---------------------------------------------------------------------
+    _ordersService() {
+      return createOrdersService(useApi());
+    },
+
     async processDirectOrder(cartItems, pharmacyId) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in to place an order');
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
         const items = cartItems.map((item) => ({
           product_id: item.id,
           qty: item.quantity || 1,
@@ -424,19 +435,11 @@ export const useUserStore = defineStore('user', {
           tax_amount: item.tax || 0,
           notes: item.notes || ''
         }));
-        const response = await fetch(`${config.public.apiBase}/api/orders`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            company_id: pharmacyId,
-            items,
-            notes: `Order from pharmacy ${pharmacyId}`
-          })
+        const data = await this._ordersService().create({
+          companyId: pharmacyId,
+          items,
+          notes: `Order from pharmacy ${pharmacyId}`,
         });
-        const data = await response.json();
         if (!data.success) {
           const error = new Error(data.message || 'Failed to create order');
           error.errorCode = data.error_code;
@@ -450,29 +453,17 @@ export const useUserStore = defineStore('user', {
         this.isLoading = false;
       }
     },
+
     async getOrderHistory(filters = {}) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       try {
-        const config = useRuntimeConfig();
         const pharmacyStore = usePharmacyStore();
-        const params = new URLSearchParams();
-
-        // Add company_id from current pharmacy
-        if (pharmacyStore.currentPharmacy) {
-          params.append('company_id', pharmacyStore.currentPharmacy);
-        }
-
-        if (filters.status) params.append('status', filters.status);
-        if (filters.limit) params.append('limit', filters.limit);
-        if (filters.offset) params.append('offset', filters.offset);
-
-        const response = await fetch(`${config.public.apiBase}/api/orders?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          }
+        const data = await this._ordersService().listForPharmacy({
+          companyId: pharmacyStore.currentPharmacy || undefined,
+          status: filters.status,
+          limit: filters.limit,
+          offset: filters.offset,
         });
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to fetch orders');
         return data.data || [];
       } catch (error) {
@@ -481,22 +472,14 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-
     async getAllOrders(filters = {}) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       try {
-        const config = useRuntimeConfig();
-        const params = new URLSearchParams();
-        if (filters.status) params.append('status', filters.status);
-        if (filters.limit) params.append('limit', filters.limit);
-        if (filters.offset) params.append('offset', filters.offset);
-        const response = await fetch(`${config.public.apiBase}/api/auth/customer/all-orders?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          }
+        const data = await this._ordersService().listAll({
+          status: filters.status,
+          limit: filters.limit,
+          offset: filters.offset,
         });
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Failed to fetch all orders');
         return data.data || [];
       } catch (error) {
@@ -508,24 +491,10 @@ export const useUserStore = defineStore('user', {
     async getOrderDetails(orderId, companyId = null) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       try {
-        const config = useRuntimeConfig();
         const pharmacyStore = usePharmacyStore();
-
         // Use provided companyId or fallback to current pharmacy
         const company_id = companyId || pharmacyStore.currentPharmacy;
-
-        const params = new URLSearchParams();
-        if (company_id) {
-          params.append('company_id', company_id);
-        }
-
-        const response = await fetch(`${config.public.apiBase}/api/orders/${orderId}?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
+        const data = await this._ordersService().getById(orderId, { companyId: company_id || undefined });
         if (!data.success) throw new Error(data.message || 'Failed to fetch order details');
         return data.data;
       } catch (error) {
@@ -534,26 +503,14 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-
     async cancelOrder(orderId, companyId = null) {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
         const pharmacyStore = usePharmacyStore();
-
         // Use provided companyId or fallback to current pharmacy
         const company_id = companyId || pharmacyStore.currentPharmacy;
-
-        const response = await fetch(`${config.public.apiBase}/api/orders/${orderId}/cancel`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${this.customerAuthToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ company_id })
-        });
-        const data = await response.json();
+        const data = await this._ordersService().cancel(orderId, { companyId: company_id });
         if (!data.success) throw new Error(data.message || 'Failed to cancel order');
         return data;
       } catch (error) {
