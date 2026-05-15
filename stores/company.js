@@ -1,5 +1,16 @@
 // stores/company.js - Company User Authentication System
+//
+// Pinia store for the company-portal auth domain. Holds reactive auth
+// state (user, company, token, OTP/loading/error flags), the
+// company-domain resolver, header builder, and per-action side
+// effects (token persistence, error surfacing). All HTTP details for
+// `/api/company-auth/*` and the company-store-settings GET live in
+// `services/companyAuth/companyAuthService.js`; this store passes
+// `useApi()` and a header provider to the factory and delegates each
+// call. Phone-number formatting stays in the store (it predates the
+// service refactor and existing callers pass raw user input).
 import { defineStore } from 'pinia';
+import { createCompanyAuthService } from '~/services/companyAuth/companyAuthService';
 
 export const useCompanyStore = defineStore('company', {
   state: () => ({
@@ -39,20 +50,20 @@ export const useCompanyStore = defineStore('company', {
     getCompanyDomain() {
       // Extract company domain from URL path or subdomain
       if (typeof window === 'undefined') return null;
-      
+
       const pathname = window.location.pathname;
       const match = pathname.match(/\/([^\/]+)\/services/);
       if (match && match[1]) {
         return match[1];
       }
-      
+
       // Fallback to subdomain
       const hostname = window.location.hostname;
       const parts = hostname.split('.');
       if (parts.length > 2 && parts[0] !== 'www') {
         return parts[0];
       }
-      
+
       return null;
     },
 
@@ -60,41 +71,42 @@ export const useCompanyStore = defineStore('company', {
       const headers = {
         'Content-Type': 'application/json',
       };
-      
+
       const companyDomain = this.getCompanyDomain();
       if (companyDomain) {
         headers['x-company-domain'] = companyDomain;
       }
-      
+
       if (this.companyAuthToken) {
         headers['Authorization'] = `Bearer ${this.companyAuthToken}`;
       }
-      
+
       return headers;
+    },
+
+    // Service factory accessor. Defined as an action (not a getter)
+    // so `useApi()` is resolved at call time inside the Nuxt request
+    // context. The header provider is bound to `this` so each call
+    // recomputes `getApiHeaders()` against the current URL + token —
+    // same recompute-per-call behavior the legacy raw fetches had.
+    _companyAuthService() {
+      return createCompanyAuthService(useApi(), () => this.getApiHeaders());
     },
 
     async checkPhoneStatus(phone) {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/check-phone`, {
-          method: 'POST',
-          headers: this.getApiHeaders(),
-          body: JSON.stringify({ phone: formattedPhone })
-        });
+        const data = await this._companyAuthService().checkPhone({ phone: formattedPhone });
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Failed to check phone status');
         }
 
         this.phoneStatus = data.data.status;
         this.phoneVerifying = formattedPhone;
-        
+
         return data.data;
       } catch (error) {
         console.error('Error checking phone status:', error);
@@ -109,24 +121,16 @@ export const useCompanyStore = defineStore('company', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/send-otp`, {
-          method: 'POST',
-          headers: this.getApiHeaders(),
-          body: JSON.stringify({ phone: formattedPhone })
-        });
+        const data = await this._companyAuthService().sendOtp({ phone: formattedPhone });
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Failed to send OTP');
         }
 
         this.otpSent = true;
         this.phoneVerifying = formattedPhone;
-        
+
         return data.data;
       } catch (error) {
         console.error('Error sending OTP:', error);
@@ -141,21 +145,13 @@ export const useCompanyStore = defineStore('company', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/setup-password`, {
-          method: 'POST',
-          headers: this.getApiHeaders(),
-          body: JSON.stringify({ 
-            phone: formattedPhone, 
-            otp, 
-            password 
-          })
+        const data = await this._companyAuthService().setupPassword({
+          phone: formattedPhone,
+          otp,
+          password,
         });
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Failed to setup password');
         }
@@ -163,12 +159,12 @@ export const useCompanyStore = defineStore('company', {
         this.user = data.data.user;
         this.company = data.data.company;
         this.companyAuthToken = data.data.token;
-        
+
         this.persistAuthData();
         this.authInitialized = true;
         this.phoneVerifying = null;
         this.otpSent = false;
-        
+
         return data.data;
       } catch (error) {
         console.error('Error setting up password:', error);
@@ -183,20 +179,12 @@ export const useCompanyStore = defineStore('company', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/login`, {
-          method: 'POST',
-          headers: this.getApiHeaders(),
-          body: JSON.stringify({ 
-            phone: formattedPhone, 
-            password 
-          })
+        const data = await this._companyAuthService().login({
+          phone: formattedPhone,
+          password,
         });
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Login failed');
         }
@@ -204,11 +192,11 @@ export const useCompanyStore = defineStore('company', {
         this.user = data.data.user;
         this.company = data.data.company;
         this.companyAuthToken = data.data.token;
-        
+
         this.persistAuthData();
         this.authInitialized = true;
         this.phoneVerifying = null;
-        
+
         return data.data;
       } catch (error) {
         console.error('Error logging in:', error);
@@ -223,21 +211,11 @@ export const useCompanyStore = defineStore('company', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(payload.phone);
-
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/recruiter-signup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...payload,
-            phone: formattedPhone,
-          })
+        const data = await this._companyAuthService().recruiterSignup({
+          ...payload,
+          phone: formattedPhone,
         });
-
-        const data = await response.json();
 
         if (!data.success) {
           throw new Error(data.message || 'Failed to create recruiter account');
@@ -266,20 +244,14 @@ export const useCompanyStore = defineStore('company', {
       }
 
       try {
-        const config = useRuntimeConfig();
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/profile`, {
-          headers: this.getApiHeaders()
-        });
+        const data = await this._companyAuthService().getProfile();
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Failed to fetch profile');
         }
 
         this.user = data.data;
-        
+
         return data.data;
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -294,19 +266,11 @@ export const useCompanyStore = defineStore('company', {
 
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/change-password`, {
-          method: 'POST',
-          headers: this.getApiHeaders(),
-          body: JSON.stringify({ 
-            current_password: currentPassword, 
-            new_password: newPassword 
-          })
+        const data = await this._companyAuthService().changePassword({
+          currentPassword,
+          newPassword,
         });
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Failed to change password');
         }
@@ -324,24 +288,18 @@ export const useCompanyStore = defineStore('company', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/request-password-reset`, {
-          method: 'POST',
-          headers: this.getApiHeaders(),
-          body: JSON.stringify({ phone: formattedPhone })
+        const data = await this._companyAuthService().requestPasswordReset({
+          phone: formattedPhone,
         });
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Failed to request password reset');
         }
 
         this.phoneVerifying = formattedPhone;
         this.otpSent = true;
-        
+
         return data;
       } catch (error) {
         console.error('Error requesting password reset:', error);
@@ -356,28 +314,20 @@ export const useCompanyStore = defineStore('company', {
       this.isLoading = true;
       this.error = null;
       try {
-        const config = useRuntimeConfig();
         const formattedPhone = this.formatPhoneNumber(phone);
-        
-        const response = await fetch(`${config.public.apiBase}/api/company-auth/reset-password`, {
-          method: 'POST',
-          headers: this.getApiHeaders(),
-          body: JSON.stringify({ 
-            phone: formattedPhone, 
-            otp, 
-            new_password: newPassword 
-          })
+        const data = await this._companyAuthService().resetPassword({
+          phone: formattedPhone,
+          otp,
+          newPassword,
         });
 
-        const data = await response.json();
-        
         if (!data.success) {
           throw new Error(data.message || 'Failed to reset password');
         }
 
         this.phoneVerifying = null;
         this.otpSent = false;
-        
+
         return data;
       } catch (error) {
         console.error('Error resetting password:', error);
@@ -390,11 +340,11 @@ export const useCompanyStore = defineStore('company', {
 
     persistAuthData(domainOverride = null) {
       if (typeof window === 'undefined') return;
-      
+
       try {
         const companyDomain = domainOverride || this.getCompanyDomain();
         const storageKey = companyDomain ? `company_${companyDomain}` : 'company';
-        
+
         localStorage.setItem(`${storageKey}_user`, JSON.stringify(this.user));
         localStorage.setItem(`${storageKey}_company`, JSON.stringify(this.company));
         localStorage.setItem(`${storageKey}_token`, this.companyAuthToken);
@@ -405,7 +355,7 @@ export const useCompanyStore = defineStore('company', {
 
     async checkAuthState() {
       if (typeof window === 'undefined') return;
-      
+
       this.isLoading = true;
       try {
         if (this.authInitialized && this.user && this.companyAuthToken) {
@@ -415,7 +365,7 @@ export const useCompanyStore = defineStore('company', {
 
         const companyDomain = this.getCompanyDomain();
         const storageKey = companyDomain ? `company_${companyDomain}` : 'company';
-        
+
         const savedUser = localStorage.getItem(`${storageKey}_user`);
         const savedToken = localStorage.getItem(`${storageKey}_token`);
         const savedCompany = localStorage.getItem(`${storageKey}_company`);
@@ -448,11 +398,11 @@ export const useCompanyStore = defineStore('company', {
       this.phoneVerifying = null;
       this.otpSent = false;
       this.phoneStatus = null;
-      
+
       if (typeof window !== 'undefined') {
         const companyDomain = this.getCompanyDomain();
         const storageKey = companyDomain ? `company_${companyDomain}` : 'company';
-        
+
         localStorage.removeItem(`${storageKey}_user`);
         localStorage.removeItem(`${storageKey}_company`);
         localStorage.removeItem(`${storageKey}_token`);
@@ -473,47 +423,35 @@ export const useCompanyStore = defineStore('company', {
       }
     },
 
+    // Legacy public helper retained for the many pharmacy-portal pages
+    // and access-management components that still call
+    // `companyStore.makeAuthRequest(...)`. Delegates to the service
+    // `request` passthrough; the company-scoped headers (auth +
+    // x-company-domain) are injected by the service factory. Returns
+    // the parsed envelope on success exactly like the legacy
+    // implementation. `useApi` throws on non-2xx so callers wrapping
+    // in try/catch land in their catch — same as before. Migration
+    // of these call sites onto per-domain services is tracked as a
+    // follow-up.
     async makeAuthRequest(url, options = {}) {
-      const config = useRuntimeConfig();
-      const headers = this.getApiHeaders();
-      
-      const response = await fetch(`${config.public.apiBase}${url}`, {
-        ...options,
-        headers: {
-          ...headers,
-          ...options.headers,
-        },
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
-      }
-      
-      return data;
+      return this._companyAuthService().request(url, options);
     },
 
     async fetchTheme() {
-      if (!this.company?.id) return
+      if (!this.company?.id) return;
       try {
-        const config = useRuntimeConfig()
-        const res = await fetch(
-          `${config.public.apiBase}/api/companies/${this.company.id}/store-settings`,
-          { headers: this.getApiHeaders() }
-        )
-        if (!res.ok) return
-        const data = await res.json()
-        if (data.success && data.data && this.company) {
+        const data = await this._companyAuthService().getStoreSettings(this.company.id);
+        if (data && data.success && data.data && this.company) {
           this.company = {
             ...this.company,
             theme_preset: data.data.theme_preset || this.company.theme_preset,
             theme_color: data.data.theme_color || this.company.theme_color,
-          }
-          this.persistAuthData()
+          };
+          this.persistAuthData();
         }
       } catch {
-        // keep defaults
+        // keep defaults — fetchTheme is best-effort; legacy swallowed
+        // non-ok responses the same way (via `if (!res.ok) return`).
       }
     },
   },
