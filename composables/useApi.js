@@ -82,7 +82,9 @@ export const useApi = () => {
 
       // Handle errors
       if (!response.ok) {
-        throw new Error(data.message || `API request failed with status ${response.status}`);
+        const err = new Error(data.message || `API request failed with status ${response.status}`);
+        err.status = response.status;
+        throw err;
       }
 
       return data;
