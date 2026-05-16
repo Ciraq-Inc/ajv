@@ -126,6 +126,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createSmsSettingsService } from '~/services/sms/smsSettingsService'
 
 
 // State
@@ -136,6 +137,7 @@ const activeTab = ref('global')
 const message = ref(null)
 const config = useRuntimeConfig()
 const apiBaseUrl = config.public.apiBase
+const smsSettingsService = createSmsSettingsService(useApi())
 
 // Data
 const globalSettings = reactive({
@@ -160,27 +162,11 @@ const hasGlobalChanges = computed(() => {
   return updateRateForm.sms_rate !== null || updateRateForm.active_provider !== ''
 })
 
-// API Methods
-const apiCall = async (method, url, data = null) => {
-  const fullUrl = `${apiBaseUrl}${url}`
-  const config = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${adminStore.token}`
-    }
-  }
-
-  if (data) {
-    config.body = JSON.stringify(data)
-  }
-
-  const response = await fetch(fullUrl, config)
-  if (!response.ok) {
-    throw new Error(`API call failed: ${response.status}`)
-  }
-  return response.json()
-}
+// API access goes through `smsSettingsService` (created above). The
+// previous inline `apiCall` helper was a thin wrapper around `fetch`
+// that injected the admin Bearer token and threw on non-2xx —
+// `useApi` (consumed by the service) already does both, so we removed
+// the helper rather than re-implementing it twice.
 
 // Methods
 const refreshSettings = async () => {
@@ -189,7 +175,7 @@ const refreshSettings = async () => {
 
   try {
     // Load global settings
-    const globalData = await apiCall('GET', '/api/sms-settings/active')
+    const globalData = await smsSettingsService.getActiveSettings()
     if (globalData.success && globalData.data) {
       Object.assign(globalSettings, globalData.data)
     } else if (globalData.message === 'SMS settings not configured') {
@@ -217,9 +203,7 @@ const updateSmsRate = async () => {
   loadingMessage.value = 'Updating SMS rate...'
 
   try {
-    const data = { rate: updateRateForm.sms_rate }
-
-    await apiCall('PUT', '/api/sms-settings/rate', data)
+    await smsSettingsService.updateRate(updateRateForm.sms_rate)
 
     // Reset form
     updateRateForm.sms_rate = null
@@ -249,7 +233,7 @@ const saveGlobalSettings = async () => {
       data.provider = updateRateForm.active_provider
     }
 
-    await apiCall('PUT', '/api/sms-settings', data)
+    await smsSettingsService.updateGlobalSettings(data)
 
     // Reset form
     updateRateForm.sms_rate = null
@@ -274,9 +258,7 @@ const updateProvider = async () => {
   loadingMessage.value = 'Updating provider...'
 
   try {
-    const data = { provider: updateRateForm.active_provider }
-
-    await apiCall('PUT', '/api/sms-settings/provider', data)
+    await smsSettingsService.updateProvider(updateRateForm.active_provider)
 
     // Reset form
     updateRateForm.active_provider = ''

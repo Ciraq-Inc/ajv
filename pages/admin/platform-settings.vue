@@ -79,10 +79,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createPlatformSettingsService } from '~/services/platformSettings/platformSettingsService'
 
 const adminStore = useAdminStore()
 const config = useRuntimeConfig()
 const apiBaseUrl = config.public.apiBase
+const platformSettingsService = createPlatformSettingsService(useApi())
 
 const loading = ref(false)
 const message = ref(null)
@@ -333,21 +335,15 @@ const showMessage = (text, type = 'success') => {
   }, 4500)
 }
 
-const apiCall = async (method, url, data = null) => {
-  const opts = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${adminStore.token}`
-    }
-  }
-  if (data) opts.body = JSON.stringify(data)
-
-  const response = await fetch(`${apiBaseUrl}${url}`, opts)
-  const payload = await response.json().catch(() => ({}))
-
-  if (!response.ok || payload.success === false) {
-    throw new Error(payload.message || `API error: ${response.status}`)
+// Domain calls go through `platformSettingsService` (created above).
+// Envelope nuance: the previous inline `apiCall` rejected on
+// `payload.success === false` even when the HTTP status was 2xx.
+// `useApi` only throws on HTTP status, so each call site below
+// preserves the `success === false` guard explicitly and re-throws
+// with `payload.message`, matching the prior behavior byte-for-byte.
+const ensureSuccess = (payload) => {
+  if (payload && payload.success === false) {
+    throw new Error(payload.message || 'API error')
   }
   return payload
 }
@@ -355,7 +351,7 @@ const apiCall = async (method, url, data = null) => {
 const fetchSettings = async () => {
   loading.value = true
   try {
-    const res = await apiCall('GET', '/api/platform-settings')
+    const res = ensureSuccess(await platformSettingsService.listSettings())
     const current = Array.isArray(res.data) ? res.data : []
 
     for (const setting of allSettings.value) {
@@ -385,7 +381,7 @@ const saveAll = async () => {
       return
     }
 
-    await apiCall('PUT', '/api/platform-settings/bulk', { settings: changedSettings })
+    ensureSuccess(await platformSettingsService.bulkUpdate(changedSettings))
 
     for (const { key, value } of changedSettings) {
       originalSettings[key] = value

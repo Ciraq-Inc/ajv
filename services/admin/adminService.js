@@ -91,6 +91,17 @@ export const createAdminService = (api) => ({
   },
 
   /**
+   * List all customer signups (admin-only).
+   * GET /api/admin/signups
+   * Returns the raw envelope `{ success, data, message }` — callers read
+   * `result.data` for the signup array. Auth header is injected by
+   * `useApi` (admin-token fallback for `/api/admin/*` endpoints).
+   */
+  listSignups() {
+    return api.get('/api/admin/signups');
+  },
+
+  /**
    * Generic authenticated request used by the legacy
    * `adminStore.makeAuthRequest(endpoint, options)` helper. Thin
    * passthrough to `useApi`; the store wraps this to translate 401 into
