@@ -150,6 +150,15 @@ export const createCompanyAuthService = (api, getHeaders = () => ({})) => {
     },
 
     /**
+     * List all companies (public — no auth required). Used by
+     * PharmacySelection and the admin CompanyStoreSettings component.
+     * GET /api/companies
+     */
+    listCompanies() {
+      return api.get('/api/companies');
+    },
+
+    /**
      * Generic authenticated request used by the legacy
      * `companyStore.makeAuthRequest(url, options)` helper. Thin
      * passthrough to `useApi`; the store wraps this so existing

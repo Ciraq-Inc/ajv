@@ -18,4 +18,22 @@ export const createOrderRequestsService = (api) => ({
   listForCustomer() {
     return api.get('/api/order-requests/customer');
   },
+
+  /**
+   * Fetch the per-customer order-request settings (submission fee,
+   * refund window). Used by the orderRequests component.
+   * GET /api/order-requests/customer/settings
+   */
+  getCustomerSettings() {
+    return api.get('/api/order-requests/customer/settings');
+  },
+
+  /**
+   * List all admin-facing order requests. Used by the attention-queue
+   * composable and the admin fulfillment pages.
+   * GET /api/order-requests/admin
+   */
+  listForAdmin() {
+    return api.get('/api/order-requests/admin');
+  },
 });

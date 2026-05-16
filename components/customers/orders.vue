@@ -250,6 +250,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 import { useOrderStatus } from '~/composables/useOrderStatus';
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService';
 import {
   ClockIcon,
   ArrowPathIcon,
@@ -266,7 +267,8 @@ const props = defineProps({
 });
 
 const userStore = useUserStore();
-const config = useRuntimeConfig();
+const orderRequestsApi = useApi();
+const orderRequestsService = createOrderRequestsService(orderRequestsApi);
 const {
   formatStoreStatus: formatStatus,
   formatRequestStatus,
@@ -322,20 +324,10 @@ const formatAmount = (amount) => {
   return parseFloat(amount || 0).toFixed(2);
 };
 
+// Generic GET helper for order-request sub-calls in this component.
+// Delegates to useApi so auth headers and base URL are in one place.
 const requestApiCall = async (method, url) => {
-  const response = await fetch(`${config.public.apiBase}${url}`, {
-    method,
-    headers: {
-      'Authorization': `Bearer ${userStore.customerAuthToken}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  const json = await response.json();
-  if (!response.ok || !json.success) {
-    throw new Error(json.message || `Request failed (${response.status})`);
-  }
-  return json;
+  return orderRequestsApi.request(url, { method });
 };
 
 const getRequestTotalAmount = (request) => {

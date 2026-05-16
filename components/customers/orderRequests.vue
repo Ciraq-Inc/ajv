@@ -1020,6 +1020,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, watchEffect, nextTick } from 'vue'
 import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import { formatCompactAddress } from '~/utils/addressFormat'
 import {
     PAYABLE_REQUEST_STATUSES as payableStatuses,
@@ -1048,8 +1049,7 @@ const props = defineProps({
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
-const apiBase = config.public.apiBase
+const orderRequestsService = createOrderRequestsService(useApi())
 
 const isNewView = computed(() => props.defaultSubTab === 'new')
 const isListView = computed(() => props.defaultSubTab === 'list')
@@ -1859,23 +1859,27 @@ const getLocation = () => {
     )
 }
 
+// Generic authenticated call helper — delegates to useApi so auth headers
+// and base URL are handled in one place. Method + URL are passed through;
+// an optional data object is serialised as JSON body.
+const api = useApi()
 const apiCall = async (method, url, data = null) => {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userStore.customerAuthToken}` } }
+    const opts = { method }
     if (data) opts.body = JSON.stringify(data)
-    const res = await fetch(`${apiBase}${url}`, opts)
-    const json = await res.json()
-    if (!res.ok || !json.success) {
-        const err = new Error(json.message || `Error ${res.status}`)
-        err.status = res.status
-        err.data = json.data
-        throw err
+    try {
+        return await api.request(url, opts)
+    } catch (err) {
+        // Preserve the legacy thrown shape callers expect.
+        const shaped = new Error(err.message || `Error`)
+        shaped.status = err.status
+        shaped.data = err.data
+        throw shaped
     }
-    return json
 }
 
 const fetchRequestSettings = async () => {
     try {
-        const res = await apiCall('GET', '/api/order-requests/customer/settings')
+        const res = await orderRequestsService.getCustomerSettings()
         requestFee.value = Number(res.data?.request_submission_fee || 5)
         requestRefundMinutes.value = Number(res.data?.request_no_response_refund_minutes || 30)
     } catch (e) {

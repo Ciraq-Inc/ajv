@@ -69,12 +69,32 @@ export const useAdminStore = defineStore('admin', {
       return createAdminService(useApi());
     },
 
-    // Login admin
+    // Login admin.
+    //
+    // Returns one of three shapes:
+    //   { success: true }                               — fully authenticated
+    //   { success: false, mfaRequired: true,
+    //     mfaMethod: 'sms'|'totp',
+    //     challengeId, phoneHint? }                     — MFA step needed
+    //   { success: false, message }                     — bad credentials
     async login(username, password) {
       this.isLoading = true;
 
       try {
         const data = await this._adminService().login({ username, password });
+
+        // MFA challenge: backend returns 202 with success:false + mfa_required:true.
+        // useApi passes 2xx through; we detect the challenge here and surface it
+        // to the page so it can show the appropriate MFA input.
+        if (data.mfa_required) {
+          return {
+            success: false,
+            mfaRequired: true,
+            mfaMethod: data.mfa_method || 'sms',
+            challengeId: data.challenge_id,
+            phoneHint: data.phone_hint || null,
+          };
+        }
 
         if (data.success) {
           // Store token and admin data
@@ -95,6 +115,40 @@ export const useAdminStore = defineStore('admin', {
       } catch (error) {
         console.error('Login error:', error);
         return { success: false, message: 'Login failed. Please try again.' };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    // Verify an MFA code during the login challenge.
+    //
+    // For TOTP: POST /api/auth/mfa/totp/verify with { challenge_id, code }.
+    // For SMS:  delegate to the existing companyAuth MFA verify path (handled
+    //           by the store action the SMS flow already calls).
+    //
+    // On success sets the session identical to a direct login.
+    async verifyMfaTotp({ challengeId, code }) {
+      this.isLoading = true;
+      try {
+        const data = await this._adminService().verifyMfaTotp({ challengeId, code });
+
+        if (data.success) {
+          this.token = data.data.token;
+          this.admin = data.data.admin;
+          this.isAuthenticated = true;
+
+          if (process.client) {
+            localStorage.setItem('adminToken', data.data.token);
+            localStorage.setItem('adminUser', JSON.stringify(data.data.admin));
+          }
+
+          return { success: true, message: data.message };
+        } else {
+          return { success: false, message: data.message || 'Verification failed.' };
+        }
+      } catch (error) {
+        console.error('TOTP verify error:', error);
+        return { success: false, message: error.message || 'Verification failed. Please try again.' };
       } finally {
         this.isLoading = false;
       }

@@ -5,6 +5,7 @@
 // portal — not just the order-requests page.
 
 import { ref, computed, watch } from 'vue'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
 const ATTENTION_AWAITING_MS = 2 * 60 * 60 * 1000
 const ATTENTION_PAYMENT_MS = 4 * 60 * 60 * 1000
@@ -90,17 +91,12 @@ const playAttentionChime = () => {
 
 export const useAttentionQueue = () => {
   const adminStore = useAdminStore()
-  const config = useRuntimeConfig()
-  const apiBaseUrl = config.public.apiBase || ''
+  const orderRequestsService = createOrderRequestsService(useApi())
 
   const fetchOnce = async () => {
     if (!adminStore.token) return
     try {
-      const res = await fetch(`${apiBaseUrl}/api/order-requests/admin`, {
-        headers: { 'Authorization': `Bearer ${adminStore.token}` }
-      })
-      if (!res.ok) return
-      const json = await res.json()
+      const json = await orderRequestsService.listForAdmin()
       requests.value = Array.isArray(json?.data) ? json.data : []
       lastFetchedAt.value = Date.now()
     } catch {

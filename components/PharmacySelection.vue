@@ -140,14 +140,13 @@
 import { useRouter, useRoute } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
+import { createCompanyAuthService } from '~/services/companyAuth/companyAuthService';
 
 const router = useRouter();
 const route = useRoute();
 const pharmacyStore = usePharmacyStore();
 const cartStore = useCartStore();
-
-const config = useRuntimeConfig();
-const baseURL = config.public.apiBase;
+const companyAuthService = createCompanyAuthService(useApi());
 
 const pharmacies = ref([]);
 const loading = ref(true);
@@ -171,14 +170,10 @@ const filteredPharmacies = computed(() => {
 const fetchPharmacies = async () => {
   loading.value = true;
   error.value = null;
-  
+
   try {
-    // Fetch companies from REST API
-    const response = await fetch(`${baseURL}/api/companies`);
-    const data = await response.json();
-    
+    const data = await companyAuthService.listCompanies();
     if (data.success && data.data) {
-      // Transform the API data to match the component's expected format
       pharmacies.value = data.data
         .filter(company => company.companytype === 0) // Only get pharmacies (type 0)
         .map(company => ({

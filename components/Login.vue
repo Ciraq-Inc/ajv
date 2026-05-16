@@ -244,6 +244,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useModalA11y } from '~/composables/useModalA11y';
+import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -253,6 +254,7 @@ const emit = defineEmits(['close', 'login-success']);
 
 const userStore = useUserStore();
 const pharmacyStore = usePharmacyStore();
+const customerAuthService = createCustomerAuthService(useApi());
 
 // Focus trap, ESC-to-close, restore focus to invoker (WAI-ARIA dialog pattern).
 const dialogRef = ref(null);
@@ -428,15 +430,11 @@ const onPhoneInput = () => {
   }
 };
 
-// Send registration OTP via the same backend endpoint used by the original flow
+// Send registration OTP via the service layer.
 const sendNewCustomerOTP = async () => {
-  const config = useRuntimeConfig();
-  const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: userStore.formatPhoneNumber(phoneNumber.value) })
+  const data = await customerAuthService.sendSetupOtp({
+    phone: userStore.formatPhoneNumber(phoneNumber.value),
   });
-  const data = await response.json();
   if (!data.success) throw new Error(data.message || 'Failed to send verification code');
 };
 
