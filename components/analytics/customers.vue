@@ -264,9 +264,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, UserGroupIcon, CheckCircleIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
 const adminStore = useAdminStore()
+const reportsService = createReportsExportService(useApi())
 
 // Reactive data
 const loading = ref(false)
@@ -419,30 +421,15 @@ const exportToJSON = async () => {
 
 const exportToCSV = async () => {
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const response = await fetch(`${baseURL}/api/customers/cross-tenant/export?format=csv`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
-    })
-
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cross-tenant-customers_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
+    const blob = await reportsService.exportCustomersCsv()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cross-tenant-customers_${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   } catch (error) {
     console.error('Export error:', error)
     alert('Export failed. Please try again.')

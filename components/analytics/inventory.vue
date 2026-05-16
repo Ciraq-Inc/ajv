@@ -344,10 +344,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import ProductsTable from './ProductsTable.vue'
 
 // Use admin store
 const adminStore = useAdminStore()
+const reportsService = createReportsExportService(useApi())
 
 // API Configuration
 const API_BASE = '/api/inventory-analytics'
@@ -485,21 +487,7 @@ const refreshData = async () => {
 const exportToCSV = async () => {
   exporting.value = true
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-    
-    const response = await fetch(`${baseURL}${API_BASE}/export/stock-value`, {
-      headers: { 
-        'Authorization': `Bearer ${adminStore.token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error('Export failed')
-    }
-    
-    const blob = await response.blob()
+    const blob = await reportsService.exportInventoryStockValueCsv()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

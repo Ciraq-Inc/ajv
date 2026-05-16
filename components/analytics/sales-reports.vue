@@ -930,9 +930,11 @@
 const isDataConsumer = computed(() => adminStore.getRole === 'data_consumer')
 import { ref, onMounted, computed } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
 
 const adminStore = useAdminStore()
+const reportsService = createReportsExportService(useApi())
 
 // Active view
 const activeView = ref('sales')
@@ -1135,29 +1137,15 @@ const viewCompanyDetails = async (company) => {
   companyDetailedData.value = []
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-    
-    const params = new URLSearchParams()
-    params.append('company_ids', company.company_id)
-    params.append('limit', '100') // Get recent 100 transactions
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-        'Content-Type': 'application/json'
-      },
+    const data = await reportsService.getSalesItemsForCompany({
+      companyId: company.company_id,
+      limit: 100,
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
     })
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success && data.data) {
-        companyDetailedData.value = data.data
-      }
+    if (data.success && data.data) {
+      companyDetailedData.value = data.data
     }
   } catch (err) {
     console.error('Error fetching company details:', err)
@@ -1169,39 +1157,22 @@ const viewCompanyDetails = async (company) => {
 // Export specific company data
 const exportCompanyData = async (company) => {
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    params.append('company_ids', company.company_id)
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
     loading.value = true
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
+    const blob = await reportsService.exportSalesItemsForCompanyCsv({
+      companyId: company.company_id,
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
     })
-
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      const companyName = company.company_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-      link.download = `sales-${companyName}_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    const companyName = company.company_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+    link.download = `sales-${companyName}_${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   } catch (error) {
     console.error('Company export error:', error)
     alert('Export failed. Please try again.')
@@ -1267,37 +1238,20 @@ const exportToCSV = async () => {
       alert('Please fix the date range before exporting.')
       return
     }
-    
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
-    })
 
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cross-tenant-sales-items_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
+    const blob = await reportsService.exportSalesItemsSummaryCsv({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cross-tenant-sales-items_${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   } catch (error) {
     console.error('Export error:', error)
     alert('Export failed. Please try again.')
@@ -1319,68 +1273,50 @@ const exportRawDataCSV = async () => {
       return
     }
     
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
     // Add selected columns to params
     const selectedColumnKeys = selectedColumns.map(col => col.key).join(',')
-    params.append('columns', selectedColumnKeys)
-    
+
     showColumnSelector.value = false
     exportingRaw.value = true
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
+    const blob = await reportsService.exportSalesItemsRawCsv({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
+      columns: selectedColumnKeys,
     })
 
-    if (response.ok) {
-      const csvContent = await response.text()
-      
-      // Check if we got actual data
-      const lines = csvContent.trim().split('\n')
-      if (lines.length <= 1) {
-        alert('No data available for the selected date range')
-        return
-      }
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      
-      // Create filename with date range if applicable
-      let filename = 'raw-sales-items'
-      if (filters.value.start_date || filters.value.end_date) {
-        const startDate = filters.value.start_date || 'start'
-        const endDate = filters.value.end_date || 'end'
-        filename += `_${startDate}_to_${endDate}`
-      } else {
-        filename += '_full'
-      }
-      filename += `_${new Date().toISOString().split('T')[0]}.csv`
-      
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-      
-      // Show success message
-      const recordCount = lines.length - 1 // Subtract header row
-      alert(`Successfully exported ${recordCount.toLocaleString()} records`)
-    } else {
-      const errorData = await response.text()
-      console.error('Export error:', errorData)
-      alert('No data available for export')
+    // Read the blob text to count records (preserves legacy "X records exported" alert)
+    const csvContent = await blob.text()
+    const lines = csvContent.trim().split('\n')
+    if (lines.length <= 1) {
+      alert('No data available for the selected date range')
+      return
     }
+
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+
+    // Create filename with date range if applicable
+    let filename = 'raw-sales-items'
+    if (filters.value.start_date || filters.value.end_date) {
+      const startDate = filters.value.start_date || 'start'
+      const endDate = filters.value.end_date || 'end'
+      filename += `_${startDate}_to_${endDate}`
+    } else {
+      filename += '_full'
+    }
+    filename += `_${new Date().toISOString().split('T')[0]}.csv`
+
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    // Show success message
+    const recordCount = lines.length - 1 // Subtract header row
+    alert(`Successfully exported ${recordCount.toLocaleString()} records`)
   } catch (error) {
     console.error('Raw data export error:', error)
     alert('Raw data export failed. Please try again.')
@@ -1413,37 +1349,12 @@ const fetchPharmacyReports = async () => {
   pharmacySummary.value = []
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-
-    const params = new URLSearchParams({
-      format: 'json',
+    const data = await reportsService.getPharmacyTransactionSummary({
+      startDate: pharmacyFilters.value.start_date,
+      endDate: pharmacyFilters.value.end_date,
+      companyIds: pharmacyFilters.value.company_input,
+      dateField: pharmacyFilters.value.date_field,
     })
-
-    if (pharmacyFilters.value.start_date) {
-      params.append('start_date', pharmacyFilters.value.start_date)
-    }
-    if (pharmacyFilters.value.end_date) {
-      params.append('end_date', pharmacyFilters.value.end_date)
-    }
-    if (pharmacyFilters.value.company_input) {
-      params.append('company_ids', pharmacyFilters.value.company_input)
-    }
-    if (pharmacyFilters.value.date_field) {
-      params.append('date_field', pharmacyFilters.value.date_field)
-    }
-
-    const response = await fetch(
-      `${baseURL}/api/reports/cross-tenant/pharmacy-transaction-summary?${params}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminStore.token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    const data = await response.json()
 
     if (data.success) {
       pharmacySummary.value = data.data
@@ -1569,38 +1480,18 @@ const fetchQuarterlyData = async (forceRefresh = false) => {
   quarterlyPharmacies.value = []
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
+    const data = await reportsService.getQuarterlySummary({
+      year: quarterlyFilters.value.year,
+      dateField: quarterlyFilters.value.date_field,
+      companyIds: quarterlyFilters.value.pharmacy_search,
+      forceRefresh,
+    })
 
-    const params = new URLSearchParams()
-    params.append('year', quarterlyFilters.value.year)
-    params.append('date_field', quarterlyFilters.value.date_field)
-
-    if (quarterlyFilters.value.pharmacy_search) {
-      params.append('company_ids', quarterlyFilters.value.pharmacy_search)
-    }
-    if (forceRefresh === true) params.append('refresh', 'true')
-
-    const response = await fetch(
-      `${baseURL}/api/reports/cross-tenant/quarterly-summary?${params}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminStore.token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        quarterlyData.value = data.summary
-        quarterlyPharmacies.value = data.pharmacies || []
-      } else {
-        throw new Error(data.message || 'Failed to fetch quarterly data')
-      }
+    if (data.success) {
+      quarterlyData.value = data.summary
+      quarterlyPharmacies.value = data.pharmacies || []
     } else {
-      throw new Error(`Server returned ${response.status}`)
+      throw new Error(data.message || 'Failed to fetch quarterly data')
     }
 
   } catch (err) {
