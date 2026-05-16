@@ -18,4 +18,22 @@ export const createApplicationsService = (api) => ({
   verifyGuestOtp(payload) {
     return api.post('/api/jobs/applications/otp/verify', payload)
   },
+
+  /**
+   * Upload a supporting document (CV, cover letter, etc.) for a job application.
+   * POST /api/jobs/upload-document
+   * Body: FormData with field: file (File)
+   * Returns: { url: string }
+   *
+   * FormData note: useApi detects `instanceof FormData` and omits
+   * Content-Type so the browser sets the correct multipart boundary.
+   * The page passes a pre-built FormData object; this service passes it
+   * through unchanged.
+   */
+  uploadDocument(formData) {
+    return api.request('/api/jobs/upload-document', {
+      method: 'POST',
+      body: formData,
+    })
+  },
 })

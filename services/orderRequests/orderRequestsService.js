@@ -19,21 +19,34 @@ export const createOrderRequestsService = (api) => ({
     return api.get('/api/order-requests/customer');
   },
 
-  /**
-   * Fetch the per-customer order-request settings (submission fee,
-   * refund window). Used by the orderRequests component.
-   * GET /api/order-requests/customer/settings
-   */
   getCustomerSettings() {
     return api.get('/api/order-requests/customer/settings');
   },
 
-  /**
-   * List all admin-facing order requests. Used by the attention-queue
-   * composable and the admin fulfillment pages.
-   * GET /api/order-requests/admin
-   */
+  // Admin endpoints
+
   listForAdmin() {
     return api.get('/api/order-requests/admin');
+  },
+
+  listAdmin({ search } = {}) {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    const qs = params.toString()
+    return api.get(`/api/order-requests/admin${qs ? `?${qs}` : ''}`)
+  },
+
+  getAdminStats() {
+    return api.get('/api/order-requests/admin/stats')
+  },
+
+  getPharmacyLedger({ pharmacyId, startDate, endDate, limit = 50 } = {}) {
+    const params = new URLSearchParams()
+    if (pharmacyId) params.set('pharmacyId', String(pharmacyId))
+    if (startDate) params.set('startDate', startDate)
+    if (endDate) params.set('endDate', endDate)
+    params.set('limit', String(limit))
+    const qs = params.toString()
+    return api.get(`/api/order-requests/admin/pharmacy-ledger${qs ? `?${qs}` : ''}`)
   },
 });

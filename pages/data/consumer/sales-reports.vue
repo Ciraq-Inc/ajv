@@ -175,14 +175,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ChatBubbleLeftIcon, DocumentArrowDownIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
-import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 
 definePageMeta({
   layout: 'dataconsumer',
   middleware: 'data-consumer-auth',
 })
 
-const adminStore = useAdminStore()
+const reportsExportService = createReportsExportService(useApi())
 
 // State
 const quarterlyLoading = ref(false)
@@ -275,35 +275,17 @@ const fetchQuarterlyData = async (forceRefresh = false) => {
   quarterlyPharmacies.value = []
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
+    const data = await reportsExportService.getQuarterlySummary({
+      year: quarterlyFilters.value.year,
+      dateField: quarterlyFilters.value.date_field,
+      forceRefresh: forceRefresh === true,
+    })
 
-    const params = new URLSearchParams()
-    params.append('year', quarterlyFilters.value.year)
-    params.append('date_field', quarterlyFilters.value.date_field)
-
-    if (forceRefresh === true) params.append('refresh', 'true')
-
-    const response = await fetch(
-      `${baseURL}/api/reports/cross-tenant/quarterly-summary?${params}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminStore.token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        quarterlyData.value = data.summary
-        quarterlyPharmacies.value = data.pharmacies || []
-      } else {
-        throw new Error(data.message || 'Failed to fetch quarterly data')
-      }
+    if (data.success) {
+      quarterlyData.value = data.summary
+      quarterlyPharmacies.value = data.pharmacies || []
     } else {
-      throw new Error(`Server returned ${response.status}`)
+      throw new Error(data.message || 'Failed to fetch quarterly data')
     }
   } catch (err) {
     console.error('Error fetching quarterly data:', err)

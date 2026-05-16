@@ -186,9 +186,9 @@
 <script setup>
 import { useImageUpload } from '@/composables/useImageUpload'
 import { usePharmacyStore } from '~/stores/pharmacy'
+import { createPharmacyService } from '~/services/pharmacy/pharmacyService'
 
-const config = useRuntimeConfig();
-const baseURL = config.public.apiBase;
+const pharmacyService = createPharmacyService(useApi());
 
 // Get pharmacy store
 const pharmacyStore = usePharmacyStore()
@@ -276,16 +276,8 @@ const submitProduct = async () => {
       newProduct.imageUrl = imageUrl.value
     }
 
-    // Create product via REST API
-    const response = await fetch(`${baseURL}/products`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newProduct)
-    });
-
-    const result = await response.json();
+    // Create product via service layer
+    const result = await pharmacyService.saveProduct(newProduct);
 
     if (!result.success) {
       throw new Error(result.message || 'Failed to add product');
@@ -367,15 +359,7 @@ const handleSave = async (productId) => {
       stock_qty: editForm.value.stockQty
     }
 
-    const response = await fetch(`${baseURL}/products`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updates)
-    });
-
-    const result = await response.json();
+    const result = await pharmacyService.saveProduct(updates);
 
     if (!result.success) {
       throw new Error(result.message || 'Failed to update product');

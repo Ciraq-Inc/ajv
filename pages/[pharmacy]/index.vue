@@ -523,8 +523,7 @@ import { useRouter, useRoute } from "vue-router";
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useCartStore } from "~/stores/cart";
 import { useUserStore } from "~/stores/user";
-
-const config = useRuntimeConfig();
+import { createAdsService } from "~/services/ads/adsService";
 
 const themePresets = {
   indigo: { accent: "#4f46e5", gradient: "linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #312e81 100%)" },
@@ -561,10 +560,11 @@ const showStickyHeader = ref(false);
 const cartToast = ref({ show: false, name: '' });
 let cartToastTimer = null;
 let headerObserver = null;
+const _adsService = createAdsService(useApi());
 const { data: _adsResult, refresh: refreshAds } = useAsyncData(
   `pharmacy-ads-${route.params.pharmacy}`,
   () => pharmacyStore.currentPharmacy
-    ? $fetch(`${config.public.apiBase}/api/companies/${pharmacyStore.currentPharmacy}/ads/public`).catch(() => null)
+    ? _adsService.listPublic(pharmacyStore.currentPharmacy).catch(() => null)
     : Promise.resolve(null),
   { lazy: true }
 );
