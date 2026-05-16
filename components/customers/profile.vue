@@ -229,7 +229,6 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const userStore = useUserStore();
-const config = useRuntimeConfig();
 
 // State
 const isLoading = ref(false);
@@ -325,17 +324,8 @@ const fetchAddressSuggestions = async (query) => {
 
   try {
     autocompleteLoading.value = true;
-    const response = await fetch(`${config.public.apiBase}/api/auth/customer/autocomplete-location?q=${encodeURIComponent(trimmed)}&limit=5`, {
-      headers: {
-        Authorization: `Bearer ${userStore.customerAuthToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to load address suggestions');
-    }
-    addressSuggestions.value = Array.isArray(data.data) ? data.data : [];
+    const suggestions = await userStore.autocompleteLocation(trimmed);
+    addressSuggestions.value = suggestions;
     addressActiveIndex.value = addressSuggestions.value.length > 0 ? 0 : -1;
   } catch (err) {
     console.error('Autocomplete failed:', err);
@@ -354,19 +344,7 @@ const applyAddressSuggestion = (suggestion) => {
   clearAddressSuggestions();
 };
 
-const reverseGeocode = async (latitude, longitude) => {
-  const response = await fetch(`${config.public.apiBase}/api/auth/customer/reverse-geocode?lat=${latitude}&lng=${longitude}`, {
-    headers: {
-      'Authorization': `Bearer ${userStore.customerAuthToken}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.message || 'Failed to look up your address');
-  }
-  return data.data;
-};
+const reverseGeocode = (latitude, longitude) => userStore.reverseGeocodeHomeLocation(latitude, longitude);
 
 const captureHomeLocation = () => {
   if (!navigator.geolocation) {

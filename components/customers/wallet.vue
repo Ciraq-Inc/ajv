@@ -190,11 +190,12 @@ import {
     ClipboardDocumentListIcon,
 } from '@heroicons/vue/24/outline'
 
+import { createCustomerWalletService } from '~/services/customerWallet/customerWalletService'
+
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
-const config = useRuntimeConfig()
-const apiBase = config.public.apiBase
+const walletService = createCustomerWalletService(useApi())
 
 const balance = ref(0)
 const transactions = ref([])
@@ -319,18 +320,18 @@ const getTransactionNote = (tx) => {
     return 'Wallet activity'
 }
 
-const apiCall = async (method, url, data = null) => {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userStore.customerAuthToken}` } }
-    if (data) opts.body = JSON.stringify(data)
-    const res = await fetch(`${apiBase}${url}`, opts)
-    const json = await res.json()
-    if (!res.ok || !json.success) throw new Error(json.message || `Error ${res.status}`)
+// Preserves the legacy `if (!res.ok || !json.success)` envelope contract:
+// useApi already throws on non-2xx (covers `!res.ok`), and we assert
+// `json.success` explicitly here. Error messages mirror the legacy text
+// where the server provides one.
+const assertEnvelope = (json) => {
+    if (!json || !json.success) throw new Error(json?.message || 'Request failed')
     return json
 }
 
 const fetchBalance = async () => {
     try {
-        const res = await apiCall('GET', '/api/wallet')
+        const res = assertEnvelope(await walletService.getBalance())
         balance.value = parseFloat(res.data?.balance || 0)
     } catch (e) { balance.value = 0 }
 }
@@ -338,7 +339,7 @@ const fetchBalance = async () => {
 const fetchTransactions = async () => {
     loading.value = true
     try {
-        const res = await apiCall('GET', '/api/wallet/transactions')
+        const res = assertEnvelope(await walletService.getTransactions())
         transactions.value = sortWalletTransactions(res.data || [])
     } catch (e) { showToast('Failed to load transactions', 'error') }
     finally { loading.value = false }
@@ -373,7 +374,7 @@ const initiateTopUp = async () => {
     if (isPaying.value) return
     isPaying.value = true
     try {
-        const res = await apiCall('POST', '/api/wallet/topup', { amount: topUpAmount.value })
+        const res = assertEnvelope(await walletService.initiateTopUp({ amount: topUpAmount.value }))
         if (res.data?.authorization_url) {
             showToast('Redirecting to payment...')
             startTopUpRefreshPolling()
@@ -408,7 +409,7 @@ const verifyPayment = async () => {
 
     loading.value = true
     try {
-        const res = await apiCall('GET', `/api/wallet/topup/verify/${trxRef}`)
+        const res = await walletService.verifyTopUp(trxRef)
         if (res.success) {
             stopTopUpRefreshPolling()
             showToast('Wallet topped up successfully!')

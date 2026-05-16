@@ -296,13 +296,16 @@ import Wallet from '~/components/customers/wallet.vue'
 import { useUserStore } from '~/stores/user'
 import { getCompactAddressLines } from '~/utils/addressFormat'
 import { useOrderStatus } from '~/composables/useOrderStatus'
+import { createCustomerWalletService } from '~/services/customerWallet/customerWalletService'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
 definePageMeta({ layout: 'customer' })
 
 const userStore = useUserStore()
 const route = useRoute()
-const config = useRuntimeConfig()
 const orderStatus = useOrderStatus()
+const walletService = createCustomerWalletService(useApi())
+const orderRequestsService = createOrderRequestsService(useApi())
 
 const isCheckingAuth = ref(!userStore.authInitialized)
 const isDashboardLoading = ref(true)
@@ -409,10 +412,7 @@ const getCompanyMeta = (company) => {
 
 const loadWalletBalance = async () => {
   try {
-    const response = await fetch(`${config.public.apiBase}/api/wallet`, {
-      headers: { Authorization: `Bearer ${userStore.customerAuthToken}` }
-    })
-    const json = await response.json()
+    const json = await walletService.getBalance()
     walletBalance.value = parseFloat(json.data?.balance || 0)
   } catch (_error) {
     walletBalance.value = 0
@@ -421,10 +421,7 @@ const loadWalletBalance = async () => {
 
 const loadRequestActivity = async () => {
   try {
-    const response = await fetch(`${config.public.apiBase}/api/order-requests/customer`, {
-      headers: { Authorization: `Bearer ${userStore.customerAuthToken}` }
-    })
-    const json = await response.json()
+    const json = await orderRequestsService.listForCustomer()
     const requests = json.data || []
     recentRequests.value = requests.slice(0, 4)
     activeRequestCount.value = requests.filter((request) => isActiveRequestStatus(request.status)).length

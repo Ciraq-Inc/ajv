@@ -157,4 +157,27 @@ export const createCustomerAuthService = (api) => ({
       new_password: newPassword,
     });
   },
+
+  /**
+   * Autocomplete address suggestions for the saved-location flow.
+   * Passes `q` and `limit` as query params (URL-encoded by useApi).
+   * GET /api/auth/customer/autocomplete-location?q=&limit=
+   */
+  autocompleteLocation({ q, limit } = {}) {
+    const params = {};
+    if (q !== undefined && q !== null) params.q = q;
+    if (limit !== undefined && limit !== null) params.limit = limit;
+    return api.get('/api/auth/customer/autocomplete-location', { params });
+  },
+
+  /**
+   * Reverse-geocode GPS coordinates into a human-readable address.
+   * GET /api/auth/customer/reverse-geocode?lat=&lng=
+   */
+  reverseGeocode({ lat, lng } = {}) {
+    const params = {};
+    if (lat !== undefined && lat !== null) params.lat = lat;
+    if (lng !== undefined && lng !== null) params.lng = lng;
+    return api.get('/api/auth/customer/reverse-geocode', { params });
+  },
 });
