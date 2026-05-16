@@ -91,6 +91,23 @@ export const createAdminService = (api) => ({
   },
 
   /**
+   * Verify a TOTP code issued during the admin login MFA challenge.
+   * The challenge_id is returned in the 202 body from the login endpoint
+   * when `mfa_method === 'totp'`. The `code` is the 6-digit TOTP value
+   * (or a recovery code in `recovery_code`).
+   * POST /api/auth/mfa/totp/verify
+   */
+  verifyMfaTotp({ challengeId, code, recoveryCode }) {
+    const body = { challenge_id: challengeId };
+    if (recoveryCode) {
+      body.recovery_code = recoveryCode;
+    } else {
+      body.code = code;
+    }
+    return api.post('/api/auth/mfa/totp/verify', body);
+  },
+
+  /**
    * List all customer signups (admin-only).
    * GET /api/admin/signups
    * Returns the raw envelope `{ success, data, message }` — callers read

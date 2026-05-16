@@ -94,8 +94,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { ArrowPathIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
+import { createCompanyAuthService } from '~/services/companyAuth/companyAuthService'
+import { createStoreSettingsService } from '~/services/storeSettings/storeSettingsService'
 
 const adminStore = useAdminStore()
+const companyAuthService = createCompanyAuthService(useApi())
+const storeSettingsService = createStoreSettingsService(
+  useApi(),
+  () => (adminStore.token ? { Authorization: `Bearer ${adminStore.token}` } : {})
+)
 
 const loading = ref(false)
 const error = ref('')
@@ -121,13 +128,9 @@ const fetchCompanies = async () => {
   error.value = ''
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
+    const data = await companyAuthService.listCompanies()
 
-    const response = await fetch(`${baseURL}/api/companies`)
-    const data = await response.json()
-
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || 'Failed to fetch companies')
     }
 
@@ -157,21 +160,9 @@ const toggleHidePrices = async (company) => {
   savingMap.value = { ...savingMap.value, [company.id]: true }
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
+    const data = await storeSettingsService.updateSettings(company.id, { hide_prices: nextValue })
 
-    const response = await fetch(`${baseURL}/api/companies/${company.id}/store-settings`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminStore.token}`,
-      },
-      body: JSON.stringify({ hide_prices: nextValue }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || 'Failed to update store settings')
     }
   } catch (err) {

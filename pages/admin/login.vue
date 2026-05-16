@@ -34,10 +34,10 @@
         <img src="/brand/rig-mark.svg" alt="Rigelis" class="w-16 h-16 mx-auto mb-4" />
 
         <h3 class="text-lg font-semibold tracking-wide">
-          {{ currentView === 'login' ? 'Rigelis Admin Portal' : 'Reset Password' }}
+          {{ currentView === 'login' ? 'Rigelis Admin Portal' : currentView === 'mfa' ? 'Two-Factor Authentication' : 'Reset Password' }}
         </h3>
         <p class="text-purple-200 text-sm mt-1">
-          {{ currentView === 'login' ? 'Sign in to access the admin dashboard' : 'Reset your admin password' }}
+          {{ currentView === 'login' ? 'Sign in to access the admin dashboard' : currentView === 'mfa' ? 'Verify your identity to continue' : 'Reset your admin password' }}
         </p>
       </div>
 
@@ -73,6 +73,79 @@
               <p class="text-sm">{{ successMessage }}</p>
             </div>
           </div>
+        </div>
+
+        <!-- MFA Step: SMS-OTP (existing flow) or TOTP -->
+        <div v-if="currentView === 'mfa'">
+          <!-- TOTP input -->
+          <template v-if="mfaMethod === 'totp'">
+            <div class="mb-3 text-sm text-gray-600 bg-purple-50 border border-purple-100 p-3 rounded-lg">
+              <p>Enter the 6-digit code from your authenticator app.</p>
+            </div>
+            <div class="mb-4">
+              <label for="totpCode" class="block text-sm font-medium text-gray-700 mb-1">Authenticator Code</label>
+              <input
+                v-model="mfaCode"
+                type="text"
+                id="totpCode"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 tracking-widest text-center text-lg font-mono"
+                placeholder="000000"
+                :disabled="isLoading"
+              />
+            </div>
+            <div class="mt-6">
+              <button type="button" @click="handleMfaSubmit" :disabled="isLoading || mfaCode.length < 6"
+                class="w-full px-4 py-2.5 text-sm font-medium text-white bg-[#5A2468] hover:bg-[#4A1A55] rounded-lg disabled:opacity-50 flex items-center justify-center transition-colors">
+                <span v-if="isLoading" class="flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Verifying...
+                </span>
+                <span v-else>Verify Code</span>
+              </button>
+            </div>
+            <div class="mt-3 text-center">
+              <button type="button" @click="showLoginForm" class="text-sm text-gray-500 hover:text-gray-700">Back to login</button>
+            </div>
+          </template>
+
+          <!-- SMS-OTP input (existing behaviour — placeholder; wired via adminStore SMS action) -->
+          <template v-else>
+            <div class="mb-3 text-sm text-gray-600 bg-purple-50 border border-purple-100 p-3 rounded-lg">
+              <p>A verification code was sent to <strong>{{ mfaPhoneHint }}</strong>. Enter it below.</p>
+            </div>
+            <div class="mb-4">
+              <label for="smsOtp" class="block text-sm font-medium text-gray-700 mb-1">SMS Verification Code</label>
+              <input
+                v-model="mfaCode"
+                type="text"
+                id="smsOtp"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 tracking-widest text-center text-lg font-mono"
+                placeholder="000000"
+                :disabled="isLoading"
+              />
+            </div>
+            <div class="mt-6">
+              <button type="button" @click="handleMfaSubmit" :disabled="isLoading || mfaCode.length < 6"
+                class="w-full px-4 py-2.5 text-sm font-medium text-white bg-[#5A2468] hover:bg-[#4A1A55] rounded-lg disabled:opacity-50 flex items-center justify-center transition-colors">
+                <span v-if="isLoading">Verifying...</span>
+                <span v-else>Verify Code</span>
+              </button>
+            </div>
+            <div class="mt-3 text-center">
+              <button type="button" @click="showLoginForm" class="text-sm text-gray-500 hover:text-gray-700">Back to login</button>
+            </div>
+          </template>
         </div>
 
         <!-- Login Form -->
@@ -167,7 +240,7 @@ const adminStore = useAdminStore();
 const router = useRouter();
 
 // Form state
-const currentView = ref('login'); // 'login' or 'reset'
+const currentView = ref('login'); // 'login' | 'mfa' | 'reset'
 const username = ref('');
 const password = ref('');
 const resetIdentifier = ref('');
@@ -175,6 +248,12 @@ const rememberMe = ref(true);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
+
+// MFA state — populated when the login endpoint returns a 202 challenge.
+const mfaMethod = ref('sms');    // 'totp' | 'sms'
+const mfaChallengeId = ref('');
+const mfaPhoneHint = ref('');
+const mfaCode = ref('');
 
 // Check if already logged in
 onMounted(() => {
@@ -191,16 +270,42 @@ const showResetForm = () => {
   resetIdentifier.value = '';
 };
 
-// Show login form
+// Show login form and clear all transient state
 const showLoginForm = () => {
   currentView.value = 'login';
   errorMessage.value = '';
   successMessage.value = '';
   username.value = '';
   password.value = '';
+  mfaCode.value = '';
+  mfaChallengeId.value = '';
+  mfaPhoneHint.value = '';
 };
 
-// Handle login
+// Shared redirect helper used after successful authentication.
+const redirectAfterLogin = () => {
+  const dashboardRoute = adminStore.getDashboardRoute;
+  const message = adminStore.getRole === 'data_consumer'
+    ? 'Logging into Data Consumer Portal...'
+    : 'Logging into Admin Portal...';
+  successMessage.value = message;
+
+  setTimeout(() => {
+    const intendedRoute = localStorage.getItem('adminIntendedRoute');
+    if (intendedRoute) {
+      localStorage.removeItem('adminIntendedRoute');
+      navigateTo(intendedRoute);
+    } else {
+      navigateTo(dashboardRoute);
+    }
+  }, 1000);
+};
+
+// Handle login. The store returns one of three shapes:
+//   { success: true }                — fully authenticated → redirect
+//   { success: false, mfaRequired: true, mfaMethod, challengeId, phoneHint? }
+//                                    — show MFA step
+//   { success: false, message }      — bad credentials → show error
 const handleLogin = async () => {
   errorMessage.value = '';
   successMessage.value = '';
@@ -210,35 +315,54 @@ const handleLogin = async () => {
     const result = await adminStore.login(username.value, password.value);
 
     if (result.success) {
-      // Determine dashboard based on role
-      const dashboardRoute = adminStore.getDashboardRoute;
-      let message = 'Login successful! Redirecting...';
-      
-      if (adminStore.getRole === 'data_consumer') {
-        message = 'Logging into Data Consumer Portal...';
-      } else {
-        message = 'Logging into Admin Portal...';
-      }
-      
-      successMessage.value = message;
-
-      // Wait a moment to show success message
-      setTimeout(() => {
-        // Check for intended route
-        const intendedRoute = localStorage.getItem('adminIntendedRoute');
-        if (intendedRoute) {
-          localStorage.removeItem('adminIntendedRoute');
-          navigateTo(intendedRoute);
-        } else {
-          navigateTo(dashboardRoute);
-        }
-      }, 1000);
+      redirectAfterLogin();
+    } else if (result.mfaRequired) {
+      // Stash challenge data and switch to the MFA view.
+      mfaMethod.value = result.mfaMethod || 'sms';
+      mfaChallengeId.value = result.challengeId || '';
+      mfaPhoneHint.value = result.phoneHint || '';
+      mfaCode.value = '';
+      errorMessage.value = '';
+      currentView.value = 'mfa';
     } else {
       errorMessage.value = result.message || 'Invalid credentials';
     }
   } catch (error) {
     errorMessage.value = 'An error occurred. Please try again.';
     console.error('Login error:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Verify the MFA code. For TOTP: POST /api/auth/mfa/totp/verify via the store.
+// SMS OTP verification will be wired in a follow-up (Batch B Sprint 2 SMS path).
+const handleMfaSubmit = async () => {
+  if (!mfaCode.value || mfaCode.value.length < 6) return;
+  errorMessage.value = '';
+  isLoading.value = true;
+
+  try {
+    let result;
+    if (mfaMethod.value === 'totp') {
+      result = await adminStore.verifyMfaTotp({
+        challengeId: mfaChallengeId.value,
+        code: mfaCode.value,
+      });
+    } else {
+      // SMS path: placeholder — should call the SMS verify store action.
+      // Kept consistent so this handler is the single branch point.
+      result = { success: false, message: 'SMS MFA verify not yet wired in this UI.' };
+    }
+
+    if (result.success) {
+      redirectAfterLogin();
+    } else {
+      errorMessage.value = result.message || 'Verification failed. Please try again.';
+    }
+  } catch (error) {
+    errorMessage.value = error.message || 'An error occurred. Please try again.';
+    console.error('MFA verify error:', error);
   } finally {
     isLoading.value = false;
   }
