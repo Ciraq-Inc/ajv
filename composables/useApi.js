@@ -160,11 +160,106 @@ export const useApi = () => {
     });
   };
 
+  /**
+   * GET request returning a Blob (for file/CSV downloads).
+   *
+   * Mirrors `get()` for query-param handling and reuses the same auth/header
+   * injection as `apiRequest` (token lookup, FormData detection, etc.). Does
+   * NOT parse the response as JSON — returns the raw Blob so callers can
+   * trigger a browser download. Throws on non-2xx with the same error shape
+   * as `apiRequest` (best-effort message extraction from a JSON or text body).
+   */
+  const getBlob = async (endpoint, options = {}) => {
+    // Reuse the same query-param assembly as get()
+    let url = endpoint;
+    let restOptions = options;
+    if (options.params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url = `${endpoint}?${queryString}`;
+      }
+      const { params, ...rest } = options;
+      restOptions = rest;
+    }
+
+    // Inline auth/header logic to mirror apiRequest without forcing JSON parse.
+    let token = null;
+    if (process.client) {
+      const companyDomain = window.location.pathname.match(/\/([^\/]+)\/services/)?.[1];
+      if (companyDomain) {
+        token = localStorage.getItem(`company_${companyDomain}_token`);
+      }
+      if (!token) {
+        try {
+          const companyStore = useCompanyStore();
+          if (companyStore && companyStore.companyAuthToken) {
+            token = companyStore.companyAuthToken;
+          }
+        } catch (e) {
+          // store not available
+        }
+      }
+      if (!token) {
+        if (url.startsWith('/api/driver')) {
+          token = localStorage.getItem('driver_token');
+        } else if (url.startsWith('/api/dispatch')) {
+          token = localStorage.getItem('dispatch_token');
+        } else if (url.startsWith('/api/admin')) {
+          token = localStorage.getItem('adminToken');
+        }
+        if (!token) {
+          token = localStorage.getItem('adminToken') ||
+            localStorage.getItem('driver_token') ||
+            localStorage.getItem('customerAuthToken') ||
+            localStorage.getItem('token') ||
+            localStorage.getItem('companyAuthToken');
+        }
+      }
+    }
+
+    const headers = { ...(restOptions.headers || {}) };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${baseURL}${url}`, {
+      method: 'GET',
+      ...restOptions,
+      headers,
+    });
+
+    if (!response.ok) {
+      // Best-effort error message extraction.
+      let message = `API request failed with status ${response.status}`;
+      try {
+        const text = await response.text();
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed && parsed.message) message = parsed.message;
+        } catch {
+          if (text) message = text;
+        }
+      } catch {
+        // ignore
+      }
+      const err = new Error(message);
+      err.status = response.status;
+      throw err;
+    }
+
+    return await response.blob();
+  };
+
   return {
     get,
     post,
     put,
     delete: del,
     request: apiRequest,
+    getBlob,
   };
 };

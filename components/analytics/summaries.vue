@@ -228,10 +228,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
+import { createSummariesService } from '~/services/analytics/summariesService';
 import { ArrowDownTrayIcon, ArrowPathIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
 
 const adminStore = useAdminStore();
-const config = useRuntimeConfig();
+const summariesService = createSummariesService(useApi());
 
 const loading = ref(false);
 const error = ref(null);
@@ -244,48 +245,37 @@ const fetchData = async () => {
   error.value = null;
 
   try {
-    const baseURL = config.public.apiBase;
-
-    // Fetch stock value summary
-    const stockResponse = await fetch(`${baseURL}/api/inventory-analytics/composite-stock-value`, {
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`
-      }
-    });
-
-    if (stockResponse.ok) {
-      const stockResult = await stockResponse.json();
+    // Fetch stock value summary. Legacy behavior: swallow errors silently if
+    // any of these endpoints fail (the UI degrades gracefully). useApi throws
+    // on non-2xx, so we wrap each call in try/catch to preserve that
+    // best-effort semantic.
+    try {
+      const stockResult = await summariesService.getCompositeStockValue();
       if (stockResult.success) {
         stockValue.value = stockResult.data;
       }
+    } catch (e) {
+      console.error('Stock value fetch failed:', e);
     }
 
     // Fetch top products summary
-    const topProductsResponse = await fetch(`${baseURL}/api/inventory-analytics/top-products?metric=revenue&limit=20`, {
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`
-      }
-    });
-
-    if (topProductsResponse.ok) {
-      const topProductsResult = await topProductsResponse.json();
+    try {
+      const topProductsResult = await summariesService.getTopProducts({ metric: 'revenue', limit: 20 });
       if (topProductsResult.success) {
         topProducts.value = topProductsResult.data.products || [];
       }
+    } catch (e) {
+      console.error('Top products fetch failed:', e);
     }
 
     // Fetch alerts summary
-    const alertsResponse = await fetch(`${baseURL}/api/inventory-analytics/alerts`, {
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`
-      }
-    });
-
-    if (alertsResponse.ok) {
-      const alertsResult = await alertsResponse.json();
+    try {
+      const alertsResult = await summariesService.getAlerts();
       if (alertsResult.success) {
         alerts.value = alertsResult.data;
       }
+    } catch (e) {
+      console.error('Alerts fetch failed:', e);
     }
 
   } catch (err) {

@@ -653,9 +653,11 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useAdminStore } from "~/stores/admin";
+import { createCompaniesAnalyticsService } from "~/services/analytics/companiesAnalyticsService";
 import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/outline";
 
 const adminStore = useAdminStore();
+const companiesService = createCompaniesAnalyticsService(useApi());
 
 // Reactive data
 const companies = ref([]);
@@ -713,23 +715,7 @@ const fetchCompanies = async () => {
   error.value = null;
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-    let endpoint = `${baseURL}/api/companies`;
-
-    if (searchQuery.value) {
-      endpoint = `${baseURL}/api/companies/search?q=${encodeURIComponent(
-        searchQuery.value
-      )}`;
-    }
-
-    const response = await fetch(endpoint);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await companiesService.list({ search: searchQuery.value });
 
     if (data.success) {
       companies.value = data.data;
@@ -785,18 +771,7 @@ const createCompany = async () => {
   modalLoading.value = true;
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
-    const response = await fetch(`${baseURL}/api/companies`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(companyForm.value),
-    });
-
-    const data = await response.json();
+    const data = await companiesService.create(companyForm.value);
 
     if (data.success) {
       closeModals();
@@ -865,9 +840,6 @@ const updateCompany = async () => {
   modalLoading.value = true;
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
     // Send all editable fields including the "more fields"
     const updateData = {
       domain_name: companyForm.value.domain_name,
@@ -883,15 +855,7 @@ const updateCompany = async () => {
       longitude: companyForm.value.longitude ? parseFloat(companyForm.value.longitude) : null
     };
 
-    const response = await fetch(`${baseURL}/api/companies/${selectedCompany.value.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updateData),
-    });
-
-    const data = await response.json();
+    const data = await companiesService.update(selectedCompany.value.id, updateData);
 
     if (data.success) {
       closeModals();
@@ -916,11 +880,7 @@ const viewCompany = (company) => {
 // View subsidiaries
 const viewSubsidiaries = async (company) => {
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
-    const response = await fetch(`${baseURL}/api/companies/${company.id}/subsidiaries`);
-    const data = await response.json();
+    const data = await companiesService.listSubsidiaries(company.id);
 
     if (data.success) {
       subsidiaryCount.value = data.count;
@@ -949,14 +909,7 @@ const deleteCompany = async (company) => {
   }
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
-    const response = await fetch(`${baseURL}/api/companies/${company.id}`, {
-      method: "DELETE",
-    });
-
-    const data = await response.json();
+    const data = await companiesService.remove(company.id);
 
     if (data.success) {
       fetchCompanies();
