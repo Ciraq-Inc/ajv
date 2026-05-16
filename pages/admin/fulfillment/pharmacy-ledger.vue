@@ -197,13 +197,11 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
 definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
 
-const adminStore = useAdminStore()
-const config = useRuntimeConfig()
-const apiBaseUrl = config.public.apiBase
+const orderRequestsService = createOrderRequestsService(useApi())
 const route = useRoute()
 const router = useRouter()
 
@@ -240,26 +238,6 @@ const filteredPharmacies = computed(() => {
   })
 })
 
-const apiCall = async (method, url, data = null) => {
-  const opts = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${adminStore.token}`
-    }
-  }
-  if (data) opts.body = JSON.stringify(data)
-  const response = await fetch(`${apiBaseUrl}${url}`, opts)
-  if (!response.ok) {
-    let message = `API error: ${response.status}`
-    try {
-      const json = await response.json()
-      message = json.message || message
-    } catch (_e) {}
-    throw new Error(message)
-  }
-  return response.json()
-}
 
 const formatCurrency = (value) => `GHS ${Number(value || 0).toFixed(2)}`
 
@@ -333,13 +311,12 @@ const loadLedger = async ({ pharmacyId = null } = {}) => {
   loading.value = true
   error.value = ''
   try {
-    const params = new URLSearchParams()
-    if (pharmacyId || selectedPharmacyId.value) params.set('pharmacyId', String(pharmacyId || selectedPharmacyId.value))
-    if (fromDate.value) params.set('startDate', fromDate.value)
-    if (toDate.value) params.set('endDate', toDate.value)
-    params.set('limit', '50')
-
-    const res = await apiCall('GET', `/api/order-requests/admin/pharmacy-ledger${params.toString() ? `?${params.toString()}` : ''}`)
+    const res = await orderRequestsService.getPharmacyLedger({
+      pharmacyId: pharmacyId || selectedPharmacyId.value || null,
+      startDate: fromDate.value || null,
+      endDate: toDate.value || null,
+      limit: 50,
+    })
     ledger.value = res.data || { summary: {}, pharmacies: [], selected_pharmacy: null, transactions: [] }
 
     if (!selectedPharmacyId.value) {

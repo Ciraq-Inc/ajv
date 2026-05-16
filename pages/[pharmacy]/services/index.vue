@@ -287,6 +287,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
+import { createPharmacyService } from '~/services/pharmacy/pharmacyService'
 
 definePageMeta({
   layout: false,
@@ -328,14 +329,11 @@ onMounted(async () => {
     return
   }
   try {
-    const config = useRuntimeConfig()
     const domain = route.path.match(/\/([^/]+)\/services/)?.[1]
     if (!domain) return
-    const res = await fetch(`${config.public.apiBase}/api/companies/domain/${domain}`)
-    if (res.ok) {
-      const data = await res.json()
-      applyTheme(data.data || data)
-    }
+    const pharmacyService = createPharmacyService(useApi())
+    const data = await pharmacyService.getByDomainSlug(domain)
+    applyTheme(data.data || data)
   } catch {
     // keep defaults
   }

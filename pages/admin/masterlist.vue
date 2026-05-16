@@ -614,6 +614,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useApi } from '~/composables/useApi';
+import { createMasterProductsService } from '~/services/masterProducts/masterProductsService';
 
 definePageMeta({
   middleware: 'admin-auth',
@@ -621,6 +622,7 @@ definePageMeta({
 });
 
 const api = useApi();
+const masterProductsService = createMasterProductsService(api);
 
 // State
 const loading = ref(false);
@@ -1109,8 +1111,6 @@ const startAutoUpload = async () => {
       skipped: []
     };
 
-    const config = useRuntimeConfig();
-
     // Upload each file one by one
     for (const file of selectedBulkFiles.value) {
       const productId = getProductIdFromFile(file.name);
@@ -1122,13 +1122,7 @@ const startAutoUpload = async () => {
         formData.append('productId', productId);
         formData.append('forceUpdate', forceUpdate.value.toString());
 
-        // Upload using fetch
-        const response = await fetch(`${config.public.apiBase}/api/master-products/upload-image`, {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await response.json();
+        const data = await masterProductsService.uploadImage(formData);
 
         if (data.success) {
           results.success.push({

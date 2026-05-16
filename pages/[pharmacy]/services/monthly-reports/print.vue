@@ -205,21 +205,20 @@ import { useCompanyStore } from '~/stores/company'
 import LineTrendChart from '~/components/reports/LineTrendChart.vue'
 import HorizontalBarsChart from '~/components/reports/HorizontalBarsChart.vue'
 import DonutSummaryChart from '~/components/reports/DonutSummaryChart.vue'
+import { createPharmacyReportsService } from '~/services/pharmacyReports/pharmacyReportsService'
 
 definePageMeta({
   layout: false,
 })
 
-const config = useRuntimeConfig()
 const route = useRoute()
 const router = useRouter()
 const companyStore = useCompanyStore()
+const pharmacyReportsService = createPharmacyReportsService(useApi())
 
 const loading = ref(true)
 const loadError = ref('')
 const reportData = ref(null)
-
-const apiHeaders = computed(() => companyStore.getApiHeaders())
 
 const getRequestedReportMonths = () => {
   const queryMonths = route.query.reportMonths
@@ -299,14 +298,8 @@ const ensureAuth = async () => {
 }
 
 const fetchCurrentReport = async () => {
-  const params = new URLSearchParams()
-  getRequestedReportMonths().forEach((value) => params.append('reportMonths', value))
-  const query = params.toString()
-  const response = await fetch(`${config.public.apiBase}/api/pharmacy-reports/current${query ? `?${query}` : ''}`, {
-    headers: apiHeaders.value,
-  })
-  const result = await response.json()
-  if (!response.ok || !result.success) {
+  const result = await pharmacyReportsService.getCurrentReport(getRequestedReportMonths())
+  if (!result.success) {
     throw new Error(result.message || 'No current monthly report is available yet.')
   }
   reportData.value = result.data.data

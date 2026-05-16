@@ -2253,6 +2253,7 @@ import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import {
   ChartBarIcon,
   ArrowPathIcon,
@@ -2278,8 +2279,7 @@ const PIPELINE_STAGES = [
 ]
 
 const adminStore = useAdminStore()
-const config = useRuntimeConfig()
-const apiBaseUrl = config.public.apiBase
+const orderRequestsService = createOrderRequestsService(useApi())
 
 // State
 const loading = ref(false)
@@ -3426,36 +3426,21 @@ const allItemsCovered = computed(() => {
   )
 })
 
-// API helper
+// API helper — delegates to useApi so auth headers and base URL are
+// injected centrally. The call signature is preserved so all 70+ callers
+// inside this page remain unchanged.
+const _api = useApi()
 const apiCall = async (method, url, data = null) => {
-  const fullUrl = `${apiBaseUrl}${url}`
-  const opts = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${adminStore.token}`
-    }
-  }
-  if (data) opts.body = JSON.stringify(data)
-  const response = await fetch(fullUrl, opts)
-  const json = await response.json()
-  if (!response.ok) {
-    const err = new Error(json?.message || `API error: ${response.status}`)
-    err.code = json?.code || null
-    err.httpStatus = response.status
-    throw err
-  }
-  return json
+  const opts = { method }
+  if (data !== null) opts.body = JSON.stringify(data)
+  return _api.request(url, opts)
 }
 
 // Fetch
 const fetchRequests = async ({ silent = false } = {}) => {
   if (!silent) loading.value = true
   try {
-    const params = new URLSearchParams()
-    if (searchQuery.value) params.append('search', searchQuery.value)
-    const qs = params.toString()
-    const res = await apiCall('GET', `/api/order-requests/admin${qs ? `?${qs}` : ''}`)
+    const res = await orderRequestsService.listAdmin({ search: searchQuery.value })
     requests.value = res.data || []
   } catch (e) {
     if (!silent) showMessage('Failed to load requests', 'error')
@@ -3466,7 +3451,7 @@ const fetchRequests = async ({ silent = false } = {}) => {
 
 const fetchStats = async ({ silent = false } = {}) => {
   try {
-    const res = await apiCall('GET', '/api/order-requests/admin/stats')
+    const res = await orderRequestsService.getAdminStats()
     const raw = res.data || {}
     stats.value = {
       ...raw,

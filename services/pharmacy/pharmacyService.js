@@ -43,4 +43,19 @@ export const createPharmacyService = (api) => ({
   getByDomainSlug(slug) {
     return api.get(`/api/companies/domain/${encodeURIComponent(slug)}`);
   },
+
+  /**
+   * Create or update a product for a pharmacy (used by the drugs/inventory
+   * page). The server uses `id` presence to distinguish create vs. update.
+   * POST /products
+   * Body: { id?, company_id, brand_name, unit, sell_unit, selling_price,
+   *          stock_qty, is_active?, imageUrl? }
+   * Returns: { success, message? }
+   *
+   * Note: this endpoint is at `/products` (not `/api/products`) — the path
+   * is preserved verbatim from the legacy page call.
+   */
+  saveProduct(payload) {
+    return api.post('/products', payload);
+  },
 });

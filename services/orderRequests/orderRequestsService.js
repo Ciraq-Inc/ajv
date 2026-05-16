@@ -18,4 +18,44 @@ export const createOrderRequestsService = (api) => ({
   listForCustomer() {
     return api.get('/api/order-requests/customer');
   },
+
+  // -------------------------------------------------------------------------
+  // Admin endpoints
+  // -------------------------------------------------------------------------
+
+  /**
+   * List order requests for the admin dashboard with optional search.
+   * GET /api/order-requests/admin?search=
+   * Returns: { data: OrderRequest[] }
+   */
+  listAdmin({ search } = {}) {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    const qs = params.toString()
+    return api.get(`/api/order-requests/admin${qs ? `?${qs}` : ''}`)
+  },
+
+  /**
+   * Fetch aggregate stats for the admin order-requests dashboard.
+   * GET /api/order-requests/admin/stats
+   * Returns: { data: { pending, processing, completed, total, ... } }
+   */
+  getAdminStats() {
+    return api.get('/api/order-requests/admin/stats')
+  },
+
+  /**
+   * Fetch the pharmacy ledger for admin fulfillment.
+   * GET /api/order-requests/admin/pharmacy-ledger?pharmacyId=&startDate=&endDate=&limit=
+   * Returns: { data: { summary, pharmacies, selected_pharmacy, transactions } }
+   */
+  getPharmacyLedger({ pharmacyId, startDate, endDate, limit = 50 } = {}) {
+    const params = new URLSearchParams()
+    if (pharmacyId) params.set('pharmacyId', String(pharmacyId))
+    if (startDate) params.set('startDate', startDate)
+    if (endDate) params.set('endDate', endDate)
+    params.set('limit', String(limit))
+    const qs = params.toString()
+    return api.get(`/api/order-requests/admin/pharmacy-ledger${qs ? `?${qs}` : ''}`)
+  },
 });

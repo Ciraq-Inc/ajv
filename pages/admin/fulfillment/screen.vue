@@ -119,13 +119,11 @@
 </template>
 
 <script setup>
-import { useAdminStore } from '~/stores/admin'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
 definePageMeta({ middleware: ['admin-auth'], layout: false })
 
-const config = useRuntimeConfig()
-const adminStore = useAdminStore()
-const apiBaseUrl = config.public.apiBase
+const orderRequestsService = createOrderRequestsService(useApi())
 
 const requests = ref([])
 const fetchOk = ref(false)
@@ -198,17 +196,9 @@ const lastRefreshedLabel = computed(() => {
   return m === 0 ? 'just now' : `${m}m ago`
 })
 
-const apiCall = async (url) => {
-  const res = await fetch(`${apiBaseUrl}${url}`, {
-    headers: { Authorization: `Bearer ${adminStore.token}` }
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
-}
-
 const fetchData = async () => {
   try {
-    const res = await apiCall('/api/order-requests/admin')
+    const res = await orderRequestsService.listAdmin()
     requests.value = res.data || []
     lastRefreshed.value = new Date()
     fetchOk.value = true

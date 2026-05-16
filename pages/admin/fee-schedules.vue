@@ -194,11 +194,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import { createFeeSchedulesService } from '~/services/feeSchedules/feeSchedulesService'
 
-const adminStore = useAdminStore()
-const config = useRuntimeConfig()
-const apiBaseUrl = config.public.apiBase
+const feeSchedulesService = createFeeSchedulesService(useApi())
 
 const loading = ref(false)
 const message = ref(null)
@@ -217,20 +215,6 @@ const createForm = reactive({ name: '', top_tier_per_km: null, max_billable_km: 
 const showMessage = (text, type = 'success') => {
   message.value = { text, type }
   setTimeout(() => { message.value = null }, 4500)
-}
-
-const apiCall = async (method, url, data = null) => {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminStore.token}` }
-  }
-  if (data !== null) opts.body = JSON.stringify(data)
-  const response = await fetch(`${apiBaseUrl}${url}`, opts)
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok || payload.success === false) {
-    throw new Error(payload.message || `API error: ${response.status}`)
-  }
-  return payload
 }
 
 const statusLabel = (s) => {
@@ -252,7 +236,7 @@ const formatDate = (iso) => {
 const fetchAll = async () => {
   loading.value = true
   try {
-    const res = await apiCall('GET', '/api/fee-schedules')
+    const res = await feeSchedulesService.list()
     schedules.value = Array.isArray(res.data) ? res.data : []
     if (selected.value) await selectSchedule(selected.value.id)
   } catch (error) {
@@ -265,7 +249,7 @@ const fetchAll = async () => {
 const selectSchedule = async (id) => {
   loading.value = true
   try {
-    const res = await apiCall('GET', `/api/fee-schedules/${id}`)
+    const res = await feeSchedulesService.getById(id)
     selected.value = res.data
     Object.assign(header, {
       name: res.data.name,
@@ -310,7 +294,7 @@ const saveHeader = async () => {
   if (!selected.value) return
   loading.value = true
   try {
-    await apiCall('PUT', `/api/fee-schedules/${selected.value.id}`, {
+    await feeSchedulesService.updateHeader(selected.value.id, {
       name: header.name,
       top_tier_per_km: header.top_tier_per_km,
       max_billable_km: header.max_billable_km,
@@ -329,7 +313,7 @@ const addTier = async () => {
   if (!selected.value || !canAddTier.value) return
   loading.value = true
   try {
-    await apiCall('POST', `/api/fee-schedules/${selected.value.id}/tiers`, {
+    await feeSchedulesService.addTier(selected.value.id, {
       from_km: newTier.from_km,
       fee_ghs: newTier.fee_ghs,
       label: newTier.label || null,
@@ -347,7 +331,7 @@ const saveTier = async (tierId) => {
   if (!selected.value) return
   loading.value = true
   try {
-    await apiCall('PUT', `/api/fee-schedules/${selected.value.id}/tiers/${tierId}`, tierEdits[tierId])
+    await feeSchedulesService.updateTier(selected.value.id, tierId, tierEdits[tierId])
     showMessage('Tier saved')
     tierOriginals[tierId] = { ...tierEdits[tierId] }
   } catch (error) {
@@ -362,7 +346,7 @@ const deleteTier = async (tierId) => {
   if (!confirm('Delete this tier?')) return
   loading.value = true
   try {
-    await apiCall('DELETE', `/api/fee-schedules/${selected.value.id}/tiers/${tierId}`)
+    await feeSchedulesService.deleteTier(selected.value.id, tierId)
     showMessage('Tier deleted')
     await selectSchedule(selected.value.id)
   } catch (error) {
@@ -377,7 +361,7 @@ const publishDraft = async () => {
   if (!confirm(`Publish "${selected.value.name}"? This will supersede the currently active schedule and apply to all new quotes.`)) return
   loading.value = true
   try {
-    await apiCall('POST', `/api/fee-schedules/${selected.value.id}/publish`)
+    await feeSchedulesService.publish(selected.value.id)
     showMessage('Schedule published')
     await fetchAll()
   } catch (error) {
@@ -397,7 +381,7 @@ const createDraft = async () => {
   if (!createForm.name) return
   loading.value = true
   try {
-    const res = await apiCall('POST', '/api/fee-schedules', { ...createForm })
+    const res = await feeSchedulesService.createDraft({ ...createForm })
     showMessage('Draft created')
     closeCreateModal()
     await fetchAll()

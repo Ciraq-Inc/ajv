@@ -141,11 +141,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import GuestOtpStep from '~/components/jobs/GuestOtpStep.vue'
+import { createApplicationsService } from '~/services/jobs/applicationsService'
 
 definePageMeta({ layout: false })
 
 const route = useRoute()
-const config = useRuntimeConfig()
+const applicationsService = createApplicationsService(useApi())
 const { selectedJob, fetchJobById } = useJobs()
 const { loading, error: appError, requestGuestOtp, verifyGuestOtp, submitApplication } = useJobApplications()
 
@@ -189,7 +190,7 @@ const handleFileUpload = async (event, field) => {
     const fd = new FormData()
     fd.append('file', file)
 
-    const res = await $fetch(`${config.public.apiBase}/api/jobs/upload-document`, { method: 'POST', body: fd })
+    const res = await applicationsService.uploadDocument(fd)
     uploads[field].url = res.url
   } catch (err) {
     uploads[field].error = err?.data?.statusMessage || err?.message || 'Upload failed'

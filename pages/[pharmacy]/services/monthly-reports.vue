@@ -245,6 +245,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
+import { createPharmacyReportsService } from '~/services/pharmacyReports/pharmacyReportsService'
 
 definePageMeta({
   layout: 'company',
@@ -252,10 +253,10 @@ definePageMeta({
   title: 'Monthly Reports',
 })
 
-const config = useRuntimeConfig()
 const route = useRoute()
 const router = useRouter()
 const companyStore = useCompanyStore()
+const pharmacyReportsService = createPharmacyReportsService(useApi())
 
 const loading = ref(false)
 const isRequesting = ref(false)
@@ -470,8 +471,6 @@ const heroStatusMessage = computed(() => {
   return `The selected reporting window is loaded. Generate the curated PDF for ${selectedReportSummary.value} when you are ready.`
 })
 
-const apiHeaders = computed(() => companyStore.getApiHeaders())
-
 const ensureAuth = async () => {
   await companyStore.checkAuthState()
   if (!companyStore.isLoggedIn) {
@@ -484,33 +483,6 @@ const ensureAuth = async () => {
 const setStatusMessage = (message, tone = 'neutral') => {
   statusMessage.value = message
   statusMessageTone.value = tone
-}
-
-const handleExpiredCompanySession = async () => {
-  companyStore.clearAuthState()
-  setStatusMessage('Your pharmacy session expired. Please sign in again to continue.', 'warning')
-  await router.push(`/${route.params.pharmacy}/services/login?redirect=${encodeURIComponent(route.fullPath)}`)
-}
-
-const fetchWithCompanyAuth = async (url, options = {}) => {
-  const response = await fetch(url, options)
-
-  if (response.status === 401) {
-    let message = 'Invalid or expired token'
-    try {
-      const payload = await response.clone().json()
-      message = payload.message || message
-    } catch {
-      // keep fallback message
-    }
-
-    if (/invalid|expired token/i.test(message)) {
-      await handleExpiredCompanySession()
-      throw new Error('Your pharmacy session expired. Please sign in again.')
-    }
-  }
-
-  return response
 }
 
 const syncSelectedMonthsWithStatus = () => {
@@ -531,13 +503,7 @@ const syncSelectedMonthsWithStatus = () => {
 }
 
 const fetchStatus = async () => {
-  const params = new URLSearchParams()
-  selectedReportMonthsSorted.value.forEach((value) => params.append('reportMonths', value))
-  const query = params.toString()
-  const response = await fetchWithCompanyAuth(`${config.public.apiBase}/api/pharmacy-reports/current/status${query ? `?${query}` : ''}`, {
-    headers: apiHeaders.value,
-  })
-  const result = await response.json()
+  const result = await pharmacyReportsService.getStatus(selectedReportMonthsSorted.value)
   if (!result.success) {
     throw new Error(result.message || 'Failed to load report status')
   }
@@ -564,18 +530,8 @@ const requestReport = async ({ suppressSuccessMessage = false } = {}) => {
   isRequesting.value = true
   setStatusMessage(`Generating the report for ${selectedReportSummary.value}. This may take a few moments.`, 'neutral')
   try {
-    const response = await fetchWithCompanyAuth(`${config.public.apiBase}/api/pharmacy-reports/current/request`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...apiHeaders.value,
-      },
-      body: JSON.stringify({
-        reportMonths: selectedReportMonthsSorted.value,
-      }),
-    })
-    const result = await response.json()
-    if (!response.ok || !result.success) {
+    const result = await pharmacyReportsService.requestReport(selectedReportMonthsSorted.value)
+    if (!result.success) {
       throw new Error(result.message || 'Failed to generate report')
     }
 
@@ -601,31 +557,15 @@ const downloadPdf = async () => {
   setStatusMessage('Preparing your PDF report. This may take a short moment.', 'neutral')
 
   try {
-    const params = new URLSearchParams()
-    selectedReportMonthsSorted.value.forEach((value) => params.append('reportMonths', value))
-    const response = await fetchWithCompanyAuth(`${config.public.apiBase}/api/pharmacy-reports/current/pdf?${params.toString()}`, {
-      headers: apiHeaders.value,
-    })
+    const blob = await pharmacyReportsService.getPdfBlob(selectedReportMonthsSorted.value)
 
-    if (!response.ok) {
-      let message = 'Failed to export PDF'
-      try {
-        const result = await response.json()
-        message = result.message || message
-      } catch {
-        // ignore JSON parse failure and keep fallback message
-      }
-      throw new Error(message)
-    }
-
-    const contentType = response.headers.get('content-type') || ''
-    const buffer = await response.arrayBuffer()
+    // Validate PDF magic bytes from the blob
+    const buffer = await blob.arrayBuffer()
     const bytes = new Uint8Array(buffer)
     const pdfSignature = String.fromCharCode(...bytes.slice(0, 5))
 
-    if (!contentType.toLowerCase().includes('application/pdf') || pdfSignature !== '%PDF-') {
+    if (!blob.type.toLowerCase().includes('application/pdf') || pdfSignature !== '%PDF-') {
       let diagnosticMessage = 'The exported file was not returned as a valid PDF.'
-
       try {
         const text = new TextDecoder().decode(bytes)
         if (text) {
@@ -634,15 +574,10 @@ const downloadPdf = async () => {
       } catch {
         // keep fallback diagnostic message
       }
-
       throw new Error(diagnosticMessage)
     }
 
-    const blob = new Blob([buffer], { type: 'application/pdf' })
-    const disposition = response.headers.get('content-disposition') || ''
-    const filenameMatch = disposition.match(/filename="([^"]+)"/i)
-    const filename = filenameMatch?.[1] || `monthly-report-${selectedReportMonthsSorted.value.join('-') || 'current'}.pdf`
-
+    const filename = `monthly-report-${selectedReportMonthsSorted.value.join('-') || 'current'}.pdf`
     const url = window.URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
