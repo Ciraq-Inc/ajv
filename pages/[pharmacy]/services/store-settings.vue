@@ -301,6 +301,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
+import { createStoreSettingsService } from '~/services/storeSettings/storeSettingsService'
 
 definePageMeta({
     layout: 'company',
@@ -309,6 +310,14 @@ definePageMeta({
 const router = useRouter()
 const route = useRoute()
 const companyStore = useCompanyStore()
+
+// Build the service once per setup. `useApi()` reads runtimeConfig + the
+// company auth token internally; `getHeaders` is recomputed per request
+// so token rotations during the session are picked up automatically.
+const api = useApi()
+const storeSettingsService = createStoreSettingsService(api, () => ({
+    Authorization: `Bearer ${companyStore.companyAuthToken}`,
+}))
 
 const themePresets = [
     { value: 'indigo', label: 'Indigo', description: 'Cool blue gradient', color: '#4f46e5', preview: 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)' },
@@ -394,10 +403,6 @@ const previewStyles = computed(() => {
     }
 })
 
-const authHeaders = () => ({
-    Authorization: `Bearer ${companyStore.companyAuthToken}`,
-})
-
 const goToLogin = () => {
     if (companyDomain.value) {
         router.push(`/${companyDomain.value}/services`)
@@ -418,16 +423,8 @@ const normalizeSettingsPayload = (payload = {}) => ({
 const formatDateInput = (value) => (value ? String(value).slice(0, 10) : '')
 
 const loadSettings = async () => {
-    const config = useRuntimeConfig()
-    const response = await fetch(`${config.public.apiBase}/api/companies/${companyId.value}/store-settings`, {
-        headers: {
-            ...authHeaders(),
-            'Content-Type': 'application/json',
-        },
-    })
-
-    const data = await response.json()
-    if (!response.ok || !data.success) {
+    const data = await storeSettingsService.getSettings(companyId.value)
+    if (!data.success) {
         throw new Error(data.message || 'Failed to load settings')
     }
 
@@ -436,16 +433,8 @@ const loadSettings = async () => {
 }
 
 const loadAds = async () => {
-    const config = useRuntimeConfig()
-    const response = await fetch(`${config.public.apiBase}/api/companies/${companyId.value}/ads`, {
-        headers: {
-            ...authHeaders(),
-            'Content-Type': 'application/json',
-        },
-    })
-
-    const data = await response.json()
-    if (!response.ok || !data.success) {
+    const data = await storeSettingsService.listAds(companyId.value)
+    if (!data.success) {
         throw new Error(data.message || 'Failed to load ads')
     }
 
@@ -471,18 +460,8 @@ const initializePage = async () => {
 }
 
 const uploadImage = async (endpoint, file) => {
-    const config = useRuntimeConfig()
-    const formData = new FormData()
-    formData.append('image', file)
-
-    const response = await fetch(`${config.public.apiBase}/api/companies/${companyId.value}${endpoint}`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: formData,
-    })
-
-    const data = await response.json()
-    if (!response.ok || !data.success) {
+    const data = await storeSettingsService.uploadShopAsset(companyId.value, endpoint, file)
+    if (!data.success) {
         throw new Error(data.message || 'Upload failed')
     }
 
@@ -557,24 +536,14 @@ const saveSettings = async () => {
     saveSuccess.value = false
 
     try {
-        const config = useRuntimeConfig()
-        const response = await fetch(`${config.public.apiBase}/api/companies/${companyId.value}/store-settings`, {
-            method: 'PUT',
-            headers: {
-                ...authHeaders(),
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                hide_prices: settings.value.hide_prices,
-                logo: settings.value.logo,
-                shop_banner: settings.value.shop_banner,
-                theme_preset: settings.value.theme_preset,
-                theme_color: settings.value.theme_preset === 'custom' ? settings.value.theme_color : null,
-            }),
+        const data = await storeSettingsService.updateSettings(companyId.value, {
+            hide_prices: settings.value.hide_prices,
+            logo: settings.value.logo,
+            shop_banner: settings.value.shop_banner,
+            theme_preset: settings.value.theme_preset,
+            theme_color: settings.value.theme_preset === 'custom' ? settings.value.theme_color : null,
         })
-
-        const data = await response.json()
-        if (!response.ok || !data.success) {
+        if (!data.success) {
             throw new Error(data.message || 'Failed to save settings')
         }
 
@@ -626,29 +595,18 @@ const saveAd = async () => {
     adsStatus.value = ''
 
     try {
-        const config = useRuntimeConfig()
-        const endpoint = editingAdId.value
-            ? `/api/companies/${companyId.value}/ads/${editingAdId.value}`
-            : `/api/companies/${companyId.value}/ads`
-        const method = editingAdId.value ? 'PUT' : 'POST'
+        const payload = {
+            ...adForm.value,
+            body: adForm.value.body || null,
+            image_url: adForm.value.image_url || null,
+            start_date: adForm.value.start_date || null,
+            end_date: adForm.value.end_date || null,
+        }
 
-        const response = await fetch(`${config.public.apiBase}${endpoint}`, {
-            method,
-            headers: {
-                ...authHeaders(),
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                ...adForm.value,
-                body: adForm.value.body || null,
-                image_url: adForm.value.image_url || null,
-                start_date: adForm.value.start_date || null,
-                end_date: adForm.value.end_date || null,
-            }),
-        })
-
-        const data = await response.json()
-        if (!response.ok || !data.success) {
+        const data = editingAdId.value
+            ? await storeSettingsService.updateAd(companyId.value, editingAdId.value, payload)
+            : await storeSettingsService.createAd(companyId.value, payload)
+        if (!data.success) {
             throw new Error(data.message || 'Failed to save ad')
         }
 
@@ -672,14 +630,8 @@ const removeAd = async (adId) => {
     }
 
     try {
-        const config = useRuntimeConfig()
-        const response = await fetch(`${config.public.apiBase}/api/companies/${companyId.value}/ads/${adId}`, {
-            method: 'DELETE',
-            headers: authHeaders(),
-        })
-
-        const data = await response.json()
-        if (!response.ok || !data.success) {
+        const data = await storeSettingsService.deleteAd(companyId.value, adId)
+        if (!data.success) {
             throw new Error(data.message || 'Failed to delete ad')
         }
 
