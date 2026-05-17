@@ -223,7 +223,7 @@ const lastRefreshedLabel = computed<string>(() => {
 const fetchData = async (): Promise<void> => {
   try {
     const res = await orderRequestsService.listAdmin()
-    requests.value = (res.data ?? []) as RequestRow[]
+    requests.value = (res.data ?? []) as unknown as RequestRow[]
     lastRefreshed.value = new Date()
     fetchOk.value = true
   } catch {

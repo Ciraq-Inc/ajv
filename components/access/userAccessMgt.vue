@@ -310,6 +310,8 @@ interface AdminUser {
   email?: string;
   role?: string;
   is_active?: boolean;
+  last_login?: string | null;
+  created_at?: string | null;
   [key: string]: unknown;
 }
 
@@ -332,6 +334,7 @@ interface AdminResponse {
 // TODO: remove once stores/ are .ts
 interface AdminStoreShape {
   isSuperAdmin?: boolean;
+  admin?: { id: number } | null;
   getAllAdmins: () => Promise<AdminResponse>;
   updateAdmin: (id: number, data: Partial<AdminForm>) => Promise<AdminResponse>;
   createAdmin: (data: AdminForm) => Promise<AdminResponse>;

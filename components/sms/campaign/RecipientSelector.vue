@@ -70,7 +70,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm text-gray-600">Estimated Cost</p>
-              <p class="text-2xl font-bold cs-text">{{ estimatedCount * messageParts }} credits</p>
+              <p class="text-2xl font-bold cs-text">{{ (estimatedCount ?? 0) * (messageParts ?? 1) }} credits</p>
             </div>
           </div>
         </div>
@@ -171,7 +171,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm text-gray-600">Estimated Cost</p>
-              <p class="text-2xl font-bold cs-text">{{ localSelectedCustomers.length * messageParts }} credits</p>
+              <p class="text-2xl font-bold cs-text">{{ localSelectedCustomers.length * (messageParts ?? 1) }} credits</p>
             </div>
           </div>
         </div>
@@ -262,7 +262,7 @@
             </div>
             <div class="text-right">
               <p class="text-sm text-gray-600">Estimated Cost</p>
-              <p class="text-2xl font-bold cs-text">{{ customCount * messageParts }} credits</p>
+              <p class="text-2xl font-bold cs-text">{{ customCount * (messageParts ?? 1) }} credits</p>
             </div>
           </div>
         </div>
@@ -463,9 +463,9 @@ const parseLine = (line: string): Recipient | null => {
   parts = parts.map((p) => p.trim()).filter((p) => p.length > 0)
 
   if (parts.length >= 3) {
-    return { name: `${parts[0]} ${parts[1]}`.trim(), firstname: parts[0], lastname: parts[1], phone: parts[2] ?? '', contact: parts[2] }
+    return { name: `${parts[0] ?? ''} ${parts[1] ?? ''}`.trim(), firstname: parts[0] ?? '', lastname: parts[1] ?? '', phone: parts[2] ?? '', contact: parts[2] ?? '' }
   } else if (parts.length === 2) {
-    return { name: parts[0] ?? '', firstname: parts[0], lastname: '', phone: parts[1] ?? '', contact: parts[1] }
+    return { name: parts[0] ?? '', firstname: parts[0] ?? '', lastname: '', phone: parts[1] ?? '', contact: parts[1] ?? '' }
   } else if (parts.length === 1 && parts[0]) {
     return { name: parts[0], firstname: '', lastname: '', phone: parts[0], contact: parts[0] }
   }

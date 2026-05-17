@@ -564,7 +564,7 @@
                                 <p class="feedback-copy">How did this request feel from start to finish?</p>
                             </div>
                             <span v-if="selectedRequest.feedback?.created_at" class="feedback-date">
-                                {{ formatDate(selectedRequest.feedback.created_at) }}
+                                {{ formatDate(selectedRequest.feedback?.created_at) }}
                             </span>
                         </div>
 
@@ -683,16 +683,16 @@
                                 <span>Loading options…</span>
                             </div>
 
-                            <div v-else-if="paymentOptionsByRequest[selectedRequest.id]" class="fulfillment-options">
+                            <div v-else-if="selectedPaymentOptions" class="fulfillment-options">
                                 <!-- Pickup card -->
                                 <button
                                     type="button"
                                     class="fulfillment-option"
                                     :class="{
                                         'fulfillment-option--selected': selectedPaymentMethodByRequest[selectedRequest.id] === 'pickup',
-                                        'fulfillment-option--disabled': !paymentOptionsByRequest[selectedRequest.id].pickup.available
+                                        'fulfillment-option--disabled': !selectedPaymentOptions?.pickup?.available
                                     }"
-                                    :disabled="!paymentOptionsByRequest[selectedRequest.id].pickup.available"
+                                    :disabled="!selectedPaymentOptions?.pickup?.available"
                                     @click="choosePaymentMethod(selectedRequest.id, 'pickup')"
                                 >
                                     <div class="fulfillment-option-row">
@@ -703,29 +703,29 @@
                                             <div class="fulfillment-option-head">
                                                 <span class="fulfillment-option-title">Pickup</span>
                                                 <span class="fulfillment-option-price">
-                                                    <template v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available">
-                                                        GHS {{ paymentOptionsByRequest[selectedRequest.id].pickup.total.toFixed(2) }}
+                                                    <template v-if="selectedPaymentOptions?.pickup?.available">
+                                                        GHS {{ Number(selectedPaymentOptions?.pickup?.total ?? 0).toFixed(2) }}
                                                     </template>
                                                     <template v-else>—</template>
                                                 </span>
                                             </div>
-                                            <div v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available && paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy" class="fulfillment-option-meta">
-                                                <span>{{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.name }}</span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area">
-                                                    · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area }}
+                                            <div v-if="selectedPaymentOptions?.pickup?.available && selectedPaymentOptions?.pickup?.pharmacy" class="fulfillment-option-meta">
+                                                <span>{{ selectedPaymentOptions?.pickup?.pharmacy?.name }}</span>
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.area">
+                                                    · {{ selectedPaymentOptions?.pickup?.pharmacy?.area }}
                                                 </span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km != null">
-                                                    · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km }} km away
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">
+                                                    · {{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away
                                                 </span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.is_24_hours">
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours">
                                                     · Open 24 hours
                                                 </span>
-                                                <span v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at">
-                                                    · Open until {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at }}
+                                                <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at">
+                                                    · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}
                                                 </span>
                                             </div>
-                                            <div v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
-                                                {{ formatPickupReason(paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason) }}
+                                            <div v-else-if="selectedPaymentOptions?.pickup?.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
+                                                {{ formatPickupReason(selectedPaymentOptions?.pickup?.unavailable_reason) }}
                                             </div>
                                         </div>
                                     </div>
@@ -746,16 +746,16 @@
                                             <div class="fulfillment-option-head">
                                                 <span class="fulfillment-option-title">Delivery</span>
                                                 <span class="fulfillment-option-price">
-                                                    GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.total.toFixed(2) }}
+                                                    GHS {{ Number(selectedPaymentOptions?.delivery?.total ?? 0).toFixed(2) }}
                                                 </span>
                                             </div>
                                             <div class="fulfillment-option-meta">
-                                                <span>Delivery fee GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.fee.toFixed(2) }}</span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.distance_km != null">
-                                                    · {{ paymentOptionsByRequest[selectedRequest.id].delivery.distance_km }} km
+                                                <span>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</span>
+                                                <span v-if="selectedPaymentOptions?.delivery?.distance_km != null">
+                                                    · {{ selectedPaymentOptions?.delivery?.distance_km }} km
                                                 </span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes">
-                                                    · ~{{ paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes }} min
+                                                <span v-if="selectedPaymentOptions?.delivery?.eta_minutes">
+                                                    · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min
                                                 </span>
                                             </div>
                                         </div>
@@ -765,9 +765,9 @@
                         </div>
 
                         <!-- Fee credit toggle: shown when the request fee can be applied or returned -->
-                        <div v-if="paymentOptionsByRequest[selectedRequest.id]?.fee_applicable" class="fee-credit-picker">
+                        <div v-if="selectedPaymentOptions?.fee_applicable" class="fee-credit-picker">
                             <div class="fee-credit-header">
-                                <span class="fee-credit-label">GHS {{ parseFloat(paymentOptionsByRequest[selectedRequest.id].request_fee).toFixed(2) }} search fee</span>
+                                <span class="fee-credit-label">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</span>
                                 <span class="fee-credit-sub">How would you like to use it?</span>
                             </div>
                             <div class="fee-credit-options">
@@ -1111,6 +1111,7 @@ interface RequestDecision {
 interface RequestFeedback {
     rating?: number;
     comment?: string;
+    created_at?: string;
     [key: string]: unknown;
 }
 
@@ -1152,16 +1153,28 @@ interface OrderRequest {
 interface PaymentOptions {
     selected?: string;
     fee_applicable?: boolean;
+    request_fee?: number | string | null;
     pickup?: {
         available?: boolean;
         total?: number | string | null;
         total_fee_applied?: number | string | null;
         unavailable_reason?: string;
+        pharmacy?: {
+            name?: string;
+            area?: string;
+            distance_km?: number | null;
+            is_24_hours?: boolean;
+            closes_at?: string;
+            [key: string]: unknown;
+        };
         [key: string]: unknown;
     };
     delivery?: {
         total?: number | string | null;
         total_fee_applied?: number | string | null;
+        fee?: number | string | null;
+        distance_km?: number | null;
+        eta_minutes?: number | null;
         [key: string]: unknown;
     };
     [key: string]: unknown;
@@ -1219,6 +1232,10 @@ const paymentOptionsByRequest = ref<Record<string | number, PaymentOptions>>({})
 const paymentOptionsLoading = ref<Record<string | number, boolean>>({})
 const selectedPaymentMethodByRequest = ref<Record<string | number, string>>({})
 const applyFeeByRequest = ref<Record<string | number, boolean>>({})
+// Convenience accessor — avoids repeated index lookups that vue-tsc cannot narrow through v-else-if guards
+const selectedPaymentOptions = computed<PaymentOptions | undefined>(
+    () => selectedRequest.value != null ? paymentOptionsByRequest.value[selectedRequest.value.id] : undefined
+)
 const setApplyFee = (requestId: string | number, value: boolean): void => {
     applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: value }
 }

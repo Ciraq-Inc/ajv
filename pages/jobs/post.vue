@@ -243,8 +243,8 @@
                   >{{ job.status }}</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5">{{ job.location }} · {{ job.employmentType }}</p>
-                <p v-if="job.expiresAt" class="text-xs mt-0.5" :class="isExpired(job.expiresAt) ? 'text-red-500' : 'text-slate-400'">
-                  Deadline: {{ formatDate(job.expiresAt) }}{{ isExpired(job.expiresAt) ? ' (expired)' : '' }}
+                <p v-if="job.expiresAt" class="text-xs mt-0.5" :class="isExpired(job.expiresAt as string | null | undefined) ? 'text-red-500' : 'text-slate-400'">
+                  Deadline: {{ formatDate(job.expiresAt as string | null | undefined) }}{{ isExpired(job.expiresAt as string | null | undefined) ? ' (expired)' : '' }}
                 </p>
                 <p v-if="job.salaryMin || job.salaryMax" class="text-xs text-slate-400 mt-0.5">
                   GHS {{ job.salaryMin ?? '—' }} – {{ job.salaryMax ?? '—' }}
@@ -394,7 +394,7 @@ const openCount = computed<number>(() => myJobs.value.filter((j) => j.status ===
 const closedCount = computed<number>(() => myJobs.value.filter((j) => j.status === 'closed').length)
 const expiringSoonCount = computed<number>(() => {
   const cutoff = Date.now() + 7 * 24 * 60 * 60 * 1000
-  return myJobs.value.filter((j) => j.status === 'open' && j.expiresAt && new Date(j.expiresAt).getTime() < cutoff).length
+  return myJobs.value.filter((j) => j.status === 'open' && j.expiresAt && new Date(j.expiresAt as string).getTime() < cutoff).length
 })
 
 const formatDate = (iso: string | null | undefined): string => {

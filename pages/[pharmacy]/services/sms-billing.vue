@@ -10,7 +10,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
       <div class="lg:col-span-2">
         <BalanceCard
-          :balance-data="balance"
+          v-bind="balance ? { balanceData: balance } : {}"
           :show-actions="true"
           :show-top-up="false"
           @refresh="fetchBalance"
@@ -343,10 +343,11 @@ const calculateStats = (): void => {
   todayStats.value = { topupAmount: todayTopupAmount, deductionAmount: todayDeductionAmount, topups: todayTopups }
 }
 
-const handleTopUpSuccess = async (data: TopUpSuccessData): Promise<void> => {
-  console.log('Top-up successful:', data)
+const handleTopUpSuccess = async (data: unknown): Promise<void> => {
+  const topUpData = data as TopUpSuccessData
+  console.log('Top-up successful:', topUpData)
   showTopUpModal.value = false
-  alert(`Successfully added GH₵${data.amount_credited.toFixed(2)} to your account!`)
+  alert(`Successfully added GH₵${topUpData.amount_credited.toFixed(2)} to your account!`)
   await Promise.all([
     fetchBalance(),
     fetchTransactions({ money_only: true }),

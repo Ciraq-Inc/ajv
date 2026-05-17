@@ -56,7 +56,7 @@
             <input
               v-else
               v-model="editedSettings[setting.key]"
-              :type="setting.inputType"
+              :type="setting.inputType ?? 'text'"
               class="form-control"
               :step="setting.step || '1'"
             />
@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import type { InputTypeHTMLAttribute } from 'vue'
 import { createPlatformSettingsService } from '~/services/platformSettings/platformSettingsService'
 import type { PlatformSetting, PlatformSettingUpdate, ApiEnvelope } from '~/services/types'
 
@@ -98,7 +99,7 @@ interface SettingDefinition {
   label: string;
   help: string;
   type: 'number' | 'string' | 'boolean' | 'select';
-  inputType?: string;
+  inputType?: InputTypeHTMLAttribute;
   step?: string;
   defaultValue: string;
   options?: SettingOption[];

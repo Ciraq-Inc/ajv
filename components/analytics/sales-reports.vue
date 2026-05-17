@@ -402,7 +402,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="item in salesItems" :key="item.company_id" class="hover:bg-gray-50">
+              <tr v-for="item in salesItems" :key="item.company_id ?? ''" class="hover:bg-gray-50">
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                   {{ item.company_name }}
                 </td>
@@ -419,10 +419,10 @@
                   {{ item.total_quantity || 0 }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-semibold">
-                  ${{ parseFloat(item.total_value || 0).toFixed(2) }}
+                  ${{ parseFloat(String(item.total_value ?? 0)).toFixed(2) }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                  {{ item.avg_selling_price ? parseFloat(item.avg_selling_price).toFixed(2) : '0.00' }}
+                  {{ item.avg_selling_price ? parseFloat(String(item.avg_selling_price)).toFixed(2) : '0.00' }}
                 </td>
               </tr>
             </tbody>
@@ -561,8 +561,8 @@
                     </td>
                     <td class="px-3 py-2 text-xs text-gray-700">{{ item.customer_name || 'N/A' }}</td>
                     <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{ item.product_qty }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{ parseFloat(item.selling_price || 0).toFixed(2) }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-green-600 font-semibold">{{ parseFloat(item.line_total || 0).toFixed(2) }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{ parseFloat(String(item.selling_price ?? 0)).toFixed(2) }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-green-600 font-semibold">{{ parseFloat(String(item.line_total ?? 0)).toFixed(2) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -580,7 +580,7 @@
           <button @click="showCompanyModal = false" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
             Close
           </button>
-          <button @click="exportCompanyData(selectedCompanyDetails)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button @click="selectedCompanyDetails && exportCompanyData(selectedCompanyDetails)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
             Export Data
           </button>
         </div>
@@ -873,7 +873,7 @@
                 <td class="px-4 py-3 whitespace-nowrap text-xs">
                   <input
                     type="checkbox"
-                    :checked="selectedPharmacies[String(pharmacy.company_id ?? '')]"
+                    :checked="selectedPharmacies[String(pharmacy.company_id ?? '')] ?? false"
                     @change="selectedPharmacies[String(pharmacy.company_id ?? '')] = !selectedPharmacies[String(pharmacy.company_id ?? '')]"
                     class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
@@ -916,7 +916,7 @@
         <div class="ml-3">
           <h3 class="text-sm font-medium text-red-800">Error</h3>
           <div class="mt-2 text-sm text-red-700">{{ error }}</div>
-          <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800">
+          <button @click="() => { void fetchData() }" class="mt-2 text-sm text-red-600 hover:text-red-800">
             Try again
           </button>
         </div>
@@ -1581,7 +1581,7 @@ const fetchQuarterlyData = async (forceRefresh = false): Promise<void> => {
 
     if (data.success) {
       const envelope = data as unknown as { summary: unknown; pharmacies?: QuarterlyPharmacy[]; message?: string }
-      quarterlyData.value = envelope.summary
+      quarterlyData.value = envelope.summary as Record<string, { transactions?: number; [key: string]: unknown } | undefined> | null
       quarterlyPharmacies.value = envelope.pharmacies ?? []
     } else {
       throw new Error(data.message ?? 'Failed to fetch quarterly data')

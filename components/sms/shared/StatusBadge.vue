@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const label = computed<string>(() => getStatusLabel(props.status))
-const colorClass = computed<string>(() => getStatusColorClass(props.status))
+const colorClass = computed<string>(() => getStatusColorClass(props.status) ?? 'bg-gray-100 text-gray-800 border-gray-300')
 
 const dotColorClass = computed<string>(() => {
   const baseClass = colorClass.value

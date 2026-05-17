@@ -77,22 +77,22 @@
                 <tr v-for="(company, index) in filteredCompanies" :key="String(company.company_id ?? index)">
                   <td class="row-number">{{ index + 1 }}</td>
                   <td class="company-name">{{ company.company_name }}</td>
-                  <td>{{ formatNumber(company.inventory.total_products) }}</td>
-                  <td>{{ formatNumber(company.inventory.total_units) }}</td>
-                  <td>GH₵ {{ formatNumber(company.valuation.cost_value) }}</td>
-                  <td>GH₵ {{ formatNumber(company.valuation.selling_value) }}</td>
-                  <td class="profit">GH₵ {{ formatNumber(company.valuation.potential_profit) }}</td>
-                 
+                  <td>{{ formatNumber(company.inventory?.total_products) }}</td>
+                  <td>{{ formatNumber(company.inventory?.total_units) }}</td>
+                  <td>GH₵ {{ formatNumber(company.valuation?.cost_value) }}</td>
+                  <td>GH₵ {{ formatNumber(company.valuation?.selling_value) }}</td>
+                  <td class="profit">GH₵ {{ formatNumber(company.valuation?.potential_profit) }}</td>
+
                   <td>
                     <div class="alert-badges">
-                      <span v-if="company.stock_health.out_of_stock > 0" class="badge critical">
-                        {{ company.stock_health.out_of_stock }} Out
+                      <span v-if="(company.stock_health?.out_of_stock ?? 0) > 0" class="badge critical">
+                        {{ company.stock_health?.out_of_stock }} Out
                       </span>
-                      <span v-if="company.stock_health.low_stock > 0" class="badge warning">
-                        {{ company.stock_health.low_stock }} Low
+                      <span v-if="(company.stock_health?.low_stock ?? 0) > 0" class="badge warning">
+                        {{ company.stock_health?.low_stock }} Low
                       </span>
-                      <span v-if="company.stock_health.expiring_soon > 0" class="badge info">
-                        {{ company.stock_health.expiring_soon }} Exp
+                      <span v-if="(company.stock_health?.expiring_soon ?? 0) > 0" class="badge info">
+                        {{ company.stock_health?.expiring_soon }} Exp
                       </span>
                     </div>
                   </td>
@@ -151,11 +151,11 @@
                     <strong>{{ product.product_name }}</strong>
                     <span v-if="product.strength" class="strength">{{ product.strength }}</span>
                   </td>
-                  <td>{{ formatNumber(product.performance.total_quantity) }}</td>
-                  <td>GH₵ {{ formatNumber(product.performance.total_revenue) }}</td>
-                  <td class="profit">GH₵ {{ formatNumber(product.performance.total_profit) }}</td>
-                  <td>{{ product.performance.profit_margin }}%</td>
-                  <td>{{ product.distribution.company_count }}</td>
+                  <td>{{ formatNumber(product.performance?.total_quantity) }}</td>
+                  <td>GH₵ {{ formatNumber(product.performance?.total_revenue) }}</td>
+                  <td class="profit">GH₵ {{ formatNumber(product.performance?.total_profit) }}</td>
+                  <td>{{ product.performance?.profit_margin }}%</td>
+                  <td>{{ product.distribution?.company_count }}</td>
                 </tr>
               </tbody>
             </table>
@@ -198,26 +198,26 @@
               <tbody>
                 <tr v-for="alert in alertsList" :key="`${alert.product_id ?? ''}-${alert.company?.id ?? ''}`">
                   <td>
-                    <span class="severity-badge" :class="alert.alert.severity">
-                      {{ alert.alert.severity }}
+                    <span class="severity-badge" :class="alert.alert?.severity">
+                      {{ alert.alert?.severity }}
                     </span>
                   </td>
                   <td class="product-name">
-                    <strong>{{ alert.product.name }}</strong>
-                    <span v-if="alert.product.strength" class="strength">{{ alert.product.strength }}</span>
+                    <strong>{{ alert.product?.name }}</strong>
+                    <span v-if="alert.product?.strength" class="strength">{{ alert.product?.strength }}</span>
                   </td>
-                  <td>{{ alert.company.name }}</td>
-                  <td :class="{ 'text-danger': alert.stock.current === 0 }">
-                    {{ alert.stock.current }}
+                  <td>{{ alert.company?.name }}</td>
+                  <td :class="{ 'text-danger': alert.stock?.current === 0 }">
+                    {{ alert.stock?.current }}
                   </td>
-                  <td>{{ alert.stock.reorder_level }}</td>
+                  <td>{{ alert.stock?.reorder_level }}</td>
                   <td>{{ formatDate(alert.expiry?.date) }}</td>
                   <td :class="getExpiryClass(alert.expiry?.days_remaining)">
                     {{ alert.expiry?.days_remaining || 'N/A' }}
                   </td>
                   <td>
-                    <span class="alert-type-badge" :class="alert.alert.type.toLowerCase()">
-                      {{ formatAlertType(alert.alert.type) }}
+                    <span class="alert-type-badge" :class="(alert.alert?.type ?? '').toLowerCase()">
+                      {{ formatAlertType(alert.alert?.type) }}
                     </span>
                   </td>
                 </tr>
@@ -283,23 +283,23 @@
               <tbody>
                 <tr v-for="product in productsList" :key="`${product.product_id ?? ''}-${product.company?.id ?? ''}`">
                   <td class="product-name">
-                    <strong>{{ product.product.brand_name }}</strong>
-                    <span v-if="product.product.strength" class="strength">
-                      {{ product.product.strength }}
+                    <strong>{{ product.product?.brand_name }}</strong>
+                    <span v-if="product.product?.strength" class="strength">
+                      {{ product.product?.strength }}
                     </span>
-                    <span class="unit">{{ product.product.unit }}</span>
+                    <span class="unit">{{ product.product?.unit }}</span>
                   </td>
-                  <td>{{ product.company.name }}</td>
-                  <td>{{ product.stock.quantity }}</td>
+                  <td>{{ product.company?.name }}</td>
+                  <td>{{ product.stock?.quantity }}</td>
                   <td>
-                    <span class="status-badge" :class="product.stock.status.toLowerCase()">
-                      {{ formatStatus(product.stock.status) }}
+                    <span class="status-badge" :class="(product.stock?.status ?? '').toLowerCase()">
+                      {{ formatStatus(product.stock?.status ?? '') }}
                     </span>
                   </td>
-                  <td>GH₵ {{ product.pricing.cost_price.toFixed(2) }}</td>
-                  <td>GH₵ {{ product.pricing.selling_price.toFixed(2) }}</td>
-                  <td>GH₵ {{ formatNumber(product.pricing.total_value) }}</td>
-                  <td>{{ product.stock.shelf_location || 'N/A' }}</td>
+                  <td>GH₵ {{ (product.pricing?.cost_price ?? 0).toFixed(2) }}</td>
+                  <td>GH₵ {{ (product.pricing?.selling_price ?? 0).toFixed(2) }}</td>
+                  <td>GH₵ {{ formatNumber(product.pricing?.total_value) }}</td>
+                  <td>{{ product.stock?.shelf_location || 'N/A' }}</td>
                   <td>
                     <div class="expiry-info">
                       <div>{{ formatDate(product.expiry?.expiry_date) }}</div>
@@ -712,8 +712,8 @@ const formatDate = (dateString: string | undefined): string => {
   })
 }
 
-const formatAlertType = (type: string): string => {
-  return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatAlertType = (type: string | undefined): string => {
+  return (type ?? '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
 const formatStatus = (status: string): string => {

@@ -26,7 +26,7 @@
       <button
         @click="$emit('fetch-stats')"
         class="btn-secondary"
-        :disabled="loading"
+        :disabled="loading ?? false"
         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.7rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-size: 0.78rem; font-weight: 500; color: #374151; cursor:pointer;"
       >
         <ChartBarIcon style="width: 0.9rem; height: 0.9rem;" />
@@ -35,7 +35,7 @@
       <button
         @click="$emit('fetch-requests')"
         class="btn-secondary"
-        :disabled="loading"
+        :disabled="loading ?? false"
         style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.7rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-size: 0.78rem; font-weight: 500; color: #374151; cursor:pointer;"
       >
         <ArrowPathIcon :class="{ 'animate-spin': loading }" style="width: 0.9rem; height: 0.9rem;" />

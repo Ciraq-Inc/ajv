@@ -112,7 +112,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr v-for="(row, i) in rows" :key="row.company_id" class="hover:bg-gray-50">
+            <tr v-for="(row, i) in rows" :key="row.company_id ?? i" class="hover:bg-gray-50">
               <td class="px-4 py-3 text-gray-400">{{ i + 1 }}</td>
               <td class="px-4 py-3 font-medium text-gray-900">{{ row.company_name }}</td>
               <td class="px-4 py-3 text-gray-600">{{ row.company_id }}</td>

@@ -161,9 +161,9 @@
             <td>
               <div class="access-toggle">
                 <label class="switch">
-                  <input 
+                  <input
                     type="checkbox"
-                    :checked="user.allowed_online_access"
+                    :checked="user.allowed_online_access ?? false"
                     @change="toggleUserAccess(user)"
                     :disabled="updating === user.id"
                   >

@@ -263,7 +263,7 @@
                 <div
                   class="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
                   <img v-if="product.product_image_url" :src="product.product_image_url"
-                    :alt="product.product_description" class="h-full w-full object-cover" @error="handleImageError" />
+                    :alt="product.product_description ?? ''" class="h-full w-full object-cover" @error="handleImageError" />
                   <svg v-else class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -566,7 +566,7 @@
             <div v-if="autoUploadResults.results.failed.length > 0" class="mt-4">
               <h4 class="font-medium text-red-700 mb-2">Failed Uploads:</h4>
               <div class="max-h-32 overflow-y-auto bg-red-50 rounded-lg p-3">
-                <p v-for="item in autoUploadResults.results.failed" :key="item.productId" class="text-sm text-red-800">
+                <p v-for="item in autoUploadResults.results.failed" :key="item.productId ?? ''" class="text-sm text-red-800">
                   {{ item.fileName }}: {{ item.error }}
                 </p>
               </div>
@@ -578,7 +578,7 @@
                 <summary class="font-medium text-yellow-700 mb-2">Skipped Items ({{
                   autoUploadResults.results.skipped.length }})</summary>
                 <div class="max-h-32 overflow-y-auto bg-yellow-50 rounded-lg p-3 mt-2">
-                  <p v-for="item in autoUploadResults.results.skipped" :key="item.productId"
+                  <p v-for="item in autoUploadResults.results.skipped" :key="item.productId ?? ''"
                     class="text-sm text-yellow-800">
                     {{ item.fileName }}: {{ item.reason }}
                   </p>
@@ -698,7 +698,20 @@ const pageSize = ref<number>(50);
 const totalProducts = ref<number>(0);
 const totalPages = ref<number>(0);
 const syncingMasterProducts = ref<boolean>(false);
-const syncResult = ref<unknown>(null);
+
+interface MasterSyncResult {
+  run_id?: number | string | null;
+  inserted_count?: number | null;
+  updated_count?: number | null;
+  unchanged_count?: number | null;
+  failed_count?: number | null;
+  classifications_upserted?: number | null;
+  classification_links_inserted?: number | null;
+  classification_links_deleted?: number | null;
+  [key: string]: unknown;
+}
+
+const syncResult = ref<MasterSyncResult | null>(null);
 const syncError = ref<string>('');
 
 // Upload Modal State
@@ -916,7 +929,7 @@ const syncMasterProducts = async (): Promise<void> => {
       throw new Error(response.message ?? 'Master products sync failed');
     }
 
-    syncResult.value = response.data;
+    syncResult.value = response.data as MasterSyncResult | null;
     await refreshData();
   } catch (error) {
     console.error('Error syncing master products:', error);
@@ -1151,7 +1164,7 @@ const startAutoUpload = async (): Promise<void> => {
         const data = await masterProductsService.uploadImage(formData);
 
         if (data.success) {
-          results.success.push({ productId, fileName: file.name, imageUrl: data.imageUrl });
+          results.success.push({ productId, fileName: file.name, ...(data.imageUrl != null && { imageUrl: data.imageUrl }) });
         } else if (data.error?.includes('not found')) {
           results.skipped.push({ productId, fileName: file.name, reason: 'Product not found in database' });
         } else {

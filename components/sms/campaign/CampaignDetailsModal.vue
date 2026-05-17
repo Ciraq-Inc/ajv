@@ -454,7 +454,7 @@ const loadCampaignDetails = async (): Promise<void> => {
 const loadStats = async (): Promise<void> => {
   loadingStats.value = true
   try {
-    const response = await fetchCampaignStats(props.campaignId) as { data?: CampaignStats }
+    const response = await fetchCampaignStats(props.campaignId ?? '') as { data?: CampaignStats }
     stats.value = response?.data ?? {}
   } catch (err) {
     console.error('Failed to load stats:', err)
@@ -467,7 +467,7 @@ const loadStats = async (): Promise<void> => {
 const loadLogs = async (): Promise<void> => {
   loadingLogs.value = true
   try {
-    const response = await fetchCampaignLogs(props.campaignId) as { data?: CampaignLog[] } | CampaignLog[]
+    const response = await fetchCampaignLogs(props.campaignId ?? '') as { data?: CampaignLog[] } | CampaignLog[]
     logs.value = (Array.isArray(response) ? response : response?.data) ?? []
   } catch (err) {
     console.error('Failed to load logs:', err)

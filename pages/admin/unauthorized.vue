@@ -25,7 +25,7 @@
           <div class="flex justify-between">
             <dt class="text-sm text-gray-600">Name:</dt>
             <dd class="text-sm font-medium text-gray-900">
-              {{ adminStore.admin.fname }} {{ adminStore.admin.lname }}
+              {{ adminFullName }}
             </dd>
           </div>
           <div class="flex justify-between">
@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useAdminStore } from '~/stores/admin';
 
 // Define layout
@@ -88,6 +89,12 @@ definePageMeta({
 
 const adminStore = useAdminStore();
 const router = useRouter();
+
+// TODO(ts): admin store is untyped JS; cast to include fname/lname fields
+const adminFullName = computed<string>(() => {
+  const admin = adminStore.admin as { fname?: string; lname?: string } | null | undefined
+  return [admin?.fname, admin?.lname].filter(Boolean).join(' ')
+})
 
 const goBack = (): void => {
   router.back();

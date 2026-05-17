@@ -38,7 +38,7 @@
     <!-- Companies Grid -->
     <div v-if="!isLoading && companies.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
       <div
-        v-for="company in companies" :key="company.company_id"
+        v-for="company in companies" :key="company.company_id ?? ''"
         class="flex flex-col gap-4 rounded-xl border bg-white shadow-sm p-5 transition-all hover:shadow-md"
         :class="isActiveCompany(company) ? 'border-[#c9a8f0]' : 'border-zinc-200'"
       >

@@ -312,11 +312,13 @@ interface MessageLog {
   error_message?: string | null
 }
 
+type DialogType = 'warning' | 'danger' | 'info' | 'success' | 'error'
+
 interface ConfirmDialogState {
   isOpen: boolean
   title: string
   message: string
-  type: string
+  type: DialogType
   loading: boolean
   action: string | null
   error: string | null

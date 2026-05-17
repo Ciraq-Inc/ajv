@@ -88,7 +88,7 @@
         <div class="flex items-start gap-2">
           <input
             type="checkbox"
-            :checked="selectedQuarters[`q${quarter}`]"
+            :checked="selectedQuarters[`q${quarter}`] ?? false"
             @change="selectedQuarters[`q${quarter}`] = !selectedQuarters[`q${quarter}`]"
             class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 flex-shrink-0"
           />
@@ -96,7 +96,7 @@
             <p class="text-sm font-semibold text-gray-800">{{ getQuarterName(quarter) }}</p>
             <p class="text-xs text-gray-500 mt-1">{{ getQuarterDates(quarter) }}</p>
             <div v-if="quarterlyData[`q${quarter}`]" class="mt-2 text-xs text-gray-700">
-              <p><strong>{{ quarterlyData[`q${quarter}`].transactions || 0 }}</strong> txns</p>
+              <p><strong>{{ quarterlyData?.[`q${quarter}`]?.transactions || 0 }}</strong> txns</p>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@
               <td class="px-6 py-4">
                 <input
                   type="checkbox"
-                  :checked="selectedPharmacies[pharmacy.company_id]"
+                  :checked="selectedPharmacies[pharmacy.company_id] ?? false"
                   @change="togglePharmacy(pharmacy.company_id)"
                   class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                 />
@@ -226,7 +226,7 @@ const quarterlyFilters = ref<{ year: string; date_field: string }>({
   date_field: 'actual_date',
 })
 
-const selectedQuarters = ref<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean }>({
+const selectedQuarters = ref<Record<string, boolean>>({
   q1: true,
   q2: true,
   q3: true,

@@ -58,8 +58,8 @@
                 v-for="d in deliveries"
                 :key="d.id"
                 style="border-bottom: 1px solid #f3f4f6; transition: background 0.15s;"
-                @mouseover="$event.currentTarget.style.background='#f9fafb'"
-                @mouseleave="$event.currentTarget.style.background=''"
+                @mouseover="($event.currentTarget as HTMLElement | null)?.style && (($event.currentTarget as HTMLElement).style.background='#f9fafb')"
+                @mouseleave="($event.currentTarget as HTMLElement | null)?.style && (($event.currentTarget as HTMLElement).style.background='')"
               >
                 <td style="padding: 0.75rem 1rem; font-weight: 500; color: #111827;">{{ d.request_number || `#${d.request_id}` }}</td>
                 <td style="padding: 0.75rem 1rem; color: #374151; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.delivery_address }}</td>
@@ -104,6 +104,7 @@ interface StatusOption {
 interface FetchParams {
   limit: number
   status?: string
+  [key: string]: unknown
 }
 
 const { get } = useApi()

@@ -34,7 +34,7 @@
           <div v-for="item in items" :key="item.id"
             class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3">
             <div class="flex items-center mb-2 sm:mb-0 w-full sm:w-auto">
-              <img v-if="item.image" :src="item.image" :alt="item.name" class="w-12 h-12 mr-3 object-cover rounded" />
+              <img v-if="item.image" :src="String(item.image)" :alt="String(item.name ?? '')" class="w-12 h-12 mr-3 object-cover rounded" />
               <div>
                 <h3 class="font-semibold text-sm">{{ item.name }}</h3>
                 <p v-if="!pharmacyStore.pharmacyData?.hide_prices" class="text-sm text-gray-500">GHS {{
@@ -44,16 +44,16 @@
 
             <div class="flex items-center justify-between w-full sm:w-auto">
               <div class="flex items-center border rounded overflow-hidden">
-                <button @click="updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1"
+                <button @click="updateQuantity(Number(item.id), item.quantity - 1)" :disabled="item.quantity <= 1"
                   class="px-3 py-1 bg-gray-100 disabled:opacity-50">
                   -
                 </button>
                 <span class="px-3 py-1 border-x">{{ item.quantity }}</span>
-                <button @click="updateQuantity(item.id, item.quantity + 1)" class="px-3 py-1 bg-gray-100">
+                <button @click="updateQuantity(Number(item.id), item.quantity + 1)" class="px-3 py-1 bg-gray-100">
                   +
                 </button>
               </div>
-              <button @click="removeFromCart(item.id)" class="ml-4 text-red-500 hover:text-red-700 p-1">
+              <button @click="removeFromCart(Number(item.id))" class="ml-4 text-red-500 hover:text-red-700 p-1">
                 <i class="ri-delete-bin-line text-lg"></i>
               </button>
             </div>
@@ -171,8 +171,9 @@ const cartStore = useCartStore() as unknown as CartStoreShape;
 const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
 const userStore = useUserStore() as unknown as UserStoreShape;
 
-// Get reactive store state
-const { items, cartTotal } = storeToRefs(cartStore as ReturnType<typeof useCartStore>);
+// Get reactive store state (use the typed CartStoreShape directly to avoid cast errors)
+const items = computed<CartItem[]>(() => cartStore.items)
+const cartTotal = computed<number>(() => cartStore.cartTotal)
 const { removeFromCart, updateQuantity } = cartStore;
 
 // Emits

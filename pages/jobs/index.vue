@@ -194,9 +194,9 @@ interface JobOrSeeker {
 
 // TODO: remove once composables/ are .ts
 const { openJobs, loading, error, fetchJobs } = useJobs() as unknown as {
-  openJobs: { value: JobOrSeeker[] }
-  loading: { value: boolean }
-  error: { value: string | null }
+  openJobs: import('vue').Ref<JobOrSeeker[]>
+  loading: import('vue').Ref<boolean>
+  error: import('vue').Ref<string | null>
   fetchJobs: (params?: { search?: string; status?: string }) => Promise<void>
 }
 

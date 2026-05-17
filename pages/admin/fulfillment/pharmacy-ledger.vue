@@ -8,7 +8,7 @@
       </div>
       <div class="header-actions">
         <button class="btn-secondary header-btn--back" @click="goBack">Back to Orders</button>
-        <button class="btn-primary header-btn--refresh" :disabled="loading" @click="loadLedger">
+        <button class="btn-primary header-btn--refresh" :disabled="loading" @click="() => { void loadLedger() }">
           {{ loading ? 'Refreshing...' : 'Refresh Data' }}
         </button>
       </div>
@@ -54,9 +54,9 @@
       <div class="filter-group">
         <span class="filter-label">Custom Dates:</span>
         <div class="date-pickers">
-          <input v-model="fromDate" type="date" class="date-input" @change="loadLedger" />
+          <input v-model="fromDate" type="date" class="date-input" @change="() => { void loadLedger() }" />
           <span class="date-sep">to</span>
-          <input v-model="toDate" type="date" class="date-input" @change="loadLedger" />
+          <input v-model="toDate" type="date" class="date-input" @change="() => { void loadLedger() }" />
         </div>
       </div>
     </div>
@@ -75,11 +75,11 @@
         <div class="pharmacy-list">
           <button
             v-for="pharmacy in filteredPharmacies"
-            :key="pharmacy.pharmacy_id"
+            :key="pharmacy.pharmacy_id ?? ''"
             type="button"
             class="pharmacy-list-item"
             :class="{ active: selectedPharmacyId === pharmacy.pharmacy_id }"
-            @click="selectPharmacy(pharmacy.pharmacy_id)"
+            @click="selectPharmacy(pharmacy.pharmacy_id ?? null)"
           >
             <div class="pli-main">
               <span class="pli-name">{{ pharmacy.pharmacy_name }}</span>
@@ -172,7 +172,7 @@
             </tbody>
 
             <tbody v-else>
-              <tr v-for="tx in transactions" :key="tx.transaction_id">
+              <tr v-for="tx in transactions" :key="(tx.transaction_id as PropertyKey | null | undefined) ?? ''">
                 <td class="col-date cell-muted">{{ formatDateTimeCompact(tx.transaction_date) }}</td>
                 <td class="col-ref">
                   <span class="ref-code">{{ tx.request_number }}</span>
@@ -211,7 +211,15 @@ interface PharmacyRow {
 }
 
 interface TransactionRow {
-  [key: string]: unknown
+  transaction_id?: number | string | null;
+  transaction_date?: string | null;
+  request_number?: string | null;
+  customer_name?: string | null;
+  product_name?: string | null;
+  quantity?: number | null;
+  request_status?: string | null;
+  amount?: number | null;
+  [key: string]: unknown;
 }
 
 interface LedgerSummary {
@@ -343,11 +351,12 @@ const loadLedger = async ({ pharmacyId = null }: { pharmacyId?: number | null } 
   loading.value = true
   error.value = ''
   try {
+    const resolvedPharmacyId = pharmacyId ?? selectedPharmacyId.value
     const res = await orderRequestsService.getPharmacyLedger({
-      pharmacyId: pharmacyId ?? selectedPharmacyId.value ?? undefined,
-      startDate: fromDate.value || undefined,
-      endDate: toDate.value || undefined,
       limit: 50,
+      ...(resolvedPharmacyId != null && { pharmacyId: resolvedPharmacyId }),
+      ...(fromDate.value && { startDate: fromDate.value }),
+      ...(toDate.value && { endDate: toDate.value }),
     })
     ledger.value = (res.data as unknown as LedgerData) ?? { summary: {}, pharmacies: [], selected_pharmacy: null, transactions: [] }
 

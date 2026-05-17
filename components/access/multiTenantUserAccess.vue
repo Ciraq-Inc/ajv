@@ -171,9 +171,9 @@
             <td>
               <div class="access-toggle">
                 <label class="switch">
-                  <input 
+                  <input
                     type="checkbox"
-                    :checked="user.allowed_online_access"
+                    :checked="user.allowed_online_access ?? false"
                     @change="toggleUserAccess(user)"
                     :disabled="updating === user.id"
                   >
@@ -366,6 +366,7 @@ interface TenantUser {
   company_id?: number;
   company_name?: string;
   last_login?: string;
+  created_at?: string;
   [key: string]: unknown;
 }
 

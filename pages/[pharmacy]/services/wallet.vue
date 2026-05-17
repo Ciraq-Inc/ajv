@@ -49,8 +49,8 @@
               <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(tx.created_at) }}</div>
             </div>
             <div class="text-right shrink-0">
-              <div class="text-sm font-semibold" :class="parseFloat(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600'">
-                {{ parseFloat(tx.amount) >= 0 ? '+' : '' }}GH₵{{ fmt(Math.abs(tx.amount)) }}
+              <div class="text-sm font-semibold" :class="parseFloat(String(tx.amount)) >= 0 ? 'text-green-600' : 'text-red-600'">
+                {{ parseFloat(String(tx.amount)) >= 0 ? '+' : '' }}GH₵{{ fmt(Math.abs(Number(tx.amount))) }}
               </div>
               <div class="text-xs text-gray-400 mt-0.5">Bal: GH₵{{ fmt(tx.balance_after) }}</div>
             </div>

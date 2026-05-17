@@ -284,7 +284,7 @@ const handleSubmit = async (): Promise<void> => {
     const { reference, amount, email, metadata } = initResponse.data
 
     await initializePayment(
-      { amount, email, reference, metadata },
+      { amount, email, reference, ...(metadata != null && { metadata: metadata as Record<string, unknown> }) },
       async (response: { reference: string }) => {
         try {
           const verifyResponse = await post('/api/sms-credits/paystack/verify', {

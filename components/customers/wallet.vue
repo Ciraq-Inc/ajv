@@ -94,7 +94,7 @@
 
             <!-- Transaction list -->
             <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
-                <article v-for="tx in transactions" :key="tx.id"
+                <article v-for="tx in transactions" :key="tx.id ?? ''"
                     class="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group gap-3 sm:gap-4"
                 >
                     <div class="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
@@ -116,7 +116,7 @@
                             class="text-[15px] font-black tabular-nums tracking-tight"
                             :class="getTransactionDirection(tx) === 'credit' ? 'text-[#1d9154]' : 'text-red-600'"
                         >
-                            {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
+                            {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(String(tx.amount ?? 0)).toFixed(2) }}
                         </strong>
                         <span v-if="getTransactionNote(tx)" class="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-zinc-50 text-zinc-500 border-zinc-200 shadow-sm max-w-[150px] sm:max-w-xs truncate" :title="getTransactionNote(tx)">
                             {{ getTransactionNote(tx) }}

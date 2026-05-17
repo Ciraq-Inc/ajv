@@ -139,7 +139,7 @@
                     aria-autocomplete="list"
                     aria-controls="profile-address-suggestions"
                     :aria-expanded="addressSuggestions.length > 0"
-                    :aria-activedescendant="addressActiveIndex >= 0 ? `profile-address-option-${addressActiveIndex}` : undefined"
+                    :aria-activedescendant="addressActiveIndex >= 0 ? `profile-address-option-${addressActiveIndex}` : ''"
                     autocomplete="street-address"
                     inputmode="text"
                     @keydown="onAddressKeydown"
@@ -250,6 +250,7 @@ interface ProfileData {
 // TODO: remove once stores/ are .ts
 interface UserStoreShape {
   currentUser?: { fname?: string; lname?: string; email?: string; phone?: string };
+  userPhoneNumber?: string;
   getProfile: () => Promise<ProfileData | null>;
   updateProfile: (data: {
     fname: string;

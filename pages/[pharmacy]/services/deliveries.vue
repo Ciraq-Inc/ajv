@@ -219,7 +219,7 @@ const doAction = async (id: number | string, path: string, body: Record<string, 
     const res = await companyStore.makeAuthRequest(`/api/pharmacy/deliveries/${String(id)}/${path}`, {
       method: 'POST',
       headers: hasBody ? { 'Content-Type': 'application/json' } : {},
-      body: hasBody ? JSON.stringify(body) : undefined,
+      ...(hasBody && { body: JSON.stringify(body) }),
     })
     if (res.success) {
       await fetchAll()

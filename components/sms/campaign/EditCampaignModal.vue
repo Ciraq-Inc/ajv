@@ -272,7 +272,7 @@ const loadCampaign = async (): Promise<void> => {
     loading.value = true
     loadError.value = null
 
-    const response = await fetchCampaign(props.campaignId) as {
+    const response = await fetchCampaign(props.campaignId ?? '') as {
       data?: CampaignRecord
       campaign?: CampaignRecord
     }
@@ -337,7 +337,7 @@ const saveChanges = async (): Promise<void> => {
   saving.value = true
   try {
     updateRecipients()
-    await updateCampaign(props.campaignId, {
+    await updateCampaign(props.campaignId ?? '', {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
@@ -364,14 +364,14 @@ const saveAndSend = async (): Promise<void> => {
   saving.value = true
   try {
     updateRecipients()
-    await updateCampaign(props.campaignId, {
+    await updateCampaign(props.campaignId ?? '', {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
       filters: recipients.value.filters,
       customer_ids: recipients.value.customer_ids,
     })
-    await startCampaign(props.campaignId)
+    await startCampaign(props.campaignId ?? '')
     alert('Campaign updated and started! SMS messages are being sent.')
     emit('updated')
     close()

@@ -19,7 +19,7 @@
       :event="{
         type: 'warning',
         title: 'Request closing soon',
-        description: `Your request ${expiringOrder.request_number || ''} hasn't been matched and closes in ${minutesRemaining(expiringOrder.expires_at)} min. We're still searching.`,
+        description: `Your request ${expiringOrder.request_number || ''} hasn't been matched and closes in ${minutesRemaining(expiringOrder.expires_at ?? '')} min. We're still searching.`,
         actionLabel: 'View',
         id: expiringOrder.id
       }"
@@ -505,7 +505,7 @@ const cancelOrder = (orderId: string): void => {
   showCancelModal.value = true
 }
 
-const handleCancellationSuccess = (orderId: string): void => {
+const handleCancellationSuccess = (orderId: string | undefined): void => {
   const orderIndex = orders.value.findIndex(order => order.orderId === orderId)
   if (orderIndex !== -1) {
     const order = orders.value[orderIndex]

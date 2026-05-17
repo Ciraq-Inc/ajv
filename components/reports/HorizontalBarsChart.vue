@@ -8,11 +8,11 @@
       <slot name="meta" />
     </div>
 
-    <div v-if="items.length" class="space-y-3">
+    <div v-if="items?.length" class="space-y-3">
       <div v-for="item in normalizedItems" :key="item.label" class="space-y-1.5">
         <div class="flex items-center justify-between gap-4 text-sm">
           <p class="truncate font-medium text-[#332046]">{{ item.label }}</p>
-          <p class="shrink-0 text-xs font-semibold text-[#5b4076]">{{ formatter(item.value) }}</p>
+          <p class="shrink-0 text-xs font-semibold text-[#5b4076]">{{ formatter?.(item.value) ?? item.value }}</p>
         </div>
         <div class="h-2.5 overflow-hidden rounded-full bg-[#efe9f6]">
           <div

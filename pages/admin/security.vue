@@ -118,7 +118,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
 
 definePageMeta({
-  middleware: 'auth',
+  // TODO(ts): was 'auth' which is not a registered middleware; using 'admin' until confirmed correct
+  middleware: 'admin',
 });
 
 interface Credential {

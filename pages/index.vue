@@ -847,7 +847,7 @@ const scrollToHowItWorks = (): void => {
   void navigateTo('/#how-it-works')
 }
 
-const handleLoginSuccess = async (payload: LoginPayload = {}): Promise<void> => {
+const handleLoginSuccess = async (payload: LoginPayload | { destination: string; action: string } = {}): Promise<void> => {
   showLoginModal.value = false
   if (payload.destination === 'new' || hasHomepageRequestDraft()) {
     await navigateTo('/customer?tab=new')

@@ -401,7 +401,7 @@
                         GHS {{ formatPrice(orderDetails.total_amount) }}
                       </td>
                     </tr>
-                    <tr v-if="orderDetails.total_discount > 0">
+                    <tr v-if="(orderDetails.total_discount ?? 0) > 0">
                       <td colspan="5" class="px-4 py-2 text-sm text-gray-500 text-right">
                         Total Discount:
                       </td>

@@ -224,7 +224,7 @@
                 <p class="text-sm font-semibold text-zinc-900">{{ item.product_name }}</p>
                 <p class="text-xs text-zinc-500">Qty: {{ item.quantity }} · GHS {{ formatAmount(item.marked_up_price || item.unit_price || 0) }}</p>
               </div>
-              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total || ((item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}</p>
+              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total || (Number(item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}</p>
             </div>
           </div>
 
@@ -578,7 +578,7 @@ const loadMoreOrders = async (): Promise<void> => {
 // View order details
 const viewOrder = async (order: MergedStoreItem): Promise<void> => {
   try {
-    const details = await userStore.getOrderDetails(order.order_id, order.company_id);
+    const details = await userStore.getOrderDetails(order.order_id ?? '', order.company_id);
     selectedOrder.value = details;
   } catch (err) {
     console.error('Error loading order details:', err);
@@ -595,7 +595,7 @@ const performCancel = async (): Promise<void> => {
   const { order_id, company_id } = pendingCancelOrder.value;
   isCancelling.value = true;
   try {
-    await userStore.cancelOrder(order_id, company_id);
+    await userStore.cancelOrder(order_id ?? '', company_id);
     pendingCancelOrder.value = null;
     showToast('Order cancelled');
     void loadOrders({ silent: true });

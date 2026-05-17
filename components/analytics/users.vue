@@ -129,7 +129,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="company in summaryData" :key="company.company_id" class="hover:bg-gray-50">
+            <tr v-for="company in summaryData" :key="company.company_id ?? ''" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
@@ -211,7 +211,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
+              <tr v-for="user in users" :key="user.id ?? ''" class="hover:bg-gray-50">
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="ml-3">
@@ -307,17 +307,12 @@ interface AdminStoreShape {
   makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
 }
 
-// TODO: remove once composables/ are .ts
-interface ApiInstance {
-  [key: string]: unknown;
-}
-
 interface ReportsServiceShape {
   exportUsersCsv: () => Promise<Blob>;
 }
 
 const adminStore = useAdminStore() as unknown as AdminStoreShape
-const reportsService = createReportsExportService(useApi() as unknown as ApiInstance) as unknown as ReportsServiceShape
+const reportsService = createReportsExportService(useApi()) as unknown as ReportsServiceShape
 
 // Reactive data
 const loading = ref<boolean>(false)

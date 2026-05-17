@@ -12,7 +12,7 @@
             v-if="pharmacyStore.pharmacyData.logo"
             :src="pharmacyStore.pharmacyData.logo"
             class="h-7 w-7 rounded-full object-cover flex-shrink-0 border border-gray-100"
-            :alt="pharmacyStore.pharmacyData.name"
+            :alt="pharmacyStore.pharmacyData.name ?? ''"
           />
           <div v-else class="h-7 w-7 rounded-full shopfront-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
             {{ (pharmacyStore.pharmacyData.name || '')[0]?.toUpperCase() }}
@@ -230,7 +230,7 @@
           </div>
 
           <div class="shopfront-ad-media">
-            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="ad.headline" class="h-full w-full object-cover" />
+            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="(ad.headline as string | undefined) ?? ''" class="h-full w-full object-cover" />
             <div v-else class="shopfront-ad-fallback">
               <p class="text-base font-semibold text-white/95">Pharmacy Promotion</p>
               <p class="mt-2 text-sm text-white/80">Explore this offer in store.</p>
@@ -405,11 +405,11 @@
         <!-- Products display -->
         <template v-else>
           <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="searchQuery"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex"
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices ?? false" class="hidden lg:flex"
             @item-added-to-cart="onItemAddedToCart" />
 
           <ProductsGrid v-else :products="displayProducts" :search-query="searchQuery"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices"
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices ?? false"
             @item-added-to-cart="onItemAddedToCart"
             @request-product="onRequestProduct" />
 
@@ -737,7 +737,7 @@ const whatsappLink = computed<string>(() => {
 
   // Extract the first phone number if multiple are provided with a separator
   if (formattedPhone.includes("/")) {
-    formattedPhone = formattedPhone.split("/")[0];
+    formattedPhone = formattedPhone.split("/")[0] ?? '';
   }
 
   // Format the phone number properly for WhatsApp
@@ -770,7 +770,8 @@ const formatAdWindow = (startDate: string | null | undefined, endDate: string | 
   return `${start} to ${end}`;
 };
 
-const displayProducts = computed<Product[]>(() => pharmacyStore.products);
+// TODO(ts): pharmacyStore is untyped JS; cast to match PharmacyProduct shape expected by ProductsTable/ProductsGrid
+const displayProducts = computed(() => pharmacyStore.products as unknown as { id: number; brandName: string; sellingPrice: number; stockQty: number; [key: string]: unknown }[]);
 
 const paginationFrom = computed<number>(() => {
   const { currentPage, pageSize } = pharmacyStore.productPagination;

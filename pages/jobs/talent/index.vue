@@ -134,7 +134,7 @@ const loadSeekers = async (): Promise<void> => {
   error.value = ''
   try {
     const response = await jobsService.listSeekers({ search: search.value })
-    seekers.value = (response.data ?? []) as Seeker[]
+    seekers.value = (response.data ?? []) as unknown as Seeker[]
   } catch {
     error.value = 'Failed to load talent profiles.'
   } finally {

@@ -2,7 +2,7 @@
   <div class="credit-balance-card">
     <div class="card-header">
       <h3 class="card-title">{{ title }}</h3>
-      <button v-if="showRefresh" @click="$emit('refresh')" class="refresh-btn" :disabled="isLoading">
+      <button v-if="showRefresh" @click="$emit('refresh')" class="refresh-btn" :disabled="isLoading ?? false">
         <Icon name="RefreshCw" size="18" :class="{ 'animate-spin': isLoading }" />
       </button>
     </div>

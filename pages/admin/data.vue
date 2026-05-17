@@ -41,7 +41,7 @@
         <ExtendedSyncData
           v-if="syncTabEntity[activeTab]"
           :key="activeTab"
-          :entity="syncTabEntity[activeTab]"
+          :entity="syncTabEntity[activeTab] ?? null"
         />
       </div>
     </div>

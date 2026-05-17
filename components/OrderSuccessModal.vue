@@ -47,15 +47,15 @@
                 <div class="bg-gray-50 rounded-lg p-3 mb-3">
                   <div class="flex justify-between text-sm mb-1">
                     <span>Total Items:</span>
-                    <span>{{ orderSummary.totalItems || 0 }}</span>
+                    <span>{{ orderSummary?.totalItems || 0 }}</span>
                   </div>
                   <div class="flex justify-between text-sm mb-1">
                     <span>Total Quantity:</span>
-                    <span>{{ orderSummary.totalQuantity || 0 }}</span>
+                    <span>{{ orderSummary?.totalQuantity || 0 }}</span>
                   </div>
                   <div class="flex justify-between font-semibold">
                     <span>Total Amount:</span>
-                    <span>GHS{{ formatPrice(orderSummary.totalAmount) }}</span>
+                    <span>GHS{{ formatPrice(orderSummary?.totalAmount) }}</span>
                   </div>
                 </div>
               </div>

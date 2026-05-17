@@ -105,7 +105,7 @@ const whatsappSeekerUrl = (s: Seeker): string => {
 onMounted(async () => {
   try {
     const response = await jobsService.getSeekerById(String(route.params['id']))
-    seeker.value = (response.data ?? null) as Seeker | null
+    seeker.value = (response.data ?? null) as unknown as Seeker | null
   } catch {
     error.value = 'Failed to load profile. It may have been removed.'
   } finally {

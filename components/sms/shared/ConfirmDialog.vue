@@ -64,7 +64,7 @@
                   'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
                   'cs-btn text-white'
                 ]"
-                :disabled="isRetrying"
+                :disabled="isRetrying ?? false"
               >
                 <span v-if="isRetrying" class="flex items-center justify-center">
                   <Icon name="Loader2" class="h-4 w-4 animate-spin mr-2" />
@@ -93,7 +93,7 @@
                   'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
                   confirmButtonClass
                 ]"
-                :disabled="loading"
+                :disabled="loading ?? false"
               >
                 <span v-if="loading" class="flex items-center justify-center">
                   <Icon name="Loader2" class="h-4 w-4 animate-spin mr-2" />

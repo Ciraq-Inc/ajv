@@ -406,7 +406,7 @@ const refreshData = async (): Promise<void> => {
 
 const performPurchase = async (): Promise<void> => {
   try {
-    const response = await purchaseCredits(purchaseForm.value.smsCount)
+    const response = await purchaseCredits(purchaseForm.value.smsCount ?? 0) as { success?: boolean }
     if (response.success) {
       showMessage('SMS credits purchased successfully!', 'success')
       showPurchaseModal.value = false
@@ -420,8 +420,8 @@ const performPurchase = async (): Promise<void> => {
 
 const performEstimate = async (): Promise<void> => {
   try {
-    const result = await estimateCost(estimateForm.value.recipientCount)
-    estimateForm.value.result = result
+    const result = await estimateCost(estimateForm.value.recipientCount ?? 0)
+    estimateForm.value.result = result as unknown as EstimateResult
   } catch (err) {
     showMessage(err instanceof Error ? err.message : 'Failed to estimate cost', 'error')
   }

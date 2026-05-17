@@ -615,12 +615,12 @@ interface ApiResponse {
 // TODO: remove once composables/ are .ts
 const { createCampaign, loading: creating } = useSMSCampaigns() as unknown as {
   createCampaign: (data: Record<string, unknown>) => Promise<unknown>
-  loading: { value: boolean }
+  loading: import('vue').Ref<boolean>
 }
 
 // TODO: remove once composables/ are .ts
 const { balance, fetchBalance, hasSufficientBalance: checkBalance } = useSMSBilling() as unknown as {
-  balance: { value: BalanceData | null }
+  balance: import('vue').Ref<BalanceData | null>
   fetchBalance: () => Promise<void>
   hasSufficientBalance: (cost: number) => boolean
 }

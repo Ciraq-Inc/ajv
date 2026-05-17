@@ -132,7 +132,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="company in summaryData" :key="company.company_id" class="hover:bg-gray-50">
+            <tr v-for="company in summaryData" :key="company.company_id ?? ''" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
@@ -181,7 +181,7 @@
         </div>
 
         <!-- Empty State -->
-        <div v-if="!loading && payerDetails.length === 0" class="text-center py-12">
+        <div v-if="!loading && payers.length === 0" class="text-center py-12">
           <BuildingOfficeIcon class="w-12 h-12 mx-auto text-gray-400" />
           <p class="mt-2 text-gray-600">No payers found</p>
         </div>
@@ -211,7 +211,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="payer in payers" :key="payer.id" class="hover:bg-gray-50">
+              <tr v-for="payer in payers" :key="payer.id ?? ''" class="hover:bg-gray-50">
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="text-sm font-medium text-gray-900">{{ payer.provider || 'N/A' }}</div>
                 </td>

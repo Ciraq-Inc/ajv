@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <div v-if="segments.length" class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
+    <div v-if="segments?.length" class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
       <div class="mx-auto h-40 w-40">
         <svg viewBox="0 0 120 120" class="h-full w-full">
           <circle cx="60" cy="60" r="38" fill="none" stroke="#efe8f7" stroke-width="16" />
@@ -40,7 +40,7 @@
             <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: segment.color }" />
             <span class="text-sm font-medium text-[#332046]">{{ segment.label }}</span>
           </div>
-          <span class="text-xs font-semibold text-[#5b4076]">{{ formatter(segment.value) }}</span>
+          <span class="text-xs font-semibold text-[#5b4076]">{{ formatter?.(segment.value) ?? segment.value }}</span>
         </div>
       </div>
     </div>

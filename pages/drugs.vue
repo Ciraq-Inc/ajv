@@ -105,7 +105,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-gray-50 transition-colors">
+            <tr v-for="product in filteredProducts" :key="product.id ?? ''" class="hover:bg-gray-50 transition-colors">
               <!-- Name Cell -->
               <td class="p-4 text-sm text-gray-900">
                 <div v-if="editingId === product.id" class="flex items-center space-x-2">
@@ -142,11 +142,11 @@
                 <div v-else class="flex items-center space-x-2">
                   <span :class="[
                     'px-2 py-1 text-xs rounded-full',
-                    product.stockQty <= 0
+                    (product.stockQty ?? 0) <= 0
                       ? 'bg-red-100 text-red-800'
                       : 'bg-green-100 text-green-800'
                   ]">
-                    {{ product.stockQty > 0 ? `${product.stockQty} in stock` : 'Out of Stock' }}
+                    {{ (product.stockQty ?? 0) > 0 ? `${product.stockQty} in stock` : 'Out of Stock' }}
                   </span>
                 </div>
               </td>
@@ -299,7 +299,7 @@ const submitProduct = async (): Promise<void> => {
     }
 
     // Create product via service layer
-    const result = await pharmacyService.saveProduct(newProduct as Parameters<typeof pharmacyService.saveProduct>[0]);
+    const result = await pharmacyService.saveProduct(newProduct as unknown as Parameters<typeof pharmacyService.saveProduct>[0]);
 
     if (!result.success) {
       throw new Error(result.message ?? 'Failed to add product');

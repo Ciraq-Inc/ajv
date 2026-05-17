@@ -64,7 +64,7 @@
                 role="switch"
                 :aria-checked="company.hide_prices"
                 @click="toggleHidePrices(company)"
-                :disabled="savingMap[company.id]"
+                :disabled="savingMap[company.id] ?? false"
                 :class="[
                   'relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60',
                   company.hide_prices ? 'bg-indigo-600' : 'bg-gray-300'
@@ -169,7 +169,7 @@ const fetchCompanies = async (): Promise<void> => {
       ...company,
       id: company.id,
       name: company.name ?? '',
-      domain_name: company.domain_name,
+      ...(company.domain_name != null && { domain_name: company.domain_name }),
       hide_prices: company.hide_prices === 1 || company.hide_prices === true,
       saveError: '',
     }))

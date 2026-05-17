@@ -19,7 +19,7 @@
 
       <!-- Balance Card -->
       <BalanceCard
-        :balance-data="balance"
+        v-bind="balance ? { balanceData: balance } : {}"
         :show-actions="true"
         :show-top-up="false"
         @refresh="fetchBalance"
@@ -332,7 +332,7 @@
                   <span class="font-medium">Sent:</span>
                   <span class="ml-1">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_sent || 0 }}</span>
                 </div>
-                <div v-if="campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed > 0" class="col-span-2">
+                <div v-if="(campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed ?? 0) > 0" class="col-span-2">
                   <span class="font-medium text-red-700">Failed Messages:</span>
                   <span class="ml-1 text-red-700">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed || 0 }}</span>
                 </div>
@@ -372,7 +372,7 @@
                   <span class="text-gray-900 font-medium">Resend to failed recipients only</span>
                   <p class="text-xs text-gray-600 mt-1">
                     Only resend to {{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed || 0 }} failed recipient(s)
-                    <span v-if="!(campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed > 0)" class="text-yellow-700 font-medium">
+                    <span v-if="!((campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed ?? 0) > 0)" class="text-yellow-700 font-medium">
                       (No failed messages)
                     </span>
                   </p>

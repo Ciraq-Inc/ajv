@@ -192,7 +192,7 @@
                                             </div>
                                             <h4 class="mt-3 font-semibold text-slate-900">{{ ad.headline }}</h4>
                                             <p v-if="ad.body" class="mt-2 text-sm text-slate-600">{{ ad.body }}</p>
-                                            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="ad.headline" class="mt-3 h-28 w-full rounded-2xl object-cover" />
+                                            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="(ad.headline as string | undefined) ?? ''" class="mt-3 h-28 w-full rounded-2xl object-cover" />
                                             <p class="mt-3 text-xs text-slate-400">
                                                 {{ formatAdWindow(ad.start_date, ad.end_date) }}
                                             </p>

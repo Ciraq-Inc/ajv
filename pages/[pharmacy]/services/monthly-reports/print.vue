@@ -312,6 +312,8 @@ interface FullReportData {
 interface ChartItem {
   label: string
   value: number
+  // Index signature required to satisfy the chart components' Point / ChartItem types
+  [key: string]: unknown
 }
 
 interface DonutSegment {

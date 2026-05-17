@@ -30,7 +30,7 @@
           class="company-filter"
         >
           <option value="">All Companies</option>
-          <option v-for="company in companies" :key="company.id" :value="company.id">
+          <option v-for="company in companies" :key="company.id ?? ''" :value="company.id">
             {{ company.name }}
           </option>
         </select>
@@ -71,7 +71,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="product in products" :key="product.id" class="product-row">
+          <tr v-for="product in products" :key="(product.id as PropertyKey | undefined) ?? ''" class="product-row">
             <td>
               <div class="product-name">{{ product.product_name }}</div>
             </td>
@@ -82,8 +82,8 @@
               <div class="company-location">{{ product.company_location || 'N/A' }}</div>
             </td>
             <td>
-              <a v-if="product.company_phone" 
-                 :href="`https://wa.me/${formatWhatsApp(product.company_phone)}`" 
+              <a v-if="product.company_phone"
+                 :href="`https://wa.me/${formatWhatsApp(String(product.company_phone))}`"
                  target="_blank"
                  class="whatsapp-link">
                 <Icon name="MessageCircle" size="16" />
@@ -95,10 +95,10 @@
               <span class="unit-badge">{{ product.unit || 'N/A' }}</span>
             </td>
             <td>
-              <span class="price">{{ formatPrice(product.price) }}</span>
+              <span class="price">{{ formatPrice(product.price as number | string | null | undefined) }}</span>
             </td>
             <td>
-              <span class="date">{{ formatDate(product.date_updated) }}</span>
+              <span class="date">{{ formatDate(product.date_updated as string | undefined) }}</span>
             </td>
           </tr>
         </tbody>

@@ -362,7 +362,7 @@ const handleAddToCart = (product: ProductItem): void => {
     name: product.brandName,
     price: product.sellingPrice,
     quantity: product.quantity ?? 1,
-    image: product.productImageUrl,
+    ...(product.productImageUrl != null && { image: product.productImageUrl }),
     pharmacyId: pharmacyStore.currentPharmacy,
     unit: product.unit ?? 'unit',
   });

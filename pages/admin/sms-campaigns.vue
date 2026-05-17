@@ -354,6 +354,7 @@
     <!-- Confirm Dialog -->
     <ConfirmDialog
       v-if="showConfirmDialog"
+      :isOpen="showConfirmDialog"
       :title="confirmDialog.title"
       :message="confirmDialog.message"
       :type="confirmDialog.type"
@@ -422,13 +423,16 @@ interface ConfirmDialogState {
 }
 
 const {
-  campaigns,
+  campaigns: _campaigns,
   loading,
   error,
   fetchCampaigns,
   pauseCampaign: pauseCampaignAction,
   resumeCampaign: resumeCampaignAction,
 } = useSMSCampaigns()
+
+// Cast to local Campaign type which has explicit field types
+const campaigns = _campaigns as unknown as import('vue').Ref<Campaign[]>
 
 const filters = ref<{ search: string; status: string; company: string }>({
   search: '',

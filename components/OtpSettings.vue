@@ -195,12 +195,12 @@ const saveSettings = async (): Promise<void> => {
       otpLength: parseInt(String(settings.otpLength), 10),
       otpExpiry: parseInt(String(settings.otpExpiryMinutes), 10) * 60 * 1000,
       maxRetries: parseInt(String(settings.maxRetries), 10),
-    }) as { otpLength: number; otpExpiry: number; mNotifyApiKey: string };
+    }) as unknown as { otpLength: number; otpExpiry: number; mNotifyApiKey: string };
 
     // Update the OTP service with new settings
     (otpService as { otpLength: number }).otpLength = updatedConfig.otpLength;
     (otpService as { otpExpiry: number }).otpExpiry = updatedConfig.otpExpiry;
-    (otpService as { mNotifyApiKey: string }).mNotifyApiKey = updatedConfig.mNotifyApiKey;
+    (otpService as unknown as { mNotifyApiKey: string }).mNotifyApiKey = updatedConfig.mNotifyApiKey;
 
     // Show success message
     showSuccess.value = true;
@@ -234,7 +234,7 @@ const sendTestOTP = async (): Promise<void> => {
     const otp = (otpService as { generateOtp: () => string }).generateOtp();
 
     // Update service with current settings
-    (otpService as { mNotifyApiKey: string }).mNotifyApiKey = settings.mNotifyApiKey;
+    (otpService as unknown as { mNotifyApiKey: string }).mNotifyApiKey = settings.mNotifyApiKey;
 
     // Send the OTP using mNotify
     await (otpService as { sendOtpViaMNotify: (p: string, o: string) => Promise<unknown> }).sendOtpViaMNotify(formattedPhone, otp);

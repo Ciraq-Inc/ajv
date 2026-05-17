@@ -96,13 +96,13 @@
             <div v-else class="space-y-3">
               <button
                 v-for="request in recentRequestItems"
-                :key="request.id"
+                :key="request.id ?? ''"
                 class="flex w-full items-start sm:items-center gap-3 sm:gap-4 border border-[#e5e7eb] bg-white px-4 py-3 sm:py-4 text-left hover:border-[#4F217A]/30 hover:bg-[#faf4ff] hover:shadow-sm transition-all group rounded-xl"
                 @click="navigateTo({ path: '/customer', query: { tab: 'requests', requestId: request.id } })"
               >
                 <div
                   class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[1rem] mt-0.5 sm:mt-0"
-                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-green-50 text-green-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status) ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-600'"
+                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-green-50 text-green-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status ?? '') ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-600'"
                 >
                   <component :is="requestIcon(request)" class="w-5 h-5" />
                 </div>
@@ -115,9 +115,9 @@
                       </h4>
                       <span
                         class="inline-flex px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] rounded-md shrink-0 whitespace-nowrap"
-                        :class="getRequestStatusClass(request.status)"
+                        :class="getRequestStatusClass(request.status ?? '')"
                       >
-                        {{ getRequestStatusLabel(request.status) }}
+                        {{ getRequestStatusLabel(request.status ?? '') }}
                       </span>
                     </div>
                     <p class="truncate text-[0.7rem] font-medium text-zinc-500 mt-0.5 flex items-center gap-1.5 flex-wrap leading-tight">
@@ -173,7 +173,7 @@
               <div v-else>
                 <button
                   v-for="order in ongoingOrderItems"
-                  :key="order.order_id"
+                  :key="order.order_id ?? ''"
                   class="flex w-full items-start gap-3 px-4 py-4 text-left transition-all hover:bg-[#f0e6ff]/50 group bg-white border-x-0"
                   :class="{ 'border-t border-[#ede5ff]': ongoingOrderItems.indexOf(order) > 0 }"
                   @click="goTab('orders')"
@@ -190,7 +190,7 @@
                     <p class="mt-1 truncate text-[0.7rem] font-medium text-slate-500 group-hover:text-slate-700 transition-colors">{{ getOrderSummary(order) }}</p>
                     <div class="mt-2 flex items-center gap-1.5 flex-wrap">
                       <span class="h-1.5 w-1.5 shrink-0 rounded-full shadow-sm" :class="getOrderDotClass(order.status) || 'bg-[#4F217A]'"></span>
-                      <span class="text-[0.65rem] font-black uppercase tracking-widest text-[#4F217A]">{{ getOrderStatusLabel(order.status) }}</span>
+                      <span class="text-[0.65rem] font-black uppercase tracking-widest text-[#4F217A]">{{ getOrderStatusLabel(order.status ?? '') }}</span>
                     </div>
                   </div>
                 </button>
@@ -224,7 +224,7 @@
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               v-for="company in verifiedPartners"
-              :key="company.id"
+              :key="company.id ?? ''"
               class="flex items-center sm:items-start gap-4 rounded-xl border border-[#ede5ff] bg-gradient-to-br from-white to-[#faf6ff] px-5 py-4 text-left hover:border-[#c9a8f0] hover:shadow-[0_4px_16px_-4px_rgba(79,33,122,0.15)] transition-all group"
               @click="goTab('companies')"
             >
@@ -459,7 +459,7 @@ const loadWalletBalance = async (): Promise<void> => {
 const loadRequestActivity = async (): Promise<void> => {
   try {
     const json = await orderRequestsService.listForCustomer()
-    const requests = (json.data ?? []) as RequestItem[]
+    const requests = (json.data ?? []) as unknown as RequestItem[]
     recentRequests.value = requests.slice(0, 4)
     activeRequestCount.value = requests.filter((request) => isActiveRequestStatus(request.status ?? '')).length
   } catch {

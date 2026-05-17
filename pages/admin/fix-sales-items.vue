@@ -531,7 +531,7 @@ const handleSubmit = async (): Promise<void> => {
     if (formData.value.companyId) payload['companyId'] = formData.value.companyId;
     if (formData.value.excludeDays.length > 0) payload['excludeDays'] = formData.value.excludeDays;
 
-    const response = await api.post('/api/sync/admin/fix-sales-items', payload) as FixResult;
+    const response = await api.post('/api/sync/admin/fix-sales-items', payload) as unknown as FixResult;
 
     if (response.success) {
       result.value = response;

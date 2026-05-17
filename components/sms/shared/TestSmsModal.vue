@@ -159,6 +159,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
+import type { TestSmsData } from '~/services/sms/campaignService'
 
 // TODO: remove once composables/ are .ts
 const props = defineProps<{
@@ -210,14 +211,11 @@ const handleSubmit = async (): Promise<void> => {
   result.value = { success: false, error: false, message: '' }
 
   try {
-    const testData: Record<string, string> = {
+    const testData: TestSmsData = {
       phone: form.value.phone,
       message: form.value.message,
       sms_provider: form.value.sms_provider,
-    }
-
-    if (form.value.sms_provider === 'mnotify' && form.value.sender_id) {
-      testData['sender_id'] = form.value.sender_id
+      ...(form.value.sms_provider === 'mnotify' && form.value.sender_id && { sender_id: form.value.sender_id }),
     }
 
     // sendTestSms is untyped (composable not yet .ts); response shape is unknown

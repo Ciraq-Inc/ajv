@@ -61,9 +61,9 @@
           </div>
 
           <!-- Warnings -->
-          <div v-if="form.smsCount && calculateTotalCost > availableBalance" class="error-message">
+          <div v-if="form.smsCount && calculateTotalCost > (availableBalance ?? 0)" class="error-message">
             <Icon name="AlertCircle" size="16" />
-            <span>Insufficient balance. You need ₵{{ formatCurrency(calculateTotalCost - availableBalance) }} more.</span>
+            <span>Insufficient balance. You need ₵{{ formatCurrency(calculateTotalCost - (availableBalance ?? 0)) }} more.</span>
           </div>
 
           <!-- Action Buttons -->
@@ -75,7 +75,7 @@
               :disabled="
                 isLoading ||
                 !form.smsCount ||
-                calculateTotalCost > availableBalance
+                calculateTotalCost > (availableBalance ?? 0)
               "
             >
               {{ isLoading ? 'Processing...' : 'Confirm Purchase' }}

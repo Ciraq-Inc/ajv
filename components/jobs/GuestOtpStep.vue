@@ -12,7 +12,7 @@
       />
       <button
         class="px-3 py-2 rounded-lg text-sm bg-slate-900 text-white hover:bg-black"
-        :disabled="loading"
+        :disabled="loading ?? false"
         @click="onRequestOtp"
       >
         Request OTP
@@ -28,7 +28,7 @@
     <div class="mt-3 flex items-center gap-3">
       <button
         class="px-3 py-2 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700"
-        :disabled="loading || !phoneValue || !codeValue"
+        :disabled="(loading ?? false) || !phoneValue || !codeValue"
         @click="onVerifyOtp"
       >
         Verify OTP

@@ -116,7 +116,7 @@
                   {{ getCompanyTypeName(company.companytype) }}
                 </span>
                 <div
-                  v-if="company.maincompanyid > 0"
+                  v-if="(company.maincompanyid ?? 0) > 0"
                   class="text-xs text-gray-500 mt-1"
                 >
                   Subsidiary
@@ -675,6 +675,7 @@ interface CompanyRow extends Company {
   latitude?: number | string;
   longitude?: number | string;
   created_at?: string;
+  updated_at?: string;
   [key: string]: unknown;
 }
 

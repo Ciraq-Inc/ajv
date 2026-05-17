@@ -5,7 +5,7 @@
       role="alertdialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      :aria-describedby="message ? descId : undefined"
+      :aria-describedby="message ? descId : ''"
       tabindex="-1"
       class="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
       <div class="flex h-12 w-12 items-center justify-center rounded-2xl" :class="variant === 'danger' ? 'bg-red-100 text-red-600' : 'bg-sky-100 text-sky-700'">

@@ -151,7 +151,7 @@
           <!-- Footer total -->
           <div v-if="!detailLoading && detailItems.length > 0" class="border-t border-gray-200 px-5 py-4 flex items-center justify-between">
             <span class="text-sm text-gray-500">Your total</span>
-            <span class="text-base font-bold text-green-700">GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(i.line_total || 0), 0)) }}</span>
+            <span class="text-base font-bold text-green-700">GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(String(i.line_total || 0)), 0)) }}</span>
           </div>
         </div>
       </div>

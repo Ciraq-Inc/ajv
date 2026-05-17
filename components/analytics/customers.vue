@@ -129,7 +129,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="company in summaryData" :key="company.company_id" class="hover:bg-gray-50">
+            <tr v-for="company in summaryData" :key="company.company_id ?? ''" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
@@ -208,7 +208,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="customer in customers" :key="customer.id" class="hover:bg-gray-50">
+              <tr v-for="customer in customers" :key="customer.id ?? ''" class="hover:bg-gray-50">
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="flex items-center">
                   
@@ -268,16 +268,26 @@ import { createReportsExportService } from '~/services/analytics/reportsExportSe
 import { ArrowDownTrayIcon, ArrowPathIcon, UserGroupIcon, CheckCircleIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
 interface CompanySummary {
+  company_id?: string | number;
+  company_name?: string;
   total_customers?: number;
   active_customers?: number;
   retail_customers?: number;
   insurance_customers?: number;
   wholesale_customers?: number;
   vip_customers?: number;
+  inactive_customers?: number;
   [key: string]: unknown;
 }
 
 interface Customer {
+  id?: string | number;
+  fname?: string;
+  lname?: string;
+  email?: string;
+  phone?: string;
+  company_name?: string;
+  created_at?: string;
   [key: string]: unknown;
 }
 

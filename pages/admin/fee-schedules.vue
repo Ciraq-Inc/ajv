@@ -115,15 +115,15 @@
               <tbody>
                 <tr v-for="t in selected.tiers" :key="t.id">
                   <td>
-                    <input v-if="selected.is_draft" v-model.number="tierEdits[t.id].from_km" type="number" step="0.01" class="form-control compact" />
+                    <input v-if="selected.is_draft && tierEdits[t.id]" v-model.number="tierEdits[t.id]!.from_km" type="number" step="0.01" class="form-control compact" />
                     <span v-else>{{ Number(t.from_km).toFixed(2) }}</span>
                   </td>
                   <td>
-                    <input v-if="selected.is_draft" v-model.number="tierEdits[t.id].fee_ghs" type="number" step="0.01" class="form-control compact" />
+                    <input v-if="selected.is_draft && tierEdits[t.id]" v-model.number="tierEdits[t.id]!.fee_ghs" type="number" step="0.01" class="form-control compact" />
                     <span v-else>{{ Number(t.fee_ghs).toFixed(2) }}</span>
                   </td>
                   <td>
-                    <input v-if="selected.is_draft" v-model="tierEdits[t.id].label" class="form-control compact" placeholder="optional" />
+                    <input v-if="selected.is_draft && tierEdits[t.id]" v-model="tierEdits[t.id]!.label" class="form-control compact" placeholder="optional" />
                     <span v-else>{{ t.label || '—' }}</span>
                   </td>
                   <td class="row-actions">
@@ -133,7 +133,7 @@
                     </template>
                   </td>
                 </tr>
-                <tr v-if="selected.tiers.length === 0">
+                <tr v-if="(selected.tiers?.length ?? 0) === 0">
                   <td colspan="4" class="empty-row">No tiers yet. Add the first one (must be at from_km = 0).</td>
                 </tr>
               </tbody>
@@ -310,8 +310,9 @@ const selectSchedule = async (id: number | string): Promise<void> => {
       delete tierOriginals[k]
     }
     for (const t of data.tiers ?? []) {
-      tierEdits[t.id] = { from_km: Number(t.from_km), fee_ghs: Number(t.fee_ghs), label: t.label ?? '' }
-      tierOriginals[t.id] = { ...tierEdits[t.id] }
+      const edit: TierEdit = { from_km: Number(t.from_km), fee_ghs: Number(t.fee_ghs), label: t.label ?? '' }
+      tierEdits[t.id] = edit
+      tierOriginals[t.id] = { ...edit }
     }
     Object.assign(newTier, { from_km: null, fee_ghs: null, label: '' })
   } catch (error) {
@@ -344,9 +345,9 @@ const saveHeader = async (): Promise<void> => {
   try {
     await feeSchedulesService.updateHeader(selected.value.id, {
       name: header.name,
-      top_tier_per_km: header.top_tier_per_km ?? undefined,
-      max_billable_km: header.max_billable_km ?? undefined,
       notes: header.notes,
+      ...(header.top_tier_per_km != null && { top_tier_per_km: header.top_tier_per_km }),
+      ...(header.max_billable_km != null && { max_billable_km: header.max_billable_km }),
     })
     showMessage('Header saved')
     await fetchAll()
@@ -362,9 +363,9 @@ const addTier = async (): Promise<void> => {
   loading.value = true
   try {
     await feeSchedulesService.addTier(selected.value.id, {
-      from_km: newTier.from_km ?? undefined,
-      fee_ghs: newTier.fee_ghs ?? undefined,
       label: newTier.label || null,
+      ...(newTier.from_km != null && { from_km: newTier.from_km }),
+      ...(newTier.fee_ghs != null && { fee_ghs: newTier.fee_ghs }),
     })
     showMessage('Tier added')
     await selectSchedule(selected.value.id)
@@ -431,7 +432,12 @@ const createDraft = async (): Promise<void> => {
   if (!createForm.name) return
   loading.value = true
   try {
-    const res = await feeSchedulesService.createDraft({ ...createForm })
+    const res = await feeSchedulesService.createDraft({
+      name: createForm.name,
+      ...(createForm.top_tier_per_km != null && { top_tier_per_km: createForm.top_tier_per_km }),
+      ...(createForm.max_billable_km != null && { max_billable_km: createForm.max_billable_km }),
+      ...(createForm.clone_from_id != null && { clone_from_id: createForm.clone_from_id }),
+    })
     showMessage('Draft created')
     closeCreateModal()
     await fetchAll()

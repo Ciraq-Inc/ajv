@@ -57,7 +57,7 @@
           class="rounded-2xl bg-[#f8f4fd] px-3 py-2"
         >
           <p class="font-semibold text-[#2f1d42]">{{ point.label }}</p>
-          <p class="mt-1">{{ formatter(point.value) }}</p>
+          <p class="mt-1">{{ formatter?.(point.value) ?? point.value }}</p>
         </div>
       </div>
     </div>

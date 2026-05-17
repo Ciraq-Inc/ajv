@@ -73,7 +73,7 @@
                 <p class="mt-1 text-xs text-slate-500">{{ formatPhone(userStore.currentUser?.phone) }}</p>
                 <p v-if="userStore.currentCompany" class="mt-1 flex items-center gap-1 text-xs text-purple-700">
                   <i class="ri-building-line"></i>
-                  {{ userStore.currentCompany.company_name }}
+                  {{ currentCompanyName }}
                 </p>
               </div>
 
@@ -219,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useUserStore } from '~/stores/user'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import Login from '~/components/Login.vue'
@@ -258,6 +258,11 @@ const confirmLogout = async (): Promise<void> => {
     console.error('Error logging out:', error)
   }
 }
+
+const currentCompanyName = computed<string>(() => {
+  const c = userStore.currentCompany as { company_name?: string; name?: string } | null | undefined
+  return c?.company_name ?? c?.name ?? ''
+})
 
 const formatPhone = (phone: string | undefined): string => {
   if (!phone) return ''

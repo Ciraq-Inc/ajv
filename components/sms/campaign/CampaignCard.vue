@@ -187,7 +187,7 @@
 
     <!-- Failed Count Warning -->
     <div 
-      v-if="campaign.messages_failed > 0" 
+      v-if="(campaign.messages_failed ?? 0) > 0" 
       class="mt-3 flex items-center gap-2 text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded-lg"
     >
       <ExclamationTriangleIcon class="h-4 w-4 flex-shrink-0" />
@@ -213,15 +213,15 @@ import { formatDate, formatNumber } from '~/utils/constants/sms'
 
 interface Campaign {
   id: number
-  name?: string
+  name?: string | null
   status: string
-  message?: string
+  message?: string | null
   created_at: string
-  total_recipients?: number
-  messages_sent?: number
-  messages_failed?: number
-  actual_cost?: number
-  sms_cost?: number
+  total_recipients?: number | null
+  messages_sent?: number | null
+  messages_failed?: number | null
+  actual_cost?: number | null
+  sms_cost?: number | null
   [key: string]: unknown
 }
 
