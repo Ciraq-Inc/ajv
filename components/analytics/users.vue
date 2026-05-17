@@ -268,7 +268,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
   ArrowDownTrayIcon,
@@ -281,35 +281,70 @@ import {
 import { useAdminStore } from '~/stores/admin'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 
-const adminStore = useAdminStore()
-const reportsService = createReportsExportService(useApi())
+interface CompanySummary {
+  company_id?: number | string;
+  company_name?: string;
+  total_users?: number;
+  active_users?: number;
+  [key: string]: unknown;
+}
+
+interface User {
+  id?: number | string;
+  name?: string;
+  email?: string;
+  company_id?: number | string;
+  company_name?: string;
+  role?: string;
+  is_active?: boolean;
+  created_at?: string;
+  last_login?: string;
+  [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
+}
+
+// TODO: remove once composables/ are .ts
+interface ApiInstance {
+  [key: string]: unknown;
+}
+
+interface ReportsServiceShape {
+  exportUsersCsv: () => Promise<Blob>;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reportsService = createReportsExportService(useApi() as unknown as ApiInstance) as unknown as ReportsServiceShape
 
 // Reactive data
-const loading = ref(false)
-const error = ref(null)
-const showUsersModal = ref(false)
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
+const showUsersModal = ref<boolean>(false)
 
 // Analytics data
-const summaryData = ref([])
-const users = ref([])
+const summaryData = ref<CompanySummary[]>([])
+const users = ref<User[]>([])
 
 // Computed properties for summary totals
-const totalUsers = computed(() => {
+const totalUsers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.total_users || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.total_users ?? 0), 0)
 })
 
-const totalActiveUsers = computed(() => {
+const totalActiveUsers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.active_users || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.active_users ?? 0), 0)
 })
 
 // Fetch summary data from the cross-tenant summary API
-const fetchSummary = async () => {
+const fetchSummary = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/users/cross-tenant/summary')
     if (response.success) {
-      summaryData.value = response.data || []
+      summaryData.value = (response.data ?? []) as CompanySummary[]
     } else {
       summaryData.value = []
     }
@@ -320,11 +355,11 @@ const fetchSummary = async () => {
 }
 
 // Fetch users list
-const fetchUsers = async () => {
+const fetchUsers = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/users/cross-tenant/dataview')
     if (response.success) {
-      users.value = response.data || []
+      users.value = (response.data ?? []) as User[]
     } else {
       users.value = []
     }
@@ -335,7 +370,7 @@ const fetchUsers = async () => {
 }
 
 // Fetch all data
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   loading.value = true
   error.value = null
 
@@ -345,7 +380,7 @@ const fetchData = async () => {
       fetchUsers()
     ])
   } catch (err) {
-    error.value = err.message || 'Failed to fetch user data'
+    error.value = err instanceof Error ? err.message : 'Failed to fetch user data'
     console.error('Error fetching user data:', err)
   } finally {
     loading.value = false
@@ -353,12 +388,12 @@ const fetchData = async () => {
 }
 
 // Refresh data
-const refreshData = () => {
-  fetchData()
+const refreshData = (): void => {
+  void fetchData()
 }
 
 // Helper functions
-const getCompanyInitials = (name) => {
+const getCompanyInitials = (name: string | undefined): string => {
   if (!name) return '?'
   return name
     .split(' ')
@@ -368,7 +403,7 @@ const getCompanyInitials = (name) => {
     .slice(0, 2)
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
@@ -379,7 +414,7 @@ const formatDate = (dateString) => {
 }
 
 // Export functions
-const exportToJSON = async () => {
+const exportToJSON = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/users/cross-tenant/export?format=json')
     if (response.success && response.data) {
@@ -388,7 +423,7 @@ const exportToJSON = async () => {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `cross-tenant-users_${new Date().toISOString().split('T')[0]}.json`
+      link.download = `cross-tenant-users_${new Date().toISOString().split('T')[0] ?? ''}.json`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -396,32 +431,32 @@ const exportToJSON = async () => {
     } else {
       alert('No data available for export')
     }
-  } catch (error) {
-    console.error('Export error:', error)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
-const exportToCSV = async () => {
+const exportToCSV = async (): Promise<void> => {
   try {
     const blob = await reportsService.exportUsersCsv()
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `cross-tenant-users_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `cross-tenant-users_${new Date().toISOString().split('T')[0] ?? ''}.csv`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Export error:', error)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
 // Initialize
 onMounted(() => {
-  fetchData()
+  void fetchData()
 })
 </script>
 

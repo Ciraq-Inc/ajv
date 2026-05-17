@@ -275,7 +275,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
@@ -299,6 +299,42 @@ import { useOrderStatus } from '~/composables/useOrderStatus'
 import { createCustomerWalletService } from '~/services/customerWallet/customerWalletService'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
+interface RequestItem {
+  id?: number | string;
+  request_number?: string;
+  status?: string;
+  item_count?: number;
+  items?: Array<{ brand_name?: string; product_name?: string }>;
+  fulfillment_type?: string;
+  total_cost?: number | string;
+  estimated_total?: number | string;
+  items_total?: number | string;
+  delivery_fee?: number | string;
+  updated_at?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+interface OrderItem {
+  order_id?: number | string;
+  status?: string;
+  total_amount?: number | string;
+  item_count?: number;
+  company_name?: string;
+  items?: Array<{ brand_name?: string; product_name?: string }>;
+  [key: string]: unknown;
+}
+
+interface CompanyItem {
+  id?: number | string;
+  company_name?: string;
+  name?: string;
+  address?: string;
+  location?: string;
+  physical_address?: string;
+  [key: string]: unknown;
+}
+
 definePageMeta({ layout: 'customer' })
 
 const userStore = useUserStore()
@@ -307,76 +343,76 @@ const orderStatus = useOrderStatus()
 const walletService = createCustomerWalletService(useApi())
 const orderRequestsService = createOrderRequestsService(useApi())
 
-const isCheckingAuth = ref(!userStore.authInitialized)
-const isDashboardLoading = ref(true)
-const walletBalance = useState('walletBalance', () => 0)
-const recentRequests = ref([])
-const ongoingOrders = ref([])
-const activeRequestCount = ref(0)
+const isCheckingAuth = ref<boolean>(!userStore.authInitialized)
+const isDashboardLoading = ref<boolean>(true)
+const walletBalance = useState<number>('walletBalance', () => 0)
+const recentRequests = ref<RequestItem[]>([])
+const ongoingOrders = ref<OrderItem[]>([])
+const activeRequestCount = ref<number>(0)
 const HOME_STATS_POLL_MS = 15000
-let homeStatsPollTimer = null
+let homeStatsPollTimer: ReturnType<typeof setInterval> | null = null
 
-const currentTab = computed(() => route.query.tab || 'home')
-const requestIdFromQuery = computed(() => {
-  const value = route.query.requestId
-  if (Array.isArray(value)) return value[0] || null
-  return value || null
+const currentTab = computed<string>(() => String(route.query['tab'] ?? 'home'))
+const requestIdFromQuery = computed<string | null>(() => {
+  const value = route.query['requestId']
+  if (Array.isArray(value)) return value[0] ?? null
+  return (value as string | undefined) ?? null
 })
 
-const companies = computed(() => userStore.companies || [])
-const verifiedPartners = computed(() => companies.value.slice(0, 3))
-const recentRequestItems = computed(() => recentRequests.value.slice(0, 2))
-const ongoingOrderItems = computed(() => {
-  const active = ongoingOrders.value.filter((order) => isOngoingOrderStatus(order.status))
+const companies = computed<CompanyItem[]>(() => (userStore.companies as CompanyItem[]) ?? [])
+const verifiedPartners = computed<CompanyItem[]>(() => companies.value.slice(0, 3))
+const recentRequestItems = computed<RequestItem[]>(() => recentRequests.value.slice(0, 2))
+const ongoingOrderItems = computed<OrderItem[]>(() => {
+  const active = ongoingOrders.value.filter((order) => isOngoingOrderStatus(order.status ?? ''))
   return (active.length ? active : ongoingOrders.value).slice(0, 2)
 })
 
-const goTab = (tab) => navigateTo({ path: '/customer', query: { tab } })
+const goTab = (tab: string): void => { void navigateTo({ path: '/customer', query: { tab } }) }
 
-const isActiveRequestStatus = orderStatus.isActiveRequestStatus
-const isOngoingOrderStatus = orderStatus.isOngoingStoreStatus
+const isActiveRequestStatus: (status: string) => boolean = orderStatus.isActiveRequestStatus
+const isOngoingOrderStatus: (status: string) => boolean = orderStatus.isOngoingStoreStatus
 
-const formatDate = (value) => (
+const formatDate = (value: string | undefined): string => (
   value
     ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
     : ''
 )
 
-const formatMoney = (value) => Number(value || 0).toFixed(2)
-const shortId = (id) => (id || '').substring(0, 8).toUpperCase()
-const shortOrderId = (id) => String(id || '').replace(/^#/, '').substring(0, 8)
+const formatMoney = (value: number | string | undefined): string => Number(value ?? 0).toFixed(2)
+const shortId = (id: string | undefined): string => (id ?? '').substring(0, 8).toUpperCase()
+const shortOrderId = (id: number | string | undefined): string => String(id ?? '').replace(/^#/, '').substring(0, 8)
 
-const requestMeta = (request) => {
-  const itemCount = Number(request.item_count || request.items?.length || 0)
+const requestMeta = (request: RequestItem): string => {
+  const itemCount = Number(request.item_count ?? request.items?.length ?? 0)
   const fulfillment = request.fulfillment_type ? String(request.fulfillment_type).replace(/_/g, ' ') : ''
   if (fulfillment) return `${itemCount || 0} item${itemCount === 1 ? '' : 's'} • ${fulfillment}`
   return `${itemCount || 0} item${itemCount === 1 ? '' : 's'}`
 }
 
-const getRequestAmount = (request) => {
+const getRequestAmount = (request: RequestItem): number => {
   const totalCost = Number(request.total_cost)
   if (Number.isFinite(totalCost) && totalCost > 0) return totalCost
 
   const estimated = Number(request.estimated_total)
   if (Number.isFinite(estimated) && estimated > 0) return estimated
 
-  const itemsTotal = Number(request.items_total || 0)
-  const deliveryFee = request.fulfillment_type === 'delivery' ? Number(request.delivery_fee || 0) : 0
+  const itemsTotal = Number(request.items_total ?? 0)
+  const deliveryFee = request.fulfillment_type === 'delivery' ? Number(request.delivery_fee ?? 0) : 0
   return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)
 }
 
-const getRequestStatusLabel = orderStatus.formatRequestStatus
-const getRequestStatusClass = orderStatus.requestStatusBadgeClass
+const getRequestStatusLabel: (status: string) => string = orderStatus.formatRequestStatus
+const getRequestStatusClass: (status: string) => string = orderStatus.requestStatusBadgeClass
 
-const requestIcon = (request) => {
+const requestIcon = (request: RequestItem) => {
   if (request.fulfillment_type === 'delivery') return TruckIcon
-  if ((request.item_count || request.items?.length || 0) > 0) return BeakerIcon
+  if ((request.item_count ?? request.items?.length ?? 0) > 0) return BeakerIcon
   return DocumentTextIcon
 }
 
-const getOrderStatusLabel = orderStatus.formatStoreStatus
+const getOrderStatusLabel: (status: string) => string = orderStatus.formatStoreStatus
 
-const getOrderDotClass = (status) => {
+const getOrderDotClass = (status: string | undefined): string => {
   switch (status) {
     case 'processing':
     case 'pending':
@@ -397,90 +433,91 @@ const getOrderDotClass = (status) => {
   }
 }
 
-const getOrderSummary = (order) => {
-  const firstItem = order.items?.[0]?.brand_name || order.items?.[0]?.product_name
+const getOrderSummary = (order: OrderItem): string => {
+  const firstItem = order.items?.[0]?.brand_name ?? order.items?.[0]?.product_name
   if (firstItem) return firstItem
   if (order.company_name) return order.company_name
-  return `${Number(order.item_count || 0)} item${Number(order.item_count || 0) === 1 ? '' : 's'}`
+  const cnt = Number(order.item_count ?? 0)
+  return `${cnt} item${cnt === 1 ? '' : 's'}`
 }
 
-const getCompanyMeta = (company) => {
-  const address = company.address || company.location || company.physical_address || ''
+const getCompanyMeta = (company: CompanyItem): string => {
+  const address = String(company.address ?? company.location ?? company.physical_address ?? '')
   const compact = getCompactAddressLines(address, { primaryCount: 2 }).primary
   return compact || 'Linked pharmacy'
 }
 
-const loadWalletBalance = async () => {
+const loadWalletBalance = async (): Promise<void> => {
   try {
     const json = await walletService.getBalance()
-    walletBalance.value = parseFloat(json.data?.balance || 0)
-  } catch (_error) {
+    walletBalance.value = parseFloat(String((json.data as { balance?: number | string })?.balance ?? 0))
+  } catch {
     walletBalance.value = 0
   }
 }
 
-const loadRequestActivity = async () => {
+const loadRequestActivity = async (): Promise<void> => {
   try {
     const json = await orderRequestsService.listForCustomer()
-    const requests = json.data || []
+    const requests = (json.data ?? []) as RequestItem[]
     recentRequests.value = requests.slice(0, 4)
-    activeRequestCount.value = requests.filter((request) => isActiveRequestStatus(request.status)).length
-  } catch (_error) {
+    activeRequestCount.value = requests.filter((request) => isActiveRequestStatus(request.status ?? '')).length
+  } catch {
     recentRequests.value = []
     activeRequestCount.value = 0
   }
 }
 
-const loadOrderActivity = async () => {
+const loadOrderActivity = async (): Promise<void> => {
   try {
-    const orders = await userStore.getAllOrders({ limit: 12 })
-    ongoingOrders.value = Array.isArray(orders) ? orders : []
-  } catch (_error) {
+    const orders = await (userStore as unknown as { getAllOrders: (opts: { limit: number }) => Promise<unknown> }).getAllOrders({ limit: 12 })
+    ongoingOrders.value = Array.isArray(orders) ? (orders as OrderItem[]) : []
+  } catch {
     ongoingOrders.value = []
   }
 }
 
-const loadCompanies = async () => {
+const loadCompanies = async (): Promise<void> => {
   if (companies.value.length > 0) return
   try {
-    await userStore.getMyCompanies()
-  } catch (_error) {
+    await (userStore as unknown as { getMyCompanies: () => Promise<void> }).getMyCompanies()
+  } catch {
     // Keep the page usable even if company refresh fails.
   }
 }
 
-const stopHomeStatsPolling = () => {
+const stopHomeStatsPolling = (): void => {
   if (!homeStatsPollTimer) return
   clearInterval(homeStatsPollTimer)
   homeStatsPollTimer = null
 }
 
-const loadDashboard = async ({ silent = false } = {}) => {
+const loadDashboard = async ({ silent = false }: { silent?: boolean } = {}): Promise<void> => {
   if (!silent) isDashboardLoading.value = true
   try {
     await Promise.allSettled([
       loadCompanies(),
       loadWalletBalance(),
       loadRequestActivity(),
-      loadOrderActivity()
+      loadOrderActivity(),
     ])
   } finally {
     if (!silent) isDashboardLoading.value = false
   }
 }
 
-const startHomeStatsPolling = async () => {
+const startHomeStatsPolling = async (): Promise<void> => {
   stopHomeStatsPolling()
   await loadDashboard()
   homeStatsPollTimer = setInterval(() => {
     if (typeof document !== 'undefined' && document.hidden) return
-    loadDashboard({ silent: true })
+    void loadDashboard({ silent: true })
   }, HOME_STATS_POLL_MS)
 }
 
 onMounted(async () => {
   try {
-    if (!userStore.authInitialized) await userStore.checkAuthState()
+    if (!userStore.authInitialized) await (userStore as unknown as { checkAuthState: () => Promise<void> }).checkAuthState()
     if (!userStore.customerAuthToken) {
       await navigateTo('/')
       return

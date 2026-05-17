@@ -76,22 +76,43 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
 import { createPlatformSettingsService } from '~/services/platformSettings/platformSettingsService'
+import type { PlatformSetting, PlatformSettingUpdate, ApiEnvelope } from '~/services/types'
 
-const adminStore = useAdminStore()
-const config = useRuntimeConfig()
-const apiBaseUrl = config.public.apiBase
 const platformSettingsService = createPlatformSettingsService(useApi())
 
-const loading = ref(false)
-const message = ref(null)
-const originalSettings = reactive({})
-const editedSettings = reactive({})
+const loading = ref<boolean>(false)
+const message = ref<{ text: string; type: string } | null>(null)
+const originalSettings = reactive<Record<string, string>>({})
+const editedSettings = reactive<Record<string, string>>({})
 
-const sections = [
+interface SettingOption {
+  value: string;
+  label: string;
+}
+
+interface SettingDefinition {
+  key: string;
+  label: string;
+  help: string;
+  type: 'number' | 'string' | 'boolean' | 'select';
+  inputType?: string;
+  step?: string;
+  defaultValue: string;
+  options?: SettingOption[];
+}
+
+interface SectionDefinition {
+  id: string;
+  short: string;
+  title: string;
+  description: string;
+  settings: SettingDefinition[];
+}
+
+const sections: SectionDefinition[] = [
   {
     id: 'order',
     short: 'OPS',
@@ -322,13 +343,13 @@ const sections = [
   // }
 ]
 
-const allSettings = computed(() => sections.flatMap((section) => section.settings))
+const allSettings = computed<SettingDefinition[]>(() => sections.flatMap((section) => section.settings))
 
-const hasChanges = computed(() => {
-  return allSettings.value.some((setting) => editedSettings[setting.key] !== originalSettings[setting.key])
-})
+const hasChanges = computed<boolean>(() =>
+  allSettings.value.some((setting) => editedSettings[setting.key] !== originalSettings[setting.key])
+)
 
-const showMessage = (text, type = 'success') => {
+const showMessage = (text: string, type: string = 'success'): void => {
   message.value = { text, type }
   setTimeout(() => {
     message.value = null
@@ -341,18 +362,18 @@ const showMessage = (text, type = 'success') => {
 // `useApi` only throws on HTTP status, so each call site below
 // preserves the `success === false` guard explicitly and re-throws
 // with `payload.message`, matching the prior behavior byte-for-byte.
-const ensureSuccess = (payload) => {
+const ensureSuccess = <T>(payload: ApiEnvelope<T>): ApiEnvelope<T> => {
   if (payload && payload.success === false) {
-    throw new Error(payload.message || 'API error')
+    throw new Error(payload.message ?? 'API error')
   }
   return payload
 }
 
-const fetchSettings = async () => {
+const fetchSettings = async (): Promise<void> => {
   loading.value = true
   try {
     const res = ensureSuccess(await platformSettingsService.listSettings())
-    const current = Array.isArray(res.data) ? res.data : []
+    const current: PlatformSetting[] = Array.isArray(res.data) ? res.data : []
 
     for (const setting of allSettings.value) {
       const found = current.find((row) => row.setting_key === setting.key)
@@ -363,18 +384,18 @@ const fetchSettings = async () => {
 
     showMessage('Settings loaded')
   } catch (error) {
-    showMessage(error.message || 'Failed to load settings', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to load settings', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const saveAll = async () => {
+const saveAll = async (): Promise<void> => {
   loading.value = true
   try {
-    const changedSettings = allSettings.value
+    const changedSettings: PlatformSettingUpdate[] = allSettings.value
       .filter((setting) => editedSettings[setting.key] !== originalSettings[setting.key])
-      .map((setting) => ({ key: setting.key, value: editedSettings[setting.key] }))
+      .map((setting) => ({ key: setting.key, value: editedSettings[setting.key] ?? '' }))
 
     if (changedSettings.length === 0) {
       showMessage('No changes to save')
@@ -389,13 +410,13 @@ const saveAll = async () => {
 
     showMessage(`${changedSettings.length} setting(s) saved`)
   } catch (error) {
-    showMessage(error.message || 'Failed to save settings', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to save settings', 'error')
   } finally {
     loading.value = false
   }
 }
 
-onMounted(fetchSettings)
+onMounted(() => { void fetchSettings() })
 
 definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
 </script>

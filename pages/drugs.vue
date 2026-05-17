@@ -183,69 +183,91 @@
   </AccessControl>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { computed, ref } from 'vue'
 import { useImageUpload } from '@/composables/useImageUpload'
 import { usePharmacyStore } from '~/stores/pharmacy'
 import { createPharmacyService } from '~/services/pharmacy/pharmacyService'
 
+interface ProductRow {
+  id?: string | number;
+  brandName?: string;
+  unit?: string;
+  sellingPrice?: number;
+  stockQty?: number;
+  lastUpdated?: string;
+  [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface PharmacyStoreShape {
+  currentPharmacy: string | number | null;
+  pharmacyData: { name?: string; location?: string } | null;
+  products: ProductRow[];
+  loadProducts: () => Promise<void>;
+}
+
 const pharmacyService = createPharmacyService(useApi());
 
 // Get pharmacy store
-const pharmacyStore = usePharmacyStore()
+const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape
 const currentPharmacy = computed(() => pharmacyStore.currentPharmacy)
 const pharmacyData = computed(() => pharmacyStore.pharmacyData)
-const products = computed(() => pharmacyStore.products)
+const products = computed<ProductRow[]>(() => pharmacyStore.products)
 
 // Tabs Configuration
-const tabs = [
+const tabs: Array<{ name: string; value: string }> = [
   { name: 'Add Product', value: 'form' },
-  { name: 'Products List', value: 'table' }
+  { name: 'Products List', value: 'table' },
 ]
-const activeTab = ref('form')
+const activeTab = ref<string>('form')
 
 // Search state
-const searchQuery = ref('')
+const searchQuery = ref<string>('')
 
 // Image Upload Setup
 const {
-  imageFile,
   imageUrl,
   isUploading,
-  uploadProgress,
-  uploadError,
   handleImageUpload,
-  resetUpload
+  resetUpload,
 } = useImageUpload()
 
 // Product Form state
-const productForm = ref({
+const productForm = ref<{
+  brandName: string;
+  unit: string;
+  imagePreview: string | null;
+  sellingPrice: number | null;
+  stockQty: number;
+}>({
   brandName: '',
   unit: '',
   imagePreview: null,
   sellingPrice: null,
-  stockQty: 0
+  stockQty: 0,
 })
 
 // Computed properties
-const filteredProducts = computed(() => {
+const filteredProducts = computed<ProductRow[]>(() => {
   const query = searchQuery.value.toLowerCase()
   return products.value.filter(product =>
-    product.brandName.toLowerCase().includes(query)
+    (product.brandName ?? '').toLowerCase().includes(query)
   )
 })
 
 // Methods
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   const date = dateString ? new Date(dateString) : new Date()
   return date.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
 // Submit Form
-const submitProduct = async () => {
+const submitProduct = async (): Promise<void> => {
   try {
     // Validate form
     if (!productForm.value.brandName ||
@@ -260,27 +282,27 @@ const submitProduct = async () => {
       return
     }
 
-    const newProduct = {
+    const newProduct: Record<string, unknown> = {
       id: `PROD_${Date.now()}`, // Generate a unique ID
-      company_id: parseInt(currentPharmacy.value),
+      company_id: parseInt(String(currentPharmacy.value)),
       brand_name: productForm.value.brandName,
       unit: productForm.value.unit,
       sell_unit: productForm.value.unit,
       selling_price: productForm.value.sellingPrice,
       stock_qty: productForm.value.stockQty || 0,
-      is_active: true
+      is_active: true,
     }
 
     // Add image if available
     if (imageUrl.value) {
-      newProduct.imageUrl = imageUrl.value
+      newProduct['imageUrl'] = imageUrl.value
     }
 
     // Create product via service layer
-    const result = await pharmacyService.saveProduct(newProduct);
+    const result = await pharmacyService.saveProduct(newProduct as Parameters<typeof pharmacyService.saveProduct>[0]);
 
     if (!result.success) {
-      throw new Error(result.message || 'Failed to add product');
+      throw new Error(result.message ?? 'Failed to add product');
     }
 
     // Refresh products list in the store
@@ -292,50 +314,55 @@ const submitProduct = async () => {
       unit: '',
       imagePreview: null,
       sellingPrice: null,
-      stockQty: 0
+      stockQty: 0,
     }
     resetUpload()
 
     // Switch to table view and show success message
     activeTab.value = 'table'
     alert('Product added successfully!')
-  } catch (error) {
-    console.error('Error adding product:', error)
+  } catch (err) {
+    console.error('Error adding product:', err)
     alert('Failed to add product. Please try again.')
   }
 }
 
 // Editing state
-const editingId = ref(null)
-const editForm = ref({
+const editingId = ref<string | number | null>(null)
+const editForm = ref<{
+  brandName: string;
+  sellingPrice: number;
+  unit: string;
+  stockQty: number;
+}>({
   brandName: '',
   sellingPrice: 0,
   unit: '',
-  stockQty: 0
+  stockQty: 0,
 })
 
 // Edit methods
-const startEdit = (product) => {
-  editingId.value = product.id
+const startEdit = (product: ProductRow): void => {
+  editingId.value = product.id ?? null
   editForm.value = {
-    brandName: product.brandName,
-    sellingPrice: product.sellingPrice,
-    unit: product.unit,
-    stockQty: product.stockQty || 0
+    brandName: product.brandName ?? '',
+    sellingPrice: product.sellingPrice ?? 0,
+    unit: product.unit ?? '',
+    stockQty: product.stockQty ?? 0,
   }
 }
 
-const cancelEdit = () => {
+const cancelEdit = (): void => {
   editingId.value = null
   editForm.value = {
     brandName: '',
     sellingPrice: 0,
     unit: '',
-    stockQty: 0
+    stockQty: 0,
   }
 }
 
-const handleSave = async (productId) => {
+const handleSave = async (productId: string | number): Promise<void> => {
   try {
     // Validate form
     if (!editForm.value.brandName || !editForm.value.sellingPrice || !editForm.value.unit) {
@@ -351,18 +378,18 @@ const handleSave = async (productId) => {
     // Update via REST API
     const updates = {
       id: productId,
-      company_id: parseInt(currentPharmacy.value),
+      company_id: parseInt(String(currentPharmacy.value)),
       brand_name: editForm.value.brandName,
       selling_price: editForm.value.sellingPrice,
       unit: editForm.value.unit,
       sell_unit: editForm.value.unit,
-      stock_qty: editForm.value.stockQty
+      stock_qty: editForm.value.stockQty,
     }
 
-    const result = await pharmacyService.saveProduct(updates);
+    const result = await pharmacyService.saveProduct(updates as Parameters<typeof pharmacyService.saveProduct>[0]);
 
     if (!result.success) {
-      throw new Error(result.message || 'Failed to update product');
+      throw new Error(result.message ?? 'Failed to update product');
     }
 
     // Refresh products list in the store
@@ -374,12 +401,12 @@ const handleSave = async (productId) => {
       brandName: '',
       sellingPrice: 0,
       unit: '',
-      stockQty: 0
+      stockQty: 0,
     }
 
     alert('Product updated successfully!')
-  } catch (error) {
-    console.error('Error updating product:', error)
+  } catch (err) {
+    console.error('Error updating product:', err)
     alert('Failed to update product. Please try again.')
   }
 }

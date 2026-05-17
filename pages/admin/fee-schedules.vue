@@ -192,156 +192,206 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { createFeeSchedulesService } from '~/services/feeSchedules/feeSchedulesService'
+import type { FeeTier } from '~/services/types'
 
 const feeSchedulesService = createFeeSchedulesService(useApi())
 
-const loading = ref(false)
-const message = ref(null)
+const loading = ref<boolean>(false)
+const message = ref<{ text: string; type: string } | null>(null)
 
-const schedules = ref([])
-const selected = ref(null)
-const header = reactive({ name: '', top_tier_per_km: null, max_billable_km: null, notes: '' })
-const headerOriginal = reactive({})
-const tierEdits = reactive({})
-const tierOriginals = reactive({})
-const newTier = reactive({ from_km: null, fee_ghs: null, label: '' })
+// FeeSchedule from types.ts has: id, name, top_tier_per_km, max_billable_km, notes, status, tiers?
+// The backend also returns runtime display fields not captured in the shared type.
+interface ScheduleRow {
+  id: number | string;
+  name: string;
+  status: string;
+  top_tier_per_km?: number | null;
+  max_billable_km?: number | null;
+  notes?: string | null;
+  tiers?: FeeTier[];
+  // Runtime fields from the API
+  is_active?: boolean;
+  is_draft?: boolean;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  currency?: string;
+}
 
-const showCreate = ref(false)
-const createForm = reactive({ name: '', top_tier_per_km: null, max_billable_km: null, clone_from_id: null })
+interface TierEdit {
+  from_km: number;
+  fee_ghs: number;
+  label: string;
+}
 
-const showMessage = (text, type = 'success') => {
+interface HeaderState {
+  name: string;
+  top_tier_per_km: number | null;
+  max_billable_km: number | null;
+  notes: string;
+}
+
+const schedules = ref<ScheduleRow[]>([])
+const selected = ref<ScheduleRow | null>(null)
+const header = reactive<HeaderState>({ name: '', top_tier_per_km: null, max_billable_km: null, notes: '' })
+const headerOriginal = reactive<Partial<HeaderState>>({})
+const tierEdits = reactive<Record<string | number, TierEdit>>({})
+const tierOriginals = reactive<Record<string | number, TierEdit>>({})
+const newTier = reactive<{ from_km: number | null; fee_ghs: number | null; label: string }>({
+  from_km: null,
+  fee_ghs: null,
+  label: '',
+})
+
+const showCreate = ref<boolean>(false)
+const createForm = reactive<{
+  name: string;
+  top_tier_per_km: number | null;
+  max_billable_km: number | null;
+  clone_from_id: number | null;
+}>({ name: '', top_tier_per_km: null, max_billable_km: null, clone_from_id: null })
+
+const showMessage = (text: string, type: string = 'success'): void => {
   message.value = { text, type }
   setTimeout(() => { message.value = null }, 4500)
 }
 
-const statusLabel = (s) => {
+const statusLabel = (s: ScheduleRow): string => {
   if (s.is_active) return 'ACTIVE'
   if (s.is_draft) return 'DRAFT'
   return 'SUPERSEDED'
 }
-const statusClass = (s) => {
+const statusClass = (s: ScheduleRow): string => {
   if (s.is_active) return 'status-active'
   if (s.is_draft) return 'status-draft'
   return 'status-superseded'
 }
 
-const formatDate = (iso) => {
+const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return ''
-  try { return new Date(iso).toLocaleString() } catch (e) { return iso }
+  try { return new Date(iso).toLocaleString() } catch { return iso }
 }
 
-const fetchAll = async () => {
+const fetchAll = async (): Promise<void> => {
   loading.value = true
   try {
     const res = await feeSchedulesService.list()
-    schedules.value = Array.isArray(res.data) ? res.data : []
+    schedules.value = (Array.isArray(res.data) ? res.data : []) as ScheduleRow[]
     if (selected.value) await selectSchedule(selected.value.id)
   } catch (error) {
-    showMessage(error.message || 'Failed to load schedules', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to load schedules', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const selectSchedule = async (id) => {
+const selectSchedule = async (id: number | string): Promise<void> => {
   loading.value = true
   try {
     const res = await feeSchedulesService.getById(id)
-    selected.value = res.data
+    const data = res.data as ScheduleRow
+    selected.value = data
     Object.assign(header, {
-      name: res.data.name,
-      top_tier_per_km: res.data.top_tier_per_km != null ? Number(res.data.top_tier_per_km) : null,
-      max_billable_km: res.data.max_billable_km != null ? Number(res.data.max_billable_km) : null,
-      notes: res.data.notes || '',
+      name: data.name,
+      top_tier_per_km: data.top_tier_per_km != null ? Number(data.top_tier_per_km) : null,
+      max_billable_km: data.max_billable_km != null ? Number(data.max_billable_km) : null,
+      notes: data.notes ?? '',
     })
     Object.assign(headerOriginal, { ...header })
     // Reset and rebuild tier edit state
-    Object.keys(tierEdits).forEach(k => delete tierEdits[k])
-    Object.keys(tierOriginals).forEach(k => delete tierOriginals[k])
-    for (const t of res.data.tiers || []) {
-      tierEdits[t.id] = { from_km: Number(t.from_km), fee_ghs: Number(t.fee_ghs), label: t.label || '' }
+    for (const k of Object.keys(tierEdits)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete tierEdits[k]
+    }
+    for (const k of Object.keys(tierOriginals)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete tierOriginals[k]
+    }
+    for (const t of data.tiers ?? []) {
+      tierEdits[t.id] = { from_km: Number(t.from_km), fee_ghs: Number(t.fee_ghs), label: t.label ?? '' }
       tierOriginals[t.id] = { ...tierEdits[t.id] }
     }
     Object.assign(newTier, { from_km: null, fee_ghs: null, label: '' })
   } catch (error) {
-    showMessage(error.message || 'Failed to load schedule', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to load schedule', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const headerDirty = computed(() => {
+const headerDirty = computed<boolean>(() => {
   if (!selected.value) return false
-  return ['name', 'top_tier_per_km', 'max_billable_km', 'notes'].some(k => header[k] !== headerOriginal[k])
+  const keys: Array<keyof HeaderState> = ['name', 'top_tier_per_km', 'max_billable_km', 'notes']
+  return keys.some(k => header[k] !== headerOriginal[k])
 })
 
-const tierDirty = (t) => {
+const tierDirty = (t: FeeTier): boolean => {
   const orig = tierOriginals[t.id]
   const cur = tierEdits[t.id]
   if (!orig || !cur) return false
-  return cur.from_km !== orig.from_km || cur.fee_ghs !== orig.fee_ghs || (cur.label || '') !== (orig.label || '')
+  return cur.from_km !== orig.from_km || cur.fee_ghs !== orig.fee_ghs || (cur.label ?? '') !== (orig.label ?? '')
 }
 
-const canAddTier = computed(() => {
-  return newTier.from_km !== null && newTier.from_km !== '' &&
-         newTier.fee_ghs !== null && newTier.fee_ghs !== ''
-})
+const canAddTier = computed<boolean>(() =>
+  newTier.from_km !== null && newTier.fee_ghs !== null
+)
 
-const saveHeader = async () => {
+const saveHeader = async (): Promise<void> => {
   if (!selected.value) return
   loading.value = true
   try {
     await feeSchedulesService.updateHeader(selected.value.id, {
       name: header.name,
-      top_tier_per_km: header.top_tier_per_km,
-      max_billable_km: header.max_billable_km,
+      top_tier_per_km: header.top_tier_per_km ?? undefined,
+      max_billable_km: header.max_billable_km ?? undefined,
       notes: header.notes,
     })
     showMessage('Header saved')
     await fetchAll()
   } catch (error) {
-    showMessage(error.message || 'Failed to save header', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to save header', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const addTier = async () => {
+const addTier = async (): Promise<void> => {
   if (!selected.value || !canAddTier.value) return
   loading.value = true
   try {
     await feeSchedulesService.addTier(selected.value.id, {
-      from_km: newTier.from_km,
-      fee_ghs: newTier.fee_ghs,
+      from_km: newTier.from_km ?? undefined,
+      fee_ghs: newTier.fee_ghs ?? undefined,
       label: newTier.label || null,
     })
     showMessage('Tier added')
     await selectSchedule(selected.value.id)
   } catch (error) {
-    showMessage(error.message || 'Failed to add tier', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to add tier', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const saveTier = async (tierId) => {
+const saveTier = async (tierId: number | string): Promise<void> => {
   if (!selected.value) return
   loading.value = true
   try {
-    await feeSchedulesService.updateTier(selected.value.id, tierId, tierEdits[tierId])
+    const edit = tierEdits[tierId]
+    if (!edit) return
+    await feeSchedulesService.updateTier(selected.value.id, tierId, edit)
     showMessage('Tier saved')
-    tierOriginals[tierId] = { ...tierEdits[tierId] }
+    tierOriginals[tierId] = { ...edit }
   } catch (error) {
-    showMessage(error.message || 'Failed to save tier', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to save tier', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const deleteTier = async (tierId) => {
+const deleteTier = async (tierId: number | string): Promise<void> => {
   if (!selected.value) return
   if (!confirm('Delete this tier?')) return
   loading.value = true
@@ -350,13 +400,13 @@ const deleteTier = async (tierId) => {
     showMessage('Tier deleted')
     await selectSchedule(selected.value.id)
   } catch (error) {
-    showMessage(error.message || 'Failed to delete tier', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to delete tier', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const publishDraft = async () => {
+const publishDraft = async (): Promise<void> => {
   if (!selected.value) return
   if (!confirm(`Publish "${selected.value.name}"? This will supersede the currently active schedule and apply to all new quotes.`)) return
   loading.value = true
@@ -365,19 +415,19 @@ const publishDraft = async () => {
     showMessage('Schedule published')
     await fetchAll()
   } catch (error) {
-    showMessage(error.message || 'Failed to publish', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to publish', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const openCreateModal = () => {
+const openCreateModal = (): void => {
   Object.assign(createForm, { name: '', top_tier_per_km: null, max_billable_km: null, clone_from_id: null })
   showCreate.value = true
 }
-const closeCreateModal = () => { showCreate.value = false }
+const closeCreateModal = (): void => { showCreate.value = false }
 
-const createDraft = async () => {
+const createDraft = async (): Promise<void> => {
   if (!createForm.name) return
   loading.value = true
   try {
@@ -385,15 +435,16 @@ const createDraft = async () => {
     showMessage('Draft created')
     closeCreateModal()
     await fetchAll()
-    if (res.data?.id) await selectSchedule(res.data.id)
+    const newId = (res.data as ScheduleRow | null | undefined)?.id
+    if (newId !== undefined) await selectSchedule(newId)
   } catch (error) {
-    showMessage(error.message || 'Failed to create draft', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to create draft', 'error')
   } finally {
     loading.value = false
   }
 }
 
-onMounted(fetchAll)
+onMounted(() => { void fetchAll() })
 
 definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout', requiredRole: 'super_admin' })
 </script>

@@ -29,27 +29,36 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: '' },
-  items: {
-    type: Array,
-    default: () => [],
-  },
-  formatter: {
-    type: Function,
-    default: (value) => String(value ?? 0),
-  },
-})
+interface ChartItem {
+  label: string
+  value: number | string
+  [key: string]: unknown
+}
 
-const maxValue = computed(() => Math.max(...props.items.map((item) => Number(item.value || 0)), 1))
+interface NormalizedItem extends ChartItem {
+  value: number
+  percent: number
+}
 
-const normalizedItems = computed(() => props.items.map((item) => ({
-  ...item,
-  value: Number(item.value || 0),
-  percent: Math.max(6, (Number(item.value || 0) / maxValue.value) * 100),
-})))
+const props = defineProps<{
+  title: string
+  subtitle?: string
+  items?: ChartItem[]
+  formatter?: (value: number) => string
+}>()
+
+const maxValue = computed<number>(() =>
+  Math.max(...(props.items ?? []).map((item) => Number(item.value ?? 0)), 1),
+)
+
+const normalizedItems = computed<NormalizedItem[]>(() =>
+  (props.items ?? []).map((item) => ({
+    ...item,
+    value: Number(item.value ?? 0),
+    percent: Math.max(6, (Number(item.value ?? 0) / maxValue.value) * 100),
+  })),
+)
 </script>

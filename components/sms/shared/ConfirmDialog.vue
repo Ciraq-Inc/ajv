@@ -109,126 +109,89 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  message: {
-    type: String,
-    required: true
-  },
-  type: {
-    type: String,
-    default: 'warning', // 'warning', 'danger', 'info', 'success', 'error'
-    validator: (value) => ['warning', 'danger', 'info', 'success', 'error', null].includes(value)
-  },
-  confirmText: {
-    type: String,
-    default: 'Confirm'
-  },
-  cancelText: {
-    type: String,
-    default: 'Cancel'
-  },
-  loadingText: {
-    type: String,
-    default: 'Processing...'
-  },
-  showCancel: {
-    type: Boolean,
-    default: true
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  },
-  closeOnBackdrop: {
-    type: Boolean,
-    default: true
-  },
-  error: {
-    type: String,
-    default: null
-  },
-  canRetry: {
-    type: Boolean,
-    default: false
-  },
-  isRetrying: {
-    type: Boolean,
-    default: false
-  }
-})
+type DialogType = 'warning' | 'danger' | 'info' | 'success' | 'error'
 
-const emit = defineEmits(['confirm', 'cancel', 'close', 'retry'])
+const props = defineProps<{
+  isOpen: boolean
+  title: string
+  message: string
+  type?: DialogType
+  confirmText?: string
+  cancelText?: string
+  loadingText?: string
+  showCancel?: boolean
+  loading?: boolean
+  closeOnBackdrop?: boolean
+  error?: string | null
+  canRetry?: boolean
+  isRetrying?: boolean
+}>()
 
-const iconName = computed(() => {
-  const icons = {
+const emit = defineEmits<{
+  confirm: []
+  cancel: []
+  close: []
+  retry: []
+}>()
+
+const iconName = computed<string>(() => {
+  const icons: Record<DialogType, string> = {
     warning: 'AlertTriangle',
     danger: 'AlertCircle',
     error: 'AlertCircle',
     info: 'Info',
-    success: 'CheckCircle'
+    success: 'CheckCircle',
   }
-  return icons[props.type] || 'AlertTriangle'
+  return icons[props.type ?? 'warning'] ?? 'AlertTriangle'
 })
 
-const iconBgClass = computed(() => {
-  const classes = {
+const iconBgClass = computed<string>(() => {
+  const classes: Record<DialogType, string> = {
     warning: 'bg-yellow-100',
     danger: 'bg-red-100',
     error: 'bg-red-100',
     info: 'bg-purple-100',
-    success: 'bg-green-100'
+    success: 'bg-green-100',
   }
-  return classes[props.type] || 'bg-yellow-100'
+  return classes[props.type ?? 'warning'] ?? 'bg-yellow-100'
 })
 
-const iconColorClass = computed(() => {
-  const classes = {
+const iconColorClass = computed<string>(() => {
+  const classes: Record<DialogType, string> = {
     warning: 'text-yellow-600',
     danger: 'text-red-600',
     error: 'text-red-600',
     info: 'cs-text',
-    success: 'text-green-600'
+    success: 'text-green-600',
   }
-  return classes[props.type] || 'text-yellow-600'
+  return classes[props.type ?? 'warning'] ?? 'text-yellow-600'
 })
 
-const confirmButtonClass = computed(() => {
-  const classes = {
+const confirmButtonClass = computed<string>(() => {
+  const classes: Record<DialogType, string> = {
     warning: 'bg-yellow-600 text-white hover:bg-yellow-700',
     danger: 'bg-red-600 text-white hover:bg-red-700',
     error: 'bg-red-600 text-white hover:bg-red-700',
     info: 'cs-btn text-white',
-    success: 'bg-green-600 text-white hover:bg-green-700'
+    success: 'bg-green-600 text-white hover:bg-green-700',
   }
-  return classes[props.type] || 'bg-yellow-600 text-white hover:bg-yellow-700'
+  return classes[props.type ?? 'warning'] ?? 'bg-yellow-600 text-white hover:bg-yellow-700'
 })
 
-const handleConfirm = () => {
-  emit('confirm')
-}
+const handleConfirm = (): void => emit('confirm')
 
-const handleCancel = () => {
+const handleCancel = (): void => {
   emit('cancel')
   emit('close')
 }
 
-const handleRetry = () => {
-  emit('retry')
-}
+const handleRetry = (): void => emit('retry')
 
-const handleBackdropClick = () => {
-  if (props.closeOnBackdrop && !props.loading && !props.isRetrying) {
+const handleBackdropClick = (): void => {
+  if ((props.closeOnBackdrop !== false) && !props.loading && !props.isRetrying) {
     emit('close')
   }
 }

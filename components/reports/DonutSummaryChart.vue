@@ -51,43 +51,58 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: '' },
-  centerLabel: { type: String, default: '' },
-  centerValue: { type: String, default: '' },
-  formatter: {
-    type: Function,
-    default: (value) => String(value ?? 0),
-  },
-  segments: {
-    type: Array,
-    default: () => [],
-  },
-})
+interface Segment {
+  label: string
+  value: number | string
+  color?: string
+}
+
+interface NormalizedSegment {
+  label: string
+  value: number
+  color: string
+}
+
+interface ArcSegment extends NormalizedSegment {
+  dashArray: string
+  dashOffset: number
+}
+
+const props = defineProps<{
+  title: string
+  subtitle?: string
+  centerLabel?: string
+  centerValue?: string
+  formatter?: (value: number) => string
+  segments?: Segment[]
+}>()
 
 const palette = ['#6d28d9', '#a855f7', '#ec4899', '#22c55e', '#f97316']
 const circumference = 2 * Math.PI * 38
 
-const normalizedSegments = computed(() => props.segments
-  .map((segment, index) => ({
-    ...segment,
-    value: Number(segment.value || 0),
-    color: segment.color || palette[index % palette.length],
-  }))
-  .filter((segment) => segment.value > 0))
+const normalizedSegments = computed<NormalizedSegment[]>(() =>
+  (props.segments ?? [])
+    .map((segment, index) => ({
+      ...segment,
+      value: Number(segment.value ?? 0),
+      color: segment.color ?? palette[index % palette.length] ?? '#6d28d9',
+    }))
+    .filter((segment) => segment.value > 0),
+)
 
-const total = computed(() => normalizedSegments.value.reduce((sum, segment) => sum + segment.value, 0))
+const total = computed<number>(() =>
+  normalizedSegments.value.reduce((sum, segment) => sum + segment.value, 0),
+)
 
-const arcSegments = computed(() => {
+const arcSegments = computed<ArcSegment[]>(() => {
   let runningOffset = 0
   return normalizedSegments.value.map((segment) => {
     const ratio = total.value > 0 ? segment.value / total.value : 0
     const dashLength = ratio * circumference
-    const current = {
+    const current: ArcSegment = {
       ...segment,
       dashArray: `${dashLength} ${circumference - dashLength}`,
       dashOffset: -runningOffset,

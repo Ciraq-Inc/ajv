@@ -336,193 +336,233 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import { PlusIcon, TrashIcon, DocumentDuplicateIcon, CheckCircleIcon, ClockIcon, KeyIcon, ExclamationTriangleIcon, XMarkIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 
-const adminStore = useAdminStore()
+interface Company {
+  id: number;
+  name: string;
+}
+
+interface ApiKey {
+  id: number;
+  key_name: string;
+  api_key: string;
+  is_active: boolean;
+  last_used_at?: string;
+  expires_at?: string;
+  created_at: string;
+}
+
+interface ApiKeyStats {
+  total?: number;
+  active?: number;
+  expired?: number;
+  used_recently?: number;
+}
+
+interface GeneratedKey {
+  api_key: string;
+  key_name: string;
+  expires_at?: string;
+  created_at: string;
+}
+
+interface AdminResponse {
+  success: boolean;
+  data?: unknown;
+  message?: string;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (path: string, options?: { method?: string; body?: string }) => Promise<AdminResponse>;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
 
 // State
-const companies = ref([])
-const selectedCompany = ref(null)
-const companySearch = ref('')
-const showDropdown = ref(false)
-const dropdownRef = ref(null)
-const apiKeys = ref([])
-const stats = ref({})
-const loading = ref(false)
-const error = ref(null)
-const generating = ref(false)
-const deleting = ref(false)
-const showGenerateModal = ref(false)
-const newGeneratedKey = ref(null)
-const deactivatingKey = ref(null)
+const companies = ref<Company[]>([])
+const selectedCompany = ref<number | null>(null)
+const companySearch = ref<string>('')
+const showDropdown = ref<boolean>(false)
+const dropdownRef = ref<HTMLElement | null>(null)
+const apiKeys = ref<ApiKey[]>([])
+const stats = ref<ApiKeyStats>({})
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
+const generating = ref<boolean>(false)
+const deleting = ref<boolean>(false)
+const showGenerateModal = ref<boolean>(false)
+const newGeneratedKey = ref<GeneratedKey | null>(null)
+const deactivatingKey = ref<ApiKey | null>(null)
 
-const keyForm = ref({
+const keyForm = ref<{ key_name: string; expires_at: string }>({
   key_name: '',
-  expires_at: ''
+  expires_at: '',
 })
 
-const apiBase = computed(() => {
+const apiBase = computed<string>(() => {
   const config = useRuntimeConfig()
-  return config.public.apiBase 
+  return config.public['apiBase'] as string ?? ''
 })
 
-const minDate = computed(() => {
+const minDate = computed<string>(() => {
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
-  return tomorrow.toISOString().split('T')[0]
+  return tomorrow.toISOString().split('T')[0] ?? ''
 })
 
-const filteredCompanies = computed(() => {
+const filteredCompanies = computed<Company[]>(() => {
   if (!companySearch.value.trim()) {
     return companies.value
   }
   const searchLower = companySearch.value.toLowerCase()
-  return companies.value.filter(company => 
+  return companies.value.filter(company =>
     company.name.toLowerCase().includes(searchLower)
   )
 })
 
 // Methods
-const loadCompanies = async () => {
+const loadCompanies = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/companies')
     if (response.success) {
-      companies.value = response.data || []
+      companies.value = (response.data as Company[]) ?? []
     }
   } catch (err) {
     console.error('Error loading companies:', err)
   }
 }
 
-const selectCompany = (company) => {
+const selectCompany = (company: Company): void => {
   selectedCompany.value = company.id
   companySearch.value = company.name
   showDropdown.value = false
-  loadApiKeys()
+  void loadApiKeys()
 }
 
-const toggleDropdown = () => {
+const toggleDropdown = (): void => {
   showDropdown.value = !showDropdown.value
 }
 
-const handleClickOutside = (event) => {
-  if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+const handleClickOutside = (event: MouseEvent): void => {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
     showDropdown.value = false
   }
 }
 
-const loadApiKeys = async () => {
+const loadApiKeys = async (): Promise<void> => {
   if (!selectedCompany.value) return
-  
+
   loading.value = true
   error.value = null
-  
+
   try {
     // Load API keys
     const keysResponse = await adminStore.makeAuthRequest(`/api/companies/${selectedCompany.value}/api-keys`)
     if (keysResponse.success) {
-      apiKeys.value = keysResponse.data || []
+      apiKeys.value = (keysResponse.data as ApiKey[]) ?? []
     }
 
     // Load stats
     const statsResponse = await adminStore.makeAuthRequest(`/api/companies/${selectedCompany.value}/api-keys/stats`)
     if (statsResponse.success) {
-      stats.value = statsResponse.data || {}
+      stats.value = (statsResponse.data as ApiKeyStats) ?? {}
     }
   } catch (err) {
-    error.value = err.message || 'Failed to load API keys'
+    error.value = err instanceof Error ? err.message : 'Failed to load API keys'
     console.error('Error loading API keys:', err)
   } finally {
     loading.value = false
   }
 }
 
-const generateApiKey = async () => {
+const generateApiKey = async (): Promise<void> => {
   generating.value = true
-  
+
   try {
-    const payload = {
-      key_name: keyForm.value.key_name
+    const payload: { key_name: string; expires_at?: string } = {
+      key_name: keyForm.value.key_name,
     }
-    
+
     if (keyForm.value.expires_at) {
       payload.expires_at = keyForm.value.expires_at
     }
-    
+
     const response = await adminStore.makeAuthRequest(`/api/companies/${selectedCompany.value}/api-keys`, {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     })
-    
+
     if (response.success) {
-      newGeneratedKey.value = response.data
+      newGeneratedKey.value = response.data as GeneratedKey
       showGenerateModal.value = false
       resetForm()
     } else {
-      alert(response.message || 'Failed to generate API key')
+      alert(response.message ?? 'Failed to generate API key')
     }
   } catch (err) {
-    alert(err.message || 'Failed to generate API key')
+    alert(err instanceof Error ? err.message : 'Failed to generate API key')
     console.error('Error generating API key:', err)
   } finally {
     generating.value = false
   }
 }
 
-const confirmDeactivate = (key) => {
+const confirmDeactivate = (key: ApiKey): void => {
   deactivatingKey.value = key
 }
 
-const deactivateKey = async () => {
+const deactivateKey = async (): Promise<void> => {
   deleting.value = true
-  
+
   try {
     const response = await adminStore.makeAuthRequest(
-      `/api/companies/${selectedCompany.value}/api-keys/${deactivatingKey.value.id}`,
-      { method: 'DELETE' }
+      `/api/companies/${selectedCompany.value}/api-keys/${deactivatingKey.value?.id}`,
+      { method: 'DELETE' },
     )
-    
+
     if (response.success) {
       alert('API key deactivated successfully!')
       deactivatingKey.value = null
-      loadApiKeys()
+      void loadApiKeys()
     } else {
-      alert(response.message || 'Failed to deactivate API key')
+      alert(response.message ?? 'Failed to deactivate API key')
     }
   } catch (err) {
-    alert(err.message || 'Failed to deactivate API key')
+    alert(err instanceof Error ? err.message : 'Failed to deactivate API key')
     console.error('Error deactivating API key:', err)
   } finally {
     deleting.value = false
   }
 }
 
-const closeGenerateModal = () => {
+const closeGenerateModal = (): void => {
   showGenerateModal.value = false
   resetForm()
 }
 
-const closeNewKeyModal = () => {
+const closeNewKeyModal = (): void => {
   newGeneratedKey.value = null
-  loadApiKeys()
+  void loadApiKeys()
 }
 
-const resetForm = () => {
+const resetForm = (): void => {
   keyForm.value = {
     key_name: '',
-    expires_at: ''
+    expires_at: '',
   }
 }
 
-const maskApiKey = (key) => {
+const maskApiKey = (key: string | undefined): string => {
   if (!key) return ''
   return `${key.substring(0, 8)}...${key.substring(key.length - 4)}`
 }
 
-const copyToClipboard = async (text) => {
+const copyToClipboard = async (text: string): Promise<void> => {
   try {
     await navigator.clipboard.writeText(text)
     alert('API key copied to clipboard!')
@@ -532,31 +572,31 @@ const copyToClipboard = async (text) => {
   }
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'Never'
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
-const isExpired = (dateString) => {
+const isExpired = (dateString: string | undefined): boolean => {
   if (!dateString) return false
   return new Date(dateString) < new Date()
 }
 
-const getStatusClass = (key) => {
+const getStatusClass = (key: ApiKey): string => {
   if (!key.is_active) return 'inactive'
   if (isExpired(key.expires_at)) return 'expired'
   if (!key.last_used_at) return 'unused'
   return 'active'
 }
 
-const getStatusText = (key) => {
+const getStatusText = (key: ApiKey): string => {
   if (!key.is_active) return 'Inactive'
   if (isExpired(key.expires_at)) return 'Expired'
   if (!key.last_used_at) return 'Never Used'
@@ -565,7 +605,7 @@ const getStatusText = (key) => {
 
 // Lifecycle
 onMounted(() => {
-  loadCompanies()
+  void loadCompanies()
   document.addEventListener('click', handleClickOutside)
 })
 

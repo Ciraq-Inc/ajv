@@ -133,7 +133,7 @@
           <p class="text-gray-600">Loading billing health...</p>
         </div>
 
-        <div v-else-if="billingHealth.length === 0" class="text-center py-12">
+        <div v-else-if="billingHealthRows.length === 0" class="text-center py-12">
           <Icon name="Inbox" class="h-16 w-16 mx-auto mb-4 text-gray-400" />
           <p class="text-gray-600">No billing health data available</p>
         </div>
@@ -144,16 +144,16 @@
               <tr>
                 <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase sticky left-0 bg-gray-50 z-10">Company</th>
                 <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">SMS Balance</th>
-               
+
                 <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Money (GH₵)</th>
-               
+
                 <th class="text-center py-3 px-3 text-xs font-medium text-gray-600 uppercase">Status</th>
                 <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase">Last Activity</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">
               <tr
-                v-for="health in billingHealth"
+                v-for="health in billingHealthRows"
                 :key="health.company_id"
                 class="hover:bg-gray-50"
               >
@@ -177,7 +177,7 @@
                   </span>
                 </td> -->
                 <td class="py-3 px-3 text-right text-gray-900 font-medium">
-                  {{ parseFloat(health.money_balance || 0).toFixed(2) }}
+                  {{ parseFloat(String(health.money_balance ?? 0)).toFixed(2) }}
                 </td>
                 <!-- <td class="py-3 px-3 text-right text-gray-600">
                   {{ formatNumber(health.total_sms_sent || 0) }}
@@ -440,18 +440,37 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRuntimeConfig } from '#app'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
-import { formatDate, formatNumber, getStatusLabel } from '~/utils/constants/sms'
+import { formatDate, formatNumber } from '~/utils/constants/sms'
 
 // Define page metadata
 definePageMeta({
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })
+
+// The BillingHealth type in services/types.ts is minimal. The API returns
+// richer rows; we extend locally for the template accesses.
+interface BillingHealthRow {
+  company_id: number | string;
+  company_name?: string;
+  name?: string;
+  sms_balance: number;
+  money_balance?: number | string;
+  balance_status?: string;
+  last_activity?: string;
+  [key: string]: unknown;
+}
+
+interface CompanySearchResult {
+  id: number | string;
+  name: string;
+  location?: string;
+  sms_balance?: number;
+}
 
 const {
   billingHealth,
@@ -467,41 +486,45 @@ const {
   overallHealthStatus
 } = useSMSBilling()
 
-const activeTab = ref('health')
-const reconciling = ref(false)
-const showTopUpModal = ref(false)
-const toppingUp = ref(false)
-const topUpError = ref('')
+const activeTab = ref<string>('health')
+const reconciling = ref<boolean>(false)
+const showTopUpModal = ref<boolean>(false)
+const toppingUp = ref<boolean>(false)
+const topUpError = ref<string>('')
 
 // Company search state
-const companySearch = ref('')
-const companySearchResults = ref([])
-const companySearchLoading = ref(false)
-const selectedCompany = ref(null)
-let companySearchTimeout = null
+const companySearch = ref<string>('')
+const companySearchResults = ref<CompanySearchResult[]>([])
+const companySearchLoading = ref<boolean>(false)
+const selectedCompany = ref<CompanySearchResult | null>(null)
+let companySearchTimeout: ReturnType<typeof setTimeout> | null = null
 
-const topUpForm = ref({
+const topUpForm = ref<{
+  company_id: string | number;
+  amount: number | null;
+  reason: string;
+}>({
   company_id: '',
   amount: null,
   reason: ''
 })
 
-const lowBalanceCount = computed(() => {
-  const healthArray = Array.isArray(billingHealth.value) ? billingHealth.value : []
-  return healthArray.filter(h => h.sms_balance < 100).length
-})
+// Cast billingHealth to richer type for template access
+const billingHealthRows = computed<BillingHealthRow[]>(() =>
+  (billingHealth.value ?? []) as unknown as BillingHealthRow[]
+)
 
-const availableCompanies = computed(() => {
-  return billingHealth.value || []
-})
+const lowBalanceCount = computed<number>(() =>
+  billingHealthRows.value.filter(h => h.sms_balance < 100).length
+)
 
-const canSubmitTopUp = computed(() => {
-  return topUpForm.value.company_id && 
-         topUpForm.value.amount && 
-         topUpForm.value.amount > 0 && 
-         topUpForm.value.amount <= 100000 &&
-         !toppingUp.value
-})
+const canSubmitTopUp = computed<boolean>(() =>
+  !!topUpForm.value.company_id &&
+  topUpForm.value.amount !== null &&
+  topUpForm.value.amount > 0 &&
+  topUpForm.value.amount <= 100000 &&
+  !toppingUp.value
+)
 
 // Load data on mount
 onMounted(async () => {
@@ -512,7 +535,7 @@ onMounted(async () => {
 })
 
 // Reconcile specific company
-const reconcileCompany = async (companyId) => {
+const reconcileCompany = async (companyId: number | string): Promise<void> => {
   reconciling.value = true
   try {
     await runReconciliation(companyId)
@@ -528,95 +551,68 @@ const reconcileCompany = async (companyId) => {
 }
 
 // Resolve issue
-const resolveIssue = async (issueId, resolution) => {
+const resolveIssue = async (issueId: number | string, resolution: Record<string, unknown>): Promise<void> => {
   try {
-    await resolveIssueAction(issueId, resolution)
+    await resolveIssueAction(issueId, resolution as Parameters<typeof resolveIssueAction>[1])
     await fetchBillingIssues()
   } catch (error) {
     console.error('Failed to resolve issue:', error)
   }
 }
 
-// Get health status label
-const getHealthStatusLabel = (health) => {
-  if (health.unbilled_sent_count > 0 || health.billed_failed_count > 0) {
-    return 'Issues'
-  }
-  if (health.sms_balance < 100) {
-    return 'Low Balance'
-  }
-  return 'Healthy'
-}
-
-// Get health status class
-const getHealthStatusClass = (health) => {
-  if (health.unbilled_sent_count > 0 || health.billed_failed_count > 0) {
-    return 'bg-red-100 text-red-800'
-  }
-  if (health.sms_balance < 100) {
-    return 'bg-yellow-100 text-yellow-800'
-  }
-  return 'bg-green-100 text-green-800'
-}
-
 // Get issue type label
-const getIssueTypeLabel = (type) => {
-  const labels = {
+const getIssueTypeLabel = (type: string | undefined): string => {
+  const labels: Record<string, string> = {
     unbilled_sent: 'Unbilled Sent Messages',
     billed_failed: 'Billed Failed Messages',
     balance_mismatch: 'Balance Mismatch',
     orphaned_transaction: 'Orphaned Transaction'
   }
-  return labels[type] || type
+  return (type !== undefined ? labels[type] : undefined) ?? type ?? ''
 }
 
 // Get severity class
-const getSeverityClass = (severity) => {
-  const classes = {
+const getSeverityClass = (severity: string | undefined): string => {
+  const classes: Record<string, string> = {
     critical: 'bg-red-100 text-red-800',
     high: 'bg-orange-100 text-orange-800',
     medium: 'bg-yellow-100 text-yellow-800',
     low: 'bg-blue-100 text-blue-800'
   }
-  return classes[severity] || 'bg-gray-100 text-gray-800'
+  return (severity !== undefined ? classes[severity] : undefined) ?? 'bg-gray-100 text-gray-800'
 }
 
 // Top-up modal functions
-const closeTopUpModal = () => {
+const closeTopUpModal = (): void => {
   showTopUpModal.value = false
-  topUpForm.value = {
-    company_id: '',
-    amount: null,
-    reason: ''
-  }
+  topUpForm.value = { company_id: '', amount: null, reason: '' }
   topUpError.value = ''
   companySearch.value = ''
   companySearchResults.value = []
   selectedCompany.value = null
 }
 
-const getSelectedCompanyName = () => {
+const getSelectedCompanyName = (): string => {
   if (!topUpForm.value.company_id) return ''
   if (selectedCompany.value) return selectedCompany.value.name
-  const company = billingHealth.value.find(c => c.company_id == topUpForm.value.company_id)
-  return company ? company.company_name || company.name : ''
+  // eslint-disable-next-line eqeqeq
+  const company = billingHealthRows.value.find(c => c.company_id == topUpForm.value.company_id)
+  return company ? (company.company_name ?? company.name ?? '') : ''
 }
 
-const getNewBalance = () => {
-  if (!topUpForm.value.company_id) return topUpForm.value.amount || 0
-  let currentBalance = 0;
-  
-  // Always look up from billingHealth to get the most current money_balance
-  const company = billingHealth.value.find(c => c.company_id == topUpForm.value.company_id)
+const getNewBalance = (): number => {
+  if (!topUpForm.value.company_id) return topUpForm.value.amount ?? 0
+  let currentBalance = 0
+  // eslint-disable-next-line eqeqeq
+  const company = billingHealthRows.value.find(c => c.company_id == topUpForm.value.company_id)
   if (company) {
-    currentBalance = parseFloat(company.money_balance || 0)
+    currentBalance = parseFloat(String(company.money_balance ?? 0))
   }
-  
-  return currentBalance + (topUpForm.value.amount || 0)
+  return currentBalance + (topUpForm.value.amount ?? 0)
 }
 
 // Search companies by name
-const searchCompanies = async (query) => {
+const searchCompanies = async (query: string): Promise<void> => {
   if (!query || query.trim().length === 0) {
     companySearchResults.value = []
     companySearchLoading.value = false
@@ -624,17 +620,17 @@ const searchCompanies = async (query) => {
   }
 
   companySearchLoading.value = true
-  
+
   try {
     const { get } = useApi()
-    const response = await get(`/api/companies/search?q=${encodeURIComponent(query.trim())}`)
-    
-    // Map API response to expected format
-    companySearchResults.value = (response.data || response || []).slice(0, 10).map(company => ({
-      id: company.id,
-      name: company.name,
-      location: company.location || '',
-      sms_balance: company.sms_balance || 0
+    const response = await get(`/api/companies/search?q=${encodeURIComponent(query.trim())}`) as { data?: unknown[] } | unknown[]
+
+    const rows = (Array.isArray(response) ? response : (response as { data?: unknown[] }).data ?? []) as Record<string, unknown>[]
+    companySearchResults.value = rows.slice(0, 10).map(company => ({
+      id: company['id'] as number | string,
+      name: String(company['name'] ?? ''),
+      location: String(company['location'] ?? ''),
+      sms_balance: Number(company['sms_balance'] ?? 0)
     }))
   } catch (error) {
     console.error('Error searching companies:', error)
@@ -645,20 +641,20 @@ const searchCompanies = async (query) => {
 }
 
 // Debounced search to avoid excessive API calls
-const debouncedSearch = (query) => {
-  if (companySearchTimeout) {
+const debouncedSearch = (query: string): void => {
+  if (companySearchTimeout !== null) {
     clearTimeout(companySearchTimeout)
   }
-  
+
   if (!query || query.trim().length === 0) {
     companySearchResults.value = []
     return
   }
-  
+
   companySearchLoading.value = true
   companySearchTimeout = setTimeout(() => {
-    searchCompanies(query)
-  }, 300) // 300ms delay
+    void searchCompanies(query)
+  }, 300)
 }
 
 // Watch for company search input changes
@@ -667,22 +663,22 @@ watch(companySearch, (newValue) => {
 })
 
 // Select company from search results
-const selectCompanyFromSearch = (company) => {
+const selectCompanyFromSearch = (company: CompanySearchResult): void => {
   topUpForm.value.company_id = company.id
   selectedCompany.value = company
-  companySearch.value = '' // Clear search after selection
+  companySearch.value = ''
   companySearchResults.value = []
 }
 
 // Clear company selection to search again
-const clearCompanySelection = () => {
+const clearCompanySelection = (): void => {
   topUpForm.value.company_id = ''
   selectedCompany.value = null
   companySearch.value = ''
   companySearchResults.value = []
 }
 
-const handleTopUp = async () => {
+const handleTopUp = async (): Promise<void> => {
   if (!canSubmitTopUp.value) return
 
   toppingUp.value = true
@@ -691,27 +687,27 @@ const handleTopUp = async () => {
   try {
     const topUpData = {
       company_id: topUpForm.value.company_id,
-      amount: topUpForm.value.amount,
-      reason: topUpForm.value.reason || 'Admin top-up'
+      amount: topUpForm.value.amount ?? 0,
+      description: topUpForm.value.reason || 'Admin top-up'
     }
 
     await topUpMoney(topUpData)
-    
+
     // Refresh billing health data
     await fetchBillingHealth()
-    
+
     // Show success message before closing modal
     const amount = topUpForm.value.amount
     const companyName = getSelectedCompanyName()
-    
+
     // Close modal
     closeTopUpModal()
-    
+
     // Show success alert
     alert(`Successfully added ${formatNumber(amount)} money balance to ${companyName}`)
-    
+
   } catch (error) {
-    topUpError.value = error.message || 'Failed to top up money. Please try again.'
+    topUpError.value = error instanceof Error ? error.message : 'Failed to top up money. Please try again.'
   } finally {
     toppingUp.value = false
   }

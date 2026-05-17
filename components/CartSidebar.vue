@@ -110,46 +110,92 @@
 
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useCartStore } from "~/stores/cart";
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useUserStore } from "~/stores/user";
 
+interface CartItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  [key: string]: unknown;
+}
+
+interface PharmacyData {
+  name?: string;
+  location?: string;
+  whatsapp_number?: string;
+  hide_prices?: boolean;
+  [key: string]: unknown;
+}
+
+interface OrderResult {
+  orderId?: string;
+  orderData?: Record<string, unknown>;
+}
+
+// TODO: remove once stores/ are .ts
+interface CartStoreShape {
+  items: CartItem[];
+  cartTotal: number;
+  removeFromCart: (id: number) => void;
+  updateQuantity: (id: number, qty: number) => void;
+  clearCart: () => void;
+}
+
+// TODO: remove once stores/ are .ts
+interface PharmacyStoreShape {
+  pharmacyData: PharmacyData | null;
+  currentPharmacy: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface UserStoreShape {
+  isLoggedIn: boolean;
+  processDirectOrder: (items: CartItem[], pharmacy: unknown) => Promise<OrderResult>;
+}
+
 // Local state for the cart sidebar
-const isOpenSidebar = ref(false);
-const showLoginModal = ref(false);
-const isProcessingOrder = ref(false);
-const errorMessage = ref('');
+const isOpenSidebar = ref<boolean>(false);
+const showLoginModal = ref<boolean>(false);
+const isProcessingOrder = ref<boolean>(false);
+const errorMessage = ref<string>('');
 
 // Store references
-const cartStore = useCartStore();
-const pharmacyStore = usePharmacyStore();
-const userStore = useUserStore();
+const cartStore = useCartStore() as unknown as CartStoreShape;
+const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
+const userStore = useUserStore() as unknown as UserStoreShape;
 
 // Get reactive store state
-const { items, cartTotal } = storeToRefs(cartStore);
+const { items, cartTotal } = storeToRefs(cartStore as ReturnType<typeof useCartStore>);
 const { removeFromCart, updateQuantity } = cartStore;
 
 // Emits
-const emit = defineEmits(['close', 'order-success']);
+const emit = defineEmits<{
+  close: [];
+  'order-success': [payload: Record<string, unknown>];
+}>();
 
 // Methods
-const toggleCart = () => {
+const toggleCart = (): void => {
   isOpenSidebar.value = !isOpenSidebar.value;
   if (!isOpenSidebar.value) {
     emit('close');
   }
 };
 
-const sendWhatsAppMessage = () => {
-  let phoneNumber = pharmacyStore.pharmacyData?.whatsapp_number
+const sendWhatsAppMessage = (): void => {
+  let phoneNumber: string = pharmacyStore.pharmacyData?.whatsapp_number ?? '';
 
-  console.log("phoneNumber", phoneNumber)
+  console.log("phoneNumber", phoneNumber);
   // Extract the first phone number if multiple are provided with a separator
   if (phoneNumber.includes('/')) {
-    phoneNumber = phoneNumber.split('/')[0];
+    phoneNumber = phoneNumber.split('/')[0] ?? '';
   }
 
   // Format the phone number properly for WhatsApp
@@ -176,26 +222,30 @@ const sendWhatsAppMessage = () => {
   toggleCart();
 };
 
-const generateWhatsAppMessage = () => {
+const generateWhatsAppMessage = (): string => {
   const hidePrices = pharmacyStore.pharmacyData?.hide_prices;
 
   // Format each item with proper spacing and alignment
-  const itemDetails = items.value.map((item, index) =>
+  const itemDetails = (items.value as CartItem[]).map((item, index) =>
     hidePrices
       ? `${index + 1}. ${item.name} - *${item.quantity}*`
       : `${index + 1}. ${item.name} - *${item.quantity}* (GHS ${formatPrice(item.price * item.quantity)})`
   ).join('\n');
 
   // Get pharmacy name and location
-  const pharmacyName = pharmacyStore.pharmacyData?.name || 'your pharmacy';
-  const pharmacyLocation = pharmacyStore.pharmacyData?.location ? ` (${pharmacyStore.pharmacyData.location})` : '';
+  const pharmacyName = pharmacyStore.pharmacyData?.name ?? 'your pharmacy';
+  const pharmacyLocation = pharmacyStore.pharmacyData?.location
+    ? ` (${pharmacyStore.pharmacyData.location})`
+    : '';
 
   // Current date and time
   const now = new Date();
   const dateString = now.toLocaleDateString('en-GB');
   const timeString = now.toLocaleTimeString('en-GB');
 
-  const totalLine = hidePrices ? '' : `\n*Total Amount: GHS${formatPrice(cartTotal.value)}*`;
+  const totalLine = hidePrices
+    ? ''
+    : `\n*Total Amount: GHS${formatPrice(cartTotal.value as number)}*`;
 
   // Generate a more structured message
   return `*ORDER REQUEST*
@@ -210,7 +260,7 @@ Thank you!`;
 };
 
 // Handle direct order
-const handleDirectOrder = () => {
+const handleDirectOrder = (): void => {
   errorMessage.value = ''; // Clear any previous errors
 
   // Check if user is logged in
@@ -219,12 +269,17 @@ const handleDirectOrder = () => {
     showLoginModal.value = true;
   } else {
     // User is already logged in, proceed with direct order
-    processDirectOrder();
+    void processDirectOrder();
   }
 };
 
+// Custom error type for order errors that carry an errorCode
+interface OrderError extends Error {
+  errorCode?: string;
+}
+
 // Process the direct order after successful login
-const processDirectOrder = async () => {
+const processDirectOrder = async (): Promise<void> => {
   if (!pharmacyStore.currentPharmacy) {
     errorMessage.value = 'Pharmacy information is missing. Please try again.';
     return;
@@ -236,16 +291,17 @@ const processDirectOrder = async () => {
     errorMessage.value = '';
 
     // Calculate order summary from cart items before clearing
+    const cartItems = items.value as CartItem[];
     const orderSummary = {
-      totalItems: items.value.length,
-      totalQuantity: items.value.reduce((sum, item) => sum + item.quantity, 0),
-      totalAmount: items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+      totalItems: cartItems.length,
+      totalQuantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
     };
 
     // Process the order through the user store
     const orderResult = await userStore.processDirectOrder(
-      items.value,
-      pharmacyStore.currentPharmacy
+      cartItems,
+      pharmacyStore.currentPharmacy,
     );
 
     // After successful order, clear cart and close sidebar
@@ -254,16 +310,17 @@ const processDirectOrder = async () => {
 
     // Emit order success event with order data and summary
     emit('order-success', {
-      ...orderResult.orderData,
+      ...(orderResult.orderData ?? {}),
       orderId: orderResult.orderId,
-      ...orderSummary
+      ...orderSummary,
     });
-  } catch (error) {
-    console.error('Failed to process order:', error);
-    if (error.errorCode === 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY') {
-      errorMessage.value = error.message;
+  } catch (err) {
+    console.error('Failed to process order:', err);
+    const orderErr = err as OrderError;
+    if (orderErr.errorCode === 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY') {
+      errorMessage.value = orderErr.message;
     } else {
-      errorMessage.value = error.message || 'Failed to process your order. Please try again.';
+      errorMessage.value = orderErr.message ?? 'Failed to process your order. Please try again.';
     }
   } finally {
     isProcessingOrder.value = false;
@@ -271,27 +328,27 @@ const processDirectOrder = async () => {
 };
 
 // Close login modal
-const closeLoginModal = () => {
+const closeLoginModal = (): void => {
   showLoginModal.value = false;
 };
 
 // Handle successful login
-const handleLoginSuccess = () => {
+const handleLoginSuccess = (): void => {
   console.log('User successfully logged in');
   // Process the order after successful login
-  processDirectOrder();
+  void processDirectOrder();
 };
 
-const formatPrice = (price) => {
-  return Number(price || 0).toFixed(2);
+const formatPrice = (price: number | null | undefined): string => {
+  return Number(price ?? 0).toFixed(2);
 };
 
 // Expose methods for parent components
 defineExpose({
-  toggleCart: () => {
+  toggleCart: (): void => {
     isOpenSidebar.value = !isOpenSidebar.value;
   },
-  isOpen: computed(() => isOpenSidebar.value)
+  isOpen: computed<boolean>(() => isOpenSidebar.value),
 });
 
 onMounted(() => {

@@ -98,7 +98,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 import {
@@ -113,24 +113,41 @@ import {
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
 
-const userStore = useUserStore();
+interface LinkedCompany {
+  company_id?: number;
+  company_name?: string;
+  domain_name?: string;
+  company_slug?: string;
+  slug?: string;
+  [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface UserStoreShape {
+  companies?: LinkedCompany[];
+  currentCompany?: { company_id?: number };
+  triggerCustomerLinking: () => Promise<{ message?: string }>;
+  getMyCompanies: () => Promise<void>;
+}
+
+const userStore = useUserStore() as unknown as UserStoreShape;
 
 // State
-const isLoading = ref(false);
-const isLinking = ref(false);
-const linkingMessage = ref('');
-const linkingMessageType = ref('success');
-let linkingMessageTimer = null;
-const companies = computed(() => userStore.companies || []);
+const isLoading = ref<boolean>(false);
+const isLinking = ref<boolean>(false);
+const linkingMessage = ref<string>('');
+const linkingMessageType = ref<string>('success');
+let linkingMessageTimer: ReturnType<typeof setTimeout> | null = null;
+const companies = computed<LinkedCompany[]>(() => userStore.companies ?? []);
 
 // Check if company is active
-const isActiveCompany = (company) => {
+const isActiveCompany = (company: LinkedCompany): boolean => {
   return userStore.currentCompany?.company_id === company.company_id;
 };
 
 // Resolve store slug using the persisted pharmacy domain when available
-const generateCompanySlug = (companyName) => {
-  return String(companyName || '')
+const generateCompanySlug = (companyName: string): string => {
+  return String(companyName ?? '')
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
@@ -139,20 +156,20 @@ const generateCompanySlug = (companyName) => {
     .trim();
 };
 
-const getCompanyStoreSlug = (company) => {
-  const explicitSlug = String(company?.domain_name || company?.company_slug || company?.slug || '').trim().toLowerCase();
+const getCompanyStoreSlug = (company: LinkedCompany): string => {
+  const explicitSlug = String(company.domain_name ?? company.company_slug ?? company.slug ?? '').trim().toLowerCase();
   if (explicitSlug) return explicitSlug;
-  return generateCompanySlug(company?.company_name || '');
+  return generateCompanySlug(company.company_name ?? '');
 };
 
 // Navigate to company store
-const goToCompanyStore = (company) => {
+const goToCompanyStore = (company: LinkedCompany): void => {
   const slug = getCompanyStoreSlug(company);
   if (!slug) return;
-  navigateTo(`/${slug}`);
+  void navigateTo(`/${slug}`);
 };
 
-const setLinkingMessage = (message, type = 'success') => {
+const setLinkingMessage = (message: string, type = 'success'): void => {
   linkingMessage.value = message;
   linkingMessageType.value = type;
   if (linkingMessageTimer) clearTimeout(linkingMessageTimer);
@@ -162,28 +179,28 @@ const setLinkingMessage = (message, type = 'success') => {
 };
 
 // Trigger customer linking
-const triggerLinking = async () => {
+const triggerLinking = async (): Promise<void> => {
   try {
     isLinking.value = true;
     linkingMessage.value = '';
     const result = await userStore.triggerCustomerLinking();
-    setLinkingMessage(result?.message || 'Linked successfully', 'success');
+    setLinkingMessage(result?.message ?? 'Linked successfully', 'success');
     await loadCompanies();
-  } catch (error) {
-    console.error('Error triggering linking:', error);
-    setLinkingMessage(error?.message || 'Failed to link accounts', 'error');
+  } catch (err) {
+    console.error('Error triggering linking:', err);
+    setLinkingMessage(err instanceof Error ? err.message : 'Failed to link accounts', 'error');
   } finally {
     isLinking.value = false;
   }
 };
 
 // Load companies
-const loadCompanies = async () => {
+const loadCompanies = async (): Promise<void> => {
   try {
     isLoading.value = true;
     await userStore.getMyCompanies();
-  } catch (error) {
-    console.error('Error loading companies:', error);
+  } catch (err) {
+    console.error('Error loading companies:', err);
   } finally {
     isLoading.value = false;
   }
@@ -191,7 +208,7 @@ const loadCompanies = async () => {
 
 // Initialize
 onMounted(() => {
-  loadCompanies();
+  void loadCompanies();
 });
 
 onUnmounted(() => {

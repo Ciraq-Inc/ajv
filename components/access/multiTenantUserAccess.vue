@@ -331,7 +331,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
   UserGroupIcon,
@@ -351,31 +351,72 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 
-const adminStore = useAdminStore()
+interface TenantUser {
+  id: number;
+  lname?: string;
+  sname?: string;
+  mname?: string;
+  username?: string;
+  userid?: string;
+  email?: string;
+  tel?: string;
+  userrole?: string;
+  isactive?: boolean;
+  allowed_online_access?: boolean;
+  company_id?: number;
+  company_name?: string;
+  last_login?: string;
+  [key: string]: unknown;
+}
+
+interface CompanyRef {
+  id: number;
+  name: string;
+}
+
+interface UserStats {
+  total?: number;
+  with_access?: number;
+  without_access?: number;
+  companies?: number;
+}
+
+interface AdminResponse {
+  success: boolean;
+  message?: string;
+  data?: { users?: TenantUser[]; stats?: UserStats; updated?: number; [key: string]: unknown } | TenantUser[] | CompanyRef[];
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (path: string, options?: { method?: string; body?: string }) => Promise<AdminResponse>;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
 
 // State
-const users = ref([])
-const companies = ref([])
-const stats = ref({})
-const loading = ref(true)
-const error = ref(null)
-const updating = ref(null)
-const searchQuery = ref('')
-const filterCompany = ref('')
-const filterAccess = ref('')
-const filterActive = ref('')
-const selectedUsers = ref([])
-const viewingUser = ref(null)
-const currentPage = ref(1)
+const users = ref<TenantUser[]>([])
+const companies = ref<CompanyRef[]>([])
+const stats = ref<UserStats>({})
+const loading = ref<boolean>(true)
+const error = ref<string | null>(null)
+const updating = ref<number | null>(null)
+const searchQuery = ref<string>('')
+const filterCompany = ref<string>('')
+const filterAccess = ref<string>('')
+const filterActive = ref<string>('')
+const selectedUsers = ref<number[]>([])
+const viewingUser = ref<TenantUser | null>(null)
+const currentPage = ref<number>(1)
 const perPage = 50
 
 // Computed
-const filteredUsers = computed(() => {
+const filteredUsers = computed<TenantUser[]>(() => {
   let filtered = users.value
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(user => 
+    filtered = filtered.filter(user =>
       user.lname?.toLowerCase().includes(query) ||
       user.sname?.toLowerCase().includes(query) ||
       user.mname?.toLowerCase().includes(query) ||
@@ -388,7 +429,9 @@ const filteredUsers = computed(() => {
   }
 
   if (filterCompany.value) {
-    filtered = filtered.filter(user => user.company_id == filterCompany.value)
+    // loose equality intentional: server may return id as string or number
+    // eslint-disable-next-line eqeqeq
+    filtered = filtered.filter(user => String(user.company_id) == filterCompany.value)
   }
 
   if (filterAccess.value) {
@@ -404,55 +447,56 @@ const filteredUsers = computed(() => {
   return filtered
 })
 
-const paginatedUsers = computed(() => {
+const paginatedUsers = computed<TenantUser[]>(() => {
   const start = (currentPage.value - 1) * perPage
   const end = start + perPage
   return filteredUsers.value.slice(start, end)
 })
 
-const totalPages = computed(() => {
+const totalPages = computed<number>(() => {
   return Math.ceil(filteredUsers.value.length / perPage)
 })
 
-const allSelected = computed(() => {
-  return paginatedUsers.value.length > 0 && 
-         paginatedUsers.value.every(user => selectedUsers.value.includes(user.id))
+const allSelected = computed<boolean>(() => {
+  return paginatedUsers.value.length > 0 &&
+    paginatedUsers.value.every(user => selectedUsers.value.includes(user.id))
 })
 
 // Methods
-const loadUsers = async () => {
+const loadUsers = async (): Promise<void> => {
   loading.value = true
   error.value = null
-  
+
   try {
     const response = await adminStore.makeAuthRequest('/api/admin/users/access')
-    
+
     if (response.success) {
-      users.value = response.data.users || []
-      stats.value = response.data.stats || {}
+      const d = response.data as { users?: TenantUser[]; stats?: UserStats } | undefined
+      users.value = d?.users ?? []
+      stats.value = d?.stats ?? {}
     } else {
-      error.value = response.message || 'Failed to load users'
+      error.value = response.message ?? 'Failed to load users'
     }
   } catch (err) {
-    error.value = err.message || 'Failed to load users'
+    error.value = err instanceof Error ? err.message : 'Failed to load users'
     console.error('Error loading users:', err)
   } finally {
     loading.value = false
   }
 }
 
-const loadCompanies = async () => {
+const loadCompanies = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/companies')
     if (response.success) {
-      companies.value = response.data || []
+      companies.value = (response.data as CompanyRef[]) ?? []
     }
   } catch (err) {
     console.error('Error loading companies:', err)
   }
 }
 
-const toggleUserAccess = async (user) => {
+const toggleUserAccess = async (user: TenantUser): Promise<void> => {
   const newValue = !user.allowed_online_access
   updating.value = user.id
 
@@ -463,148 +507,148 @@ const toggleUserAccess = async (user) => {
         method: 'PUT',
         body: JSON.stringify({
           company_id: user.company_id,
-          allowed_online_access: newValue
-        })
+          allowed_online_access: newValue,
+        }),
       }
     )
 
     if (response.success) {
       user.allowed_online_access = newValue
-      
+
       // Update stats
       if (newValue) {
-        stats.value.with_access++
-        stats.value.without_access--
+        if (stats.value.with_access !== undefined) stats.value.with_access++
+        if (stats.value.without_access !== undefined) stats.value.without_access--
       } else {
-        stats.value.with_access--
-        stats.value.without_access++
+        if (stats.value.with_access !== undefined) stats.value.with_access--
+        if (stats.value.without_access !== undefined) stats.value.without_access++
       }
     } else {
-      alert(response.message || 'Failed to update access')
+      alert(response.message ?? 'Failed to update access')
     }
   } catch (err) {
-    alert(err.message || 'Failed to update access')
+    alert(err instanceof Error ? err.message : 'Failed to update access')
     console.error('Error updating access:', err)
   } finally {
     updating.value = null
   }
 }
 
-const toggleSelectAll = (e) => {
-  if (e.target.checked) {
+const toggleSelectAll = (e: Event): void => {
+  const target = e.target as HTMLInputElement
+  if (target.checked) {
     selectedUsers.value = paginatedUsers.value.map(u => u.id)
   } else {
     selectedUsers.value = []
   }
 }
 
-const bulkEnableAccess = async () => {
+const bulkEnableAccess = async (): Promise<void> => {
   if (!confirm(`Enable online access for ${selectedUsers.value.length} users?`)) return
 
   try {
     const response = await adminStore.makeAuthRequest('/api/admin/users/bulk-access', {
       method: 'PUT',
-      body: JSON.stringify({
-        user_ids: selectedUsers.value,
-        allowed_online_access: true
-      })
+      body: JSON.stringify({ user_ids: selectedUsers.value, allowed_online_access: true }),
     })
 
     if (response.success) {
-      alert(`Successfully enabled access for ${response.data.updated} users`)
+      const d = response.data as { updated?: number } | undefined
+      alert(`Successfully enabled access for ${d?.updated ?? 0} users`)
       selectedUsers.value = []
-      loadUsers()
+      void loadUsers()
     } else {
-      alert(response.message || 'Failed to update users')
+      alert(response.message ?? 'Failed to update users')
     }
   } catch (err) {
-    alert(err.message || 'Failed to update users')
+    alert(err instanceof Error ? err.message : 'Failed to update users')
     console.error('Error in bulk update:', err)
   }
 }
 
-const bulkDisableAccess = async () => {
+const bulkDisableAccess = async (): Promise<void> => {
   if (!confirm(`Disable online access for ${selectedUsers.value.length} users?`)) return
 
   try {
     const response = await adminStore.makeAuthRequest('/api/admin/users/bulk-access', {
       method: 'PUT',
-      body: JSON.stringify({
-        user_ids: selectedUsers.value,
-        allowed_online_access: false
-      })
+      body: JSON.stringify({ user_ids: selectedUsers.value, allowed_online_access: false }),
     })
 
     if (response.success) {
-      alert(`Successfully disabled access for ${response.data.updated} users`)
+      const d = response.data as { updated?: number } | undefined
+      alert(`Successfully disabled access for ${d?.updated ?? 0} users`)
       selectedUsers.value = []
-      loadUsers()
+      void loadUsers()
     } else {
-      alert(response.message || 'Failed to update users')
+      alert(response.message ?? 'Failed to update users')
     }
   } catch (err) {
-    alert(err.message || 'Failed to update users')
+    alert(err instanceof Error ? err.message : 'Failed to update users')
     console.error('Error in bulk update:', err)
   }
 }
 
-const viewUserDetails = (user) => {
+const viewUserDetails = (user: TenantUser): void => {
   viewingUser.value = user
 }
 
-const exportUsers = () => {
+const exportUsers = (): void => {
   const csv = convertToCSV(filteredUsers.value)
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `users-access-${new Date().toISOString().split('T')[0]}.csv`
+  a.download = `users-access-${new Date().toISOString().split('T')[0] ?? 'export'}.csv`
   a.click()
   window.URL.revokeObjectURL(url)
 }
 
-const convertToCSV = (data) => {
+const convertToCSV = (data: TenantUser[]): string => {
   const headers = ['Company', 'Name', 'Username', 'Email', 'Phone', 'Role', 'Status', 'Online Access', 'Last Login']
   const rows = data.map(user => [
-    user.company_name,
+    user.company_name ?? '',
     getUserFullName(user),
-    user.username || user.userid,
-    user.email || '',
-    user.tel || '',
-    user.userrole || '',
+    user.username ?? user.userid ?? '',
+    user.email ?? '',
+    user.tel ?? '',
+    user.userrole ?? '',
     user.isactive ? 'Active' : 'Inactive',
     user.allowed_online_access ? 'Enabled' : 'Disabled',
-    formatDate(user.last_login)
+    formatDate(user.last_login),
   ])
-  
+
   return [headers, ...rows].map(row => row.join(',')).join('\n')
 }
 
 // Helpers
-const getUserFullName = (user) => {
-  return `${user.lname || ''} ${user.mname || ''} ${user.sname || ''}`.trim() || user.username || user.userid
+const getUserFullName = (user: TenantUser): string => {
+  return `${user.lname ?? ''} ${user.mname ?? ''} ${user.sname ?? ''}`.trim()
+    || user.username
+    || user.userid
+    || ''
 }
 
-const getUserInitials = (user) => {
-  const fname = user.lname || user.username || user.userid || ''
-  const lname = user.sname || ''
+const getUserInitials = (user: TenantUser): string => {
+  const fname = user.lname ?? user.username ?? user.userid ?? ''
+  const lname = user.sname ?? ''
   return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase() || '?'
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'Never'
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric'
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   })
 }
 
 // Lifecycle
 onMounted(() => {
-  loadUsers()
-  loadCompanies()
+  void loadUsers()
+  void loadCompanies()
 })
 </script>
 

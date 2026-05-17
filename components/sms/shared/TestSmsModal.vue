@@ -156,99 +156,92 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true
-  }
-})
+// TODO: remove once composables/ are .ts
+const props = defineProps<{
+  isOpen: boolean
+}>()
 
-const emit = defineEmits(['close'])
+const emit = defineEmits<{ close: [] }>()
 
 const { sendTestSms } = useSMSCampaigns()
 
+interface SmsForm {
+  phone: string
+  message: string
+  sms_provider: string
+  sender_id: string
+}
+
+interface SmsResult {
+  success: boolean
+  error: boolean
+  message: string
+}
+
 const loading = ref(false)
-const form = ref({
+const form = ref<SmsForm>({
   phone: '',
   message: '',
   sms_provider: 'nalo',
-  sender_id: ''
+  sender_id: '',
 })
 
-const result = ref({
+const result = ref<SmsResult>({
   success: false,
   error: false,
-  message: ''
+  message: '',
 })
 
-const messageLength = computed(() => form.value.message.length)
+const messageLength = computed<number>(() => form.value.message.length)
 
-// Reset form when modal opens
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
-    form.value = {
-      phone: '',
-      message: '',
-      sms_provider: 'nalo',
-      sender_id: ''
-    }
-    result.value = {
-      success: false,
-      error: false,
-      message: ''
-    }
+    form.value = { phone: '', message: '', sms_provider: 'nalo', sender_id: '' }
+    result.value = { success: false, error: false, message: '' }
   }
 })
 
-const handleSubmit = async () => {
+const handleSubmit = async (): Promise<void> => {
   loading.value = true
   result.value = { success: false, error: false, message: '' }
 
   try {
-    const testData = {
+    const testData: Record<string, string> = {
       phone: form.value.phone,
       message: form.value.message,
-      sms_provider: form.value.sms_provider
+      sms_provider: form.value.sms_provider,
     }
 
-    // Add sender_id only if using MNotify and it's provided
     if (form.value.sms_provider === 'mnotify' && form.value.sender_id) {
-      testData.sender_id = form.value.sender_id
+      testData['sender_id'] = form.value.sender_id
     }
 
-    const response = await sendTestSms(testData)
-    
+    // sendTestSms is untyped (composable not yet .ts); response shape is unknown
+    const response = await sendTestSms(testData) as { message?: string }
+
     result.value = {
       success: true,
       error: false,
-      message: response.message || 'Test SMS sent successfully!'
+      message: response.message ?? 'Test SMS sent successfully!',
     }
 
-    // Auto-close after 2 seconds on success
     setTimeout(() => {
-      if (result.value.success) {
-        close()
-      }
+      if (result.value.success) close()
     }, 2000)
-  } catch (error) {
-    result.value = {
-      success: false,
-      error: true,
-      message: error.message || 'Failed to send test SMS. Please try again.'
-    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Failed to send test SMS. Please try again.'
+    result.value = { success: false, error: true, message: msg }
   } finally {
     loading.value = false
   }
 }
 
-const close = () => {
-  if (!loading.value) {
-    emit('close')
-  }
+const close = (): void => {
+  if (!loading.value) emit('close')
 }
 </script>
 

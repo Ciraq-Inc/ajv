@@ -124,135 +124,162 @@
     </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useCompanyStore } from '~/stores/company';
-import { useApi } from '~/composables/useApi';
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useCompanyStore } from '~/stores/company'
 
-const companyStore = useCompanyStore();
-const api = useApi();
-const route = useRoute();
-const router = useRouter();
+interface DayHours {
+  day_of_week: number
+  opens_at: string
+  closes_at: string
+  is_closed: boolean
+}
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sat, Sun last
+interface HoursForm {
+  is_24_hours: boolean
+  hours_confirmed_at: string | null
+  days: DayHours[]
+}
 
-const loading = ref(true);
-const saving = ref(false);
-const fetchError = ref(null);
-const validationError = ref(null);
-const saveStatus = ref('');
-const saveStatusKind = ref('info'); // 'info' | 'success' | 'error'
+type SaveKind = 'info' | 'success' | 'error'
 
-const form = ref({
-    is_24_hours: false,
-    hours_confirmed_at: null,
-    days: []
-});
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  isLoggedIn: boolean
+}
 
-const orderedDays = computed(() => {
-    if (!form.value.days.length) return [];
-    const byDow = new Map(form.value.days.map(d => [d.day_of_week, d]));
-    return DISPLAY_ORDER.map(dow => byDow.get(dow)).filter(Boolean);
-});
+// TODO: remove once composables/ are .ts
+const api = useApi() as unknown as {
+  get: (url: string) => Promise<{ data?: Record<string, unknown> } | Record<string, unknown>>
+  put: (url: string, body?: unknown) => Promise<{ data?: Record<string, unknown> } | Record<string, unknown>>
+}
 
-const dayLabel = (dow) => DAY_NAMES[dow];
+const route = useRoute()
+const router = useRouter()
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
+
+const loading = ref<boolean>(true)
+const saving = ref<boolean>(false)
+const fetchError = ref<string | null>(null)
+const validationError = ref<string | null>(null)
+const saveStatus = ref<string>('')
+const saveStatusKind = ref<SaveKind>('info')
+
+const form = ref<HoursForm>({
+  is_24_hours: false,
+  hours_confirmed_at: null,
+  days: [],
+})
+
+const orderedDays = computed<DayHours[]>(() => {
+  if (!form.value.days.length) return []
+  const byDow = new Map(form.value.days.map(d => [d.day_of_week, d]))
+  return DISPLAY_ORDER.map(dow => byDow.get(dow)).filter((d): d is DayHours => d !== undefined)
+})
+
+const dayLabel = (dow: number): string => DAY_NAMES[dow] ?? String(dow)
 
 const saveStatusClass = computed(() => ({
-    'text-emerald-600': saveStatusKind.value === 'success',
-    'text-rose-600': saveStatusKind.value === 'error',
-    'text-slate-500': saveStatusKind.value === 'info'
-}));
+  'text-emerald-600': saveStatusKind.value === 'success',
+  'text-rose-600': saveStatusKind.value === 'error',
+  'text-slate-500': saveStatusKind.value === 'info',
+}))
 
-const canSave = computed(() => {
-    if (form.value.is_24_hours) return true;
-    if (!form.value.days.length) return false;
-    return form.value.days.every(d => {
-        if (d.is_closed) return true;
-        if (!d.opens_at || !d.closes_at) return false;
-        return d.opens_at !== d.closes_at;
-    });
-});
+const canSave = computed<boolean>(() => {
+  if (form.value.is_24_hours) return true
+  if (!form.value.days.length) return false
+  return form.value.days.every(d => {
+    if (d.is_closed) return true
+    if (!d.opens_at || !d.closes_at) return false
+    return d.opens_at !== d.closes_at
+  })
+})
 
-const formatConfirmed = (timestamp) => {
-    if (!timestamp) return '';
-    try {
-        return new Date(timestamp).toLocaleString('en-GB', {
-            timeZone: 'Africa/Accra',
-            dateStyle: 'medium',
-            timeStyle: 'short'
-        });
-    } catch {
-        return timestamp;
+const formatConfirmed = (timestamp: string | null | undefined): string => {
+  if (!timestamp) return ''
+  try {
+    return new Date(timestamp).toLocaleString('en-GB', {
+      timeZone: 'Africa/Accra',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    } as Intl.DateTimeFormatOptions)
+  } catch {
+    return timestamp
+  }
+}
+
+const goToLogin = (): void => {
+  const pharmacy = route.params['pharmacy']
+  void router.push(`/${String(pharmacy)}/services/login`)
+}
+
+const loadHours = async (): Promise<void> => {
+  loading.value = true
+  fetchError.value = null
+  try {
+    const response = await api.get('/api/pharmacy-portal/hours') as { data?: Record<string, unknown> } | Record<string, unknown>
+    const data = ('data' in response && response.data ? response.data : response) as {
+      is_24_hours?: boolean | number
+      hours_confirmed_at?: string | null
+      days?: Array<{ day_of_week: number; opens_at?: string | null; closes_at?: string | null; is_closed?: boolean | number }>
     }
-};
-
-const goToLogin = () => {
-    const pharmacy = route.params.pharmacy;
-    router.push(`/${pharmacy}/services/login`);
-};
-
-const loadHours = async () => {
-    loading.value = true;
-    fetchError.value = null;
-    try {
-        const response = await api.get('/api/pharmacy-portal/hours');
-        const data = response.data || response;
-        form.value = {
-            is_24_hours: Boolean(data.is_24_hours),
-            hours_confirmed_at: data.hours_confirmed_at || null,
-            days: (data.days || []).map(d => ({
-                day_of_week: d.day_of_week,
-                opens_at: d.opens_at || '08:00',
-                closes_at: d.closes_at || '22:00',
-                is_closed: Boolean(d.is_closed)
-            }))
-        };
-    } catch (error) {
-        fetchError.value = error.message || 'Unable to load hours';
-    } finally {
-        loading.value = false;
+    form.value = {
+      is_24_hours: Boolean(data.is_24_hours),
+      hours_confirmed_at: data.hours_confirmed_at ?? null,
+      days: (data.days ?? []).map(d => ({
+        day_of_week: d.day_of_week,
+        opens_at: d.opens_at ?? '08:00',
+        closes_at: d.closes_at ?? '22:00',
+        is_closed: Boolean(d.is_closed),
+      })),
     }
-};
+  } catch (error) {
+    fetchError.value = error instanceof Error ? error.message : 'Unable to load hours'
+  } finally {
+    loading.value = false
+  }
+}
 
-const saveHours = async () => {
-    validationError.value = null;
-    if (!canSave.value) {
-        validationError.value = 'Each open day needs different opens/closes times.';
-        return;
+const saveHours = async (): Promise<void> => {
+  validationError.value = null
+  if (!canSave.value) {
+    validationError.value = 'Each open day needs different opens/closes times.'
+    return
+  }
+  saving.value = true
+  saveStatus.value = ''
+  try {
+    const payload = {
+      is_24_hours: form.value.is_24_hours,
+      days: form.value.days.map(d => ({
+        day_of_week: d.day_of_week,
+        opens_at: d.is_closed ? '00:00' : d.opens_at,
+        closes_at: d.is_closed ? '00:00' : d.closes_at,
+        is_closed: d.is_closed,
+      })),
     }
-    saving.value = true;
-    saveStatus.value = '';
-    try {
-        const payload = {
-            is_24_hours: form.value.is_24_hours,
-            days: form.value.days.map(d => ({
-                day_of_week: d.day_of_week,
-                opens_at: d.is_closed ? '00:00' : d.opens_at,
-                closes_at: d.is_closed ? '00:00' : d.closes_at,
-                is_closed: d.is_closed
-            }))
-        };
-        const response = await api.put('/api/pharmacy-portal/hours', payload);
-        const data = response.data || response;
-        form.value.hours_confirmed_at = data.hours_confirmed_at || form.value.hours_confirmed_at;
-        saveStatusKind.value = 'success';
-        saveStatus.value = 'Saved';
-        setTimeout(() => { saveStatus.value = ''; }, 2500);
-    } catch (error) {
-        saveStatusKind.value = 'error';
-        saveStatus.value = error.message || 'Save failed';
-    } finally {
-        saving.value = false;
-    }
-};
+    const response = await api.put('/api/pharmacy-portal/hours', payload) as { data?: { hours_confirmed_at?: string } } | { hours_confirmed_at?: string }
+    const data = ('data' in response && response.data ? response.data : response) as { hours_confirmed_at?: string }
+    form.value.hours_confirmed_at = data.hours_confirmed_at ?? form.value.hours_confirmed_at
+    saveStatusKind.value = 'success'
+    saveStatus.value = 'Saved'
+    setTimeout(() => { saveStatus.value = '' }, 2500)
+  } catch (error) {
+    saveStatusKind.value = 'error'
+    saveStatus.value = error instanceof Error ? error.message : 'Save failed'
+  } finally {
+    saving.value = false
+  }
+}
 
 onMounted(() => {
-    if (companyStore.isLoggedIn) {
-        loadHours();
-    } else {
-        loading.value = false;
-    }
-});
+  if (companyStore.isLoggedIn) {
+    void loadHours()
+  } else {
+    loading.value = false
+  }
+})
 </script>

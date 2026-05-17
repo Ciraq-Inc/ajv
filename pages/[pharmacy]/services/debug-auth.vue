@@ -28,61 +28,73 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useCompanyStore } from '~/stores/company'
-import { useApi } from '~/composables/useApi'
 
 definePageMeta({
   layout: 'company',
   middleware: 'company-auth',
 })
 
-const companyStore = useCompanyStore()
-const { post } = useApi()
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  isLoggedIn: boolean
+  companyAuthToken?: string | null
+  user?: { name?: string } | null
+  company?: { name?: string } | null
+}
 
-const localStorageTokens = ref({})
-const apiResult = ref(null)
+// TODO: remove once composables/ are .ts
+const { post } = useApi() as unknown as {
+  post: (url: string, body?: unknown) => Promise<unknown>
+}
+
+const localStorageTokens = ref<Record<string, string | null | undefined>>({})
+const apiResult = ref<unknown>(null)
 
 const storeState = computed(() => ({
   isLoggedIn: companyStore.isLoggedIn,
   hasToken: !!companyStore.companyAuthToken,
-  tokenLength: companyStore.companyAuthToken?.length || 0,
-  user: companyStore.user?.name || 'N/A',
-  company: companyStore.company?.name || 'N/A'
+  tokenLength: companyStore.companyAuthToken?.length ?? 0,
+  user: companyStore.user?.name ?? 'N/A',
+  company: companyStore.company?.name ?? 'N/A',
 }))
 
 onMounted(() => {
-  // Get all tokens from localStorage
-  const tokens = {}
-  
+  const tokens: Record<string, string | null | undefined> = {}
+
   if (process.client) {
-    const companyDomain = window.location.pathname.match(/\/([^\/]+)\/services/)?.[1]
-    
-    tokens.companyDomain = companyDomain
-    tokens[`company_${companyDomain}_token`] = localStorage.getItem(`company_${companyDomain}_token`)?.substring(0, 20) + '...'
-    tokens.adminToken = localStorage.getItem('adminToken')?.substring(0, 20) + '...' || 'Not found'
-    tokens.customerAuthToken = localStorage.getItem('customerAuthToken')?.substring(0, 20) + '...' || 'Not found'
-    tokens.token = localStorage.getItem('token')?.substring(0, 20) + '...' || 'Not found'
+    const companyDomain = window.location.pathname.match(/\/([^/]+)\/services/)?.[1]
+
+    tokens['companyDomain'] = companyDomain
+    const rawToken = localStorage.getItem(`company_${companyDomain}_token`)
+    tokens[`company_${companyDomain}_token`] = rawToken !== null ? rawToken.substring(0, 20) + '...' : null
+    const adminToken = localStorage.getItem('adminToken')
+    tokens['adminToken'] = adminToken !== null ? adminToken.substring(0, 20) + '...' : 'Not found'
+    const customerToken = localStorage.getItem('customerAuthToken')
+    tokens['customerAuthToken'] = customerToken !== null ? customerToken.substring(0, 20) + '...' : 'Not found'
+    const plainToken = localStorage.getItem('token')
+    tokens['token'] = plainToken !== null ? plainToken.substring(0, 20) + '...' : 'Not found'
   }
-  
+
   localStorageTokens.value = tokens
 })
 
-const testApiCall = async () => {
+const testApiCall = async (): Promise<void> => {
   try {
     apiResult.value = 'Loading...'
-    
+
     const response = await post('/api/sms-credits/paystack/initialize', {
       amount: 10,
-      email: 'test@example.com'
+      email: 'test@example.com',
     })
-    
+
     apiResult.value = response
-  } catch (error) {
+  } catch (err) {
     apiResult.value = {
-      error: error.message,
-      details: error.toString()
+      error: err instanceof Error ? err.message : String(err),
+      details: String(err),
     }
   }
 }

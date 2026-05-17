@@ -78,7 +78,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useAdminStore } from '~/stores/admin';
 
 // Define layout
@@ -89,17 +89,17 @@ definePageMeta({
 const adminStore = useAdminStore();
 const router = useRouter();
 
-const goBack = () => {
+const goBack = (): void => {
   router.back();
 };
 
-const goToDashboard = () => {
-  navigateTo('/admin/data');
+const goToDashboard = (): void => {
+  void navigateTo('/admin/data');
 };
 
-const logout = () => {
+const logout = (): void => {
   adminStore.logout();
-  navigateTo('/admin/login');
+  void navigateTo('/admin/login');
 };
 </script>
 

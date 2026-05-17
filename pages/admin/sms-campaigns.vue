@@ -143,7 +143,7 @@
               </div>
             </td>
             <td>
-              <StatusBadge :status="campaign.status" />
+              <StatusBadge :status="campaign.status ?? ''" />
             </td>
             <td class="text-center">
               <div class="recipients-count">{{ formatNumber(campaign.total_recipients || 0) }}</div>
@@ -270,7 +270,7 @@
               </div>
               <div class="detail-item">
                 <span class="detail-label">Status:</span>
-                <StatusBadge :status="selectedCampaign.status" />
+                <StatusBadge :status="selectedCampaign.status ?? ''" />
               </div>
               <div class="detail-item">
                 <span class="detail-label">Created:</span>
@@ -364,7 +364,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
   ChartBarIcon,
@@ -385,25 +385,60 @@ import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
 import { formatCurrency, formatDate } from '~/utils/constants/sms'
 
-// Define page metadata
 definePageMeta({
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })
 
-// Composables
-const { campaigns, loading, error, fetchCampaigns, pauseCampaign: pauseCampaignAction, resumeCampaign: resumeCampaignAction } = useSMSCampaigns()
+interface Campaign {
+  id: number | string
+  name?: string | null
+  status?: string | null
+  company_name?: string | null
+  company_id?: string | number | null
+  message?: string | null
+  created_at?: string | null
+  messages_sent?: number | null
+  messages_delivered?: number | null
+  messages_failed?: number | null
+  sms_charged?: number | null
+  actual_credits_used?: number | null
+  actual_cost?: number | string | null
+  sms_cost?: number | string | null
+  total_recipients?: number | null
+  payment_status?: string | null
+  recipient_config?: { type?: string | null; filters?: Record<string, unknown> | null } | null
+  [key: string]: unknown
+}
 
-// State
-const filters = ref({
+type DialogType = 'warning' | 'danger' | 'info' | 'success' | 'error'
+
+interface ConfirmDialogState {
+  title: string
+  message: string
+  type: DialogType
+  confirmText: string
+  onConfirm: () => Promise<void> | void
+}
+
+const {
+  campaigns,
+  loading,
+  error,
+  fetchCampaigns,
+  pauseCampaign: pauseCampaignAction,
+  resumeCampaign: resumeCampaignAction,
+} = useSMSCampaigns()
+
+const filters = ref<{ search: string; status: string; company: string }>({
   search: '',
   status: '',
   company: '',
 })
 
-const selectedCampaign = ref(null)
-const showConfirmDialog = ref(false)
-const confirmDialog = ref({
+const selectedCampaign = ref<Campaign | null>(null)
+const showConfirmDialog = ref<boolean>(false)
+const confirmDialog = ref<ConfirmDialogState>({
   title: '',
   message: '',
   type: 'warning',
@@ -411,99 +446,97 @@ const confirmDialog = ref({
   onConfirm: () => {},
 })
 
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
-const companies = ref([]) // Would be fetched from API
+const currentPage = ref<number>(1)
+const itemsPerPage = ref<number>(10)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const companies = ref<{ id: number | string; name?: string | null }[]>([]) // Would be fetched from API
 
-// Computed
 const stats = computed(() => {
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
   return {
     totalCampaigns: campaigns.value.length,
-    activeCampaigns: campaigns.value.filter(c => c.status === 'active' || c.status === 'processing' || c.status === 'sending').length,
+    activeCampaigns: campaigns.value.filter(
+      (c) => c.status === 'active' || c.status === 'processing' || c.status === 'sending',
+    ).length,
     messagesSentToday: campaigns.value
-      .filter(c => new Date(c.created_at) >= todayStart)
-      .reduce((sum, c) => sum + (c.messages_sent || 0), 0),
+      .filter((c) => c.created_at !== null && c.created_at !== undefined && new Date(c.created_at) >= todayStart)
+      .reduce((sum, c) => sum + (c.messages_sent ?? 0), 0),
     creditsUsedToday: campaigns.value
-      .filter(c => new Date(c.created_at) >= todayStart)
-      .reduce((sum, c) => sum + (c.sms_charged || 0), 0),
+      .filter((c) => c.created_at !== null && c.created_at !== undefined && new Date(c.created_at) >= todayStart)
+      .reduce((sum, c) => sum + (c.sms_charged ?? 0), 0),
     amountSpentToday: campaigns.value
-      .filter(c => new Date(c.created_at) >= todayStart)
+      .filter((c) => c.created_at !== null && c.created_at !== undefined && new Date(c.created_at) >= todayStart)
       .reduce((sum, c) => sum + (Number(c.actual_cost) || Number(c.sms_cost) || 0), 0),
   }
 })
 
-const hasActiveFilters = computed(() => {
-  return filters.value.search || filters.value.status || filters.value.company
+const hasActiveFilters = computed<boolean>(() => {
+  return Boolean(filters.value.search || filters.value.status || filters.value.company)
 })
 
-const filteredCampaigns = computed(() => {
+const filteredCampaigns = computed<Campaign[]>(() => {
   let result = [...campaigns.value]
 
-  // Search filter
   if (filters.value.search) {
     const search = filters.value.search.toLowerCase()
-    result = result.filter(c =>
-      c.name?.toLowerCase().includes(search) ||
-      c.company_name?.toLowerCase().includes(search) ||
-      c.message?.toLowerCase().includes(search)
+    result = result.filter(
+      (c) =>
+        c.name?.toLowerCase().includes(search) ||
+        c.company_name?.toLowerCase().includes(search) ||
+        c.message?.toLowerCase().includes(search),
     )
   }
 
-  // Status filter
   if (filters.value.status) {
-    result = result.filter(c => c.status === filters.value.status)
+    result = result.filter((c) => c.status === filters.value.status)
   }
 
-  // Company filter
   if (filters.value.company) {
-    result = result.filter(c => c.company_id === filters.value.company)
+    result = result.filter((c) => String(c.company_id ?? '') === filters.value.company)
   }
 
-  // Sort by created date (newest first)
-  result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  result.sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
+    return bTime - aTime
+  })
 
   return result
 })
 
-const totalPages = computed(() => {
-  return Math.ceil(filteredCampaigns.value.length / itemsPerPage.value)
-})
+const totalPages = computed<number>(() =>
+  Math.ceil(filteredCampaigns.value.length / itemsPerPage.value)
+)
 
-const paginatedCampaigns = computed(() => {
+const paginatedCampaigns = computed<Campaign[]>(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value
   const end = start + itemsPerPage.value
   return filteredCampaigns.value.slice(start, end)
 })
 
-// Methods
-const refreshData = async () => {
+const refreshData = async (): Promise<void> => {
   await fetchCampaigns()
 }
 
-const clearFilters = () => {
-  filters.value = {
-    search: '',
-    status: '',
-    company: '',
-  }
+const clearFilters = (): void => {
+  filters.value = { search: '', status: '', company: '' }
   currentPage.value = 1
 }
 
-const viewCampaign = (campaign) => {
+const viewCampaign = (campaign: Campaign): void => {
   selectedCampaign.value = campaign
 }
 
-const closeCampaignModal = () => {
+const closeCampaignModal = (): void => {
   selectedCampaign.value = null
 }
 
-const pauseCampaign = (campaign) => {
+const pauseCampaign = (campaign: Campaign): void => {
   confirmDialog.value = {
     title: 'Pause Campaign',
-    message: `Are you sure you want to pause the campaign "${campaign.name}"? You can resume it later.`,
+    message: `Are you sure you want to pause the campaign "${campaign.name ?? ''}"? You can resume it later.`,
     type: 'warning',
     confirmText: 'Pause Campaign',
     onConfirm: async () => {
@@ -515,10 +548,10 @@ const pauseCampaign = (campaign) => {
   showConfirmDialog.value = true
 }
 
-const resumeCampaign = (campaign) => {
+const resumeCampaign = (campaign: Campaign): void => {
   confirmDialog.value = {
     title: 'Resume Campaign',
-    message: `Are you sure you want to resume the campaign "${campaign.name}"?`,
+    message: `Are you sure you want to resume the campaign "${campaign.name ?? ''}"?`,
     type: 'info',
     confirmText: 'Resume Campaign',
     onConfirm: async () => {
@@ -530,10 +563,10 @@ const resumeCampaign = (campaign) => {
   showConfirmDialog.value = true
 }
 
-const cancelCampaign = (campaign) => {
+const cancelCampaign = (campaign: Campaign): void => {
   confirmDialog.value = {
     title: 'Cancel Campaign',
-    message: `Are you sure you want to cancel the campaign "${campaign.name}"? This action cannot be undone.`,
+    message: `Are you sure you want to cancel the campaign "${campaign.name ?? ''}"? This action cannot be undone.`,
     type: 'danger',
     confirmText: 'Cancel Campaign',
     onConfirm: async () => {
@@ -545,30 +578,23 @@ const cancelCampaign = (campaign) => {
   showConfirmDialog.value = true
 }
 
-const closeConfirmDialog = () => {
+const closeConfirmDialog = (): void => {
   showConfirmDialog.value = false
 }
 
-const formatNumber = (num) => {
-  return new Intl.NumberFormat().format(num || 0)
-}
+const formatNumber = (num: number | null | undefined): string =>
+  new Intl.NumberFormat().format(num ?? 0)
 
-// const formatCurrency = (value) => {
-//   const num = parseFloat(value) || 0
-//   return num.toFixed(2)
-// }
-
-const truncateMessage = (message) => {
+const truncateMessage = (message: string | null | undefined): string => {
   if (!message) return 'No message'
   return message.length > 60 ? message.substring(0, 60) + '...' : message
 }
 
-const calculateProgress = (campaign) => {
+const calculateProgress = (campaign: Campaign): number => {
   if (!campaign.total_recipients || campaign.total_recipients === 0) return 0
-  return Math.round(((campaign.messages_sent || 0) / campaign.total_recipients) * 100)
+  return Math.round(((campaign.messages_sent ?? 0) / campaign.total_recipients) * 100)
 }
 
-// Lifecycle
 onMounted(async () => {
   await fetchCampaigns()
   // Fetch companies list for filter

@@ -274,20 +274,41 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useSMSCredits } from '~/composables/useSMSCredits'
 
+definePageMeta({
+  middleware: ['company-auth'],
+  layout: 'company',
+})
+
+interface SmsTransaction {
+  id: number | string
+  transaction_type: string
+  description?: string | null
+  created_at?: string | null
+  sms_count?: number | null
+  balance_after?: number | null
+  amount?: number | string | null
+}
+
+interface EstimateResult {
+  recipient_count?: number
+  sms_rate_per_unit?: number | string
+  estimated_sms_credits?: number
+  estimated_total_cost?: number | string
+}
+
+interface PurchaseResponse {
+  success?: boolean
+}
+
 const {
-  balance,
-  overview,
-  transactions,
-  statistics,
   smsBalance,
   moneyBalance,
   smsRate_value,
   loading,
-  error,
   fetchBalance,
   fetchOverview,
   fetchTransactions,
@@ -295,15 +316,19 @@ const {
   fetchSmsRate,
   purchaseCredits,
   estimateCost,
+  transactions,
 } = useSMSCredits()
 
 // Local state
-const activeTab = ref('transactions')
-const showPurchaseModal = ref(false)
-const showEstimateModal = ref(false)
-const message = ref(null)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const activeTab = ref<string>('transactions')
 
-const tabs = [
+const showPurchaseModal = ref<boolean>(false)
+const showEstimateModal = ref<boolean>(false)
+const message = ref<{ text: string; type: string } | null>(null)
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const tabs: Array<{ id: string; label: string; icon: string }> = [
   { id: 'overview', label: 'Overview', icon: 'BarChart3' },
   { id: 'transactions', label: 'Transactions', icon: 'List' },
 ]
@@ -314,28 +339,24 @@ const transactionFilters = ref({
   endDate: '',
 })
 
-const purchaseForm = ref({
+const purchaseForm = ref<{ smsCount: number | null; totalCost: number }>({
   smsCount: null,
   totalCost: 0,
 })
 
-const estimateForm = ref({
+const estimateForm = ref<{ recipientCount: number | null; result: EstimateResult | null }>({
   recipientCount: null,
   result: null,
 })
 
-// Computed
-const canPurchase = computed(() => {
-  return moneyBalance.value > 0
-})
+const canPurchase = computed<boolean>(() => moneyBalance.value > 0)
 
-// Methods
-const formatCurrency = (value) => {
+const formatCurrency = (value: number | string | null | undefined): string => {
   if (!value) return '0.00'
-  return parseFloat(value).toFixed(2)
+  return parseFloat(String(value)).toFixed(2)
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return '-'
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -344,8 +365,8 @@ const formatDate = (dateString) => {
   })
 }
 
-const formatTransactionType = (type) => {
-  const map = {
+const formatTransactionType = (type: string | null | undefined): string => {
+  const map: Record<string, string> = {
     sms_deduction: 'SMS Sent',
     sms_topup: 'SMS Top-up',
     sms_refund: 'SMS Refund',
@@ -355,17 +376,37 @@ const formatTransactionType = (type) => {
     deduction: 'Deduction',
     refund: 'Refund',
   }
-  return map[type] || type
+  if (type === undefined || type === null) return ''
+  return (type !== undefined ? map[type] : undefined) ?? type
 }
 
-const calculatePurchaseCost = () => {
-  purchaseForm.value.totalCost = (purchaseForm.value.smsCount || 0) * smsRate_value.value
+const calculatePurchaseCost = (): void => {
+  purchaseForm.value.totalCost = (purchaseForm.value.smsCount ?? 0) * smsRate_value.value
 }
 
-const performPurchase = async () => {
+const showMessage = (text: string, type: string = 'success'): void => {
+  message.value = { text, type }
+  setTimeout(() => {
+    message.value = null
+  }, 5000)
+}
+
+const refreshData = async (): Promise<void> => {
+  try {
+    await Promise.all([
+      fetchBalance(),
+      fetchOverview(),
+      fetchTransactions({ sms_only: true }), // Only SMS credit transactions
+      fetchSmsRate(),
+    ])
+  } catch (err) {
+    showMessage(err instanceof Error ? err.message : 'Failed to refresh data', 'error')
+  }
+}
+
+const performPurchase = async (): Promise<void> => {
   try {
     const response = await purchaseCredits(purchaseForm.value.smsCount)
-
     if (response.success) {
       showMessage('SMS credits purchased successfully!', 'success')
       showPurchaseModal.value = false
@@ -373,71 +414,49 @@ const performPurchase = async () => {
       await refreshData()
     }
   } catch (err) {
-    showMessage(err.message || 'Failed to purchase credits', 'error')
+    showMessage(err instanceof Error ? err.message : 'Failed to purchase credits', 'error')
   }
 }
 
-const performEstimate = async () => {
+const performEstimate = async (): Promise<void> => {
   try {
     const result = await estimateCost(estimateForm.value.recipientCount)
     estimateForm.value.result = result
   } catch (err) {
-    showMessage(err.message || 'Failed to estimate cost', 'error')
+    showMessage(err instanceof Error ? err.message : 'Failed to estimate cost', 'error')
   }
 }
 
-const applyFilters = async () => {
+const applyFilters = async (): Promise<void> => {
   try {
-    const filters = {
+    const filters: Record<string, unknown> = {
       // Only show SMS-related transactions (sms_deduction, sms_topup, sms_refund)
-      sms_only: true
+      sms_only: true,
     }
-    
     if (transactionFilters.value.type) {
-      filters.transaction_type = transactionFilters.value.type
+      filters['transaction_type'] = transactionFilters.value.type
     }
     if (transactionFilters.value.startDate) {
-      filters.start_date = transactionFilters.value.startDate
+      filters['start_date'] = transactionFilters.value.startDate
     }
     if (transactionFilters.value.endDate) {
-      filters.end_date = transactionFilters.value.endDate
+      filters['end_date'] = transactionFilters.value.endDate
     }
-
     await fetchTransactions(filters)
   } catch (err) {
-    showMessage(err.message || 'Failed to load transactions', 'error')
+    showMessage(err instanceof Error ? err.message : 'Failed to load transactions', 'error')
   }
 }
 
-const loadStatistics = async () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const loadStatistics = async (): Promise<void> => {
   try {
     await fetchStatistics()
   } catch (err) {
-    showMessage(err.message || 'Failed to load statistics', 'error')
+    showMessage(err instanceof Error ? err.message : 'Failed to load statistics', 'error')
   }
 }
 
-const refreshData = async () => {
-  try {
-    await Promise.all([
-      fetchBalance(), 
-      fetchOverview(), 
-      fetchTransactions({ sms_only: true }), // Only SMS credit transactions
-      fetchSmsRate()
-    ])
-  } catch (err) {
-    showMessage(err.message || 'Failed to refresh data', 'error')
-  }
-}
-
-const showMessage = (text, type = 'success') => {
-  message.value = { text, type }
-  setTimeout(() => {
-    message.value = null
-  }, 5000)
-}
-
-// Initialize
 onMounted(async () => {
   try {
     console.log('SMS Credits page mounted')
@@ -446,13 +465,8 @@ onMounted(async () => {
     console.log('SMS Credits data loaded successfully')
   } catch (err) {
     console.error('Failed to load SMS credits page:', err)
-    showMessage(err.message || 'Failed to load SMS credits. Please refresh the page.', 'error')
+    showMessage(err instanceof Error ? err.message : 'Failed to load SMS credits. Please refresh the page.', 'error')
   }
-})
-
-definePageMeta({
-  middleware: ['company-auth'],
-  layout: 'company',
 })
 </script>
 

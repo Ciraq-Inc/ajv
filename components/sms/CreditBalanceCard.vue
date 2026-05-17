@@ -35,59 +35,37 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  title: {
-    type: String,
-    default: 'Credit Balance',
-  },
-  label: {
-    type: String,
-    default: 'Available',
-  },
-  value: {
-    type: [Number, String],
-    default: 0,
-  },
-  subtitle: {
-    type: String,
-    default: null,
-  },
-  isCurrency: {
-    type: Boolean,
-    default: false,
-  },
-  lowBalanceThreshold: {
-    type: Number,
-    default: 100,
-  },
-  trend: {
-    type: Object,
-    default: null,
-  },
-  showRefresh: {
-    type: Boolean,
-    default: false,
-  },
-  isLoading: {
-    type: Boolean,
-    default: false,
-  },
-})
+interface Trend {
+  direction: 'up' | 'down'
+  text: string
+}
 
-const emit = defineEmits(['refresh'])
+const props = defineProps<{
+  title?: string
+  label?: string
+  value?: number | string
+  subtitle?: string | null
+  isCurrency?: boolean
+  lowBalanceThreshold?: number
+  trend?: Trend | null
+  showRefresh?: boolean
+  isLoading?: boolean
+}>()
 
-const lowBalance = computed(() => {
-  return props.value < props.lowBalanceThreshold
-})
+const emit = defineEmits<{ refresh: [] }>()
 
-const formattedValue = computed(() => {
+const lowBalance = computed<boolean>(
+  () => Number(props.value ?? 0) < (props.lowBalanceThreshold ?? 100),
+)
+
+const formattedValue = computed<string | number>(() => {
   if (props.isCurrency) {
-    return `₵${parseFloat(props.value || 0).toFixed(2)}`
+    return `₵${parseFloat(String(props.value ?? 0)).toFixed(2)}`
   }
-  return props.value || 0
+  return props.value ?? 0
 })
 </script>
 

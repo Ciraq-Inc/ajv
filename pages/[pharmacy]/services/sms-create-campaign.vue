@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <div class="campaign-creator-page">
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center justify-between mb-4">
         <div>
           <nuxt-link
-            :to="`/${route.params.pharmacy}/services/sms-campaigns`"
+            :to="`/${route.params['pharmacy']}/services/sms-campaigns`"
             class="cs-text flex items-center gap-2 mb-2"
           >
             <Icon name="ArrowLeft" class="h-4 w-4" />
@@ -87,7 +87,7 @@
       <div v-if="currentStep === 1" class="space-y-6">
         <div>
           <h2 class="text-xl font-semibold text-gray-900 mb-4">Campaign Details</h2>
-          
+
           <!-- Campaign Name -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -113,7 +113,7 @@
       <!-- Step 2: Select Recipients -->
       <div v-if="currentStep === 2" class="space-y-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Select Recipients</h2>
-        
+
         <!-- Recipient Selector Inline -->
         <div class="recipient-selector">
           <div class="mb-4">
@@ -243,7 +243,6 @@
                         <p class="text-xs text-gray-500">{{ customer.phone || customer.mobile }}</p>
                       </div>
                     </div>
-                    <!-- <span class="text-xs font-medium text-gray-600">{{ customer.id }}</span> -->
                   </div>
                 </div>
 
@@ -373,7 +372,7 @@
                   class="hidden"
                 />
                 <button
-                  @click="$refs.fileInput.click()"
+                  @click="fileInput?.click()"
                   class="px-4 py-2 cs-btn text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   Choose File
@@ -446,8 +445,8 @@
               <p class="text-gray-900 whitespace-pre-wrap">{{ campaign.message }}</p>
             </div>
             <p class="text-xs text-gray-500 mt-1">
-              {{ messageValidation.messageInfo?.length || 0 }} characters, 
-              {{ messageValidation.messageInfo?.parts || 1 }} SMS
+              {{ messageValidation.messageInfo?.length ?? 0 }} characters,
+              {{ messageValidation.messageInfo?.parts ?? 1 }} SMS
             </p>
           </div>
 
@@ -473,12 +472,12 @@
           <div class="mt-4 pt-4 border-t border-purple-400">
             <div class="flex items-center justify-between">
               <span class="text-sm">Your Current Balance:</span>
-              <span class="text-lg font-semibold">{{ balance?.sms_balance || 0 }} credits</span>
+              <span class="text-lg font-semibold">{{ balance?.sms_balance ?? 0 }} credits</span>
             </div>
             <div class="flex items-center justify-between mt-2">
               <span class="text-sm">Balance After Campaign:</span>
               <span class="text-lg font-semibold">
-                {{ (balance?.sms_balance || 0) - getTotalCost() }} credits
+                {{ (balance?.sms_balance ?? 0) - getTotalCost() }} credits
               </span>
             </div>
           </div>
@@ -494,7 +493,7 @@
             <div>
               <p class="text-sm font-medium text-red-900">Insufficient Balance</p>
               <p class="text-sm text-red-800 mt-1">
-                You need {{ getTotalCost() - (balance?.sms_balance || 0) }} more credits to send this campaign.
+                You need {{ getTotalCost() - (balance?.sms_balance ?? 0) }} more credits to send this campaign.
                 Please contact admin to top up your balance.
               </p>
             </div>
@@ -516,7 +515,7 @@
 
         <div class="flex items-center gap-3">
           <button
-            @click="saveDraft"
+            @click="void saveDraft()"
             :disabled="creating"
             class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
           >
@@ -535,7 +534,7 @@
 
           <button
             v-else
-            @click="sendCampaign"
+            @click="void sendCampaign()"
             :disabled="creating || !hasSufficientBalance()"
             class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -560,134 +559,183 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
-import { useSMSBilling } from '~/composables/useSMSBilling'
-import { useApi } from '~/composables/useApi'
 import { useCompanyStore } from '~/stores/company'
 import MessageComposer from '~/components/sms/campaign/MessageComposer.vue'
 import TestSmsModal from '~/components/sms/shared/TestSmsModal.vue'
 
-const route = useRoute()
-
-// Define page metadata
 definePageMeta({
   layout: 'company',
   middleware: 'company-auth',
-  title: 'Create Campaign'
+  title: 'Create Campaign',
 })
 
+interface Customer {
+  id: number | string
+  name?: string | null
+  fname?: string | null
+  lname?: string | null
+  phone?: string | null
+  mobile?: string | null
+}
+
+interface MessageInfo {
+  length?: number
+  parts?: number
+}
+
+interface MessageValidation {
+  isValid: boolean
+  messageInfo: MessageInfo | null
+  invalidVariables: string[]
+}
+
+interface RecipientsState {
+  type: string
+  filters: Record<string, unknown>
+  customer_ids: string
+  totalRecipients: number
+  totalCost: number
+}
+
+interface BalanceData {
+  sms_balance?: number | null
+  [key: string]: unknown
+}
+
+interface ApiResponse {
+  success?: boolean
+  data?: Customer[] | null
+  count?: number | null
+  [key: string]: unknown
+}
+
+// TODO: remove once composables/ are .ts
+const { createCampaign, loading: creating } = useSMSCampaigns() as unknown as {
+  createCampaign: (data: Record<string, unknown>) => Promise<unknown>
+  loading: { value: boolean }
+}
+
+// TODO: remove once composables/ are .ts
+const { balance, fetchBalance, hasSufficientBalance: checkBalance } = useSMSBilling() as unknown as {
+  balance: { value: BalanceData | null }
+  fetchBalance: () => Promise<void>
+  hasSufficientBalance: (cost: number) => boolean
+}
+
+// TODO: remove once composables/ are .ts
+const api = useApi() as unknown as {
+  get: (url: string) => Promise<ApiResponse>
+}
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  currentCompany?: { id?: number | string | null } | null
+  selectedCompany?: { id?: number | string | null } | null
+}
+
+const route = useRoute()
 const router = useRouter()
 
-const { createCampaign, loading: creating } = useSMSCampaigns()
-const { balance, fetchBalance, hasSufficientBalance: checkBalance } = useSMSBilling()
-const api = useApi()
-const companyStore = useCompanyStore()
+const currentStep = ref<number>(1)
+const showTestModal = ref<boolean>(false)
 
-const currentStep = ref(1)
-const showTestModal = ref(false)
-
-const campaign = ref({
+const campaign = ref<{ name: string; message: string }>({
   name: '',
-  message: ''
+  message: '',
 })
 
-const recipients = ref({
+const recipients = ref<RecipientsState>({
   type: 'all',
   filters: {},
   customer_ids: '',
   totalRecipients: 0,
-  totalCost: 0
+  totalCost: 0,
 })
 
-const messageValidation = ref({
+const messageValidation = ref<MessageValidation>({
   isValid: false,
   messageInfo: null,
-  invalidVariables: []
+  invalidVariables: [],
 })
 
-// Recipient selector variables
-const selectedType = ref('all')
-const filters = ref({
+const selectedType = ref<string>('all')
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const filters = ref<{
+  customer_type: string
+  city: string
+  min_orders: number
+  registered_after: string
+}>({
   customer_type: '',
   city: '',
   min_orders: 0,
-  registered_after: ''
+  registered_after: '',
 })
-const customIds = ref('')
-const fileInput = ref(null)
-const showCustomerList = ref(false)
+const customIds = ref<string>('')
+const fileInput = ref<HTMLInputElement | null>(null)
+const showCustomerList = ref<boolean>(false)
 
-// Data and loading states
-const allCustomers = ref([])
-const isLoadingCustomers = ref(false)
-const customersError = ref(null)
+const allCustomers = ref<Customer[]>([])
+const isLoadingCustomers = ref<boolean>(false)
+const customersError = ref<string | null>(null)
 
-// Customer selection for filtered type
-const selectedCustomers = ref([])
-const customerSearchQuery = ref('')
+const selectedCustomers = ref<Customer[]>([])
+const customerSearchQuery = ref<string>('')
 
-// Recipient counts
-const estimatedCount = ref(0)
-const filteredCount = computed(() => selectedCustomers.value.length)
-const customCount = computed(() => {
+const estimatedCount = ref<number>(0)
+const filteredCount = computed<number>(() => selectedCustomers.value.length)
+const customCount = computed<number>(() => {
   if (!customIds.value) return 0
-  // Extract unique IDs (removes duplicates)
-  const ids = customIds.value.split(',').map(id => id.trim()).filter(id => id.length > 0)
+  const ids = customIds.value.split(',').map((id) => id.trim()).filter((id) => id.length > 0)
   return [...new Set(ids)].length
 })
 
-// Cost calculations (accounting for multi-part SMS messages)
-const messageParts = computed(() => messageValidation.value.messageInfo?.parts || 1)
-const estimatedCost = computed(() => estimatedCount.value * messageParts.value)
-const filteredCost = computed(() => filteredCount.value * messageParts.value)
-const customCost = computed(() => customCount.value * messageParts.value)
+const messageParts = computed<number>(() => messageValidation.value.messageInfo?.parts ?? 1)
+const estimatedCost = computed<number>(() => estimatedCount.value * messageParts.value)
+const filteredCost = computed<number>(() => filteredCount.value * messageParts.value)
+const customCost = computed<number>(() => customCount.value * messageParts.value)
 
-// Filtered customers list based on search
-const filteredCustomersList = computed(() => {
+const filteredCustomersList = computed<Customer[]>(() => {
   if (!customerSearchQuery.value) {
     return allCustomers.value
   }
   const query = customerSearchQuery.value.toLowerCase()
-  return allCustomers.value.filter(customer => {
-    const name = (customer.name || customer.fname + ' ' + customer.lname || '').toLowerCase()
-    const phone = (customer.phone || customer.mobile || '').toLowerCase()
+  return allCustomers.value.filter((customer) => {
+    const name = (customer.name ?? ((customer.fname ?? '') + ' ' + (customer.lname ?? '')) ?? '').toLowerCase()
+    const phone = (customer.phone ?? customer.mobile ?? '').toLowerCase()
     return name.includes(query) || phone.includes(query)
   })
 })
 
-const totalRecipients = computed(() => {
+const totalRecipients = computed<number>(() => {
   if (selectedType.value === 'all') return estimatedCount.value
   if (selectedType.value === 'filtered') return filteredCount.value
   if (selectedType.value === 'custom') return customCount.value
   return 0
 })
 
-const totalCost = computed(() => {
+const totalCost = computed<number>(() => {
   if (selectedType.value === 'all') return estimatedCost.value
   if (selectedType.value === 'filtered') return filteredCost.value
   if (selectedType.value === 'custom') return customCost.value
   return 0
 })
 
-// Load balance on mount
 onMounted(() => {
-  fetchBalance()
-  fetchCustomersFromAPI()
+  void fetchBalance()
+  void fetchCustomersFromAPI()
 })
 
-// Recipient selector functions
-// Fetch customers from API
-const fetchCustomersFromAPI = async () => {
+const fetchCustomersFromAPI = async (): Promise<void> => {
   try {
     isLoadingCustomers.value = true
     customersError.value = null
-    
-    // Get company ID from store or use from props
-    const companyId = companyStore.currentCompany?.id || companyStore.selectedCompany?.id
-    
+
+    const companyId = companyStore.currentCompany?.id ?? companyStore.selectedCompany?.id
+
     if (!companyId) {
       console.warn('No company ID available')
       allCustomers.value = []
@@ -695,19 +743,18 @@ const fetchCustomersFromAPI = async () => {
       return
     }
 
-    // Fetch customers from API
-    const response = await api.get(`/api/companies/${companyId}/customers`)
-    
+    const response = await api.get(`/api/companies/${String(companyId)}/customers`)
+
     if (response.success && response.data) {
       allCustomers.value = response.data
-      estimatedCount.value = response.data.length || response.count || 0
+      estimatedCount.value = response.data.length
     } else {
       allCustomers.value = []
       estimatedCount.value = 0
     }
   } catch (error) {
     console.error('Error fetching customers:', error)
-    customersError.value = error.message || 'Failed to load customers'
+    customersError.value = error instanceof Error ? error.message : 'Failed to load customers'
     allCustomers.value = []
     estimatedCount.value = 0
   } finally {
@@ -715,24 +762,20 @@ const fetchCustomersFromAPI = async () => {
   }
 }
 
-// Select recipient type
-const selectType = (type) => {
+const selectType = (type: string): void => {
   selectedType.value = type
-  // Clear selected customers when switching to filtered type
   if (type === 'filtered') {
     selectedCustomers.value = []
   }
   updateRecipients()
 }
 
-// Toggle customer list visibility
-const toggleCustomerList = () => {
+const toggleCustomerList = (): void => {
   showCustomerList.value = !showCustomerList.value
 }
 
-// Customer selection functions for filtered type
-const toggleCustomerSelection = (customer) => {
-  const index = selectedCustomers.value.findIndex(c => c.id === customer.id)
+const toggleCustomerSelection = (customer: Customer): void => {
+  const index = selectedCustomers.value.findIndex((c) => c.id === customer.id)
   if (index > -1) {
     selectedCustomers.value.splice(index, 1)
   } else {
@@ -741,11 +784,11 @@ const toggleCustomerSelection = (customer) => {
   updateRecipients()
 }
 
-const isCustomerSelected = (customer) => {
-  return selectedCustomers.value.some(c => c.id === customer.id)
+const isCustomerSelected = (customer: Customer): boolean => {
+  return selectedCustomers.value.some((c) => c.id === customer.id)
 }
 
-const toggleSelectAllFiltered = () => {
+const toggleSelectAllFiltered = (): void => {
   if (selectedCustomers.value.length === filteredCustomersList.value.length) {
     selectedCustomers.value = []
   } else {
@@ -754,77 +797,68 @@ const toggleSelectAllFiltered = () => {
   updateRecipients()
 }
 
-// Update custom IDs
-const updateCustomIds = () => {
+const updateCustomIds = (): void => {
   updateRecipients()
 }
 
-// Handle file upload
-const handleFileUpload = (event) => {
-  const file = event.target.files[0]
+const handleFileUpload = (event: Event): void => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
   if (!file) return
 
   const reader = new FileReader()
-  reader.onload = (e) => {
+  reader.onload = (e: ProgressEvent<FileReader>) => {
     try {
-      const content = e.target.result
+      const content = e.target?.result as string | null
+      if (!content) return
       const lines = content.trim().split('\n')
-      
-      // Extract customer IDs/phone numbers
-      let extractedIds = []
-      
+
+      let extractedIds: string[] = []
+
       if (file.name.endsWith('.csv')) {
-        // Parse CSV: assume first line is header
         if (lines.length > 1) {
-          // Remove header and extract first column or relevant ID column
           const dataLines = lines.slice(1)
           extractedIds = dataLines
-            .map(line => line.split(',')[0].trim())
-            .filter(id => id && id.length > 0)
+            .map((line) => (line.split(',')[0] ?? '').trim())
+            .filter((id) => id.length > 0)
         }
       } else {
-        // For TXT files, assume each line is an ID
-        extractedIds = lines.filter(line => line.trim().length > 0)
+        extractedIds = lines.filter((line) => line.trim().length > 0)
       }
-      
+
       if (extractedIds.length === 0) {
         alert(`No valid IDs found in ${file.name}`)
         return
       }
-      
-      // Remove duplicates and convert to comma-separated string
+
       const uniqueIds = [...new Set(extractedIds)]
       customIds.value = uniqueIds.join(', ')
-      
-      // Show success message
+
       alert(`Successfully imported ${uniqueIds.length} customer${uniqueIds.length !== 1 ? 's' : ''} from ${file.name}`)
     } catch (error) {
-      alert(`Error parsing file: ${error.message}`)
+      alert(`Error parsing file: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
-      // Reset file input
-      event.target.value = ''
+      target.value = ''
     }
   }
-  reader.onerror = () => {
+  reader.onerror = (): void => {
     alert('Error reading file')
-    event.target.value = ''
+    target.value = ''
   }
   reader.readAsText(file)
 }
 
-// Update recipients object
-const updateRecipients = () => {
-  let recipientData = {
+const updateRecipients = (): void => {
+  const recipientData: RecipientsState = {
     type: selectedType.value,
     filters: {},
     customer_ids: '',
     totalRecipients: totalRecipients.value,
-    totalCost: totalCost.value
+    totalCost: totalCost.value,
   }
 
-  // Set recipient data based on type
   if (selectedType.value === 'filtered') {
-    recipientData.customer_ids = selectedCustomers.value.map(c => c.id).join(',')
+    recipientData.customer_ids = selectedCustomers.value.map((c) => String(c.id)).join(',')
     recipientData.filters = { type: 'filtered' }
   } else if (selectedType.value === 'custom') {
     recipientData.customer_ids = customIds.value
@@ -836,79 +870,59 @@ const updateRecipients = () => {
   recipients.value = recipientData
 }
 
-// Handle message validation
-const handleMessageValidation = (validation) => {
+const handleMessageValidation = (validation: MessageValidation): void => {
   messageValidation.value = validation
 }
 
-// Check if can proceed to next step
-const canProceed = () => {
+const canProceed = (): boolean => {
   if (currentStep.value === 1) {
-    return campaign.value.name && campaign.value.message && messageValidation.value.isValid
+    return Boolean(campaign.value.name && campaign.value.message && messageValidation.value.isValid)
   }
   if (currentStep.value === 2) {
-    // Validate that at least one recipient is selected based on type
-    if (selectedType.value === 'all') {
-      return estimatedCount.value > 0
-    }
-    if (selectedType.value === 'filtered') {
-      return selectedCustomers.value.length > 0
-    }
-    if (selectedType.value === 'custom') {
-      return customCount.value > 0
-    }
+    if (selectedType.value === 'all') return estimatedCount.value > 0
+    if (selectedType.value === 'filtered') return selectedCustomers.value.length > 0
+    if (selectedType.value === 'custom') return customCount.value > 0
     return false
   }
   return false
 }
 
-// Navigation
-const nextStep = () => {
+const nextStep = (): void => {
   if (canProceed() && currentStep.value < 3) {
     currentStep.value++
   }
 }
 
-const previousStep = () => {
+const previousStep = (): void => {
   if (currentStep.value > 1) {
     currentStep.value--
   }
 }
 
-// Get recipient type label
-const getRecipientTypeLabel = () => {
-  const labels = {
+const getRecipientTypeLabel = (): string => {
+  const labels: Record<string, string> = {
     all: 'All Customers',
     filtered: 'Filtered Customers',
-    custom: 'Custom List'
+    custom: 'Custom List',
   }
-  return labels[recipients.value.type] || 'All Customers'
+  return (labels[recipients.value.type] !== undefined ? labels[recipients.value.type] : undefined) ?? 'All Customers'
 }
 
-// Get total recipients (from inline recipient selector)
-const getTotalRecipients = () => {
-  return totalRecipients.value
+const getTotalRecipients = (): number => totalRecipients.value
+
+const getTotalCost = (): number => totalCost.value
+
+const hasSufficientBalance = (): boolean => {
+  return (balance.value?.sms_balance ?? 0) >= getTotalCost()
 }
 
-// Get total cost (from inline recipient selector)
-const getTotalCost = () => {
-  return totalCost.value
-}
-
-// Check sufficient balance
-const hasSufficientBalance = () => {
-  return (balance.value?.sms_balance || 0) >= getTotalCost()
-}
-
-// Save draft
-const saveDraft = async () => {
+const saveDraft = async (): Promise<void> => {
   try {
-    // Validate campaign data
-    if (!campaign.value.name || !campaign.value.name.trim()) {
+    if (!campaign.value.name.trim()) {
       alert('Please enter a campaign name')
       return
     }
-    if (!campaign.value.message || !campaign.value.message.trim()) {
+    if (!campaign.value.message.trim()) {
       alert('Please enter a campaign message')
       return
     }
@@ -917,34 +931,31 @@ const saveDraft = async () => {
       return
     }
 
-    // Ensure recipients data is up-to-date
     updateRecipients()
 
-    const campaignData = {
+    const campaignData: Record<string, unknown> = {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
       filters: recipients.value.filters,
       customer_ids: recipients.value.customer_ids,
-      status: 'draft'
+      status: 'draft',
     }
 
     await createCampaign(campaignData)
     alert('Campaign saved as draft!')
-    router.push(`/${route.params.pharmacy}/services/sms-campaigns`)
+    void router.push(`/${String(route.params['pharmacy'])}/services/sms-campaigns`)
   } catch (error) {
-    alert('Failed to save draft: ' + error.message)
+    alert('Failed to save draft: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 
-// Send campaign
-const sendCampaign = async () => {
-  // Validate before sending
-  if (!campaign.value.name || !campaign.value.name.trim()) {
+const sendCampaign = async (): Promise<void> => {
+  if (!campaign.value.name.trim()) {
     alert('Please enter a campaign name')
     return
   }
-  if (!campaign.value.message || !campaign.value.message.trim()) {
+  if (!campaign.value.message.trim()) {
     alert('Please enter a campaign message')
     return
   }
@@ -953,36 +964,34 @@ const sendCampaign = async () => {
     return
   }
   if (!hasSufficientBalance()) {
-    alert(`Insufficient balance. You need ${getTotalCost() - (balance.value?.sms_balance || 0)} more credits to send this campaign.`)
+    alert(`Insufficient balance. You need ${getTotalCost() - (balance.value?.sms_balance ?? 0)} more credits to send this campaign.`)
     return
   }
 
   try {
-    // Ensure recipients data is up-to-date before sending
     updateRecipients()
 
-    const campaignData = {
+    const campaignData: Record<string, unknown> = {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
       filters: recipients.value.filters,
-      customer_ids: recipients.value.customer_ids
+      customer_ids: recipients.value.customer_ids,
     }
 
-    // Debug logging
-    console.log('📤 Sending Campaign Data:', {
+    console.log('Sending Campaign Data:', {
       type: recipients.value.type,
       customer_ids: recipients.value.customer_ids,
       recipient_count: getTotalRecipients(),
-      filters: recipients.value.filters
+      filters: recipients.value.filters,
     })
 
-    const response = await createCampaign(campaignData)
+    await createCampaign(campaignData)
     alert('Campaign created successfully! SMS messages are being sent.')
-    router.push(`/${route.params.pharmacy}/services/sms-campaigns`)
+    void router.push(`/${String(route.params['pharmacy'])}/services/sms-campaigns`)
   } catch (error) {
-    console.error('❌ Campaign creation error:', error)
-    alert('Failed to create campaign: ' + error.message)
+    console.error('Campaign creation error:', error)
+    alert('Failed to create campaign: ' + (error instanceof Error ? error.message : String(error)))
   }
 }
 </script>

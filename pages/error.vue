@@ -10,12 +10,18 @@
 	</div>
 </template>
 
-<script setup>
-const props = defineProps({
-	error: Object
-})
+<script setup lang="ts">
+interface NuxtError {
+  statusCode?: number;
+  message?: string;
+  [key: string]: unknown;
+}
 
-function handleError() {
-	clearError({ redirect: '/' })
+const props = defineProps<{
+  error?: NuxtError;
+}>()
+
+function handleError(): void {
+  clearError({ redirect: '/' })
 }
 </script>

@@ -35,12 +35,21 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  open: { type: Boolean, default: false },
-  loading: { type: Boolean, default: false },
-  applications: { type: Array, default: () => [] },
-})
+<script setup lang="ts">
+export interface Application {
+  id: number | string;
+  status?: string;
+  [key: string]: unknown;
+}
 
-defineEmits(['close', 'status'])
+defineProps<{
+  open?: boolean;
+  loading?: boolean;
+  applications?: Application[];
+}>()
+
+defineEmits<{
+  close: [];
+  status: [application: Application, nextStatus: string];
+}>()
 </script>

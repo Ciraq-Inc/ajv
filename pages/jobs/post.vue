@@ -280,32 +280,72 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 
 definePageMeta({ layout: false })
 
-const router = useRouter()
+interface JobRecord {
+  id: number | string
+  status?: string | null
+  title?: string | null
+  location?: string | null
+  employmentType?: string | null
+  expiresAt?: string | null
+  salaryMin?: number | null
+  salaryMax?: number | null
+  [key: string]: unknown
+}
+
+interface SignupResult {
+  company?: { domain?: string | null; domain_name?: string | null } | null
+}
+
+const {
+  jobs: myJobs,
+  loading: jobsLoading,
+  fetchCompanyJobs,
+  createJob,
+  updateJob,
+} = useJobs()
+
 const companyStore = useCompanyStore()
-const { jobs: myJobs, loading: jobsLoading, fetchCompanyJobs, createJob, updateJob } = useJobs()
 
-const error = ref('')
-const formError = ref('')
-const successMessage = ref('')
-const loading = ref(false)
-const companyDomain = ref('')
-const showForm = ref(false)
-const showSignup = ref(false)
-const togglingId = ref(null)
-const signupLoading = ref(false)
-const signupError = ref('')
-const signupSuccess = ref('')
+const router = useRouter()
 
-const today = new Date().toISOString().split('T')[0]
+const error = ref<string>('')
+const formError = ref<string>('')
+const successMessage = ref<string>('')
+const loading = ref<boolean>(false)
+const companyDomain = ref<string>('')
+const showForm = ref<boolean>(false)
+const showSignup = ref<boolean>(false)
+const togglingId = ref<number | string | null>(null)
+const signupLoading = ref<boolean>(false)
+const signupError = ref<string>('')
+const signupSuccess = ref<string>('')
 
-const form = reactive({
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _error = error // suppress unused warning — used in template
+
+const today = new Date().toISOString().split('T')[0]!
+
+const form = reactive<{
+  title: string
+  description: string
+  location: string
+  employmentType: string
+  salaryMin: number | null
+  salaryMax: number | null
+  contactEmail: string
+  contactPhone: string
+  expiresAt: string
+  requireResume: boolean
+  requireCv: boolean
+  requireCertificates: boolean
+}>({
   title: '',
   description: '',
   location: '',
@@ -320,7 +360,14 @@ const form = reactive({
   requireCertificates: false,
 })
 
-const signupForm = reactive({
+const signupForm = reactive<{
+  recruiterName: string
+  companyName: string
+  phone: string
+  email: string
+  password: string
+  domain: string
+}>({
   recruiterName: '',
   companyName: '',
   phone: '',
@@ -329,35 +376,36 @@ const signupForm = reactive({
   domain: '',
 })
 
-const normalizedRole = computed(() =>
-  String(companyStore.userRole || '')
+const normalizedRole = computed<string>(() =>
+  String(companyStore.userRole ?? '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '_')
     .replace(/-/g, '_')
 )
 
-const canPostJobs = computed(() =>
+const canPostJobs = computed<boolean>(() =>
   ['company', 'admin', 'super_admin', 'manager', 'third_party_poster'].includes(normalizedRole.value)
 )
 
-const isReadyToPost = computed(() => companyStore.isLoggedIn && canPostJobs.value)
+const isReadyToPost = computed<boolean>(() => companyStore.isLoggedIn && canPostJobs.value)
 
-const openCount = computed(() => myJobs.value.filter((j) => j.status === 'open').length)
-const closedCount = computed(() => myJobs.value.filter((j) => j.status === 'closed').length)
-const expiringSoonCount = computed(() => {
+const openCount = computed<number>(() => myJobs.value.filter((j) => j.status === 'open').length)
+const closedCount = computed<number>(() => myJobs.value.filter((j) => j.status === 'closed').length)
+const expiringSoonCount = computed<number>(() => {
   const cutoff = Date.now() + 7 * 24 * 60 * 60 * 1000
   return myJobs.value.filter((j) => j.status === 'open' && j.expiresAt && new Date(j.expiresAt).getTime() < cutoff).length
 })
 
-const formatDate = (iso) => {
+const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const isExpired = (iso) => iso && new Date(iso).getTime() < Date.now()
+const isExpired = (iso: string | null | undefined): boolean =>
+  Boolean(iso && new Date(iso).getTime() < Date.now())
 
-const hydrateCompanyAuthFromAnyDomain = () => {
+const hydrateCompanyAuthFromAnyDomain = (): void => {
   if (typeof window === 'undefined' || companyStore.isLoggedIn) return
 
   const keys = Object.keys(localStorage)
@@ -373,8 +421,8 @@ const hydrateCompanyAuthFromAnyDomain = () => {
 
   try {
     companyStore.companyAuthToken = savedToken
-    companyStore.user = JSON.parse(savedUser)
-    companyStore.company = savedCompany ? JSON.parse(savedCompany) : null
+    companyStore.user = JSON.parse(savedUser) as typeof companyStore.user
+    companyStore.company = savedCompany ? (JSON.parse(savedCompany) as typeof companyStore.company) : null
     companyStore.authInitialized = true
 
     const domain = base.replace(/^company_/, '')
@@ -384,36 +432,35 @@ const hydrateCompanyAuthFromAnyDomain = () => {
   }
 }
 
-const getSafeDomain = () => String(companyDomain.value || '').trim().toLowerCase()
+const getSafeDomain = (): string => String(companyDomain.value ?? '').trim().toLowerCase()
 
-const goToRecruiterLogin = () => {
+const goToRecruiterLogin = (): void => {
   const domain = getSafeDomain()
   if (!domain) return
   const redirect = encodeURIComponent(`/${domain}/services/rigel-boards`)
-  router.push(`/${domain}/services/login?redirect=${redirect}`)
+  void router.push(`/${domain}/services/login?redirect=${redirect}`)
 }
 
-const goToRecruiterBoard = () => {
+const goToRecruiterBoard = (): void => {
   const domain = getSafeDomain()
   if (!domain) return
-  router.push(`/${domain}/services/rigel-boards`)
+  void router.push(`/${domain}/services/rigel-boards`)
 }
 
-const handleLogout = () => {
+const handleLogout = (): void => {
   companyStore.companyAuthToken = null
   companyStore.user = null
   companyStore.company = null
-  // Clear localStorage tokens for current domain
-  const domain = getSafeDomain() || companyStore.currentCompany?.domain_name || ''
+  const domain = getSafeDomain() || (companyStore.currentCompany?.domain_name ?? '')
   if (domain) {
     localStorage.removeItem(`company_${domain}_token`)
     localStorage.removeItem(`company_${domain}_user`)
     localStorage.removeItem(`company_${domain}_company`)
   }
-  router.push('/jobs/post')
+  void router.push('/jobs/post')
 }
 
-const handleCreateJob = async () => {
+const handleCreateJob = async (): Promise<void> => {
   formError.value = ''
   successMessage.value = ''
   loading.value = true
@@ -424,49 +471,51 @@ const handleCreateJob = async () => {
       description: form.description,
       location: form.location,
       employmentType: form.employmentType,
-      salaryMin: form.salaryMin || null,
-      salaryMax: form.salaryMax || null,
+      salaryMin: form.salaryMin ?? null,
+      salaryMax: form.salaryMax ?? null,
       contactEmail: form.contactEmail || null,
       contactPhone: form.contactPhone || null,
       expiresAt: form.expiresAt || null,
       requireResume: form.requireResume,
       requireCv: form.requireCv,
       requireCertificates: form.requireCertificates,
-      companyDomain: getSafeDomain() || companyStore.currentCompany?.domain_name || companyStore.currentCompany?.domainName || '',
-      companyName: companyStore.currentCompany?.name || 'Company',
+      companyDomain: getSafeDomain() || (companyStore.currentCompany?.domain_name ?? (companyStore.currentCompany as (typeof companyStore.currentCompany & { domainName?: string }) | null)?.domainName ?? ''),
+      companyName: companyStore.currentCompany?.name ?? 'Company',
     })
 
     successMessage.value = 'Job published successfully!'
     Object.assign(form, { title: '', description: '', location: '', employmentType: 'Full-time', salaryMin: null, salaryMax: null, contactEmail: '', contactPhone: '', expiresAt: '', requireResume: false, requireCv: false, requireCertificates: false })
     showForm.value = false
   } catch (err) {
-    formError.value = err?.data?.message || err?.message || 'Failed to publish job'
+    const e = err as Record<string, unknown>
+    const data = e['data'] as Record<string, unknown> | undefined
+    formError.value = String(data?.['message'] ?? e['message'] ?? 'Failed to publish job')
   } finally {
     loading.value = false
   }
 }
 
-const handleRecruiterSignup = async () => {
+const handleRecruiterSignup = async (): Promise<void> => {
   signupError.value = ''
   signupSuccess.value = ''
   signupLoading.value = true
 
   try {
-    const result = await companyStore.recruiterSignup(signupForm)
-    companyDomain.value = result.company?.domain || result.company?.domain_name || signupForm.domain
+    const result = await companyStore.recruiterSignup({ ...signupForm }) as SignupResult
+    companyDomain.value = result.company?.domain ?? result.company?.domain_name ?? signupForm.domain
     signupSuccess.value = 'Recruiter account created successfully. You can post immediately.'
     showSignup.value = false
     Object.assign(signupForm, { recruiterName: '', companyName: '', phone: '', email: '', password: '', domain: '' })
     await fetchCompanyJobs()
     showForm.value = true
   } catch (err) {
-    signupError.value = err.message || 'Failed to create recruiter account'
+    signupError.value = err instanceof Error ? err.message : 'Failed to create recruiter account'
   } finally {
     signupLoading.value = false
   }
 }
 
-const toggleStatus = async (job) => {
+const toggleStatus = async (job: { id: number | string; status?: string | null; [key: string]: unknown }): Promise<void> => {
   togglingId.value = job.id
   try {
     await updateJob(job.id, { status: job.status === 'open' ? 'closed' : 'open' })

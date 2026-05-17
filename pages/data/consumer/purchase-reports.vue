@@ -5,7 +5,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useAdminStore } from '~/stores/admin'
 
 definePageMeta({
@@ -13,6 +13,7 @@ definePageMeta({
   middleware: 'data-consumer-auth',
 })
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const adminStore = useAdminStore()
 </script>
 

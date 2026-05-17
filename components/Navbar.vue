@@ -218,11 +218,13 @@
   </header>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useUserStore } from '~/stores/user'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import Login from '~/components/Login.vue'
+
+// TODO: remove once stores/ are .ts
 
 const userStore = useUserStore()
 const showLoginModal = ref(false)
@@ -231,35 +233,34 @@ const showMobileMenu = ref(false)
 const showLogoutConfirm = ref(false)
 const isScrolled = ref(false)
 
-const handleLoginSuccess = (payload = {}) => {
+const handleLoginSuccess = (payload: { destination?: string } = {}): void => {
   showLoginModal.value = false
   if (payload.destination === 'new') {
     navigateTo('/customer?tab=new')
     return
   }
-  // Redirect to customer account page after successful login
   navigateTo('/customer')
 }
 
-const handleLogout = () => {
+const handleLogout = (): void => {
   showProfileMenu.value = false
   showMobileMenu.value = false
   showLogoutConfirm.value = true
 }
 
-const confirmLogout = async () => {
+const confirmLogout = async (): Promise<void> => {
   try {
-    await userStore.logout()
+    // userStore.logout is untyped (store not yet .ts)
+    await (userStore as { logout: () => Promise<void> }).logout()
     showLogoutConfirm.value = false
     navigateTo({ path: '/', query: { logged_out: Date.now().toString() } })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error logging out:', error)
   }
 }
 
-const formatPhone = (phone) => {
+const formatPhone = (phone: string | undefined): string => {
   if (!phone) return ''
-  // Format: +233 XX XXX XXXX
   if (phone.startsWith('+233')) {
     const digits = phone.substring(4)
     return `+233 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5)}`
@@ -267,24 +268,20 @@ const formatPhone = (phone) => {
   return phone
 }
 
-// Close dropdown when clicking outside
-const handleClickOutside = (event) => {
-  // Check if click is inside the profile menu container
+const handleClickOutside = (event: MouseEvent): void => {
   const profileMenuContainer = document.querySelector('.profile-menu-container')
-  if (profileMenuContainer && !profileMenuContainer.contains(event.target)) {
+  if (profileMenuContainer && !profileMenuContainer.contains(event.target as Node)) {
     showProfileMenu.value = false
   }
 }
 
-const handleScroll = () => {
+const handleScroll = (): void => {
   isScrolled.value = window.scrollY > 12
 }
 
 onMounted(() => {
   handleScroll()
   window.addEventListener('scroll', handleScroll, { passive: true })
-
-  // Use capture phase and add small delay to allow navigation to work
   setTimeout(() => {
     document.addEventListener('click', handleClickOutside, true)
   }, 100)

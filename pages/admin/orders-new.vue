@@ -428,81 +428,103 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { createAdminOrdersService } from '~/services/adminOrders/adminOrdersService';
 
+interface AdminOrder {
+  order_id: string
+  customer_id?: string | null
+  status: string
+  created_at?: string | null
+  order_date?: string | null
+  item_count?: number | null
+  total_amount?: number | string | null
+  total_items?: number | null
+  total_discount?: number | null
+  items?: AdminOrderItem[]
+  [key: string]: unknown
+}
+
+interface AdminOrderItem {
+  brand_name?: string | null
+  master_name?: string | null
+  unit?: string | null
+  qty?: number | null
+  selling_price?: number | string | null
+  discount?: number | string | null
+  line_total?: number | string | null
+  [key: string]: unknown
+}
+
+interface OrderStats {
+  total: number
+  pending: number
+  confirmed: number
+  shipped: number
+  delivered: number
+  cancelled: number
+}
+
 const router = useRouter();
 const pharmacyStore = usePharmacyStore();
 
-// All HTTP for this page now goes through the admin-orders service.
-// useApi() owns base URL + bearer-token injection (it picks up the
-// adminToken from localStorage). Per ADR 0001 the page keeps UI state
-// (loading flags, modal state, stats) and the response-envelope check;
-// only the wire calls moved out.
 const adminOrdersService = createAdminOrdersService(useApi());
 
-// Define page metadata
 definePageMeta({
   layout: 'pharm',
-  middleware: ['admin-auth']
+  middleware: ['admin-auth'],
 });
 
-// State
-const orders = ref([]);
-const orderDetails = ref(null);
-const isLoading = ref(false);
-const orderDetailsLoading = ref(false);
-const updatingStatus = ref(false);
-const error = ref('');
-const searchQuery = ref('');
-const statusFilter = ref('');
-const limitFilter = ref(50);
-const selectedOrder = ref(null);
-const selectedStatus = ref('pending');
-const autoRefreshEnabled = ref(true);
-const refreshInterval = ref(null);
+const orders = ref<AdminOrder[]>([]);
+const orderDetails = ref<AdminOrder | null>(null);
+const isLoading = ref<boolean>(false);
+const orderDetailsLoading = ref<boolean>(false);
+const updatingStatus = ref<boolean>(false);
+const error = ref<string>('');
+const searchQuery = ref<string>('');
+const statusFilter = ref<string>('');
+const limitFilter = ref<number>(50);
+const selectedOrder = ref<AdminOrder | null>(null);
+const selectedStatus = ref<string>('pending');
+const autoRefreshEnabled = ref<boolean>(true);
+const refreshInterval = ref<ReturnType<typeof setInterval> | null>(null);
 
-// Order statistics
-const orderStats = ref({
+const orderStats = ref<OrderStats>({
   total: 0,
   pending: 0,
   confirmed: 0,
   shipped: 0,
   delivered: 0,
-  cancelled: 0
+  cancelled: 0,
 });
 
-// Watch for selected order changes
 watch(selectedOrder, async (newOrder) => {
   if (newOrder) {
-    selectedStatus.value = newOrder.status || 'pending';
+    selectedStatus.value = newOrder.status ?? 'pending';
     await fetchOrderDetails(newOrder.order_id);
   } else {
     orderDetails.value = null;
   }
 });
 
-// Computed filtered orders (client-side search only)
-const filteredOrders = computed(() => {
+const filteredOrders = computed<AdminOrder[]>(() => {
   let result = [...orders.value];
-  
-  // Apply search filter (client-side)
+
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(order => 
+    result = result.filter((order) =>
       (order.order_id && order.order_id.toLowerCase().includes(query)) ||
       (order.customer_id && order.customer_id.toLowerCase().includes(query))
     );
   }
-  
+
   return result;
 });
 
-// Fetch orders from API
-const fetchOrders = async () => {
+const fetchOrders = async (): Promise<void> => {
   isLoading.value = true;
   error.value = '';
 
@@ -513,43 +535,39 @@ const fetchOrders = async () => {
     });
 
     if (!data.success) {
-      throw new Error(data.message || 'Failed to fetch orders');
+      throw new Error(data.message ?? 'Failed to fetch orders');
     }
 
-    orders.value = data.data || [];
+    orders.value = (data.data ?? []) as unknown as AdminOrder[];
     updateOrderStats();
-
   } catch (err) {
     console.error('Error fetching orders:', err);
-    error.value = err.message || 'Failed to load orders. Please try again.';
+    error.value = err instanceof Error ? err.message : 'Failed to load orders. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-// Fetch order details
-const fetchOrderDetails = async (orderId) => {
+const fetchOrderDetails = async (orderId: string): Promise<void> => {
   orderDetailsLoading.value = true;
 
   try {
     const data = await adminOrdersService.getById(orderId);
 
     if (!data.success) {
-      throw new Error(data.message || 'Failed to fetch order details');
+      throw new Error(data.message ?? 'Failed to fetch order details');
     }
 
-    orderDetails.value = data.data;
-
+    orderDetails.value = data.data as unknown as AdminOrder;
   } catch (err) {
     console.error('Error fetching order details:', err);
-    alert('Failed to load order details: ' + err.message);
+    alert('Failed to load order details: ' + (err instanceof Error ? err.message : String(err)));
   } finally {
     orderDetailsLoading.value = false;
   }
 };
 
-// Update order status
-const updateOrderStatus = async (order, newStatus) => {
+const updateOrderStatus = async (order: AdminOrder, newStatus: string): Promise<void> => {
   if (!confirm(`Are you sure you want to change this order to "${newStatus}"?`)) {
     return;
   }
@@ -560,26 +578,24 @@ const updateOrderStatus = async (order, newStatus) => {
     });
 
     if (!data.success) {
-      throw new Error(data.message || 'Failed to update order status');
+      throw new Error(data.message ?? 'Failed to update order status');
     }
 
-    // Update local state
-    const orderIndex = orders.value.findIndex(o => o.order_id === order.order_id);
+    const orderIndex = orders.value.findIndex((o) => o.order_id === order.order_id);
     if (orderIndex !== -1) {
-      orders.value[orderIndex].status = newStatus;
+      const existing = orders.value[orderIndex];
+      if (existing !== undefined) existing.status = newStatus;
       updateOrderStats();
     }
 
     alert('Order status updated successfully!');
-
   } catch (err) {
     console.error('Error updating order status:', err);
-    alert('Failed to update order status: ' + err.message);
+    alert('Failed to update order status: ' + (err instanceof Error ? err.message : String(err)));
   }
 };
 
-// Update order status from modal
-const updateOrderStatusFromModal = async () => {
+const updateOrderStatusFromModal = async (): Promise<void> => {
   if (!orderDetails.value) return;
 
   updatingStatus.value = true;
@@ -591,51 +607,50 @@ const updateOrderStatusFromModal = async () => {
     );
 
     if (!data.success) {
-      throw new Error(data.message || 'Failed to update order status');
+      throw new Error(data.message ?? 'Failed to update order status');
     }
 
-    // Update local state
     orderDetails.value.status = selectedStatus.value;
-    const orderIndex = orders.value.findIndex(o => o.order_id === orderDetails.value.order_id);
+    const currentDetails = orderDetails.value;
+    const orderIndex = orders.value.findIndex((o) => o.order_id === currentDetails.order_id);
     if (orderIndex !== -1) {
-      orders.value[orderIndex].status = selectedStatus.value;
+      const existing = orders.value[orderIndex];
+      if (existing !== undefined) existing.status = selectedStatus.value;
       updateOrderStats();
     }
 
     alert('Order status updated successfully!');
-
   } catch (err) {
     console.error('Error updating order status:', err);
-    alert('Failed to update order status: ' + err.message);
+    alert('Failed to update order status: ' + (err instanceof Error ? err.message : String(err)));
   } finally {
     updatingStatus.value = false;
   }
 };
 
-// Calculate order statistics
-const updateOrderStats = () => {
-  const stats = {
+const updateOrderStats = (): void => {
+  const stats: OrderStats = {
     total: orders.value.length,
     pending: 0,
     confirmed: 0,
     shipped: 0,
     delivered: 0,
-    cancelled: 0
+    cancelled: 0,
   };
-  
-  orders.value.forEach(order => {
-    if (order.status && stats[order.status] !== undefined) {
-      stats[order.status]++;
+
+  orders.value.forEach((order) => {
+    const key = order.status as keyof OrderStats;
+    if (key && key in stats && key !== 'total') {
+      (stats[key] as number)++;
     }
   });
-  
+
   orderStats.value = stats;
 };
 
-// Toggle auto-refresh
-const toggleAutoRefresh = () => {
+const toggleAutoRefresh = (): void => {
   autoRefreshEnabled.value = !autoRefreshEnabled.value;
-  
+
   if (autoRefreshEnabled.value) {
     startAutoRefresh();
   } else {
@@ -643,37 +658,34 @@ const toggleAutoRefresh = () => {
   }
 };
 
-// Start auto-refresh
-const startAutoRefresh = () => {
-  stopAutoRefresh(); // Clear any existing interval
+const startAutoRefresh = (): void => {
+  stopAutoRefresh();
   refreshInterval.value = setInterval(() => {
-    fetchOrders();
-  }, 30000); // Refresh every 30 seconds
+    void fetchOrders();
+  }, 30000);
 };
 
-// Stop auto-refresh
-const stopAutoRefresh = () => {
-  if (refreshInterval.value) {
+const stopAutoRefresh = (): void => {
+  if (refreshInterval.value !== null) {
     clearInterval(refreshInterval.value);
     refreshInterval.value = null;
   }
 };
 
-// Utility functions
-const resetFilters = () => {
+const resetFilters = (): void => {
   searchQuery.value = '';
   statusFilter.value = '';
-  fetchOrders();
+  void fetchOrders();
 };
 
-const formatOrderId = (orderId) => {
+const formatOrderId = (orderId: string | null | undefined): string => {
   if (!orderId) return 'N/A';
   return orderId.length > 12 ? `...${orderId.slice(-12)}` : orderId;
 };
 
-const formatOrderDate = (dateString) => {
+const formatOrderDate = (dateString: string | null | undefined): string => {
   if (!dateString) return 'Unknown date';
-  
+
   try {
     const date = new Date(dateString);
     return date.toLocaleString('en-GB', {
@@ -681,89 +693,72 @@ const formatOrderDate = (dateString) => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
-  } catch (e) {
+  } catch {
     return dateString;
   }
 };
 
-const formatPrice = (price) => {
-  return Number(price || 0).toFixed(2);
-};
+const formatPrice = (price: number | string | null | undefined): string =>
+  Number(price ?? 0).toFixed(2);
 
-const capitalizeFirstLetter = (string) => {
+const capitalizeFirstLetter = (string: string | null | undefined): string => {
   if (!string) return '';
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-const getStatusClass = (status) => {
+const getStatusClass = (status: string | null | undefined): string => {
   switch (status) {
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'confirmed':
-      return 'bg-blue-100 text-blue-800';
-    case 'shipped':
-      return 'bg-purple-100 text-purple-800';
-    case 'delivered':
-      return 'bg-green-100 text-green-800';
-    case 'cancelled':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+    case 'pending': return 'bg-yellow-100 text-yellow-800';
+    case 'confirmed': return 'bg-blue-100 text-blue-800';
+    case 'shipped': return 'bg-purple-100 text-purple-800';
+    case 'delivered': return 'bg-green-100 text-green-800';
+    case 'cancelled': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
   }
 };
 
-const getStatusActionText = (status) => {
+const getStatusActionText = (status: string | null | undefined): string => {
   switch (status) {
-    case 'pending':
-      return 'Confirm';
-    case 'confirmed':
-      return 'Ship';
-    case 'shipped':
-      return 'Mark Delivered';
-    default:
-      return 'Update';
+    case 'pending': return 'Confirm';
+    case 'confirmed': return 'Ship';
+    case 'shipped': return 'Mark Delivered';
+    default: return 'Update';
   }
 };
 
-const getNextStatus = (status) => {
+const getNextStatus = (status: string | null | undefined): string => {
   switch (status) {
-    case 'pending':
-      return 'confirmed';
-    case 'confirmed':
-      return 'shipped';
-    case 'shipped':
-      return 'delivered';
-    default:
-      return status;
+    case 'pending': return 'confirmed';
+    case 'confirmed': return 'shipped';
+    case 'shipped': return 'delivered';
+    default: return status ?? '';
   }
 };
 
-const canChangeStatus = (status) => {
-  return status !== 'delivered' && status !== 'cancelled';
-};
+const canChangeStatus = (status: string | null | undefined): boolean =>
+  status !== 'delivered' && status !== 'cancelled';
 
-const viewOrderDetails = (order) => {
+const viewOrderDetails = (order: AdminOrder): void => {
   selectedOrder.value = order;
 };
 
-const refreshOrders = () => {
-  fetchOrders();
+const refreshOrders = (): void => {
+  void fetchOrders();
 };
 
-const goToPharmacyHome = () => {
+const goToPharmacyHome = (): void => {
   if (pharmacyStore.pharmacySlug) {
-    router.push(`/${pharmacyStore.pharmacySlug}`);
+    void router.push(`/${pharmacyStore.pharmacySlug}`);
   } else {
-    router.push('/');
+    void router.push('/');
   }
 };
 
-// Lifecycle hooks
 onMounted(async () => {
   await fetchOrders();
-  
+
   if (autoRefreshEnabled.value) {
     startAutoRefresh();
   }

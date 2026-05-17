@@ -179,54 +179,99 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
 import { useRoute } from 'vue-router';
 
-const emit = defineEmits(['itemAddedToCart', 'requestProduct']);
+interface PharmacyProduct {
+  id: number;
+  brandName: string;
+  sellingPrice: number;
+  stockQty: number;
+  unit?: string;
+  productImageUrl?: string;
+  isActive?: boolean | number | string;
+  dosage?: string;
+  strength?: string;
+  [key: string]: unknown;
+}
 
-const props = defineProps({
-  products: { type: Array, default: () => [] },
-  searchQuery: { type: String, default: '' },
-  hidePrices: { type: Boolean, default: false }
-});
+interface ProductItem extends PharmacyProduct {
+  quantity: number;
+  justAdded: boolean;
+}
+
+// TODO: remove once stores/ are .ts
+interface PharmacyStoreShape {
+  isLoading: boolean;
+  products: PharmacyProduct[];
+  currentPharmacy: unknown;
+  fetchProducts: () => Promise<void>;
+}
+
+// TODO: remove once stores/ are .ts
+interface CartStoreShape {
+  addToCart: (item: {
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+    image?: string;
+    pharmacyId: unknown;
+    unit: string;
+  }) => void;
+}
+
+const emit = defineEmits<{
+  itemAddedToCart: [product: ProductItem];
+  requestProduct: [query: string];
+}>();
+
+const props = defineProps<{
+  products?: PharmacyProduct[];
+  searchQuery?: string;
+  hidePrices?: boolean;
+}>();
 
 const route = useRoute();
-const pharmacyStore = usePharmacyStore();
-const cartStore = useCartStore();
-const productItems = ref([]);
-const loading = ref(true);
-const isFetching = ref(false);
-const lightboxProduct = ref(null);
+const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
+const cartStore = useCartStore() as unknown as CartStoreShape;
+const productItems = ref<ProductItem[]>([]);
+const loading = ref<boolean>(true);
+const isFetching = ref<boolean>(false);
+const lightboxProduct = ref<ProductItem | null>(null);
 
-const pharmacySlug = computed(() => route.params.pharmacy);
+const pharmacySlug = computed<string | string[]>(() => route.params['pharmacy'] ?? '');
 
-const isProductActive = (product) =>
-  !(product?.isActive === false || product?.isActive === 0 || product?.isActive === '0');
+const isProductActive = (product: PharmacyProduct): boolean =>
+  !(product.isActive === false || product.isActive === 0 || product.isActive === '0');
 
-const getImageURL = (product) => product?.productImageUrl || '/placeholder-med.svg';
+const getImageURL = (product: PharmacyProduct): string =>
+  product.productImageUrl ?? '/placeholder-med.svg';
 
-const handleImageError = (event) => {
-  event.target.src = '/placeholder-med.svg';
-  event.target.onerror = null;
+const handleImageError = (event: Event): void => {
+  const target = event.target as HTMLImageElement;
+  target.src = '/placeholder-med.svg';
+  target.onerror = null;
 };
 
-const openLightbox = (product) => { lightboxProduct.value = product; };
-const closeLightbox = () => { lightboxProduct.value = null; };
+const openLightbox = (product: ProductItem): void => { lightboxProduct.value = product; };
+const closeLightbox = (): void => { lightboxProduct.value = null; };
 
-const handleKeydown = (e) => { if (e.key === 'Escape') closeLightbox(); };
+const handleKeydown = (e: KeyboardEvent): void => { if (e.key === 'Escape') closeLightbox(); };
 
-const initializeProductItems = () => {
-  const sourceProducts = props.products && props.products.length > 0
-    ? props.products
-    : pharmacyStore.products;
+const initializeProductItems = (): void => {
+  const sourceProducts: PharmacyProduct[] =
+    props.products && props.products.length > 0
+      ? props.products
+      : pharmacyStore.products;
 
   if (Array.isArray(sourceProducts)) {
     productItems.value = sourceProducts
       .filter(isProductActive)
-      .map(product => ({ ...product, quantity: 1, justAdded: false }));
+      .map((product): ProductItem => ({ ...product, quantity: 1, justAdded: false }));
   }
 };
 
@@ -236,7 +281,7 @@ onMounted(async () => {
   if (isFetching.value) return;
 
   if (pharmacyStore.isLoading) {
-    watch(() => pharmacyStore.isLoading, (newVal) => {
+    watch(() => pharmacyStore.isLoading, (newVal: boolean) => {
       if (!newVal) {
         loading.value = false;
         initializeProductItems();
@@ -250,8 +295,8 @@ onMounted(async () => {
         await pharmacyStore.fetchProducts();
       }
       initializeProductItems();
-    } catch (error) {
-      console.error('Error fetching products:', error);
+    } catch (err) {
+      console.error('Error fetching products:', err);
     } finally {
       loading.value = false;
       isFetching.value = false;
@@ -270,8 +315,8 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
     try {
       await pharmacyStore.fetchProducts();
       initializeProductItems();
-    } catch (error) {
-      console.error('Error fetching products for pharmacy:', error);
+    } catch (err) {
+      console.error('Error fetching products for pharmacy:', err);
     } finally {
       loading.value = false;
       isFetching.value = false;
@@ -279,8 +324,8 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
   }
 });
 
-const sortedProducts = computed(() => {
-  const query = (props.searchQuery || '').trim().toLowerCase();
+const sortedProducts = computed<ProductItem[]>(() => {
+  const query = (props.searchQuery ?? '').trim().toLowerCase();
   let items = productItems.value;
 
   if (query) {
@@ -299,22 +344,27 @@ const sortedProducts = computed(() => {
 
 watch(() => props.products, () => { initializeProductItems(); }, { deep: true });
 
-const formatPrice = (price) => Number(price || 0).toFixed(2);
+const formatPrice = (price: number | null | undefined): string =>
+  Number(price ?? 0).toFixed(2);
 
-const increaseQuantity = (product) => { product.quantity = (product.quantity || 1) + 1; };
-const decreaseQuantity = (product) => { if (product.quantity > 1) product.quantity -= 1; };
+const increaseQuantity = (product: ProductItem): void => {
+  product.quantity = (product.quantity ?? 1) + 1;
+};
+const decreaseQuantity = (product: ProductItem): void => {
+  if (product.quantity > 1) product.quantity -= 1;
+};
 
-const handleAddToCart = (product) => {
+const handleAddToCart = (product: ProductItem): void => {
   if (!isProductActive(product) || product.stockQty <= 0) return;
 
   cartStore.addToCart({
     id: product.id,
     name: product.brandName,
     price: product.sellingPrice,
-    quantity: product.quantity || 1,
+    quantity: product.quantity ?? 1,
     image: product.productImageUrl,
     pharmacyId: pharmacyStore.currentPharmacy,
-    unit: product.unit || 'unit'
+    unit: product.unit ?? 'unit',
   });
 
   product.justAdded = true;

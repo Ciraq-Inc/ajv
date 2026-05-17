@@ -10,25 +10,19 @@
   </span>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { getStatusLabel, getStatusColorClass } from '~/utils/constants/sms'
 
-const props = defineProps({
-  status: {
-    type: String,
-    required: true
-  },
-  showDot: {
-    type: Boolean,
-    default: false
-  }
-})
+const props = defineProps<{
+  status: string
+  showDot?: boolean
+}>()
 
-const label = computed(() => getStatusLabel(props.status))
-const colorClass = computed(() => getStatusColorClass(props.status))
+const label = computed<string>(() => getStatusLabel(props.status))
+const colorClass = computed<string>(() => getStatusColorClass(props.status))
 
-const dotColorClass = computed(() => {
+const dotColorClass = computed<string>(() => {
   const baseClass = colorClass.value
   if (baseClass.includes('gray')) return 'bg-gray-600'
   if (baseClass.includes('blue')) return 'cs-btn'

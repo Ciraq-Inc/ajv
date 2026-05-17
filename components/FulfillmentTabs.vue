@@ -21,26 +21,31 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
   ClipboardDocumentListIcon,
   TruckIcon,
   BuildingOffice2Icon,
   BanknotesIcon,
 } from '@heroicons/vue/24/outline'
+import type { Component } from 'vue'
+
+interface Tab {
+  path: string
+  label: string
+  icon: Component
+}
 
 const route = useRoute()
 
-const tabs = [
+const tabs: Tab[] = [
   { path: '/admin/fulfillment/requests', label: 'Order Requests', icon: ClipboardDocumentListIcon },
   { path: '/admin/fulfillment/deliveries', label: 'Deliveries', icon: TruckIcon },
   { path: '/admin/fulfillment/dispatch-companies', label: 'Dispatch Companies', icon: BuildingOffice2Icon },
   { path: '/admin/fulfillment/pharmacy-ledger', label: 'Pharmacy Ledger', icon: BanknotesIcon },
 ]
 
-const isTabActive = (path) => {
-  return route.path === path
-}
+const isTabActive = (path: string): boolean => route.path === path
 </script>
 
 <style scoped>

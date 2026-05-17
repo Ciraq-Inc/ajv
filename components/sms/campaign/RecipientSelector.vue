@@ -286,7 +286,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import {
   UserGroupIcon,
@@ -295,97 +295,105 @@ import {
   InformationCircleIcon,
   MagnifyingGlassIcon,
   ArrowPathIcon,
-  UserIcon
+  UserIcon,
 } from '@heroicons/vue/24/outline'
 import { useApi } from '~/composables/useApi'
 import { useCompanyStore } from '~/stores/company'
 
-const props = defineProps({
-  selectedType: {
-    type: String,
-    default: 'all'
-  },
-  selectedCustomers: {
-    type: Array,
-    default: () => []
-  },
-  customIds: {
-    type: String,
-    default: ''
-  },
-  estimatedCount: {
-    type: Number,
-    default: 0
-  },
-  messageParts: {
-    type: Number,
-    default: 1
-  }
-})
+// TODO: remove once composables/ and stores/ are .ts
 
-const emit = defineEmits(['update:selectedType', 'update:selectedCustomers', 'update:customIds', 'update:estimatedCount', 'update'])
+interface Customer {
+  id: number | string
+  name?: string
+  fname?: string
+  lname?: string
+  phone?: string
+  mobile?: string
+  [key: string]: unknown
+}
+
+interface Recipient {
+  name: string
+  phone: string
+  firstname?: string
+  lastname?: string
+  contact?: string
+}
+
+const props = defineProps<{
+  selectedType?: string
+  selectedCustomers?: Customer[]
+  customIds?: string
+  estimatedCount?: number
+  messageParts?: number
+}>()
+
+const emit = defineEmits<{
+  'update:selectedType': [value: string]
+  'update:selectedCustomers': [value: Customer[]]
+  'update:customIds': [value: string]
+  'update:estimatedCount': [value: number]
+  update: []
+}>()
 
 const api = useApi()
 const companyStore = useCompanyStore()
 
-const localSelectedCustomers = ref([...props.selectedCustomers])
-const localCustomIds = ref(props.customIds)
+const localSelectedCustomers = ref<Customer[]>([...(props.selectedCustomers ?? [])])
+const localCustomIds = ref(props.customIds ?? '')
 const customerSearchQuery = ref('')
-const allCustomers = ref([])
+const allCustomers = ref<Customer[]>([])
 const isLoadingCustomers = ref(false)
-const customersError = ref(null)
-const fileInput = ref(null)
-const uploadedRecipients = ref([])
+const customersError = ref<string | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const uploadedRecipients = ref<Recipient[]>([])
 
-const customCount = computed(() => {
-  if (uploadedRecipients.value.length > 0) {
-    return uploadedRecipients.value.length
-  }
+const customCount = computed<number>(() => {
+  if (uploadedRecipients.value.length > 0) return uploadedRecipients.value.length
   if (!localCustomIds.value) return 0
-  const lines = localCustomIds.value.split('\n').filter(line => line.trim().length > 0)
-  return lines.length
+  return localCustomIds.value.split('\n').filter((line) => line.trim().length > 0).length
 })
 
-const filteredCustomers = computed(() => {
+const filteredCustomers = computed<Customer[]>(() => {
   if (!customerSearchQuery.value) return allCustomers.value
   const query = customerSearchQuery.value.toLowerCase()
-  return allCustomers.value.filter(customer => {
-    const name = (customer.name || customer.fname + ' ' + customer.lname || '').toLowerCase()
-    const phone = (customer.phone || customer.mobile || '').toLowerCase()
+  return allCustomers.value.filter((customer) => {
+    const name = (customer.name ?? `${customer.fname ?? ''} ${customer.lname ?? ''}`).toLowerCase()
+    const phone = (customer.phone ?? customer.mobile ?? '').toLowerCase()
     return name.includes(query) || phone.includes(query)
   })
 })
 
-const totalRecipients = computed(() => {
-  if (props.selectedType === 'all') return props.estimatedCount
+const totalRecipients = computed<number>(() => {
+  if (props.selectedType === 'all') return props.estimatedCount ?? 0
   if (props.selectedType === 'filtered') return localSelectedCustomers.value.length
   if (props.selectedType === 'custom') return customCount.value
   return 0
 })
 
-const totalCost = computed(() => totalRecipients.value * props.messageParts)
+const totalCost = computed<number>(() => totalRecipients.value * (props.messageParts ?? 1))
 
-// Watch for external changes
-watch(() => props.selectedCustomers, (newVal) => {
-  localSelectedCustomers.value = [...newVal]
-})
+watch(
+  () => props.selectedCustomers,
+  (newVal) => { localSelectedCustomers.value = [...(newVal ?? [])] },
+)
 
-watch(() => props.customIds, (newVal) => {
-  localCustomIds.value = newVal
-})
+watch(
+  () => props.customIds,
+  (newVal) => { localCustomIds.value = newVal ?? '' },
+)
 
-// Fetch customers on mount
-onMounted(() => {
-  fetchCustomers()
-})
+onMounted(() => { fetchCustomers() })
 
-const fetchCustomers = async () => {
+const fetchCustomers = async (): Promise<void> => {
   try {
     isLoadingCustomers.value = true
     customersError.value = null
-    
-    const companyId = companyStore.currentCompany?.id || companyStore.selectedCompany?.id
-    
+
+    // companyStore is untyped (store not yet .ts)
+    const store = companyStore as { currentCompany?: { id?: number }; selectedCompany?: { id?: number } }
+    const companyId = store.currentCompany?.id ?? store.selectedCompany?.id
+
     if (!companyId) {
       console.warn('No company ID available')
       allCustomers.value = []
@@ -393,18 +401,23 @@ const fetchCustomers = async () => {
       return
     }
 
-    const response = await api.get(`/api/companies/${companyId}/customers`)
-    
+    // api.get is untyped (composable not yet .ts)
+    const response = await api.get(`/api/companies/${companyId}/customers`) as {
+      success: boolean
+      data?: Customer[]
+      count?: number
+    }
+
     if (response.success && response.data) {
       allCustomers.value = response.data
-      emit('update:estimatedCount', response.data.length || response.count || 0)
+      emit('update:estimatedCount', response.data.length ?? response.count ?? 0)
     } else {
       allCustomers.value = []
       emit('update:estimatedCount', 0)
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching customers:', error)
-    customersError.value = error.message || 'Failed to load customers'
+    customersError.value = error instanceof Error ? error.message : 'Failed to load customers'
     allCustomers.value = []
     emit('update:estimatedCount', 0)
   } finally {
@@ -412,7 +425,7 @@ const fetchCustomers = async () => {
   }
 }
 
-const selectType = (type) => {
+const selectType = (type: string): void => {
   emit('update:selectedType', type)
   if (type === 'filtered') {
     localSelectedCustomers.value = []
@@ -421,8 +434,8 @@ const selectType = (type) => {
   emit('update')
 }
 
-const toggleCustomer = (customer) => {
-  const index = localSelectedCustomers.value.findIndex(c => c.id === customer.id)
+const toggleCustomer = (customer: Customer): void => {
+  const index = localSelectedCustomers.value.findIndex((c) => c.id === customer.id)
   if (index > -1) {
     localSelectedCustomers.value.splice(index, 1)
   } else {
@@ -432,11 +445,10 @@ const toggleCustomer = (customer) => {
   emit('update')
 }
 
-const isCustomerSelected = (customer) => {
-  return localSelectedCustomers.value.some(c => c.id === customer.id)
-}
+const isCustomerSelected = (customer: Customer): boolean =>
+  localSelectedCustomers.value.some((c) => c.id === customer.id)
 
-const toggleSelectAll = () => {
+const toggleSelectAll = (): void => {
   if (localSelectedCustomers.value.length === filteredCustomers.value.length) {
     localSelectedCustomers.value = []
   } else {
@@ -446,35 +458,26 @@ const toggleSelectAll = () => {
   emit('update')
 }
 
-const updateCustomIds = () => {
-  // Parse manual entry to populate uploadedRecipients
+const parseLine = (line: string): Recipient | null => {
+  let parts = line.includes('\t') ? line.split('\t') : line.split(',')
+  parts = parts.map((p) => p.trim()).filter((p) => p.length > 0)
+
+  if (parts.length >= 3) {
+    return { name: `${parts[0]} ${parts[1]}`.trim(), firstname: parts[0], lastname: parts[1], phone: parts[2] ?? '', contact: parts[2] }
+  } else if (parts.length === 2) {
+    return { name: parts[0] ?? '', firstname: parts[0], lastname: '', phone: parts[1] ?? '', contact: parts[1] }
+  } else if (parts.length === 1 && parts[0]) {
+    return { name: parts[0], firstname: '', lastname: '', phone: parts[0], contact: parts[0] }
+  }
+  return null
+}
+
+const updateCustomIds = (): void => {
   if (localCustomIds.value) {
-    const lines = localCustomIds.value.split('\n').filter(line => line.trim().length > 0)
-    uploadedRecipients.value = lines.map(line => {
-      // Handle both comma and tab separated values
-      let parts = line.includes('\t') ? line.split('\t') : line.split(',')
-      parts = parts.map(p => p.trim()).filter(p => p.length > 0)
-      
-      if (parts.length >= 3) {
-        // firstname, lastname, phone format
-        return {
-          name: `${parts[0]} ${parts[1]}`.trim(),
-          phone: parts[2]
-        }
-      } else if (parts.length >= 2) {
-        // name, phone format
-        return {
-          name: parts[0],
-          phone: parts[1]
-        }
-      } else {
-        // phone only format
-        return {
-          name: parts[0] || 'Unknown',
-          phone: parts[0] || ''
-        }
-      }
-    }).filter(r => r.phone && r.phone.length > 0)
+    const lines = localCustomIds.value.split('\n').filter((line) => line.trim().length > 0)
+    uploadedRecipients.value = lines
+      .map((line) => parseLine(line))
+      .filter((r): r is Recipient => r !== null && r.phone.length > 0)
   } else {
     uploadedRecipients.value = []
   }
@@ -482,146 +485,67 @@ const updateCustomIds = () => {
   emit('update')
 }
 
-const clearUploadedRecipients = () => {
+const clearUploadedRecipients = (): void => {
   uploadedRecipients.value = []
   localCustomIds.value = ''
   emit('update:customIds', '')
   emit('update')
 }
 
-const handleFileUpload = (event) => {
-  const file = event.target.files[0]
+const handleFileUpload = (event: Event): void => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
   if (!file) return
 
   const reader = new FileReader()
   reader.onload = (e) => {
     try {
-      const content = e.target.result
+      const content = e.target?.result as string
       const lines = content.trim().split('\n')
-      
-      let extractedRecipients = []
-      
+
+      let dataLines = lines
       if (file.name.endsWith('.csv')) {
-        // Check if first line is header (contains common header keywords)
-        const firstLine = lines[0].toLowerCase()
-        const hasHeader = firstLine.includes('name') || firstLine.includes('phone') || 
-                         firstLine.includes('contact') || firstLine.includes('firstname') || 
-                         firstLine.includes('lastname')
-        const dataLines = hasHeader ? lines.slice(1) : lines
-        
-        extractedRecipients = dataLines
-          .filter(line => line.trim().length > 0)
-          .map(line => {
-            // Handle both comma and tab separated values (for Excel CSV exports)
-            let parts = line.includes('\t') ? line.split('\t') : line.split(',')
-            parts = parts.map(p => p.trim()).filter(p => p.length > 0)
-            
-            // Handle different CSV formats:
-            // Format 1: firstname, lastname, contact (3 columns)
-            // Format 2: name, phone (2 columns)
-            // Format 3: phone only (1 column)
-            if (parts.length >= 3) {
-              // firstname, lastname, contact format
-              return {
-                name: `${parts[0]} ${parts[1]}`.trim(),
-                firstname: parts[0],
-                lastname: parts[1],
-                phone: parts[2],
-                contact: parts[2]
-              }
-            } else if (parts.length === 2) {
-              // name, phone format
-              return {
-                name: parts[0],
-                firstname: parts[0],
-                lastname: '',
-                phone: parts[1],
-                contact: parts[1]
-              }
-            } else if (parts.length === 1 && parts[0]) {
-              // phone only format
-              return {
-                name: parts[0],
-                firstname: '',
-                lastname: '',
-                phone: parts[0],
-                contact: parts[0]
-              }
-            }
-            return null
-          })
-          .filter(r => r !== null)
-      } else {
-        // TXT file: each line can be "firstname lastname phone", "name, phone" or just "phone"
-        extractedRecipients = lines
-          .filter(line => line.trim().length > 0)
-          .map(line => {
-            // Handle both comma and tab separated values
-            let parts = line.includes('\t') ? line.split('\t') : line.split(',')
-            parts = parts.map(p => p.trim()).filter(p => p.length > 0)
-            
-            if (parts.length >= 3) {
-              // firstname, lastname, contact format
-              return {
-                name: `${parts[0]} ${parts[1]}`.trim(),
-                firstname: parts[0],
-                lastname: parts[1],
-                phone: parts[2],
-                contact: parts[2]
-              }
-            } else if (parts.length === 2) {
-              // name, phone format
-              return {
-                name: parts[0],
-                firstname: parts[0],
-                lastname: '',
-                phone: parts[1],
-                contact: parts[1]
-              }
-            } else if (parts.length === 1 && parts[0]) {
-              // phone only format
-              return {
-                name: parts[0],
-                firstname: '',
-                lastname: '',
-                phone: parts[0],
-                contact: parts[0]
-              }
-            }
-            return null
-          })
-          .filter(r => r !== null)
+        const firstLine = lines[0]?.toLowerCase() ?? ''
+        const hasHeader =
+          firstLine.includes('name') ||
+          firstLine.includes('phone') ||
+          firstLine.includes('contact') ||
+          firstLine.includes('firstname') ||
+          firstLine.includes('lastname')
+        dataLines = hasHeader ? lines.slice(1) : lines
       }
-      
-      if (extractedRecipients.length === 0) {
+
+      const extracted: Recipient[] = dataLines
+        .filter((line) => line.trim().length > 0)
+        .map((line) => parseLine(line))
+        .filter((r): r is Recipient => r !== null)
+
+      if (extracted.length === 0) {
         alert(`No valid recipients found in ${file.name}`)
         return
       }
-      
-      // Remove duplicates based on phone number
-      const uniqueRecipients = extractedRecipients.reduce((acc, curr) => {
-        if (!acc.find(r => r.phone === curr.phone)) {
-          acc.push(curr)
-        }
+
+      const uniqueRecipients = extracted.reduce<Recipient[]>((acc, curr) => {
+        if (!acc.find((r) => r.phone === curr.phone)) acc.push(curr)
         return acc
       }, [])
-      
+
       uploadedRecipients.value = uniqueRecipients
-      localCustomIds.value = uniqueRecipients.map(r => `${r.name}, ${r.phone}`).join('\n')
+      localCustomIds.value = uniqueRecipients.map((r) => `${r.name}, ${r.phone}`).join('\n')
       emit('update:customIds', localCustomIds.value)
       emit('update')
-      
+
       alert(`Successfully imported ${uniqueRecipients.length} recipient${uniqueRecipients.length !== 1 ? 's' : ''} from ${file.name}`)
-    } catch (error) {
-      alert(`Error parsing file: ${error.message}`)
+    } catch (error: unknown) {
+      alert(`Error parsing file: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
-      event.target.value = ''
+      target.value = ''
     }
   }
-  
+
   reader.onerror = () => {
     alert('Error reading file')
-    event.target.value = ''
+    target.value = ''
   }
   reader.readAsText(file)
 }

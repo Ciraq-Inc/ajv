@@ -137,23 +137,34 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useApi } from '~/composables/useApi';
 
 definePageMeta({
     layout: 'admin-layout',
     middleware: ['admin-auth']
 });
 
+interface CompanyRow {
+  id: number | string;
+  name?: string;
+  domain_name?: string;
+  address1?: string;
+  location?: string;
+  hide_prices: boolean;
+  _saving: boolean;
+  _saved: boolean;
+  [key: string]: unknown;
+}
+
 const api = useApi();
 
-const companies = ref([]);
-const loading = ref(false);
-const error = ref('');
-const searchQuery = ref('');
+const companies = ref<CompanyRow[]>([]);
+const loading = ref<boolean>(false);
+const error = ref<string>('');
+const searchQuery = ref<string>('');
 
-const filteredCompanies = computed(() => {
+const filteredCompanies = computed<CompanyRow[]>(() => {
     const q = searchQuery.value.toLowerCase().trim();
     if (!q) return companies.value;
     return companies.value.filter(c =>
@@ -162,27 +173,30 @@ const filteredCompanies = computed(() => {
     );
 });
 
-const fetchCompanies = async () => {
+const fetchCompanies = async (): Promise<void> => {
     loading.value = true;
     error.value = '';
     try {
-        const response = await api.get('/api/admin/companies');
+        const response = await api.get('/api/admin/companies') as { data?: unknown[] };
         // Normalise hide_prices to boolean
-        companies.value = (response.data || []).map(c => ({
-            ...c,
-            hide_prices: c.hide_prices === 1 || c.hide_prices === true,
+        companies.value = (response.data ?? []).map(c => {
+          const row = c as Record<string, unknown>;
+          return {
+            ...row,
+            hide_prices: row['hide_prices'] === 1 || row['hide_prices'] === true,
             _saving: false,
-            _saved: false
-        }));
+            _saved: false,
+          } as CompanyRow;
+        });
     } catch (err) {
         console.error('Error fetching companies:', err);
-        error.value = err.message || 'Failed to load companies';
+        error.value = err instanceof Error ? err.message : 'Failed to load companies';
     } finally {
         loading.value = false;
     }
 };
 
-const toggleHidePrices = async (company) => {
+const toggleHidePrices = async (company: CompanyRow): Promise<void> => {
     if (company._saving) return;
 
     const newValue = !company.hide_prices;
@@ -199,11 +213,11 @@ const toggleHidePrices = async (company) => {
     } catch (err) {
         console.error('Error saving store settings:', err);
         company.hide_prices = !newValue; // revert on error
-        alert(`Failed to save: ${err.message}`);
+        alert(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
         company._saving = false;
     }
 };
 
-onMounted(fetchCompanies);
+onMounted(() => { void fetchCompanies(); });
 </script>

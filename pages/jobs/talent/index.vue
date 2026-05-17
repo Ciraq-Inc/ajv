@@ -95,7 +95,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { createJobsService } from '~/services/jobs/jobsService'
 import { useApi } from '~/composables/useApi'
@@ -103,41 +103,52 @@ import phoneUtils from '~/utils/phone'
 
 definePageMeta({ layout: false })
 
+interface Seeker {
+  id: number | string
+  profession?: string | null
+  fullName?: string | null
+  bio?: string | null
+  location?: string | null
+  yearsOfExperience?: number | string | null
+  phone?: string | null
+  [key: string]: unknown
+}
+
 const api = useApi()
 const jobsService = createJobsService(api)
 
-const seekers = ref([])
-const loading = ref(false)
-const error = ref('')
-const search = ref('')
-const locationFilter = ref('')
+const seekers = ref<Seeker[]>([])
+const loading = ref<boolean>(false)
+const error = ref<string>('')
+const search = ref<string>('')
+const locationFilter = ref<string>('')
 
-const filtered = computed(() => {
+const filtered = computed<Seeker[]>(() => {
   const loc = locationFilter.value.trim().toLowerCase()
   if (!loc) return seekers.value
-  return seekers.value.filter((s) => String(s.location || '').toLowerCase().includes(loc))
+  return seekers.value.filter((s) => String(s.location ?? '').toLowerCase().includes(loc))
 })
 
-const loadSeekers = async () => {
+const loadSeekers = async (): Promise<void> => {
   loading.value = true
   error.value = ''
   try {
     const response = await jobsService.listSeekers({ search: search.value })
-    seekers.value = response.data || []
-  } catch (err) {
+    seekers.value = (response.data ?? []) as Seeker[]
+  } catch {
     error.value = 'Failed to load talent profiles.'
   } finally {
     loading.value = false
   }
 }
 
-const whatsappSeekerUrl = (seeker) => {
-  const num = phoneUtils.formatWhatsApp(seeker.phone)
-  const text = encodeURIComponent(`Hi ${seeker.fullName}, I saw your profile on Rigel Jobs and I'm interested in connecting.`)
+const whatsappSeekerUrl = (seeker: Seeker): string => {
+  const num = phoneUtils.formatWhatsApp(seeker.phone ?? '')
+  const text = encodeURIComponent(`Hi ${seeker.fullName ?? ''}, I saw your profile on Rigel Jobs and I'm interested in connecting.`)
   return `https://wa.me/${num}?text=${text}`
 }
 
-onMounted(loadSeekers)
+onMounted(() => { void loadSeekers() })
 </script>
 
 <style scoped>

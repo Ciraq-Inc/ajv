@@ -113,71 +113,68 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useUserStore } from '~/stores/user';
 import { useModalA11y } from '~/composables/useModalA11y';
 
-const props = defineProps({
-  isOpen: Boolean,
-  orderId: String
-});
+// TODO: remove once stores/ are .ts
 
-const emit = defineEmits(['close', 'cancellation-success']);
+const props = defineProps<{
+  isOpen?: boolean
+  orderId?: string
+}>();
+
+const emit = defineEmits<{
+  close: []
+  'cancellation-success': [orderId: string | undefined]
+}>();
+
 const userStore = useUserStore();
 
-// Focus trap, ESC-to-close, restore-focus-on-close (WAI-ARIA dialog pattern).
-const dialogRef = ref(null);
-useModalA11y(dialogRef, () => props.isOpen, () => emit('close'));
+const dialogRef = ref<HTMLElement | null>(null);
+useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'));
 
-// State management
 const isLoading = ref(false);
 const errorMessage = ref('');
 const cancellationReason = ref('');
 const otherReasonText = ref('');
 const isSuccess = ref(false);
 
-// Format order ID to be more readable
-const formatOrderId = computed(() => {
+const formatOrderId = computed<string>(() => {
   if (!props.orderId) return 'N/A';
-  
-  // Return the last 8 characters if it's too long
   return props.orderId.length > 8 ? `...${props.orderId.slice(-8)}` : props.orderId;
 });
 
-// Get final reason text (either selected reason or other reason text)
-const finalReason = computed(() => {
+const finalReason = computed<string>(() => {
   if (cancellationReason.value === 'Other' && otherReasonText.value) {
     return otherReasonText.value;
   }
   return cancellationReason.value;
 });
 
-// Confirm cancellation
-const confirmCancellation = async () => {
+const confirmCancellation = async (): Promise<void> => {
   if (isLoading.value) return;
-  
   isLoading.value = true;
   errorMessage.value = '';
-  
+
   try {
-    await userStore.cancelOrder(props.orderId, finalReason.value);
+    // userStore.cancelOrder is untyped (store not yet .ts)
+    await (userStore as { cancelOrder: (id: string | undefined, reason: string) => Promise<void> })
+      .cancelOrder(props.orderId, finalReason.value);
     isSuccess.value = true;
     emit('cancellation-success', props.orderId);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error cancelling order:', error);
-    errorMessage.value = error.message || 'Failed to cancel order. Please try again.';
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to cancel order. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-// Close the modal and reset state
-const closeModal = () => {
+const closeModal = (): void => {
   if (isSuccess.value) {
-    // If cancellation was successful, delay closing to show success message
     setTimeout(() => {
       emit('close');
-      // Reset the state after closing animation
       setTimeout(() => {
         isSuccess.value = false;
         errorMessage.value = '';
@@ -187,7 +184,6 @@ const closeModal = () => {
     }, 1000);
   } else {
     emit('close');
-    // Reset state after closing animation
     setTimeout(() => {
       errorMessage.value = '';
       cancellationReason.value = '';

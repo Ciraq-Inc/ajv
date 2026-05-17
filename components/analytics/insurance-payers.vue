@@ -256,41 +256,68 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, UserGroupIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
-const adminStore = useAdminStore()
-const reportsService = createReportsExportService(useApi())
+interface CompanySummary {
+  company_id?: number | string;
+  company_name?: string;
+  total_payers?: number;
+  total_clients?: number;
+  [key: string]: unknown;
+}
+
+interface Payer {
+  id?: number | string;
+  name?: string;
+  company_id?: number | string;
+  company_name?: string;
+  client_count?: number;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
+}
+
+interface ReportsServiceShape {
+  exportInsurancePayersCsv: () => Promise<Blob>;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reportsService = createReportsExportService(useApi()) as unknown as ReportsServiceShape
 
 // Reactive data
-const loading = ref(false)
-const error = ref(null)
-const showPayersModal = ref(false)
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
+const showPayersModal = ref<boolean>(false)
 
 // Analytics data
-const summaryData = ref([])
-const payers = ref([])
+const summaryData = ref<CompanySummary[]>([])
+const payers = ref<Payer[]>([])
 
 // Computed properties for summary totals
-const totalPayers = computed(() => {
+const totalPayers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.total_payers || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.total_payers ?? 0), 0)
 })
 
-const totalClients = computed(() => {
+const totalClients = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.total_clients || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.total_clients ?? 0), 0)
 })
 
 // Fetch summary data from the cross-tenant summary API
-const fetchSummary = async () => {
+const fetchSummary = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/insurance-payers/cross-tenant/summary')
     if (response.success) {
-      summaryData.value = response.data || []
+      summaryData.value = (response.data ?? []) as CompanySummary[]
     } else {
       summaryData.value = []
     }
@@ -301,11 +328,11 @@ const fetchSummary = async () => {
 }
 
 // Fetch payers list
-const fetchPayers = async () => {
+const fetchPayers = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/insurance-payers/cross-tenant/dataview')
     if (response.success) {
-      payers.value = response.data || []
+      payers.value = (response.data ?? []) as Payer[]
     } else {
       payers.value = []
     }
@@ -316,7 +343,7 @@ const fetchPayers = async () => {
 }
 
 // Fetch all data
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   loading.value = true
   error.value = null
 
@@ -326,7 +353,7 @@ const fetchData = async () => {
       fetchPayers()
     ])
   } catch (err) {
-    error.value = err.message || 'Failed to fetch insurance payer data'
+    error.value = err instanceof Error ? err.message : 'Failed to fetch insurance payer data'
     console.error('Error fetching insurance payer data:', err)
   } finally {
     loading.value = false
@@ -334,12 +361,12 @@ const fetchData = async () => {
 }
 
 // Refresh data
-const refreshData = () => {
-  fetchData()
+const refreshData = (): void => {
+  void fetchData()
 }
 
 // Helper functions
-const getCompanyInitials = (name) => {
+const getCompanyInitials = (name: string | undefined): string => {
   if (!name) return '?'
   return name
     .split(' ')
@@ -349,7 +376,7 @@ const getCompanyInitials = (name) => {
     .slice(0, 2)
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
@@ -360,7 +387,7 @@ const formatDate = (dateString) => {
 }
 
 // Export functions
-const exportToJSON = async () => {
+const exportToJSON = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/insurance-payers/cross-tenant/export?format=json')
     if (response.success && response.data) {
@@ -369,7 +396,7 @@ const exportToJSON = async () => {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `cross-tenant-insurance-payers_${new Date().toISOString().split('T')[0]}.json`
+      link.download = `cross-tenant-insurance-payers_${new Date().toISOString().split('T')[0] ?? ''}.json`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -377,32 +404,32 @@ const exportToJSON = async () => {
     } else {
       alert('No data available for export')
     }
-  } catch (error) {
-    console.error('Export error:', error)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
-const exportToCSV = async () => {
+const exportToCSV = async (): Promise<void> => {
   try {
     const blob = await reportsService.exportInsurancePayersCsv()
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `cross-tenant-insurance-payers_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `cross-tenant-insurance-payers_${new Date().toISOString().split('T')[0] ?? ''}.csv`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Export error:', error)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
 // Initialize
 onMounted(() => {
-  fetchData()
+  void fetchData()
 })
 </script>
 

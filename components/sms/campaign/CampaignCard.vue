@@ -205,94 +205,101 @@
   </div>
 </template>
 
-<script setup>
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { CalendarIcon, PlayIcon, PauseIcon, PencilIcon, DocumentDuplicateIcon, PaperAirplaneIcon, TrashIcon, XCircleIcon, ArchiveBoxIcon, ArrowUturnLeftIcon, EllipsisVerticalIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
 
-const props = defineProps({
-  campaign: {
-    type: Object,
-    required: true
-  }
-})
+interface Campaign {
+  id: number
+  name?: string
+  status: string
+  message?: string
+  created_at: string
+  total_recipients?: number
+  messages_sent?: number
+  messages_failed?: number
+  actual_cost?: number
+  sms_cost?: number
+  [key: string]: unknown
+}
 
-const emit = defineEmits(['view', 'start', 'pause', 'resume', 'cancel', 'archive', 'restore', 'delete', 'reuse', 'resend', 'update', 'completed', 'status-changed'])
+const props = defineProps<{ campaign: Campaign }>()
+
+const emit = defineEmits<{
+  view: [id: number]
+  start: [id: number]
+  pause: [id: number]
+  resume: [id: number]
+  cancel: [id: number]
+  archive: [id: number]
+  restore: [id: number]
+  delete: [id: number]
+  reuse: [id: number]
+  resend: [id: number]
+  update: [id: number]
+  completed: [campaign: Campaign]
+  'status-changed': [payload: { campaignId: number; oldStatus: string; newStatus: string }]
+}>()
 
 const showMenu = ref(false)
 const previousStatus = ref(props.campaign.status)
 const showCompletionNotification = ref(false)
 
-// Watch for status changes
-watch(() => props.campaign.status, (newStatus, oldStatus) => {
-  if (oldStatus && newStatus !== oldStatus) {
-    previousStatus.value = oldStatus
-    
-    // Emit status change event
-    emit('status-changed', {
-      campaignId: props.campaign.id,
-      oldStatus,
-      newStatus
-    })
-    
-    // Show completion notification
-    if (newStatus === 'completed' && oldStatus === 'sending') {
-      showCompletionNotification.value = true
-      emit('completed', props.campaign)
-      
-      // Auto-hide notification after 5 seconds
-      setTimeout(() => {
-        showCompletionNotification.value = false
-      }, 5000)
-    }
-  }
-})
+watch(
+  () => props.campaign.status,
+  (newStatus, oldStatus) => {
+    if (oldStatus && newStatus !== oldStatus) {
+      previousStatus.value = oldStatus
+      emit('status-changed', { campaignId: props.campaign.id, oldStatus, newStatus })
 
-const progressPercentage = computed(() => {
-  const total = props.campaign.total_recipients || 0
-  const sent = props.campaign.messages_sent || 0
-  
+      if (newStatus === 'completed' && oldStatus === 'sending') {
+        showCompletionNotification.value = true
+        emit('completed', props.campaign)
+        setTimeout(() => { showCompletionNotification.value = false }, 5000)
+      }
+    }
+  },
+)
+
+const progressPercentage = computed<number>(() => {
+  const total = props.campaign.total_recipients ?? 0
+  const sent = props.campaign.messages_sent ?? 0
   if (total === 0) return 0
   return Math.round((sent / total) * 100)
 })
 
-const formatCurrency = (value) => {
-  const num = parseFloat(value) || 0
+const formatCurrency = (value: number | null | undefined): string => {
+  const num = parseFloat(String(value ?? 0)) || 0
   return num.toFixed(2)
 }
 
-const canReuse = computed(() => {
-  return ['draft', 'completed', 'cancelled', 'paused'].includes(props.campaign.status)
-})
+const canReuse = computed<boolean>(() =>
+  ['draft', 'completed', 'cancelled', 'paused'].includes(props.campaign.status),
+)
 
-const canResend = computed(() => {
-  // Allow resend for completed/paused campaigns, or any campaign with failed messages
-  return ['completed', 'paused', 'failed'].includes(props.campaign.status) || 
-         (props.campaign.messages_failed > 0)
-})
+const canResend = computed<boolean>(
+  () =>
+    ['completed', 'paused', 'failed'].includes(props.campaign.status) ||
+    (props.campaign.messages_failed ?? 0) > 0,
+)
 
-const canEdit = computed(() => {
-  return ['draft', 'paused'].includes(props.campaign.status)
-})
+const canEdit = computed<boolean>(() =>
+  ['draft', 'paused'].includes(props.campaign.status),
+)
 
-const canCancel = computed(() => {
-  return ['draft', 'sending', 'paused'].includes(props.campaign.status)
-})
+const canCancel = computed<boolean>(() =>
+  ['draft', 'sending', 'paused'].includes(props.campaign.status),
+)
 
-const canArchive = computed(() => {
-  // Can archive completed or cancelled campaigns (preserves data)
-  return ['completed', 'cancelled'].includes(props.campaign.status)
-})
+const canArchive = computed<boolean>(() =>
+  ['completed', 'cancelled'].includes(props.campaign.status),
+)
 
-const canRestore = computed(() => {
-  // Can restore archived campaigns
-  return props.campaign.status === 'archived'
-})
+const canRestore = computed<boolean>(() => props.campaign.status === 'archived')
 
-const canDelete = computed(() => {
-  // Can only delete draft campaigns (never sent, safe to remove)
-  // Archived campaigns can also be permanently deleted if needed
-  return ['draft', 'archived'].includes(props.campaign.status)
-})
+const canDelete = computed<boolean>(() =>
+  ['draft', 'archived'].includes(props.campaign.status),
+)
 </script>

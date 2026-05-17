@@ -21,7 +21,7 @@
   </Transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import {
   ExclamationTriangleIcon,
@@ -31,34 +31,40 @@ import {
   ArrowRightIcon,
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
+import type { Component } from 'vue'
 
-const props = defineProps({
-  event: {
-    type: Object,
-    default: null
-  }
-})
+type AlertType = 'warning' | 'error' | 'success' | 'info'
 
-const emit = defineEmits(['dismiss', 'action'])
+interface AlertEvent {
+  id?: number | string
+  type: AlertType
+  title: string
+  description?: string
+  actionLabel?: string
+}
 
-const alertIcon = computed(() => {
+const props = defineProps<{
+  event?: AlertEvent | null
+}>()
+
+const emit = defineEmits<{
+  dismiss: [id: number | string | undefined]
+  action: [event: AlertEvent | null | undefined]
+}>()
+
+const alertIcon = computed<Component>(() => {
   if (!props.event) return InformationCircleIcon
-  const iconMap = {
+  const iconMap: Record<AlertType, Component> = {
     warning: ExclamationTriangleIcon,
     error: ExclamationCircleIcon,
     success: CheckCircleIcon,
     info: InformationCircleIcon,
   }
-  return iconMap[props.event.type] || InformationCircleIcon
+  return iconMap[props.event.type] ?? InformationCircleIcon
 })
 
-const dismiss = () => {
-  emit('dismiss', props.event?.id)
-}
-
-const handleAction = () => {
-  emit('action', props.event)
-}
+const dismiss = (): void => emit('dismiss', props.event?.id)
+const handleAction = (): void => emit('action', props.event)
 </script>
 
 <style scoped>
