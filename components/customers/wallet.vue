@@ -94,7 +94,7 @@
 
             <!-- Transaction list -->
             <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
-                <article v-for="tx in transactions" :key="tx.id"
+                <article v-for="tx in transactions" :key="tx.id ?? ''"
                     class="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group gap-3 sm:gap-4"
                 >
                     <div class="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
@@ -116,7 +116,7 @@
                             class="text-[15px] font-black tabular-nums tracking-tight"
                             :class="getTransactionDirection(tx) === 'credit' ? 'text-[#1d9154]' : 'text-red-600'"
                         >
-                            {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(tx.amount).toFixed(2) }}
+                            {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(String(tx.amount ?? 0)).toFixed(2) }}
                         </strong>
                         <span v-if="getTransactionNote(tx)" class="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-zinc-50 text-zinc-500 border-zinc-200 shadow-sm max-w-[150px] sm:max-w-xs truncate" :title="getTransactionNote(tx)">
                             {{ getTransactionNote(tx) }}
@@ -173,7 +173,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute, useRouter } from 'vue-router'
@@ -192,39 +192,60 @@ import {
 
 import { createCustomerWalletService } from '~/services/customerWallet/customerWalletService'
 
+interface WalletTransaction {
+  id?: number;
+  transaction_type?: string;
+  description?: string;
+  amount?: number | string;
+  paystack_reference?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+interface WalletEnvelope {
+  success: boolean;
+  message?: string;
+  data?: {
+    balance?: number;
+    balance_after?: number;
+    authorization_url?: string;
+    [key: string]: unknown;
+  } | WalletTransaction[];
+}
+
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
 const walletService = createCustomerWalletService(useApi())
 
-const balance = ref(0)
-const transactions = ref([])
-const loading = ref(false)
-const showTopUp = ref(false)
-const topUpAmount = ref(50)
-const isPaying = ref(false)
-const toast = ref(null)
-let topUpRefreshTimer = null
+const balance = ref<number>(0)
+const transactions = ref<WalletTransaction[]>([])
+const loading = ref<boolean>(false)
+const showTopUp = ref<boolean>(false)
+const topUpAmount = ref<number>(50)
+const isPaying = ref<boolean>(false)
+const toast = ref<{ text: string; type: string } | null>(null)
+let topUpRefreshTimer: ReturnType<typeof setInterval> | null = null
 let topUpRefreshTicks = 0
 
 const CREDIT_TYPES = new Set(['topup', 'refund', 'fee_credit', 'payment_credit'])
 const DEBIT_TYPES = new Set(['request_fee', 'order_payment'])
 
-const getTransactionDirection = (tx) => {
-    const type = String(tx?.transaction_type || '').toLowerCase()
+const getTransactionDirection = (tx: WalletTransaction): 'credit' | 'debit' => {
+    const type = String(tx.transaction_type ?? '').toLowerCase()
     if (CREDIT_TYPES.has(type)) return 'credit'
     if (DEBIT_TYPES.has(type)) return 'debit'
 
-    const description = String(tx?.description || '').toLowerCase()
+    const description = String(tx.description ?? '').toLowerCase()
     if (description.includes('returned') || description.includes('refund') || description.includes('top-up') || description.includes('top up')) {
         return 'credit'
     }
     return 'debit'
 }
 
-const formatTransactionDescription = (tx) => {
-    const type = String(tx?.transaction_type || '').toLowerCase()
-    const description = String(tx?.description || '').trim()
+const formatTransactionDescription = (tx: WalletTransaction): string => {
+    const type = String(tx.transaction_type ?? '').toLowerCase()
+    const description = String(tx.description ?? '').trim()
 
     if (type === 'payment_credit') {
         return description
@@ -242,34 +263,34 @@ const formatTransactionDescription = (tx) => {
             .replace(/^Request fee credited back/i, 'Priority Search hold returned')
     }
 
-    const labels = {
+    const labels: Record<string, string> = {
         topup: 'Wallet top-up',
         request_fee: 'Priority Search hold placed',
         fee_credit: 'Priority Search hold returned',
         refund: 'Priority Search hold refunded',
         payment_credit: 'Request payment received',
-        order_payment: 'Order payment'
+        order_payment: 'Order payment',
     }
 
-    return labels[type] || 'Wallet activity'
+    return labels[type] ?? 'Wallet activity'
 }
 
-const extractRequestNumber = (tx) => {
-    const description = String(tx?.description || '')
+const extractRequestNumber = (tx: WalletTransaction): string => {
+    const description = String(tx.description ?? '')
     const match = description.match(/REQ-\d{8}-\d{4}/i)
     return match ? match[0].toUpperCase() : ''
 }
 
-const sortWalletTransactions = (entries = []) => {
+const sortWalletTransactions = (entries: WalletTransaction[] = []): WalletTransaction[] => {
     return [...entries].sort((left, right) => {
-        const leftRef = String(left?.paystack_reference || '').trim()
-        const rightRef = String(right?.paystack_reference || '').trim()
-        const leftType = String(left?.transaction_type || '').toLowerCase()
-        const rightType = String(right?.transaction_type || '').toLowerCase()
+        const leftRef = String(left.paystack_reference ?? '').trim()
+        const rightRef = String(right.paystack_reference ?? '').trim()
+        const leftType = String(left.transaction_type ?? '').toLowerCase()
+        const rightType = String(right.transaction_type ?? '').toLowerCase()
         const leftRequestNumber = extractRequestNumber(left)
         const rightRequestNumber = extractRequestNumber(right)
-        const leftAmount = Number(left?.amount || 0)
-        const rightAmount = Number(right?.amount || 0)
+        const leftAmount = Number(left.amount ?? 0)
+        const rightAmount = Number(right.amount ?? 0)
 
         const isSamePaystackPair = leftRef && rightRef && leftRef === rightRef
         const isSameLegacyRequestPair = !isSamePaystackPair
@@ -279,7 +300,7 @@ const sortWalletTransactions = (entries = []) => {
             && Math.abs(leftAmount - rightAmount) < 0.01
 
         if (isSamePaystackPair || isSameLegacyRequestPair) {
-            const pairOrder = { topup: 0, refund: 0, fee_credit: 0, payment_credit: 0, request_fee: 1, order_payment: 1 }
+            const pairOrder: Record<string, number> = { topup: 0, refund: 0, fee_credit: 0, payment_credit: 0, request_fee: 1, order_payment: 1 }
             const leftRank = pairOrder[leftType]
             const rightRank = pairOrder[rightType]
             if (leftRank !== undefined && rightRank !== undefined && leftRank !== rightRank) {
@@ -287,27 +308,31 @@ const sortWalletTransactions = (entries = []) => {
             }
         }
 
-        const rightTime = new Date(right?.created_at || 0).getTime()
-        const leftTime = new Date(left?.created_at || 0).getTime()
+        const rightTime = new Date(right.created_at ?? 0).getTime()
+        const leftTime = new Date(left.created_at ?? 0).getTime()
         if (rightTime !== leftTime) return rightTime - leftTime
 
-        return Number(right?.id || 0) - Number(left?.id || 0)
+        return Number(right.id ?? 0) - Number(left.id ?? 0)
     })
 }
 
-const creditTransactions = computed(() => transactions.value.filter(tx => getTransactionDirection(tx) === 'credit'))
-const debitTransactions = computed(() => transactions.value.filter(tx => getTransactionDirection(tx) === 'debit'))
-const sumAmount = (entries) => entries.reduce((acc, tx) => acc + (parseFloat(tx?.amount) || 0), 0)
-const creditTotal = computed(() => sumAmount(creditTransactions.value))
-const debitTotal = computed(() => sumAmount(debitTransactions.value))
+const creditTransactions = computed<WalletTransaction[]>(() =>
+    transactions.value.filter(tx => getTransactionDirection(tx) === 'credit'))
+const debitTransactions = computed<WalletTransaction[]>(() =>
+    transactions.value.filter(tx => getTransactionDirection(tx) === 'debit'))
+const sumAmount = (entries: WalletTransaction[]): number =>
+    entries.reduce((acc, tx) => acc + (parseFloat(String(tx.amount ?? 0)) || 0), 0)
+const creditTotal = computed<number>(() => sumAmount(creditTransactions.value))
+const debitTotal = computed<number>(() => sumAmount(debitTransactions.value))
 
-const currentMonthLabel = computed(() => new Date().toLocaleDateString('en-GB', { month: 'long' }))
+const currentMonthLabel = computed<string>(() =>
+    new Date().toLocaleDateString('en-GB', { month: 'long' }))
 
-const getTransactionNote = (tx) => {
-    const reference = String(tx?.paystack_reference || '').trim()
+const getTransactionNote = (tx: WalletTransaction): string => {
+    const reference = String(tx.paystack_reference ?? '').trim()
     const requestNumber = extractRequestNumber(tx)
-    const type = String(tx?.transaction_type || '').toLowerCase()
-    const description = String(tx?.description || '').toLowerCase()
+    const type = String(tx.transaction_type ?? '').toLowerCase()
+    const description = String(tx.description ?? '').toLowerCase()
 
     if (reference) return `Reference: ${reference}`
     if (requestNumber && type === 'order_payment') return `Success · ${requestNumber}`
@@ -324,28 +349,30 @@ const getTransactionNote = (tx) => {
 // useApi already throws on non-2xx (covers `!res.ok`), and we assert
 // `json.success` explicitly here. Error messages mirror the legacy text
 // where the server provides one.
-const assertEnvelope = (json) => {
-    if (!json || !json.success) throw new Error(json?.message || 'Request failed')
-    return json
+const assertEnvelope = (json: unknown): WalletEnvelope => {
+    const j = json as WalletEnvelope | null
+    if (!j?.success) throw new Error(j?.message ?? 'Request failed')
+    return j
 }
 
-const fetchBalance = async () => {
+const fetchBalance = async (): Promise<void> => {
     try {
         const res = assertEnvelope(await walletService.getBalance())
-        balance.value = parseFloat(res.data?.balance || 0)
-    } catch (e) { balance.value = 0 }
+        const d = res.data as { balance?: number } | undefined
+        balance.value = parseFloat(String(d?.balance ?? 0))
+    } catch { balance.value = 0 }
 }
 
-const fetchTransactions = async () => {
+const fetchTransactions = async (): Promise<void> => {
     loading.value = true
     try {
         const res = assertEnvelope(await walletService.getTransactions())
-        transactions.value = sortWalletTransactions(res.data || [])
-    } catch (e) { showToast('Failed to load transactions', 'error') }
+        transactions.value = sortWalletTransactions((res.data as WalletTransaction[]) ?? [])
+    } catch { showToast('Failed to load transactions', 'error') }
     finally { loading.value = false }
 }
 
-const stopTopUpRefreshPolling = () => {
+const stopTopUpRefreshPolling = (): void => {
     if (topUpRefreshTimer) {
         clearInterval(topUpRefreshTimer)
         topUpRefreshTimer = null
@@ -353,11 +380,11 @@ const stopTopUpRefreshPolling = () => {
     topUpRefreshTicks = 0
 }
 
-const refreshWalletData = async () => {
+const refreshWalletData = async (): Promise<void> => {
     await Promise.allSettled([fetchBalance(), fetchTransactions()])
 }
 
-const startTopUpRefreshPolling = () => {
+const startTopUpRefreshPolling = (): void => {
     stopTopUpRefreshPolling()
     topUpRefreshTicks = 0
     topUpRefreshTimer = setInterval(async () => {
@@ -369,81 +396,84 @@ const startTopUpRefreshPolling = () => {
     }, 5000)
 }
 
-const initiateTopUp = async () => {
+const initiateTopUp = async (): Promise<void> => {
     if (!topUpAmount.value || topUpAmount.value <= 0) return
     if (isPaying.value) return
     isPaying.value = true
     try {
         const res = assertEnvelope(await walletService.initiateTopUp({ amount: topUpAmount.value }))
-        if (res.data?.authorization_url) {
+        const d = res.data as { authorization_url?: string } | undefined
+        if (d?.authorization_url) {
             showToast('Redirecting to payment...')
             startTopUpRefreshPolling()
-            window.location.assign(res.data.authorization_url)
+            window.location.assign(d.authorization_url)
             return
         }
         showTopUp.value = false
         showToast('Could not start payment. Please try again.', 'error')
     } catch (e) {
-        showToast(e.message || 'Failed to initiate payment', 'error')
+        showToast(e instanceof Error ? e.message : 'Failed to initiate payment', 'error')
     } finally {
         isPaying.value = false
     }
 }
 
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-}) : ''
+const formatDate = (d: string | undefined): string =>
+    d ? new Date(d).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }) : ''
 
-const showToast = (text, type = 'success') => {
+const showToast = (text: string, type = 'success'): void => {
     toast.value = { text, type }
     setTimeout(() => { toast.value = null }, 4000)
 }
 
-const verifyPayment = async () => {
-    const trxRef = route.query.trxref || route.query.reference
+const verifyPayment = async (): Promise<void> => {
+    const trxRef = route.query['trxref'] ?? route.query['reference']
     if (!trxRef) return
 
     loading.value = true
     try {
-        const res = await walletService.verifyTopUp(trxRef)
+        const res = await walletService.verifyTopUp(String(trxRef)) as WalletEnvelope
         if (res.success) {
             stopTopUpRefreshPolling()
             showToast('Wallet topped up successfully!')
-            balance.value = parseFloat(res.data?.balance ?? res.data?.balance_after ?? balance.value)
-            fetchTransactions()
-            router.replace({ query: { tab: 'wallet' } })
+            const d = res.data as { balance?: number; balance_after?: number } | undefined
+            balance.value = parseFloat(String(d?.balance ?? d?.balance_after ?? balance.value))
+            void fetchTransactions()
+            void router.replace({ query: { tab: 'wallet' } })
         }
     } catch (e) {
-        showToast(e.message || 'Payment verification failed', 'error')
+        showToast(e instanceof Error ? e.message : 'Payment verification failed', 'error')
     } finally {
         loading.value = false
     }
 }
 
-const handleWindowFocus = () => {
-    fetchBalance()
-    fetchTransactions()
-    if (route.query.trxref || route.query.reference) {
-        verifyPayment()
+const handleWindowFocus = (): void => {
+    void fetchBalance()
+    void fetchTransactions()
+    if (route.query['trxref'] ?? route.query['reference']) {
+        void verifyPayment()
     }
 }
 
 onMounted(() => {
-    fetchBalance()
-    fetchTransactions()
-    if (route.query.trxref || route.query.reference) verifyPayment()
+    void fetchBalance()
+    void fetchTransactions()
+    if (route.query['trxref'] ?? route.query['reference']) void verifyPayment()
     window.addEventListener('focus', handleWindowFocus)
 })
 
 watch(
-    () => [route.query.trxref, route.query.reference],
+    () => [route.query['trxref'], route.query['reference']],
     ([trxref, reference]) => {
         if (trxref || reference) {
-            verifyPayment()
+            void verifyPayment()
         }
     }
 )

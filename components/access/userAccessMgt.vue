@@ -286,7 +286,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
   UserGroupIcon,
@@ -302,37 +302,76 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 
-const adminStore = useAdminStore()
+interface AdminUser {
+  id: number;
+  fname?: string;
+  lname?: string;
+  username?: string;
+  email?: string;
+  role?: string;
+  is_active?: boolean;
+  last_login?: string | null;
+  created_at?: string | null;
+  [key: string]: unknown;
+}
+
+interface AdminForm {
+  fname: string;
+  lname: string;
+  username: string;
+  email: string;
+  role: string;
+  password: string;
+  is_active: boolean;
+}
+
+interface AdminResponse {
+  success: boolean;
+  message?: string;
+  data?: AdminUser | AdminUser[];
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  isSuperAdmin?: boolean;
+  admin?: { id: number } | null;
+  getAllAdmins: () => Promise<AdminResponse>;
+  updateAdmin: (id: number, data: Partial<AdminForm>) => Promise<AdminResponse>;
+  createAdmin: (data: AdminForm) => Promise<AdminResponse>;
+  deleteAdmin: (id: number) => Promise<AdminResponse>;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
 
 // State
-const admins = ref([])
-const loading = ref(true)
-const error = ref(null)
-const saving = ref(false)
-const searchQuery = ref('')
-const filterRole = ref('')
-const filterStatus = ref('')
-const showAddAdminModal = ref(false)
-const editingAdmin = ref(null)
-const deletingAdmin = ref(null)
+const admins = ref<AdminUser[]>([])
+const loading = ref<boolean>(true)
+const error = ref<string | null>(null)
+const saving = ref<boolean>(false)
+const searchQuery = ref<string>('')
+const filterRole = ref<string>('')
+const filterStatus = ref<string>('')
+const showAddAdminModal = ref<boolean>(false)
+const editingAdmin = ref<AdminUser | null>(null)
+const deletingAdmin = ref<AdminUser | null>(null)
 
-const adminForm = ref({
+const adminForm = ref<AdminForm>({
   fname: '',
   lname: '',
   username: '',
   email: '',
   role: '',
   password: '',
-  is_active: true
+  is_active: true,
 })
 
 // Computed
-const filteredAdmins = computed(() => {
+const filteredAdmins = computed<AdminUser[]>(() => {
   let filtered = admins.value
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(admin => 
+    filtered = filtered.filter(admin =>
       admin.fname?.toLowerCase().includes(query) ||
       admin.lname?.toLowerCase().includes(query) ||
       admin.email?.toLowerCase().includes(query) ||
@@ -353,59 +392,59 @@ const filteredAdmins = computed(() => {
   return filtered
 })
 
-const activeAdmins = computed(() => {
+const activeAdmins = computed<number>(() => {
   return admins.value.filter(a => a.is_active).length
 })
 
-const roleCount = computed(() => {
+const roleCount = computed<number>(() => {
   return new Set(admins.value.map(a => a.role)).size
 })
 
-const superAdminCount = computed(() => {
+const superAdminCount = computed<number>(() => {
   return admins.value.filter(a => a.role === 'super_admin').length
 })
 
 // Methods
-const loadAdmins = async () => {
+const loadAdmins = async (): Promise<void> => {
   loading.value = true
   error.value = null
-  
+
   try {
     const response = await adminStore.getAllAdmins()
-    
+
     if (response.success) {
-      admins.value = response.data || []
+      admins.value = (Array.isArray(response.data) ? response.data : []) as AdminUser[]
     } else {
-      error.value = response.message || 'Failed to load admins'
+      error.value = response.message ?? 'Failed to load admins'
     }
   } catch (err) {
-    error.value = err.message || 'Failed to load admins'
+    error.value = err instanceof Error ? err.message : 'Failed to load admins'
     console.error('Error loading admins:', err)
   } finally {
     loading.value = false
   }
 }
 
-const editAdmin = (admin) => {
+const editAdmin = (admin: AdminUser): void => {
   editingAdmin.value = admin
   adminForm.value = {
-    fname: admin.fname,
-    lname: admin.lname,
-    username: admin.username,
-    email: admin.email,
-    role: admin.role,
+    fname: admin.fname ?? '',
+    lname: admin.lname ?? '',
+    username: admin.username ?? '',
+    email: admin.email ?? '',
+    role: admin.role ?? '',
     password: '',
-    is_active: admin.is_active
+    is_active: admin.is_active ?? true,
   }
 }
 
-const closeModal = () => {
+const closeModal = (): void => {
   showAddAdminModal.value = false
   editingAdmin.value = null
   resetForm()
 }
 
-const resetForm = () => {
+const resetForm = (): void => {
   adminForm.value = {
     fname: '',
     lname: '',
@@ -413,18 +452,18 @@ const resetForm = () => {
     email: '',
     role: '',
     password: '',
-    is_active: true
+    is_active: true,
   }
 }
 
-const saveAdmin = async () => {
+const saveAdmin = async (): Promise<void> => {
   saving.value = true
-  
+
   try {
-    let response
-    
+    let response: AdminResponse
+
     if (editingAdmin.value) {
-      const updateData = { ...adminForm.value }
+      const updateData: Partial<AdminForm> = { ...adminForm.value }
       if (!updateData.password) {
         delete updateData.password
       }
@@ -432,41 +471,41 @@ const saveAdmin = async () => {
     } else {
       response = await adminStore.createAdmin(adminForm.value)
     }
-    
+
     if (response.success) {
       alert(editingAdmin.value ? 'Admin updated successfully!' : 'Admin created successfully!')
       closeModal()
-      loadAdmins()
+      void loadAdmins()
     } else {
-      alert(response.message || 'Failed to save admin')
+      alert(response.message ?? 'Failed to save admin')
     }
   } catch (err) {
-    alert(err.message || 'Failed to save admin')
+    alert(err instanceof Error ? err.message : 'Failed to save admin')
     console.error('Error saving admin:', err)
   } finally {
     saving.value = false
   }
 }
 
-const confirmDelete = (admin) => {
+const confirmDelete = (admin: AdminUser): void => {
   deletingAdmin.value = admin
 }
 
-const deleteAdmin = async () => {
+const deleteAdmin = async (): Promise<void> => {
   saving.value = true
-  
+
   try {
-    const response = await adminStore.deleteAdmin(deletingAdmin.value.id)
-    
+    const response = await adminStore.deleteAdmin(deletingAdmin.value!.id)
+
     if (response.success) {
       alert('Admin deleted successfully!')
       deletingAdmin.value = null
-      loadAdmins()
+      void loadAdmins()
     } else {
-      alert(response.message || 'Failed to delete admin')
+      alert(response.message ?? 'Failed to delete admin')
     }
   } catch (err) {
-    alert(err.message || 'Failed to delete admin')
+    alert(err instanceof Error ? err.message : 'Failed to delete admin')
     console.error('Error deleting admin:', err)
   } finally {
     saving.value = false
@@ -474,40 +513,40 @@ const deleteAdmin = async () => {
 }
 
 // Formatting helpers
-const getInitials = (fname, lname) => {
-  return `${fname?.charAt(0) || ''}${lname?.charAt(0) || ''}`.toUpperCase()
+const getInitials = (fname: string | undefined, lname: string | undefined): string => {
+  return `${fname?.charAt(0) ?? ''}${lname?.charAt(0) ?? ''}`.toUpperCase()
 }
 
-const formatRole = (role) => {
-  return role?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'N/A'
+const formatRole = (role: string | undefined): string => {
+  return role?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? 'N/A'
 }
 
-const getRoleClass = (role) => {
-  const classes = {
+const getRoleClass = (role: string | undefined): string => {
+  const classes: Record<string, string> = {
     'super_admin': 'super-admin',
     'auditor': 'auditor',
     'support_agent': 'support',
     'business_analyst': 'analyst',
-    'data_consumer': 'data-consumer'
+    'data_consumer': 'data-consumer',
   }
-  return classes[role] || ''
+  return (role ? (classes[role] ?? '') : '')
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'Never'
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
 // Lifecycle
 onMounted(() => {
-  loadAdmins()
+  void loadAdmins()
 })
 </script>
 

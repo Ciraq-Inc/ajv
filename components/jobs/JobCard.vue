@@ -56,29 +56,31 @@
   </article>
 </template>
 
-<script setup>
-defineProps({
-  job: {
-    type: Object,
-    required: true,
-  },
-  showApply: {
-    type: Boolean,
-    default: false,
-  },
-  showManage: {
-    type: Boolean,
-    default: false,
-  },
-  showStatusAction: {
-    type: Boolean,
-    default: false,
-  },
-  statusActionLabel: {
-    type: String,
-    default: 'Update Status',
-  },
-})
+<script setup lang="ts">
+import type { Job } from '~/services/types'
 
-defineEmits(['apply', 'view', 'manage', 'status-action'])
+interface JobCardJob extends Pick<Job, 'id' | 'title'> {
+  companyName?: string
+  location?: string
+  description?: string
+  status?: string
+  employmentType?: string
+  salaryMin?: number
+  salaryMax?: number | string
+}
+
+defineProps<{
+  job: JobCardJob
+  showApply?: boolean
+  showManage?: boolean
+  showStatusAction?: boolean
+  statusActionLabel?: string
+}>()
+
+defineEmits<{
+  apply: [job: JobCardJob]
+  view: [job: JobCardJob]
+  manage: [job: JobCardJob]
+  'status-action': [job: JobCardJob]
+}>()
 </script>

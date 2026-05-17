@@ -64,7 +64,7 @@
                 role="switch"
                 :aria-checked="company.hide_prices"
                 @click="toggleHidePrices(company)"
-                :disabled="savingMap[company.id]"
+                :disabled="savingMap[company.id] ?? false"
                 :class="[
                   'relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60',
                   company.hide_prices ? 'bg-indigo-600' : 'bg-gray-300'
@@ -90,63 +90,97 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ArrowPathIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { createCompanyAuthService } from '~/services/companyAuth/companyAuthService'
 import { createStoreSettingsService } from '~/services/storeSettings/storeSettingsService'
 
-const adminStore = useAdminStore()
+interface CompanyRow {
+  id: number;
+  name: string;
+  domain_name?: string;
+  hide_prices: boolean;
+  saveError: string;
+  [key: string]: unknown;
+}
+
+interface ListCompaniesResponse {
+  success: boolean;
+  message?: string;
+  data?: Array<{
+    id: number;
+    name?: string;
+    domain_name?: string;
+    hide_prices?: boolean | number;
+    [key: string]: unknown;
+  }>;
+}
+
+interface UpdateSettingsResponse {
+  success: boolean;
+  message?: string;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  token?: string;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
 const companyAuthService = createCompanyAuthService(useApi())
 const storeSettingsService = createStoreSettingsService(
   useApi(),
-  () => (adminStore.token ? { Authorization: `Bearer ${adminStore.token}` } : {})
+  () => (adminStore.token ? { Authorization: `Bearer ${adminStore.token}` } : {}),
 )
 
-const loading = ref(false)
-const error = ref('')
-const searchQuery = ref('')
-const companies = ref([])
-const savingMap = ref({})
+const loading = ref<boolean>(false)
+const error = ref<string>('')
+const searchQuery = ref<string>('')
+const companies = ref<CompanyRow[]>([])
+const savingMap = ref<Record<number, boolean>>({})
 
-const filteredCompanies = computed(() => {
+const filteredCompanies = computed<CompanyRow[]>(() => {
   if (!searchQuery.value) return companies.value
 
   const q = searchQuery.value.toLowerCase()
   return companies.value.filter((company) => {
     return (
-      (company.name || '').toLowerCase().includes(q) ||
-      (company.domain_name || '').toLowerCase().includes(q) ||
+      (company.name ?? '').toLowerCase().includes(q) ||
+      (company.domain_name ?? '').toLowerCase().includes(q) ||
       String(company.id).includes(q)
     )
   })
 })
 
-const fetchCompanies = async () => {
+const fetchCompanies = async (): Promise<void> => {
   loading.value = true
   error.value = ''
 
   try {
-    const data = await companyAuthService.listCompanies()
+    const data = await companyAuthService.listCompanies() as ListCompaniesResponse
 
     if (!data.success) {
-      throw new Error(data.message || 'Failed to fetch companies')
+      throw new Error(data.message ?? 'Failed to fetch companies')
     }
 
-    companies.value = (data.data || []).map((company) => ({
+    companies.value = (data.data ?? []).map((company): CompanyRow => ({
       ...company,
+      id: company.id,
+      name: company.name ?? '',
+      ...(company.domain_name != null && { domain_name: company.domain_name }),
       hide_prices: company.hide_prices === 1 || company.hide_prices === true,
       saveError: '',
     }))
   } catch (err) {
-    error.value = err.message || 'Could not load companies'
+    error.value = err instanceof Error ? err.message : 'Could not load companies'
   } finally {
     loading.value = false
   }
 }
 
-const toggleHidePrices = async (company) => {
+const toggleHidePrices = async (company: CompanyRow): Promise<void> => {
   if (!adminStore.token) {
     company.saveError = 'Admin session missing. Please login again.'
     return
@@ -160,20 +194,20 @@ const toggleHidePrices = async (company) => {
   savingMap.value = { ...savingMap.value, [company.id]: true }
 
   try {
-    const data = await storeSettingsService.updateSettings(company.id, { hide_prices: nextValue })
+    const data = await storeSettingsService.updateSettings(company.id, { hide_prices: nextValue }) as UpdateSettingsResponse
 
     if (!data.success) {
-      throw new Error(data.message || 'Failed to update store settings')
+      throw new Error(data.message ?? 'Failed to update store settings')
     }
   } catch (err) {
     company.hide_prices = previousValue
-    company.saveError = err.message || 'Failed to save changes'
+    company.saveError = err instanceof Error ? err.message : 'Failed to save changes'
   } finally {
     savingMap.value = { ...savingMap.value, [company.id]: false }
   }
 }
 
 onMounted(() => {
-  fetchCompanies()
+  void fetchCompanies()
 })
 </script>

@@ -30,7 +30,7 @@
           class="company-filter"
         >
           <option value="">All Companies</option>
-          <option v-for="company in companies" :key="company.id" :value="company.id">
+          <option v-for="company in companies" :key="company.id ?? ''" :value="company.id">
             {{ company.name }}
           </option>
         </select>
@@ -71,7 +71,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="product in products" :key="product.id" class="product-row">
+          <tr v-for="product in products" :key="(product.id as PropertyKey | undefined) ?? ''" class="product-row">
             <td>
               <div class="product-name">{{ product.product_name }}</div>
             </td>
@@ -82,8 +82,8 @@
               <div class="company-location">{{ product.company_location || 'N/A' }}</div>
             </td>
             <td>
-              <a v-if="product.company_phone" 
-                 :href="`https://wa.me/${formatWhatsApp(product.company_phone)}`" 
+              <a v-if="product.company_phone"
+                 :href="`https://wa.me/${formatWhatsApp(String(product.company_phone))}`"
                  target="_blank"
                  class="whatsapp-link">
                 <Icon name="MessageCircle" size="16" />
@@ -95,10 +95,10 @@
               <span class="unit-badge">{{ product.unit || 'N/A' }}</span>
             </td>
             <td>
-              <span class="price">{{ formatPrice(product.price) }}</span>
+              <span class="price">{{ formatPrice(product.price as number | string | null | undefined) }}</span>
             </td>
             <td>
-              <span class="date">{{ formatDate(product.date_updated) }}</span>
+              <span class="date">{{ formatDate(product.date_updated as string | undefined) }}</span>
             </td>
           </tr>
         </tbody>
@@ -136,83 +136,86 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import phoneUtils from '~/utils/phone'
 
+interface Product {
+  [key: string]: unknown;
+}
+
+interface Company {
+  id?: number | string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface Pagination {
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<{
+    success?: boolean;
+    data?: { products?: Product[]; pagination?: Pagination };
+    companies?: Company[];
+    message?: string;
+  }>;
+}
+
 // Props
-const props = defineProps({
-  title: {
-    type: String,
-    default: 'Products'
-  },
-  showTitle: {
-    type: Boolean,
-    default: true
-  },
-  showCompanyFilter: {
-    type: Boolean,
-    default: true
-  },
-  initialCompanyId: {
-    type: [Number, String],
-    default: null
-  },
-  pageSize: {
-    type: Number,
-    default: 50
-  },
-  autoload: {
-    type: Boolean,
-    default: true
-  },
-  showPharmacySearch: {
-    type: Boolean,
-    default: false
-  },
-  apiEndpoint: {
-    type: String,
-    default: '/api/inventory-analytics/search-products'
-  }
-})
+const props = defineProps<{
+  title?: string;
+  showTitle?: boolean;
+  showCompanyFilter?: boolean;
+  initialCompanyId?: number | string | null;
+  pageSize?: number;
+  autoload?: boolean;
+  showPharmacySearch?: boolean;
+  apiEndpoint?: string;
+}>()
 
 // Emits
-const emit = defineEmits(['product-selected', 'loaded'])
+const emit = defineEmits<{
+  'product-selected': [product: Product];
+  'loaded': [payload: { products: Product[]; pagination: Pagination }];
+}>()
 
 // Store
-const adminStore = useAdminStore()
+const adminStore = useAdminStore() as unknown as AdminStoreShape
 
 // State
-const loading = ref(false)
-const searchInput = ref('')
-const pharmacySearchInput = ref('')
-const selectedCompany = ref(props.initialCompanyId || '')
-const products = ref([])
-const companies = ref([])
-const hasSearched = ref(false)
-const pagination = ref({
+const loading = ref<boolean>(false)
+const searchInput = ref<string>('')
+const pharmacySearchInput = ref<string>('')
+const selectedCompany = ref<number | string>(props.initialCompanyId ?? '')
+const products = ref<Product[]>([])
+const companies = ref<Company[]>([])
+const hasSearched = ref<boolean>(false)
+
+const emptyPagination = (): Pagination => ({
   total: 0,
-  limit: props.pageSize,
+  limit: props.pageSize ?? 50,
   offset: 0,
   has_more: false
 })
-const emptyPagination = () => ({
-  total: 0,
-  limit: props.pageSize,
-  offset: 0,
-  has_more: false
-})
-const hasSearchCriteria = computed(() => {
+const pagination = ref<Pagination>(emptyPagination())
+
+const hasSearchCriteria = computed<boolean>(() => {
   return Boolean(
-    String(searchInput.value || '').trim() ||
-    String(pharmacySearchInput.value || '').trim() ||
+    String(searchInput.value ?? '').trim() ||
+    String(pharmacySearchInput.value ?? '').trim() ||
     selectedCompany.value
   )
 })
 
 // Methods
-const handleSearch = () => {
+const handleSearch = (): void => {
   if (!hasSearchCriteria.value) {
     hasSearched.value = false
     products.value = []
@@ -222,17 +225,17 @@ const handleSearch = () => {
 
   hasSearched.value = true
   pagination.value.offset = 0
-  loadProducts()
+  void loadProducts()
 }
 
-const onCompanyChange = () => {
+const onCompanyChange = (): void => {
   pagination.value.offset = 0
   if (props.autoload || hasSearched.value) {
-    loadProducts()
+    void loadProducts()
   }
 }
 
-const loadProducts = async () => {
+const loadProducts = async (): Promise<void> => {
   if (!props.autoload && !hasSearched.value) {
     products.value = []
     pagination.value = emptyPagination()
@@ -240,39 +243,39 @@ const loadProducts = async () => {
   }
 
   loading.value = true
-  
+
   try {
-    const params = {
-      limit: pagination.value.limit,
-      offset: pagination.value.offset
+    const params: Record<string, string> = {
+      limit: String(pagination.value.limit),
+      offset: String(pagination.value.offset)
     }
-    
+
     if (searchInput.value) {
-      params.search = searchInput.value
+      params['search'] = searchInput.value
     }
 
     if (pharmacySearchInput.value) {
-      params.pharmacySearch = pharmacySearchInput.value
+      params['pharmacySearch'] = pharmacySearchInput.value
     }
-    
+
     if (selectedCompany.value) {
-      params.companyId = selectedCompany.value
+      params['companyId'] = String(selectedCompany.value)
     }
-    
+
     const queryString = new URLSearchParams(params).toString()
-    const url = `${props.apiEndpoint}?${queryString}`
-    
+    const url = `${props.apiEndpoint ?? '/api/inventory-analytics/search-products'}?${queryString}`
+
     const data = await adminStore.makeAuthRequest(url)
-    
+
     if (data.success) {
-      products.value = data.data.products
-      pagination.value = data.data.pagination
+      products.value = data.data?.products ?? []
+      pagination.value = data.data?.pagination ?? emptyPagination()
       emit('loaded', { products: products.value, pagination: pagination.value })
     } else {
-      throw new Error(data.message || 'Failed to load products')
+      throw new Error(data.message ?? 'Failed to load products')
     }
-  } catch (error) {
-    console.error('Error loading products:', error)
+  } catch (err) {
+    console.error('Error loading products:', err)
     products.value = []
     pagination.value = emptyPagination()
   } finally {
@@ -280,30 +283,30 @@ const loadProducts = async () => {
   }
 }
 
-const loadCompanies = async () => {
+const loadCompanies = async (): Promise<void> => {
   try {
     const data = await adminStore.makeAuthRequest('/api/companies')
     if (data.success) {
-      companies.value = data.companies || []
+      companies.value = data.companies ?? []
     }
-  } catch (error) {
-    console.error('Error loading companies:', error)
+  } catch (err) {
+    console.error('Error loading companies:', err)
   }
 }
 
-const nextPage = () => {
+const nextPage = (): void => {
   pagination.value.offset += pagination.value.limit
-  loadProducts()
+  void loadProducts()
   scrollToTop()
 }
 
-const previousPage = () => {
+const previousPage = (): void => {
   pagination.value.offset = Math.max(0, pagination.value.offset - pagination.value.limit)
-  loadProducts()
+  void loadProducts()
   scrollToTop()
 }
 
-const scrollToTop = () => {
+const scrollToTop = (): void => {
   const container = document.querySelector('.products-table-container')
   if (container) {
     container.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -311,22 +314,22 @@ const scrollToTop = () => {
 }
 
 // Formatting Functions
-const formatPrice = (price) => {
+const formatPrice = (price: number | string | null | undefined): string => {
   if (price === null || price === undefined) return '0.00'
-  return parseFloat(price).toFixed(2)
+  return parseFloat(String(price)).toFixed(2)
 }
 
-const formatWhatsApp = (whatsapp) => {
-  return phoneUtils.formatWhatsApp(whatsapp)
+const formatWhatsApp = (whatsapp: string | undefined): string => {
+  return phoneUtils.formatWhatsApp(whatsapp) ?? ''
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   const now = new Date()
-  const diffTime = Math.abs(now - date)
+  const diffTime = Math.abs(now.getTime() - date.getTime())
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  
+
   if (diffDays === 0) {
     const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
     if (diffHours === 0) {
@@ -339,30 +342,30 @@ const formatDate = (dateString) => {
   } else if (diffDays < 7) {
     return `${diffDays}d ago`
   }
-  
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
+
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   })
 }
 
-const formatNumber = (num) => {
+const formatNumber = (num: number | null | undefined): string => {
   if (num === null || num === undefined) return '0'
   return num.toLocaleString('en-US')
 }
 
 // Expose methods for parent components
 defineExpose({
-  refresh: loadProducts,
-  reset: () => {
+  refresh: (): Promise<void> => loadProducts(),
+  reset: (): void => {
     searchInput.value = ''
     pharmacySearchInput.value = ''
-    selectedCompany.value = props.initialCompanyId || ''
+    selectedCompany.value = props.initialCompanyId ?? ''
     pagination.value.offset = 0
-    hasSearched.value = props.autoload
+    hasSearched.value = props.autoload ?? true
     if (props.autoload) {
-      loadProducts()
+      void loadProducts()
     } else {
       products.value = []
       pagination.value = emptyPagination()
@@ -372,23 +375,23 @@ defineExpose({
 
 // Lifecycle
 onMounted(() => {
-  hasSearched.value = props.autoload
+  hasSearched.value = props.autoload ?? true
 
   if (props.showCompanyFilter) {
-    loadCompanies()
+    void loadCompanies()
   }
 
   if (props.autoload) {
-    loadProducts()
+    void loadProducts()
   }
 })
 
 // Watch for prop changes
 watch(() => props.initialCompanyId, (newVal) => {
-  selectedCompany.value = newVal || ''
+  selectedCompany.value = newVal ?? ''
   pagination.value.offset = 0
   if (props.autoload || hasSearched.value) {
-    loadProducts()
+    void loadProducts()
   }
 })
 </script>

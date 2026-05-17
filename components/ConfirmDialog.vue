@@ -5,7 +5,7 @@
       role="alertdialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      :aria-describedby="message ? descId : undefined"
+      :aria-describedby="message ? descId : ''"
       tabindex="-1"
       class="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
       <div class="flex h-12 w-12 items-center justify-center rounded-2xl" :class="variant === 'danger' ? 'bg-red-100 text-red-600' : 'bg-sky-100 text-sky-700'">
@@ -35,26 +35,29 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useModalA11y } from '~/composables/useModalA11y'
 
-const props = defineProps({
-  isOpen: { type: Boolean, default: false },
-  title: { type: String, default: 'Are you sure?' },
-  message: { type: String, default: '' },
-  confirmText: { type: String, default: 'Confirm' },
-  cancelText: { type: String, default: 'Cancel' },
-  variant: { type: String, default: 'danger' },
-})
+const props = defineProps<{
+  isOpen?: boolean
+  title?: string
+  message?: string
+  confirmText?: string
+  cancelText?: string
+  variant?: string
+}>()
 
-const emit = defineEmits(['close', 'confirm'])
+const emit = defineEmits<{
+  close: []
+  confirm: []
+}>()
 
 // Stable per-instance IDs so aria-labelledby / aria-describedby never collide.
 const _uid = Math.random().toString(36).slice(2, 9)
 const titleId = `confirm-dlg-title-${_uid}`
 const descId = `confirm-dlg-desc-${_uid}`
 
-const dialogRef = ref(null)
-useModalA11y(dialogRef, () => props.isOpen, () => emit('close'))
+const dialogRef = ref<HTMLElement | null>(null)
+useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'))
 </script>

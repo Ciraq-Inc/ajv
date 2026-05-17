@@ -169,18 +169,43 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import phoneUtils from '~/utils/phone'
 
+interface JobOrSeeker {
+  id: number | string
+  itemType?: string | null
+  title?: string | null
+  companyName?: string | null
+  description?: string | null
+  location?: string | null
+  employmentType?: string | null
+  expiresAt?: string | null
+  contactPhone?: string | null
+  profession?: string | null
+  bio?: string | null
+  yearsOfExperience?: string | number | null
+  phone?: string | null
+  fullName?: string | null
+  [key: string]: unknown
+}
+
+// TODO: remove once composables/ are .ts
+const { openJobs, loading, error, fetchJobs } = useJobs() as unknown as {
+  openJobs: import('vue').Ref<JobOrSeeker[]>
+  loading: import('vue').Ref<boolean>
+  error: import('vue').Ref<string | null>
+  fetchJobs: (params?: { search?: string; status?: string }) => Promise<void>
+}
+
 const router = useRouter()
-const search = ref('')
-const location = ref('')
-const filter = ref('all')
+const search = ref<string>('')
+const location = ref<string>('')
+const filter = ref<string>('all')
 
-const { openJobs, loading, error, fetchJobs } = useJobs()
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const categories = [
   'Retail Pharmacy',
   'Hospital Pharmacy',
@@ -188,61 +213,58 @@ const categories = [
   'Operations & Sales',
 ]
 
-const filteredByType = computed(() => {
+const filteredByType = computed<JobOrSeeker[]>(() => {
   if (filter.value === 'jobs') return openJobs.value.filter((i) => i.itemType === 'job')
   if (filter.value === 'seekers') return openJobs.value.filter((i) => i.itemType === 'seeker')
   return openJobs.value
 })
 
-const filteredJobs = computed(() => {
+const filteredJobs = computed<JobOrSeeker[]>(() => {
   const locationTerm = location.value.trim().toLowerCase()
   if (!locationTerm) return filteredByType.value
-  return filteredByType.value.filter((job) => String(job.location || '').toLowerCase().includes(locationTerm))
+  return filteredByType.value.filter((job) => String(job.location ?? '').toLowerCase().includes(locationTerm))
 })
 
-const filterOptions = computed(() => [
+const filterOptions = computed<Array<{ label: string; value: string; count: number }>>(() => [
   { label: 'All', value: 'all', count: openJobs.value.length },
   { label: 'Open Positions', value: 'jobs', count: openJobs.value.filter((i) => i.itemType === 'job').length },
   { label: 'Job Seekers', value: 'seekers', count: openJobs.value.filter((i) => i.itemType === 'seeker').length },
 ])
 
-const loadJobs = async () => {
+const loadJobs = async (): Promise<void> => {
   await fetchJobs({ search: search.value, status: 'open' })
 }
 
-const openDetails = (job) => {
-  router.push(`/jobs/${job.id}`)
+const openDetails = (job: JobOrSeeker): void => {
+  void router.push(`/jobs/${String(job.id)}`)
 }
 
-// const openApply = (job) => {
-//   router.push(`/jobs/${job.id}/apply`)
-// }
-
-const openSeekerDetails = (seeker) => {
-  router.push(`/jobs/talent/${seeker.id}`)
+const openSeekerDetails = (seeker: JobOrSeeker): void => {
+  void router.push(`/jobs/talent/${String(seeker.id)}`)
 }
 
-const whatsappJobUrl = (job) => {
-  const num = phoneUtils.formatWhatsApp(job.contactPhone)
-  const text = encodeURIComponent(`Hi, I'm interested in the ${job.title} position listed on Rigel Jobs.`)
+const whatsappJobUrl = (job: JobOrSeeker): string => {
+  const num = phoneUtils.formatWhatsApp(job.contactPhone ?? '')
+  const text = encodeURIComponent(`Hi, I'm interested in the ${job.title ?? ''} position listed on Rigel Jobs.`)
   return `https://wa.me/${num}?text=${text}`
 }
 
-const whatsappSeekerUrl = (seeker) => {
-  const name = seeker.fullName || seeker.profession || 'there'
-  const num = phoneUtils.formatWhatsApp(seeker.phone)
-  const text = encodeURIComponent(`Hi ${name}, I saw your profile on Rigel Jobs and I'm interested in connecting.`)
+const whatsappSeekerUrl = (seeker: JobOrSeeker): string => {
+  const name = seeker.fullName ?? seeker.profession ?? 'there'
+  const num = phoneUtils.formatWhatsApp(seeker.phone ?? '')
+  const text = encodeURIComponent(`Hi ${String(name)}, I saw your profile on Rigel Jobs and I'm interested in connecting.`)
   return `https://wa.me/${num}?text=${text}`
 }
 
-const formatDate = (iso) => {
+const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const isExpired = (iso) => iso && new Date(iso).getTime() < Date.now()
+const isExpired = (iso: string | null | undefined): boolean =>
+  Boolean(iso && new Date(iso).getTime() < Date.now())
 
-onMounted(loadJobs)
+onMounted(() => { void loadJobs() })
 
 definePageMeta({
   layout: false,

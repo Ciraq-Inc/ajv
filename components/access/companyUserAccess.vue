@@ -161,9 +161,9 @@
             <td>
               <div class="access-toggle">
                 <label class="switch">
-                  <input 
+                  <input
                     type="checkbox"
-                    :checked="user.allowed_online_access"
+                    :checked="user.allowed_online_access ?? false"
                     @change="toggleUserAccess(user)"
                     :disabled="updating === user.id"
                   >
@@ -197,7 +197,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
   UserGroupIcon,
@@ -215,19 +215,48 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useCompanyStore } from '~/stores/company'
 
-const companyStore = useCompanyStore()
+interface CompanyUser {
+  id: number;
+  lname?: string;
+  sname?: string;
+  mname?: string;
+  username?: string;
+  userid?: string;
+  email?: string;
+  tel?: string;
+  userrole?: string;
+  isactive?: boolean;
+  allowed_online_access?: boolean;
+  password_hash?: string;
+  last_login?: string;
+  [key: string]: unknown;
+}
+
+interface AuthResponse {
+  success: boolean;
+  message?: string;
+  data?: { users?: CompanyUser[]; [key: string]: unknown };
+}
+
+// TODO: remove once stores/ are .ts
+interface CompanyStoreShape {
+  userRole?: string;
+  makeAuthRequest: (path: string, options?: { method?: string; body?: string }) => Promise<AuthResponse>;
+}
+
+const companyStore = useCompanyStore() as unknown as CompanyStoreShape
 
 // State
-const users = ref([])
-const loading = ref(true)
-const error = ref(null)
-const updating = ref(null)
-const searchQuery = ref('')
-const filterAccess = ref('')
-const filterActive = ref('')
-const roleDrafts = ref({})
+const users = ref<CompanyUser[]>([])
+const loading = ref<boolean>(true)
+const error = ref<string | null>(null)
+const updating = ref<number | null>(null)
+const searchQuery = ref<string>('')
+const filterAccess = ref<string>('')
+const filterActive = ref<string>('')
+const roleDrafts = ref<Record<number, string>>({})
 
-const baseRoleOptions = [
+const baseRoleOptions: string[] = [
   'user',
   'cashier',
   'assistant',
@@ -236,16 +265,16 @@ const baseRoleOptions = [
   'company',
   'third_party_poster',
   'admin',
-  'super_admin'
+  'super_admin',
 ]
 
 // Computed
-const filteredUsers = computed(() => {
+const filteredUsers = computed<CompanyUser[]>(() => {
   let filtered = users.value
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(user => 
+    filtered = filtered.filter(user =>
       user.lname?.toLowerCase().includes(query) ||
       user.sname?.toLowerCase().includes(query) ||
       user.mname?.toLowerCase().includes(query) ||
@@ -269,29 +298,30 @@ const filteredUsers = computed(() => {
   return filtered
 })
 
-const usersWithAccess = computed(() => {
+const usersWithAccess = computed<number>(() => {
   return users.value.filter(u => u.allowed_online_access).length
 })
 
-const usersWithoutAccess = computed(() => {
+const usersWithoutAccess = computed<number>(() => {
   return users.value.filter(u => !u.allowed_online_access).length
 })
 
-const usersWithPassword = computed(() => {
+const usersWithPassword = computed<number>(() => {
   return users.value.filter(u => u.password_hash).length
 })
 
-const roleOptions = computed(() => {
+const roleOptions = computed<string[]>(() => {
   const discoveredRoles = users.value
-    .map((u) => String(u.userrole || '').trim().toLowerCase().replace(/\s+/g, '_'))
+    .map((u) => String(u.userrole ?? '').trim().toLowerCase().replace(/\s+/g, '_'))
     .filter(Boolean)
 
   return Array.from(new Set([...baseRoleOptions, ...discoveredRoles]))
 })
 
-const normalizeRole = (value = '') => String(value).trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+const normalizeRole = (value = ''): string =>
+  String(value).trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
 
-const roleRank = {
+const roleRank: Record<string, number> = {
   user: 1,
   cashier: 1,
   assistant: 1,
@@ -303,14 +333,14 @@ const roleRank = {
   super_admin: 6,
 }
 
-const canManageAccess = computed(() => {
-  const normalized = normalizeRole(companyStore.userRole || '')
-  const rank = roleRank[normalized] || 0
-  return rank >= roleRank.manager
+const canManageAccess = computed<boolean>(() => {
+  const normalized = normalizeRole(companyStore.userRole ?? '')
+  const rank = roleRank[normalized] ?? 0
+  return rank >= (roleRank['manager'] ?? 3)
 })
 
 // Methods
-const loadUsers = async () => {
+const loadUsers = async (): Promise<void> => {
   if (!canManageAccess.value) {
     loading.value = false
     users.value = []
@@ -319,30 +349,30 @@ const loadUsers = async () => {
 
   loading.value = true
   error.value = null
-  
+
   try {
     const response = await companyStore.makeAuthRequest('/api/company/users/access')
-    
+
     if (response.success) {
-      users.value = response.data.users || []
+      users.value = response.data?.users ?? []
       roleDrafts.value = Object.fromEntries(
-        users.value.map((u) => [u.id, (u.userrole || 'user').toLowerCase().replace(/\s+/g, '_')])
+        users.value.map((u) => [u.id, (u.userrole ?? 'user').toLowerCase().replace(/\s+/g, '_')])
       )
     } else {
-      error.value = response.message || 'Failed to load users'
+      error.value = response.message ?? 'Failed to load users'
     }
   } catch (err) {
-    error.value = err.message || 'Failed to load users'
+    error.value = err instanceof Error ? err.message : 'Failed to load users'
     console.error('Error loading users:', err)
   } finally {
     loading.value = false
   }
 }
 
-const updateUserRole = async (user) => {
+const updateUserRole = async (user: CompanyUser): Promise<void> => {
   if (!canManageAccess.value) return
 
-  const selectedRole = String(roleDrafts.value[user.id] || '').trim().toLowerCase().replace(/\s+/g, '_')
+  const selectedRole = String(roleDrafts.value[user.id] ?? '').trim().toLowerCase().replace(/\s+/g, '_')
   if (!selectedRole) return
 
   updating.value = user.id
@@ -351,28 +381,26 @@ const updateUserRole = async (user) => {
       `/api/company/users/${user.id}/role`,
       {
         method: 'PUT',
-        body: JSON.stringify({
-          userrole: selectedRole
-        })
+        body: JSON.stringify({ userrole: selectedRole }),
       }
     )
 
     if (response.success) {
       user.userrole = selectedRole
     } else {
-      alert(response.message || 'Failed to update role')
-      roleDrafts.value[user.id] = user.userrole || 'user'
+      alert(response.message ?? 'Failed to update role')
+      roleDrafts.value[user.id] = user.userrole ?? 'user'
     }
   } catch (err) {
-    alert(err.message || 'Failed to update role')
-    roleDrafts.value[user.id] = user.userrole || 'user'
+    alert(err instanceof Error ? err.message : 'Failed to update role')
+    roleDrafts.value[user.id] = user.userrole ?? 'user'
     console.error('Error updating role:', err)
   } finally {
     updating.value = null
   }
 }
 
-const toggleUserAccess = async (user) => {
+const toggleUserAccess = async (user: CompanyUser): Promise<void> => {
   if (!canManageAccess.value) return
 
   const newValue = !user.allowed_online_access
@@ -383,77 +411,78 @@ const toggleUserAccess = async (user) => {
       `/api/company/users/${user.id}/access`,
       {
         method: 'PUT',
-        body: JSON.stringify({
-          allowed_online_access: newValue
-        })
+        body: JSON.stringify({ allowed_online_access: newValue }),
       }
     )
 
     if (response.success) {
       user.allowed_online_access = newValue
     } else {
-      alert(response.message || 'Failed to update access')
+      alert(response.message ?? 'Failed to update access')
     }
   } catch (err) {
-    alert(err.message || 'Failed to update access')
+    alert(err instanceof Error ? err.message : 'Failed to update access')
     console.error('Error updating access:', err)
   } finally {
     updating.value = null
   }
 }
 
-const exportUsers = () => {
+const exportUsers = (): void => {
   const csv = convertToCSV(filteredUsers.value)
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `users-access-${new Date().toISOString().split('T')[0]}.csv`
+  a.download = `users-access-${new Date().toISOString().split('T')[0] ?? 'export'}.csv`
   a.click()
   window.URL.revokeObjectURL(url)
 }
 
-const convertToCSV = (data) => {
+const convertToCSV = (data: CompanyUser[]): string => {
   const headers = ['Name', 'Username', 'Email', 'Phone', 'Role', 'Status', 'Online Access', 'Has Password', 'Last Login']
   const rows = data.map(user => [
     getUserFullName(user),
-    user.username || user.userid,
-    user.email || '',
-    user.tel || '',
-    user.userrole || '',
+    user.username ?? user.userid ?? '',
+    user.email ?? '',
+    user.tel ?? '',
+    user.userrole ?? '',
     user.isactive ? 'Active' : 'Inactive',
     user.allowed_online_access ? 'Enabled' : 'Disabled',
     user.password_hash ? 'Yes' : 'No',
-    formatDate(user.last_login)
+    formatDate(user.last_login),
   ])
-  
+
   return [headers, ...rows].map(row => row.join(',')).join('\n')
 }
 
 // Helpers
-const getUserFullName = (user) => {
-  return `${user.lname || ''} ${user.mname || ''} ${user.sname || ''}`.trim() || user.username || user.userid
+const getUserFullName = (user: CompanyUser): string => {
+  return `${user.lname ?? ''} ${user.mname ?? ''} ${user.sname ?? ''}`.trim()
+    || user.username
+    || user.userid
+    || ''
 }
 
-const getUserInitials = (user) => {
-  const fname = user.lname || user.username || user.userid || ''
-  const lname = user.sname || ''
+const getUserInitials = (user: CompanyUser): string => {
+  const fname = user.lname ?? user.username ?? user.userid ?? ''
+  const lname = user.sname ?? ''
   return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase() || '?'
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'Never'
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric'
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   })
 }
 
 // Lifecycle
 onMounted(() => {
-  loadUsers()
+  void loadUsers()
 })
 </script>
 

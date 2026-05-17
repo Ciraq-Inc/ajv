@@ -78,27 +78,27 @@
                     No stock value data available
                   </td>
                 </tr>
-                <tr v-else v-for="company in stockValue.companies" :key="company.company_id" class="hover:bg-gray-50">
+                <tr v-else v-for="(company, idx) in stockValue.companies" :key="String((company as Record<string, unknown>)['company_id'] ?? idx)" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">{{ company.company_name }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ (company as Record<string, unknown>)['company_name'] }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ formatNumber(company.inventory.total_products) }}
+                    {{ formatNumber(company.inventory?.total_products) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ formatNumber(company.inventory.total_units) }}
+                    {{ formatNumber(company.inventory?.total_units) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    GH₵ {{ formatNumber(company.valuation.cost_value) }}
+                    GH₵ {{ formatNumber(company.valuation?.cost_value) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-                    GH₵ {{ formatNumber(company.valuation.selling_value) }}
+                    GH₵ {{ formatNumber(company.valuation?.selling_value) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
-                    GH₵ {{ formatNumber(company.valuation.potential_profit) }}
+                    GH₵ {{ formatNumber(company.valuation?.potential_profit) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ company.valuation.profit_margin }}%
+                    {{ company.valuation?.profit_margin }}%
                   </td>
                 </tr>
               </tbody>
@@ -128,7 +128,7 @@
                     No top products data available
                   </td>
                 </tr>
-                <tr v-else v-for="product in topProducts" :key="product.product_id" class="hover:bg-gray-50">
+                <tr v-else v-for="(product, idx) in topProducts" :key="String((product as Record<string, unknown>)['product_id'] ?? product.rank ?? idx)" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       #{{ product.rank }}
@@ -136,22 +136,22 @@
                   </td>
                   <td class="px-6 py-4">
                     <div class="text-sm font-medium text-gray-900">{{ product.product_name }}</div>
-                    <div v-if="product.strength" class="text-xs text-gray-500">{{ product.strength }}</div>
+                    <div v-if="(product as Record<string, unknown>)['strength']" class="text-xs text-gray-500">{{ (product as Record<string, unknown>)['strength'] }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ formatNumber(product.performance.total_quantity) }}
+                    {{ formatNumber(product.performance?.total_quantity) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-                    GH₵ {{ formatNumber(product.performance.total_revenue) }}
+                    GH₵ {{ formatNumber(product.performance?.total_revenue) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
-                    GH₵ {{ formatNumber(product.performance.total_profit) }}
+                    GH₵ {{ formatNumber(product.performance?.total_profit) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ product.performance.profit_margin }}%
+                    {{ product.performance?.profit_margin }}%
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ product.distribution.company_count }}
+                    {{ product.distribution?.company_count }}
                   </td>
                 </tr>
               </tbody>
@@ -180,28 +180,28 @@
                     No alerts data available
                   </td>
                 </tr>
-                <tr v-else v-for="alert in alerts.alerts" :key="`${alert.product_id}-${alert.company.id}`" class="hover:bg-gray-50">
+                <tr v-else v-for="(alert, idx) in alerts.alerts" :key="`${alert.product_id ?? idx}-${alert.company?.id ?? ''}`" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span :class="getSeverityClass(alert.alert.severity)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
-                      {{ alert.alert.severity }}
+                    <span :class="getSeverityClass(alert.alert?.severity ?? '')" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                      {{ alert.alert?.severity }}
                     </span>
                   </td>
                   <td class="px-6 py-4">
-                    <div class="text-sm font-medium text-gray-900">{{ alert.product.name }}</div>
-                    <div v-if="alert.product.strength" class="text-xs text-gray-500">{{ alert.product.strength }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ alert.product?.name }}</div>
+                    <div v-if="alert.product?.strength" class="text-xs text-gray-500">{{ alert.product?.strength }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ alert.company.name }}
+                    {{ alert.company?.name }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ alert.stock.current }}
+                    {{ alert.stock?.current }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {{ alert.stock.reorder_level }}
+                    {{ alert.stock?.reorder_level }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span :class="getAlertTypeClass(alert.alert.type)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
-                      {{ formatAlertType(alert.alert.type) }}
+                    <span :class="getAlertTypeClass(alert.alert?.type ?? '')" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                      {{ formatAlertType(alert.alert?.type ?? '') }}
                     </span>
                   </td>
                 </tr>
@@ -225,22 +225,58 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
 import { createSummariesService } from '~/services/analytics/summariesService';
+import { useApi } from '~/composables/useApi';
 import { ArrowDownTrayIcon, ArrowPathIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
 
+interface StockCompany {
+  company_name?: string;
+  inventory?: { total_products?: number; total_units?: number };
+  valuation?: { cost_value?: number; selling_value?: number; potential_profit?: number; profit_margin?: number };
+  [key: string]: unknown;
+}
+
+interface StockValue {
+  companies?: StockCompany[];
+  [key: string]: unknown;
+}
+
+interface TopProduct {
+  rank?: number;
+  product_name?: string;
+  performance?: { total_quantity?: number; total_revenue?: number; total_profit?: number; profit_margin?: number };
+  distribution?: { company_count?: number };
+  [key: string]: unknown;
+}
+
+interface Alert {
+  product_id?: string | number;
+  alert?: { severity?: string; type?: string };
+  product?: { name?: string; strength?: string };
+  company?: { id?: string | number; name?: string };
+  stock?: { current?: number; reorder_level?: number };
+  [key: string]: unknown;
+}
+
+interface AlertsData {
+  alerts?: Alert[];
+  [key: string]: unknown;
+}
+
 const adminStore = useAdminStore();
+void adminStore; // adminStore used by summariesService internally
 const summariesService = createSummariesService(useApi());
 
-const loading = ref(false);
-const error = ref(null);
-const stockValue = ref(null);
-const topProducts = ref([]);
-const alerts = ref(null);
+const loading = ref<boolean>(false);
+const error = ref<string | null>(null);
+const stockValue = ref<StockValue | null>(null);
+const topProducts = ref<TopProduct[]>([]);
+const alerts = ref<AlertsData | null>(null);
 
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   loading.value = true;
   error.value = null;
 
@@ -252,7 +288,7 @@ const fetchData = async () => {
     try {
       const stockResult = await summariesService.getCompositeStockValue();
       if (stockResult.success) {
-        stockValue.value = stockResult.data;
+        stockValue.value = stockResult.data as unknown as StockValue;
       }
     } catch (e) {
       console.error('Stock value fetch failed:', e);
@@ -262,7 +298,7 @@ const fetchData = async () => {
     try {
       const topProductsResult = await summariesService.getTopProducts({ metric: 'revenue', limit: 20 });
       if (topProductsResult.success) {
-        topProducts.value = topProductsResult.data.products || [];
+        topProducts.value = (topProductsResult.data as unknown as { products?: TopProduct[] })?.products ?? [];
       }
     } catch (e) {
       console.error('Top products fetch failed:', e);
@@ -272,54 +308,54 @@ const fetchData = async () => {
     try {
       const alertsResult = await summariesService.getAlerts();
       if (alertsResult.success) {
-        alerts.value = alertsResult.data;
+        alerts.value = alertsResult.data as unknown as AlertsData;
       }
     } catch (e) {
       console.error('Alerts fetch failed:', e);
     }
 
   } catch (err) {
-    error.value = err.message;
+    error.value = err instanceof Error ? err.message : String(err);
     console.error('Error fetching summaries:', err);
   } finally {
     loading.value = false;
   }
 };
 
-const refreshData = () => {
-  fetchData();
+const refreshData = (): void => {
+  void fetchData();
 };
 
-const formatNumber = (num) => {
+const formatNumber = (num: number | null | undefined): string => {
   if (num === null || num === undefined) return '0';
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(num);
 };
 
-const formatAlertType = (type) => {
+const formatAlertType = (type: string): string => {
   return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
-const getSeverityClass = (severity) => {
-  const classes = {
+const getSeverityClass = (severity: string): string => {
+  const classes: Record<string, string> = {
     critical: 'bg-red-100 text-red-800',
     high: 'bg-orange-100 text-orange-800',
     medium: 'bg-yellow-100 text-yellow-800',
     low: 'bg-blue-100 text-blue-800'
   };
-  return classes[severity.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  return classes[severity.toLowerCase()] ?? 'bg-gray-100 text-gray-800';
 };
 
-const getAlertTypeClass = (type) => {
-  const classes = {
+const getAlertTypeClass = (type: string): string => {
+  const classes: Record<string, string> = {
     out_of_stock: 'bg-red-100 text-red-800',
     low_stock: 'bg-orange-100 text-orange-800',
     expired: 'bg-red-100 text-red-800',
     expiring_soon: 'bg-yellow-100 text-yellow-800'
   };
-  return classes[type.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  return classes[type.toLowerCase()] ?? 'bg-gray-100 text-gray-800';
 };
 
-const exportToJSON = () => {
+const exportToJSON = (): void => {
   const dataToExport = {
     stockValue: stockValue.value,
     topProducts: topProducts.value,
@@ -331,14 +367,14 @@ const exportToJSON = () => {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `analytics_summaries_${new Date().toISOString().split('T')[0]}.json`;
+  link.download = `analytics_summaries_${new Date().toISOString().split('T')[0] ?? ''}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 };
 
-const exportToCSV = () => {
+const exportToCSV = (): void => {
   let csvContent = '';
 
   // Stock Value CSV
@@ -346,7 +382,7 @@ const exportToCSV = () => {
     csvContent += 'Stock Value Summary\n';
     csvContent += 'Company,Products,Units,Cost Value,Selling Value,Profit,Margin %\n';
     stockValue.value.companies.forEach(company => {
-      csvContent += `"${company.company_name}",${company.inventory.total_products},${company.inventory.total_units},${company.valuation.cost_value},${company.valuation.selling_value},${company.valuation.potential_profit},${company.valuation.profit_margin}\n`;
+      csvContent += `"${company.company_name}",${company.inventory?.total_products},${company.inventory?.total_units},${company.valuation?.cost_value},${company.valuation?.selling_value},${company.valuation?.potential_profit},${company.valuation?.profit_margin}\n`;
     });
     csvContent += '\n';
   }
@@ -356,7 +392,7 @@ const exportToCSV = () => {
     csvContent += 'Top Products Summary\n';
     csvContent += 'Rank,Product,Quantity Sold,Revenue,Profit,Margin %,Companies\n';
     topProducts.value.forEach(product => {
-      csvContent += `${product.rank},"${product.product_name}",${product.performance.total_quantity},${product.performance.total_revenue},${product.performance.total_profit},${product.performance.profit_margin},${product.distribution.company_count}\n`;
+      csvContent += `${product.rank},"${product.product_name}",${product.performance?.total_quantity},${product.performance?.total_revenue},${product.performance?.total_profit},${product.performance?.profit_margin},${product.distribution?.company_count}\n`;
     });
     csvContent += '\n';
   }
@@ -366,7 +402,7 @@ const exportToCSV = () => {
     csvContent += 'Alerts Summary\n';
     csvContent += 'Severity,Product,Company,Current Stock,Reorder Level,Alert Type\n';
     alerts.value.alerts.forEach(alert => {
-      csvContent += `"${alert.alert.severity}","${alert.product.name}","${alert.company.name}",${alert.stock.current},${alert.stock.reorder_level},"${formatAlertType(alert.alert.type)}"\n`;
+      csvContent += `"${alert.alert?.severity}","${alert.product?.name}","${alert.company?.name}",${alert.stock?.current},${alert.stock?.reorder_level},"${formatAlertType(alert.alert?.type ?? '')}"\n`;
     });
   }
 
@@ -374,7 +410,7 @@ const exportToCSV = () => {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `analytics_summaries_${new Date().toISOString().split('T')[0]}.csv`;
+  link.download = `analytics_summaries_${new Date().toISOString().split('T')[0] ?? ''}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -382,7 +418,7 @@ const exportToCSV = () => {
 };
 
 onMounted(() => {
-  fetchData();
+  void fetchData();
 });
 </script>
 

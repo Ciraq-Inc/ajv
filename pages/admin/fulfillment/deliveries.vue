@@ -58,8 +58,8 @@
                 v-for="d in deliveries"
                 :key="d.id"
                 style="border-bottom: 1px solid #f3f4f6; transition: background 0.15s;"
-                @mouseover="$event.currentTarget.style.background='#f9fafb'"
-                @mouseleave="$event.currentTarget.style.background=''"
+                @mouseover="($event.currentTarget as HTMLElement | null)?.style && (($event.currentTarget as HTMLElement).style.background='#f9fafb')"
+                @mouseleave="($event.currentTarget as HTMLElement | null)?.style && (($event.currentTarget as HTMLElement).style.background='')"
               >
                 <td style="padding: 0.75rem 1rem; font-weight: 500; color: #111827;">{{ d.request_number || `#${d.request_id}` }}</td>
                 <td style="padding: 0.75rem 1rem; color: #374151; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.delivery_address }}</td>
@@ -83,15 +83,38 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+interface DeliveryRow {
+  id: number
+  request_id: number
+  request_number: string | null
+  delivery_address: string
+  pharmacy_name: string | null
+  driver_name: string | null
+  delivery_fee: number | string | null
+  delivery_status: string
+  created_at: string | null
+}
+
+interface StatusOption {
+  value: string
+  label: string
+}
+
+interface FetchParams {
+  limit: number
+  status?: string
+  [key: string]: unknown
+}
+
 const { get } = useApi()
 
-const deliveries = ref([])
-const loading = ref(false)
-const error = ref(null)
-const statusFilter = ref('')
+const deliveries = ref<DeliveryRow[]>([])
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
+const statusFilter = ref<string>('')
 
-const statusOptions = [
+const statusOptions: StatusOption[] = [
   { value: '', label: 'All' },
   { value: 'open', label: 'Open' },
   { value: 'assigned', label: 'Assigned' },
@@ -100,23 +123,23 @@ const statusOptions = [
   { value: 'rider_proposed', label: 'Rider Proposed' },
 ]
 
-const fetchDeliveries = async () => {
+const fetchDeliveries = async (): Promise<void> => {
   loading.value = true
   error.value = null
   try {
-    const params = { limit: 50 }
+    const params: FetchParams = { limit: 50 }
     if (statusFilter.value) params.status = statusFilter.value
-    const res = await get('/api/deliveries/', { params })
-    deliveries.value = res.data || []
+    const res = await get('/api/deliveries/', { params }) as { data?: DeliveryRow[] | null }
+    deliveries.value = res.data ?? []
   } catch (e) {
-    error.value = e.message || 'Failed to load deliveries'
+    error.value = e instanceof Error ? e.message : 'Failed to load deliveries'
   } finally {
     loading.value = false
   }
 }
 
-const formatStatus = (s) => {
-  const map = {
+const formatStatus = (s: string | undefined): string => {
+  const map: Record<string, string> = {
     open: 'Open',
     assigned: 'Assigned',
     picked_up: 'Picked Up',
@@ -124,11 +147,11 @@ const formatStatus = (s) => {
     rider_proposed: 'Rider Proposed',
     cancelled: 'Cancelled',
   }
-  return map[s] || s
+  return (s !== undefined ? map[s] : undefined) ?? s ?? ''
 }
 
-const statusStyle = (s) => {
-  const styles = {
+const statusStyle = (s: string | undefined): string => {
+  const styles: Record<string, string> = {
     open: 'background:#fffbeb; color:#92400e;',
     assigned: 'background:#eff6ff; color:#1d4ed8;',
     picked_up: 'background:#f0fdf4; color:#15803d;',
@@ -136,15 +159,15 @@ const statusStyle = (s) => {
     rider_proposed: 'background:#f5f3ff; color:#6d28d9;',
     cancelled: 'background:#fef2f2; color:#b91c1c;',
   }
-  return styles[s] || 'background:#f3f4f6; color:#374151;'
+  return (s !== undefined ? styles[s] : undefined) ?? 'background:#f3f4f6; color:#374151;'
 }
 
-const formatDate = (dt) => {
+const formatDate = (dt: string | null | undefined): string => {
   if (!dt) return '—'
   return new Date(dt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-onMounted(fetchDeliveries)
+onMounted(() => { void fetchDeliveries() })
 
 definePageMeta({
   middleware: 'admin-auth',

@@ -106,7 +106,7 @@ export default defineNuxtConfig({
   ],
 
   gtag: {
-		id: process.env.GTAG_ID,
+		id: process.env.GTAG_ID ?? '',
 	},
 
   vuefire: {
@@ -131,7 +131,7 @@ export default defineNuxtConfig({
   // Runtime configuration for API endpoints
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.API_BASE_URL,
+      apiBase: process.env.NUXT_PUBLIC_API_BASE ?? process.env.API_BASE_URL ?? '',
       paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
       paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || '',
       accessControlUsername: process.env.NUXT_PUBLIC_ACCESS_CONTROL_USERNAME || process.env.ACCESS_CONTROL_USERNAME || 'admin',

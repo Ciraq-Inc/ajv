@@ -26,7 +26,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import {
   ExclamationCircleIcon,
@@ -34,29 +34,30 @@ import {
   ArrowPathIcon,
   CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
+import type { Component } from 'vue'
 
-const props = defineProps({
-  state: {
-    type: String,
-    default: 'empty',
-    validator: (v) => ['error', 'empty', 'loading', 'success'].includes(v)
-  },
-  icon: { type: [Object, Function], default: null },
-  heading: { type: String, default: '' },
-  message: { type: String, default: '' },
-  actionLabel: { type: String, default: '' }
-})
+type StateKind = 'error' | 'empty' | 'loading' | 'success'
 
-defineEmits(['action'])
+const props = defineProps<{
+  state?: StateKind
+  icon?: Component | null
+  heading?: string
+  message?: string
+  actionLabel?: string
+}>()
 
-const defaultIcons = {
+defineEmits<{ action: [] }>()
+
+const defaultIcons: Record<StateKind, Component> = {
   error: ExclamationCircleIcon,
   empty: InboxIcon,
   loading: ArrowPathIcon,
   success: CheckCircleIcon,
 }
 
-const resolvedIcon = computed(() => props.icon || defaultIcons[props.state] || null)
+const resolvedIcon = computed<Component | null>(() =>
+  props.icon ?? defaultIcons[props.state ?? 'empty'] ?? null,
+)
 </script>
 
 <style scoped>

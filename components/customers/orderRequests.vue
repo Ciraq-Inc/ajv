@@ -244,7 +244,7 @@
                                         aria-autocomplete="list"
                                         aria-controls="delivery-address-suggestions"
                                         :aria-expanded="deliveryAddressSuggestions.length > 0"
-                                        :aria-activedescendant="deliveryAddressActiveIndex >= 0 ? `delivery-address-option-${deliveryAddressActiveIndex}` : undefined"
+                                        :aria-activedescendant="deliveryAddressActiveIndex >= 0 ? `delivery-address-option-${deliveryAddressActiveIndex}` : ''"
                                         autocomplete="street-address"
                                         inputmode="text"
                                         @keydown="onDeliveryAddressKeydown"
@@ -452,10 +452,10 @@
                                 <div
                                     class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
                                     <template
-                                        v-if="(req.total_cost && parseFloat(req.total_cost) > 0) || (req.estimated_total && parseFloat(req.estimated_total) > 0)">
+                                        v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
                                         <strong
                                             class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS
-                                            {{ parseFloat(req.total_cost || req.estimated_total).toFixed(2) }}</strong>
+                                            {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
                                     </template>
                                     <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
 
@@ -512,7 +512,7 @@
                     <!-- Items -->
                     <div v-if="selectedRequest.items?.length" class="detail-section">
                         <span class="detail-label">Items</span>
-                        <div v-for="item in selectedRequest.items" :key="item.id" class="detail-item">
+                        <div v-for="(item, itemIdx) in selectedRequest.items" :key="item.id ?? itemIdx" class="detail-item">
                             <div>
                                 <strong>{{ item.product_name }}</strong>
                                 <span class="item-qty">Qty: {{ item.quantity }}</span>
@@ -527,7 +527,7 @@
                             </div>
                             <div class="item-price-info">
                                 <span v-if="item.marked_up_price" class="item-price">GHS {{
-                                    parseFloat(item.marked_up_price).toFixed(2) }}</span>
+                                    parseFloat(String(item.marked_up_price)).toFixed(2) }}</span>
                                 <span v-else class="price-pending">Price pending</span>
                                 <span class="status-badge sm" :class="item.item_status || 'pending'">{{ item.item_status
                                     ||
@@ -550,12 +550,11 @@
                          comparison cards below carry per-method totals) -->
                     <div v-if="selectedRequest.estimated_total && !requiresMethodSelection(selectedRequest)" class="totals-box">
                         <div class="total-row"><span>Items total</span><span>GHS {{
-                            parseFloat(selectedRequest.items_total ||
-                                0).toFixed(2) }}</span></div>
+                            parseFloat(String(selectedRequest.items_total ?? 0)).toFixed(2) }}</span></div>
                         <div v-if="selectedRequest.fulfillment_type === 'delivery' && selectedRequest.delivery_fee" class="total-row"><span>Delivery fee</span><span>GHS {{
-                            parseFloat(selectedRequest.delivery_fee).toFixed(2) }}</span></div>
+                            parseFloat(String(selectedRequest.delivery_fee)).toFixed(2) }}</span></div>
                         <div class="total-row grand"><span>Estimated Total</span><span>GHS {{
-                            parseFloat(selectedRequest.estimated_total).toFixed(2) }}</span></div>
+                            parseFloat(String(selectedRequest.estimated_total)).toFixed(2) }}</span></div>
                     </div>
 
                     <div v-if="canLeaveFeedback(selectedRequest)" class="feedback-card">
@@ -565,7 +564,7 @@
                                 <p class="feedback-copy">How did this request feel from start to finish?</p>
                             </div>
                             <span v-if="selectedRequest.feedback?.created_at" class="feedback-date">
-                                {{ formatDate(selectedRequest.feedback.created_at) }}
+                                {{ formatDate(selectedRequest.feedback?.created_at) }}
                             </span>
                         </div>
 
@@ -596,7 +595,7 @@
 
                     <div v-if="selectedRequest.pending_decisions?.length" class="decision-panel">
                         <span class="detail-label">Customer Decision</span>
-                        <div v-for="decision in selectedRequest.pending_decisions" :key="decision.id"
+                        <div v-for="(decision, decIdx) in selectedRequest.pending_decisions" :key="decision.id ?? decIdx"
                             class="decision-card">
                             <span class="decision-eyebrow" :class="getDecisionVariantClass(decision)">{{
                                 getDecisionEyebrow(decision) }}</span>
@@ -684,16 +683,16 @@
                                 <span>Loading options…</span>
                             </div>
 
-                            <div v-else-if="paymentOptionsByRequest[selectedRequest.id]" class="fulfillment-options">
+                            <div v-else-if="selectedPaymentOptions" class="fulfillment-options">
                                 <!-- Pickup card -->
                                 <button
                                     type="button"
                                     class="fulfillment-option"
                                     :class="{
                                         'fulfillment-option--selected': selectedPaymentMethodByRequest[selectedRequest.id] === 'pickup',
-                                        'fulfillment-option--disabled': !paymentOptionsByRequest[selectedRequest.id].pickup.available
+                                        'fulfillment-option--disabled': !selectedPaymentOptions?.pickup?.available
                                     }"
-                                    :disabled="!paymentOptionsByRequest[selectedRequest.id].pickup.available"
+                                    :disabled="!selectedPaymentOptions?.pickup?.available"
                                     @click="choosePaymentMethod(selectedRequest.id, 'pickup')"
                                 >
                                     <div class="fulfillment-option-row">
@@ -704,29 +703,29 @@
                                             <div class="fulfillment-option-head">
                                                 <span class="fulfillment-option-title">Pickup</span>
                                                 <span class="fulfillment-option-price">
-                                                    <template v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available">
-                                                        GHS {{ paymentOptionsByRequest[selectedRequest.id].pickup.total.toFixed(2) }}
+                                                    <template v-if="selectedPaymentOptions?.pickup?.available">
+                                                        GHS {{ Number(selectedPaymentOptions?.pickup?.total ?? 0).toFixed(2) }}
                                                     </template>
                                                     <template v-else>—</template>
                                                 </span>
                                             </div>
-                                            <div v-if="paymentOptionsByRequest[selectedRequest.id].pickup.available && paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy" class="fulfillment-option-meta">
-                                                <span>{{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.name }}</span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area">
-                                                    · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.area }}
+                                            <div v-if="selectedPaymentOptions?.pickup?.available && selectedPaymentOptions?.pickup?.pharmacy" class="fulfillment-option-meta">
+                                                <span>{{ selectedPaymentOptions?.pickup?.pharmacy?.name }}</span>
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.area">
+                                                    · {{ selectedPaymentOptions?.pickup?.pharmacy?.area }}
                                                 </span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km != null">
-                                                    · {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.distance_km }} km away
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">
+                                                    · {{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away
                                                 </span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.is_24_hours">
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours">
                                                     · Open 24 hours
                                                 </span>
-                                                <span v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at">
-                                                    · Open until {{ paymentOptionsByRequest[selectedRequest.id].pickup.pharmacy.closes_at }}
+                                                <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at">
+                                                    · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}
                                                 </span>
                                             </div>
-                                            <div v-else-if="paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
-                                                {{ formatPickupReason(paymentOptionsByRequest[selectedRequest.id].pickup.unavailable_reason) }}
+                                            <div v-else-if="selectedPaymentOptions?.pickup?.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
+                                                {{ formatPickupReason(selectedPaymentOptions?.pickup?.unavailable_reason) }}
                                             </div>
                                         </div>
                                     </div>
@@ -747,16 +746,16 @@
                                             <div class="fulfillment-option-head">
                                                 <span class="fulfillment-option-title">Delivery</span>
                                                 <span class="fulfillment-option-price">
-                                                    GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.total.toFixed(2) }}
+                                                    GHS {{ Number(selectedPaymentOptions?.delivery?.total ?? 0).toFixed(2) }}
                                                 </span>
                                             </div>
                                             <div class="fulfillment-option-meta">
-                                                <span>Delivery fee GHS {{ paymentOptionsByRequest[selectedRequest.id].delivery.fee.toFixed(2) }}</span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.distance_km != null">
-                                                    · {{ paymentOptionsByRequest[selectedRequest.id].delivery.distance_km }} km
+                                                <span>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</span>
+                                                <span v-if="selectedPaymentOptions?.delivery?.distance_km != null">
+                                                    · {{ selectedPaymentOptions?.delivery?.distance_km }} km
                                                 </span>
-                                                <span v-if="paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes">
-                                                    · ~{{ paymentOptionsByRequest[selectedRequest.id].delivery.eta_minutes }} min
+                                                <span v-if="selectedPaymentOptions?.delivery?.eta_minutes">
+                                                    · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min
                                                 </span>
                                             </div>
                                         </div>
@@ -766,9 +765,9 @@
                         </div>
 
                         <!-- Fee credit toggle: shown when the request fee can be applied or returned -->
-                        <div v-if="paymentOptionsByRequest[selectedRequest.id]?.fee_applicable" class="fee-credit-picker">
+                        <div v-if="selectedPaymentOptions?.fee_applicable" class="fee-credit-picker">
                             <div class="fee-credit-header">
-                                <span class="fee-credit-label">GHS {{ parseFloat(paymentOptionsByRequest[selectedRequest.id].request_fee).toFixed(2) }} search fee</span>
+                                <span class="fee-credit-label">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</span>
                                 <span class="fee-credit-sub">How would you like to use it?</span>
                             </div>
                             <div class="fee-credit-options">
@@ -873,8 +872,7 @@
                     <!-- Address / Notes -->
                     <div v-if="selectedRequest.customer_address || selectedRequest.delivery_address"
                         class="detail-info">
-                        <MapPinIcon class="detail-svg" /> {{ compactAddress(selectedRequest.customer_address ||
-                        selectedRequest.delivery_address) }}
+                        <MapPinIcon class="detail-svg" /> {{ compactAddress(selectedRequest.customer_address ?? selectedRequest.delivery_address ?? '') }}
                     </div>
                 </div>
             </div>
@@ -1016,11 +1014,12 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, watchEffect, nextTick } from 'vue'
 import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
+import { useApi } from '~/composables/useApi'
 import { formatCompactAddress } from '~/utils/addressFormat'
 import {
     PAYABLE_REQUEST_STATUSES as payableStatuses,
@@ -1041,45 +1040,212 @@ import {
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 
-const props = defineProps({
-    defaultSubTab: { type: String, default: 'new' },
-    initialRequestId: { type: [String, Number], default: null }
-})
+// ─── Domain types ────────────────────────────────────────────────────────────
 
-const userStore = useUserStore()
+interface RequestItem {
+    product_name: string;
+    requested_unit: string;
+    quantity: number;
+    imageFiles: PrescriptionPreview[];
+}
+
+interface PrescriptionPreview {
+    id: string;
+    file: File;
+    previewUrl: string;
+}
+
+interface AddressSuggestion {
+    display_name?: string;
+    latitude?: number | string;
+    longitude?: number | string;
+    [key: string]: unknown;
+}
+
+interface HomeLocation {
+    address: string;
+    latitude: number;
+    longitude: number;
+}
+
+interface LocationIssue {
+    message: string;
+    instructions: string;
+}
+
+interface DecisionItem {
+    item_id?: number | string;
+    status?: string;
+    unit_price?: number | string | null;
+    quantity?: number;
+    marked_up_price?: number | string | null;
+    substitute_option?: {
+        marked_up_price?: number | string | null;
+        source_pharmacy_id?: number | string;
+        distance_km?: number;
+        [key: string]: unknown;
+    } | null;
+    source_pharmacy_id?: number | string;
+    source_pharmacy_ids?: Array<number | string>;
+    source_distances_km?: Array<number | string>;
+    distance_km?: number;
+    default_choice?: string;
+    [key: string]: unknown;
+}
+
+interface RequestDecision {
+    id?: number | string;
+    decision_type?: string;
+    payload?: {
+        summary?: {
+            decision_context?: string;
+            source_pharmacy_count?: number;
+            [key: string]: unknown;
+        };
+        decision_items?: DecisionItem[];
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+
+interface RequestFeedback {
+    rating?: number;
+    comment?: string;
+    created_at?: string;
+    [key: string]: unknown;
+}
+
+interface OrderRequestItem {
+    id?: number | string;
+    product_name?: string;
+    quantity?: number;
+    marked_up_price?: number | string | null;
+    item_status?: string;
+    item_images?: string[];
+    [key: string]: unknown;
+}
+
+interface OrderRequest {
+    id: number | string;
+    request_number?: string;
+    status?: string;
+    created_at?: string;
+    updated_at?: string;
+    fulfillment_type?: string | null;
+    delivery_fee?: number | string;
+    items_total?: number | string;
+    estimated_total?: number | string;
+    total_cost?: number | string;
+    item_count?: number;
+    items?: OrderRequestItem[];
+    prescription_images?: string[];
+    pending_decisions?: RequestDecision[];
+    feedback?: RequestFeedback;
+    rider?: { phone?: string; [key: string]: unknown };
+    rider_phone?: string;
+    rider_name?: string;
+    customer_address?: string;
+    delivery_address?: string;
+    pharmacy?: { name?: string; address?: string; [key: string]: unknown };
+    [key: string]: unknown;
+}
+
+interface PaymentOptions {
+    selected?: string;
+    fee_applicable?: boolean;
+    request_fee?: number | string | null;
+    pickup?: {
+        available?: boolean;
+        total?: number | string | null;
+        total_fee_applied?: number | string | null;
+        unavailable_reason?: string;
+        pharmacy?: {
+            name?: string;
+            area?: string;
+            distance_km?: number | null;
+            is_24_hours?: boolean;
+            closes_at?: string;
+            [key: string]: unknown;
+        };
+        [key: string]: unknown;
+    };
+    delivery?: {
+        total?: number | string | null;
+        total_fee_applied?: number | string | null;
+        fee?: number | string | null;
+        distance_km?: number | null;
+        eta_minutes?: number | null;
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface UserStoreShape {
+    masterCustomer?: { id?: number | string };
+    customerAuthToken?: string | null;
+    getProfile: () => Promise<{
+        home_address?: string;
+        address?: string;
+        home_latitude?: number | string | null;
+        home_longitude?: number | string | null;
+        latitude?: number | string | null;
+        longitude?: number | string | null;
+        [key: string]: unknown;
+    }>;
+    updateProfile: (data: Record<string, unknown>) => Promise<void>;
+}
+
+interface ApiError extends Error {
+    status?: number;
+    data?: Record<string, unknown>;
+}
+
+const props = defineProps<{
+    defaultSubTab?: string;
+    initialRequestId?: string | number | null;
+}>()
+
+const userStore = useUserStore() as unknown as UserStoreShape
 const route = useRoute()
 const router = useRouter()
+const config = useRuntimeConfig()
+const apiBase = config.public['apiBase'] as string ?? ''
 const orderRequestsService = createOrderRequestsService(useApi())
 
-const isNewView = computed(() => props.defaultSubTab === 'new')
-const isListView = computed(() => props.defaultSubTab === 'list')
-const isSubmitting = ref(false)
-const loadingRequests = ref(false)
-const gettingLocation = ref(false)
-const payingRequest = ref(false)
-const payingMethod = ref('')
-const cancelingRequest = ref(false)
-const toast = ref(null)
-const showSuccess = ref(false)
-const showPaymentSuccessAnim = ref(false)
-const showPriorityModal = ref(false)
-const submittedNumber = ref('')
-const requestFee = ref(5)
-const requestRefundMinutes = ref(30)
-const paymentOptionsByRequest = ref({}) // { [requestId]: { pickup, delivery, ... } }
-const paymentOptionsLoading = ref({}) // { [requestId]: bool }
-const selectedPaymentMethodByRequest = ref({}) // { [requestId]: 'pickup'|'delivery' }
-const applyFeeByRequest = ref({}) // { [requestId]: boolean } — true = apply fee to bill, false = return to wallet
-const setApplyFee = (requestId, value) => {
+const isNewView = computed<boolean>(() => props.defaultSubTab === 'new')
+const isListView = computed<boolean>(() => props.defaultSubTab === 'list')
+const isSubmitting = ref<boolean>(false)
+const loadingRequests = ref<boolean>(false)
+const gettingLocation = ref<boolean>(false)
+const payingRequest = ref<boolean>(false)
+const payingMethod = ref<string>('')
+const cancelingRequest = ref<boolean>(false)
+const toast = ref<{ text: string; type: string } | null>(null)
+const showSuccess = ref<boolean>(false)
+const showPaymentSuccessAnim = ref<boolean>(false)
+const showPriorityModal = ref<boolean>(false)
+const submittedNumber = ref<string>('')
+const requestFee = ref<number>(5)
+const requestRefundMinutes = ref<number>(30)
+const paymentOptionsByRequest = ref<Record<string | number, PaymentOptions>>({})
+const paymentOptionsLoading = ref<Record<string | number, boolean>>({})
+const selectedPaymentMethodByRequest = ref<Record<string | number, string>>({})
+const applyFeeByRequest = ref<Record<string | number, boolean>>({})
+// Convenience accessor — avoids repeated index lookups that vue-tsc cannot narrow through v-else-if guards
+const selectedPaymentOptions = computed<PaymentOptions | undefined>(
+    () => selectedRequest.value != null ? paymentOptionsByRequest.value[selectedRequest.value.id] : undefined
+)
+const setApplyFee = (requestId: string | number, value: boolean): void => {
     applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: value }
 }
-const walletBalance = ref(0)
-const submitShortfall = ref(0)
-const paymentShortfall = ref({
+const walletBalance = ref<number>(0)
+const submitShortfall = ref<number>(0)
+const paymentShortfall = ref<{ requestId: string | number | null; amount: number }>({
     requestId: null,
     amount: 0
 })
-const medicineUnitOptions = [
+const medicineUnitOptions: string[] = [
     'tab',
     'capsule',
     'bottle',
@@ -1092,7 +1258,7 @@ const medicineUnitOptions = [
     'other'
 ]
 
-const newItem = () => ({
+const newItem = (): RequestItem => ({
     product_name: '',
     requested_unit: '',
     quantity: 1,
@@ -1103,14 +1269,14 @@ const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
 const HOMEPAGE_PRESCRIPTION_DRAFT_KEY = 'medsgh_homepage_prescription_image'
 const FORM_DRAFT_KEY_BASE = 'medsgh_order_form_draft'
 const DRAFT_TTL_MS = 14 * 24 * 60 * 60 * 1000
-let formDraftSaveTimer = null
+let formDraftSaveTimer: ReturnType<typeof setTimeout> | null = null
 
-const draftStorageKey = () => {
-    const cid = userStore.masterCustomer?.id || 'anon'
+const draftStorageKey = (): string => {
+    const cid = userStore.masterCustomer?.id ?? 'anon'
     return `${FORM_DRAFT_KEY_BASE}:${cid}`
 }
 
-const migrateLegacyDraftKey = () => {
+const migrateLegacyDraftKey = (): void => {
     try {
         const legacy = localStorage.getItem(FORM_DRAFT_KEY_BASE)
             ?? sessionStorage.getItem(FORM_DRAFT_KEY_BASE)
@@ -1123,7 +1289,7 @@ const migrateLegacyDraftKey = () => {
     } catch {}
 }
 
-const saveFormDraft = () => {
+const saveFormDraft = (): void => {
     if (!process.client) return
     formDraftSaveTimer = null
 
@@ -1131,7 +1297,7 @@ const saveFormDraft = () => {
         const draft = {
             items: requestItems.value.map(item => ({
                 product_name: item.product_name,
-                requested_unit: item.requested_unit || '',
+                requested_unit: item.requested_unit ?? '',
                 quantity: item.quantity
             })),
             customerLat: customerLat.value,
@@ -1144,17 +1310,17 @@ const saveFormDraft = () => {
             savedAt: Date.now()
         }
         localStorage.setItem(draftStorageKey(), JSON.stringify(draft))
-    } catch (error) {
-        console.error('Failed to save form draft:', error)
+    } catch (err) {
+        console.error('Failed to save form draft:', err)
     }
 }
 
-const debouncedSaveFormDraft = () => {
+const debouncedSaveFormDraft = (): void => {
     if (formDraftSaveTimer) clearTimeout(formDraftSaveTimer)
     formDraftSaveTimer = setTimeout(saveFormDraft, 1000)
 }
 
-const restoreFormDraft = () => {
+const restoreFormDraft = (): void => {
     if (!process.client) return
 
     try {
@@ -1164,10 +1330,10 @@ const restoreFormDraft = () => {
         const raw = localStorage.getItem(key)
         if (!raw) return
 
-        const draft = JSON.parse(raw)
+        const draft = JSON.parse(raw) as Record<string, unknown> | null
         if (!draft) return
 
-        const savedAt = Number(draft.savedAt || 0)
+        const savedAt = Number(draft['savedAt'] ?? 0)
         if (!savedAt || Date.now() - savedAt > DRAFT_TTL_MS) {
             try { localStorage.removeItem(key) } catch {}
             return
@@ -1183,53 +1349,62 @@ const restoreFormDraft = () => {
         if (hasSignificantContent) return
 
         // Restore items
-        if (Array.isArray(draft.items) && draft.items.length > 0) {
-            requestItems.value = draft.items.map(item => ({
+        const draftItems = draft['items']
+        if (Array.isArray(draftItems) && draftItems.length > 0) {
+            requestItems.value = (draftItems as Array<Record<string, unknown>>).map(item => ({
                 ...newItem(),
-                product_name: item.product_name || '',
-                requested_unit: item.requested_unit || '',
-                quantity: Math.max(1, Number(item.quantity || 1))
+                product_name: String(item['product_name'] ?? ''),
+                requested_unit: String(item['requested_unit'] ?? ''),
+                quantity: Math.max(1, Number(item['quantity'] ?? 1))
             }))
         }
 
         // Restore location data
-        if (draft.customerLat) customerLat.value = draft.customerLat
-        if (draft.customerLng) customerLng.value = draft.customerLng
-        if (draft.locationMode) locationMode.value = draft.locationMode
+        if (draft['customerLat']) customerLat.value = draft['customerLat'] as number
+        if (draft['customerLng']) customerLng.value = draft['customerLng'] as number
+        if (draft['locationMode']) locationMode.value = String(draft['locationMode'])
 
         // Restore form fields
         fulfillmentType.value = 'delivery'
-        if (draft.customerAddress) customerAddress.value = draft.customerAddress
-        if (draft.deliveryAddress) deliveryAddress.value = draft.deliveryAddress
-        if (draft.customerNotes) customerNotes.value = draft.customerNotes
-    } catch (error) {
-        console.error('Failed to restore form draft:', error)
+        if (draft['customerAddress']) customerAddress.value = String(draft['customerAddress'])
+        if (draft['deliveryAddress']) deliveryAddress.value = String(draft['deliveryAddress'])
+        if (draft['customerNotes']) customerNotes.value = String(draft['customerNotes'])
+    } catch (err) {
+        console.error('Failed to restore form draft:', err)
     }
 }
 
-const clearFormDraft = () => {
+const clearFormDraft = (): void => {
     if (!process.client) return
     try {
         localStorage.removeItem(draftStorageKey())
         if (formDraftSaveTimer) clearTimeout(formDraftSaveTimer)
         formDraftSaveTimer = null
-    } catch (error) {
-        console.error('Failed to clear form draft:', error)
+    } catch (err) {
+        console.error('Failed to clear form draft:', err)
     }
 }
 
-const normalizeHomepageDraftItem = (item) => {
-    const productName = String(typeof item === 'string' ? item : item?.product_name || '').trim()
+interface NormalizedDraftItem {
+    product_name: string;
+    requested_unit: string;
+    quantity: number;
+}
+
+const normalizeHomepageDraftItem = (item: unknown): NormalizedDraftItem | null => {
+    const src = item as Record<string, unknown> | string | null | undefined
+    const productName = String(typeof src === 'string' ? src : (src as Record<string, unknown> | null)?.['product_name'] ?? '').trim()
     if (!productName) return null
 
+    const srcObj = typeof src === 'string' ? null : src as Record<string, unknown> | null
     return {
         product_name: productName,
-        requested_unit: String(item?.requested_unit || '').trim().toLowerCase(),
-        quantity: Math.max(1, Number(item?.quantity || 1))
+        requested_unit: String(srcObj?.['requested_unit'] ?? '').trim().toLowerCase(),
+        quantity: Math.max(1, Number(srcObj?.['quantity'] ?? 1))
     }
 }
 
-const consumeHomepageRequestDraft = () => {
+const consumeHomepageRequestDraft = (): NormalizedDraftItem[] | null => {
     if (!process.client) return null
 
     const raw = sessionStorage.getItem(HOMEPAGE_REQUEST_DRAFT_KEY)
@@ -1238,49 +1413,50 @@ const consumeHomepageRequestDraft = () => {
     sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY)
 
     try {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed?.items)) {
-            return parsed.items.map(normalizeHomepageDraftItem).filter(Boolean)
+        const parsed = JSON.parse(raw) as Record<string, unknown> | null
+        if (Array.isArray(parsed?.['items'])) {
+            return (parsed['items'] as unknown[]).map(normalizeHomepageDraftItem).filter((x): x is NormalizedDraftItem => x !== null)
         }
 
         const singleItem = normalizeHomepageDraftItem(parsed)
         return singleItem ? [singleItem] : []
-    } catch (_error) {
+    } catch {
         return []
     }
 }
 
-const consumeHomepagePrescriptionDraft = async () => {
+const consumeHomepagePrescriptionDraft = async (): Promise<void> => {
     if (!process.client) return
     try {
         const raw = sessionStorage.getItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY)
         if (!raw) return
         sessionStorage.removeItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY)
-        const { name, type, data } = JSON.parse(raw)
+        const { name, type, data } = JSON.parse(raw) as { name: string; type: string; data: string }
         if (!data) return
         const file = dataUrlToFile(data, name, type)
         const compressed = await compressRequestImage(file)
         prescriptionFiles.value = [createPrescriptionPreview(compressed)]
         await persistPrescriptionsToSession()
-    } catch (_) {}
+    } catch {}
 }
 
-const applyHomepageRequestDraft = (draftItems = []) => {
-    if (!Array.isArray(draftItems) || !draftItems.length) return
+const applyHomepageRequestDraft = (draftItems: NormalizedDraftItem[] | null = []): void => {
+    const items = draftItems ?? []
+    if (!items.length) return
 
     const existingNames = new Set(
         requestItems.value
-            .map((item) => String(item.product_name || '').trim().toLowerCase())
+            .map((item) => String(item.product_name ?? '').trim().toLowerCase())
             .filter(Boolean)
     )
 
-    const preparedItems = draftItems
+    const preparedItems = items
         .map(normalizeHomepageDraftItem)
-        .filter((item) => item && !existingNames.has(item.product_name.trim().toLowerCase()))
+        .filter((item): item is NormalizedDraftItem => item !== null && !existingNames.has(item.product_name.trim().toLowerCase()))
         .map((item) => ({
             ...newItem(),
             product_name: item.product_name,
-            requested_unit: item.requested_unit || '',
+            requested_unit: item.requested_unit ?? '',
             quantity: item.quantity
         }))
 
@@ -1288,8 +1464,8 @@ const applyHomepageRequestDraft = (draftItems = []) => {
 
     const firstItem = requestItems.value[0]
     const canReplaceFirstEmptyRow = requestItems.value.length === 1
-        && firstItem
-        && !String(firstItem.product_name || '').trim()
+        && firstItem != null
+        && !String(firstItem.product_name ?? '').trim()
         && (!Array.isArray(firstItem.imageFiles) || firstItem.imageFiles.length === 0)
 
     if (canReplaceFirstEmptyRow) {
@@ -1300,49 +1476,49 @@ const applyHomepageRequestDraft = (draftItems = []) => {
     requestItems.value = [...preparedItems, ...requestItems.value]
 }
 
-const requestItems = ref([newItem()])
-const prescriptionPicker = ref(null)
-const prescriptionReplacePicker = ref(null)
-const prescriptionFiles = ref([])
-const prescriptionReplaceIndex = ref(null)
-const customerLat = ref(null)
-const customerLng = ref(null)
-const savedHomeLocation = ref(null)
-const locationMode = ref('none')
-const fulfillmentType = ref('delivery')
-const customerAddress = ref('')
-const deliveryAddress = ref('')
-const deliveryAddressSearch = ref('')
-const deliveryAddressSuggestions = ref([])
-const deliveryAddressActiveIndex = ref(-1)
-const deliveryAutocompleteLoading = ref(false)
-const customerNotes = ref('')
-const notesTextarea = ref(null)
-const showPrescriptionField = ref(false)
-const showNotesField = ref(false)
-const locationIssue = ref(null)
-const uploadProgress = ref(0)
+const requestItems = ref<RequestItem[]>([newItem()])
+const prescriptionPicker = ref<HTMLInputElement | null>(null)
+const prescriptionReplacePicker = ref<HTMLInputElement | null>(null)
+const prescriptionFiles = ref<PrescriptionPreview[]>([])
+const prescriptionReplaceIndex = ref<number | null>(null)
+const customerLat = ref<number | null>(null)
+const customerLng = ref<number | null>(null)
+const savedHomeLocation = ref<HomeLocation | null>(null)
+const locationMode = ref<string>('none')
+const fulfillmentType = ref<string>('delivery')
+const customerAddress = ref<string>('')
+const deliveryAddress = ref<string>('')
+const deliveryAddressSearch = ref<string>('')
+const deliveryAddressSuggestions = ref<AddressSuggestion[]>([])
+const deliveryAddressActiveIndex = ref<number>(-1)
+const deliveryAutocompleteLoading = ref<boolean>(false)
+const customerNotes = ref<string>('')
+const notesTextarea = ref<HTMLTextAreaElement | null>(null)
+const showPrescriptionField = ref<boolean>(false)
+const showNotesField = ref<boolean>(false)
+const locationIssue = ref<LocationIssue | null>(null)
+const uploadProgress = ref<number>(0)
 
-const openPrescriptionField = () => {
+const openPrescriptionField = (): void => {
     showPrescriptionField.value = true
-    nextTick(() => {
+    void nextTick(() => {
         prescriptionPicker.value?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
     })
 }
 
-const openNotesField = () => {
+const openNotesField = (): void => {
     showNotesField.value = true
-    nextTick(() => {
+    void nextTick(() => {
         notesTextarea.value?.focus()
     })
 }
 
-const dismissPrescriptionField = () => {
+const dismissPrescriptionField = (): void => {
     if (prescriptionFiles.value.length) return
     showPrescriptionField.value = false
 }
 
-const dismissNotesField = () => {
+const dismissNotesField = (): void => {
     if (customerNotes.value.trim().length) return
     showNotesField.value = false
 }
@@ -1354,11 +1530,11 @@ watch(prescriptionFiles, (files) => {
 watch(customerNotes, (val) => {
     if (String(val || '').trim().length > 0) showNotesField.value = true
 })
-let deliveryAutocompleteTimer = null
+let deliveryAutocompleteTimer: ReturnType<typeof setTimeout> | null = null
 let deliveryAutocompleteSuspend = false
 
-const myRequests = ref([])
-const selectedRequest = ref(null)
+const myRequests = ref<OrderRequest[]>([])
+const selectedRequest = ref<OrderRequest | null>(null)
 
 // Auto-fetch payment options when the customer opens a payable request.
 // The payment-options endpoint is the source of truth for pickup viability
@@ -1366,40 +1542,40 @@ const selectedRequest = ref(null)
 watch(selectedRequest, (req) => {
     if (!req) return
     if (!canPayRequest(req)) return
-    if (paymentOptionsByRequest.value[req.id]) return
-    loadPaymentOptions(req.id)
+    if (req.id != null && paymentOptionsByRequest.value[req.id]) return
+    if (req.id != null) void loadPaymentOptions(req.id)
 })
-const requestListTab = ref('active')
-const respondingDecisionId = ref(null)
-const decisionSelections = ref({})
-const savingFeedback = ref(false)
-const feedbackForm = ref({
+const requestListTab = ref<string>('active')
+const respondingDecisionId = ref<number | string | null>(null)
+const decisionSelections = ref<Record<string | number, Record<string, string>>>({})
+const savingFeedback = ref<boolean>(false)
+const feedbackForm = ref<{ rating: number; comment: string }>({
     rating: 0,
     comment: ''
 })
 const POLL_INTERVAL_MS = 15000
-let pollTimer = null
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
-const goToNewRequest = async () => {
+const goToNewRequest = async (): Promise<void> => {
     selectedRequest.value = null
     showSuccess.value = false
     await navigateTo({ path: '/customer', query: { tab: 'new' } })
 }
 
-const goToRequestHistory = async () => {
+const goToRequestHistory = async (): Promise<void> => {
     selectedRequest.value = null
     showSuccess.value = false
     await navigateTo({ path: '/customer', query: { tab: 'requests' } })
 }
 
-const validItems = computed(() => requestItems.value.filter(i => i.product_name.trim()))
-const hasPrescriptionFiles = computed(() => prescriptionFiles.value.length > 0)
-const hasItemImageFiles = computed(() => requestItems.value.some((item) => Array.isArray(item.imageFiles) && item.imageFiles.length > 0))
-const hasMultipartUploads = computed(() => hasPrescriptionFiles.value || hasItemImageFiles.value)
-const isUploading = computed(() => isSubmitting.value && uploadProgress.value > 0)
-const homeLocationAvailable = computed(() => !!(savedHomeLocation.value?.latitude && savedHomeLocation.value?.longitude))
-const canSearchProducts = computed(() => Number(walletBalance.value || 0) >= Number(requestFee.value || 5))
-const canSubmit = computed(() => {
+const validItems = computed<RequestItem[]>(() => requestItems.value.filter(i => i.product_name.trim()))
+const hasPrescriptionFiles = computed<boolean>(() => prescriptionFiles.value.length > 0)
+const hasItemImageFiles = computed<boolean>(() => requestItems.value.some((item) => Array.isArray(item.imageFiles) && item.imageFiles.length > 0))
+const hasMultipartUploads = computed<boolean>(() => hasPrescriptionFiles.value || hasItemImageFiles.value)
+const isUploading = computed<boolean>(() => isSubmitting.value && uploadProgress.value > 0)
+const homeLocationAvailable = computed<boolean>(() => !!(savedHomeLocation.value?.latitude && savedHomeLocation.value?.longitude))
+const canSearchProducts = computed<boolean>(() => Number(walletBalance.value ?? 0) >= Number(requestFee.value ?? 5))
+const canSubmit = computed<boolean>(() => {
     const hasRequestContent = validItems.value.length > 0 || prescriptionFiles.value.length > 0
     if (!hasRequestContent || !customerLat.value) return false
     // fulfillment_type is chosen later on the payment screen; address is still
@@ -1412,7 +1588,7 @@ const canSubmit = computed(() => {
     return true
 })
 
-const locationLabel = computed(() => {
+const locationLabel = computed<string>(() => {
     if (locationMode.value === 'home' && homeLocationAvailable.value) return 'Home location ready'
     if (locationMode.value === 'current-request' && customerLat.value) return 'Request location updated'
     if (customerLat.value) return 'Location set'
@@ -1420,20 +1596,20 @@ const locationLabel = computed(() => {
     if (homeLocationAvailable.value) return 'Use current location for this request'
     return 'Use My Current Location'
 })
-const locationSublabel = computed(() => {
+const locationSublabel = computed<string>(() => {
     if (locationMode.value === 'home' && savedHomeLocation.value?.address) {
         return formatCompactAddress(savedHomeLocation.value.address, { primaryCount: 3, fallback: savedHomeLocation.value.address })
     }
     if (locationMode.value === 'current-request' && customerAddress.value) {
         return formatCompactAddress(customerAddress.value, { primaryCount: 3, fallback: customerAddress.value })
     }
-    if (customerLat.value) return `${customerLat.value.toFixed(4)}, ${customerLng.value.toFixed(4)}`
+    if (customerLat.value) return `${customerLat.value.toFixed(4)}, ${customerLng.value?.toFixed(4) ?? ''}`
     return 'We need this to find nearby pharmacies'
 })
 
-const compactAddress = (value) => formatCompactAddress(value, { primaryCount: 3, fallback: value || '' })
+const compactAddress = (value: string): string => formatCompactAddress(value, { primaryCount: 3, fallback: value ?? '' })
 
-const reviewLocationLabel = computed(() => {
+const reviewLocationLabel = computed<string>(() => {
     if (customerAddress.value) {
         return compactAddress(customerAddress.value)
     }
@@ -1441,27 +1617,27 @@ const reviewLocationLabel = computed(() => {
     return 'Not set'
 })
 
-const isCompletedRequest = (request) => {
-    const status = getCustomerStatus(request?.status)
+const isCompletedRequest = (request: OrderRequest): boolean => {
+    const status = getCustomerStatus(request?.status ?? '')
     return ['completed', 'delivered', 'picked_up', 'expired', 'cancelled', 'returned'].includes(status)
 }
 
-const activeRequests = computed(() => myRequests.value.filter(req => !isCompletedRequest(req)))
-const completedRequests = computed(() => myRequests.value.filter(req => isCompletedRequest(req)))
-const filteredRequests = computed(() => (
+const activeRequests = computed<OrderRequest[]>(() => myRequests.value.filter(req => !isCompletedRequest(req)))
+const completedRequests = computed<OrderRequest[]>(() => myRequests.value.filter(req => isCompletedRequest(req)))
+const filteredRequests = computed<OrderRequest[]>(() => (
     requestListTab.value === 'completed' ? completedRequests.value : activeRequests.value
 ))
 
-const buildLocationIssue = (message, instructions) => ({ message, instructions })
+const buildLocationIssue = (message: string, instructions: string): LocationIssue => ({ message, instructions })
 
-const clearDeliveryAddressSuggestions = () => {
+const clearDeliveryAddressSuggestions = (): void => {
     deliveryAddressSuggestions.value = []
     deliveryAddressActiveIndex.value = -1
     deliveryAutocompleteLoading.value = false
 }
 
-const fetchDeliveryAddressSuggestions = async (query) => {
-    const trimmed = String(query || '').trim()
+const fetchDeliveryAddressSuggestions = async (query: string): Promise<void> => {
+    const trimmed = String(query ?? '').trim()
     if (trimmed.length < 3) {
         clearDeliveryAddressSuggestions()
         return
@@ -1470,9 +1646,9 @@ const fetchDeliveryAddressSuggestions = async (query) => {
     try {
         deliveryAutocompleteLoading.value = true
         const res = await apiCall('GET', `/api/auth/customer/autocomplete-location?q=${encodeURIComponent(trimmed)}&limit=5`)
-        deliveryAddressSuggestions.value = Array.isArray(res.data) ? res.data : []
+        deliveryAddressSuggestions.value = Array.isArray(res.data) ? res.data as AddressSuggestion[] : []
         deliveryAddressActiveIndex.value = deliveryAddressSuggestions.value.length > 0 ? 0 : -1
-    } catch (_error) {
+    } catch {
         deliveryAddressSuggestions.value = []
         deliveryAddressActiveIndex.value = -1
     } finally {
@@ -1480,7 +1656,7 @@ const fetchDeliveryAddressSuggestions = async (query) => {
     }
 }
 
-const onDeliveryAddressKeydown = (event) => {
+const onDeliveryAddressKeydown = (event: KeyboardEvent): void => {
     const count = deliveryAddressSuggestions.value.length
     if (!count) return
     if (event.key === 'ArrowDown') {
@@ -1491,14 +1667,15 @@ const onDeliveryAddressKeydown = (event) => {
         deliveryAddressActiveIndex.value = deliveryAddressActiveIndex.value <= 0 ? count - 1 : deliveryAddressActiveIndex.value - 1
     } else if (event.key === 'Enter' && deliveryAddressActiveIndex.value >= 0) {
         event.preventDefault()
-        applyDeliveryAddressSuggestion(deliveryAddressSuggestions.value[deliveryAddressActiveIndex.value])
+        // noUncheckedIndexedAccess: guarded by the `>= 0` check above
+        applyDeliveryAddressSuggestion(deliveryAddressSuggestions.value[deliveryAddressActiveIndex.value]!)
     } else if (event.key === 'Escape') {
         clearDeliveryAddressSuggestions()
     }
 }
 
-const applyDeliveryAddressSuggestion = (suggestion) => {
-    const address = String(suggestion?.display_name || '').trim()
+const applyDeliveryAddressSuggestion = (suggestion: AddressSuggestion | undefined): void => {
+    const address = String(suggestion?.display_name ?? '').trim()
     if (!address) return
 
     deliveryAddress.value = address
@@ -1518,30 +1695,30 @@ const applyDeliveryAddressSuggestion = (suggestion) => {
     clearDeliveryAddressSuggestions()
 }
 
-const applySavedHomeLocation = (homeLocation, { force = false } = {}) => {
+const applySavedHomeLocation = (homeLocation: HomeLocation | null | undefined, { force = false } = {}): void => {
     if (!homeLocation?.latitude || !homeLocation?.longitude) return
     if (!force && (customerLat.value || customerLng.value || locationMode.value === 'current-request')) return
 
     customerLat.value = Number(homeLocation.latitude)
     customerLng.value = Number(homeLocation.longitude)
-    customerAddress.value = homeLocation.address || ''
+    customerAddress.value = homeLocation.address ?? ''
     if (fulfillmentType.value === 'delivery' && (!deliveryAddress.value.trim() || force || locationMode.value !== 'current-request')) {
-        deliveryAddress.value = homeLocation.address || ''
+        deliveryAddress.value = homeLocation.address ?? ''
         deliveryAddressSearch.value = deliveryAddress.value
     }
     locationMode.value = 'home'
 }
 
-const loadSavedHomeLocation = async () => {
+const loadSavedHomeLocation = async (): Promise<void> => {
     try {
         const profile = await userStore.getProfile()
-        const address = profile?.home_address || profile?.address || ''
+        const address = profile?.home_address ?? profile?.address ?? ''
         const latitude = profile?.home_latitude ?? profile?.latitude ?? null
         const longitude = profile?.home_longitude ?? profile?.longitude ?? null
 
         if (latitude && longitude) {
             savedHomeLocation.value = {
-                address,
+                address: String(address),
                 latitude: Number(latitude),
                 longitude: Number(longitude)
             }
@@ -1549,39 +1726,40 @@ const loadSavedHomeLocation = async () => {
         } else {
             savedHomeLocation.value = null
         }
-    } catch (error) {
+    } catch {
         savedHomeLocation.value = null
     }
 }
 
-const restoreSavedHomeLocation = () => {
+const restoreSavedHomeLocation = (): void => {
     if (!savedHomeLocation.value) return
     applySavedHomeLocation(savedHomeLocation.value, { force: true })
     locationIssue.value = null
     showToast('Saved home location restored')
 }
 
-const selectFulfillment = (type) => {
+const selectFulfillment = (type: string): void => {
     fulfillmentType.value = type
     if (type === 'delivery' && !deliveryAddress.value.trim()) {
-        deliveryAddress.value = customerAddress.value || ''
+        deliveryAddress.value = customerAddress.value ?? ''
         deliveryAddressSearch.value = deliveryAddress.value
     }
 }
 
-const isFeedbackEligibleStatus = (status) => ['completed', 'delivered', 'picked_up'].includes(getCustomerStatus(status))
+const isFeedbackEligibleStatus = (status: string | undefined): boolean =>
+    ['completed', 'delivered', 'picked_up'].includes(getCustomerStatus(status ?? ''))
 
-const canLeaveFeedback = (request) => isFeedbackEligibleStatus(request?.status)
+const canLeaveFeedback = (request: OrderRequest): boolean => isFeedbackEligibleStatus(request?.status)
 
-const syncFeedbackForm = () => {
-    const feedback = selectedRequest.value?.feedback || null
+const syncFeedbackForm = (): void => {
+    const feedback = selectedRequest.value?.feedback ?? null
     feedbackForm.value = {
-        rating: Number(feedback?.rating || 0),
-        comment: feedback?.comment || ''
+        rating: Number(feedback?.rating ?? 0),
+        comment: feedback?.comment ?? ''
     }
 }
 
-const getPlatformLocationSettingsLink = () => {
+const getPlatformLocationSettingsLink = (): string | null => {
     if (typeof window === 'undefined') return null
     const ua = window.navigator.userAgent.toLowerCase()
     if (/iphone|ipad|ipod/.test(ua)) return 'app-settings:'
@@ -1589,7 +1767,7 @@ const getPlatformLocationSettingsLink = () => {
     return null
 }
 
-const openLocationSettings = () => {
+const openLocationSettings = (): void => {
     const deepLink = getPlatformLocationSettingsLink()
     if (deepLink) {
         window.location.href = deepLink
@@ -1598,7 +1776,7 @@ const openLocationSettings = () => {
     showToast('Open your browser site settings and allow location access for this page.', 'info')
 }
 
-const createPrescriptionPreview = (file) => ({
+const createPrescriptionPreview = (file: File): PrescriptionPreview => ({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     file,
     previewUrl: URL.createObjectURL(file)
@@ -1606,19 +1784,19 @@ const createPrescriptionPreview = (file) => ({
 
 const RX_SESSION_KEY = 'medsgh_pending_rx'
 
-const fileToDataUrl = (file) => new Promise((resolve) => {
+const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve) => {
     const reader = new FileReader()
-    reader.onload = (e) => resolve(e.target.result)
+    reader.onload = (e) => resolve(e.target?.result as string)
     reader.readAsDataURL(file)
 })
 
-const dataUrlToFile = (dataUrl, name, type) => {
-    const [, base64] = dataUrl.split(',')
+const dataUrlToFile = (dataUrl: string, name: string, type: string): File => {
+    const [, base64] = dataUrl.split(',') as [string, string]
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
     return new File([bytes], name, { type })
 }
 
-const persistPrescriptionsToSession = async () => {
+const persistPrescriptionsToSession = async (): Promise<void> => {
     try {
         const entries = await Promise.all(
             prescriptionFiles.value.map(async (p) => ({
@@ -1628,25 +1806,25 @@ const persistPrescriptionsToSession = async () => {
             }))
         )
         sessionStorage.setItem(RX_SESSION_KEY, JSON.stringify(entries))
-    } catch (_) {}
+    } catch {}
 }
 
-const restorePrescriptionsFromSession = async () => {
+const restorePrescriptionsFromSession = async (): Promise<void> => {
     try {
         const raw = sessionStorage.getItem(RX_SESSION_KEY)
         if (!raw) return
-        const entries = JSON.parse(raw)
+        const entries = JSON.parse(raw) as Array<{ dataUrl: string; name: string; type: string }>
         if (!Array.isArray(entries) || !entries.length) return
         const files = entries.map(({ dataUrl, name, type }) => dataUrlToFile(dataUrl, name, type))
         prescriptionFiles.value = files.map(createPrescriptionPreview)
-    } catch (_) {}
+    } catch {}
 }
 
-const clearPrescriptionSession = () => {
-    try { sessionStorage.removeItem(RX_SESSION_KEY) } catch (_) {}
+const clearPrescriptionSession = (): void => {
+    try { sessionStorage.removeItem(RX_SESSION_KEY) } catch {}
 }
 
-const compressRequestImage = async (file) => {
+const compressRequestImage = async (file: File): Promise<File> => {
     const options = {
         maxSizeMB: 0.8,
         maxWidthOrHeight: 1920,
@@ -1663,29 +1841,29 @@ const compressRequestImage = async (file) => {
                 lastModified: Date.now()
             }
         )
-    } catch (error) {
-        console.error('Failed to compress request image:', error)
+    } catch (err) {
+        console.error('Failed to compress request image:', err)
         return file
     }
 }
 
-const buildItemPayload = (item) => ({
+const buildItemPayload = (item: RequestItem): { product_name: string; requested_unit: string | null; quantity: number } => ({
     product_name: item.product_name.trim(),
-    requested_unit: String(item.requested_unit || '').trim().toLowerCase() || null,
+    requested_unit: String(item.requested_unit ?? '').trim().toLowerCase() || null,
     quantity: item.quantity || 1
 })
 
-const resetPickerInput = (pickerRef) => {
+const resetPickerInput = (pickerRef: { value?: HTMLInputElement | null } | null): void => {
     if (pickerRef?.value) pickerRef.value.value = ''
 }
 
-const revokePrescriptionPreview = (image) => {
+const revokePrescriptionPreview = (image: PrescriptionPreview | undefined | null): void => {
     if (image?.previewUrl) {
         URL.revokeObjectURL(image.previewUrl)
     }
 }
 
-const appendPrescriptionFiles = async (files = []) => {
+const appendPrescriptionFiles = async (files: FileList | File[]): Promise<void> => {
     const accepted = Array.from(files).slice(0, Math.max(0, 6 - prescriptionFiles.value.length))
     if (!accepted.length) return
     const compressedFiles = await Promise.all(accepted.map(compressRequestImage))
@@ -1694,19 +1872,21 @@ const appendPrescriptionFiles = async (files = []) => {
     await persistPrescriptionsToSession()
 }
 
-const onPrescriptionFilesSelected = async (event) => {
-    await appendPrescriptionFiles(event.target.files || [])
-    if (event.target) event.target.value = ''
+const onPrescriptionFilesSelected = async (event: Event): Promise<void> => {
+    const target = event.target as HTMLInputElement
+    await appendPrescriptionFiles(target.files ?? [])
+    if (target) target.value = ''
     resetPickerInput(prescriptionPicker)
 }
 
-const queuePrescriptionReplace = (index) => {
+const queuePrescriptionReplace = (index: number): void => {
     prescriptionReplaceIndex.value = index
     prescriptionReplacePicker.value?.click()
 }
 
-const onReplacePrescriptionFile = async (event) => {
-    const replacement = event.target.files?.[0]
+const onReplacePrescriptionFile = async (event: Event): Promise<void> => {
+    const target = event.target as HTMLInputElement
+    const replacement = target.files?.[0]
     const index = prescriptionReplaceIndex.value
     if (!replacement || index === null || !prescriptionFiles.value[index]) {
         resetPickerInput(prescriptionReplacePicker)
@@ -1722,68 +1902,71 @@ const onReplacePrescriptionFile = async (event) => {
     await persistPrescriptionsToSession()
 }
 
-const removePrescriptionFile = (index) => {
+const removePrescriptionFile = (index: number): void => {
     const current = prescriptionFiles.value[index]
     revokePrescriptionPreview(current)
     prescriptionFiles.value.splice(index, 1)
-    persistPrescriptionsToSession()
+    void persistPrescriptionsToSession()
 }
 
-const appendItemImages = async (item, files = []) => {
-    const accepted = Array.from(files).slice(0, Math.max(0, 6 - (item.imageFiles?.length || 0)))
+const appendItemImages = async (item: RequestItem, files: FileList | File[]): Promise<void> => {
+    const accepted = Array.from(files).slice(0, Math.max(0, 6 - (item.imageFiles?.length ?? 0)))
     if (!accepted.length) return
     const compressedFiles = await Promise.all(accepted.map(compressRequestImage))
     const nextFiles = compressedFiles.map(createPrescriptionPreview)
-    item.imageFiles = [...(item.imageFiles || []), ...nextFiles]
+    item.imageFiles = [...(item.imageFiles ?? []), ...nextFiles]
 }
 
-const onItemImagesSelected = async (event, item) => {
-    await appendItemImages(item, event.target.files || [])
-    resetPickerInput({ value: event.target })
+const onItemImagesSelected = async (event: Event, item: RequestItem): Promise<void> => {
+    const target = event.target as HTMLInputElement
+    await appendItemImages(item, target.files ?? [])
+    target.value = ''
 }
 
-const replaceItemImage = async (event, item, imageIndex) => {
-    const replacement = event.target.files?.[0]
+const replaceItemImage = async (event: Event, item: RequestItem, imageIndex: number): Promise<void> => {
+    const target = event.target as HTMLInputElement
+    const replacement = target.files?.[0]
     if (!replacement || !item?.imageFiles?.[imageIndex]) {
-        resetPickerInput({ value: event.target })
+        target.value = ''
         return
     }
 
     const compressedReplacement = await compressRequestImage(replacement)
     revokePrescriptionPreview(item.imageFiles[imageIndex])
     item.imageFiles.splice(imageIndex, 1, createPrescriptionPreview(compressedReplacement))
-    resetPickerInput({ value: event.target })
+    target.value = ''
 }
 
-const removeItemImage = (item, imageIndex) => {
+const removeItemImage = (item: RequestItem, imageIndex: number): void => {
     const current = item?.imageFiles?.[imageIndex]
     if (!current) return
     revokePrescriptionPreview(current)
     item.imageFiles.splice(imageIndex, 1)
 }
 
-const cleanupItemImages = (item) => {
-    ; (item?.imageFiles || []).forEach(revokePrescriptionPreview)
+const cleanupItemImages = (item: RequestItem): void => {
+    ;(item?.imageFiles ?? []).forEach(revokePrescriptionPreview)
 }
 
-const removeRequestItem = (index) => {
+const removeRequestItem = (index: number): void => {
     const item = requestItems.value[index]
-    cleanupItemImages(item)
+    if (item) cleanupItemImages(item)
     requestItems.value.splice(index, 1)
 }
 
-const reverseGeocodeLocation = async (lat, lng) => {
+const reverseGeocodeLocation = async (lat: number, lng: number): Promise<{ address?: string; [key: string]: unknown } | null> => {
     const res = await apiCall('GET', `/api/auth/customer/reverse-geocode?lat=${lat}&lng=${lng}`)
-    return res.data || null
+    return (res.data as { address?: string } | null) ?? null
 }
 
-const getLocation = () => {
+const getLocation = (): void => {
     if (!navigator.geolocation) {
         locationIssue.value = buildLocationIssue(
             'Location is not available in this browser.',
             'Try a modern browser on your phone, then allow location access and try again.'
         )
-        return showToast('Geolocation not supported', 'error')
+        showToast('Geolocation not supported', 'error')
+        return
     }
     if (typeof window !== 'undefined' && !window.isSecureContext) {
         locationIssue.value = buildLocationIssue(
@@ -1814,40 +1997,43 @@ const getLocation = () => {
                             home_latitude: customerLat.value,
                             home_longitude: customerLng.value
                         })
-                    } catch (saveError) {
-                        console.error('Failed to save location to profile:', saveError)
+                    } catch (saveErr) {
+                        console.error('Failed to save location to profile:', saveErr)
                     }
                 }
-            } catch (error) {
-                console.error('Reverse geocode failed:', error)
+            } catch (err) {
+                console.error('Reverse geocode failed:', err)
             } finally {
                 gettingLocation.value = false
                 locationIssue.value = null
                 showToast('Location set and saved to your profile')
             }
         },
-        (error) => {
+        (geoError) => {
             gettingLocation.value = false
-            if (error?.code === error.PERMISSION_DENIED) {
+            if (geoError.code === geoError.PERMISSION_DENIED) {
                 locationIssue.value = buildLocationIssue(
                     'Location permission is off for this page.',
                     'Turn on GPS, then allow location access in your browser settings for this site.'
                 )
-                return showToast('Location permission was denied. Allow location access and try again.', 'error')
+                showToast('Location permission was denied. Allow location access and try again.', 'error')
+                return
             }
-            if (error?.code === error.POSITION_UNAVAILABLE) {
+            if (geoError.code === geoError.POSITION_UNAVAILABLE) {
                 locationIssue.value = buildLocationIssue(
                     'We could not read your location just now.',
                     'Check that GPS is on, move to a clearer signal area, then try again.'
                 )
-                return showToast('Your location is unavailable right now. Check GPS and try again.', 'error')
+                showToast('Your location is unavailable right now. Check GPS and try again.', 'error')
+                return
             }
-            if (error?.code === error.TIMEOUT) {
+            if (geoError.code === geoError.TIMEOUT) {
                 locationIssue.value = buildLocationIssue(
                     'Location is taking too long to load.',
                     'Check that GPS is on and try again. If it keeps failing, open browser settings and re-enable location access.'
                 )
-                return showToast('Location request timed out. Try again.', 'error')
+                showToast('Location request timed out. Try again.', 'error')
+                return
             }
             locationIssue.value = buildLocationIssue(
                 'We could not get your location right now.',
@@ -1863,92 +2049,93 @@ const getLocation = () => {
 // and base URL are handled in one place. Method + URL are passed through;
 // an optional data object is serialised as JSON body.
 const api = useApi()
-const apiCall = async (method, url, data = null) => {
-    const opts = { method }
+const apiCall = async (method: string, url: string, data: Record<string, unknown> | null = null): Promise<{ data?: unknown; message?: string; success?: boolean }> => {
+    const opts: RequestInit = { method }
     if (data) opts.body = JSON.stringify(data)
     try {
         return await api.request(url, opts)
     } catch (err) {
         // Preserve the legacy thrown shape callers expect.
-        const shaped = new Error(err.message || `Error`)
-        shaped.status = err.status
-        shaped.data = err.data
+        const raw = err as ApiError
+        const shaped: ApiError = new Error(raw.message ?? 'Error')
+        if (raw.status !== undefined) shaped.status = raw.status
+        if (raw.data !== undefined) shaped.data = raw.data
         throw shaped
     }
 }
 
-const fetchRequestSettings = async () => {
+const fetchRequestSettings = async (): Promise<void> => {
     try {
-        const res = await orderRequestsService.getCustomerSettings()
-        requestFee.value = Number(res.data?.request_submission_fee || 5)
-        requestRefundMinutes.value = Number(res.data?.request_no_response_refund_minutes || 30)
-    } catch (e) {
+        const res = await orderRequestsService.getCustomerSettings() as { data?: { request_submission_fee?: number; request_no_response_refund_minutes?: number } }
+        requestFee.value = Number(res.data?.request_submission_fee ?? 5)
+        requestRefundMinutes.value = Number(res.data?.request_no_response_refund_minutes ?? 30)
+    } catch {
         requestFee.value = 5
         requestRefundMinutes.value = 30
     }
 }
 
-const fetchMyRequests = async ({ silent = false } = {}) => {
+const fetchMyRequests = async ({ silent = false }: { silent?: boolean } = {}): Promise<void> => {
     if (!silent) loadingRequests.value = true
     try {
         const res = await apiCall('GET', '/api/order-requests/customer')
-        const nextRequests = res.data || []
+        const nextRequests = (res.data ?? []) as OrderRequest[]
         myRequests.value = nextRequests
 
         // Keep open modal status/details in sync when admin updates a request.
-        if (selectedRequest.value?.id) {
-            const refreshed = nextRequests.find(r => r.id === selectedRequest.value.id)
+        if (selectedRequest.value?.id != null) {
+            const refreshed = nextRequests.find(r => r.id === selectedRequest.value!.id)
             if (refreshed) {
                 selectedRequest.value = { ...selectedRequest.value, ...refreshed }
             }
         }
-    } catch (e) {
+    } catch {
         if (!silent) showToast('Failed to load requests', 'error')
     }
     finally { if (!silent) loadingRequests.value = false }
 }
 
-const viewDetail = async (req) => {
+const viewDetail = async (req: OrderRequest): Promise<void> => {
     try {
-        const res = await apiCall('GET', `/api/order-requests/customer/${req.id}`)
-        selectedRequest.value = res.data
+        const res = await apiCall('GET', `/api/order-requests/customer/${String(req.id ?? '')}`)
+        selectedRequest.value = res.data as OrderRequest
         syncDecisionSelections()
         syncFeedbackForm()
-    } catch (e) { showToast('Failed to load request', 'error') }
+    } catch { showToast('Failed to load request', 'error') }
 }
 
-const normalizeRequestId = (value) => {
+const normalizeRequestId = (value: unknown): number | null => {
     const n = Number(value)
     return Number.isInteger(n) && n > 0 ? n : null
 }
 
-const openRequestById = async (requestId, options = {}) => {
+const openRequestById = async (requestId: unknown, options: { silent?: boolean } = {}): Promise<void> => {
     const { silent = false } = options
     const id = normalizeRequestId(requestId)
     if (!id) return
     try {
         const res = await apiCall('GET', `/api/order-requests/customer/${id}`)
-        selectedRequest.value = res.data
+        selectedRequest.value = res.data as OrderRequest
         syncDecisionSelections()
         syncFeedbackForm()
-    } catch (e) {
+    } catch {
         if (!silent) showToast('Failed to load request', 'error')
     }
 }
 
-const refreshSelectedRequest = async () => {
+const refreshSelectedRequest = async (): Promise<void> => {
     if (!selectedRequest.value?.id) return
     try {
-        const res = await apiCall('GET', `/api/order-requests/customer/${selectedRequest.value.id}`)
-        selectedRequest.value = res.data
+        const res = await apiCall('GET', `/api/order-requests/customer/${String(selectedRequest.value.id)}`)
+        selectedRequest.value = res.data as OrderRequest
         syncDecisionSelections()
         syncFeedbackForm()
-    } catch (e) { }
+    } catch {}
 }
 
-const submitFeedback = async () => {
+const submitFeedback = async (): Promise<void> => {
     if (!selectedRequest.value?.id || savingFeedback.value) return
-    const rating = Number(feedbackForm.value.rating || 0)
+    const rating = Number(feedbackForm.value.rating ?? 0)
     if (rating < 1 || rating > 5) {
         showToast('Choose a star rating before saving feedback.', 'error')
         return
@@ -1956,38 +2143,39 @@ const submitFeedback = async () => {
 
     savingFeedback.value = true
     try {
-        const res = await apiCall('POST', `/api/order-requests/customer/${selectedRequest.value.id}/feedback`, {
+        const res = await apiCall('POST', `/api/order-requests/customer/${String(selectedRequest.value.id)}/feedback`, {
             rating,
-            comment: feedbackForm.value.comment?.trim() || ''
+            comment: feedbackForm.value.comment?.trim() ?? ''
         })
 
         selectedRequest.value = {
             ...selectedRequest.value,
-            feedback: res.data
+            feedback: res.data as RequestFeedback
         }
         syncFeedbackForm()
-        showToast(res.message || 'Thanks for sharing your feedback')
+        showToast(res.message ?? 'Thanks for sharing your feedback')
         selectedRequest.value = null
-    } catch (e) {
-        showToast(e.message || 'Failed to save feedback', 'error')
+    } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to save feedback', 'error')
     } finally {
         savingFeedback.value = false
     }
 }
 
-const fetchWalletBalance = async () => {
+const fetchWalletBalance = async (): Promise<void> => {
     try {
         const res = await apiCall('GET', '/api/wallet')
-        walletBalance.value = Number(res.data?.balance || 0)
-    } catch (e) {
+        const resData = res.data as { balance?: number | string } | null
+        walletBalance.value = Number(resData?.balance ?? 0)
+    } catch {
         walletBalance.value = 0
     }
 }
 
-const submitMultipartRequest = (formData) => new Promise((resolve, reject) => {
+const submitMultipartRequest = (formData: FormData): Promise<{ data?: unknown; message?: string; success?: boolean }> => new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `${apiBase}/api/order-requests/customer`)
-    xhr.setRequestHeader('Authorization', `Bearer ${userStore.customerAuthToken}`)
+    xhr.setRequestHeader('Authorization', `Bearer ${userStore.customerAuthToken ?? ''}`)
 
     xhr.upload.onprogress = (event) => {
         if (!event.lengthComputable) return
@@ -1996,16 +2184,17 @@ const submitMultipartRequest = (formData) => new Promise((resolve, reject) => {
 
     xhr.onload = () => {
         try {
-            const json = JSON.parse(xhr.responseText || '{}')
+            const json = JSON.parse(xhr.responseText || '{}') as { success?: boolean; message?: string; data?: unknown }
             if (xhr.status >= 200 && xhr.status < 300 && json.success) {
                 resolve(json)
                 return
             }
-            const err = new Error(json.message || `Error ${xhr.status}`)
-            err.status = xhr.status
-            err.data = json.data
-            reject(err)
-        } catch (_error) {
+            const uploadErr: ApiError = new Error(json.message ?? `Error ${xhr.status}`)
+            uploadErr.status = xhr.status
+            const _uploadData = json.data as Record<string, unknown> | undefined
+            if (_uploadData !== undefined) uploadErr.data = _uploadData
+            reject(uploadErr)
+        } catch {
             reject(new Error('Failed to parse upload response'))
         }
     }
@@ -2014,7 +2203,7 @@ const submitMultipartRequest = (formData) => new Promise((resolve, reject) => {
     xhr.send(formData)
 })
 
-const submitRequest = async () => {
+const submitRequest = async (): Promise<void> => {
     if (!canSubmit.value) return
     isSubmitting.value = true
     uploadProgress.value = 0
@@ -2025,12 +2214,12 @@ const submitRequest = async () => {
             items: validItems.value.map(buildItemPayload),
             customer_latitude: customerLat.value,
             customer_longitude: customerLng.value,
-            fulfillment_type: null,
+            fulfillment_type: null as string | null,
             delivery_address: deliveryAddress.value.trim(),
             customer_address: (customerAddress.value || deliveryAddress.value).trim(),
             customer_notes: customerNotes.value.trim(),
         }
-        let res
+        let res: { data?: unknown; message?: string; success?: boolean }
         if (hasMultipartUploads.value) {
             const formData = new FormData()
             formData.append('items', JSON.stringify(payload.items))
@@ -2048,9 +2237,10 @@ const submitRequest = async () => {
             })
             res = await submitMultipartRequest(formData)
         } else {
-            res = await apiCall('POST', '/api/order-requests/customer', payload)
+            res = await apiCall('POST', '/api/order-requests/customer', payload as unknown as Record<string, unknown>)
         }
-        submittedNumber.value = res.data?.request_number || ''
+        const resData = res.data as { request_number?: string } | null
+        submittedNumber.value = resData?.request_number ?? ''
         submitShortfall.value = 0
         showPriorityModal.value = false
         showSuccess.value = true
@@ -2072,12 +2262,13 @@ const submitRequest = async () => {
         customerLng.value = null
         locationMode.value = 'none'
         applySavedHomeLocation(savedHomeLocation.value, { force: true })
-    } catch (e) {
+    } catch (err) {
+        const e = err as ApiError
         if (e.status === 402) {
-            submitShortfall.value = Number(e.data?.shortfall || e.data?.required_fee || requestFee.value)
+            submitShortfall.value = Number(e.data?.['shortfall'] ?? e.data?.['required_fee'] ?? requestFee.value)
             showToast(`Insufficient wallet balance for the GHS ${requestFee.value.toFixed(2)} Priority Search charge. Top up and try again.`, 'error')
         } else {
-            showToast(e.message || 'Failed to submit', 'error')
+            showToast(e.message ?? 'Failed to submit', 'error')
         }
     }
     finally {
@@ -2086,17 +2277,17 @@ const submitRequest = async () => {
     }
 }
 
-const openPriorityGate = () => {
+const openPriorityGate = (): void => {
     if (!canSubmit.value || isSubmitting.value) return
     submitShortfall.value = 0
     showPriorityModal.value = true
 }
 
-const confirmPriorityAndSubmit = async () => {
+const confirmPriorityAndSubmit = async (): Promise<void> => {
     await submitRequest()
 }
 
-const openWalletTab = async () => {
+const openWalletTab = async (): Promise<void> => {
     await navigateTo({ path: '/customer', query: { tab: 'wallet' } })
 }
 
@@ -2122,26 +2313,26 @@ watch(deliveryAddressSearch, (value) => {
     }, 300)
 })
 
-const addItem = () => requestItems.value.push(newItem())
-const decrementQty = (item) => {
-    const current = Number(item?.quantity || 1)
+const addItem = (): void => { requestItems.value.push(newItem()) }
+const decrementQty = (item: RequestItem): void => {
+    const current = Number(item?.quantity ?? 1)
     item.quantity = Math.max(1, current - 1)
 }
-const incrementQty = (item) => {
-    const current = Number(item?.quantity || 1)
+const incrementQty = (item: RequestItem): void => {
+    const current = Number(item?.quantity ?? 1)
     item.quantity = Math.max(1, current + 1)
 }
 
-const getCustomerStatus = (s) => {
+const getCustomerStatus = (s: string): string => {
     if (s === 'in_transit' || s === 'out_for_delivery') return 'on the way'
     if (s === 'picked_up' || s === 'delivered') return 'completed'
     // Map legacy sourcing statuses to new names for display
     if (s === 'confirming_with_pharm' || s === 'composed') return 'sourcing'
     if (s === 'confirmed_in_pharm' || s === 'items_sourced' || s === 'confirmed') return 'payment_pending'
     if (s === 'awaiting_customer') return 'awaiting_input'
-    return s || ''
+    return s ?? ''
 }
-const getStatusClasses = (status) => {
+const getStatusClasses = (status: string): string => {
     switch (status) {
         case 'paid': case 'verified': case 'preparing': return 'bg-green-100 text-green-700';
         case 'pending': case 'composing': return 'bg-[#efdbff] text-[#621fa4]';
@@ -2156,78 +2347,80 @@ const getStatusClasses = (status) => {
         default: return 'bg-gray-100 text-gray-700';
     }
 }
-const formatStatus = (s) => getCustomerStatus(s).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''
-const riderWhatsAppNumber = (phone) => {
+const formatStatus = (s: string | undefined): string => getCustomerStatus(s ?? '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatDate = (d: string | undefined): string => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''
+const riderWhatsAppNumber = (phone: string | undefined): string => {
     if (!phone) return ''
     const clean = String(phone).replace(/\D/g, '')
     if (clean.startsWith('233')) return clean
     if (clean.startsWith('0')) return '233' + clean.slice(1)
     return '233' + clean
 }
-const formatMoney = (v) => Number(v || 0).toFixed(2)
-const getRequestTotal = (req) => {
+const formatMoney = (v: number | string | null | undefined): string => Number(v ?? 0).toFixed(2)
+const getRequestTotal = (req: OrderRequest): number | null => {
     const estimated = Number(req?.estimated_total)
     if (Number.isFinite(estimated) && estimated > 0) return estimated
     const itemsTotal = Number(req?.items_total)
     if (Number.isFinite(itemsTotal) && itemsTotal > 0) return itemsTotal
     return null
 }
-const getPrescriptionImageCount = (req) => Array.isArray(req?.prescription_images) ? req.prescription_images.length : 0
-const shouldShowPrescriptionPreview = (req) => (Number(req?.item_count || 0) === 0) && getPrescriptionImageCount(req) > 0
-const getRequestCardSummary = (req) => {
+const getPrescriptionImageCount = (req: OrderRequest): number => Array.isArray(req?.prescription_images) ? req.prescription_images.length : 0
+const shouldShowPrescriptionPreview = (req: OrderRequest): boolean => (Number(req?.item_count ?? 0) === 0) && getPrescriptionImageCount(req) > 0
+const getRequestCardSummary = (req: OrderRequest): string => {
     if (shouldShowPrescriptionPreview(req)) {
         return 'Prescription attached'
     }
 
-    const itemCount = Number(req?.item_count || 0)
+    const itemCount = Number(req?.item_count ?? 0)
     return itemCount > 0 ? `${itemCount} item${itemCount !== 1 ? 's' : ''}` : '-'
 }
-const getRequestContentCount = (req) => {
+const getRequestContentCount = (req: OrderRequest): string => {
     if (shouldShowPrescriptionPreview(req)) {
         return `${getPrescriptionImageCount(req)} image${getPrescriptionImageCount(req) !== 1 ? 's' : ''}`
     }
 
-    const itemCount = Number(req?.item_count || 0)
+    const itemCount = Number(req?.item_count ?? 0)
     if (itemCount > 0) return `${itemCount} item${itemCount === 1 ? '' : 's'}`
     return '-'
-    return `${itemCount || '—'} item${itemCount === 1 ? '' : 's'}`
+    // Dead code below preserved from original for diff traceability
+    // return `${itemCount || '—'} item${itemCount === 1 ? '' : 's'}`
 }
-const getRequestStatus = (req) => {
-    const rawStatus = getCustomerStatus(req?.status || '')
+const getRequestStatus = (req: OrderRequest): string => {
+    const rawStatus = getCustomerStatus(req?.status ?? '')
     if (payableStatuses.has(rawStatus) && getPayableAmount(req) <= 0) {
         return 'sourcing'
     }
     return rawStatus
 }
-const canCancelRequest = (req) => !!req && req.status === 'pending'
-const clearRequestPaymentQuery = async (requestId = null) => {
-    const nextQuery = { ...route.query, tab: 'requests' }
-    delete nextQuery.reference
-    delete nextQuery.trxref
-    delete nextQuery.requestPayment
-    if (requestId) nextQuery.requestId = String(requestId)
+const canCancelRequest = (req: OrderRequest | null): boolean => !!req && req.status === 'pending'
+const clearRequestPaymentQuery = async (requestId: number | null = null): Promise<void> => {
+    const nextQuery: Record<string, string | undefined> = { ...route.query as Record<string, string>, tab: 'requests' }
+    delete nextQuery['reference']
+    delete nextQuery['trxref']
+    delete nextQuery['requestPayment']
+    if (requestId) nextQuery['requestId'] = String(requestId)
     await router.replace({ query: nextQuery })
 }
-const loadPaymentOptions = async (requestId) => {
+const loadPaymentOptions = async (requestId: number | string): Promise<void> => {
     if (!requestId) return
     if (paymentOptionsLoading.value[requestId]) return
     paymentOptionsLoading.value = { ...paymentOptionsLoading.value, [requestId]: true }
     try {
-        const res = await apiCall('GET', `/api/order-requests/customer/${requestId}/payment-options`)
-        paymentOptionsByRequest.value = { ...paymentOptionsByRequest.value, [requestId]: res.data }
-        const serverSelected = res.data?.selected
+        const res = await apiCall('GET', `/api/order-requests/customer/${String(requestId)}/payment-options`)
+        const resData = res.data as PaymentOptions
+        paymentOptionsByRequest.value = { ...paymentOptionsByRequest.value, [requestId]: resData }
+        const serverSelected = resData?.selected
         if (serverSelected && !selectedPaymentMethodByRequest.value[requestId]) {
             selectedPaymentMethodByRequest.value = {
                 ...selectedPaymentMethodByRequest.value,
                 [requestId]: serverSelected
             }
         }
-        if (res.data?.fee_applicable && !(requestId in applyFeeByRequest.value)) {
+        if (resData?.fee_applicable && !(requestId in applyFeeByRequest.value)) {
             applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: false }
         }
-    } catch (e) {
-        console.warn('Failed to load payment options', e)
+    } catch (err) {
+        console.warn('Failed to load payment options', err)
     } finally {
         const next = { ...paymentOptionsLoading.value }
         delete next[requestId]
@@ -2235,7 +2428,7 @@ const loadPaymentOptions = async (requestId) => {
     }
 }
 
-const choosePaymentMethod = (requestId, method) => {
+const choosePaymentMethod = (requestId: number | string, method: string): void => {
     if (!requestId || !['pickup', 'delivery'].includes(method)) return
     const opts = paymentOptionsByRequest.value[requestId]
     if (method === 'pickup' && opts && !opts.pickup?.available) return
@@ -2245,43 +2438,45 @@ const choosePaymentMethod = (requestId, method) => {
     }
 }
 
-const requiresMethodSelection = (request) => {
+const requiresMethodSelection = (request: OrderRequest | null): boolean => {
     if (!request) return false
     return !request.fulfillment_type
 }
 
-const canPayWithSelection = (request) => {
+const canPayWithSelection = (request: OrderRequest | null): boolean => {
     if (!request) return false
     if (!requiresMethodSelection(request)) return true
-    return Boolean(selectedPaymentMethodByRequest.value[request.id])
+    return Boolean(request.id != null && selectedPaymentMethodByRequest.value[request.id])
 }
 
 // Live total reflecting the chosen fulfillment method and fee preference.
 // Returns null while the customer hasn't yet picked pickup/delivery (em-dash in UI).
-const selectedMethodTotal = computed(() => {
+const selectedMethodTotal = computed<number | null>(() => {
     const req = selectedRequest.value
     if (!req) return null
-    const opts = paymentOptionsByRequest.value[req.id]
+    const reqId = req.id
+    if (reqId == null) return null
+    const opts = paymentOptionsByRequest.value[reqId]
     if (!opts) return null
 
     // Fulfillment method: either already locked on the request or actively chosen by the customer
-    const method = req.fulfillment_type || selectedPaymentMethodByRequest.value[req.id]
+    const method = req.fulfillment_type ?? selectedPaymentMethodByRequest.value[reqId]
     // If method selection is still required but none chosen yet, show nothing
-    if (requiresMethodSelection(req) && !selectedPaymentMethodByRequest.value[req.id]) return null
+    if (requiresMethodSelection(req) && !selectedPaymentMethodByRequest.value[reqId]) return null
 
-    const applyFee = applyFeeByRequest.value[req.id] !== false // default true
+    const applyFee = applyFeeByRequest.value[reqId] !== false // default true
     if (method === 'pickup' && opts.pickup?.available) {
         const total = applyFee ? opts.pickup.total_fee_applied : opts.pickup.total
         return total != null ? Number(total) : null
     }
     if (method === 'delivery') {
-        const total = applyFee ? opts.delivery.total_fee_applied : opts.delivery.total
+        const total = applyFee ? opts.delivery?.total_fee_applied : opts.delivery?.total
         return total != null ? Number(total) : null
     }
     return null
 })
 
-const formatPickupReason = (reason) => {
+const formatPickupReason = (reason: string | undefined): string => {
     switch (reason) {
         case 'multi_pharmacy': return 'Pickup is only available when one pharmacy fulfills the whole order'
         case 'closed': return 'The pharmacy is currently closed'
@@ -2291,8 +2486,8 @@ const formatPickupReason = (reason) => {
     }
 }
 
-const submitFulfillmentChoice = async (requestId, method) => {
-    const res = await apiCall('PUT', `/api/order-requests/customer/${requestId}/fulfillment`, {
+const submitFulfillmentChoice = async (requestId: number | string, method: string): Promise<{ data?: unknown; message?: string }> => {
+    const res = await apiCall('PUT', `/api/order-requests/customer/${String(requestId)}/fulfillment`, {
         fulfillment_type: method
     })
     if (selectedRequest.value?.id === requestId) {
@@ -2305,7 +2500,7 @@ const submitFulfillmentChoice = async (requestId, method) => {
     return res
 }
 
-const payForRequest = async (id, method = 'wallet') => {
+const payForRequest = async (id: number | string, method = 'wallet'): Promise<void> => {
     if (!id || payingRequest.value) return
 
     const request = selectedRequest.value
@@ -2317,8 +2512,8 @@ const payForRequest = async (id, method = 'wallet') => {
         }
         try {
             await submitFulfillmentChoice(id, chosen)
-        } catch (e) {
-            showToast(e.message || 'Could not save your fulfillment choice', 'error')
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Could not save your fulfillment choice', 'error')
             return
         }
     }
@@ -2334,32 +2529,34 @@ const payForRequest = async (id, method = 'wallet') => {
         const payBody = feeApplicable ? { apply_fee: applyFee } : undefined
 
         if (method === 'paystack') {
-            const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay/paystack/initialize`, payBody)
-            if (!res.data?.authorization_url) {
+            const res = await apiCall('POST', `/api/order-requests/customer/${String(id)}/pay/paystack/initialize`, payBody as Record<string, unknown> | undefined ?? null)
+            const resData = res.data as { authorization_url?: string } | null
+            if (!resData?.authorization_url) {
                 throw new Error('Paystack checkout could not be started')
             }
-            window.location.assign(res.data.authorization_url)
+            window.location.assign(resData.authorization_url)
             return
         }
 
-        const res = await apiCall('POST', `/api/order-requests/customer/${id}/pay`, payBody)
+        const res = await apiCall('POST', `/api/order-requests/customer/${String(id)}/pay`, payBody as Record<string, unknown> | undefined ?? null)
         await fetchMyRequests({ silent: true })
         if (selectedRequest.value?.id === id) {
             await refreshSelectedRequest()
         }
         selectedRequest.value = null
         showPaymentSuccessAnim.value = true
-        showToast(res.message || 'Payment completed successfully')
-    } catch (e) {
+        showToast(res.message ?? 'Payment completed successfully')
+    } catch (err) {
+        const e = err as ApiError
         if (method === 'wallet' && e.status === 402 && e.data) {
-            const shortfall = Number(e.data.shortfall || 0)
+            const shortfall = Number(e.data['shortfall'] ?? 0)
             paymentShortfall.value = {
                 requestId: id,
-                amount: shortfall > 0 ? shortfall : Number(getPayableAmount(selectedRequest.value) || 0)
+                amount: shortfall > 0 ? shortfall : Number(getPayableAmount(selectedRequest.value) ?? 0)
             }
             showToast(`Insufficient wallet balance. Top up GHS ${shortfall.toFixed(2)} to continue.`, 'error')
         } else {
-            showToast(e.message || `Failed to start ${method === 'paystack' ? 'Paystack' : 'wallet'} payment`, 'error')
+            showToast(e.message ?? `Failed to start ${method === 'paystack' ? 'Paystack' : 'wallet'} payment`, 'error')
         }
     } finally {
         payingRequest.value = false
@@ -2367,10 +2564,10 @@ const payForRequest = async (id, method = 'wallet') => {
     }
 }
 
-const verifyReturnedPaystackRequestPayment = async () => {
-    const paymentMarker = String(route.query.requestPayment || '').trim().toLowerCase()
-    const reference = String(route.query.reference || route.query.trxref || '').trim()
-    const requestId = normalizeRequestId(route.query.requestId || props.initialRequestId)
+const verifyReturnedPaystackRequestPayment = async (): Promise<void> => {
+    const paymentMarker = String(route.query['requestPayment'] ?? '').trim().toLowerCase()
+    const reference = String(route.query['reference'] ?? route.query['trxref'] ?? '').trim()
+    const requestId = normalizeRequestId(route.query['requestId'] ?? props.initialRequestId)
 
     if (paymentMarker !== 'paystack' || !reference || !requestId || payingRequest.value) return
 
@@ -2385,12 +2582,12 @@ const verifyReturnedPaystackRequestPayment = async () => {
         await openRequestById(requestId, { silent: true })
         selectedRequest.value = null
         showPaymentSuccessAnim.value = true
-        showToast(res.message || 'Payment completed successfully')
-    } catch (e) {
+        showToast(res.message ?? 'Payment completed successfully')
+    } catch (err) {
         await fetchWalletBalance()
         await fetchMyRequests({ silent: true })
         await openRequestById(requestId, { silent: true })
-        showToast(e.message || 'Failed to verify Paystack payment', 'error')
+        showToast(err instanceof Error ? err.message : 'Failed to verify Paystack payment', 'error')
     } finally {
         await clearRequestPaymentQuery(requestId)
         payingRequest.value = false
@@ -2398,51 +2595,52 @@ const verifyReturnedPaystackRequestPayment = async () => {
     }
 }
 
-const respondToDecision = async (decision, response) => {
+const respondToDecision = async (decision: RequestDecision, response: string): Promise<void> => {
     if (!selectedRequest.value?.id || !decision?.id || respondingDecisionId.value) return
 
     respondingDecisionId.value = decision.id
     try {
-        const res = await apiCall('POST', `/api/order-requests/customer/${selectedRequest.value.id}/decisions/${decision.id}/respond`, {
+        const res = await apiCall('POST', `/api/order-requests/customer/${String(selectedRequest.value.id)}/decisions/${String(decision.id)}/respond`, {
             response,
-            selected_items: response === 'approved' ? (decisionSelections.value[decision.id] || {}) : {}
+            selected_items: response === 'approved' ? (decisionSelections.value[decision.id as string | number] ?? {}) : {}
         })
-        showToast(res.message || (response === 'approved' ? 'Decision approved' : 'Decision declined'))
+        showToast(res.message ?? (response === 'approved' ? 'Decision approved' : 'Decision declined'))
         await fetchMyRequests({ silent: true })
         await refreshSelectedRequest()
-    } catch (e) {
-        showToast(e.message || 'Failed to respond to request decision', 'error')
+    } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to respond to request decision', 'error')
     } finally {
         respondingDecisionId.value = null
     }
 }
 
-const getDecisionContext = (decision) => {
-    return decision?.payload?.summary?.decision_context || null
+const getDecisionContext = (decision: RequestDecision): string | null => {
+    return decision?.payload?.summary?.decision_context ?? null
 }
 
-const getDecisionItems = (decision) => {
+const getDecisionItems = (decision: RequestDecision): DecisionItem[] => {
     return Array.isArray(decision?.payload?.decision_items) ? decision.payload.decision_items : []
 }
 
-const syncDecisionSelections = () => {
-    const pendingDecisions = Array.isArray(selectedRequest.value?.pending_decisions) ? selectedRequest.value.pending_decisions : []
-    const nextState = {}
+const syncDecisionSelections = (): void => {
+    const pendingDecisions = Array.isArray(selectedRequest.value?.pending_decisions) ? selectedRequest.value!.pending_decisions! : []
+    const nextState: Record<string | number, Record<string, string>> = {}
 
     pendingDecisions.forEach((decision) => {
-        const existing = decisionSelections.value[decision.id] || {}
-        const itemSelections = {}
+        const decId = decision.id as string | number
+        const existing = decisionSelections.value[decId] ?? {}
+        const itemSelections: Record<string, string> = {}
         getDecisionItems(decision).forEach((item) => {
             const itemId = String(item.item_id)
-            itemSelections[itemId] = existing[itemId] || item.default_choice || 'keep'
+            itemSelections[itemId] = existing[itemId] ?? item.default_choice ?? 'keep'
         })
-        nextState[decision.id] = itemSelections
+        nextState[decId] = itemSelections
     })
 
     decisionSelections.value = nextState
 }
 
-const getDecisionItemChoices = (item) => {
+const getDecisionItemChoices = (item: DecisionItem): Array<{ value: string; label: string }> => {
     if (item?.status === 'substitute_available' && item?.substitute_option) {
         return [
             { value: 'substitute', label: 'Use Alternative' },
@@ -2462,22 +2660,25 @@ const getDecisionItemChoices = (item) => {
     ]
 }
 
-const getDecisionChoice = (decision, item) => {
-    return decisionSelections.value?.[decision?.id]?.[String(item?.item_id)] || item?.default_choice || 'keep'
+const getDecisionChoice = (decision: RequestDecision, item: DecisionItem): string => {
+    const decId = decision?.id as string | number | undefined
+    if (decId == null) return item?.default_choice ?? 'keep'
+    return decisionSelections.value[decId]?.[String(item?.item_id)] ?? item?.default_choice ?? 'keep'
 }
 
-const setDecisionChoice = (decision, item, choice) => {
+const setDecisionChoice = (decision: RequestDecision, item: DecisionItem, choice: string): void => {
     if (!decision?.id || !item?.item_id) return
-    if (!decisionSelections.value[decision.id]) {
-        decisionSelections.value[decision.id] = {}
+    const decId = decision.id as string | number
+    if (!decisionSelections.value[decId]) {
+        decisionSelections.value[decId] = {}
     }
-    decisionSelections.value[decision.id][String(item.item_id)] = choice
+    decisionSelections.value[decId]![String(item.item_id)] = choice
 }
 
-const getDecisionPreviewTotal = (decision) => {
+const getDecisionPreviewTotal = (decision: RequestDecision): number => {
     return getDecisionItems(decision).reduce((sum, item) => {
         const choice = getDecisionChoice(decision, item)
-        const quantity = Number(item.quantity || 0)
+        const quantity = Number(item.quantity ?? 0)
 
         if (choice === 'remove') return sum
 
@@ -2493,7 +2694,7 @@ const getDecisionPreviewTotal = (decision) => {
     }, 0)
 }
 
-const getDecisionDistanceText = (item) => {
+const getDecisionDistanceText = (item: DecisionItem | null | undefined): string => {
     if (!item) return ''
     const primaryDistance = Number(item.distance_km)
     if (Number.isFinite(primaryDistance) && primaryDistance > 0) {
@@ -2501,39 +2702,39 @@ const getDecisionDistanceText = (item) => {
     }
 
     const distances = Array.isArray(item.source_distances_km)
-        ? item.source_distances_km
+        ? (item.source_distances_km as Array<number | string>)
             .map((distance) => Number(distance))
             .filter((distance) => Number.isFinite(distance) && distance > 0)
         : []
 
     if (distances.length) {
         const nearest = [...new Set(distances.map((distance) => Number(distance.toFixed(1))))].sort((a, b) => a - b)[0]
-        return `${nearest.toFixed(1)} km away`
+        return `${(nearest ?? 0).toFixed(1)} km away`
     }
 
     return ''
 }
 
-const getPrimaryDecisionSourceId = (item) => {
-    const directId = Number(item?.source_pharmacy_id || 0)
+const getPrimaryDecisionSourceId = (item: DecisionItem): number | null => {
+    const directId = Number(item?.source_pharmacy_id ?? 0)
     if (Number.isInteger(directId) && directId > 0) return directId
 
     if (Array.isArray(item?.source_pharmacy_ids)) {
-        const fallback = item.source_pharmacy_ids
+        const fallback = (item.source_pharmacy_ids as Array<number | string>)
             .map((id) => Number(id))
             .find((id) => Number.isInteger(id) && id > 0)
-        if (fallback) return fallback
+        if (fallback != null) return fallback
     }
 
     return null
 }
 
-const getDecisionSourceMap = (decision) => {
+const getDecisionSourceMap = (decision: RequestDecision): Map<number, string> => {
     const items = getDecisionItems(decision)
-    const orderedSourceIds = []
-    const sourceSet = new Set()
-    const pushSourceId = (value) => {
-        const id = Number(value || 0)
+    const orderedSourceIds: number[] = []
+    const sourceSet = new Set<number>()
+    const pushSourceId = (value: unknown): void => {
+        const id = Number(value ?? 0)
         if (!Number.isInteger(id) || id <= 0) return
         if (sourceSet.has(id)) return
         sourceSet.add(id)
@@ -2549,19 +2750,19 @@ const getDecisionSourceMap = (decision) => {
     // 2) Then include remaining fallback/substitute sources.
     items.forEach((item) => {
         pushSourceId(getPrimaryDecisionSourceId(item))
-        const substituteId = Number(item?.substitute_option?.source_pharmacy_id || 0)
+        const substituteId = Number(item?.substitute_option?.source_pharmacy_id ?? 0)
         pushSourceId(substituteId)
     })
 
-    const map = new Map()
+    const map = new Map<number, string>()
     orderedSourceIds.forEach((id, index) => {
         map.set(id, `Source ${index + 1}`)
     })
     return map
 }
 
-const getDecisionSourceSummary = (decision) => {
-    const summaryCount = Number(decision?.payload?.summary?.source_pharmacy_count || 0)
+const getDecisionSourceSummary = (decision: RequestDecision): { count: number; isSplit: boolean } => {
+    const summaryCount = Number(decision?.payload?.summary?.source_pharmacy_count ?? 0)
     const map = getDecisionSourceMap(decision)
     const count = summaryCount > 0 ? summaryCount : map.size
     return {
@@ -2570,7 +2771,7 @@ const getDecisionSourceSummary = (decision) => {
     }
 }
 
-const getDecisionHumanSummary = (decision) => {
+const getDecisionHumanSummary = (decision: RequestDecision): string[] => {
     const items = getDecisionItems(decision)
     if (!items.length) return []
 
@@ -2579,9 +2780,9 @@ const getDecisionHumanSummary = (decision) => {
     const availableCount = items.filter((item) => item?.status === 'available').length
     const substituteCount = items.filter((item) => item?.status === 'substitute_available').length
     const unavailableCount = items.filter((item) => item?.status === 'unavailable').length
-    const lines = []
+    const lines: string[] = []
     const shouldIncludeSourceCountForAvailable = sourceSummary.count > 0
-        && ['partial_availability', 'mixed_availability'].includes(decisionContext)
+        && ['partial_availability', 'mixed_availability'].includes(decisionContext ?? '')
 
     if (availableCount > 0 && (sourceSummary.count > 1 || shouldIncludeSourceCountForAvailable)) {
         lines.push(
@@ -2606,7 +2807,7 @@ const getDecisionHumanSummary = (decision) => {
     return lines
 }
 
-const getDecisionConciseSummary = (decision) => {
+const getDecisionConciseSummary = (decision: RequestDecision): string => {
     const items = getDecisionItems(decision)
     if (!items.length) return ''
 
@@ -2616,7 +2817,7 @@ const getDecisionConciseSummary = (decision) => {
     const unavailable = items.filter((item) => item?.status === 'unavailable').length
     const sourceSummary = getDecisionSourceSummary(decision)
 
-    const parts = []
+    const parts: string[] = []
     if (available > 0) {
         const sourcePart = sourceSummary.count > 1
             ? `from ${sourceSummary.count} nearby pharmacies`
@@ -2634,18 +2835,18 @@ const getDecisionConciseSummary = (decision) => {
     return `${parts.join('. ')}.`
 }
 
-const isDecisionItemDirectlyAvailable = (item = {}) => {
-    const status = String(item?.status || '').toLowerCase()
+const isDecisionItemDirectlyAvailable = (item: DecisionItem | Record<string, unknown> = {}): boolean => {
+    const status = String((item as DecisionItem)?.status ?? '').toLowerCase()
     if (status === 'unavailable' || status === 'substitute_available') return false
-    if (item?.unit_price != null) return true
+    if ((item as DecisionItem)?.unit_price != null) return true
     return ['available', 'ready_to_order', 'ordered', 'allocated', 'partially_allocated'].includes(status)
 }
 
-const shouldShowDecisionItemPrice = (item = {}) => {
-    return isDecisionItemDirectlyAvailable(item) && item?.unit_price != null
+const shouldShowDecisionItemPrice = (item: DecisionItem | Record<string, unknown> = {}): boolean => {
+    return isDecisionItemDirectlyAvailable(item) && (item as DecisionItem)?.unit_price != null
 }
 
-const getDecisionFlowHeadline = (decision) => {
+const getDecisionFlowHeadline = (decision: RequestDecision): string => {
     const items = getDecisionItems(decision)
     if (!items.length) return ''
 
@@ -2678,13 +2879,13 @@ const getDecisionFlowHeadline = (decision) => {
     return ''
 }
 
-const getDecisionItemSourceLabel = (decision, item) => {
+const getDecisionItemSourceLabel = (decision: RequestDecision, item: DecisionItem): string => {
     const map = getDecisionSourceMap(decision)
     const primaryId = getPrimaryDecisionSourceId(item)
-    return primaryId ? (map.get(primaryId) || '') : ''
+    return primaryId ? (map.get(primaryId) ?? '') : ''
 }
 
-const getDecisionItemRouteText = (decision, item) => {
+const getDecisionItemRouteText = (decision: RequestDecision, item: DecisionItem): string => {
     if (!item || !isDecisionItemDirectlyAvailable(item)) return ''
     const sourceText = getDecisionItemSourceLabel(decision, item) || 'Nearby source'
     const distanceText = getDecisionDistanceText(item)
@@ -2692,15 +2893,15 @@ const getDecisionItemRouteText = (decision, item) => {
     return sourceText || distanceText || ''
 }
 
-const getDecisionSubstituteSourceLabel = (decision, item) => {
-    const substituteId = Number(item?.substitute_option?.source_pharmacy_id || 0)
+const getDecisionSubstituteSourceLabel = (decision: RequestDecision, item: DecisionItem): string => {
+    const substituteId = Number(item?.substitute_option?.source_pharmacy_id ?? 0)
     if (!Number.isInteger(substituteId) || substituteId <= 0) return ''
     const map = getDecisionSourceMap(decision)
     const label = map.get(substituteId)
     return label ? `${label} (alternative)` : ''
 }
 
-const getDecisionSubstituteRouteText = (decision, item) => {
+const getDecisionSubstituteRouteText = (decision: RequestDecision, item: DecisionItem): string => {
     if (!item?.substitute_option) return ''
     const sourceText = getDecisionSubstituteSourceLabel(decision, item) || 'Nearby source (alternative)'
     const distance = Number(item.substitute_option.distance_km)
@@ -2711,7 +2912,7 @@ const getDecisionSubstituteRouteText = (decision, item) => {
     return sourceText || distanceText || ''
 }
 
-const getDecisionVariantClass = (decision) => {
+const getDecisionVariantClass = (decision: RequestDecision): string => {
     const context = getDecisionContext(decision)
     if (context === 'mixed_availability') return 'warning'
     if (context === 'partial_availability') return 'warning'
@@ -2721,7 +2922,7 @@ const getDecisionVariantClass = (decision) => {
     return 'neutral'
 }
 
-const getDecisionEyebrow = (decision) => {
+const getDecisionEyebrow = (decision: RequestDecision): string => {
     const context = getDecisionContext(decision)
     if (context === 'mixed_availability') return 'Action Needed'
     if (context === 'partial_availability') return 'Partial Availability'
@@ -2731,7 +2932,7 @@ const getDecisionEyebrow = (decision) => {
     return 'Customer Decision'
 }
 
-const getDecisionApproveLabel = (decision) => {
+const getDecisionApproveLabel = (decision: RequestDecision): string => {
     const context = getDecisionContext(decision)
     if (context === 'mixed_availability') return 'Apply My Choices'
     if (context === 'partial_availability') return 'Continue with Available Items'
@@ -2741,7 +2942,7 @@ const getDecisionApproveLabel = (decision) => {
     return 'Approve'
 }
 
-const getDecisionDeclineLabel = (decision) => {
+const getDecisionDeclineLabel = (decision: RequestDecision): string => {
     const context = getDecisionContext(decision)
     if (context === 'mixed_availability') return 'Cancel Request'
     if (context === 'partial_availability') return 'Cancel Request'
@@ -2751,33 +2952,33 @@ const getDecisionDeclineLabel = (decision) => {
     return 'Decline'
 }
 
-const pendingCancelRequestId = ref(null)
+const pendingCancelRequestId = ref<number | string | null>(null)
 
-const requestCancelConfirmation = (id) => {
+const requestCancelConfirmation = (id: number | string): void => {
     if (!id || cancelingRequest.value) return
     pendingCancelRequestId.value = id
 }
 
-const performCancelRequest = async () => {
+const performCancelRequest = async (): Promise<void> => {
     const id = pendingCancelRequestId.value
     if (!id || cancelingRequest.value) return
 
     cancelingRequest.value = true
     try {
-        const res = await apiCall('PUT', `/api/order-requests/customer/${id}/cancel`)
+        const res = await apiCall('PUT', `/api/order-requests/customer/${String(id)}/cancel`)
         pendingCancelRequestId.value = null
-        showToast(res.message || 'Request cancelled')
+        showToast(res.message ?? 'Request cancelled')
         await fetchMyRequests({ silent: true })
         if (selectedRequest.value?.id === id) {
             await refreshSelectedRequest()
         }
-    } catch (e) {
-        showToast(e.message || 'Failed to cancel request', 'error')
+    } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to cancel request', 'error')
     } finally {
         cancelingRequest.value = false
     }
 }
-const statusProgress = (s) => ({
+const statusProgress = (s: string): number => (({
     // New lifecycle
     pending: 10,
     composing: 15,
@@ -2806,8 +3007,8 @@ const statusProgress = (s) => ({
     logistics_pending: 70,
     driver_unavailable: 70,
     completed: 100
-}[s] || 10)
-const showToast = (text, type = 'success') => { toast.value = { text, type }; setTimeout(() => { toast.value = null }, 4000) }
+} as Record<string, number>)[s] ?? 10)
+const showToast = (text: string, type = 'success'): void => { toast.value = { text, type }; setTimeout(() => { toast.value = null }, 4000) }
 
 onMounted(async () => {
     await restorePrescriptionsFromSession()
@@ -2843,7 +3044,7 @@ watch(
 )
 
 watch(
-    () => `${route.query.requestPayment || ''}|${route.query.reference || route.query.trxref || ''}|${route.query.requestId || ''}`,
+    () => `${String(route.query['requestPayment'] ?? '')}|${String(route.query['reference'] ?? route.query['trxref'] ?? '')}|${String(route.query['requestId'] ?? '')}`,
     async () => {
         await verifyReturnedPaystackRequestPayment()
     }
@@ -2856,12 +3057,19 @@ watchEffect(() => {
 
     // Access all form fields to track dependencies
     requestItems.value.map(i => `${i.product_name}|${i.requested_unit}|${i.quantity}`).join(';')
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     fulfillmentType.value
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     customerAddress.value
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     deliveryAddress.value
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     customerNotes.value
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     customerLat.value
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     customerLng.value
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     locationMode.value
 
     // Trigger debounced save
@@ -2876,6 +3084,9 @@ onUnmounted(() => {
 })
 
 defineExpose({ fetchMyRequests })
+
+// Suppress unused-variable warnings for imported utils that are used in template
+void isPaymentPendingRequest
 </script>
 
 <style scoped>

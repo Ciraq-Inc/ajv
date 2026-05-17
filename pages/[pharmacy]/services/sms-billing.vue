@@ -10,7 +10,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
       <div class="lg:col-span-2">
         <BalanceCard
-          :balance-data="balance"
+          v-bind="balance ? { balanceData: balance } : {}"
           :show-actions="true"
           :show-top-up="false"
           @refresh="fetchBalance"
@@ -214,200 +214,182 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import BalanceCard from '~/components/sms/billing/BalanceCard.vue'
 import PaystackTopUpModal from '~/components/sms/billing/PaystackTopUpModal.vue'
-import { formatDate, formatNumber, formatCurrency, getStatusLabel } from '~/utils/constants/sms'
+import { formatDate, formatNumber, formatCurrency } from '~/utils/constants/sms'
 
-// Define page metadata
 definePageMeta({
   layout: 'company',
   middleware: 'company-auth',
-  title: 'SMS Billing'
+  title: 'SMS Billing',
 })
+
+interface BillingTransaction {
+  id: number | string
+  transaction_type: string
+  description?: string | null
+  created_at: string
+  amount?: number | string | null
+  money_balance_after?: number | string | null
+}
+
+interface BalanceData {
+  money_balance?: number | string | null
+  [key: string]: unknown
+}
+
+interface TopUpSuccessData {
+  amount_credited: number
+  [key: string]: unknown
+}
 
 const { balance, transactions, loading, fetchBalance, fetchTransactions } = useSMSBilling()
 
-// Top-up modal state
-const showTopUpModal = ref(false)
+const showTopUpModal = ref<boolean>(false)
 
 const transactionFilters = ref({
   type: '',
-  period: '30'
+  period: '30',
 })
 
-const monthlyStats = ref({
+interface PeriodStats {
+  topupAmount: number
+  deductionAmount: number
+  topups: number
+}
+
+const monthlyStats = ref<PeriodStats>({
   topupAmount: 0,
   deductionAmount: 0,
-  topups: 0
+  topups: 0,
 })
 
-const todayStats = ref({
+const todayStats = ref<PeriodStats>({
   topupAmount: 0,
   deductionAmount: 0,
-  topups: 0
+  topups: 0,
 })
 
-const averageTopup = computed(() => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const averageTopup = computed<number>(() => {
   const total = monthlyStats.value.topups
   if (total === 0) return 0
   return monthlyStats.value.topupAmount / total
 })
 
-// Handle successful top-up
-const handleTopUpSuccess = async (data) => {
-  console.log('Top-up successful:', data)
-  
-  // Close modal
-  showTopUpModal.value = false
-  
-  // Show success message
-  alert(`Successfully added GH₵${data.amount_credited.toFixed(2)} to your account!`)
-  
-  // Refresh balance and transactions
-  await Promise.all([
-    fetchBalance(),
-    fetchTransactions({ money_only: true })
-  ])
-  
-  // Recalculate stats
-  calculateStats()
-}
-
-// Load data on mount
-onMounted(async () => {
-  await Promise.all([
-    fetchBalance(),
-    fetchTransactions({ money_only: true }) // Only money transactions
-  ])
-  
-  console.log('=== INITIAL DATA LOADED ===')
-  console.log('Total transactions loaded:', transactions.value.length)
-  console.log('First 3 transactions:', transactions.value.slice(0, 3))
-  
-  // Calculate stats from transactions
-  calculateStats()
-})
-
-// Refresh transactions
-const refreshTransactions = async () => {
-  const filters = {
-    // Only show money-related transactions (money_topup, money_deduction, money_refund, topup, deduction)
-    money_only: true
-  }
-  
-  if (transactionFilters.value.type) {
-    filters.transaction_type = transactionFilters.value.type
-  }
-  
-  if (transactionFilters.value.period !== 'all') {
-    const days = parseInt(transactionFilters.value.period)
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days)
-    filters.start_date = startDate.toISOString().split('T')[0] // Fix: use start_date and format as YYYY-MM-DD
-  }
-  
-  await fetchTransactions(filters)
-  calculateStats()
-}
-
-// Apply filters
-const applyTransactionFilters = () => {
-  refreshTransactions()
-}
-
-// Calculate stats
-const calculateStats = () => {
+const calculateStats = (): void => {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
+
   let monthTopupAmount = 0
   let monthDeductionAmount = 0
   let monthTopups = 0
   let todayTopupAmount = 0
   let todayDeductionAmount = 0
   let todayTopups = 0
-  
+
   console.log('=== CALCULATING MONEY STATS ===')
   console.log('Calculating stats from', transactions.value.length, 'transactions')
   console.log('Start of month:', startOfMonth.toISOString())
   console.log('Start of day:', startOfDay.toISOString())
   console.log('Current time:', now.toISOString())
-  
+
   if (transactions.value.length === 0) {
-    console.warn('⚠️ NO TRANSACTIONS FOUND! Stats will be zero.')
+    console.warn('NO TRANSACTIONS FOUND! Stats will be zero.')
   }
-  
-  const transactionTypes = {}
-  
+
+  const transactionTypes: Record<string, number> = {}
+
   transactions.value.forEach(t => {
     const transDate = new Date(t.created_at)
-    
-    // Count transaction types
-    transactionTypes[t.transaction_type] = (transactionTypes[t.transaction_type] || 0) + 1
-    
+    transactionTypes[t.transaction_type] = (transactionTypes[t.transaction_type] ?? 0) + 1
+
     console.log('Transaction:', {
       id: t.id,
       type: t.transaction_type,
       date: transDate.toISOString(),
       amount: t.amount,
       isThisMonth: transDate >= startOfMonth,
-      isToday: transDate >= startOfDay
+      isToday: transDate >= startOfDay,
     })
-    
-    // Money top-up transactions
+
     if (t.transaction_type === 'money_topup' || t.transaction_type === 'topup') {
-      const amount = parseFloat(t.amount || 0)
-      
-      console.log('  ✓ Money top-up transaction! Amount:', amount)
-      
-      if (transDate >= startOfMonth) {
-        monthTopupAmount += amount
-        monthTopups++
-        console.log('    → Added to MONTH stats')
-      }
-      
-      if (transDate >= startOfDay) {
-        todayTopupAmount += amount
-        todayTopups++
-        console.log('    → Added to TODAY stats')
-      }
+      const amount = parseFloat(String(t.amount ?? 0) || '0')
+      console.log('  Money top-up transaction! Amount:', amount)
+      if (transDate >= startOfMonth) { monthTopupAmount += amount; monthTopups++ }
+      if (transDate >= startOfDay) { todayTopupAmount += amount; todayTopups++ }
     }
-    
-    // Money deduction transactions
+
     if (t.transaction_type === 'money_deduction' || t.transaction_type === 'deduction') {
-      const amount = parseFloat(t.amount || 0)
-      
-      if (transDate >= startOfMonth) {
-        monthDeductionAmount += amount
-      }
-      
-      if (transDate >= startOfDay) {
-        todayDeductionAmount += amount
-      }
+      const amount = parseFloat(String(t.amount ?? 0) || '0')
+      if (transDate >= startOfMonth) monthDeductionAmount += amount
+      if (transDate >= startOfDay) todayDeductionAmount += amount
     }
   })
-  
-  console.log('=== TRANSACTION TYPE SUMMARY ===')
+
   console.log('Transaction types found:', transactionTypes)
-  console.log('=== FINAL MONEY STATS ===')
   console.log('Month:', { topupAmount: monthTopupAmount, deductionAmount: monthDeductionAmount, topups: monthTopups })
   console.log('Today:', { topupAmount: todayTopupAmount, deductionAmount: todayDeductionAmount, topups: todayTopups })
-  
+
   if (monthTopupAmount === 0 && monthTopups === 0) {
-    console.warn('⚠️ No money activity found this month!')
+    console.warn('No money activity found this month!')
   }
-  
+
   monthlyStats.value = { topupAmount: monthTopupAmount, deductionAmount: monthDeductionAmount, topups: monthTopups }
   todayStats.value = { topupAmount: todayTopupAmount, deductionAmount: todayDeductionAmount, topups: todayTopups }
 }
 
-// Get transaction type label
-const getTransactionTypeLabel = (type) => {
-  const labels = {
+const handleTopUpSuccess = async (data: unknown): Promise<void> => {
+  const topUpData = data as TopUpSuccessData
+  console.log('Top-up successful:', topUpData)
+  showTopUpModal.value = false
+  alert(`Successfully added GH₵${topUpData.amount_credited.toFixed(2)} to your account!`)
+  await Promise.all([
+    fetchBalance(),
+    fetchTransactions({ money_only: true }),
+  ])
+  calculateStats()
+}
+
+onMounted(async () => {
+  await Promise.all([
+    fetchBalance(),
+    fetchTransactions({ money_only: true }), // Only money transactions
+  ])
+  console.log('=== INITIAL DATA LOADED ===')
+  console.log('Total transactions loaded:', transactions.value.length)
+  console.log('First 3 transactions:', transactions.value.slice(0, 3))
+  calculateStats()
+})
+
+const refreshTransactions = async (): Promise<void> => {
+  const filters: Record<string, unknown> = {
+    // Only show money-related transactions (money_topup, money_deduction, money_refund, topup, deduction)
+    money_only: true,
+  }
+  if (transactionFilters.value.type) {
+    filters['transaction_type'] = transactionFilters.value.type
+  }
+  if (transactionFilters.value.period !== 'all') {
+    const days = parseInt(transactionFilters.value.period, 10)
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+    filters['start_date'] = startDate.toISOString().split('T')[0] // Fix: use start_date and format as YYYY-MM-DD
+  }
+  await fetchTransactions(filters)
+  calculateStats()
+}
+
+const applyTransactionFilters = (): void => {
+  void refreshTransactions()
+}
+
+const getTransactionTypeLabel = (type: string | null | undefined): string => {
+  const labels: Record<string, string> = {
     sms_deduction: 'SMS Sent',
     sms_topup: 'SMS Top-up',
     sms_refund: 'SMS Refund',
@@ -416,14 +398,14 @@ const getTransactionTypeLabel = (type) => {
     money_refund: 'Money Refund',
     topup: 'Top-up',
     deduction: 'Deduction',
-    refund: 'Refund'
+    refund: 'Refund',
   }
-  return labels[type] || type
+  if (type === undefined || type === null) return ''
+  return (type !== undefined ? labels[type] : undefined) ?? type
 }
 
-// Get transaction type class
-const getTransactionTypeClass = (type) => {
-  const classes = {
+const getTransactionTypeClass = (type: string | null | undefined): string => {
+  const classes: Record<string, string> = {
     sms_deduction: 'bg-red-100 text-red-800',
     sms_topup: 'bg-green-100 text-green-800',
     sms_refund: 'bg-yellow-100 text-yellow-800',
@@ -432,9 +414,10 @@ const getTransactionTypeClass = (type) => {
     money_refund: 'bg-amber-100 text-amber-800',
     topup: 'bg-green-100 text-green-800',
     deduction: 'bg-orange-100 text-orange-800',
-    refund: 'bg-yellow-100 text-yellow-800'
+    refund: 'bg-yellow-100 text-yellow-800',
   }
-  return classes[type] || 'bg-gray-100 text-gray-800'
+  if (type === undefined || type === null) return 'bg-gray-100 text-gray-800'
+  return (type !== undefined ? classes[type] : undefined) ?? 'bg-gray-100 text-gray-800'
 }
 </script>
 

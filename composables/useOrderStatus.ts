@@ -7,7 +7,7 @@
  * "Paid" in another, etc. All customer surfaces should call into this.
  */
 
-const STORE_ORDER_LABELS = {
+const STORE_ORDER_LABELS: Record<string, string> = {
   pending: 'Pending',
   processing: 'Preparing',
   preparing: 'Preparing',
@@ -20,10 +20,10 @@ const STORE_ORDER_LABELS = {
   picked_up: 'Picked up',
   delivered: 'Delivered',
   completed: 'Completed',
-  cancelled: 'Cancelled'
+  cancelled: 'Cancelled',
 }
 
-const REQUEST_LABELS = {
+const REQUEST_LABELS: Record<string, string> = {
   draft: 'Draft',
   pending: 'Pending',
   searching: 'Searching',
@@ -48,10 +48,10 @@ const REQUEST_LABELS = {
   completed: 'Completed',
   cancelled: 'Cancelled',
   rejected: 'Rejected',
-  returned: 'Returned'
+  returned: 'Returned',
 }
 
-const STORE_ORDER_BADGE = {
+const STORE_ORDER_BADGE: Record<string, string> = {
   pending: 'bg-amber-50 text-amber-700',
   processing: 'bg-[#f4e8fb] text-[#5e3a86]',
   preparing: 'bg-[#f4e8fb] text-[#5e3a86]',
@@ -64,10 +64,10 @@ const STORE_ORDER_BADGE = {
   picked_up: 'bg-[#e7f7ea] text-[#228847]',
   delivered: 'bg-[#e7f7ea] text-[#228847]',
   completed: 'bg-[#e7f7ea] text-[#228847]',
-  cancelled: 'bg-red-50 text-red-600'
+  cancelled: 'bg-red-50 text-red-600',
 }
 
-const REQUEST_BADGE = {
+const REQUEST_BADGE: Record<string, string> = {
   draft: 'bg-zinc-100 text-zinc-600',
   pending: 'bg-amber-50 text-amber-700',
   searching: 'bg-[#f4e8fb] text-[#5e3a86]',
@@ -92,7 +92,7 @@ const REQUEST_BADGE = {
   completed: 'bg-[#e7f7ea] text-[#228847]',
   cancelled: 'bg-red-50 text-red-600',
   rejected: 'bg-red-50 text-red-600',
-  returned: 'bg-red-50 text-red-600'
+  returned: 'bg-red-50 text-red-600',
 }
 
 const TERMINAL_STORE_STATUSES = new Set(['completed', 'delivered', 'cancelled', 'picked_up'])
@@ -102,18 +102,32 @@ const TERMINAL_REQUEST_STATUSES = new Set([
   'delivered',
   'completed',
   'cancelled',
-  'returned'
+  'returned',
 ])
 
-const humanise = (status) => String(status || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+const humanise = (status: string | null | undefined): string =>
+  String(status ?? '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 
 export const useOrderStatus = () => {
-  const formatStoreStatus = (status) => STORE_ORDER_LABELS[status] || humanise(status || 'Order')
-  const formatRequestStatus = (status) => REQUEST_LABELS[status] || humanise(status || 'Request')
-  const storeStatusBadgeClass = (status) => STORE_ORDER_BADGE[status] || 'bg-zinc-100 text-zinc-600'
-  const requestStatusBadgeClass = (status) => REQUEST_BADGE[status] || 'bg-zinc-100 text-zinc-600'
-  const isOngoingStoreStatus = (status) => !TERMINAL_STORE_STATUSES.has(status)
-  const isActiveRequestStatus = (status) => !TERMINAL_REQUEST_STATUSES.has(status)
+  const formatStoreStatus = (status: string | null | undefined): string =>
+    STORE_ORDER_LABELS[status ?? ''] ?? humanise(status ?? 'Order')
+
+  const formatRequestStatus = (status: string | null | undefined): string =>
+    REQUEST_LABELS[status ?? ''] ?? humanise(status ?? 'Request')
+
+  const storeStatusBadgeClass = (status: string | null | undefined): string =>
+    STORE_ORDER_BADGE[status ?? ''] ?? 'bg-zinc-100 text-zinc-600'
+
+  const requestStatusBadgeClass = (status: string | null | undefined): string =>
+    REQUEST_BADGE[status ?? ''] ?? 'bg-zinc-100 text-zinc-600'
+
+  const isOngoingStoreStatus = (status: string | null | undefined): boolean =>
+    !TERMINAL_STORE_STATUSES.has(status ?? '')
+
+  const isActiveRequestStatus = (status: string | null | undefined): boolean =>
+    !TERMINAL_REQUEST_STATUSES.has(status ?? '')
 
   return {
     formatStoreStatus,
@@ -121,6 +135,6 @@ export const useOrderStatus = () => {
     storeStatusBadgeClass,
     requestStatusBadgeClass,
     isOngoingStoreStatus,
-    isActiveRequestStatus
+    isActiveRequestStatus,
   }
 }

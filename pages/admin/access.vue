@@ -43,7 +43,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { KeyIcon, BuildingOfficeIcon, BuildingStorefrontIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
@@ -58,13 +58,19 @@ definePageMeta({
 })
 
 const route = useRoute()
-const validTabs = ['api-keys', 'user-access', 'companies', 'store-settings']
-const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'api-keys')
+const validTabs = ['api-keys', 'user-access', 'companies', 'store-settings'] as const
+type ValidTab = typeof validTabs[number]
+
+const isValidTab = (tab: unknown): tab is ValidTab =>
+  typeof tab === 'string' && (validTabs as readonly string[]).includes(tab)
+
+const initialTab = isValidTab(route.query['tab']) ? route.query['tab'] : 'api-keys'
+const activeTab = ref<ValidTab>(initialTab)
 
 watch(
-  () => route.query.tab,
+  () => route.query['tab'],
   (nextTab) => {
-    if (validTabs.includes(nextTab)) {
+    if (isValidTab(nextTab)) {
       activeTab.value = nextTab
     }
   }

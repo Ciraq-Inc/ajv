@@ -49,8 +49,8 @@
               <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(tx.created_at) }}</div>
             </div>
             <div class="text-right shrink-0">
-              <div class="text-sm font-semibold" :class="parseFloat(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600'">
-                {{ parseFloat(tx.amount) >= 0 ? '+' : '' }}GH₵{{ fmt(Math.abs(tx.amount)) }}
+              <div class="text-sm font-semibold" :class="parseFloat(String(tx.amount)) >= 0 ? 'text-green-600' : 'text-red-600'">
+                {{ parseFloat(String(tx.amount)) >= 0 ? '+' : '' }}GH₵{{ fmt(Math.abs(Number(tx.amount))) }}
               </div>
               <div class="text-xs text-gray-400 mt-0.5">Bal: GH₵{{ fmt(tx.balance_after) }}</div>
             </div>
@@ -61,43 +61,76 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useCompanyStore } from '~/stores/company'
 
 definePageMeta({
   middleware: ['company-auth'],
-  layout: 'company'
+  layout: 'company',
 })
 
-const companyStore = useCompanyStore()
-
-const loading = ref(true)
-const wallet = ref({})
-const transactions = ref([])
-
-const fmt = (val) => parseFloat(val || 0).toFixed(2)
-
-const formatDate = (d) => {
-  if (!d) return ''
-  return new Date(d).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+interface WalletData {
+  balance?: number | string | null
+  total_earned?: number | string | null
+  total_withdrawn?: number | string | null
 }
 
-const txLabel = (type) => {
-  const map = {
+interface Transaction {
+  id: number | string
+  transaction_type: string
+  description?: string | null
+  created_at?: string | null
+  amount: number | string
+  balance_after?: number | string | null
+}
+
+interface WalletResponse {
+  success?: boolean
+  wallet?: WalletData | null
+  transactions?: Transaction[] | null
+}
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  makeAuthRequest: (url: string, options?: RequestInit) => Promise<WalletResponse>
+}
+
+const loading = ref<boolean>(true)
+const wallet = ref<WalletData>({})
+const transactions = ref<Transaction[]>([])
+
+const fmt = (val: number | string | null | undefined): string =>
+  parseFloat(String(val ?? 0) || '0').toFixed(2)
+
+const formatDate = (d: string | null | undefined): string => {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('en-GH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const txLabel = (type: string | null | undefined): string => {
+  const map: Record<string, string> = {
     order_earning: 'Order Earning',
     commission_deduction: 'Platform Commission',
     withdrawal: 'Withdrawal',
   }
-  return map[type] || type?.replace(/_/g, ' ') || 'Transaction'
+  const resolved = type !== undefined && type !== null ? map[type] : undefined
+  return resolved ?? type?.replace(/_/g, ' ') ?? 'Transaction'
 }
 
-const fetchWallet = async () => {
+const fetchWallet = async (): Promise<void> => {
   loading.value = true
   try {
     const res = await companyStore.makeAuthRequest('/api/pharmacy-portal/wallet')
     if (res.success) {
-      wallet.value = res.wallet || {}
-      transactions.value = res.transactions || []
+      wallet.value = res.wallet ?? {}
+      transactions.value = res.transactions ?? []
     }
   } catch (e) {
     console.error('Failed to fetch wallet', e)
@@ -106,5 +139,5 @@ const fetchWallet = async () => {
   }
 }
 
-onMounted(fetchWallet)
+onMounted(() => { void fetchWallet() })
 </script>

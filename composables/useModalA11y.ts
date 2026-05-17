@@ -1,4 +1,4 @@
-// composables/useModalA11y.js
+// composables/useModalA11y.ts
 // Accessibility helper for modal dialogs.
 //
 // Implements the WAI-ARIA Authoring Practices "dialog (modal)" pattern:
@@ -21,7 +21,7 @@
 //     </div>
 //   </template>
 
-import { watch, onBeforeUnmount, nextTick } from 'vue'
+import { watch, onBeforeUnmount, nextTick, type Ref } from 'vue'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -37,24 +37,26 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',')
 
-function getFocusable(container) {
+function getFocusable(container: HTMLElement | null): HTMLElement[] {
   if (!container) return []
-  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
     (el) => !el.hasAttribute('disabled') && el.offsetParent !== null
   )
 }
 
-export function useModalA11y(containerRef, isOpenGetter, onClose) {
-  // Element that had focus right before the modal opened; we restore focus
-  // here on close so keyboard users don't get teleported to <body>.
-  let previouslyFocused = null
+export function useModalA11y(
+  containerRef: Ref<HTMLElement | null>,
+  isOpenGetter: () => boolean,
+  onClose?: () => void
+): void {
+  let previouslyFocused: HTMLElement | null = null
 
-  function onKeydown(e) {
+  function onKeydown(e: KeyboardEvent): void {
     if (!isOpenGetter()) return
 
     if (e.key === 'Escape') {
       e.stopPropagation()
-      onClose && onClose()
+      onClose?.()
       return
     }
 
@@ -62,9 +64,8 @@ export function useModalA11y(containerRef, isOpenGetter, onClose) {
 
     const focusables = getFocusable(containerRef.value)
     if (focusables.length === 0) {
-      // Nothing focusable -> keep focus on the dialog container itself.
       e.preventDefault()
-      containerRef.value && containerRef.value.focus()
+      containerRef.value?.focus()
       return
     }
 
@@ -74,10 +75,10 @@ export function useModalA11y(containerRef, isOpenGetter, onClose) {
 
     if (e.shiftKey && active === first) {
       e.preventDefault()
-      last.focus()
+      last?.focus()
     } else if (!e.shiftKey && active === last) {
       e.preventDefault()
-      first.focus()
+      first?.focus()
     }
   }
 
@@ -86,17 +87,15 @@ export function useModalA11y(containerRef, isOpenGetter, onClose) {
     async (open) => {
       if (typeof document === 'undefined') return
       if (open) {
-        previouslyFocused = document.activeElement
+        previouslyFocused = document.activeElement as HTMLElement | null
         document.addEventListener('keydown', onKeydown, true)
         await nextTick()
         const focusables = getFocusable(containerRef.value)
-        const target = focusables[0] || containerRef.value
-        target && target.focus && target.focus()
+        const target = focusables[0] ?? containerRef.value
+        target?.focus()
       } else {
         document.removeEventListener('keydown', onKeydown, true)
-        if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
-          previouslyFocused.focus()
-        }
+        previouslyFocused?.focus()
         previouslyFocused = null
       }
     },

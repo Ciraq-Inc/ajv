@@ -45,12 +45,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import {
   ChartBarIcon,
   DocumentChartBarIcon,
-  UserIcon,
   ArrowRightIcon,
   InformationCircleIcon as InfoIcon,
 } from '@heroicons/vue/24/outline';
@@ -61,14 +60,18 @@ definePageMeta({
   middleware: 'data-consumer-auth',
 });
 
+interface AdminWithName {
+  fname?: string | null
+  lname?: string | null
+  username?: string | null
+  [key: string]: unknown
+}
+
 const adminStore = useAdminStore();
 
-const adminName = computed(() => {
-  const admin = adminStore.getAdmin;
-  if (admin) {
-    return admin.fname;
-  }
-  return 'User';
+const adminName = computed<string>(() => {
+  const admin = adminStore.getAdmin as AdminWithName | null
+  return admin?.fname ?? 'User'
 });
 </script>
 

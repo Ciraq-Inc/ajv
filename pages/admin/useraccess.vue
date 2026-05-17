@@ -4,7 +4,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import UserAccessMgt from '~/components/access/userAccessMgt.vue'
 
 definePageMeta({

@@ -1,50 +1,82 @@
-// Cart.js - Enhanced to better integrate with pharmacy middleware
-import { defineStore } from "pinia";
+// stores/cart.ts — Cart store (JS → TS migration)
+//
+// Tracks items the customer is adding from a single pharmacy session.
+// Cart pharmacy context is persisted to localStorage so it survives page
+// reloads. Cross-pharmacy add attempts prompt the user to clear the cart
+// first. Business logic is a 1:1 port of the original cart.js — no
+// behavioural changes allowed.
+
+import { defineStore } from 'pinia';
 import { usePharmacyStore } from '~/stores/pharmacy';
 
-export const useCartStore = defineStore("cart", {
-  state: () => ({
+// ---------------------------------------------------------------------------
+// Domain types
+// ---------------------------------------------------------------------------
+
+export interface CartItem {
+  id: number | string;
+  pharmacyId?: number | string | null;
+  quantity: number;
+  price: number;
+  [key: string]: unknown;
+}
+
+export interface CartState {
+  items: CartItem[];
+  isOpen: boolean;
+  activePharmacy: number | string | null;
+  activePharmacySlug: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Store
+// ---------------------------------------------------------------------------
+
+export const useCartStore = defineStore('cart', {
+  state: (): CartState => ({
     items: [],
     isOpen: false,
     activePharmacy: null,
     activePharmacySlug: null,
   }),
-  
+
   getters: {
-    cartItemCount() {
-      return this.items.reduce((count, item) => count + item.quantity, 0);
+    cartItemCount(state): number {
+      return state.items.reduce((count, item) => count + item.quantity, 0);
     },
-    cartTotal() {
-      return this.items.reduce(
+
+    cartTotal(state): number {
+      return state.items.reduce(
         (total, item) => total + item.price * item.quantity,
-        0
+        0,
       );
     },
-    hasItems() {
-      return this.items.length > 0;
+
+    hasItems(state): boolean {
+      return state.items.length > 0;
     },
-    // Add a getter to check if cart's pharmacy matches the current pharmacy context
-    isInCorrectPharmacyContext() {
+
+    // Check if the cart's pharmacy matches the current pharmacy context.
+    isInCorrectPharmacyContext(state): boolean {
       const pharmacyStore = usePharmacyStore();
-      return this.activePharmacy === pharmacyStore.currentPharmacy;
-    }
+      return state.activePharmacy === pharmacyStore.currentPharmacy;
+    },
   },
-  
+
   actions: {
-    setActivePharmacy(pharmacyId, pharmacySlug = null) {
-      // Check if we're trying to set the same pharmacy
+    setActivePharmacy(pharmacyId: number | string, pharmacySlug: string | null = null): boolean {
+      // Already on this pharmacy — possibly update slug only.
       if (this.activePharmacy === pharmacyId) {
-        // If slug is provided and different, update it
         if (pharmacySlug && this.activePharmacySlug !== pharmacySlug) {
           this.activePharmacySlug = pharmacySlug;
           if (process.client) {
             localStorage.setItem('activeCartPharmacySlug', pharmacySlug);
           }
         }
-        return true; // Already set to this pharmacy
+        return true;
       }
-      
-      // If switching pharmacies and we have items, confirm with user
+
+      // Switching pharmacies with existing items — confirm with user.
       if (
         this.activePharmacy &&
         this.activePharmacy !== pharmacyId &&
@@ -52,7 +84,7 @@ export const useCartStore = defineStore("cart", {
       ) {
         if (
           confirm(
-            "Switching to a new pharmacy will clear your current cart. Continue?"
+            'Switching to a new pharmacy will clear your current cart. Continue?',
           )
         ) {
           this.clearCart();
@@ -60,111 +92,98 @@ export const useCartStore = defineStore("cart", {
           return false;
         }
       }
-      
-      // Set new pharmacy context
+
       this.activePharmacy = pharmacyId;
       if (pharmacySlug) {
         this.activePharmacySlug = pharmacySlug;
       }
-      
-      // Persist to storage
+
       if (process.client) {
-        localStorage.setItem('activeCartPharmacy', pharmacyId);
+        localStorage.setItem('activeCartPharmacy', String(pharmacyId));
         if (pharmacySlug) {
           localStorage.setItem('activeCartPharmacySlug', pharmacySlug);
         }
       }
-      
-      console.log(`Cart pharmacy context set to: ${pharmacyId} (${pharmacySlug || 'no slug'})`);
+
+      console.log(`Cart pharmacy context set to: ${pharmacyId} (${pharmacySlug ?? 'no slug'})`);
       return true;
     },
-    
-    setPharmacySlug(slug) {
+
+    setPharmacySlug(slug: string): void {
       if (!slug) return;
-      
+
       this.activePharmacySlug = slug;
-      
+
       if (process.client) {
         localStorage.setItem('activeCartPharmacySlug', slug);
       }
-      
+
       console.log(`Cart pharmacy slug updated to: ${slug}`);
     },
 
-    addToCart(drug) {
+    addToCart(drug: CartItem): void {
       const pharmacyStore = usePharmacyStore();
-      
-      // Validate pharmacy context
+
       if (!this.activePharmacy) {
-        // If no active pharmacy is set, use the current one from pharmacy store
         if (pharmacyStore.currentPharmacy) {
           this.setActivePharmacy(
-            pharmacyStore.currentPharmacy, 
-            pharmacyStore.pharmacySlug
+            pharmacyStore.currentPharmacy,
+            pharmacyStore.pharmacySlug,
           );
         } else {
-          console.error("Cannot add to cart: No active pharmacy context");
+          console.error('Cannot add to cart: No active pharmacy context');
           return;
         }
       }
-      
-      // Ensure drug has pharmacy info
+
       if (!drug.pharmacyId) {
         drug.pharmacyId = this.activePharmacy;
       }
 
-      // Make sure we only add items from the active pharmacy
       if (drug.pharmacyId !== this.activePharmacy) {
-        console.error("Cannot add items from different pharmacy to cart");
+        console.error('Cannot add items from different pharmacy to cart');
         return;
       }
 
       const existingItem = this.items.find((item) => item.id === drug.id);
       if (existingItem) {
-        // Replace quantity instead of adding to it
         existingItem.quantity = drug.quantity || 1;
       } else {
         const quantity = drug.quantity || 1;
         this.items.unshift({ ...drug, quantity });
       }
-      
+
       this.saveCartToStorage();
-      
-      // Open cart briefly to show the item was added
-      // this.isOpen = true;
-      // setTimeout(() => {
-      //   this.isOpen = false;
-      // }, 3000);
     },
-    
-    removeFromCart(drugId) {
+
+    removeFromCart(drugId: number | string): void {
       const index = this.items.findIndex((item) => item.id === drugId);
       if (index !== -1) {
         this.items.splice(index, 1);
         this.saveCartToStorage();
       }
     },
-    
-    updateQuantity(drugId, newQuantity) {
+
+    updateQuantity(drugId: number | string, newQuantity: number): void {
       const item = this.items.find((item) => item.id === drugId);
       if (item) {
         item.quantity = newQuantity > 0 ? newQuantity : 1;
         this.saveCartToStorage();
       }
     },
-    
-    toggleCart() {
+
+    toggleCart(): void {
       this.isOpen = !this.isOpen;
     },
-    
-    clearCart() {
+
+    clearCart(): void {
       this.items = [];
       this.saveCartToStorage();
     },
-    
-    saveCartToStorage() {
+
+    saveCartToStorage(): void {
       if (!process.client) return;
-      
+
       try {
         localStorage.setItem('cartItems', JSON.stringify(this.items));
         console.log('Cart saved to storage:', this.items.length, 'items', this.items);
@@ -172,62 +191,59 @@ export const useCartStore = defineStore("cart", {
         console.error('Failed to save cart to localStorage:', error);
       }
     },
-    
-    restoreFromStorage() {
+
+    restoreFromStorage(): void {
       if (!process.client) return;
-      
+
       try {
         const storedPharmacy = localStorage.getItem('activeCartPharmacy');
         const storedPharmacySlug = localStorage.getItem('activeCartPharmacySlug');
         const storedItems = localStorage.getItem('cartItems');
-        
+
         let restored = false;
-        
+
         if (storedPharmacy) {
           this.activePharmacy = storedPharmacy;
           restored = true;
         }
-        
+
         if (storedPharmacySlug) {
           this.activePharmacySlug = storedPharmacySlug;
           restored = true;
         }
-        
+
         if (storedItems) {
-          this.items = JSON.parse(storedItems);
+          this.items = JSON.parse(storedItems) as CartItem[];
           restored = true;
         }
-        
+
         if (restored) {
           console.log('Cart restored from storage:', {
             pharmacy: this.activePharmacy,
             slug: this.activePharmacySlug,
-            itemCount: this.items.length
+            itemCount: this.items.length,
           });
         }
       } catch (error) {
         console.error('Failed to restore cart from localStorage:', error);
       }
     },
-    
-    // New method to ensure cart pharmacy context matches the pharmacy store
-    validatePharmacyContext() {
+
+    validatePharmacyContext(): boolean {
       const pharmacyStore = usePharmacyStore();
-      
-      // If pharmacies don't match, update cart pharmacy
-      if (pharmacyStore.currentPharmacy && 
-          this.activePharmacy !== pharmacyStore.currentPharmacy) {
-        
+
+      if (
+        pharmacyStore.currentPharmacy &&
+        this.activePharmacy !== pharmacyStore.currentPharmacy
+      ) {
         console.log('Pharmacy context mismatch, updating cart pharmacy');
-        
-        // Force update (will ask for confirmation if items exist)
         return this.setActivePharmacy(
-          pharmacyStore.currentPharmacy, 
-          pharmacyStore.pharmacySlug
+          pharmacyStore.currentPharmacy,
+          pharmacyStore.pharmacySlug,
         );
       }
-      
+
       return true;
-    }
+    },
   },
 });

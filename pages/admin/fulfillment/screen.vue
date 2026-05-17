@@ -118,21 +118,45 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
 definePageMeta({ middleware: ['admin-auth'], layout: false })
 
 const orderRequestsService = createOrderRequestsService(useApi())
 
-const requests = ref([])
-const fetchOk = ref(false)
-const lastRefreshed = ref(null)
-const currentTime = ref('')
+interface RequestRow {
+  id: string | number;
+  status?: string;
+  updated_at?: string;
+  created_at?: string;
+  request_number?: string;
+  customer_name?: string;
+  [key: string]: unknown;
+}
+
+interface AttentionItem extends RequestRow {
+  _reason: string;
+  _urgency: 'critical' | 'warning';
+}
+
+interface DisplayStage {
+  key: string;
+  label: string;
+  statuses: string[];
+  color: string;
+  overdueMs: number | null;
+}
+
+const requests = ref<RequestRow[]>([])
+const fetchOk = ref<boolean>(false)
+const lastRefreshed = ref<Date | null>(null)
+const currentTime = ref<string>('')
 
 const POLL_MS = 30_000
 
-const displayStages = [
+const displayStages: DisplayStage[] = [
   { key: 'pending',   label: 'New Orders',        statuses: ['pending'],                                                                        color: '#f59e0b', overdueMs: null },
   { key: 'composing', label: 'Composing',          statuses: ['composing', 'composed'],                                                          color: '#a78bfa', overdueMs: 60 * 60 * 1000 },
   { key: 'sourcing',  label: 'Sourcing',           statuses: ['sourcing', 'confirming_with_pharm', 'enquiry_sent', 'processing'],                 color: '#60a5fa', overdueMs: 2 * 60 * 60 * 1000 },
@@ -141,35 +165,35 @@ const displayStages = [
   { key: 'paid',      label: 'Paid / Logistics',   statuses: ['paid', 'preparing', 'logistics_pending', 'driver_unavailable'],                   color: '#f87171', overdueMs: 30 * 60 * 1000 },
 ]
 
-const normalizeStatus = (v) => String(v || '').trim().toLowerCase()
+const normalizeStatus = (v: unknown): string => String(v ?? '').trim().toLowerCase()
 
-const stageOrders = (stage) =>
+const stageOrders = (stage: DisplayStage): RequestRow[] =>
   requests.value.filter(r => stage.statuses.includes(normalizeStatus(r.status)))
 
-const stageCount = (key) => {
+const stageCount = (key: string): number => {
   const stage = displayStages.find(s => s.key === key)
   return stage ? stageOrders(stage).length : 0
 }
 
-const elapsedShort = (req) => {
-  const ms = Date.now() - new Date(req.updated_at || req.created_at || 0).getTime()
+const elapsedShort = (req: RequestRow): string => {
+  const ms = Date.now() - new Date(req.updated_at ?? req.created_at ?? 0).getTime()
   const h = Math.floor(ms / 3600000)
   const m = Math.floor((ms % 3600000) / 60000)
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
-const isOverdue = (req, stage) => {
+const isOverdue = (req: RequestRow, stage: DisplayStage): boolean => {
   if (!stage.overdueMs) return false
-  const ms = Date.now() - new Date(req.updated_at || req.created_at || 0).getTime()
+  const ms = Date.now() - new Date(req.updated_at ?? req.created_at ?? 0).getTime()
   return ms > stage.overdueMs
 }
 
-const attentionItems = computed(() => {
+const attentionItems = computed<AttentionItem[]>(() => {
   const now = Date.now()
-  const results = []
+  const results: AttentionItem[] = []
   for (const r of requests.value) {
     const status = normalizeStatus(r.status)
-    const elapsed = now - new Date(r.updated_at || r.created_at || 0).getTime()
+    const elapsed = now - new Date(r.updated_at ?? r.created_at ?? 0).getTime()
     if (status === 'pending') {
       results.push({ ...r, _reason: 'New order · needs composing', _urgency: 'warning' })
     } else if (['awaiting_input', 'awaiting_customer'].includes(status) && elapsed > 2 * 3600000) {
@@ -186,20 +210,20 @@ const attentionItems = computed(() => {
   )
 })
 
-const criticalItems = computed(() => attentionItems.value.filter(i => i._urgency === 'critical'))
+const criticalItems = computed<AttentionItem[]>(() => attentionItems.value.filter(i => i._urgency === 'critical'))
 
-const tickerDuration = computed(() => Math.max(20, criticalItems.value.length * 8))
+const tickerDuration = computed<number>(() => Math.max(20, criticalItems.value.length * 8))
 
-const lastRefreshedLabel = computed(() => {
+const lastRefreshedLabel = computed<string>(() => {
   if (!lastRefreshed.value) return ''
   const m = Math.floor((Date.now() - lastRefreshed.value.getTime()) / 60000)
   return m === 0 ? 'just now' : `${m}m ago`
 })
 
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   try {
     const res = await orderRequestsService.listAdmin()
-    requests.value = res.data || []
+    requests.value = (res.data ?? []) as unknown as RequestRow[]
     lastRefreshed.value = new Date()
     fetchOk.value = true
   } catch {
@@ -207,23 +231,23 @@ const fetchData = async () => {
   }
 }
 
-let pollTimer = null
-let clockTimer = null
+let pollTimer: ReturnType<typeof setInterval> | null = null
+let clockTimer: ReturnType<typeof setInterval> | null = null
 
-const updateClock = () => {
+const updateClock = (): void => {
   currentTime.value = new Date().toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
 }
 
 onMounted(() => {
-  fetchData()
+  void fetchData()
   updateClock()
-  pollTimer = setInterval(fetchData, POLL_MS)
+  pollTimer = setInterval(() => { void fetchData() }, POLL_MS)
   clockTimer = setInterval(updateClock, 1000)
 })
 
 onUnmounted(() => {
-  clearInterval(pollTimer)
-  clearInterval(clockTimer)
+  if (pollTimer !== null) clearInterval(pollTimer)
+  if (clockTimer !== null) clearInterval(clockTimer)
 })
 </script>
 

@@ -342,17 +342,47 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+
 definePageMeta({
   layout: 'admin-layout',
   middleware: ['admin-auth']
 });
 
-const config = useRuntimeConfig();
 const api = useApi();
 
+interface DayOption {
+  value: number;
+  label: string;
+}
+
+interface FixResult {
+  success: boolean;
+  message?: string;
+  stats: { total: number; updated: number; matched: number; notMatched: number; errors: number };
+  errors?: Array<{ salesItemId: string | number; error: string }>;
+}
+
+interface SQLResult {
+  success: boolean;
+  message?: string;
+  sql?: string;
+  stats?: { updates: number; refGroups: number };
+}
+
+interface HistoryItem {
+  timestamp: string;
+  startDate: string;
+  endDate: string;
+  companyId: number | null;
+  excludeDays: number[];
+  updated: number;
+  errors: number;
+}
+
 // Days of week options
-const daysOfWeek = [
+const daysOfWeek: DayOption[] = [
   { value: 0, label: 'Sunday' },
   { value: 1, label: 'Monday' },
   { value: 2, label: 'Tuesday' },
@@ -363,7 +393,14 @@ const daysOfWeek = [
 ];
 
 // Form data
-const formData = ref({
+const formData = ref<{
+  startDate: string;
+  endDate: string;
+  startHour: number;
+  endHour: number;
+  companyId: number | null;
+  excludeDays: number[];
+}>({
   startDate: '',
   endDate: '',
   startHour: 8,
@@ -373,34 +410,38 @@ const formData = ref({
 });
 
 // State
-const loading = ref(false);
-const checking = ref(false);
-const generating = ref(false);
-const result = ref(null);
-const error = ref(null);
-const itemsCount = ref(null);
-const history = ref([]);
-const generatedSQL = ref(null);
-const copied = ref(false);
+const loading = ref<boolean>(false);
+const checking = ref<boolean>(false);
+const generating = ref<boolean>(false);
+const result = ref<FixResult | null>(null);
+const error = ref<string | null>(null);
+const itemsCount = ref<number | null>(null);
+const history = ref<HistoryItem[]>([]);
+const generatedSQL = ref<SQLResult | null>(null);
+const copied = ref<boolean>(false);
 
 // Set default dates (last 30 days)
 onMounted(() => {
   const today = new Date();
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(today.getDate() - 30);
-  
-  formData.value.endDate = today.toISOString().split('T')[0];
-  formData.value.startDate = thirtyDaysAgo.toISOString().split('T')[0];
-  
+
+  formData.value.endDate = today.toISOString().split('T')[0] ?? '';
+  formData.value.startDate = thirtyDaysAgo.toISOString().split('T')[0] ?? '';
+
   // Load history from localStorage
   const savedHistory = localStorage.getItem('fixSalesItemsHistory');
   if (savedHistory) {
-    history.value = JSON.parse(savedHistory);
+    try {
+      history.value = JSON.parse(savedHistory) as HistoryItem[];
+    } catch {
+      history.value = [];
+    }
   }
 });
 
 // Validate form
-const validateForm = () => {
+const validateForm = (): boolean => {
   if (!formData.value.startDate || !formData.value.endDate) {
     error.value = 'Please provide both start and end dates';
     return false;
@@ -443,7 +484,7 @@ const validateForm = () => {
 };
 
 // Check items count
-const checkItemsCount = async () => {
+const checkItemsCount = async (): Promise<void> => {
   if (!validateForm()) return;
 
   checking.value = true;
@@ -453,27 +494,27 @@ const checkItemsCount = async () => {
   try {
     const params = new URLSearchParams();
     if (formData.value.companyId) {
-      params.append('companyId', formData.value.companyId);
+      params.append('companyId', String(formData.value.companyId));
     }
 
     const endpoint = `/api/sync/admin/sales-items/count${params.toString() ? '?' + params.toString() : ''}`;
-    const response = await api.get(endpoint);
+    const response = await api.get(endpoint) as { success?: boolean; count?: number; message?: string };
 
     if (response.success) {
-      itemsCount.value = response.count;
+      itemsCount.value = response.count ?? null;
     } else {
-      error.value = response.message || 'Failed to check items count';
+      error.value = response.message ?? 'Failed to check items count';
     }
   } catch (err) {
     console.error('Error checking items count:', err);
-    error.value = err.message || 'Failed to check items count';
+    error.value = err instanceof Error ? err.message : 'Failed to check items count';
   } finally {
     checking.value = false;
   }
 };
 
 // Submit form
-const handleSubmit = async () => {
+const handleSubmit = async (): Promise<void> => {
   if (!validateForm()) return;
 
   loading.value = true;
@@ -481,27 +522,27 @@ const handleSubmit = async () => {
   result.value = null;
 
   try {
-    const payload = {
+    const payload: Record<string, unknown> = {
       startDate: formData.value.startDate,
       endDate: formData.value.endDate,
       startHour: formData.value.startHour,
       endHour: formData.value.endHour,
-      companyId: formData.value.companyId || undefined,
-      excludeDays: formData.value.excludeDays.length > 0 ? formData.value.excludeDays : undefined
     };
+    if (formData.value.companyId) payload['companyId'] = formData.value.companyId;
+    if (formData.value.excludeDays.length > 0) payload['excludeDays'] = formData.value.excludeDays;
 
-    const response = await api.post('/api/sync/admin/fix-sales-items', payload);
+    const response = await api.post('/api/sync/admin/fix-sales-items', payload) as unknown as FixResult;
 
     if (response.success) {
       result.value = response;
-      
+
       // Add to history
       history.value.unshift({
         timestamp: new Date().toISOString(),
         startDate: formData.value.startDate,
         endDate: formData.value.endDate,
         companyId: formData.value.companyId,
-        excludeDays: formData.value.excludeDays,
+        excludeDays: [...formData.value.excludeDays],
         updated: response.stats.updated,
         errors: response.stats.errors
       });
@@ -513,43 +554,42 @@ const handleSubmit = async () => {
 
       // Save to localStorage
       localStorage.setItem('fixSalesItemsHistory', JSON.stringify(history.value));
-      
+
       // Reset items count
       itemsCount.value = null;
     } else {
-      error.value = response.message || 'Failed to fix sales items';
+      error.value = response.message ?? 'Failed to fix sales items';
     }
   } catch (err) {
     console.error('Error fixing sales items:', err);
-    error.value = err.message || 'Failed to fix sales items';
+    error.value = err instanceof Error ? err.message : 'Failed to fix sales items';
   } finally {
     loading.value = false;
   }
 };
 
 // Format timestamp
-const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleString();
-};
+const formatTime = (timestamp: string): string =>
+  new Date(timestamp).toLocaleString();
 
 // Format excluded days
-const formatExcludedDays = (excludeDays) => {
+const formatExcludedDays = (excludeDays: number[] | undefined): string => {
   if (!excludeDays || excludeDays.length === 0) return 'None';
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return excludeDays.map(day => dayNames[day]).join(', ');
+  return excludeDays.map(day => dayNames[day] ?? String(day)).join(', ');
 };
 
 // Preset exclusion functions
-const setWeekendExclusion = () => {
+const setWeekendExclusion = (): void => {
   formData.value.excludeDays = [0, 6]; // Sunday and Saturday
 };
 
-const setWeekdayExclusion = () => {
+const setWeekdayExclusion = (): void => {
   formData.value.excludeDays = [1, 2, 3, 4, 5]; // Monday to Friday
 };
 
 // Generate SQL
-const generateSQL = async () => {
+const generateSQL = async (): Promise<void> => {
   if (!validateForm()) return;
 
   generating.value = true;
@@ -558,32 +598,32 @@ const generateSQL = async () => {
   copied.value = false;
 
   try {
-    const payload = {
+    const payload: Record<string, unknown> = {
       startDate: formData.value.startDate,
       endDate: formData.value.endDate,
       startHour: formData.value.startHour,
       endHour: formData.value.endHour,
-      companyId: formData.value.companyId || undefined,
-      excludeDays: formData.value.excludeDays.length > 0 ? formData.value.excludeDays : undefined
     };
+    if (formData.value.companyId) payload['companyId'] = formData.value.companyId;
+    if (formData.value.excludeDays.length > 0) payload['excludeDays'] = formData.value.excludeDays;
 
-    const response = await api.post('/api/sync/admin/generate-sales-items-sql', payload);
+    const response = await api.post('/api/sync/admin/generate-sales-items-sql', payload) as SQLResult;
 
     if (response.success) {
       generatedSQL.value = response;
     } else {
-      error.value = response.message || 'Failed to generate SQL';
+      error.value = response.message ?? 'Failed to generate SQL';
     }
   } catch (err) {
     console.error('Error generating SQL:', err);
-    error.value = err.message || 'Failed to generate SQL';
+    error.value = err instanceof Error ? err.message : 'Failed to generate SQL';
   } finally {
     generating.value = false;
   }
 };
 
 // Copy SQL to clipboard
-const copySQL = async () => {
+const copySQL = async (): Promise<void> => {
   if (!generatedSQL.value?.sql) return;
 
   try {
@@ -598,7 +638,7 @@ const copySQL = async () => {
   }
 };
 
-const clearExclusion = () => {
+const clearExclusion = (): void => {
   formData.value.excludeDays = [];
 };
 </script>

@@ -141,6 +141,19 @@
           </div>
         </article>
       </div>
+
+      <!-- Load more — suppressed when a status filter is active because the
+           cursor is scoped to the unfiltered "all" backend query. -->
+      <div v-if="userStore.nextCursor && !selectedStatus" class="flex justify-center py-5 px-5">
+        <button
+          :disabled="isLoadingMore"
+          @click="loadMoreOrders"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-zinc-200 bg-white text-sm font-bold text-zinc-700 hover:border-[#4F217A] hover:text-[#4F217A] disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm"
+        >
+          <ArrowPathIcon v-if="isLoadingMore" class="w-[18px] h-[18px] animate-spin" />
+          {{ isLoadingMore ? 'Loading...' : 'Load more' }}
+        </button>
+      </div>
     </div>
 
     <!-- ─── Store Order Detail Modal ─── -->
@@ -211,7 +224,7 @@
                 <p class="text-sm font-semibold text-zinc-900">{{ item.product_name }}</p>
                 <p class="text-xs text-zinc-500">Qty: {{ item.quantity }} · GHS {{ formatAmount(item.marked_up_price || item.unit_price || 0) }}</p>
               </div>
-              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total || ((item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}</p>
+              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total || (Number(item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}</p>
             </div>
           </div>
 
@@ -246,7 +259,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 import { useOrderStatus } from '~/composables/useOrderStatus';
@@ -262,41 +275,127 @@ import {
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
-  initialOrderId: { type: String, default: null }
-});
+interface OrderItem {
+  brand_name?: string;
+  product_name?: string;
+  qty?: number;
+  quantity?: number;
+  selling_price?: number | string;
+  marked_up_price?: number | string;
+  unit_price?: number | string;
+  line_total?: number | string;
+  [key: string]: unknown;
+}
 
-const userStore = useUserStore();
-const orderRequestsApi = useApi();
-const orderRequestsService = createOrderRequestsService(orderRequestsApi);
+interface StoreOrder {
+  order_id?: string | number;
+  company_id?: number;
+  company_name?: string;
+  status?: string;
+  created_at?: string;
+  order_date?: string;
+  total_amount?: number | string;
+  subtotal?: number | string;
+  tax_amount?: number | string;
+  items?: OrderItem[];
+  [key: string]: unknown;
+}
+
+interface PaidRequest {
+  id?: number | string;
+  request_number?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  fulfillment_type?: string;
+  delivery_fee?: number | string;
+  items_total?: number | string;
+  estimated_total?: number | string;
+  items?: OrderItem[];
+  [key: string]: unknown;
+}
+
+interface MergedStoreItem extends StoreOrder {
+  _type: 'store';
+  _key: string;
+  _displayId: string;
+  _date: string;
+  _sortDate: number;
+  _meta: string | null;
+  _amount: string;
+}
+
+interface MergedRequestItem extends PaidRequest {
+  _type: 'request';
+  _key: string;
+  _displayId: string;
+  _date: string;
+  _sortDate: number;
+  _meta: string | null;
+  _amount: string;
+}
+
+type MergedItem = MergedStoreItem | MergedRequestItem;
+
+// TODO: remove once stores/ are .ts
+interface UserStoreShape {
+  nextCursor: string | null;
+  getAllOrders: (params: Record<string, unknown>) => Promise<StoreOrder[]>;
+  getOrderDetails: (orderId: string | number, companyId: number | undefined) => Promise<StoreOrder>;
+  cancelOrder: (orderId: string | number, companyId: number | undefined) => Promise<void>;
+}
+
+// TODO: remove once composables/ are .ts
+interface OrderStatusComposable {
+  formatStoreStatus: (status: string | undefined) => string;
+  formatRequestStatus: (status: string | undefined) => string;
+  storeStatusBadgeClass: (status: string | undefined) => string;
+  requestStatusBadgeClass: (status: string | undefined) => string;
+}
+
+// TODO: remove once composables/ are .ts
+interface ApiInstance {
+  request: (url: string, options: { method: string }) => Promise<{ data?: unknown }>;
+}
+
+const props = defineProps<{
+  initialOrderId?: string | null;
+}>();
+
+const userStore = useUserStore() as unknown as UserStoreShape;
+const orderRequestsApi = useApi() as unknown as ApiInstance;
+// createOrderRequestsService is imported but the component uses requestApiCall directly via orderRequestsApi
+void createOrderRequestsService;
 const {
   formatStoreStatus: formatStatus,
   formatRequestStatus,
   storeStatusBadgeClass: orderStatusClass,
   requestStatusBadgeClass: requestOrderStatusClass
-} = useOrderStatus();
+} = useOrderStatus() as unknown as OrderStatusComposable;
 
 // State
-const isLoading = ref(false);
-const hasLoadError = ref(false);
-const orders = ref([]);
-const paidRequests = ref([]);
-const selectedOrder = ref(null);
-const selectedRequestOrder = ref(null);
-const selectedStatus = ref('');
-const pendingCancelOrder = ref(null);
-const isCancelling = ref(false);
-const toast = ref(null);
+const isLoading = ref<boolean>(false);
+const isLoadingMore = ref<boolean>(false);
+const hasLoadError = ref<boolean>(false);
+const orders = ref<StoreOrder[]>([]);
+const paidRequests = ref<PaidRequest[]>([]);
+const selectedOrder = ref<StoreOrder | null>(null);
+const selectedRequestOrder = ref<PaidRequest | null>(null);
+const selectedStatus = ref<string>('');
+const pendingCancelOrder = ref<MergedStoreItem | null>(null);
+const isCancelling = ref<boolean>(false);
+const toast = ref<{ text: string; type: string } | null>(null);
 const POLL_INTERVAL_MS = 15000;
-let pollTimer = null;
-let toastTimer = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-const showToast = (text, type = 'success') => {
+const showToast = (text: string, type = 'success'): void => {
   toast.value = { text, type };
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.value = null; }, 4000);
 };
-const paidRequestStatuses = new Set([
+
+const paidRequestStatuses = new Set<string>([
   'paid',
   'logistics_pending',
   'driver_unavailable',
@@ -307,7 +406,7 @@ const paidRequestStatuses = new Set([
 ]);
 
 // Format date
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return '';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-GB', {
@@ -320,90 +419,92 @@ const formatDate = (dateString) => {
 };
 
 // Format amount
-const formatAmount = (amount) => {
-  return parseFloat(amount || 0).toFixed(2);
+const formatAmount = (amount: number | string | null | undefined): string => {
+  return parseFloat(String(amount ?? 0)).toFixed(2);
 };
 
 // Generic GET helper for order-request sub-calls in this component.
 // Delegates to useApi so auth headers and base URL are in one place.
-const requestApiCall = async (method, url) => {
+const requestApiCall = async (method: string, url: string): Promise<{ data?: unknown }> => {
   return orderRequestsApi.request(url, { method });
 };
 
-const getRequestTotalAmount = (request) => {
-  if (!request) return 0;
+const getRequestTotalAmount = (request: PaidRequest): number => {
   const estimated = Number(request.estimated_total);
   if (Number.isFinite(estimated) && estimated > 0) return estimated;
-  const itemsTotal = Number(request.items_total || 0);
-  const deliveryFee = request.fulfillment_type === 'delivery' ? Number(request.delivery_fee || 0) : 0;
+  const itemsTotal = Number(request.items_total ?? 0);
+  const deliveryFee = request.fulfillment_type === 'delivery' ? Number(request.delivery_fee ?? 0) : 0;
   return itemsTotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0);
 };
 
-const mergedItems = computed(() => {
-  const storeItems = orders.value.map(o => ({
+const mergedItems = computed<MergedItem[]>(() => {
+  const storeItems: MergedStoreItem[] = orders.value.map((o): MergedStoreItem => ({
     ...o,
     _type: 'store',
-    _key: `store-${o.order_id}`,
-    _displayId: `Order #${String(o.order_id).substring(0, 8)}`,
-    _date: formatDate(o.created_at || o.order_date),
-    _sortDate: new Date(o.created_at || o.order_date).getTime() || 0,
-    _meta: o.company_name || null,
+    _key: `store-${String(o.order_id ?? '')}`,
+    _displayId: `Order #${String(o.order_id ?? '').substring(0, 8)}`,
+    _date: formatDate(o.created_at ?? o.order_date),
+    _sortDate: new Date(o.created_at ?? o.order_date ?? '').getTime() || 0,
+    _meta: o.company_name ?? null,
     _amount: formatAmount(o.total_amount)
-  }))
+  }));
 
-  const requestItems = paidRequests.value.map(r => ({
+  const requestItems: MergedRequestItem[] = paidRequests.value.map((r): MergedRequestItem => ({
     ...r,
     _type: 'request',
-    _key: `req-${r.id}`,
-    _displayId: `Request #${r.request_number}`,
-    _date: formatDate(r.updated_at || r.created_at),
-    _sortDate: new Date(r.updated_at || r.created_at).getTime() || 0,
+    _key: `req-${String(r.id ?? '')}`,
+    _displayId: `Request #${String(r.request_number ?? '')}`,
+    _date: formatDate(r.updated_at ?? r.created_at),
+    _sortDate: new Date(r.updated_at ?? r.created_at ?? '').getTime() || 0,
     _meta: r.fulfillment_type ? (r.fulfillment_type === 'delivery' ? 'Delivery' : 'Pickup') : null,
     _amount: formatAmount(getRequestTotalAmount(r))
-  }))
+  }));
 
-  return [...storeItems, ...requestItems].sort((a, b) => b._sortDate - a._sortDate)
-})
+  return [...storeItems, ...requestItems].sort((a, b) => b._sortDate - a._sortDate);
+});
 
-const storeStatusMap = {
+const storeStatusMap: Record<string, string[]> = {
   active: ['pending', 'processing'],
   in_transit: ['shipped'],
   completed: ['completed', 'delivered', 'picked_up'],
   cancelled: ['cancelled']
-}
+};
 
-const requestStatusMap = {
+const requestStatusMap: Record<string, string[]> = {
   active: ['paid', 'logistics_pending'],
   in_transit: ['out_for_delivery', 'ready_for_pickup'],
   completed: ['delivered', 'picked_up', 'completed'],
   cancelled: ['cancelled', 'driver_unavailable', 'returned']
-}
-
-const filteredItems = computed(() => {
-  if (!selectedStatus.value) return mergedItems.value
-  return mergedItems.value.filter(item => {
-    const matchSet = item._type === 'store' ? storeStatusMap[selectedStatus.value] : requestStatusMap[selectedStatus.value]
-    return matchSet ? matchSet.includes(item.status) : false
-  })
-})
-
-const fetchPaidRequests = async () => {
-  const res = await requestApiCall('GET', '/api/order-requests/customer?limit=100');
-  return (res.data || []).filter((req) => paidRequestStatuses.has(req.status));
 };
 
-const viewRequestOrder = async (request) => {
+const filteredItems = computed<MergedItem[]>(() => {
+  if (!selectedStatus.value) return mergedItems.value;
+  return mergedItems.value.filter(item => {
+    const matchSet = item._type === 'store'
+      ? storeStatusMap[selectedStatus.value]
+      : requestStatusMap[selectedStatus.value];
+    return matchSet ? matchSet.includes(item.status ?? '') : false;
+  });
+});
+
+const fetchPaidRequests = async (): Promise<PaidRequest[]> => {
+  const res = await requestApiCall('GET', '/api/order-requests/customer?limit=100');
+  const data = (res.data ?? []) as PaidRequest[];
+  return data.filter((req) => paidRequestStatuses.has(req.status ?? ''));
+};
+
+const viewRequestOrder = async (request: MergedRequestItem): Promise<void> => {
   try {
-    const res = await requestApiCall('GET', `/api/order-requests/customer/${request.id}`);
-    selectedRequestOrder.value = res.data;
-  } catch (error) {
-    console.error('Error loading request details:', error);
+    const res = await requestApiCall('GET', `/api/order-requests/customer/${String(request.id ?? '')}`);
+    selectedRequestOrder.value = res.data as PaidRequest;
+  } catch (err) {
+    console.error('Error loading request details:', err);
     showToast('Failed to load request details', 'error');
   }
 };
 
 // Load orders + paid requests
-const loadOrders = async ({ silent = false } = {}) => {
+const loadOrders = async ({ silent = false }: { silent?: boolean } = {}): Promise<void> => {
   try {
     if (!silent) {
       isLoading.value = true;
@@ -415,8 +516,8 @@ const loadOrders = async ({ silent = false } = {}) => {
       fetchPaidRequests()
     ]);
 
-    const nextOrders = ordersResult.status === 'fulfilled' ? (ordersResult.value || []) : [];
-    const nextPaidRequests = requestsResult.status === 'fulfilled' ? (requestsResult.value || []) : paidRequests.value;
+    const nextOrders: StoreOrder[] = ordersResult.status === 'fulfilled' ? (ordersResult.value ?? []) : [];
+    const nextPaidRequests: PaidRequest[] = requestsResult.status === 'fulfilled' ? (requestsResult.value ?? []) : paidRequests.value;
 
     if (ordersResult.status === 'rejected') {
       console.error('Error loading store orders:', ordersResult.reason);
@@ -436,56 +537,71 @@ const loadOrders = async ({ silent = false } = {}) => {
     paidRequests.value = nextPaidRequests;
 
     // Keep open modal order status/details synced with latest list values.
-    if (selectedOrder.value?.order_id) {
-      const refreshed = nextOrders.find(o => o.order_id === selectedOrder.value.order_id);
+    if (selectedOrder.value?.order_id != null) {
+      const refreshed = nextOrders.find(o => o.order_id === selectedOrder.value!.order_id);
       if (refreshed) {
         selectedOrder.value = { ...selectedOrder.value, ...refreshed };
       }
     }
 
-    if (selectedRequestOrder.value?.id) {
-      const refreshedRequest = nextPaidRequests.find(r => r.id === selectedRequestOrder.value.id);
+    if (selectedRequestOrder.value?.id != null) {
+      const refreshedRequest = nextPaidRequests.find(r => r.id === selectedRequestOrder.value!.id);
       if (refreshedRequest) {
         selectedRequestOrder.value = { ...selectedRequestOrder.value, ...refreshedRequest };
-      } else if (!paidRequestStatuses.has(selectedRequestOrder.value.status)) {
+      } else if (!paidRequestStatuses.has(selectedRequestOrder.value.status ?? '')) {
         selectedRequestOrder.value = null;
       }
     }
-  } catch (error) {
-    console.error('Error loading orders:', error);
+  } catch (err) {
+    console.error('Error loading orders:', err);
     if (!silent) hasLoadError.value = true;
   } finally {
     if (!silent) isLoading.value = false;
   }
 };
 
-// View order details
-const viewOrder = async (order) => {
+// Load the next page of store orders via cursor and append to local list.
+const loadMoreOrders = async (): Promise<void> => {
+  if (!userStore.nextCursor || isLoadingMore.value) return;
+  isLoadingMore.value = true;
   try {
-    const details = await userStore.getOrderDetails(order.order_id, order.company_id);
+    const nextPage = await userStore.getAllOrders({ cursor: userStore.nextCursor });
+    orders.value = [...orders.value, ...nextPage];
+  } catch (err) {
+    console.error('Error loading more orders:', err);
+    showToast('Could not load more orders', 'error');
+  } finally {
+    isLoadingMore.value = false;
+  }
+};
+
+// View order details
+const viewOrder = async (order: MergedStoreItem): Promise<void> => {
+  try {
+    const details = await userStore.getOrderDetails(order.order_id ?? '', order.company_id);
     selectedOrder.value = details;
-  } catch (error) {
-    console.error('Error loading order details:', error);
+  } catch (err) {
+    console.error('Error loading order details:', err);
     showToast('Failed to load order details', 'error');
   }
 };
 
-const confirmCancelOrder = (order) => {
+const confirmCancelOrder = (order: MergedStoreItem): void => {
   pendingCancelOrder.value = order;
 };
 
-const performCancel = async () => {
+const performCancel = async (): Promise<void> => {
   if (!pendingCancelOrder.value || isCancelling.value) return;
   const { order_id, company_id } = pendingCancelOrder.value;
   isCancelling.value = true;
   try {
-    await userStore.cancelOrder(order_id, company_id);
+    await userStore.cancelOrder(order_id ?? '', company_id);
     pendingCancelOrder.value = null;
     showToast('Order cancelled');
-    loadOrders({ silent: true });
-  } catch (error) {
-    console.error('Error cancelling order:', error);
-    showToast(error?.message || 'Failed to cancel order', 'error');
+    void loadOrders({ silent: true });
+  } catch (err) {
+    console.error('Error cancelling order:', err);
+    showToast(err instanceof Error ? err.message : 'Failed to cancel order', 'error');
   } finally {
     isCancelling.value = false;
   }
@@ -496,11 +612,15 @@ onMounted(async () => {
   await loadOrders();
 
   if (props.initialOrderId) {
-    const match = orders.value.find(o => o.order_id === props.initialOrderId)
-      || paidRequests.value.find(r => String(r.id) === String(props.initialOrderId));
+    const matchOrder = orders.value.find(o => o.order_id === props.initialOrderId);
+    const matchRequest = paidRequests.value.find(r => String(r.id ?? '') === String(props.initialOrderId ?? ''));
+    const match = matchOrder ?? matchRequest;
     if (match) {
-      if (match.order_id) viewOrder(match);
-      else selectedRequestOrder.value = match;
+      if ('order_id' in match && match.order_id != null) {
+        void viewOrder(match as MergedStoreItem);
+      } else {
+        selectedRequestOrder.value = match as PaidRequest;
+      }
     }
   }
 

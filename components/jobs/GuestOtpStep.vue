@@ -12,7 +12,7 @@
       />
       <button
         class="px-3 py-2 rounded-lg text-sm bg-slate-900 text-white hover:bg-black"
-        :disabled="loading"
+        :disabled="loading ?? false"
         @click="onRequestOtp"
       >
         Request OTP
@@ -28,7 +28,7 @@
     <div class="mt-3 flex items-center gap-3">
       <button
         class="px-3 py-2 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700"
-        :disabled="loading || !phoneValue || !codeValue"
+        :disabled="(loading ?? false) || !phoneValue || !codeValue"
         @click="onVerifyOtp"
       >
         Verify OTP
@@ -41,56 +41,36 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 
-const props = defineProps({
-  loading: {
-    type: Boolean,
-    default: false,
-  },
-  verified: {
-    type: Boolean,
-    default: false,
-  },
-  error: {
-    type: String,
-    default: '',
-  },
-  debugCode: {
-    type: String,
-    default: '',
-  },
-  phone: {
-    type: String,
-    default: '',
-  },
-})
+const props = defineProps<{
+  loading?: boolean
+  verified?: boolean
+  error?: string
+  debugCode?: string
+  phone?: string
+}>()
 
-const emit = defineEmits(['request-otp', 'verify-otp', 'update:phone'])
+const emit = defineEmits<{
+  'request-otp': [phone: string]
+  'verify-otp': [payload: { phone: string; code: string }]
+  'update:phone': [value: string]
+}>()
 
-const phoneValue = ref(props.phone)
+const phoneValue = ref(props.phone ?? '')
 const codeValue = ref('')
 
 watch(
   () => props.phone,
-  (value) => {
-    phoneValue.value = value
-  }
+  (value) => { phoneValue.value = value ?? '' },
 )
 
-watch(phoneValue, (value) => {
-  emit('update:phone', value)
-})
+watch(phoneValue, (value) => { emit('update:phone', value) })
 
-const onRequestOtp = () => {
-  emit('request-otp', phoneValue.value)
-}
+const onRequestOtp = (): void => emit('request-otp', phoneValue.value)
 
-const onVerifyOtp = () => {
-  emit('verify-otp', {
-    phone: phoneValue.value,
-    code: codeValue.value,
-  })
+const onVerifyOtp = (): void => {
+  emit('verify-otp', { phone: phoneValue.value, code: codeValue.value })
 }
 </script>

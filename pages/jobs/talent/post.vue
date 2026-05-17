@@ -85,7 +85,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { createJobsService } from '~/services/jobs/jobsService'
 import { useApi } from '~/composables/useApi'
@@ -95,11 +95,20 @@ definePageMeta({ layout: false })
 const api = useApi()
 const jobsService = createJobsService(api)
 
-const loading = ref(false)
-const formError = ref('')
-const successMessage = ref('')
+const loading = ref<boolean>(false)
+const formError = ref<string>('')
+const successMessage = ref<string>('')
 
-const form = reactive({
+const form = reactive<{
+  fullName: string
+  profession: string
+  location: string
+  yearsOfExperience: number | null
+  bio: string
+  email: string
+  phone: string
+  resumeUrl: string
+}>({
   fullName: '',
   profession: '',
   location: '',
@@ -110,7 +119,7 @@ const form = reactive({
   resumeUrl: '',
 })
 
-const handleSubmit = async () => {
+const handleSubmit = async (): Promise<void> => {
   formError.value = ''
   successMessage.value = ''
   loading.value = true
@@ -118,12 +127,14 @@ const handleSubmit = async () => {
   try {
     await jobsService.createSeeker({
       ...form,
-      isGuest: false // Bypass OTP for now
+      isGuest: false, // Bypass OTP for now
     })
-    
+
     successMessage.value = 'Your profile is now live in the Talent Directory!'
   } catch (err) {
-    formError.value = err?.data?.message || err?.message || 'Failed to publish profile.'
+    const e = err as Record<string, unknown>
+    const data = e['data'] as Record<string, unknown> | undefined
+    formError.value = String(data?.['message'] ?? e['message'] ?? 'Failed to publish profile.')
   } finally {
     loading.value = false
   }

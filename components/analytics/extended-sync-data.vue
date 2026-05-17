@@ -112,7 +112,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr v-for="(row, i) in rows" :key="row.company_id" class="hover:bg-gray-50">
+            <tr v-for="(row, i) in rows" :key="row.company_id ?? i" class="hover:bg-gray-50">
               <td class="px-4 py-3 text-gray-400">{{ i + 1 }}</td>
               <td class="px-4 py-3 font-medium text-gray-900">{{ row.company_name }}</td>
               <td class="px-4 py-3 text-gray-600">{{ row.company_id }}</td>
@@ -129,18 +129,34 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ArrowPathIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 
-const props = defineProps({
-  entity: { type: String, default: null },
-})
+interface SyncRow {
+  record_count?: number | string;
+  last_synced_at?: string;
+  company_name?: string;
+  company_id?: number | string;
+  alternate_company_id?: number | string;
+  earliest_date?: string;
+  latest_date?: string;
+  [key: string]: unknown;
+}
 
-const adminStore = useAdminStore()
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
+}
 
-const ENTITIES = [
+const props = defineProps<{
+  entity?: string | null;
+}>()
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
+
+const ENTITIES: Array<{ key: string; label: string }> = [
   { key: 'customer_returns',        label: 'Customer Returns' },
   { key: 'outstanding_credits',     label: 'Outstanding Credits' },
   { key: 'settled_credit_headers',  label: 'Settled Credits' },
@@ -151,33 +167,33 @@ const ENTITIES = [
   { key: 'expenses',                label: 'Expenses' },
 ]
 
-const activeEntity = ref(props.entity ?? 'customer_returns')
-const activeLabel = computed(() => ENTITIES.find(e => e.key === activeEntity.value)?.label ?? '')
+const activeEntity = ref<string>(props.entity ?? 'customer_returns')
+const activeLabel = computed<string>(() => ENTITIES.find(e => e.key === activeEntity.value)?.label ?? '')
 
 watch(() => props.entity, (val) => {
   if (val && val !== activeEntity.value) {
     activeEntity.value = val
     rows.value = []
     error.value = ''
-    fetchData()
+    void fetchData()
   }
 })
 
-const startDate = ref('')
-const endDate = ref('')
-const companyIds = ref('')
-const loading = ref(false)
-const error = ref('')
-const rows = ref([])
+const startDate = ref<string>('')
+const endDate = ref<string>('')
+const companyIds = ref<string>('')
+const loading = ref<boolean>(false)
+const error = ref<string>('')
+const rows = ref<SyncRow[]>([])
 
-const totalRecords = computed(() => rows.value.reduce((s, r) => s + Number(r.record_count), 0))
-const latestSync = computed(() => {
-  const dates = rows.value.map(r => r.last_synced_at).filter(Boolean).sort()
+const totalRecords = computed<number>(() => rows.value.reduce((s, r) => s + Number(r.record_count), 0))
+const latestSync = computed<string>(() => {
+  const dates = rows.value.map(r => r.last_synced_at).filter(Boolean).sort() as string[]
   const d = dates[dates.length - 1]
   return d ? fmtDateTime(d) : '—'
 })
 
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   loading.value = true
   error.value = ''
   rows.value = []
@@ -191,39 +207,39 @@ const fetchData = async () => {
       `/api/reports/cross-tenant/extended-sync/${activeEntity.value}?${params}`
     )
     if (res.success) {
-      rows.value = res.data || []
+      rows.value = (res.data ?? []) as SyncRow[]
     } else {
-      error.value = res.message || 'Failed to load data'
+      error.value = res.message ?? 'Failed to load data'
     }
   } catch (err) {
-    error.value = err.message || 'Request failed'
+    error.value = err instanceof Error ? err.message : 'Request failed'
   } finally {
     loading.value = false
   }
 }
 
-const selectEntity = (key) => {
+const selectEntity = (key: string): void => {
   activeEntity.value = key
   rows.value = []
   error.value = ''
-  fetchData()
+  void fetchData()
 }
 
-const fmtDate = (d) => {
+const fmtDate = (d: string | undefined): string => {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-const fmtDateTime = (d) => {
+const fmtDateTime = (d: string | undefined): string => {
   if (!d) return '—'
   return new Date(d).toLocaleString('en-GB', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-const exportCSV = () => {
+const exportCSV = (): void => {
   if (!rows.value.length) return
   const headers = ['#', 'Company', 'Company ID', 'Alt ID', 'Records', 'Earliest Date', 'Latest Date', 'Last Synced']
   const csvRows = rows.value.map((r, i) => [
-    i + 1, r.company_name, r.company_id, r.alternate_company_id || '',
+    i + 1, r.company_name, r.company_id, r.alternate_company_id ?? '',
     r.record_count, fmtDate(r.earliest_date), fmtDate(r.latest_date), fmtDateTime(r.last_synced_at)
   ])
   const csv = [headers, ...csvRows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -239,8 +255,8 @@ onMounted(() => {
   const today = new Date()
   const ago = new Date(today)
   ago.setDate(ago.getDate() - 90)
-  endDate.value = today.toISOString().slice(0, 10)
-  startDate.value = ago.toISOString().slice(0, 10)
-  fetchData()
+  endDate.value = today.toISOString().slice(0, 10) ?? ''
+  startDate.value = ago.toISOString().slice(0, 10) ?? ''
+  void fetchData()
 })
 </script>

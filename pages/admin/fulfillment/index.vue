@@ -2,7 +2,7 @@
   <div />
 </template>
 
-<script setup>
+<script setup lang="ts">
 definePageMeta({
   middleware: 'admin-auth',
   layout: 'admin-layout'
@@ -10,6 +10,6 @@ definePageMeta({
 
 const router = useRouter()
 onMounted(() => {
-  router.replace('/admin/fulfillment/requests')
+  void router.replace('/admin/fulfillment/requests')
 })
 </script>

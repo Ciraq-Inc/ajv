@@ -245,146 +245,135 @@
 	/>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue';
 import ConfirmDialog from '~/components/ConfirmDialog.vue';
 import { useUserStore } from '~/stores/user';
 
-const userStore = useUserStore();
+// TODO: remove once stores/ are .ts
 
-// State variables
+interface OrderItem {
+  brandName: string
+  genericName?: string
+  quantity: number
+  price: number
+  subtotal: number
+}
+
+interface Order {
+  orderId: string
+  createdAt: string
+  status: string
+  totalAmount: number
+  totalQuantity: number
+  totalItems: number
+  items: OrderItem[]
+  customerInfo: { name?: string; phoneNumber: string; address?: string }
+}
+
+// userStore is untyped (store not yet .ts)
+type UserStoreShape = {
+  isLoggedIn: boolean
+  profile: { name?: string; email?: string; address?: string }
+  userPhoneNumber?: string
+  updateUserData: (data: { name: string; email: string; address: string }) => Promise<void>
+  getOrderHistory: () => Promise<Order[]>
+  logout: () => Promise<void>
+}
+
+const userStore = useUserStore() as unknown as UserStoreShape;
+
 const isLoading = ref(false);
 const isLoadingOrders = ref(false);
 const updateSuccess = ref(false);
-const orders = ref([]);
-const selectedOrder = ref(null);
+const orders = ref<Order[]>([]);
+const selectedOrder = ref<Order | null>(null);
 const showLogoutConfirm = ref(false);
 
-// Initialize profile from user store data
 const profile = reactive({
-	name: userStore.profile.name || '',
-	email: userStore.profile.email || '',
-	address: userStore.profile.address || ''
+  name: userStore.profile.name ?? '',
+  email: userStore.profile.email ?? '',
+  address: userStore.profile.address ?? '',
 });
 
-// Format phone number for display
-const formatPhoneNumber = computed(() => {
-	const phoneNumber = userStore.userPhoneNumber;
-	if (!phoneNumber) return '';
-
-	// Format Ghana number with spaces
-	let formatted = phoneNumber;
-
-	if (formatted.startsWith('+233')) {
-		formatted = '+233 ' + formatted.substring(4);
-	}
-
-	return formatted;
+const formatPhoneNumber = computed<string>(() => {
+  const phoneNumber = userStore.userPhoneNumber;
+  if (!phoneNumber) return '';
+  return phoneNumber.startsWith('+233') ? '+233 ' + phoneNumber.substring(4) : phoneNumber;
 });
 
-// Format date for display
-const formatDate = (dateString) => {
-	if (!dateString) return '';
-
-	const date = new Date(dateString);
-	return date.toLocaleDateString('en-GB', {
-		day: 'numeric',
-		month: 'short',
-		year: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit'
-	});
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return '';
+  return new Date(dateString).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
-// Format order status
-const formatStatus = (status) => {
-	const statusMap = {
-		'pending': 'Pending',
-		'processing': 'Processing',
-		'shipped': 'Shipped',
-		'delivered': 'Delivered',
-		'cancelled': 'Cancelled'
-	};
-
-	return statusMap[status] || status;
+const formatStatus = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    pending: 'Pending',
+    processing: 'Processing',
+    shipped: 'Shipped',
+    delivered: 'Delivered',
+    cancelled: 'Cancelled',
+  };
+  return statusMap[status] ?? status;
 };
 
-// Get CSS classes for order status
-const getStatusClasses = (status) => {
-	const statusClasses = {
-		'pending': 'bg-yellow-100 text-yellow-800',
-		'processing': 'bg-blue-100 text-blue-800',
-		'shipped': 'bg-indigo-100 text-indigo-800',
-		'delivered': 'bg-green-100 text-green-800',
-		'cancelled': 'bg-red-100 text-red-800'
-	};
-
-	return statusClasses[status] || 'bg-gray-100 text-gray-800';
+const getStatusClasses = (status: string): string => {
+  const statusClasses: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    processing: 'bg-blue-100 text-blue-800',
+    shipped: 'bg-indigo-100 text-indigo-800',
+    delivered: 'bg-green-100 text-green-800',
+    cancelled: 'bg-red-100 text-red-800',
+  };
+  return statusClasses[status] ?? 'bg-gray-100 text-gray-800';
 };
 
-// Save profile changes
-const saveProfile = async () => {
-	try {
-		isLoading.value = true;
-
-		// Update profile in user store
-		await userStore.updateUserData({
-			name: profile.name,
-			email: profile.email,
-			address: profile.address
-		});
-
-		// Show success message
-		updateSuccess.value = true;
-
-		// Hide success message after 3 seconds
-		setTimeout(() => {
-			updateSuccess.value = false;
-		}, 3000);
-	} catch (error) {
-		console.error('Error saving profile:', error);
-		alert('Failed to save profile. Please try again.');
-	} finally {
-		isLoading.value = false;
-	}
+const saveProfile = async (): Promise<void> => {
+  try {
+    isLoading.value = true;
+    await userStore.updateUserData({ name: profile.name, email: profile.email, address: profile.address });
+    updateSuccess.value = true;
+    setTimeout(() => { updateSuccess.value = false; }, 3000);
+  } catch (error: unknown) {
+    console.error('Error saving profile:', error);
+    alert('Failed to save profile. Please try again.');
+  } finally {
+    isLoading.value = false;
+  }
 };
 
-// Fetch order history
-const fetchOrderHistory = async () => {
-	try {
-		isLoadingOrders.value = true;
-		orders.value = await userStore.getOrderHistory();
-	} catch (error) {
-		console.error('Error fetching order history:', error);
-	} finally {
-		isLoadingOrders.value = false;
-	}
+const fetchOrderHistory = async (): Promise<void> => {
+  try {
+    isLoadingOrders.value = true;
+    orders.value = await userStore.getOrderHistory();
+  } catch (error: unknown) {
+    console.error('Error fetching order history:', error);
+  } finally {
+    isLoadingOrders.value = false;
+  }
 };
 
-// View order details
-const viewOrderDetails = (order) => {
-	selectedOrder.value = order;
+const viewOrderDetails = (order: Order): void => { selectedOrder.value = order; };
+const logout = (): void => { showLogoutConfirm.value = true; };
+
+const confirmLogout = async (): Promise<void> => {
+  try {
+    await userStore.logout();
+    showLogoutConfirm.value = false;
+    navigateTo({ path: '/', query: { logged_out: Date.now().toString() } });
+  } catch (error: unknown) {
+    console.error('Error logging out:', error);
+  }
 };
 
-// Logout user
-const logout = () => {
-	showLogoutConfirm.value = true;
-};
-
-const confirmLogout = async () => {
-	try {
-		await userStore.logout();
-		showLogoutConfirm.value = false;
-		navigateTo({ path: '/', query: { logged_out: Date.now().toString() } });
-	} catch (error) {
-		console.error('Error logging out:', error);
-	}
-};
-
-// Fetch data on component mount
 onMounted(async () => {
-	if (userStore.isLoggedIn) {
-		fetchOrderHistory();
-	}
+  if (userStore.isLoggedIn) fetchOrderHistory();
 });
 </script>

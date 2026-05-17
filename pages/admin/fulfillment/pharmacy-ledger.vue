@@ -8,7 +8,7 @@
       </div>
       <div class="header-actions">
         <button class="btn-secondary header-btn--back" @click="goBack">Back to Orders</button>
-        <button class="btn-primary header-btn--refresh" :disabled="loading" @click="loadLedger">
+        <button class="btn-primary header-btn--refresh" :disabled="loading" @click="() => { void loadLedger() }">
           {{ loading ? 'Refreshing...' : 'Refresh Data' }}
         </button>
       </div>
@@ -54,9 +54,9 @@
       <div class="filter-group">
         <span class="filter-label">Custom Dates:</span>
         <div class="date-pickers">
-          <input v-model="fromDate" type="date" class="date-input" @change="loadLedger" />
+          <input v-model="fromDate" type="date" class="date-input" @change="() => { void loadLedger() }" />
           <span class="date-sep">to</span>
-          <input v-model="toDate" type="date" class="date-input" @change="loadLedger" />
+          <input v-model="toDate" type="date" class="date-input" @change="() => { void loadLedger() }" />
         </div>
       </div>
     </div>
@@ -75,11 +75,11 @@
         <div class="pharmacy-list">
           <button
             v-for="pharmacy in filteredPharmacies"
-            :key="pharmacy.pharmacy_id"
+            :key="pharmacy.pharmacy_id ?? ''"
             type="button"
             class="pharmacy-list-item"
             :class="{ active: selectedPharmacyId === pharmacy.pharmacy_id }"
-            @click="selectPharmacy(pharmacy.pharmacy_id)"
+            @click="selectPharmacy(pharmacy.pharmacy_id ?? null)"
           >
             <div class="pli-main">
               <span class="pli-name">{{ pharmacy.pharmacy_name }}</span>
@@ -172,7 +172,7 @@
             </tbody>
 
             <tbody v-else>
-              <tr v-for="tx in transactions" :key="tx.transaction_id">
+              <tr v-for="tx in transactions" :key="(tx.transaction_id as PropertyKey | null | undefined) ?? ''">
                 <td class="col-date cell-muted">{{ formatDateTimeCompact(tx.transaction_date) }}</td>
                 <td class="col-ref">
                   <span class="ref-code">{{ tx.request_number }}</span>
@@ -195,60 +195,97 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
 definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
 
+interface PharmacyRow {
+  pharmacy_id?: number | null
+  pharmacy_name?: string | null
+  pharmacy_location?: string | null
+  total_earned?: number | null
+  transaction_count?: number | null
+  [key: string]: unknown
+}
+
+interface TransactionRow {
+  transaction_id?: number | string | null;
+  transaction_date?: string | null;
+  request_number?: string | null;
+  customer_name?: string | null;
+  product_name?: string | null;
+  quantity?: number | null;
+  request_status?: string | null;
+  amount?: number | null;
+  [key: string]: unknown;
+}
+
+interface LedgerSummary {
+  total_earned?: number | null
+  average_transaction_value?: number | null
+  transaction_count?: number | null
+  pharmacy_count?: number | null
+  from_date?: string | null
+  to_date?: string | null
+  [key: string]: unknown
+}
+
+interface LedgerData {
+  summary?: LedgerSummary | null
+  pharmacies?: PharmacyRow[] | null
+  selected_pharmacy?: PharmacyRow | null
+  transactions?: TransactionRow[] | null
+  [key: string]: unknown
+}
+
 const orderRequestsService = createOrderRequestsService(useApi())
 const route = useRoute()
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
-const ledger = ref({ summary: {}, pharmacies: [], selected_pharmacy: null, transactions: [] })
-const searchQuery = ref('')
-const fromDate = ref('')
-const toDate = ref('')
-const selectedPharmacyId = ref(null)
-const quickRange = ref('30d')
-const applyingRange = ref(false)
+const loading = ref<boolean>(false)
+const error = ref<string>('')
+const ledger = ref<LedgerData>({ summary: {}, pharmacies: [], selected_pharmacy: null, transactions: [] })
+const searchQuery = ref<string>('')
+const fromDate = ref<string>('')
+const toDate = ref<string>('')
+const selectedPharmacyId = ref<number | null>(null)
+const quickRange = ref<string>('30d')
+const applyingRange = ref<boolean>(false)
 
-const ranges = [
+const ranges: Array<{ value: string; label: string }> = [
   { value: 'today', label: 'Today' },
   { value: '7d', label: '7D' },
   { value: '30d', label: '30D' },
-  { value: 'all', label: 'All' }
+  { value: 'all', label: 'All' },
 ]
 
-const summary = computed(() => ledger.value.summary || {})
-const pharmacies = computed(() => Array.isArray(ledger.value.pharmacies) ? ledger.value.pharmacies : [])
-const selectedPharmacy = computed(() => ledger.value.selected_pharmacy || null)
-const transactions = computed(() => Array.isArray(ledger.value.transactions) ? ledger.value.transactions : [])
+const summary = computed<LedgerSummary>(() => ledger.value.summary ?? {})
+const pharmacies = computed<PharmacyRow[]>(() => Array.isArray(ledger.value.pharmacies) ? ledger.value.pharmacies : [])
+const selectedPharmacy = computed<PharmacyRow | null>(() => ledger.value.selected_pharmacy ?? null)
+const transactions = computed<TransactionRow[]>(() => Array.isArray(ledger.value.transactions) ? ledger.value.transactions : [])
 
-const filteredPharmacies = computed(() => {
-  const term = String(searchQuery.value || '').trim().toLowerCase()
+const filteredPharmacies = computed<PharmacyRow[]>(() => {
+  const term = searchQuery.value.trim().toLowerCase()
   if (!term) return pharmacies.value
   return pharmacies.value.filter((pharmacy) => {
-    return [
-      pharmacy.pharmacy_name,
-      pharmacy.pharmacy_location
-    ].some((value) => String(value || '').toLowerCase().includes(term))
+    return [pharmacy.pharmacy_name, pharmacy.pharmacy_location]
+      .some((value) => String(value ?? '').toLowerCase().includes(term))
   })
 })
 
+const formatCurrency = (value: number | null | undefined): string =>
+  `GHS ${Number(value ?? 0).toFixed(2)}`
 
-const formatCurrency = (value) => `GHS ${Number(value || 0).toFixed(2)}`
-
-const prettyDate = (value) => {
+const prettyDate = (value: string | null | undefined): string => {
   if (!value) return 'All time'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const formatDateTime = (value) => {
+const formatDateTime = (value: string | null | undefined): string => {
   if (!value) return '-'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
@@ -257,11 +294,11 @@ const formatDateTime = (value) => {
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
-const formatDateTimeCompact = (value) => {
+const formatDateTimeCompact = (value: string | null | undefined): string => {
   if (!value) return '-'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
@@ -269,22 +306,25 @@ const formatDateTimeCompact = (value) => {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
-const formatStatus = (value) => String(value || '').replace(/_/g, ' ')
-const sanitizeStatus = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '-')
+const formatStatus = (value: string | null | undefined): string =>
+  String(value ?? '').replace(/_/g, ' ')
 
-const goBack = () => {
-  router.push('/admin/fulfillment/requests')
+const sanitizeStatus = (value: string | null | undefined): string =>
+  String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '-')
+
+const goBack = (): void => {
+  void router.push('/admin/fulfillment/requests')
 }
 
-const applyQuickRange = (range) => {
+const applyQuickRange = (range: string): void => {
   applyingRange.value = true
   quickRange.value = range
   const now = new Date()
-  const toInput = (date) => {
+  const toInput = (date: Date): string => {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
@@ -307,29 +347,31 @@ const applyQuickRange = (range) => {
   applyingRange.value = false
 }
 
-const loadLedger = async ({ pharmacyId = null } = {}) => {
+const loadLedger = async ({ pharmacyId = null }: { pharmacyId?: number | null } = {}): Promise<void> => {
   loading.value = true
   error.value = ''
   try {
+    const resolvedPharmacyId = pharmacyId ?? selectedPharmacyId.value
     const res = await orderRequestsService.getPharmacyLedger({
-      pharmacyId: pharmacyId || selectedPharmacyId.value || null,
-      startDate: fromDate.value || null,
-      endDate: toDate.value || null,
       limit: 50,
+      ...(resolvedPharmacyId != null && { pharmacyId: resolvedPharmacyId }),
+      ...(fromDate.value && { startDate: fromDate.value }),
+      ...(toDate.value && { endDate: toDate.value }),
     })
-    ledger.value = res.data || { summary: {}, pharmacies: [], selected_pharmacy: null, transactions: [] }
+    ledger.value = (res.data as unknown as LedgerData) ?? { summary: {}, pharmacies: [], selected_pharmacy: null, transactions: [] }
 
     if (!selectedPharmacyId.value) {
-      selectedPharmacyId.value = ledger.value.selected_pharmacy?.pharmacy_id || ledger.value.pharmacies?.[0]?.pharmacy_id || null
+      selectedPharmacyId.value =
+        (ledger.value.selected_pharmacy?.pharmacy_id ?? ledger.value.pharmacies?.[0]?.pharmacy_id ?? null) as number | null
     }
   } catch (err) {
-    error.value = err.message || 'Failed to load pharmacy ledger'
+    error.value = err instanceof Error ? err.message : 'Failed to load pharmacy ledger'
   } finally {
     loading.value = false
   }
 }
 
-const selectPharmacy = async (pharmacyId) => {
+const selectPharmacy = async (pharmacyId: number | null): Promise<void> => {
   selectedPharmacyId.value = pharmacyId
   await loadLedger({ pharmacyId })
 }
@@ -341,9 +383,9 @@ watch([fromDate, toDate], () => {
 
 onMounted(async () => {
   applyQuickRange(quickRange.value)
-  if (route.query.fromDate) fromDate.value = String(route.query.fromDate)
-  if (route.query.toDate) toDate.value = String(route.query.toDate)
-  if (route.query.pharmacyId) selectedPharmacyId.value = Number(route.query.pharmacyId)
+  if (route.query['fromDate']) fromDate.value = String(route.query['fromDate'])
+  if (route.query['toDate']) toDate.value = String(route.query['toDate'])
+  if (route.query['pharmacyId']) selectedPharmacyId.value = Number(route.query['pharmacyId'])
   await loadLedger()
 })
 </script>

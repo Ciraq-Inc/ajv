@@ -139,7 +139,7 @@
                     aria-autocomplete="list"
                     aria-controls="profile-address-suggestions"
                     :aria-expanded="addressSuggestions.length > 0"
-                    :aria-activedescendant="addressActiveIndex >= 0 ? `profile-address-option-${addressActiveIndex}` : undefined"
+                    :aria-activedescendant="addressActiveIndex >= 0 ? `profile-address-option-${addressActiveIndex}` : ''"
                     autocomplete="street-address"
                     inputmode="text"
                     @keydown="onAddressKeydown"
@@ -211,7 +211,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useUserStore } from '~/stores/user';
 import {
@@ -228,42 +228,85 @@ import {
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
 
-const userStore = useUserStore();
+interface AddressSuggestion {
+  display_name?: string;
+  latitude?: string | number;
+  longitude?: string | number;
+  [key: string]: unknown;
+}
+
+interface ProfileData {
+  fname?: string;
+  lname?: string;
+  email?: string;
+  home_address?: string;
+  address?: string;
+  home_latitude?: number | null;
+  home_longitude?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+// TODO: remove once stores/ are .ts
+interface UserStoreShape {
+  currentUser?: { fname?: string; lname?: string; email?: string; phone?: string };
+  userPhoneNumber?: string;
+  getProfile: () => Promise<ProfileData | null>;
+  updateProfile: (data: {
+    fname: string;
+    lname: string;
+    email: string;
+    home_address: string | null;
+    home_latitude: number | null;
+    home_longitude: number | null;
+  }) => Promise<void>;
+  autocompleteLocation: (query: string) => Promise<AddressSuggestion[]>;
+  reverseGeocodeHomeLocation: (lat: number, lng: number) => Promise<{ address?: string }>;
+}
+
+const userStore = useUserStore() as unknown as UserStoreShape;
 
 // State
-const isLoading = ref(false);
-const isLocating = ref(false);
-const updateSuccess = ref(false);
-const error = ref(null);
-const addressSearch = ref('');
-const addressSuggestions = ref([]);
-const addressActiveIndex = ref(-1);
-const autocompleteLoading = ref(false);
-let addressAutocompleteTimer = null;
+const isLoading = ref<boolean>(false);
+const isLocating = ref<boolean>(false);
+const updateSuccess = ref<boolean>(false);
+const error = ref<string | null>(null);
+const addressSearch = ref<string>('');
+const addressSuggestions = ref<AddressSuggestion[]>([]);
+const addressActiveIndex = ref<number>(-1);
+const autocompleteLoading = ref<boolean>(false);
+let addressAutocompleteTimer: ReturnType<typeof setTimeout> | null = null;
 let addressAutocompleteSuspend = false;
 
 // Profile form
-const profile = reactive({
+const profile = reactive<{
+  fname: string;
+  lname: string;
+  email: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+}>({
   fname: '',
   lname: '',
   email: '',
   address: '',
   latitude: null,
-  longitude: null
+  longitude: null,
 });
 
-const profileDisplayName = computed(() => {
-  const fullName = `${profile.fname || ''} ${profile.lname || ''}`.trim();
+const profileDisplayName = computed<string>(() => {
+  const fullName = `${profile.fname} ${profile.lname}`.trim();
   return fullName || 'Customer Profile';
 });
 
-const profileInitials = computed(() => {
-  const initials = `${(profile.fname || '')[0] || ''}${(profile.lname || '')[0] || ''}`.toUpperCase();
+const profileInitials = computed<string>(() => {
+  const initials = `${profile.fname[0] ?? ''}${profile.lname[0] ?? ''}`.toUpperCase();
   return initials || 'CP';
 });
 
 // Format phone number
-const formatPhoneNumber = (phone) => {
+const formatPhoneNumber = (phone: string | undefined): string => {
   if (!phone) return '';
   let formatted = phone;
   if (formatted.startsWith('233')) {
@@ -275,30 +318,30 @@ const formatPhoneNumber = (phone) => {
 };
 
 // Load profile data
-const loadProfile = async () => {
+const loadProfile = async (): Promise<void> => {
   try {
     const profileData = await userStore.getProfile();
     if (profileData) {
-      profile.fname = profileData?.fname || userStore.currentUser?.fname || '';
-      profile.lname = profileData?.lname || userStore.currentUser?.lname || '';
-      profile.email = profileData?.email || userStore.currentUser?.email || '';
-      profile.address = profileData?.home_address || profileData?.address || '';
-      profile.latitude = profileData?.home_latitude ?? profileData?.latitude ?? null;
-      profile.longitude = profileData?.home_longitude ?? profileData?.longitude ?? null;
-      addressSearch.value = profile.address || '';
+      profile.fname = profileData.fname ?? userStore.currentUser?.fname ?? '';
+      profile.lname = profileData.lname ?? userStore.currentUser?.lname ?? '';
+      profile.email = profileData.email ?? userStore.currentUser?.email ?? '';
+      profile.address = profileData.home_address ?? profileData.address ?? '';
+      profile.latitude = profileData.home_latitude ?? profileData.latitude ?? null;
+      profile.longitude = profileData.home_longitude ?? profileData.longitude ?? null;
+      addressSearch.value = profile.address;
     }
   } catch (err) {
     console.error('Error loading profile:', err);
   }
 };
 
-const clearAddressSuggestions = () => {
+const clearAddressSuggestions = (): void => {
   addressSuggestions.value = [];
   addressActiveIndex.value = -1;
   autocompleteLoading.value = false;
 };
 
-const onAddressKeydown = (event) => {
+const onAddressKeydown = (event: KeyboardEvent): void => {
   const count = addressSuggestions.value.length;
   if (!count) return;
   if (event.key === 'ArrowDown') {
@@ -309,14 +352,14 @@ const onAddressKeydown = (event) => {
     addressActiveIndex.value = addressActiveIndex.value <= 0 ? count - 1 : addressActiveIndex.value - 1;
   } else if (event.key === 'Enter' && addressActiveIndex.value >= 0) {
     event.preventDefault();
-    applyAddressSuggestion(addressSuggestions.value[addressActiveIndex.value]);
+    applyAddressSuggestion(addressSuggestions.value[addressActiveIndex.value]!);
   } else if (event.key === 'Escape') {
     clearAddressSuggestions();
   }
 };
 
-const fetchAddressSuggestions = async (query) => {
-  const trimmed = String(query || '').trim();
+const fetchAddressSuggestions = async (query: string): Promise<void> => {
+  const trimmed = String(query).trim();
   if (trimmed.length < 3) {
     clearAddressSuggestions();
     return;
@@ -335,8 +378,8 @@ const fetchAddressSuggestions = async (query) => {
   }
 };
 
-const applyAddressSuggestion = (suggestion) => {
-  profile.address = suggestion.display_name || '';
+const applyAddressSuggestion = (suggestion: AddressSuggestion): void => {
+  profile.address = suggestion.display_name ?? '';
   profile.latitude = Number.isFinite(Number(suggestion.latitude)) ? Number(suggestion.latitude) : profile.latitude;
   profile.longitude = Number.isFinite(Number(suggestion.longitude)) ? Number(suggestion.longitude) : profile.longitude;
   addressAutocompleteSuspend = true;
@@ -344,9 +387,10 @@ const applyAddressSuggestion = (suggestion) => {
   clearAddressSuggestions();
 };
 
-const reverseGeocode = (latitude, longitude) => userStore.reverseGeocodeHomeLocation(latitude, longitude);
+const reverseGeocode = (latitude: number, longitude: number) =>
+  userStore.reverseGeocodeHomeLocation(latitude, longitude);
 
-const captureHomeLocation = () => {
+const captureHomeLocation = (): void => {
   if (!navigator.geolocation) {
     error.value = 'Location is not available in this browser';
     return;
@@ -363,17 +407,17 @@ const captureHomeLocation = () => {
         const result = await reverseGeocode(latitude, longitude);
         profile.latitude = latitude;
         profile.longitude = longitude;
-        profile.address = result.address || '';
+        profile.address = result.address ?? '';
         addressSearch.value = profile.address;
       } catch (err) {
-        error.value = err.message || 'Failed to generate your home address';
+        error.value = err instanceof Error ? err.message : 'Failed to generate your home address';
       } finally {
         isLocating.value = false;
       }
     },
     (geoError) => {
       isLocating.value = false;
-      if (geoError?.code === geoError.PERMISSION_DENIED) {
+      if (geoError.code === geoError.PERMISSION_DENIED) {
         error.value = 'Location permission was denied. Allow location access and try again.';
         return;
       }
@@ -383,7 +427,7 @@ const captureHomeLocation = () => {
   );
 };
 
-const clearHomeLocation = () => {
+const clearHomeLocation = (): void => {
   profile.address = '';
   profile.latitude = null;
   profile.longitude = null;
@@ -392,7 +436,7 @@ const clearHomeLocation = () => {
 };
 
 // Save profile
-const saveProfile = async () => {
+const saveProfile = async (): Promise<void> => {
   try {
     isLoading.value = true;
     error.value = null;
@@ -403,7 +447,7 @@ const saveProfile = async () => {
       email: profile.email,
       home_address: profile.address || null,
       home_latitude: profile.latitude,
-      home_longitude: profile.longitude
+      home_longitude: profile.longitude,
     });
 
     updateSuccess.value = true;
@@ -411,7 +455,7 @@ const saveProfile = async () => {
       updateSuccess.value = false;
     }, 3000);
   } catch (err) {
-    error.value = err.message || 'Failed to update profile';
+    error.value = err instanceof Error ? err.message : 'Failed to update profile';
     setTimeout(() => {
       error.value = null;
     }, 5000);
@@ -422,7 +466,7 @@ const saveProfile = async () => {
 
 // Initialize
 onMounted(() => {
-  loadProfile();
+  void loadProfile();
 });
 
 onUnmounted(() => {
@@ -443,14 +487,14 @@ watch(addressSearch, (value) => {
     addressAutocompleteTimer = null;
   }
 
-  const trimmed = String(value || '').trim();
+  const trimmed = String(value).trim();
   if (!trimmed) {
     clearAddressSuggestions();
     return;
   }
 
   addressAutocompleteTimer = setTimeout(() => {
-    fetchAddressSuggestions(trimmed);
+    void fetchAddressSuggestions(trimmed);
   }, 300);
 });
 </script>

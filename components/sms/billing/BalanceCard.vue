@@ -68,47 +68,41 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { ChatBubbleLeftIcon, ArrowPathIcon, PlusIcon } from '@heroicons/vue/20/solid'
 import { formatNumber, formatCurrency, formatRelativeTime } from '~/utils/constants/sms'
 
-const props = defineProps({
-  balanceData: {
-    type: Object,
-    default: () => ({})
-  },
-  showActions: {
-    type: Boolean,
-    default: true
-  },
-  showTopUp: {
-    type: Boolean,
-    default: false
-  }
-})
+interface BalanceData {
+  available_balance?: number
+  sms_balance?: number
+  reserved_credits?: number
+  total_sms_loaded?: number
+  total_sms_sent?: number
+  money_balance?: number
+  updated_at?: string
+  last_updated?: string
+}
 
-defineEmits(['refresh', 'topup'])
+const props = defineProps<{
+  balanceData?: BalanceData
+  showActions?: boolean
+  showTopUp?: boolean
+}>()
 
-const availableBalance = computed(() => {
-  return props.balanceData?.available_balance || 
-         props.balanceData?.sms_balance || 
-         0
-})
+defineEmits<{ refresh: []; topup: [] }>()
 
-const reservedCredits = computed(() => {
-  return props.balanceData?.reserved_credits || 0
-})
+const availableBalance = computed<number>(
+  () => props.balanceData?.available_balance ?? props.balanceData?.sms_balance ?? 0,
+)
 
-const totalLoaded = computed(() => {
-  return props.balanceData?.total_sms_loaded || 0
-})
+const reservedCredits = computed<number>(() => props.balanceData?.reserved_credits ?? 0)
 
-const totalSent = computed(() => {
-  return props.balanceData?.total_sms_sent || 0
-})
+const totalLoaded = computed<number>(() => props.balanceData?.total_sms_loaded ?? 0)
 
-const lastUpdated = computed(() => {
-  return props.balanceData?.updated_at || props.balanceData?.last_updated
-})
+const totalSent = computed<number>(() => props.balanceData?.total_sms_sent ?? 0)
+
+const lastUpdated = computed<string | undefined>(
+  () => props.balanceData?.updated_at ?? props.balanceData?.last_updated,
+)
 </script>

@@ -88,7 +88,7 @@
         <div class="flex items-start gap-2">
           <input
             type="checkbox"
-            :checked="selectedQuarters[`q${quarter}`]"
+            :checked="selectedQuarters[`q${quarter}`] ?? false"
             @change="selectedQuarters[`q${quarter}`] = !selectedQuarters[`q${quarter}`]"
             class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 flex-shrink-0"
           />
@@ -96,7 +96,7 @@
             <p class="text-sm font-semibold text-gray-800">{{ getQuarterName(quarter) }}</p>
             <p class="text-xs text-gray-500 mt-1">{{ getQuarterDates(quarter) }}</p>
             <div v-if="quarterlyData[`q${quarter}`]" class="mt-2 text-xs text-gray-700">
-              <p><strong>{{ quarterlyData[`q${quarter}`].transactions || 0 }}</strong> txns</p>
+              <p><strong>{{ quarterlyData?.[`q${quarter}`]?.transactions || 0 }}</strong> txns</p>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@
               <td class="px-6 py-4">
                 <input
                   type="checkbox"
-                  :checked="selectedPharmacies[pharmacy.company_id]"
+                  :checked="selectedPharmacies[pharmacy.company_id] ?? false"
                   @change="togglePharmacy(pharmacy.company_id)"
                   class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                 />
@@ -172,7 +172,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ChatBubbleLeftIcon, DocumentArrowDownIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
@@ -182,121 +182,145 @@ definePageMeta({
   middleware: 'data-consumer-auth',
 })
 
+interface PharmacyQuarterRow {
+  company_id: number | string
+  alternate_company_id?: string | null
+  q1_transactions?: number | null
+  q2_transactions?: number | null
+  q3_transactions?: number | null
+  q4_transactions?: number | null
+  q1_date_range?: string | null
+  q2_date_range?: string | null
+  q3_date_range?: string | null
+  q4_date_range?: string | null
+  [key: string]: unknown
+}
+
+interface QuarterSlot {
+  transactions?: number | null
+  [key: string]: unknown
+}
+
+interface QuarterlySummaryRaw {
+  success?: boolean
+  message?: string
+  summary?: {
+    q1?: QuarterSlot | null
+    q2?: QuarterSlot | null
+    q3?: QuarterSlot | null
+    q4?: QuarterSlot | null
+    [key: string]: QuarterSlot | null | undefined
+  } | null
+  pharmacies?: PharmacyQuarterRow[] | null
+}
+
 const reportsExportService = createReportsExportService(useApi())
 
-// State
-const quarterlyLoading = ref(false)
-const quarterlyError = ref('')
-const quarterlyData = ref(null)
-const quarterlyPharmacies = ref([])
+const quarterlyLoading = ref<boolean>(false)
+const quarterlyError = ref<string>('')
+const quarterlyData = ref<QuarterlySummaryRaw['summary'] | null>(null)
+const quarterlyPharmacies = ref<PharmacyQuarterRow[]>([])
 
-const quarterlyFilters = ref({
+const quarterlyFilters = ref<{ year: string; date_field: string }>({
   year: String(new Date().getFullYear()),
-  date_field: 'actual_date'
+  date_field: 'actual_date',
 })
 
-// Selected quarters and pharmacies
-const selectedQuarters = ref({
+const selectedQuarters = ref<Record<string, boolean>>({
   q1: true,
   q2: true,
   q3: true,
-  q4: true
+  q4: true,
 })
 
-const selectedPharmacies = ref({})
+const selectedPharmacies = ref<Record<string | number, boolean>>({})
 
-// Computed
-const allPharmaciesSelected = computed(() => {
+const allPharmaciesSelected = computed<boolean>(() => {
   return quarterlyPharmacies.value.length > 0 &&
-    quarterlyPharmacies.value.every(p => selectedPharmacies.value[p.company_id])
+    quarterlyPharmacies.value.every((p) => selectedPharmacies.value[p.company_id] === true)
 })
 
-const canSendWhatsApp = computed(() => {
-  const hasSelectedQuarters = Object.values(selectedQuarters.value).some(v => v)
-  const hasSelectedPharmacies = Object.values(selectedPharmacies.value).some(v => v)
-  return quarterlyData.value && quarterlyPharmacies.value.length > 0 && hasSelectedQuarters && hasSelectedPharmacies
+const canSendWhatsApp = computed<boolean>(() => {
+  const hasSelectedQuarters = Object.values(selectedQuarters.value).some((v) => v)
+  const hasSelectedPharmacies = Object.values(selectedPharmacies.value).some((v) => v)
+  return quarterlyData.value !== null && quarterlyPharmacies.value.length > 0 && hasSelectedQuarters && hasSelectedPharmacies
 })
 
-// Methods
-const getQuarterName = (index) => {
-  const names = ['Q1', 'Q2', 'Q3', 'Q4']
-  return names[index - 1]
+const quarterNames: Record<number, string> = { 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4' }
+const quarterColors: Record<number, string> = {
+  1: 'border-blue-500',
+  2: 'border-green-500',
+  3: 'border-orange-500',
+  4: 'border-red-500',
 }
 
-const getQuarterDates = (index) => {
-  const year = parseInt(quarterlyFilters.value.year)
-  let start, end
-  switch(index) {
-    case 1: start = 'Jan 1'; end = 'Mar 31'; break
-    case 2: start = 'Apr 1'; end = 'Jun 30'; break
-    case 3: start = 'Jul 1'; end = 'Sep 30'; break
-    case 4: start = 'Oct 1'; end = 'Dec 31'; break
+const getQuarterName = (index: number): string => quarterNames[index] ?? `Q${index}`
+
+const getQuarterDates = (index: number): string => {
+  const ranges: Record<number, string> = {
+    1: 'Jan 1 - Mar 31',
+    2: 'Apr 1 - Jun 30',
+    3: 'Jul 1 - Sep 30',
+    4: 'Oct 1 - Dec 31',
   }
-  return `${start} - ${end}`
+  return ranges[index] ?? ''
 }
 
-const getQuarterColor = (index) => {
-  const colors = [
-    'border-blue-500',
-    'border-green-500',
-    'border-orange-500',
-    'border-red-500'
-  ]
-  return colors[index - 1]
-}
+const getQuarterColor = (index: number): string => quarterColors[index] ?? 'border-slate-300'
 
-const getPharmacyTotal = (pharmacy) => {
+const getPharmacyTotal = (pharmacy: PharmacyQuarterRow): number => {
   let total = 0
-  if (selectedQuarters.value.q1) total += pharmacy.q1_transactions || 0
-  if (selectedQuarters.value.q2) total += pharmacy.q2_transactions || 0
-  if (selectedQuarters.value.q3) total += pharmacy.q3_transactions || 0
-  if (selectedQuarters.value.q4) total += pharmacy.q4_transactions || 0
+  if (selectedQuarters.value.q1) total += pharmacy.q1_transactions ?? 0
+  if (selectedQuarters.value.q2) total += pharmacy.q2_transactions ?? 0
+  if (selectedQuarters.value.q3) total += pharmacy.q3_transactions ?? 0
+  if (selectedQuarters.value.q4) total += pharmacy.q4_transactions ?? 0
   return total
 }
 
-const togglePharmacy = (pharmacyId) => {
-  selectedPharmacies.value[pharmacyId] = !selectedPharmacies.value[pharmacyId]
+const togglePharmacy = (pharmacyId: string | number): void => {
+  selectedPharmacies.value[pharmacyId] = !(selectedPharmacies.value[pharmacyId] === true)
 }
 
-const toggleAllPharmacies = () => {
+const toggleAllPharmacies = (): void => {
   if (allPharmaciesSelected.value) {
     selectedPharmacies.value = {}
   } else {
-    quarterlyPharmacies.value.forEach(p => {
+    quarterlyPharmacies.value.forEach((p) => {
       selectedPharmacies.value[p.company_id] = true
     })
   }
 }
 
-const fetchQuarterlyData = async (forceRefresh = false) => {
+const fetchQuarterlyData = async (forceRefresh: boolean | Event = false): Promise<void> => {
   quarterlyLoading.value = true
   quarterlyError.value = ''
   quarterlyData.value = null
   quarterlyPharmacies.value = []
 
   try {
-    const data = await reportsExportService.getQuarterlySummary({
+    const raw = await reportsExportService.getQuarterlySummary({
       year: quarterlyFilters.value.year,
       dateField: quarterlyFilters.value.date_field,
       forceRefresh: forceRefresh === true,
     })
+    const data = raw as unknown as QuarterlySummaryRaw
 
     if (data.success) {
-      quarterlyData.value = data.summary
-      quarterlyPharmacies.value = data.pharmacies || []
+      quarterlyData.value = data.summary ?? null
+      quarterlyPharmacies.value = data.pharmacies ?? []
     } else {
-      throw new Error(data.message || 'Failed to fetch quarterly data')
+      throw new Error(data.message ?? 'Failed to fetch quarterly data')
     }
   } catch (err) {
     console.error('Error fetching quarterly data:', err)
-    quarterlyError.value = err.message || 'Failed to fetch quarterly data'
+    quarterlyError.value = err instanceof Error ? err.message : 'Failed to fetch quarterly data'
   } finally {
     quarterlyLoading.value = false
   }
 }
 
-const getSelectedQuartersText = () => {
-  const quarters = []
+const getSelectedQuartersText = (): string => {
+  const quarters: string[] = []
   if (selectedQuarters.value.q1) quarters.push('Q1')
   if (selectedQuarters.value.q2) quarters.push('Q2')
   if (selectedQuarters.value.q3) quarters.push('Q3')
@@ -304,13 +328,13 @@ const getSelectedQuartersText = () => {
   return quarters.length > 0 ? quarters.join(', ') : 'None selected'
 }
 
-const getSelectedPharmaciesText = () => {
-  const pharmacies = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
+const getSelectedPharmaciesText = (): string => {
+  const pharmacies = quarterlyPharmacies.value.filter((p) => selectedPharmacies.value[p.company_id] === true)
   if (pharmacies.length === 0) return 'No pharmacies selected'
-  return pharmacies.map(p => `${p.alternate_company_id || p.company_id}`).join(', ')
+  return pharmacies.map((p) => String(p.alternate_company_id ?? p.company_id)).join(', ')
 }
 
-const sendViaWhatsApp = () => {
+const sendViaWhatsApp = (): void => {
   if (!canSendWhatsApp.value) return
 
   const year = quarterlyFilters.value.year
@@ -323,27 +347,27 @@ const sendViaWhatsApp = () => {
   window.open(`https://wa.me/?text=${encodedMessage}`, '_blank')
 }
 
-const exportQuarterlyToCSV = () => {
-  const selectedPharmacyList = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
+const exportQuarterlyToCSV = (): void => {
+  const selectedPharmacyList = quarterlyPharmacies.value.filter((p) => selectedPharmacies.value[p.company_id] === true)
   if (selectedPharmacyList.length === 0) return
 
   let csv = 'Alternate ID'
-  
+
   if (selectedQuarters.value.q1) csv += ',Q1,Q1 Dates'
   if (selectedQuarters.value.q2) csv += ',Q2,Q2 Dates'
   if (selectedQuarters.value.q3) csv += ',Q3,Q3 Dates'
   if (selectedQuarters.value.q4) csv += ',Q4,Q4 Dates'
-  
+
   csv += ',Total\n'
 
-  selectedPharmacyList.forEach(pharmacy => {
-    csv += `"${pharmacy.alternate_company_id || 'N/A'}"`
-    
-    if (selectedQuarters.value.q1) csv += `,${pharmacy.q1_transactions || 0},"${pharmacy.q1_date_range || '-'}"`
-    if (selectedQuarters.value.q2) csv += `,${pharmacy.q2_transactions || 0},"${pharmacy.q2_date_range || '-'}"`
-    if (selectedQuarters.value.q3) csv += `,${pharmacy.q3_transactions || 0},"${pharmacy.q3_date_range || '-'}"`
-    if (selectedQuarters.value.q4) csv += `,${pharmacy.q4_transactions || 0},"${pharmacy.q4_date_range || '-'}"`
-    
+  selectedPharmacyList.forEach((pharmacy) => {
+    csv += `"${pharmacy.alternate_company_id ?? 'N/A'}"`
+
+    if (selectedQuarters.value.q1) csv += `,${pharmacy.q1_transactions ?? 0},"${pharmacy.q1_date_range ?? '-'}"`
+    if (selectedQuarters.value.q2) csv += `,${pharmacy.q2_transactions ?? 0},"${pharmacy.q2_date_range ?? '-'}"`
+    if (selectedQuarters.value.q3) csv += `,${pharmacy.q3_transactions ?? 0},"${pharmacy.q3_date_range ?? '-'}"`
+    if (selectedQuarters.value.q4) csv += `,${pharmacy.q4_transactions ?? 0},"${pharmacy.q4_date_range ?? '-'}"`
+
     csv += `,${getPharmacyTotal(pharmacy)}\n`
   })
 
@@ -351,15 +375,12 @@ const exportQuarterlyToCSV = () => {
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `sales-quarterly-report-${quarterlyFilters.value.year}-${new Date().toISOString().split('T')[0]}.csv`
+  a.download = `sales-quarterly-report-${quarterlyFilters.value.year}-${new Date().toISOString().split('T')[0]!}.csv`
   a.click()
   window.URL.revokeObjectURL(url)
 }
 
-// Initialize
-onMounted(() => {
-  fetchQuarterlyData()
-})
+onMounted(() => { void fetchQuarterlyData() })
 </script>
 
 <style scoped>

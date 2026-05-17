@@ -284,7 +284,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
@@ -294,11 +294,28 @@ definePageMeta({
   layout: false,
 })
 
+type LoginStep = 'phone' | 'password' | 'setup' | 'reset'
+
+interface ThemePreset { bg: string; accent: string }
+interface ThemeSource { theme_preset?: string | null; theme_color?: string | null }
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  checkAuthState: () => Promise<void>
+  fetchTheme: () => Promise<void>
+  currentCompany: ThemeSource | null
+  checkPhoneStatus: (phone: string) => Promise<{ status: string }>
+  login: (phone: string, password: string) => Promise<void>
+  sendOTP: (phone: string) => Promise<void>
+  setupPassword: (phone: string, otp: string, password: string) => Promise<void>
+  requestPasswordReset: (phone: string) => Promise<void>
+  resetPassword: (phone: string, otp: string, password: string) => Promise<void>
+}
+
 const router = useRouter()
 const route = useRoute()
-const companyStore = useCompanyStore()
 
-const THEME_PRESETS = {
+const THEME_PRESETS: Record<string, ThemePreset> = {
   indigo:  { bg: '#1e1b4b', accent: '#6366f1' },
   teal:    { bg: '#042f2e', accent: '#0d9488' },
   rose:    { bg: '#4c0519', accent: '#e11d48' },
@@ -307,12 +324,14 @@ const THEME_PRESETS = {
   slate:   { bg: '#0f172a', accent: '#475569' },
 }
 
-const accentColor = ref('#6366f1')
-const bgColor = ref('#1e1b4b')
+const accentColor = ref<string>('#6366f1')
+const bgColor = ref<string>('#1e1b4b')
 
-const applyTheme = (company) => {
+const applyTheme = (company: ThemeSource | null | undefined): void => {
   if (!company) return
-  const preset = THEME_PRESETS[company.theme_preset] || THEME_PRESETS.indigo
+  const preset = (company.theme_preset !== undefined && company.theme_preset !== null
+    ? THEME_PRESETS[company.theme_preset]
+    : undefined) ?? THEME_PRESETS['indigo']!
   if (company.theme_preset === 'custom' && company.theme_color) {
     accentColor.value = company.theme_color
     bgColor.value = '#0f172a'
@@ -335,60 +354,63 @@ onMounted(async () => {
     const domain = route.path.match(/\/([^/]+)\/services/)?.[1]
     if (!domain) return
     const pharmacyService = createPharmacyService(useApi())
-    const data = await pharmacyService.getByDomainSlug(domain)
-    applyTheme(data.data || data)
+    const data = await pharmacyService.getByDomainSlug(domain) as { data?: ThemeSource } | ThemeSource
+    applyTheme(('data' in data ? data.data : data) as ThemeSource)
   } catch {
     // keep defaults
   }
 })
 
-const handleFocusBorder = (e) => {
-  e.target.style.borderColor = accentColor.value + '80'
+const handleFocusBorder = (e: Event): void => {
+  const target = e.target as HTMLElement
+  target.style.borderColor = accentColor.value + '80'
 }
-const handleBlurBorder = (e) => {
-  e.target.style.borderColor = ''
+const handleBlurBorder = (e: Event): void => {
+  const target = e.target as HTMLElement
+  target.style.borderColor = ''
 }
 
-// Get company domain from route
-const companyDomain = computed(() => {
-  const pathMatch = route.path.match(/\/([^\/]+)\/services/)
-  return pathMatch ? pathMatch[1] : 'company'
+const companyDomain = computed<string>(() => {
+  const pathMatch = route.path.match(/\/([^/]+)\/services/)
+  return pathMatch?.[1] ?? 'company'
 })
 
-const companyName = computed(() => {
+const companyName = computed<string>(() => {
   return companyDomain.value.charAt(0).toUpperCase() + companyDomain.value.slice(1)
 })
 
-const getPostLoginTarget = () => {
-  const redirect = typeof route.query?.redirect === 'string' ? route.query.redirect : ''
+// TODO: remove once stores/ are .ts — userRole not in typed shape above
+const getPostLoginTarget = (): string => {
+  const redirect = typeof route.query?.['redirect'] === 'string' ? route.query['redirect'] : ''
   if (redirect) {
     return decodeURIComponent(redirect)
   }
-  // Route recruiters to rigel-boards, others to sms-campaigns
-  const defaultDashboard = companyStore.userRole === 'third_party_poster'
+  const companyStoreAny = companyStore as unknown as { userRole?: string }
+  const defaultDashboard = companyStoreAny.userRole === 'third_party_poster'
     ? `/${companyDomain.value}/services/rigel-boards`
     : `/${companyDomain.value}/services/sms-campaigns`
   return defaultDashboard
 }
 
 // Form state
-const step = ref('phone') // 'phone', 'password', 'setup', 'reset'
-const phone = ref('')
-const password = ref('')
-const otp = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-const showPassword = ref(false)
-const otpSent = ref(false)
-const rememberMe = ref(true)
-const phoneNumberError = ref('')
+const step = ref<LoginStep>('phone')
+const phone = ref<string>('')
+const password = ref<string>('')
+const otp = ref<string>('')
+const newPassword = ref<string>('')
+const confirmPassword = ref<string>('')
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const showPassword = ref<boolean>(false)
+const otpSent = ref<boolean>(false)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const rememberMe = ref<boolean>(true)
+const phoneNumberError = ref<string>('')
 
-const loading = ref(false)
-const error = ref('')
-const successMessage = ref('')
+const loading = ref<boolean>(false)
+const error = ref<string>('')
+const successMessage = ref<string>('')
 
-// Format phone for display
-const formatPhoneDisplay = (phoneNum) => {
+const formatPhoneDisplay = (phoneNum: string): string => {
   if (!phoneNum) return ''
   let formatted = phoneNum
   if (formatted.startsWith('0')) {
@@ -401,8 +423,7 @@ const formatPhoneDisplay = (phoneNum) => {
   return formatted
 }
 
-// Validate phone number input
-const validatePhoneNumber = () => {
+const validatePhoneNumber = (): boolean => {
   const digitsOnly = phone.value.replace(/\D/g, '')
   
   if (digitsOnly.length === 0) {
@@ -457,11 +478,8 @@ const validatePhoneNumber = () => {
   return false
 }
 
-// Check phone number
-const checkPhone = async () => {
-  if (!validatePhoneNumber()) {
-    return
-  }
+const checkPhone = async (): Promise<void> => {
+  if (!validatePhoneNumber()) return
   
   error.value = ''
   loading.value = true
@@ -479,33 +497,31 @@ const checkPhone = async () => {
       error.value = 'You do not have permission to access online services.'
     }
   } catch (err) {
-    error.value = err.message || 'Failed to verify phone number'
+    error.value = err instanceof Error ? err.message : 'Failed to verify phone number'
   } finally {
     loading.value = false
   }
 }
 
-// Handle login
-const handleLogin = async () => {
+const handleLogin = async (): Promise<void> => {
   error.value = ''
   loading.value = true
-  
+
   try {
     await companyStore.login(phone.value, password.value)
     successMessage.value = 'Login successful!'
-    
+
     setTimeout(() => {
-      router.push(getPostLoginTarget())
+      void router.push(getPostLoginTarget())
     }, 500)
   } catch (err) {
-    error.value = err.message || 'Login failed'
+    error.value = err instanceof Error ? err.message : 'Login failed'
   } finally {
     loading.value = false
   }
 }
 
-// Send OTP
-const sendOTP = async () => {
+const sendOTP = async (): Promise<void> => {
   error.value = ''
   loading.value = true
 
@@ -513,43 +529,41 @@ const sendOTP = async () => {
     await companyStore.sendOTP(phone.value)
     otpSent.value = true
     successMessage.value = 'Verification code sent to your phone'
-    
+
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
   } catch (err) {
-    error.value = err.message || 'Failed to send verification code'
+    error.value = err instanceof Error ? err.message : 'Failed to send verification code'
   } finally {
     loading.value = false
   }
 }
 
-// Handle password setup for existing customers
-const handleSetupPassword = async () => {
+const handleSetupPassword = async (): Promise<void> => {
   if (newPassword.value !== confirmPassword.value) {
     error.value = 'Passwords do not match'
     return
   }
-  
+
   error.value = ''
   loading.value = true
-  
+
   try {
     await companyStore.setupPassword(phone.value, otp.value, newPassword.value)
     successMessage.value = 'Password setup successful! Redirecting...'
-    
+
     setTimeout(() => {
-      router.push(getPostLoginTarget())
+      void router.push(getPostLoginTarget())
     }, 1000)
   } catch (err) {
-    error.value = err.message || 'Failed to setup password. Please try again.'
+    error.value = err instanceof Error ? err.message : 'Failed to setup password. Please try again.'
   } finally {
     loading.value = false
   }
 }
 
-// Forgot password
-const forgotPassword = () => {
+const forgotPassword = (): void => {
   step.value = 'reset'
   otpSent.value = false
   otp.value = ''
@@ -558,8 +572,7 @@ const forgotPassword = () => {
   error.value = ''
 }
 
-// Request password reset
-const requestPasswordReset = async () => {
+const requestPasswordReset = async (): Promise<void> => {
   error.value = ''
   loading.value = true
 
@@ -567,21 +580,20 @@ const requestPasswordReset = async () => {
     await companyStore.requestPasswordReset(phone.value)
     otpSent.value = true
     successMessage.value = 'Reset code sent to your phone'
-    
+
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
   } catch (err) {
-    error.value = err.message || 'Failed to send reset code'
+    error.value = err instanceof Error ? err.message : 'Failed to send reset code'
   } finally {
     loading.value = false
   }
 }
 
-// Reset password
-const resetPassword = async () => {
+const resetPassword = async (): Promise<void> => {
   error.value = ''
-  
+
   if (!otp.value || !newPassword.value || !confirmPassword.value) {
     error.value = 'Please fill in all fields'
     return
@@ -602,8 +614,7 @@ const resetPassword = async () => {
   try {
     await companyStore.resetPassword(phone.value, otp.value, newPassword.value)
     successMessage.value = 'Password reset successful!'
-    
-    // Go back to login
+
     setTimeout(() => {
       step.value = 'password'
       otpSent.value = false
@@ -613,14 +624,13 @@ const resetPassword = async () => {
       successMessage.value = ''
     }, 2000)
   } catch (err) {
-    error.value = err.message || 'Failed to reset password'
+    error.value = err instanceof Error ? err.message : 'Failed to reset password'
   } finally {
     loading.value = false
   }
 }
 
-// Back to phone input
-const goBack = () => {
+const goBack = (): void => {
   step.value = 'phone'
   password.value = ''
   otp.value = ''

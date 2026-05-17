@@ -57,7 +57,7 @@
           class="rounded-2xl bg-[#f8f4fd] px-3 py-2"
         >
           <p class="font-semibold text-[#2f1d42]">{{ point.label }}</p>
-          <p class="mt-1">{{ formatter(point.value) }}</p>
+          <p class="mt-1">{{ formatter?.(point.value) ?? point.value }}</p>
         </div>
       </div>
     </div>
@@ -68,69 +68,67 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: '' },
-  points: {
-    type: Array,
-    default: () => [],
-  },
-  formatter: {
-    type: Function,
-    default: (value) => String(value ?? 0),
-  },
-})
+interface Point {
+  label: string
+  value: number | string
+  [key: string]: unknown
+}
+
+interface NormalizedPoint extends Point {
+  value: number
+  x: number
+  y: number
+}
+
+const props = defineProps<{
+  title: string
+  subtitle?: string
+  points?: Point[]
+  formatter?: (value: number) => string
+}>()
 
 const width = 340
 const height = 180
-const padding = {
-  top: 16,
-  right: 12,
-  bottom: 18,
-  left: 12,
-}
+const padding = { top: 16, right: 12, bottom: 18, left: 12 }
 
 const gradientId = `line-trend-${Math.random().toString(36).slice(2, 10)}`
 
-const values = computed(() => props.points.map((point) => Number(point.value || 0)))
-const maxValue = computed(() => Math.max(...values.value, 1))
+const values = computed<number[]>(() => (props.points ?? []).map((p) => Number(p.value ?? 0)))
+const maxValue = computed<number>(() => Math.max(...values.value, 1))
 
-const normalizedPoints = computed(() => {
-  if (!props.points.length) return []
-  const stepX = props.points.length > 1
-    ? (width - padding.left - padding.right) / (props.points.length - 1)
-    : 0
+const normalizedPoints = computed<NormalizedPoint[]>(() => {
+  const pts = props.points ?? []
+  if (!pts.length) return []
+  const stepX =
+    pts.length > 1 ? (width - padding.left - padding.right) / (pts.length - 1) : 0
 
-  return props.points.map((point, index) => {
-    const rawValue = Number(point.value || 0)
+  return pts.map((point, index) => {
+    const rawValue = Number(point.value ?? 0)
     const x = padding.left + stepX * index
     const ratio = rawValue / maxValue.value
-    const y = height - padding.bottom - (ratio * (height - padding.top - padding.bottom))
-
-    return {
-      ...point,
-      value: rawValue,
-      x,
-      y,
-    }
+    const y = height - padding.bottom - ratio * (height - padding.top - padding.bottom)
+    return { ...point, value: rawValue, x, y }
   })
 })
 
-const linePath = computed(() => normalizedPoints.value
-  .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-  .join(' '))
+const linePath = computed<string>(() =>
+  normalizedPoints.value
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' '),
+)
 
-const areaPath = computed(() => {
+const areaPath = computed<string>(() => {
   if (!normalizedPoints.value.length) return ''
   const first = normalizedPoints.value[0]
   const last = normalizedPoints.value[normalizedPoints.value.length - 1]
+  if (!first || !last) return ''
   return `${linePath.value} L ${last.x} ${height - padding.bottom} L ${first.x} ${height - padding.bottom} Z`
 })
 
-const gridY = (index) => {
+const gridY = (index: number): number => {
   const ratio = index / 3
   return height - padding.bottom - ratio * (height - padding.top - padding.bottom)
 }

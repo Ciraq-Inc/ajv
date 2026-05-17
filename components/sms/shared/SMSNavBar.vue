@@ -45,25 +45,20 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { onMounted } from 'vue'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import { formatCurrency } from '~/utils/constants/sms'
 
-// Props
-const props = defineProps({
-  showBalance: {
-    type: Boolean,
-    default: true
-  }
-})
+// TODO: remove once composables/ are .ts
+const props = defineProps<{
+  showBalance?: boolean
+}>()
 
-// Composables
 const { balance, fetchBalance } = useSMSBilling()
 
-// Lifecycle
 onMounted(async () => {
-  if (props.showBalance) {
+  if (props.showBalance !== false) {
     try {
       await fetchBalance()
     } catch (error) {

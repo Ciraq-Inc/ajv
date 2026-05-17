@@ -16,13 +16,13 @@ export default defineEventHandler(async (event) => {
 
   const filePart = parts[0]
 
-  if (!filePart.filename || !filePart.data) {
+  if (!filePart || !filePart.filename || !filePart.data) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid upload: missing filename or data' })
   }
 
   const formData = new FormData()
   const bytes = new Uint8Array(filePart.data)
-  const blob = new Blob([bytes], { type: filePart.type || 'application/octet-stream' })
+  const blob = new Blob([bytes], { type: filePart.type ?? 'application/octet-stream' })
   formData.append('file', blob, filePart.filename)
 
   const response = await fetch(`${apiBase}/api/jobs/upload-document`, {

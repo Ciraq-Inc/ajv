@@ -12,7 +12,7 @@
             v-if="pharmacyStore.pharmacyData.logo"
             :src="pharmacyStore.pharmacyData.logo"
             class="h-7 w-7 rounded-full object-cover flex-shrink-0 border border-gray-100"
-            :alt="pharmacyStore.pharmacyData.name"
+            :alt="pharmacyStore.pharmacyData.name ?? ''"
           />
           <div v-else class="h-7 w-7 rounded-full shopfront-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
             {{ (pharmacyStore.pharmacyData.name || '')[0]?.toUpperCase() }}
@@ -230,7 +230,7 @@
           </div>
 
           <div class="shopfront-ad-media">
-            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="ad.headline" class="h-full w-full object-cover" />
+            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="(ad.headline as string | undefined) ?? ''" class="h-full w-full object-cover" />
             <div v-else class="shopfront-ad-fallback">
               <p class="text-base font-semibold text-white/95">Pharmacy Promotion</p>
               <p class="mt-2 text-sm text-white/80">Explore this offer in store.</p>
@@ -405,15 +405,15 @@
         <!-- Products display -->
         <template v-else>
           <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="searchQuery"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices" class="hidden lg:flex"
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices ?? false" class="hidden lg:flex"
             @item-added-to-cart="onItemAddedToCart" />
 
           <ProductsGrid v-else :products="displayProducts" :search-query="searchQuery"
-            :hide-prices="pharmacyStore.pharmacyData?.hide_prices"
+            :hide-prices="pharmacyStore.pharmacyData?.hide_prices ?? false"
             @item-added-to-cart="onItemAddedToCart"
             @request-product="onRequestProduct" />
 
-          <!-- Pagination -->
+          <!-- Offset-based pagination (legacy backend shape) -->
           <div v-if="pharmacyStore.productPagination.totalPages > 1"
             class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3">
             <p class="text-sm text-gray-500">
@@ -443,6 +443,21 @@
                 Next
               </button>
             </nav>
+          </div>
+
+          <!-- Cursor-based "Load more" (new backend shape) -->
+          <div v-if="pharmacyStore.nextCursor" class="mt-6 flex justify-center">
+            <button
+              :disabled="isLoadingMoreProducts"
+              @click="loadMoreProducts"
+              class="px-5 py-2.5 shopfront-primary text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2 shadow-md text-sm font-medium transition-all"
+            >
+              <svg v-if="isLoadingMoreProducts" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              {{ isLoadingMoreProducts ? 'Loading...' : 'Load more' }}
+            </button>
           </div>
         </template>
       </div>
@@ -518,14 +533,107 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from "vue-router";
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useCartStore } from "~/stores/cart";
 import { useUserStore } from "~/stores/user";
 import { createAdsService } from "~/services/ads/adsService";
 
-const themePresets = {
+// Extended Ad shape — the API returns additional fields beyond what types.ts declares
+interface ExtendedAd {
+  id: number | string
+  type?: string | null
+  headline?: string | null
+  body?: string | null
+  image_url?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  is_active?: boolean | null
+  [key: string]: unknown
+}
+
+interface ThemePreset {
+  accent: string
+  gradient: string
+}
+
+interface PharmacyData {
+  logo?: string | null
+  name?: string | null
+  location?: string | null
+  description?: string | null
+  phone?: string | null
+  whatsapp_number?: string | null
+  hide_prices?: boolean | null
+  shop_banner?: string | null
+  theme_preset?: string | null
+  theme_color?: string | null
+  [key: string]: unknown
+}
+
+interface ProductPagination {
+  currentPage: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
+interface Product {
+  [key: string]: unknown
+}
+
+interface OrderSuccessSummary {
+  totalItems?: number
+  totalQuantity?: number
+  totalAmount?: number
+}
+
+interface OrderSuccessData {
+  orderId?: string | null
+  order_id?: string | null
+  totalItems?: number
+  totalQuantity?: number
+  totalAmount?: number
+}
+
+// TODO: remove once stores/ are .ts
+const pharmacyStore = usePharmacyStore() as unknown as {
+  pharmacyData: PharmacyData | null
+  isLoading: boolean
+  error: string | null
+  notFound: boolean
+  hasProducts: boolean
+  products: Product[]
+  productPagination: ProductPagination
+  nextCursor: string | null
+  currentPharmacy: string | number | null
+  pharmacySlug: string | null
+  fetchPharmacyData: () => Promise<void>
+  fetchProducts: (params: { page?: number; limit?: number; search?: string; cursor?: string }) => Promise<void>
+  getPharmacyIdFromSlug: (slug: string) => Promise<string | number | null>
+  setCurrentPharmacy: (id: string | number) => Promise<void>
+}
+
+// TODO: remove once stores/ are .ts
+const cartStore = useCartStore() as unknown as {
+  cartTotal: number
+  cartItemCount: number
+  hasItems: boolean
+  toggleCart: () => void
+  setActivePharmacy: (id: string | number, slug: string) => void
+}
+
+// TODO: remove once stores/ are .ts
+const userStore = useUserStore() as unknown as {
+  isLoggedIn: boolean
+  currentUser: { lname?: string | null; phone?: string | null } | null
+  logout: () => Promise<void>
+  loadUserStats: () => Promise<void>
+}
+
+const themePresets: Record<string, ThemePreset> = {
   indigo: { accent: "#4f46e5", gradient: "linear-gradient(135deg, #4338ca 0%, #6366f1 48%, #312e81 100%)" },
   teal: { accent: "#0f766e", gradient: "linear-gradient(135deg, #115e59 0%, #14b8a6 50%, #0f172a 100%)" },
   rose: { accent: "#e11d48", gradient: "linear-gradient(135deg, #9f1239 0%, #fb7185 50%, #4c0519 100%)" },
@@ -538,9 +646,6 @@ const themePresets = {
 // Router and stores
 const router = useRouter();
 const route = useRoute();
-const pharmacyStore = usePharmacyStore();
-const cartStore = useCartStore();
-const userStore = useUserStore();
 
 // Page metadata
 definePageMeta({
@@ -550,51 +655,53 @@ definePageMeta({
 });
 
 // State Variables
-const searchQuery = ref("");
-const viewMode = ref("table");
-const cartSidebar = ref(null);
-const searchInput = ref(null);
-const showLoginModal = ref(false);
-const pharmacyHeaderRef = ref(null);
-const showStickyHeader = ref(false);
-const cartToast = ref({ show: false, name: '' });
-let cartToastTimer = null;
-let headerObserver = null;
+const searchQuery = ref<string>("");
+const isLoadingMoreProducts = ref<boolean>(false);
+const viewMode = ref<string>("table");
+const cartSidebar = ref<{ toggleCart: () => void } | null>(null);
+const searchInput = ref<HTMLInputElement | null>(null);
+const showLoginModal = ref<boolean>(false);
+const pharmacyHeaderRef = ref<HTMLElement | null>(null);
+const showStickyHeader = ref<boolean>(false);
+const cartToast = ref<{ show: boolean; name: string }>({ show: false, name: '' });
+let cartToastTimer: ReturnType<typeof setTimeout> | null = null;
+let headerObserver: IntersectionObserver | null = null;
 const _adsService = createAdsService(useApi());
 const { data: _adsResult, refresh: refreshAds } = useAsyncData(
-  `pharmacy-ads-${route.params.pharmacy}`,
+  `pharmacy-ads-${String(route.params['pharmacy'])}`,
   () => pharmacyStore.currentPharmacy
-    ? _adsService.listPublic(pharmacyStore.currentPharmacy).catch(() => null)
+    ? _adsService.listPublic(String(pharmacyStore.currentPharmacy)).catch(() => null)
     : Promise.resolve(null),
   { lazy: true }
 );
-const activeAds = computed(() => _adsResult.value?.data ?? []);
+const activeAds = computed<ExtendedAd[]>(() => (_adsResult.value?.data ?? []) as ExtendedAd[]);
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = "medsgh_homepage_request_draft";
 
 // Order success state
-const orderSuccessMessage = ref("");
-const showOrderSuccess = ref(false);
-const showOrderSuccessModal = ref(false);
-const successOrderId = ref("");
-const successOrderSummary = ref({});
+const orderSuccessMessage = ref<string>("");
+const showOrderSuccess = ref<boolean>(false);
+const showOrderSuccessModal = ref<boolean>(false);
+const successOrderId = ref<string>("");
+const successOrderSummary = ref<OrderSuccessSummary>({});
 
 // Computed properties
-const showButton = computed(
+const showButton = computed<boolean>(
   () => cartStore.hasItems && cartStore.cartItemCount > 0
 );
-const pharmacySlug = computed(() => route.params.pharmacy);
-const formatCartTotal = computed(() => {
-  const total = cartStore.cartTotal || 0;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const pharmacySlug = computed<string>(() => String(route.params['pharmacy'] ?? ''));
+const formatCartTotal = computed<string>(() => {
+  const total = cartStore.cartTotal ?? 0;
   return total.toFixed(2);
 });
 
-const currentTheme = computed(() => {
-  const preset = pharmacyStore.pharmacyData?.theme_preset || "indigo";
-  const baseTheme = themePresets[preset] || themePresets.indigo;
+const currentTheme = computed<ThemePreset>(() => {
+  const preset = pharmacyStore.pharmacyData?.theme_preset ?? "indigo";
+  const baseTheme = (preset !== undefined ? themePresets[preset] : undefined) ?? themePresets['indigo']!;
 
   if (preset === "custom") {
-    const customColor = pharmacyStore.pharmacyData?.theme_color || baseTheme.accent;
+    const customColor = pharmacyStore.pharmacyData?.theme_color ?? baseTheme.accent;
     return {
       accent: customColor,
       gradient: `linear-gradient(135deg, ${customColor} 0%, #0f172a 100%)`,
@@ -604,12 +711,12 @@ const currentTheme = computed(() => {
   return baseTheme;
 });
 
-const themeCssVars = computed(() => ({
+const themeCssVars = computed<Record<string, string>>(() => ({
   "--shopfront-accent": currentTheme.value.accent,
   "--shopfront-accent-soft": `${currentTheme.value.accent}1a`,
 }));
 
-const heroStyle = computed(() => {
+const heroStyle = computed<Record<string, string>>(() => {
   const banner = pharmacyStore.pharmacyData?.shop_banner;
 
   return {
@@ -621,8 +728,8 @@ const heroStyle = computed(() => {
   };
 });
 
-const whatsappLink = computed(() => {
-  let formattedPhone = pharmacyStore.pharmacyData?.whatsapp_number;
+const whatsappLink = computed<string>(() => {
+  let formattedPhone: string | null | undefined = pharmacyStore.pharmacyData?.whatsapp_number;
 
   if (!formattedPhone) {
     return "";
@@ -630,7 +737,7 @@ const whatsappLink = computed(() => {
 
   // Extract the first phone number if multiple are provided with a separator
   if (formattedPhone.includes("/")) {
-    formattedPhone = formattedPhone.split("/")[0];
+    formattedPhone = formattedPhone.split("/")[0] ?? '';
   }
 
   // Format the phone number properly for WhatsApp
@@ -653,7 +760,7 @@ const whatsappLink = computed(() => {
   return `https://wa.me/${formattedPhone}?text=${message}`;
 });
 
-const formatAdWindow = (startDate, endDate) => {
+const formatAdWindow = (startDate: string | null | undefined, endDate: string | null | undefined): string => {
   if (!startDate && !endDate) {
     return "Available now";
   }
@@ -663,37 +770,39 @@ const formatAdWindow = (startDate, endDate) => {
   return `${start} to ${end}`;
 };
 
-const displayProducts = computed(() => pharmacyStore.products);
+// TODO(ts): pharmacyStore is untyped JS; cast to match PharmacyProduct shape expected by ProductsTable/ProductsGrid
+const displayProducts = computed(() => pharmacyStore.products as unknown as { id: number; brandName: string; sellingPrice: number; stockQty: number; [key: string]: unknown }[]);
 
-const paginationFrom = computed(() => {
+const paginationFrom = computed<number>(() => {
   const { currentPage, pageSize } = pharmacyStore.productPagination;
   return (currentPage - 1) * pageSize + 1;
 });
 
-const paginationTo = computed(() => {
+const paginationTo = computed<number>(() => {
   const { currentPage, pageSize, total } = pharmacyStore.productPagination;
   return Math.min(currentPage * pageSize, total);
 });
 
-const paginationPages = computed(() => {
+const paginationPages = computed<number[]>(() => {
   const { currentPage, totalPages } = pharmacyStore.productPagination;
   const maxVisible = 5;
   let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
   let end = Math.min(totalPages, start + maxVisible - 1);
   if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
-  const pages = [];
+  const pages: number[] = [];
   for (let i = start; i <= end; i++) pages.push(i);
   return pages;
 });
 
 // UI Methods
-const focusSearchInput = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const focusSearchInput = (): void => {
   if (searchInput.value) {
     searchInput.value.focus();
   }
 };
 
-const toggleCart = () => {
+const toggleCart = (): void => {
   if (cartSidebar.value) {
     cartSidebar.value.toggleCart();
   } else {
@@ -701,43 +810,65 @@ const toggleCart = () => {
   }
 };
 
-const openCart = () => {
+const openCart = (): void => {
   if (cartSidebar.value) {
     cartSidebar.value.toggleCart();
   }
 };
 
-const updateViewMode = () => {
+const updateViewMode = (): void => {
   viewMode.value = window.innerWidth < 768 ? "grid" : "table";
 };
 
-const clearSearch = () => {
+const clearSearch = (): void => {
   searchQuery.value = "";
 };
 
-let searchDebounceTimer = null;
-const changePage = (page) => {
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+const changePage = (page: number): void => {
   const { totalPages } = pharmacyStore.productPagination;
   if (page < 1 || page > totalPages) return;
-  pharmacyStore.fetchProducts({ page, limit: pharmacyStore.productPagination.pageSize, search: searchQuery.value.trim() });
+  void pharmacyStore.fetchProducts({ page, limit: pharmacyStore.productPagination.pageSize, search: searchQuery.value.trim() });
 };
 
-const normalizeRequestDraftItem = (item) => {
-  const productName = String(typeof item === "string" ? item : item?.product_name || "").trim();
+const loadMoreProducts = async (): Promise<void> => {
+  if (!pharmacyStore.nextCursor || isLoadingMoreProducts.value) return;
+  isLoadingMoreProducts.value = true;
+  try {
+    await pharmacyStore.fetchProducts({
+      cursor: pharmacyStore.nextCursor,
+      search: searchQuery.value.trim(),
+    });
+  } catch (err) {
+    console.error('Failed to load more products:', err);
+  } finally {
+    isLoadingMoreProducts.value = false;
+  }
+};
+
+interface RequestDraftItem {
+  product_name: string
+  quantity: number
+}
+
+const normalizeRequestDraftItem = (item: unknown): RequestDraftItem | null => {
+  const rawName = typeof item === "string" ? item : (item as Record<string, unknown>)?.['product_name'];
+  const productName = String(rawName ?? "").trim();
   if (!productName) return null;
 
+  const rawQty = (item as Record<string, unknown>)?.['quantity'];
   return {
     product_name: productName,
-    quantity: Math.max(1, Number(item?.quantity || 1)),
+    quantity: Math.max(1, Number(rawQty ?? 1)),
   };
 };
 
-const persistRequestDraft = (items = []) => {
+const persistRequestDraft = (items: unknown[] = []): void => {
   if (!process.client) return;
 
   const normalizedItems = (Array.isArray(items) ? items : [items])
     .map(normalizeRequestDraftItem)
-    .filter(Boolean);
+    .filter((i): i is RequestDraftItem => i !== null);
 
   if (!normalizedItems.length) {
     sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY);
@@ -753,12 +884,12 @@ const persistRequestDraft = (items = []) => {
   );
 };
 
-const hasRequestDraft = () => {
+const hasRequestDraft = (): boolean => {
   if (!process.client) return false;
   return Boolean(sessionStorage.getItem(HOMEPAGE_REQUEST_DRAFT_KEY));
 };
 
-const openRequestFlow = async (draftItems = []) => {
+const openRequestFlow = async (draftItems: unknown[] = []): Promise<void> => {
   persistRequestDraft(draftItems);
 
   if (userStore.isLoggedIn) {
@@ -769,43 +900,41 @@ const openRequestFlow = async (draftItems = []) => {
   showLoginModal.value = true;
 };
 
-const submitRequestSearch = async () => {
+const submitRequestSearch = (): void => {
   const query = searchQuery.value.trim();
-  await openRequestFlow(query ? [{ product_name: query, quantity: 1 }] : []);
+  void openRequestFlow(query ? [{ product_name: query, quantity: 1 }] : []);
   clearSearch();
 };
 
 // Navigation Methods
-const navigateToOrders = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const navigateToOrders = (): void => {
   if (pharmacyStore.pharmacySlug) {
-    router.push(`/${pharmacyStore.pharmacySlug}/orders`);
+    void router.push(`/${pharmacyStore.pharmacySlug}/orders`);
   }
 };
 
-const navigateToCustomerAccount = () => {
+const navigateToCustomerAccount = (): void => {
   if (pharmacyStore.pharmacySlug) {
-    router.push(`/customer`);
+    void router.push(`/customer`);
   }
 };
 
-const goToPharmacySelection = () => {
-  router.push("/");
+const goToPharmacySelection = (): void => {
+  void router.push("/");
 };
 
 // Order handling
-const handleOrderSuccess = (orderData) => {
-  // Set the order details for the success modal
-  successOrderId.value = orderData.orderId || orderData.order_id || "";
+const handleOrderSuccess = (orderData: OrderSuccessData): void => {
+  successOrderId.value = orderData.orderId ?? orderData.order_id ?? "";
   successOrderSummary.value = {
-    totalItems: orderData.totalItems || 0,
-    totalQuantity: orderData.totalQuantity || 0,
-    totalAmount: orderData.totalAmount || 0,
+    totalItems: orderData.totalItems ?? 0,
+    totalQuantity: orderData.totalQuantity ?? 0,
+    totalAmount: orderData.totalAmount ?? 0,
   };
 
-  // Show the success modal
   showOrderSuccessModal.value = true;
 
-  // Also show the notification for a few seconds
   orderSuccessMessage.value = `Order #${successOrderId.value} placed successfully!`;
   showOrderSuccess.value = true;
 
@@ -815,13 +944,13 @@ const handleOrderSuccess = (orderData) => {
 };
 
 // Data & Authentication Methods
-const refreshData = async () => {
+const refreshData = async (): Promise<void> => {
   if (pharmacyStore.currentPharmacy) {
     await Promise.all([pharmacyStore.fetchPharmacyData(), refreshAds()]);
   }
 };
 
-const handleLogout = async () => {
+const handleLogout = async (): Promise<void> => {
   try {
     await userStore.logout();
   } catch (error) {
@@ -830,15 +959,15 @@ const handleLogout = async () => {
 };
 
 // Login methods
-const openLoginModal = () => {
+const openLoginModal = (): void => {
   showLoginModal.value = true;
 };
 
-const closeLoginModal = () => {
+const closeLoginModal = (): void => {
   showLoginModal.value = false;
 };
 
-const handleLoginSuccess = async () => {
+const handleLoginSuccess = async (): Promise<void> => {
   closeLoginModal();
   if (userStore.isLoggedIn) {
     await userStore.loadUserStats();
@@ -849,13 +978,13 @@ const handleLoginSuccess = async () => {
   }
 };
 
-const onItemAddedToCart = (product) => {
-  clearTimeout(cartToastTimer);
-  cartToast.value = { show: true, name: product.brandName || product.name || 'Item' };
+const onItemAddedToCart = (product: Record<string, unknown>): void => {
+  if (cartToastTimer !== null) clearTimeout(cartToastTimer);
+  cartToast.value = { show: true, name: String(product['brandName'] ?? product['name'] ?? 'Item') };
   cartToastTimer = setTimeout(() => { cartToast.value = { ...cartToast.value, show: false }; }, 2500);
 };
 
-const onRequestProduct = (name) => {
+const onRequestProduct = (name: string | null | undefined): void => {
   if (name) searchQuery.value = name;
   submitRequestSearch();
 };
@@ -870,7 +999,7 @@ watch(pharmacyHeaderRef, (el) => {
   headerObserver?.disconnect();
   if (!el) return;
   headerObserver = new IntersectionObserver(
-    ([entry]) => { showStickyHeader.value = !entry.isIntersecting; },
+    ([entry]) => { showStickyHeader.value = !(entry?.isIntersecting ?? true); },
     { threshold: 0 }
   );
   headerObserver.observe(el);
@@ -878,39 +1007,37 @@ watch(pharmacyHeaderRef, (el) => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", updateViewMode);
-  clearTimeout(searchDebounceTimer);
-  clearTimeout(cartToastTimer);
+  if (searchDebounceTimer !== null) clearTimeout(searchDebounceTimer);
+  if (cartToastTimer !== null) clearTimeout(cartToastTimer);
   headerObserver?.disconnect();
 });
 
 // Debounced search — re-fetch from page 1 on query change
 watch(searchQuery, (newQuery) => {
-  clearTimeout(searchDebounceTimer);
+  if (searchDebounceTimer !== null) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => {
-    pharmacyStore.fetchProducts({ page: 1, limit: pharmacyStore.productPagination.pageSize, search: newQuery.trim() });
+    void pharmacyStore.fetchProducts({ page: 1, limit: pharmacyStore.productPagination.pageSize, search: newQuery.trim() });
   }, 400);
 });
 
 // Watch for route changes
 watch(
-  () => route.params.pharmacy,
+  () => route.params['pharmacy'],
   async (newPharmacy, oldPharmacy) => {
     if (newPharmacy !== oldPharmacy) {
-      if (pharmacyStore.pharmacySlug !== newPharmacy) {
-        const pharmacyId = await pharmacyStore.getPharmacyIdFromSlug(
-          newPharmacy
-        );
+      const newSlug = String(newPharmacy ?? '')
+      if (pharmacyStore.pharmacySlug !== newSlug) {
+        const pharmacyId = await pharmacyStore.getPharmacyIdFromSlug(newSlug);
 
         if (pharmacyId) {
           await pharmacyStore.setCurrentPharmacy(pharmacyId);
-          cartStore.setActivePharmacy(pharmacyId, newPharmacy);
+          cartStore.setActivePharmacy(pharmacyId, newSlug);
           await refreshAds();
         }
       }
     }
   }
 );
-
 </script>
 
 <style scoped>

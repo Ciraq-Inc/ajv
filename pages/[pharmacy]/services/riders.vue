@@ -111,21 +111,41 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
 import { useCompanyStore } from '~/stores/company'
 
 definePageMeta({
   middleware: ['company-auth'],
-  layout: 'company'
+  layout: 'company',
 })
 
-const companyStore = useCompanyStore()
+interface Rider {
+  id: number | string
+  name: string
+  phone: string
+  username: string
+  vehicle_type?: string | null
+  vehicle_registration?: string | null
+  is_active: boolean
+}
 
-const loading = ref(true)
-const riders = ref([])
-const showForm = ref(false)
-const saving = ref(false)
-const formError = ref('')
+interface RidersResponse {
+  success?: boolean
+  message?: string | null
+  riders?: Rider[] | null
+}
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  makeAuthRequest: (url: string, options?: RequestInit) => Promise<RidersResponse>
+}
+
+const loading = ref<boolean>(true)
+const riders = ref<Rider[]>([])
+const showForm = ref<boolean>(false)
+const saving = ref<boolean>(false)
+const formError = ref<string>('')
 
 const form = reactive({
   name: '',
@@ -133,14 +153,14 @@ const form = reactive({
   username: '',
   password: '',
   vehicle_type: '',
-  vehicle_registration: ''
+  vehicle_registration: '',
 })
 
-const fetchRiders = async () => {
+const fetchRiders = async (): Promise<void> => {
   loading.value = true
   try {
     const res = await companyStore.makeAuthRequest('/api/pharmacy/riders')
-    if (res.success) riders.value = res.riders || []
+    if (res.success) riders.value = res.riders ?? []
   } catch (e) {
     console.error('Failed to fetch riders', e)
   } finally {
@@ -148,7 +168,7 @@ const fetchRiders = async () => {
   }
 }
 
-const addRider = async () => {
+const addRider = async (): Promise<void> => {
   formError.value = ''
   if (!form.name || !form.phone || !form.username || !form.password) {
     formError.value = 'Name, phone, username, and password are required.'
@@ -159,27 +179,27 @@ const addRider = async () => {
     const res = await companyStore.makeAuthRequest('/api/pharmacy/riders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form })
+      body: JSON.stringify({ ...form }),
     })
     if (res.success) {
       showForm.value = false
       Object.assign(form, { name: '', phone: '', username: '', password: '', vehicle_type: '', vehicle_registration: '' })
       await fetchRiders()
     } else {
-      formError.value = res.message || 'Failed to add rider'
+      formError.value = res.message ?? 'Failed to add rider'
     }
   } catch (e) {
-    formError.value = e.message || 'Error'
+    formError.value = e instanceof Error ? e.message : 'Error'
   } finally {
     saving.value = false
   }
 }
 
-const deactivateRider = async (id) => {
+const deactivateRider = async (id: number | string): Promise<void> => {
   try {
-    await companyStore.makeAuthRequest(`/api/pharmacy/riders/${id}`, {
+    await companyStore.makeAuthRequest(`/api/pharmacy/riders/${String(id)}`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     })
     await fetchRiders()
   } catch (e) {
@@ -187,5 +207,5 @@ const deactivateRider = async (id) => {
   }
 }
 
-onMounted(fetchRiders)
+onMounted(() => { void fetchRiders() })
 </script>

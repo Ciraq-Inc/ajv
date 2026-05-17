@@ -7,7 +7,7 @@
       </div>
 
       <div v-if="loading" class="text-sm text-gray-500">Loading applications...</div>
-      <div v-else-if="applications.length === 0" class="text-sm text-gray-500">No applications yet.</div>
+      <div v-else-if="!applications?.length" class="text-sm text-gray-500">No applications yet.</div>
 
       <div v-else class="space-y-3">
         <article v-for="item in applications" :key="item.id" class="border border-gray-200 rounded-lg p-3">
@@ -35,12 +35,28 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  open: { type: Boolean, default: false },
-  loading: { type: Boolean, default: false },
-  applications: { type: Array, default: () => [] },
-})
+<script setup lang="ts">
+export interface Application {
+  id: number | string;
+  status?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  coverLetter?: string;
+  resumeUrl?: string;
+  cvUrl?: string;
+  certificatesUrl?: string;
+  [key: string]: unknown;
+}
 
-defineEmits(['close', 'status'])
+defineProps<{
+  open?: boolean;
+  loading?: boolean;
+  applications?: Application[];
+}>()
+
+defineEmits<{
+  close: [];
+  status: [application: Application, nextStatus: string];
+}>()
 </script>

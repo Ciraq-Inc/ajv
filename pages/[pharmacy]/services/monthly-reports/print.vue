@@ -176,7 +176,7 @@
               title="Liquidity Pressure"
               subtitle="What still needs to come in versus what still needs to go out"
               center-label="Open items"
-              :center-value="formatCurrency((reportData.finance.receivables?.total || 0) + (reportData.finance.payables?.total || 0))"
+              :center-value="formatCurrency((reportData.finance.receivables?.total ?? 0) + (reportData.finance.payables?.total ?? 0))"
               :segments="financeSegments"
               :formatter="formatCurrency"
             />
@@ -198,7 +198,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
@@ -211,73 +211,207 @@ definePageMeta({
   layout: false,
 })
 
+// ---------------------------------------------------------------------------
+// Local report shape — broader than PharmacyReportData.data (Record<string,unknown>)
+// ---------------------------------------------------------------------------
+
+interface TrendPoint {
+  label?: string | null
+  revenue?: number | null
+}
+
+interface CustomerByValue {
+  customerName?: string | null
+  totalValue?: number | null
+}
+
+interface CustomerByFrequency {
+  customerName?: string | null
+  visits?: number | null
+}
+
+interface StaffPerformance {
+  staffName?: string | null
+  totalSales?: number | null
+}
+
+interface WeekdayDemand {
+  label?: string | null
+  transactions?: number | null
+}
+
+interface ExpiryAtRisk {
+  productName?: string | null
+  projectedLoss?: number | null
+}
+
+interface ExpiryBand {
+  value?: number | null
+}
+
+interface FinanceSide {
+  total?: number | null
+}
+
+interface FullReportData {
+  meta: {
+    companyName?: string | null
+    reportMonthLabel?: string | null
+    generatedAt?: string | null
+    lastSuccessfulSyncAt?: string | null
+    notes?: string[]
+  }
+  summary: {
+    revenue?: number | null
+    transactions?: number | null
+    averageTransactionValue?: number | null
+    inventoryCost?: number | null
+    potentialProfit?: number | null
+    verdict: {
+      status?: string | null
+      score?: number | null
+      highlights?: string[]
+    }
+  }
+  revenue?: {
+    trend?: TrendPoint[]
+  }
+  customers?: {
+    byValue?: CustomerByValue[]
+    byFrequency?: CustomerByFrequency[]
+  }
+  team?: {
+    staffPerformance?: StaffPerformance[]
+  }
+  demand?: {
+    weekdays?: WeekdayDemand[]
+  }
+  inventory: {
+    monthlyStockFlow: {
+      purchasesCost?: number | null
+      cogs?: number | null
+      inventoryDaysOnHand?: number | null
+    }
+    expiry: {
+      projectedLossTotal?: number | null
+      bands: {
+        within30Days: ExpiryBand
+        within60Days: ExpiryBand
+        within90Days: ExpiryBand
+      }
+      atRisk?: ExpiryAtRisk[]
+    }
+  }
+  finance: {
+    receivables?: FinanceSide | null
+    payables?: FinanceSide | null
+    insurance?: { totalUnsettled?: number | null } | null
+  }
+}
+
+interface ChartItem {
+  label: string
+  value: number
+  // Index signature required to satisfy the chart components' Point / ChartItem types
+  [key: string]: unknown
+}
+
+interface DonutSegment {
+  label: string
+  value: number
+  color: string
+}
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  checkAuthState: () => Promise<void>
+  isLoggedIn: boolean
+}
+
 const route = useRoute()
 const router = useRouter()
-const companyStore = useCompanyStore()
 const pharmacyReportsService = createPharmacyReportsService(useApi())
 
-const loading = ref(true)
-const loadError = ref('')
-const reportData = ref(null)
+const loading = ref<boolean>(true)
+const loadError = ref<string>('')
+const reportData = ref<FullReportData | null>(null)
 
-const getRequestedReportMonths = () => {
-  const queryMonths = route.query.reportMonths
-  if (Array.isArray(queryMonths) && queryMonths.length) return queryMonths
+const getRequestedReportMonths = (): string[] => {
+  const queryMonths = route.query['reportMonths']
+  if (Array.isArray(queryMonths) && queryMonths.length > 0) {
+    return queryMonths.filter((m): m is string => typeof m === 'string')
+  }
   if (typeof queryMonths === 'string' && queryMonths.trim()) {
     return queryMonths.split(',').map((value) => value.trim()).filter(Boolean)
   }
   return []
 }
 
-const revenueTrendPoints = computed(() => (reportData.value?.revenue?.trend || []).map((item) => ({
-  label: item.label,
-  value: item.revenue,
-})))
+const revenueTrendPoints = computed<ChartItem[]>(() =>
+  (reportData.value?.revenue?.trend ?? []).map((item) => ({
+    label: item.label ?? '',
+    value: item.revenue ?? 0,
+  }))
+)
 
-const topCustomerValueItems = computed(() => (reportData.value?.customers?.byValue || []).slice(0, 5).map((item) => ({
-  label: item.customerName,
-  value: item.totalValue,
-})))
+const topCustomerValueItems = computed<ChartItem[]>(() =>
+  (reportData.value?.customers?.byValue ?? []).slice(0, 5).map((item) => ({
+    label: item.customerName ?? '',
+    value: item.totalValue ?? 0,
+  }))
+)
 
-const topCustomerVisitItems = computed(() => (reportData.value?.customers?.byFrequency || []).slice(0, 5).map((item) => ({
-  label: item.customerName,
-  value: item.visits,
-})))
+const topCustomerVisitItems = computed<ChartItem[]>(() =>
+  (reportData.value?.customers?.byFrequency ?? []).slice(0, 5).map((item) => ({
+    label: item.customerName ?? '',
+    value: item.visits ?? 0,
+  }))
+)
 
-const staffPerformanceItems = computed(() => (reportData.value?.team?.staffPerformance || []).slice(0, 5).map((item) => ({
-  label: item.staffName,
-  value: item.totalSales,
-})))
+const staffPerformanceItems = computed<ChartItem[]>(() =>
+  (reportData.value?.team?.staffPerformance ?? []).slice(0, 5).map((item) => ({
+    label: item.staffName ?? '',
+    value: item.totalSales ?? 0,
+  }))
+)
 
-const weekdayDemandItems = computed(() => (reportData.value?.demand?.weekdays || []).map((item) => ({
-  label: item.label,
-  value: item.transactions,
-})))
+const weekdayDemandItems = computed<ChartItem[]>(() =>
+  (reportData.value?.demand?.weekdays ?? []).map((item) => ({
+    label: item.label ?? '',
+    value: item.transactions ?? 0,
+  }))
+)
 
-const financeSegments = computed(() => {
+const financeSegments = computed<DonutSegment[]>(() => {
   if (!reportData.value?.finance) return []
   return [
-    { label: 'Receivables', value: reportData.value.finance.receivables?.total || 0, color: '#f97316' },
-    { label: 'Payables', value: reportData.value.finance.payables?.total || 0, color: '#ef4444' },
-    { label: 'Insurance unsettled', value: reportData.value.finance.insurance?.totalUnsettled || 0, color: '#8b5cf6' },
-  ].filter((item) => Number(item.value || 0) > 0)
+    { label: 'Receivables', value: reportData.value.finance.receivables?.total ?? 0, color: '#f97316' },
+    { label: 'Payables', value: reportData.value.finance.payables?.total ?? 0, color: '#ef4444' },
+    { label: 'Insurance unsettled', value: reportData.value.finance.insurance?.totalUnsettled ?? 0, color: '#8b5cf6' },
+  ].filter((item) => Number(item.value) > 0)
 })
 
-const expiryRiskItems = computed(() => (reportData.value?.inventory?.expiry?.atRisk || []).slice(0, 5).map((item) => ({
-  label: item.productName,
-  value: item.projectedLoss,
-})))
+const expiryRiskItems = computed<ChartItem[]>(() =>
+  (reportData.value?.inventory?.expiry?.atRisk ?? []).slice(0, 5).map((item) => ({
+    label: item.productName ?? '',
+    value: item.projectedLoss ?? 0,
+  }))
+)
 
-const verdictHighlights = computed(() => reportData.value?.summary?.verdict?.highlights || [])
+const verdictHighlights = computed<string[]>(() =>
+  reportData.value?.summary?.verdict?.highlights ?? []
+)
 
-const formatCurrency = (value) => `GHS ${Number(value || 0).toLocaleString('en-US', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})}`
+const formatCurrency = (value: number | null | undefined): string =>
+  `GHS ${Number(value ?? 0).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
 
-const formatCount = (value) => `${Number(value || 0)}`
+const formatCount = (value: number | null | undefined): string =>
+  `${Number(value ?? 0)}`
 
-const formatDateTime = (value) => {
+const formatDateTime = (value: string | null | undefined): string => {
   if (!value) return 'Not yet available'
   return new Date(value).toLocaleString('en-GB', {
     day: '2-digit',
@@ -288,24 +422,25 @@ const formatDateTime = (value) => {
   })
 }
 
-const ensureAuth = async () => {
+const ensureAuth = async (): Promise<boolean> => {
   await companyStore.checkAuthState()
   if (!companyStore.isLoggedIn) {
-    await router.replace(`/${route.params.pharmacy}/services/login`)
+    await router.replace(`/${String(route.params['pharmacy'])}/services/login`)
     return false
   }
   return true
 }
 
-const fetchCurrentReport = async () => {
+const fetchCurrentReport = async (): Promise<void> => {
   const result = await pharmacyReportsService.getCurrentReport(getRequestedReportMonths())
   if (!result.success) {
-    throw new Error(result.message || 'No current monthly report is available yet.')
+    throw new Error(result.message ?? 'No current monthly report is available yet.')
   }
-  reportData.value = result.data.data
+  // PharmacyReportData.data is Record<string, unknown>; cast to local full shape
+  reportData.value = (result.data as unknown as { data: FullReportData }).data
 }
 
-const initializePage = async () => {
+const initializePage = async (): Promise<void> => {
   loading.value = true
   loadError.value = ''
   try {
@@ -313,22 +448,20 @@ const initializePage = async () => {
     if (!okay) return
     await fetchCurrentReport()
 
-    if (route.query.autoprint === '1') {
+    if (route.query['autoprint'] === '1') {
       setTimeout(() => {
         window.print()
       }, 350)
     }
   } catch (error) {
     console.error(error)
-    loadError.value = error.message || 'Failed to load monthly report.'
+    loadError.value = error instanceof Error ? error.message : 'Failed to load monthly report.'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  initializePage()
-})
+onMounted(() => { void initializePage() })
 </script>
 
 <style scoped>

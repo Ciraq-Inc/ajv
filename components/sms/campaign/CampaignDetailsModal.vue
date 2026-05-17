@@ -327,94 +327,123 @@
   </Transition>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { XMarkIcon, ArrowPathIcon, UsersIcon, CheckCircleIcon, ClockIcon, XCircleIcon, PlayIcon, PauseIcon, DocumentTextIcon, TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true
-  },
-  campaignId: {
-    type: Number,
-    default: null
-  }
-})
+// TODO: remove once composables/ are .ts
+const props = defineProps<{
+  isOpen: boolean
+  campaignId?: number | null
+}>()
 
-const emit = defineEmits(['close', 'start', 'pause', 'resume', 'cancel', 'delete', 'edit'])
+const emit = defineEmits<{
+  close: []
+  start: [id: number]
+  pause: [id: number]
+  resume: [id: number]
+  cancel: [id: number]
+  delete: [id: number]
+  edit: [id: number]
+}>()
+
+interface CampaignLog {
+  id: number
+  log_type: string
+  message: string
+  created_at: string
+  recipient_id?: number | null
+  metadata?: unknown
+}
+
+interface CampaignStats {
+  total_recipients?: number
+  messages_sent?: number
+  messages_delivered?: number
+  messages_failed?: number
+  [key: string]: unknown
+}
+
+interface CampaignDetail {
+  id: number
+  name?: string
+  status: string
+  message?: string
+  created_at: string
+  started_at?: string
+  completed_at?: string
+  actual_cost?: number
+  sms_cost?: number
+  sms_charged?: number
+  actual_credits_used?: number
+  payment_status?: string
+  total_recipients?: number
+  messages_sent?: number
+  messages_delivered?: number
+  messages_failed?: number
+  [key: string]: unknown
+}
 
 const {
   campaigns,
   fetchCampaign,
   fetchCampaignStats,
-  fetchCampaignLogs
+  fetchCampaignLogs,
 } = useSMSCampaigns()
 
-const campaign = ref(null)
-const stats = ref(null)
-const logs = ref([])
+const campaign = ref<CampaignDetail | null>(null)
+const stats = ref<CampaignStats | null>(null)
+const logs = ref<CampaignLog[]>([])
 const loading = ref(false)
 const loadingStats = ref(false)
 const loadingLogs = ref(false)
 
-// Computed: Campaign logs (only logs without recipient_id)
-const campaignLogs = computed(() => {
-  return logs.value.filter(log => !log.recipient_id).sort((a, b) => {
-    return new Date(b.created_at) - new Date(a.created_at)
-  })
-})
+const campaignLogs = computed<CampaignLog[]>(() =>
+  logs.value
+    .filter((log) => !log.recipient_id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+)
 
-// Computed: Recipient logs (only logs with recipient_id)
-const recipientLogs = computed(() => {
-  return logs.value.filter(log => log.recipient_id).sort((a, b) => {
-    return new Date(b.created_at) - new Date(a.created_at)
-  })
-})
+const recipientLogs = computed<CampaignLog[]>(() =>
+  logs.value
+    .filter((log) => log.recipient_id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+)
 
-// Watch for campaign ID changes
-watch(() => props.campaignId, async (newId) => {
-  if (newId && props.isOpen) {
-    await loadCampaignDetails()
-  }
-}, { immediate: true })
+watch(
+  () => props.campaignId,
+  async (newId) => {
+    if (newId && props.isOpen) await loadCampaignDetails()
+  },
+  { immediate: true },
+)
 
-// Watch for modal open
-watch(() => props.isOpen, async (isOpen) => {
-  if (isOpen && props.campaignId) {
-    await loadCampaignDetails()
-  }
-})
+watch(
+  () => props.isOpen,
+  async (isOpen) => {
+    if (isOpen && props.campaignId) await loadCampaignDetails()
+  },
+)
 
-// Load campaign details
-const loadCampaignDetails = async () => {
-  if (!props.campaignId) {
-    return
-  }
-  
+const loadCampaignDetails = async (): Promise<void> => {
+  if (!props.campaignId) return
   loading.value = true
-  
   try {
-    // Try to find campaign in existing list first
-    campaign.value = campaigns.value.find(c => c.id === props.campaignId)
-    
-    // If not found in list, fetch it directly
+    // campaigns is untyped (composable not yet .ts)
+    campaign.value = (campaigns.value as CampaignDetail[]).find((c) => c.id === props.campaignId) ?? null
+
     if (!campaign.value) {
       try {
-        const response = await fetchCampaign(props.campaignId)
-        campaign.value = response?.data || response?.campaign || response
+        const response = await fetchCampaign(props.campaignId) as { data?: CampaignDetail; campaign?: CampaignDetail }
+        campaign.value = response?.data ?? response?.campaign ?? null
       } catch (fetchErr) {
         console.error('Error fetching campaign:', fetchErr)
         campaign.value = null
       }
     }
-    
-    // Load stats and logs in parallel
-    await Promise.allSettled([
-      loadStats(),
-      loadLogs()
-    ])
+
+    await Promise.allSettled([loadStats(), loadLogs()])
   } catch (err) {
     console.error('Failed to load campaign details:', err)
   } finally {
@@ -422,12 +451,11 @@ const loadCampaignDetails = async () => {
   }
 }
 
-// Load campaign stats
-const loadStats = async () => {
+const loadStats = async (): Promise<void> => {
   loadingStats.value = true
   try {
-    const response = await fetchCampaignStats(props.campaignId)
-    stats.value = response?.data || response || {}
+    const response = await fetchCampaignStats(props.campaignId ?? '') as { data?: CampaignStats }
+    stats.value = response?.data ?? {}
   } catch (err) {
     console.error('Failed to load stats:', err)
     stats.value = {}
@@ -436,12 +464,11 @@ const loadStats = async () => {
   }
 }
 
-// Load campaign logs
-const loadLogs = async () => {
+const loadLogs = async (): Promise<void> => {
   loadingLogs.value = true
   try {
-    const response = await fetchCampaignLogs(props.campaignId)
-    logs.value = response?.data || response || []
+    const response = await fetchCampaignLogs(props.campaignId ?? '') as { data?: CampaignLog[] } | CampaignLog[]
+    logs.value = (Array.isArray(response) ? response : response?.data) ?? []
   } catch (err) {
     console.error('Failed to load logs:', err)
     logs.value = []
@@ -450,46 +477,37 @@ const loadLogs = async () => {
   }
 }
 
-// Refresh logs
-const refreshLogs = async () => {
-  await loadLogs()
-}
+const refreshLogs = async (): Promise<void> => loadLogs()
 
-// Format date
-const formatDate = (date) => {
+const formatDate = (date: string | null | undefined): string => {
   if (!date) return '-'
   return new Date(date).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
-// Format currency
-const formatCurrency = (value) => {
-  const num = parseFloat(value) || 0
+const formatCurrency = (value: number | null | undefined): string => {
+  const num = parseFloat(String(value ?? 0)) || 0
   return num.toFixed(2)
 }
 
-// Get status class
-const getStatusClass = (status) => {
-  const classes = {
+const getStatusClass = (status: string): string => {
+  const classes: Record<string, string> = {
     draft: 'bg-gray-100 text-gray-800',
     sending: 'cs-badge',
     completed: 'bg-green-100 text-green-800',
     paused: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-red-100 text-red-800',
-    failed: 'bg-red-100 text-red-800'
+    failed: 'bg-red-100 text-red-800',
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  return classes[status] ?? 'bg-gray-100 text-gray-800'
 }
 
-// Close modal
-const close = () => {
-  emit('close')
-}
+const close = (): void => emit('close')
 </script>
 
 <style scoped>

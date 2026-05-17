@@ -192,7 +192,7 @@
                                             </div>
                                             <h4 class="mt-3 font-semibold text-slate-900">{{ ad.headline }}</h4>
                                             <p v-if="ad.body" class="mt-2 text-sm text-slate-600">{{ ad.body }}</p>
-                                            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="ad.headline" class="mt-3 h-28 w-full rounded-2xl object-cover" />
+                                            <img v-if="ad.type === 'image' && ad.image_url" :src="ad.image_url" :alt="(ad.headline as string | undefined) ?? ''" class="mt-3 h-28 w-full rounded-2xl object-cover" />
                                             <p class="mt-3 text-xs text-slate-400">
                                                 {{ formatAdWindow(ad.start_date, ad.end_date) }}
                                             </p>
@@ -297,29 +297,63 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import { createStoreSettingsService } from '~/services/storeSettings/storeSettingsService'
+import type { Ad } from '~/services/types'
 
 definePageMeta({
     layout: 'company',
 })
 
+// Page-local settings shape — extends the shared StoreSettings with the
+// extra fields the shopfront form works with.
+interface ShopfrontSettings {
+  hide_prices: boolean
+  logo: string | null
+  shop_banner: string | null
+  theme_preset: string
+  theme_color: string
+}
+
+interface AdFormState {
+  type: string
+  headline: string
+  body: string
+  image_url: string
+  start_date: string
+  end_date: string
+  is_active: boolean
+}
+
+interface ThemePreset {
+  value: string
+  label: string
+  description: string
+  color: string
+  preview: string
+}
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+    isLoggedIn: boolean
+    authInitialized: boolean
+    companyAuthToken?: string | null
+    currentCompany?: { id?: number | string | null; name?: string | null } | null
+    checkAuthState: () => Promise<void>
+}
+
 const router = useRouter()
 const route = useRoute()
-const companyStore = useCompanyStore()
 
-// Build the service once per setup. `useApi()` reads runtimeConfig + the
-// company auth token internally; `getHeaders` is recomputed per request
-// so token rotations during the session are picked up automatically.
 const api = useApi()
 const storeSettingsService = createStoreSettingsService(api, () => ({
-    Authorization: `Bearer ${companyStore.companyAuthToken}`,
+    Authorization: `Bearer ${companyStore.companyAuthToken ?? ''}`,
 }))
 
-const themePresets = [
+const themePresets: ThemePreset[] = [
     { value: 'indigo', label: 'Indigo', description: 'Cool blue gradient', color: '#4f46e5', preview: 'linear-gradient(135deg, #4338ca 0%, #6366f1 100%)' },
     { value: 'teal', label: 'Teal', description: 'Fresh clinical look', color: '#0f766e', preview: 'linear-gradient(135deg, #115e59 0%, #14b8a6 100%)' },
     { value: 'rose', label: 'Rose', description: 'Warm promotional tone', color: '#e11d48', preview: 'linear-gradient(135deg, #9f1239 0%, #fb7185 100%)' },
@@ -329,7 +363,7 @@ const themePresets = [
     { value: 'custom', label: 'Custom', description: 'Pick your own accent', color: '#111827', preview: 'linear-gradient(135deg, #111827 0%, #64748b 100%)' },
 ]
 
-const defaultSettings = () => ({
+const defaultSettings = (): ShopfrontSettings => ({
     hide_prices: false,
     logo: null,
     shop_banner: null,
@@ -337,7 +371,7 @@ const defaultSettings = () => ({
     theme_color: '#4f46e5',
 })
 
-const defaultAdForm = () => ({
+const defaultAdForm = (): AdFormState => ({
     type: 'text',
     headline: '',
     body: '',
@@ -347,50 +381,58 @@ const defaultAdForm = () => ({
     is_active: true,
 })
 
-const loading = ref(false)
-const fetchError = ref('')
-const saving = ref(false)
-const saveSuccess = ref(false)
-const saveError = ref('')
-const uploadStatus = ref('')
-const adsStatus = ref('')
-const adsSaving = ref(false)
-const editingAdId = ref(null)
+const loading = ref<boolean>(false)
+const fetchError = ref<string>('')
+const saving = ref<boolean>(false)
+const saveSuccess = ref<boolean>(false)
+const saveError = ref<string>('')
+const uploadStatus = ref<string>('')
+const adsStatus = ref<string>('')
+const adsSaving = ref<boolean>(false)
+const editingAdId = ref<number | string | null>(null)
 
-const uploading = ref({
+const uploading = ref<{ logo: boolean; banner: boolean; ad: boolean }>({
     logo: false,
     banner: false,
     ad: false,
 })
 
-const settings = ref(defaultSettings())
-const savedSettings = ref(defaultSettings())
-const ads = ref([])
-const adForm = ref(defaultAdForm())
+const settings = ref<ShopfrontSettings>(defaultSettings())
+const savedSettings = ref<ShopfrontSettings>(defaultSettings())
+const ads = ref<Ad[]>([])
+const adForm = ref<AdFormState>(defaultAdForm())
 
-const companyDomain = computed(() => {
+const companyDomain = computed<string | null>(() => {
     const match = route.path.match(/\/([^/]+)\/services/)
-    return match ? match[1] : null
+    return match?.[1] ?? null
 })
 
-const companyId = computed(() => companyStore.currentCompany?.id || null)
-const companyName = computed(() => companyStore.currentCompany?.name || 'Your Shop')
-const companyInitials = computed(() => companyName.value.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase())
-const selectedTheme = computed(() => themePresets.find((theme) => theme.value === settings.value.theme_preset) || themePresets[0])
-const selectedThemeLabel = computed(() => selectedTheme.value.label)
-const previewTagline = computed(() => settings.value.hide_prices ? 'Pricing is hidden. Customers can request a quote directly from your catalog.' : 'Customers can browse products, see your branding, and order directly from your public page.')
+const companyId = computed<number | string | null>(() => companyStore.currentCompany?.id ?? null)
+const companyName = computed<string>(() => companyStore.currentCompany?.name ?? 'Your Shop')
+const companyInitials = computed<string>(() =>
+    companyName.value.split(' ').map((part) => part[0] ?? '').join('').slice(0, 2).toUpperCase()
+)
+const selectedTheme = computed<ThemePreset>(() =>
+    themePresets.find((theme) => theme.value === settings.value.theme_preset) ?? themePresets[0]!
+)
+const selectedThemeLabel = computed<string>(() => selectedTheme.value.label)
+const previewTagline = computed<string>(() =>
+    settings.value.hide_prices
+        ? 'Pricing is hidden. Customers can request a quote directly from your catalog.'
+        : 'Customers can browse products, see your branding, and order directly from your public page.'
+)
 
-const comparableSettings = (value) => JSON.stringify({
+const comparableSettings = (value: ShopfrontSettings): string => JSON.stringify({
     hide_prices: !!value.hide_prices,
-    logo: value.logo || null,
-    shop_banner: value.shop_banner || null,
+    logo: value.logo ?? null,
+    shop_banner: value.shop_banner ?? null,
     theme_preset: value.theme_preset || 'indigo',
-    theme_color: value.theme_color || null,
+    theme_color: value.theme_color ?? null,
 })
 
-const isDirty = computed(() => comparableSettings(settings.value) !== comparableSettings(savedSettings.value))
+const isDirty = computed<boolean>(() => comparableSettings(settings.value) !== comparableSettings(savedSettings.value))
 
-const previewStyles = computed(() => {
+const previewStyles = computed<Record<string, string>>(() => {
     const accent = settings.value.theme_preset === 'custom'
         ? (settings.value.theme_color || '#4f46e5')
         : selectedTheme.value.color
@@ -403,45 +445,45 @@ const previewStyles = computed(() => {
     }
 })
 
-const goToLogin = () => {
+const goToLogin = (): void => {
     if (companyDomain.value) {
-        router.push(`/${companyDomain.value}/services`)
+        void router.push(`/${companyDomain.value}/services`)
         return
     }
-
-    router.push('/')
+    void router.push('/')
 }
 
-const normalizeSettingsPayload = (payload = {}) => ({
-    hide_prices: !!payload.hide_prices,
-    logo: payload.logo || null,
-    shop_banner: payload.shop_banner || null,
-    theme_preset: payload.theme_preset || 'indigo',
-    theme_color: payload.theme_color || '#4f46e5',
+const normalizeSettingsPayload = (payload: Record<string, unknown> = {}): ShopfrontSettings => ({
+    hide_prices: !!payload['hide_prices'],
+    logo: typeof payload['logo'] === 'string' ? payload['logo'] : null,
+    shop_banner: typeof payload['shop_banner'] === 'string' ? payload['shop_banner'] : null,
+    theme_preset: typeof payload['theme_preset'] === 'string' ? payload['theme_preset'] : 'indigo',
+    theme_color: typeof payload['theme_color'] === 'string' ? payload['theme_color'] : '#4f46e5',
 })
 
-const formatDateInput = (value) => (value ? String(value).slice(0, 10) : '')
+const formatDateInput = (value: unknown): string =>
+    value ? String(value).slice(0, 10) : ''
 
-const loadSettings = async () => {
+const loadSettings = async (): Promise<void> => {
+    if (!companyId.value) return
     const data = await storeSettingsService.getSettings(companyId.value)
     if (!data.success) {
-        throw new Error(data.message || 'Failed to load settings')
+        throw new Error(data.message ?? 'Failed to load settings')
     }
-
-    settings.value = normalizeSettingsPayload(data.data)
-    savedSettings.value = normalizeSettingsPayload(data.data)
+    settings.value = normalizeSettingsPayload(data.data as Record<string, unknown>)
+    savedSettings.value = normalizeSettingsPayload(data.data as Record<string, unknown>)
 }
 
-const loadAds = async () => {
+const loadAds = async (): Promise<void> => {
+    if (!companyId.value) return
     const data = await storeSettingsService.listAds(companyId.value)
     if (!data.success) {
-        throw new Error(data.message || 'Failed to load ads')
+        throw new Error(data.message ?? 'Failed to load ads')
     }
-
-    ads.value = data.data || []
+    ads.value = data.data ?? []
 }
 
-const initializePage = async () => {
+const initializePage = async (): Promise<void> => {
     if (!companyId.value) {
         return
     }
@@ -453,24 +495,25 @@ const initializePage = async () => {
         await Promise.all([loadSettings(), loadAds()])
     } catch (error) {
         console.error('Error initializing shopfront settings:', error)
-        fetchError.value = error.message || 'Could not load shopfront settings'
+        fetchError.value = error instanceof Error ? error.message : 'Could not load shopfront settings'
     } finally {
         loading.value = false
     }
 }
 
-const uploadImage = async (endpoint, file) => {
+const uploadImage = async (endpoint: string, file: File): Promise<string> => {
+    if (!companyId.value) throw new Error('No company id')
     const data = await storeSettingsService.uploadShopAsset(companyId.value, endpoint, file)
     if (!data.success) {
-        throw new Error(data.message || 'Upload failed')
+        throw new Error(data.message ?? 'Upload failed')
     }
-
     return data.data.url
 }
 
-const handleAssetUpload = async (event, assetType) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+const handleAssetUpload = async (event: Event, assetType: 'logo' | 'banner'): Promise<void> => {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    input.value = ''
 
     if (!file || !companyId.value) {
         return
@@ -492,7 +535,7 @@ const handleAssetUpload = async (event, assetType) => {
         uploadStatus.value = `${assetType === 'logo' ? 'Logo' : 'Banner'} uploaded`
     } catch (error) {
         console.error(`Error uploading ${assetType}:`, error)
-        uploadStatus.value = error.message || `Could not upload ${assetType}`
+        uploadStatus.value = error instanceof Error ? error.message : `Could not upload ${assetType}`
     } finally {
         uploading.value[key] = false
         setTimeout(() => {
@@ -501,9 +544,10 @@ const handleAssetUpload = async (event, assetType) => {
     }
 }
 
-const handleAdImageUpload = async (event) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+const handleAdImageUpload = async (event: Event): Promise<void> => {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    input.value = ''
 
     if (!file || !companyId.value) {
         return
@@ -517,7 +561,7 @@ const handleAdImageUpload = async (event) => {
         adsStatus.value = 'Ad image uploaded'
     } catch (error) {
         console.error('Error uploading ad image:', error)
-        adsStatus.value = error.message || 'Could not upload ad image'
+        adsStatus.value = error instanceof Error ? error.message : 'Could not upload ad image'
     } finally {
         uploading.value.ad = false
         setTimeout(() => {
@@ -526,7 +570,7 @@ const handleAdImageUpload = async (event) => {
     }
 }
 
-const saveSettings = async () => {
+const saveSettings = async (): Promise<void> => {
     if (!companyId.value || saving.value || !isDirty.value) {
         return
     }
@@ -544,18 +588,18 @@ const saveSettings = async () => {
             theme_color: settings.value.theme_preset === 'custom' ? settings.value.theme_color : null,
         })
         if (!data.success) {
-            throw new Error(data.message || 'Failed to save settings')
+            throw new Error(data.message ?? 'Failed to save settings')
         }
 
-        settings.value = normalizeSettingsPayload(data.data)
-        savedSettings.value = normalizeSettingsPayload(data.data)
+        settings.value = normalizeSettingsPayload(data.data as Record<string, unknown>)
+        savedSettings.value = normalizeSettingsPayload(data.data as Record<string, unknown>)
         saveSuccess.value = true
         setTimeout(() => {
             saveSuccess.value = false
         }, 3000)
     } catch (error) {
         console.error('Error saving shopfront settings:', error)
-        saveError.value = error.message || 'Could not save shopfront settings'
+        saveError.value = error instanceof Error ? error.message : 'Could not save shopfront settings'
         setTimeout(() => {
             saveError.value = ''
         }, 5000)
@@ -564,32 +608,35 @@ const saveSettings = async () => {
     }
 }
 
-const resetAdForm = () => {
+const resetAdForm = (): void => {
     editingAdId.value = null
     adForm.value = defaultAdForm()
 }
 
-const startNewAd = () => {
+const startNewAd = (): void => {
     resetAdForm()
 }
 
-const editAd = (ad) => {
+const editAd = (ad: Ad): void => {
     editingAdId.value = ad.id
     adForm.value = {
-        type: ad.type || 'text',
-        headline: ad.headline || '',
-        body: ad.body || '',
-        image_url: ad.image_url || '',
-        start_date: formatDateInput(ad.start_date),
-        end_date: formatDateInput(ad.end_date),
+        type: typeof (ad as Record<string, unknown>)['type'] === 'string' ? (ad as Record<string, unknown>)['type'] as string : 'text',
+        headline: typeof (ad as Record<string, unknown>)['headline'] === 'string' ? (ad as Record<string, unknown>)['headline'] as string : '',
+        body: typeof (ad as Record<string, unknown>)['body'] === 'string' ? (ad as Record<string, unknown>)['body'] as string : '',
+        image_url: ad.image_url ?? '',
+        start_date: formatDateInput((ad as Record<string, unknown>)['start_date']),
+        end_date: formatDateInput((ad as Record<string, unknown>)['end_date']),
         is_active: !!ad.is_active,
     }
 }
 
-const saveAd = async () => {
+const saveAd = async (): Promise<void> => {
     if (!companyId.value || adsSaving.value) {
         return
     }
+
+    // Capture editingAdId before the async work so the status message is correct
+    const currentEditingId = editingAdId.value
 
     adsSaving.value = true
     adsStatus.value = ''
@@ -603,19 +650,19 @@ const saveAd = async () => {
             end_date: adForm.value.end_date || null,
         }
 
-        const data = editingAdId.value
-            ? await storeSettingsService.updateAd(companyId.value, editingAdId.value, payload)
+        const data = currentEditingId
+            ? await storeSettingsService.updateAd(companyId.value, currentEditingId, payload)
             : await storeSettingsService.createAd(companyId.value, payload)
         if (!data.success) {
-            throw new Error(data.message || 'Failed to save ad')
+            throw new Error(data.message ?? 'Failed to save ad')
         }
 
         await loadAds()
         resetAdForm()
-        adsStatus.value = editingAdId.value ? 'Ad updated' : 'Ad created'
+        adsStatus.value = currentEditingId ? 'Ad updated' : 'Ad created'
     } catch (error) {
         console.error('Error saving ad:', error)
-        adsStatus.value = error.message || 'Could not save ad'
+        adsStatus.value = error instanceof Error ? error.message : 'Could not save ad'
     } finally {
         adsSaving.value = false
         setTimeout(() => {
@@ -624,7 +671,7 @@ const saveAd = async () => {
     }
 }
 
-const removeAd = async (adId) => {
+const removeAd = async (adId: number | string): Promise<void> => {
     if (!companyId.value || !window.confirm('Delete this ad?')) {
         return
     }
@@ -632,7 +679,7 @@ const removeAd = async (adId) => {
     try {
         const data = await storeSettingsService.deleteAd(companyId.value, adId)
         if (!data.success) {
-            throw new Error(data.message || 'Failed to delete ad')
+            throw new Error(data.message ?? 'Failed to delete ad')
         }
 
         ads.value = ads.value.filter((ad) => ad.id !== adId)
@@ -645,11 +692,11 @@ const removeAd = async (adId) => {
         }, 3000)
     } catch (error) {
         console.error('Error deleting ad:', error)
-        adsStatus.value = error.message || 'Could not delete ad'
+        adsStatus.value = error instanceof Error ? error.message : 'Could not delete ad'
     }
 }
 
-const formatAdWindow = (startDate, endDate) => {
+const formatAdWindow = (startDate: string | null | undefined, endDate: string | null | undefined): string => {
     if (!startDate && !endDate) {
         return 'Runs until you disable it'
     }

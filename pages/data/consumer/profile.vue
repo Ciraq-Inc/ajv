@@ -27,7 +27,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
@@ -37,30 +37,34 @@ definePageMeta({
   middleware: 'data-consumer-auth',
 })
 
+interface AdminWithName {
+  fname?: string | null
+  lname?: string | null
+  username?: string | null
+  [key: string]: unknown
+}
+
 const adminStore = useAdminStore()
-const router = useRouter()
 
-// Computed
-const admin = computed(() => adminStore.getAdmin || {})
+const admin = computed<AdminWithName>(() => (adminStore.getAdmin as AdminWithName | null) ?? {})
 
-const adminName = computed(() => {
+const adminName = computed<string>(() => {
   const adminData = admin.value
-  if (adminData && adminData.fname && adminData.lname) {
+  if (adminData.fname && adminData.lname) {
     return `${adminData.fname} ${adminData.lname}`
   }
-  return admin.value.username || 'User'
+  return adminData.username ?? 'User'
 })
 
-const adminInitials = computed(() => {
+const adminInitials = computed<string>(() => {
   const adminData = admin.value
-  if (adminData && adminData.fname && adminData.lname) {
-    return `${adminData.fname?.charAt(0) || ''}${adminData.lname?.charAt(0) || ''}`.toUpperCase()
+  if (adminData.fname && adminData.lname) {
+    return `${adminData.fname.charAt(0)}${adminData.lname.charAt(0)}`.toUpperCase()
   }
-  return adminData.username?.substring(0, 2).toUpperCase() || 'U'
+  return adminData.username?.substring(0, 2).toUpperCase() ?? 'U'
 })
 
-// Methods
-const handleLogout = async () => {
+const handleLogout = async (): Promise<void> => {
   if (confirm('Are you sure you want to logout?')) {
     adminStore.logout()
     await navigateTo('/admin/login')

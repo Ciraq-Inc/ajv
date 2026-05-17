@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <div v-if="segments.length" class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
+    <div v-if="segments?.length" class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
       <div class="mx-auto h-40 w-40">
         <svg viewBox="0 0 120 120" class="h-full w-full">
           <circle cx="60" cy="60" r="38" fill="none" stroke="#efe8f7" stroke-width="16" />
@@ -40,7 +40,7 @@
             <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: segment.color }" />
             <span class="text-sm font-medium text-[#332046]">{{ segment.label }}</span>
           </div>
-          <span class="text-xs font-semibold text-[#5b4076]">{{ formatter(segment.value) }}</span>
+          <span class="text-xs font-semibold text-[#5b4076]">{{ formatter?.(segment.value) ?? segment.value }}</span>
         </div>
       </div>
     </div>
@@ -51,43 +51,58 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: '' },
-  centerLabel: { type: String, default: '' },
-  centerValue: { type: String, default: '' },
-  formatter: {
-    type: Function,
-    default: (value) => String(value ?? 0),
-  },
-  segments: {
-    type: Array,
-    default: () => [],
-  },
-})
+interface Segment {
+  label: string
+  value: number | string
+  color?: string
+}
+
+interface NormalizedSegment {
+  label: string
+  value: number
+  color: string
+}
+
+interface ArcSegment extends NormalizedSegment {
+  dashArray: string
+  dashOffset: number
+}
+
+const props = defineProps<{
+  title: string
+  subtitle?: string
+  centerLabel?: string
+  centerValue?: string
+  formatter?: (value: number) => string
+  segments?: Segment[]
+}>()
 
 const palette = ['#6d28d9', '#a855f7', '#ec4899', '#22c55e', '#f97316']
 const circumference = 2 * Math.PI * 38
 
-const normalizedSegments = computed(() => props.segments
-  .map((segment, index) => ({
-    ...segment,
-    value: Number(segment.value || 0),
-    color: segment.color || palette[index % palette.length],
-  }))
-  .filter((segment) => segment.value > 0))
+const normalizedSegments = computed<NormalizedSegment[]>(() =>
+  (props.segments ?? [])
+    .map((segment, index) => ({
+      ...segment,
+      value: Number(segment.value ?? 0),
+      color: segment.color ?? palette[index % palette.length] ?? '#6d28d9',
+    }))
+    .filter((segment) => segment.value > 0),
+)
 
-const total = computed(() => normalizedSegments.value.reduce((sum, segment) => sum + segment.value, 0))
+const total = computed<number>(() =>
+  normalizedSegments.value.reduce((sum, segment) => sum + segment.value, 0),
+)
 
-const arcSegments = computed(() => {
+const arcSegments = computed<ArcSegment[]>(() => {
   let runningOffset = 0
   return normalizedSegments.value.map((segment) => {
     const ratio = total.value > 0 ? segment.value / total.value : 0
     const dashLength = ratio * circumference
-    const current = {
+    const current: ArcSegment = {
       ...segment,
       dashArray: `${dashLength} ${circumference - dashLength}`,
       dashOffset: -runningOffset,

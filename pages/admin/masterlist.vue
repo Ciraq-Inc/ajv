@@ -263,7 +263,7 @@
                 <div
                   class="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
                   <img v-if="product.product_image_url" :src="product.product_image_url"
-                    :alt="product.product_description" class="h-full w-full object-cover" @error="handleImageError" />
+                    :alt="product.product_description ?? ''" class="h-full w-full object-cover" @error="handleImageError" />
                   <svg v-else class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -566,7 +566,7 @@
             <div v-if="autoUploadResults.results.failed.length > 0" class="mt-4">
               <h4 class="font-medium text-red-700 mb-2">Failed Uploads:</h4>
               <div class="max-h-32 overflow-y-auto bg-red-50 rounded-lg p-3">
-                <p v-for="item in autoUploadResults.results.failed" :key="item.productId" class="text-sm text-red-800">
+                <p v-for="item in autoUploadResults.results.failed" :key="item.productId ?? ''" class="text-sm text-red-800">
                   {{ item.fileName }}: {{ item.error }}
                 </p>
               </div>
@@ -578,7 +578,7 @@
                 <summary class="font-medium text-yellow-700 mb-2">Skipped Items ({{
                   autoUploadResults.results.skipped.length }})</summary>
                 <div class="max-h-32 overflow-y-auto bg-yellow-50 rounded-lg p-3 mt-2">
-                  <p v-for="item in autoUploadResults.results.skipped" :key="item.productId"
+                  <p v-for="item in autoUploadResults.results.skipped" :key="item.productId ?? ''"
                     class="text-sm text-yellow-800">
                     {{ item.fileName }}: {{ item.reason }}
                   </p>
@@ -611,68 +611,140 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useApi } from '~/composables/useApi';
 import { createMasterProductsService } from '~/services/masterProducts/masterProductsService';
 
 definePageMeta({
   middleware: 'admin-auth',
-  layout: 'admin-layout'
+  layout: 'admin-layout',
 });
+
+interface MasterProduct {
+  id: number | string
+  product_description?: string | null
+  product_image_url?: string | null
+  [key: string]: unknown
+}
+
+interface MasterProductStats {
+  total_master_products?: number | null
+  products_with_images?: number | null
+  [key: string]: unknown
+}
+
+interface ClassificationOption {
+  id: number | string
+  name?: string | null
+  [key: string]: unknown
+}
+
+interface UploadResponse {
+  success: boolean
+  imageUrl?: string
+  error?: string
+  [key: string]: unknown
+}
+
+interface BulkUploadEntry {
+  productId: string | null
+  fileName: string
+  imageUrl?: string
+  reason?: string
+  error?: string
+}
+
+interface BulkUploadResults {
+  success: boolean
+  summary: {
+    totalFiles: number
+    uploaded: number
+    failed: number
+    skipped: number
+  }
+  results: {
+    success: BulkUploadEntry[]
+    failed: BulkUploadEntry[]
+    skipped: BulkUploadEntry[]
+  }
+  message: string
+}
+
+interface ApiResponse {
+  success?: boolean
+  data?: unknown
+  message?: string
+  total?: number
+  error?: string
+  [key: string]: unknown
+}
 
 const api = useApi();
 const masterProductsService = createMasterProductsService(api);
 
-// State
-const loading = ref(false);
-const products = ref([]);
-const stats = ref(null);
-const searchQuery = ref('');
-const filterImageStatus = ref('all');
-const classificationOptions = ref([]);
-const selectedClassificationIds = ref([]);
-const draftClassificationIds = ref([]);
-const classificationDropdownOpen = ref(false);
-const classificationDropdownRef = ref(null);
-const currentPage = ref(1);
-const pageSize = ref(50);
-const totalProducts = ref(0);
-const totalPages = ref(0);
-const syncingMasterProducts = ref(false);
-const syncResult = ref(null);
-const syncError = ref('');
+const loading = ref<boolean>(false);
+const products = ref<MasterProduct[]>([]);
+const stats = ref<MasterProductStats | null>(null);
+const searchQuery = ref<string>('');
+const filterImageStatus = ref<string>('all');
+const classificationOptions = ref<ClassificationOption[]>([]);
+const selectedClassificationIds = ref<number[]>([]);
+const draftClassificationIds = ref<number[]>([]);
+const classificationDropdownOpen = ref<boolean>(false);
+const classificationDropdownRef = ref<HTMLElement | null>(null);
+const currentPage = ref<number>(1);
+const pageSize = ref<number>(50);
+const totalProducts = ref<number>(0);
+const totalPages = ref<number>(0);
+const syncingMasterProducts = ref<boolean>(false);
+
+interface MasterSyncResult {
+  run_id?: number | string | null;
+  inserted_count?: number | null;
+  updated_count?: number | null;
+  unchanged_count?: number | null;
+  failed_count?: number | null;
+  classifications_upserted?: number | null;
+  classification_links_inserted?: number | null;
+  classification_links_deleted?: number | null;
+  [key: string]: unknown;
+}
+
+const syncResult = ref<MasterSyncResult | null>(null);
+const syncError = ref<string>('');
 
 // Upload Modal State
-const showUploadModal = ref(false);
-const selectedProduct = ref(null);
-const selectedFile = ref(null);
-const previewUrl = ref(null);
-const uploading = ref(false);
-const uploadProgress = ref(0);
-const uploadError = ref(null);
-const uploadingProductId = ref(null);
-const fileInput = ref(null);
+const showUploadModal = ref<boolean>(false);
+const selectedProduct = ref<MasterProduct | null>(null);
+const selectedFile = ref<File | null>(null);
+const previewUrl = ref<string | null>(null);
+const uploading = ref<boolean>(false);
+const uploadProgress = ref<number>(0);
+const uploadError = ref<string | null>(null);
+const uploadingProductId = ref<number | string | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
 
 // Auto Upload State
-const showAutoUploadModal = ref(false);
-const autoUploading = ref(false);
-const autoUploadResults = ref(null);
-const forceUpdate = ref(false);
-const selectedBulkFiles = ref([]);
-const uploadProgressCount = ref(0);
-const bulkFileInput = ref(null);
-const folderInput = ref(null);
+const showAutoUploadModal = ref<boolean>(false);
+const autoUploading = ref<boolean>(false);
+const autoUploadResults = ref<BulkUploadResults | null>(null);
+const forceUpdate = ref<boolean>(false);
+const selectedBulkFiles = ref<File[]>([]);
+const uploadProgressCount = ref<number>(0);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const bulkFileInput = ref<HTMLInputElement | null>(null);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const folderInput = ref<HTMLInputElement | null>(null);
 
-// Computed
-const imagePercentage = computed(() => {
-  if (!stats.value || !stats.value.total_master_products) return 0;
-  const withImages = stats.value.products_with_images || 0;
+const imagePercentage = computed<number>(() => {
+  if (!stats.value?.total_master_products) return 0;
+  const withImages = stats.value.products_with_images ?? 0;
   return Math.round((withImages / stats.value.total_master_products) * 100);
 });
 
-const paginationPages = computed(() => {
-  const pages = [];
+const paginationPages = computed<number[]>(() => {
+  const pages: number[] = [];
   const maxVisible = 5;
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2));
   let end = Math.min(totalPages.value, start + maxVisible - 1);
@@ -687,67 +759,63 @@ const paginationPages = computed(() => {
   return pages;
 });
 
-const classificationFilterLabel = computed(() => {
+const classificationFilterLabel = computed<string>(() => {
   const selectedCount = selectedClassificationIds.value.length;
-  if (selectedCount === 0) {
-    return 'All classifications';
-  }
+  if (selectedCount === 0) return 'All classifications';
 
   if (selectedCount === 1) {
-    const selectedId = Number(selectedClassificationIds.value[0]);
+    const selectedId = selectedClassificationIds.value[0] !== undefined ? Number(selectedClassificationIds.value[0]) : 0;
     const matched = classificationOptions.value.find((item) => Number(item.id) === selectedId);
-    return matched ? matched.name : '1 classification selected';
+    return matched?.name ?? '1 classification selected';
   }
 
   return `${selectedCount} classifications selected`;
 });
 
-// Methods
-const formatNumber = (num) => {
-  return new Intl.NumberFormat().format(num || 0);
-};
+const formatNumber = (num: number | null | undefined): string =>
+  new Intl.NumberFormat().format(num ?? 0);
 
-const loadStats = async () => {
+const loadStats = async (): Promise<void> => {
   try {
-    const response = await api.get('/api/master-products/stats');
+    const response = await api.get('/api/master-products/stats') as unknown as ApiResponse;
     if (response.success) {
-      stats.value = response.data;
+      stats.value = response.data as MasterProductStats;
     }
   } catch (error) {
     console.error('Error loading stats:', error);
   }
 };
 
-const loadClassificationOptions = async () => {
+const loadClassificationOptions = async (): Promise<void> => {
   try {
-    const response = await api.get('/api/master-products/classifications');
+    const response = await api.get('/api/master-products/classifications') as unknown as ApiResponse;
     if (response.success) {
-      classificationOptions.value = Array.isArray(response.data) ? response.data : [];
+      classificationOptions.value = Array.isArray(response.data) ? (response.data as ClassificationOption[]) : [];
     }
   } catch (error) {
     console.error('Error loading classification options:', error);
   }
 };
 
-const loadProducts = async () => {
+const loadProducts = async (): Promise<void> => {
   try {
     loading.value = true;
-    const params = {
+    const params: Record<string, string | number> = {
       page: currentPage.value,
       limit: pageSize.value,
       search: searchQuery.value,
-      imageStatus: filterImageStatus.value
+      imageStatus: filterImageStatus.value,
     };
 
     if (selectedClassificationIds.value.length > 0) {
-      params.classificationIds = selectedClassificationIds.value.join(',');
+      params['classificationIds'] = selectedClassificationIds.value.join(',');
     }
 
-    const response = await api.get('/api/master-products', { params });
+    const response = await api.get('/api/master-products', { params }) as unknown as ApiResponse;
 
     if (response.success) {
-      products.value = response.data;
-      totalProducts.value = response.total || response.data.length;
+      products.value = (response.data as MasterProduct[]) ?? [];
+      totalProducts.value = (response['total'] as number | undefined) ?? products.value.length;
       totalPages.value = Math.ceil(totalProducts.value / pageSize.value);
     }
   } catch (error) {
@@ -757,26 +825,26 @@ const loadProducts = async () => {
   }
 };
 
-let searchTimeout;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+const debouncedSearch = (): void => {
+  if (searchTimeout !== null) clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     currentPage.value = 1;
-    loadProducts();
+    void loadProducts();
   }, 500);
 };
 
-const handleImageStatusChange = () => {
+const handleImageStatusChange = (): void => {
   currentPage.value = 1;
-  loadProducts();
+  void loadProducts();
 };
 
-const handlePageSizeChange = () => {
+const handlePageSizeChange = (): void => {
   currentPage.value = 1;
-  loadProducts();
+  void loadProducts();
 };
 
-const toggleClassificationDropdown = () => {
+const toggleClassificationDropdown = (): void => {
   if (classificationDropdownOpen.value) {
     closeClassificationDropdown(true);
     return;
@@ -786,19 +854,19 @@ const toggleClassificationDropdown = () => {
   classificationDropdownOpen.value = true;
 };
 
-const closeClassificationDropdown = (discardChanges = false) => {
+const closeClassificationDropdown = (discardChanges = false): void => {
   if (discardChanges) {
     draftClassificationIds.value = [...selectedClassificationIds.value];
   }
   classificationDropdownOpen.value = false;
 };
 
-const isDraftClassificationSelected = (classificationId) => {
+const isDraftClassificationSelected = (classificationId: number | string): boolean => {
   const target = Number(classificationId);
   return draftClassificationIds.value.some((id) => Number(id) === target);
 };
 
-const toggleDraftClassification = (classificationId) => {
+const toggleDraftClassification = (classificationId: number | string): void => {
   const target = Number(classificationId);
   const next = draftClassificationIds.value.filter((id) => Number(id) !== target);
   if (next.length === draftClassificationIds.value.length) {
@@ -807,74 +875,71 @@ const toggleDraftClassification = (classificationId) => {
   draftClassificationIds.value = next;
 };
 
-const clearClassificationDraft = () => {
+const clearClassificationDraft = (): void => {
   draftClassificationIds.value = [];
 };
 
-const applyClassificationFilter = () => {
+const applyClassificationFilter = (): void => {
   selectedClassificationIds.value = [...new Set(
     draftClassificationIds.value
       .map((id) => Number(id))
-      .filter((id) => Number.isInteger(id) && id > 0)
+      .filter((id) => Number.isInteger(id) && id > 0),
   )];
 
   classificationDropdownOpen.value = false;
   currentPage.value = 1;
-  loadProducts();
+  void loadProducts();
 };
 
-const clearClassificationFilter = () => {
+const clearClassificationFilter = (): void => {
   selectedClassificationIds.value = [];
   draftClassificationIds.value = [];
   classificationDropdownOpen.value = false;
   currentPage.value = 1;
-  loadProducts();
+  void loadProducts();
 };
 
-const handleDocumentClick = (event) => {
+const handleDocumentClick = (event: MouseEvent): void => {
   if (!classificationDropdownOpen.value) return;
-  if (classificationDropdownRef.value && !classificationDropdownRef.value.contains(event.target)) {
+  if (classificationDropdownRef.value && !classificationDropdownRef.value.contains(event.target as Node)) {
     closeClassificationDropdown(true);
   }
 };
 
-const changePage = (page) => {
+const changePage = (page: number): void => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page;
-    loadProducts();
+    void loadProducts();
   }
 };
 
-const refreshData = async () => {
+const refreshData = async (): Promise<void> => {
   await Promise.all([loadStats(), loadClassificationOptions(), loadProducts()]);
 };
 
-const syncMasterProducts = async () => {
+const syncMasterProducts = async (): Promise<void> => {
   try {
     syncingMasterProducts.value = true;
     syncError.value = '';
     syncResult.value = null;
 
-    const response = await api.post('/api/sync/admin/master-products', {
-      dryRun: false
-    });
+    const response = await api.post('/api/sync/admin/master-products', { dryRun: false }) as unknown as ApiResponse;
 
     if (!response.success) {
-      throw new Error(response.message || 'Master products sync failed');
+      throw new Error(response.message ?? 'Master products sync failed');
     }
 
-    syncResult.value = response.data;
+    syncResult.value = response.data as MasterSyncResult | null;
     await refreshData();
   } catch (error) {
     console.error('Error syncing master products:', error);
-    syncError.value = error.message || 'Failed to sync master products';
+    syncError.value = error instanceof Error ? error.message : 'Failed to sync master products';
   } finally {
     syncingMasterProducts.value = false;
   }
 };
 
-// Image Upload Methods
-const openUploadModal = (product) => {
+const openUploadModal = (product: MasterProduct): void => {
   selectedProduct.value = product;
   showUploadModal.value = true;
   uploadError.value = null;
@@ -882,7 +947,7 @@ const openUploadModal = (product) => {
   selectedFile.value = null;
 };
 
-const closeUploadModal = () => {
+const closeUploadModal = (): void => {
   showUploadModal.value = false;
   selectedProduct.value = null;
   selectedFile.value = null;
@@ -894,16 +959,15 @@ const closeUploadModal = () => {
   }
 };
 
-const handleFileSelect = (event) => {
-  const file = event.target.files[0];
+const handleFileSelect = (event: Event): void => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
   if (file) {
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       uploadError.value = 'File size must be less than 5MB';
       return;
     }
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       uploadError.value = 'Please select a valid image file';
       return;
@@ -912,16 +976,15 @@ const handleFileSelect = (event) => {
     selectedFile.value = file;
     uploadError.value = null;
 
-    // Create preview
     const reader = new FileReader();
-    reader.onload = (e) => {
-      previewUrl.value = e.target.result;
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      previewUrl.value = (e.target?.result as string | null) ?? null;
     };
     reader.readAsDataURL(file);
   }
 };
 
-const uploadImage = async () => {
+const uploadImage = async (): Promise<void> => {
   if (!selectedFile.value || !selectedProduct.value) return;
 
   try {
@@ -930,28 +993,24 @@ const uploadImage = async () => {
     uploadError.value = null;
     uploadProgress.value = 0;
 
-    // Create FormData
     const formData = new FormData();
     formData.append('image', selectedFile.value);
-    formData.append('productId', selectedProduct.value.id);
-    formData.append('productName', selectedProduct.value.product_description);
+    formData.append('productId', String(selectedProduct.value.id));
+    formData.append('productName', String(selectedProduct.value.product_description ?? ''));
 
-    // Use native fetch for FormData upload (don't set Content-Type, let browser handle it)
     const config = useRuntimeConfig();
     const xhr = new XMLHttpRequest();
 
-    // Track upload progress
-    xhr.upload.addEventListener('progress', (e) => {
+    xhr.upload.addEventListener('progress', (e: ProgressEvent) => {
       if (e.lengthComputable) {
         uploadProgress.value = Math.round((e.loaded * 100) / e.total);
       }
     });
 
-    // Handle completion
-    const uploadPromise = new Promise((resolve, reject) => {
+    const uploadPromise = new Promise<UploadResponse>((resolve, reject) => {
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(JSON.parse(xhr.responseText));
+          resolve(JSON.parse(xhr.responseText) as UploadResponse);
         } else {
           reject(new Error(xhr.responseText || 'Upload failed'));
         }
@@ -959,62 +1018,55 @@ const uploadImage = async () => {
       xhr.addEventListener('error', () => reject(new Error('Network error')));
     });
 
-    // Send request
-    xhr.open('POST', `${config.public.apiBase}/api/master-products/upload-image`);
+    xhr.open('POST', `${String(config.public['apiBase'])}/api/master-products/upload-image`);
     xhr.send(formData);
 
     const response = await uploadPromise;
 
     if (response.success) {
-      // Update product in list
-      const productIndex = products.value.findIndex(p => p.id === selectedProduct.value.id);
+      const currentSelected = selectedProduct.value;
+      const productIndex = products.value.findIndex((p) => p.id === currentSelected.id);
       if (productIndex !== -1) {
-        products.value[productIndex].product_image_url = response.imageUrl;
+        const existing = products.value[productIndex];
+        if (existing !== undefined) existing.product_image_url = response.imageUrl ?? null;
       }
 
-      // Refresh stats
       await loadStats();
-
-      // Close modal
       closeUploadModal();
-
-      // Show success message (you can add a toast notification here)
       alert('Image uploaded successfully!');
     } else {
-      uploadError.value = response.error || 'Upload failed';
+      uploadError.value = response.error ?? 'Upload failed';
     }
   } catch (error) {
     console.error('Upload error:', error);
-    uploadError.value = error.message || 'Failed to upload image';
+    uploadError.value = error instanceof Error ? error.message : 'Failed to upload image';
   } finally {
     uploading.value = false;
     uploadingProductId.value = null;
   }
 };
 
-const removeImage = async (product) => {
+const removeImage = async (product: MasterProduct): Promise<void> => {
   if (!confirm('Are you sure you want to remove this image?')) return;
 
   try {
     uploadingProductId.value = product.id;
     const response = await api.post('/api/master-products/remove-image', {
       productId: product.id,
-      imageUrl: product.product_image_url
-    });
+      imageUrl: product.product_image_url,
+    }) as unknown as ApiResponse;
 
     if (response.success) {
-      // Update product in list
-      const productIndex = products.value.findIndex(p => p.id === product.id);
+      const productIndex = products.value.findIndex((p) => p.id === product.id);
       if (productIndex !== -1) {
-        products.value[productIndex].product_image_url = null;
+        const existing = products.value[productIndex];
+        if (existing !== undefined) existing.product_image_url = null;
       }
 
-      // Refresh stats
       await loadStats();
-
       alert('Image removed successfully!');
     } else {
-      alert('Failed to remove image: ' + (response.error || 'Unknown error'));
+      alert('Failed to remove image: ' + (response.error ?? 'Unknown error'));
     }
   } catch (error) {
     console.error('Remove error:', error);
@@ -1024,8 +1076,7 @@ const removeImage = async (product) => {
   }
 };
 
-// Auto Upload Methods
-const openAutoUploadModal = () => {
+const openAutoUploadModal = (): void => {
   showAutoUploadModal.value = true;
   autoUploadResults.value = null;
   forceUpdate.value = false;
@@ -1033,7 +1084,7 @@ const openAutoUploadModal = () => {
   uploadProgressCount.value = 0;
 };
 
-const closeAutoUploadModal = () => {
+const closeAutoUploadModal = (): void => {
   if (autoUploading.value) return;
   showAutoUploadModal.value = false;
   autoUploadResults.value = null;
@@ -1041,146 +1092,120 @@ const closeAutoUploadModal = () => {
   uploadProgressCount.value = 0;
 };
 
-const handleBulkFileSelect = (event) => {
-  const files = Array.from(event.target.files || []);
+const handleBulkFileSelect = (event: Event): void => {
+  const target = event.target as HTMLInputElement;
+  const files = Array.from(target.files ?? []);
   addFilesToSelection(files);
 };
 
-const handleFileDrop = (event) => {
-  const files = Array.from(event.dataTransfer.files || []);
+const handleFileDrop = (event: DragEvent): void => {
+  const files = Array.from(event.dataTransfer?.files ?? []);
   addFilesToSelection(files);
 };
 
-const addFilesToSelection = (files) => {
-  const validFiles = files.filter(file => {
-    // Check file type
-    if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
-      return false;
-    }
-    // Check file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      return false;
-    }
-    // Check if filename is a valid product ID pattern
+const addFilesToSelection = (files: File[]): void => {
+  const validFiles = files.filter((file) => {
+    if (!file.type.match(/^image\/(jpeg|png|webp)$/)) return false;
+    if (file.size > 5 * 1024 * 1024) return false;
     const productId = getProductIdFromFile(file.name);
-    if (!productId || isNaN(parseInt(productId))) {
-      return false;
-    }
+    if (!productId || isNaN(parseInt(productId, 10))) return false;
     return true;
   });
 
-  // Add to selection (avoid duplicates)
-  validFiles.forEach(file => {
-    const exists = selectedBulkFiles.value.some(f => f.name === file.name);
+  validFiles.forEach((file) => {
+    const exists = selectedBulkFiles.value.some((f) => f.name === file.name);
     if (!exists) {
       selectedBulkFiles.value.push(file);
     }
   });
 };
 
-const getProductIdFromFile = (filename) => {
-  // Extract product ID from filename (e.g., "1045.jpg" -> "1045")
+const getProductIdFromFile = (filename: string): string | null => {
   const match = filename.match(/^(\d+)\./);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 };
 
-const formatFileSize = (bytes) => {
+const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-const removeFileFromSelection = (index) => {
+const removeFileFromSelection = (index: number): void => {
   selectedBulkFiles.value.splice(index, 1);
 };
 
-const clearSelectedFiles = () => {
+const clearSelectedFiles = (): void => {
   selectedBulkFiles.value = [];
 };
 
-const startAutoUpload = async () => {
+const startAutoUpload = async (): Promise<void> => {
   if (selectedBulkFiles.value.length === 0) return;
 
   try {
     autoUploading.value = true;
     uploadProgressCount.value = 0;
 
-    const results = {
+    const results: { success: BulkUploadEntry[]; failed: BulkUploadEntry[]; skipped: BulkUploadEntry[] } = {
       success: [],
       failed: [],
-      skipped: []
+      skipped: [],
     };
 
-    // Upload each file one by one
     for (const file of selectedBulkFiles.value) {
       const productId = getProductIdFromFile(file.name);
 
       try {
-        // Create FormData for this file
         const formData = new FormData();
         formData.append('image', file);
-        formData.append('productId', productId);
+        formData.append('productId', productId ?? '');
         formData.append('forceUpdate', forceUpdate.value.toString());
 
         const data = await masterProductsService.uploadImage(formData);
 
         if (data.success) {
-          results.success.push({
-            productId,
-            fileName: file.name,
-            imageUrl: data.imageUrl
-          });
-        } else if (data.error && data.error.includes('not found')) {
-          results.skipped.push({
-            productId,
-            fileName: file.name,
-            reason: 'Product not found in database'
-          });
+          results.success.push({ productId, fileName: file.name, ...(data.imageUrl != null && { imageUrl: data.imageUrl }) });
+        } else if (data.error?.includes('not found')) {
+          results.skipped.push({ productId, fileName: file.name, reason: 'Product not found in database' });
         } else {
-          results.failed.push({
-            productId,
-            fileName: file.name,
-            error: data.error || 'Upload failed'
-          });
+          results.failed.push({ productId, fileName: file.name, error: data.error ?? 'Upload failed' });
         }
       } catch (error) {
         results.failed.push({
           productId,
           fileName: file.name,
-          error: error.message || 'Network error'
+          error: error instanceof Error ? error.message : 'Network error',
         });
       }
 
       uploadProgressCount.value++;
     }
 
-    // Set results
     autoUploadResults.value = {
       success: true,
       summary: {
         totalFiles: selectedBulkFiles.value.length,
         uploaded: results.success.length,
         failed: results.failed.length,
-        skipped: results.skipped.length
+        skipped: results.skipped.length,
       },
       results,
-      message: `Processed ${selectedBulkFiles.value.length} images: ${results.success.length} uploaded, ${results.failed.length} failed, ${results.skipped.length} skipped`
+      message: `Processed ${selectedBulkFiles.value.length} images: ${results.success.length} uploaded, ${results.failed.length} failed, ${results.skipped.length} skipped`,
     };
 
-    // Refresh data
     await loadStats();
     await loadProducts();
-
   } catch (error) {
     console.error('Bulk upload error:', error);
-    alert('Bulk upload failed: ' + (error.message || 'Unknown error'));
+    alert('Bulk upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   } finally {
     autoUploading.value = false;
   }
 };
 
-const handleImageError = (event) => {
-  event.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="60" height="60"%3E%3Crect fill="%23ddd" width="60" height="60"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+const handleImageError = (event: Event): void => {
+  const target = event.target as HTMLImageElement;
+  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="60" height="60"%3E%3Crect fill="%23ddd" width="60" height="60"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
 };
 
 onMounted(async () => {
