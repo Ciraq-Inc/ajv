@@ -183,7 +183,7 @@
             </td>
             <td style="padding: 0.875rem 1.25rem; text-align: right; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">
               <template v-if="getRequestComposedCost(req) !== null">
-                GHS {{ getRequestComposedCost(req).toFixed(2) }}
+                GHS {{ getRequestComposedCost(req)!.toFixed(2) }}
               </template>
               <span v-else style="color: #9ca3af; font-weight: 400;">—</span>
             </td>
@@ -316,7 +316,7 @@
               </div>
               <div class="workspace-overview-item">
                 <span class="workspace-overview-key">Hold</span>
-                <strong>GHS {{ parseFloat(selectedRequest.request_fee || 0).toFixed(2) }}</strong>
+                <strong>GHS {{ parseFloat(String(selectedRequest.request_fee || 0)).toFixed(2) }}</strong>
               </div>
               <div class="workspace-overview-item">
                 <span class="workspace-overview-key">Items</span>
@@ -511,7 +511,7 @@
                                 <div style="display: flex; align-items: center; gap: 4px;">
                                   <input
                                     :value="masterSearchQuery"
-                                    @input="resolveSearchMode === 'master' ? onMasterSearchInput($event.target.value) : onPharmResolveInput($event.target.value)"
+                                    @input="resolveSearchMode === 'master' ? onMasterSearchInput(($event.target as HTMLInputElement).value) : onPharmResolveInput(($event.target as HTMLInputElement).value)"
                                     type="text"
                                     class="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold"
                                     :placeholder="resolveSearchMode === 'master' ? 'Search master catalog...' : 'Search pharmacy stock...'"
@@ -541,8 +541,8 @@
                                   <div v-if="masterSearchLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
                                   <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
                                     <button
-                                      v-for="mp in masterSearchResults"
-                                      :key="mp.id"
+                                      v-for="(mp, mpIdx) in masterSearchResults"
+                                      :key="mp.id ?? mpIdx"
                                       type="button"
                                       class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
                                       @click="resolveItemToMaster(item, mp)"
@@ -564,8 +564,8 @@
                                   <div v-if="pharmResolveLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
                                   <div v-else-if="pharmResolveResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
                                     <button
-                                      v-for="pp in pharmResolveResults"
-                                      :key="pp.id"
+                                      v-for="(pp, ppIdx) in pharmResolveResults"
+                                      :key="pp.id ?? ppIdx"
                                       type="button"
                                       class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
                                       @click="resolveItemToPharmProduct(item, pp)"
@@ -574,8 +574,8 @@
                                       <span class="text-[10px] text-gray-500">
                                         {{ pp.pharmacy_name }}
                                         <template v-if="pp.distance_km !== null"> · {{ Number(pp.distance_km).toFixed(1) }} km</template>
-                                        <template v-if="pp.price > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
-                                        <template v-if="pp.available_quantity > 0"> · {{ pp.available_quantity }} in stock</template>
+                                        <template v-if="(pp.price ?? 0) > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
+                                        <template v-if="(pp.available_quantity ?? 0) > 0"> · {{ pp.available_quantity }} in stock</template>
                                       </span>
                                     </button>
                                   </div>
@@ -722,7 +722,7 @@
                           </div>
                           <div class="status-action-row">
                             <span class="status-badge sm shrink-0" :class="selectedRequest.status">{{ formatStatus(selectedRequest.status) }}</span>
-                            <button v-if="nextStepAction && !(autoAdvanceSuggestion && autoAdvanceSuggestion.status === nextStepAction.status)" @click="applyNextStep()" class="next-step-btn" :disabled="loading || nextStepAction.disabled">{{ nextStepAction.label }} →</button>
+                            <button v-if="nextStepAction && !(autoAdvanceSuggestion && autoAdvanceSuggestion.status === nextStepAction.status)" @click="applyNextStep()" class="next-step-btn" :disabled="loading || !!nextStepAction.disabled">{{ nextStepAction.label }} →</button>
                             <button @click="showStatusOverride = !showStatusOverride" class="override-toggle-btn" :class="{ active: showStatusOverride }">override</button>
                           </div>
                           <div v-if="showStatusOverride" class="status-override-row">
@@ -837,12 +837,12 @@
                                 <div
                                   class="coverage-bar-fill"
                                   :style="{
-                                    width: `${pharmacy.total_items > 0 ? (pharmacy.coverage_score / pharmacy.total_items) * 100 : 0}%`,
-                                    background: getCoverageColor(pharmacy.coverage_score, pharmacy.total_items)
+                                    width: `${(pharmacy.total_items ?? 0) > 0 ? ((pharmacy.coverage_score ?? 0) / (pharmacy.total_items ?? 1)) * 100 : 0}%`,
+                                    background: getCoverageColor(pharmacy.coverage_score ?? 0, pharmacy.total_items ?? 0)
                                   }"
                                 ></div>
                               </div>
-                              <span class="text-[10px] font-black shrink-0" :style="{ color: getCoverageColor(pharmacy.coverage_score, pharmacy.total_items) }">
+                              <span class="text-[10px] font-black shrink-0" :style="{ color: getCoverageColor(pharmacy.coverage_score ?? 0, pharmacy.total_items ?? 0) }">
                                 {{ pharmacy.coverage_score }}/{{ pharmacy.total_items }}
                               </span>
                             </div>
@@ -918,7 +918,7 @@
                                 >
                                   <input
                                     :value="coverageSubSearch.query"
-                                    @input="onCoverageSubSearchInput($event.target.value)"
+                                    @input="onCoverageSubSearchInput(($event.target as HTMLInputElement).value)"
                                     type="text"
                                     class="w-full px-2 py-1 bg-white border border-violet-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 transition-all"
                                     :placeholder="`Search ${pharmacy.pharmacy_name} catalog...`"
@@ -927,8 +927,8 @@
                                   <div v-if="coverageSubSearch.loading" class="text-[10px] text-gray-400 px-1 py-1">Searching...</div>
                                   <div v-else-if="coverageSubSearch.results.length" class="coverage-sub-search-results">
                                     <button
-                                      v-for="sp in coverageSubSearch.results"
-                                      :key="sp.id"
+                                      v-for="(sp, spIdx) in coverageSubSearch.results"
+                                      :key="sp.id ?? spIdx"
                                       type="button"
                                       class="coverage-sub-search-result"
                                       @click="selectCoverageSubstitute(pharmacy, ui, sp)"
@@ -1023,7 +1023,7 @@
                       <template v-for="plan in fulfillmentPlans" :key="plan.plan_key">
                         <template v-for="pi in (plan.items || [])" :key="pi.item_id">
                           <span
-                            v-if="pi.item_id === item.id && pi.allocated_quantity > 0"
+                            v-if="pi.item_id === item.id && (pi.allocated_quantity ?? 0) > 0"
                             class="tracker-alloc-chip"
                           >{{ plan.pharmacies?.[0]?.pharmacy_name }} ×{{ pi.allocated_quantity }}</span>
                         </template>
@@ -1059,45 +1059,45 @@
                     <span class="outreach-section-note">These pharmacies have all items in stock</span>
                   </div>
                   <div
-                    v-for="pharm in fullMatchQueue"
-                    :key="pharm.pharmacy_id"
+                    v-for="(pharm, fmIdx) in fullMatchQueue"
+                    :key="pharm.pharmacy_id ?? fmIdx"
                     class="pharmacy-outreach-row"
                     :class="{ 'pharmacy-outreach-row--next': nextRecommendedPharmacy?.pharmacy_id === pharm.pharmacy_id }"
                   >
                     <div class="pharmacy-outreach-info">
                       <strong>{{ pharm.pharmacy_name }}</strong>
                       <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
-                      <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ { not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' }[pharm.queue_state] || pharm.queue_state }}</span>
+                      <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ ({ not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' } as Record<string, string>)[pharm.queue_state ?? ''] || pharm.queue_state }}</span>
                       <span class="outreach-coverage-chip outreach-coverage-chip--full">Full match</span>
-                      <span v-if="pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0) === 0 }">
-                        {{ pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0 }} orders
-                        <template v-if="pharmacyLedgerMap[pharm.pharmacy_id]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id].last_transaction_at) }}</template>
+                      <span v-if="pharm.pharmacy_id && pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0) === 0 }">
+                        {{ pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0 }} orders
+                        <template v-if="pharmacyLedgerMap[pharm.pharmacy_id!]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id!]!.last_transaction_at) }}</template>
                       </span>
                       <span v-else-if="Object.keys(pharmacyLedgerMap).length > 0" class="outreach-orders-chip outreach-orders-chip--low">0 orders</span>
                     </div>
                     <div class="pharmacy-outreach-actions">
-                      <a v-if="pharm.phone" :href="pharm.whatsapp_url || `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
-                      <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>Call</span></a>
+                      <a v-if="pharm.phone" :href="pharm.whatsapp_url || `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
+                      <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false })"><span>Call</span></a>
                       <template v-if="!pharm.phone">
-                        <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id]?.editing">
+                        <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id!]?.editing">
                           <input
-                            v-model="pharmacyPhoneEdit[pharm.pharmacy_id].value"
+                            v-model="pharmacyPhoneEdit[pharm.pharmacy_id!]!.value"
                             type="tel"
                             class="outreach-phone-input"
                             placeholder="e.g. 0241234567"
-                            :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving"
+                            :disabled="pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false"
                             @keydown.enter="savePharmacyPhone(pharm)"
-                            @keydown.esc="cancelPharmacyPhoneEdit(pharm.pharmacy_id)"
+                            @keydown.esc="cancelPharmacyPhoneEdit(pharm.pharmacy_id!)"
                           />
-                          <button type="button" class="outreach-btn outreach-btn--confirm" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving || !pharmacyPhoneEdit[pharm.pharmacy_id].value" @click="savePharmacyPhone(pharm)">{{ pharmacyPhoneEdit[pharm.pharmacy_id].saving ? 'Saving…' : 'Save' }}</button>
-                          <button type="button" class="outreach-btn outreach-btn--cancel" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving" @click="cancelPharmacyPhoneEdit(pharm.pharmacy_id)">✕</button>
+                          <button type="button" class="outreach-btn outreach-btn--confirm" :disabled="(pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false) || !pharmacyPhoneEdit[pharm.pharmacy_id!]?.value" @click="savePharmacyPhone(pharm)">{{ pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ? 'Saving…' : 'Save' }}</button>
+                          <button type="button" class="outreach-btn outreach-btn--cancel" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false" @click="cancelPharmacyPhoneEdit(pharm.pharmacy_id!)">✕</button>
                         </template>
-                        <button v-else type="button" class="outreach-btn outreach-btn--add-phone" @click="startPharmacyPhoneEdit(pharm.pharmacy_id)">+ Add phone</button>
+                        <button v-else type="button" class="outreach-btn outreach-btn--add-phone" @click="startPharmacyPhoneEdit(pharm.pharmacy_id!)">+ Add phone</button>
                       </template>
                       <template v-if="pharm.queue_state !== 'not_contacted'">
                         <button type="button" class="outreach-btn outreach-btn--confirm" :class="{ active: pharm.queue_state === 'full' }" @click="openResponseModal(pharm, 'full')">Available ✓</button>
                         <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
-                        <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'declined', { showSuccess: true })">Unavailable ✗</button>
+                        <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction(pharm, 'declined', { showSuccess: true })">Unavailable ✗</button>
                       </template>
                       <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading" @click="routePharmacyAction(pharm)">Route here</button>
                     </div>
@@ -1111,45 +1111,45 @@
                     <span class="outreach-section-note">These pharmacies have some but not all items</span>
                   </div>
                   <div
-                    v-for="pharm in partialMatchQueue"
-                    :key="pharm.pharmacy_id"
+                    v-for="(pharm, pmIdx) in partialMatchQueue"
+                    :key="pharm.pharmacy_id ?? pmIdx"
                     class="pharmacy-outreach-row"
                     :class="{ 'pharmacy-outreach-row--next': nextRecommendedPharmacy?.pharmacy_id === pharm.pharmacy_id }"
                   >
                     <div class="pharmacy-outreach-info">
                       <strong>{{ pharm.pharmacy_name }}</strong>
                       <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
-                      <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ { not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' }[pharm.queue_state] || pharm.queue_state }}</span>
-                      <span v-if="pharm.matched_item_count > 0" class="outreach-coverage-chip">{{ pharm.matched_item_count }} item{{ pharm.matched_item_count !== 1 ? 's' : '' }}</span>
-                      <span v-if="pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0) === 0 }">
-                        {{ pharmacyLedgerMap[pharm.pharmacy_id]?.request_count || 0 }} orders
-                        <template v-if="pharmacyLedgerMap[pharm.pharmacy_id]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id].last_transaction_at) }}</template>
+                      <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ ({ not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' } as Record<string, string>)[pharm.queue_state ?? ''] || pharm.queue_state }}</span>
+                      <span v-if="pharm.matched_item_count ?? 0 > 0" class="outreach-coverage-chip">{{ pharm.matched_item_count }} item{{ pharm.matched_item_count !== 1 ? 's' : '' }}</span>
+                      <span v-if="pharm.pharmacy_id && pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0) === 0 }">
+                        {{ pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0 }} orders
+                        <template v-if="pharmacyLedgerMap[pharm.pharmacy_id!]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id!]!.last_transaction_at) }}</template>
                       </span>
                       <span v-else-if="Object.keys(pharmacyLedgerMap).length > 0" class="outreach-orders-chip outreach-orders-chip--low">0 orders</span>
                     </div>
                     <div class="pharmacy-outreach-actions">
-                      <a v-if="pharm.phone" :href="pharm.whatsapp_url || `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
-                      <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'contacted', { showSuccess: false })"><span>Call</span></a>
+                      <a v-if="pharm.phone" :href="pharm.whatsapp_url || `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
+                      <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false })"><span>Call</span></a>
                       <template v-if="!pharm.phone">
-                        <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id]?.editing">
+                        <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id!]?.editing">
                           <input
-                            v-model="pharmacyPhoneEdit[pharm.pharmacy_id].value"
+                            v-model="pharmacyPhoneEdit[pharm.pharmacy_id!]!.value"
                             type="tel"
                             class="outreach-phone-input"
                             placeholder="e.g. 0241234567"
-                            :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving"
+                            :disabled="pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false"
                             @keydown.enter="savePharmacyPhone(pharm)"
-                            @keydown.esc="cancelPharmacyPhoneEdit(pharm.pharmacy_id)"
+                            @keydown.esc="cancelPharmacyPhoneEdit(pharm.pharmacy_id!)"
                           />
-                          <button type="button" class="outreach-btn outreach-btn--confirm" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving || !pharmacyPhoneEdit[pharm.pharmacy_id].value" @click="savePharmacyPhone(pharm)">{{ pharmacyPhoneEdit[pharm.pharmacy_id].saving ? 'Saving…' : 'Save' }}</button>
-                          <button type="button" class="outreach-btn outreach-btn--cancel" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id].saving" @click="cancelPharmacyPhoneEdit(pharm.pharmacy_id)">✕</button>
+                          <button type="button" class="outreach-btn outreach-btn--confirm" :disabled="(pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false) || !pharmacyPhoneEdit[pharm.pharmacy_id!]?.value" @click="savePharmacyPhone(pharm)">{{ pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ? 'Saving…' : 'Save' }}</button>
+                          <button type="button" class="outreach-btn outreach-btn--cancel" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false" @click="cancelPharmacyPhoneEdit(pharm.pharmacy_id!)">✕</button>
                         </template>
-                        <button v-else type="button" class="outreach-btn outreach-btn--add-phone" @click="startPharmacyPhoneEdit(pharm.pharmacy_id)">+ Add phone</button>
+                        <button v-else type="button" class="outreach-btn outreach-btn--add-phone" @click="startPharmacyPhoneEdit(pharm.pharmacy_id!)">+ Add phone</button>
                       </template>
                       <template v-if="pharm.queue_state !== 'not_contacted'">
                         <button type="button" class="outreach-btn outreach-btn--confirm" :class="{ active: pharm.queue_state === 'full' }" @click="openResponseModal(pharm, 'full')">Available ✓</button>
                         <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
-                        <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction({ id: pharm.pharmacy_id, name: pharm.pharmacy_name }, 'declined', { showSuccess: true })">Unavailable ✗</button>
+                        <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction(pharm, 'declined', { showSuccess: true })">Unavailable ✗</button>
                       </template>
                     </div>
                   </div>
@@ -1204,7 +1204,7 @@
               </div>
 
               <div v-if="selectedRequest?.customer_decisions?.length" class="decisions-list">
-                <div v-for="dec in selectedRequest.customer_decisions" :key="dec.id" class="decision-card" :class="'decision-card--' + dec.status">
+                <div v-for="(dec, decIdx) in selectedRequest.customer_decisions" :key="dec.id ?? decIdx" class="decision-card" :class="'decision-card--' + dec.status">
 
                   <!-- Decision header -->
                   <div class="decision-card-header">
@@ -1249,11 +1249,11 @@
                       <span class="decision-stat-label">Available</span>
                       <span class="decision-stat-value">{{ dec.payload.summary.available_items }}</span>
                     </span>
-                    <span v-if="dec.payload.summary.missing_items > 0" class="decision-stat decision-stat--warn">
+                    <span v-if="(dec.payload.summary.missing_items ?? 0) > 0" class="decision-stat decision-stat--warn">
                       <span class="decision-stat-label">Missing</span>
                       <span class="decision-stat-value">{{ dec.payload.summary.missing_items }}</span>
                     </span>
-                    <span v-if="dec.payload.summary.substitute_proposals > 0" class="decision-stat decision-stat--sub">
+                    <span v-if="(dec.payload.summary.substitute_proposals ?? 0) > 0" class="decision-stat decision-stat--sub">
                       <span class="decision-stat-label">Substitutes</span>
                       <span class="decision-stat-value">{{ dec.payload.summary.substitute_proposals }}</span>
                     </span>
@@ -1263,7 +1263,7 @@
                     </span>
                     <span v-if="decisionOrderValue(dec) !== null" class="decision-stat decision-stat--value">
                       <span class="decision-stat-label">Order value</span>
-                      <span class="decision-stat-value">GHS {{ decisionOrderValue(dec).toFixed(2) }}</span>
+                      <span class="decision-stat-value">GHS {{ decisionOrderValue(dec)!.toFixed(2) }}</span>
                     </span>
                   </div>
 
@@ -1272,10 +1272,10 @@
                     <div class="decision-items-head">
                       <span>Item</span><span>Status</span><span>Source</span><span>Notes</span>
                     </div>
-                    <div v-for="ditem in dec.payload.decision_items" :key="ditem.item_id" class="decision-items-row">
+                    <div v-for="(ditem, diIdx) in dec.payload.decision_items" :key="ditem.item_id ?? ditem.item_name ?? diIdx" class="decision-items-row">
                       <span class="decision-item-name">{{ ditem.product_name || ditem.item_name || ditem.item_id }}</span>
                       <span class="decision-item-status-chip" :class="'decision-item-status--' + (ditem.status || 'unknown')">
-                        {{ { available: '✓ Available', not_available: '✗ Unavailable', substitute_available: '~ Substitute', partially_available: '⊙ Partial', enquiring: '? Checking' }[ditem.status] || ditem.status }}
+                        {{ ({ available: '✓ Available', not_available: '✗ Unavailable', substitute_available: '~ Substitute', partially_available: '⊙ Partial', enquiring: '? Checking' } as Record<string, string>)[ditem.status ?? ''] || ditem.status }}
                       </span>
                       <span class="decision-item-source muted">{{ ditem.source_pharmacy_name || (ditem.source_pharmacy_id ? `Pharmacy ${ditem.source_pharmacy_id}` : '—') }}</span>
                       <span class="decision-item-note muted">
@@ -1294,14 +1294,14 @@
                         type="button"
                         class="btn-sm btn-renotify"
                         :disabled="!!decisionNotifyingId || loading"
-                        @click="renotifyDecision(dec.id)"
+                        @click="renotifyDecision(dec.id!)"
                         :title="`Re-send SMS to ${selectedRequest?.customer_phone || 'customer'}`"
                       >
                         <span v-if="decisionNotifyingId === dec.id">Sending…</span>
                         <span v-else>Re-send SMS</span>
                       </button>
-                      <button type="button" class="btn-sm btn-success" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id, 'approved')">Approve for customer</button>
-                      <button type="button" class="btn-sm btn-danger-outline" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id, 'declined')">Decline</button>
+                      <button type="button" class="btn-sm btn-success" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id!, 'approved')">Approve for customer</button>
+                      <button type="button" class="btn-sm btn-danger-outline" :disabled="loading" @click="resolveDecisionAsAdmin(dec.id!, 'declined')">Decline</button>
                     </div>
                   </div>
 
@@ -1433,14 +1433,14 @@
                 <h4 class="section-title">Fulfillment Plan</h4>
               </div>
               <div v-if="pharmacyQueue?.length" class="pharmacy-queue-list">
-                <div v-for="plan in pharmacyQueue" :key="plan.pharmacy_id" class="pharmacy-queue-row">
+                <div v-for="(plan, pqIdx) in pharmacyQueue" :key="plan.pharmacy_id ?? plan.pharmacy_name ?? pqIdx" class="pharmacy-queue-row">
                   <div class="pharmacy-queue-info">
                     <strong>{{ plan.pharmacy_name }}</strong>
                     <span v-if="plan.subtotal !== undefined">{{ formatCurrency(plan.subtotal) }}</span>
                     <span v-if="plan.distance_km !== undefined" style="color: #6b7280; font-size: 0.8rem;">{{ formatDistance(plan.distance_km) }}</span>
                   </div>
-                  <div v-if="plan.items?.length" class="pharmacy-queue-items">
-                    <span v-for="item in plan.items" :key="item.item_id" class="queue-item-chip">{{ item.product_name }} ×{{ item.quantity }}</span>
+                  <div v-if="plan.coverage_items?.length" class="pharmacy-queue-items">
+                    <span v-for="(item, ciIdx) in plan.coverage_items" :key="item.item_id ?? item.product_name ?? ciIdx" class="queue-item-chip">{{ item.product_name }} ×{{ item.matched_quantity }}</span>
                   </div>
                 </div>
               </div>
@@ -1501,7 +1501,7 @@
                 <p>No delivery records yet. Click "Initiate Deliveries" to create them.</p>
               </div>
               <div v-else class="delivery-cards">
-                <div v-for="d in requestDeliveries" :key="d.id" class="delivery-card">
+                <div v-for="(d, dIdx) in requestDeliveries" :key="d.id ?? d.pickup_pharmacy_id ?? dIdx" class="delivery-card">
                   <div class="delivery-card-head">
                     <strong>{{ d.pharmacy_name || `Pharmacy #${d.pickup_pharmacy_id}` }}</strong>
                     <span class="delivery-status-chip" :class="`delivery-status-chip--${d.delivery_status}`">{{ d.delivery_status }}</span>
@@ -1512,7 +1512,7 @@
                     <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
                   </div>
-                  <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
+                  <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status ?? '')" class="delivery-card-actions">
                     <a
                       v-if="d.pharmacy_whatsapp_number"
                       :href="buildPharmacyWhatsAppUrl(d)"
@@ -1617,7 +1617,7 @@
                     <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
                     <span v-if="d.distance_km" :title="d.distance_method === 'haversine' ? 'Estimated distance (straight-line × 1.3)' : 'Driving distance (ORS)'">{{ d.distance_method === 'haversine' ? '~' : '' }}{{ Number(d.distance_km).toFixed(1) }} km<template v-if="d.duration_minutes"> · {{ Math.round(d.duration_minutes) }} min</template></span>
                   </div>
-                  <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status)" class="delivery-card-actions">
+                  <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status ?? '')" class="delivery-card-actions">
                     <a
                       v-if="d.pharmacy_whatsapp_number"
                       :href="buildPharmacyWhatsAppUrl(d)"
@@ -1939,10 +1939,10 @@
                 {{ responseModal.mode === 'full' ? 'Full availability' : 'Partial availability' }}
               </span>
             </h4>
-            <p v-if="pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id]" class="response-modal-pharmacy-summary">
-              <template v-if="pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].request_count > 0">
-                {{ pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].request_count }} order{{ pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].request_count !== 1 ? 's' : '' }} fulfilled
-                <template v-if="pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[responseModal.pharmacy?.pharmacy_id].last_transaction_at) }}</template>
+            <p v-if="responseModal.pharmacy?.pharmacy_id && pharmacyLedgerMap[responseModal.pharmacy.pharmacy_id]" class="response-modal-pharmacy-summary">
+              <template v-if="pharmacyLedgerMap[responseModal.pharmacy.pharmacy_id]!.request_count ?? 0 > 0">
+                {{ pharmacyLedgerMap[responseModal.pharmacy.pharmacy_id]!.request_count }} order{{ pharmacyLedgerMap[responseModal.pharmacy.pharmacy_id]!.request_count !== 1 ? 's' : '' }} fulfilled
+                <template v-if="pharmacyLedgerMap[responseModal.pharmacy.pharmacy_id]!.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[responseModal.pharmacy.pharmacy_id]!.last_transaction_at) }}</template>
               </template>
               <template v-else>No orders fulfilled yet</template>
             </p>
@@ -1968,7 +1968,7 @@
           <div class="response-items-list">
             <div
               v-for="(item, idx) in responseModal.items"
-              :key="item.item_id"
+              :key="item.item_id ?? idx"
               class="response-item-row"
               :class="{ 'response-item-row--available': item.available, 'response-item-row--unavailable': !item.available }"
             >
@@ -1989,7 +1989,7 @@
                     v-model.number="item.available_quantity"
                     type="number"
                     min="1"
-                    :max="item.requested_quantity"
+                    :max="item.requested_quantity ?? ''"
                     step="1"
                     class="form-control response-qty-input"
                     placeholder="Qty"
@@ -2248,7 +2248,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '~/stores/admin'
@@ -2267,6 +2267,329 @@ import {
   ChatBubbleLeftRightIcon
 } from '@heroicons/vue/24/outline'
 
+// ---------------------------------------------------------------------------
+// Local type definitions — these reflect the actual API response shapes used
+// on this page. The service layer exposes a minimal OrderRequest; the full
+// shape is only needed here.
+// ---------------------------------------------------------------------------
+
+interface Allocation {
+  id?: number
+  pharmacy_id?: number
+  allocated_quantity?: number
+  allocation_type?: string
+  status?: string
+  unit_price?: number | null
+  substitute_name?: string | null
+  substitute_note?: string | null
+  created_at?: string
+  updated_at?: string
+  // UI-hydrated fields
+  editing?: boolean
+  edit_allocated_quantity?: number
+  edit_allocation_type?: string
+  edit_status?: string
+  edit_substitute_name?: string
+  edit_substitute_note?: string
+  [key: string]: unknown
+}
+
+interface RequestItem {
+  id: number
+  product_name?: string | null
+  quantity?: number
+  requested_quantity?: number
+  requested_unit?: string | null
+  source_pharmacy_id?: number | null
+  source_product_id?: number | null
+  source_product_name?: string | null
+  source_distance_km?: number | null
+  source_type?: string | null
+  unit_price?: number | null
+  marked_up_price?: number | null
+  line_total?: number | null
+  item_status?: string | null
+  sourcing_status?: string | null
+  resolution_status?: string | null
+  master_product_id?: number | null
+  master_product_description?: string | null
+  master_product_strength?: string | null
+  master_product_unit?: string | null
+  pharmacy_name?: string | null
+  pharmacy_phone?: string | null
+  allocations?: Allocation[]
+  allocation_pharmacy_id?: number | string
+  allocation_quantity?: number
+  allocation_type?: string
+  allocation_status?: string
+  allocation_unit_price?: number | string
+  sourced_quantity?: number
+  substitute_name?: string
+  substitute_note?: string
+  // UI-hydrated fields
+  editing?: boolean
+  edit_price?: number | string
+  product_search?: string
+  productSearchResults?: ProductSearchResult[]
+  showProductDropdown?: boolean
+  product_search_loading?: boolean
+  selected_source_product_id?: number | null
+  selected_source_distance_km?: number | null
+  selected_source_summary?: SourceSummary | null
+  selection_dirty?: boolean
+  showSourcingDropdown?: boolean
+  productSearchDebounceHandle?: ReturnType<typeof setTimeout> | null
+  [key: string]: unknown
+}
+
+interface SourceSummary {
+  pharmacyId?: number | null
+  name?: string
+  productName?: string | null
+  distance?: string | null
+  price?: string | null
+}
+
+interface CoverageItem {
+  item_id?: number
+  product_name?: string
+  matched_product_id?: number | null
+  available_quantity?: number
+  matched_quantity?: number
+  unit_price?: number | null
+  catalog_synced_at?: string | null
+  fuzzy_match?: { matched_product_name?: string; price?: number; stock?: number } | null
+  master_match?: { matched_product_name?: string; price?: number; stock?: number } | null
+  [key: string]: unknown
+}
+
+interface UncoveredItem {
+  item_id?: number
+  product_name?: string
+  [key: string]: unknown
+}
+
+interface PharmacyQueueEntry {
+  id?: number
+  pharmacy_id?: number
+  name?: string
+  pharmacy_name?: string
+  distance_km?: number
+  phone?: string | null
+  whatsapp_url?: string | null
+  contacted_at?: string | null
+  responded_at?: string | null
+  pharmacy_status?: string | null
+  response_status?: string | null
+  response_note?: string | null
+  queue_state?: string | null
+  is_confirmed?: boolean
+  fully_covers_request?: boolean
+  coverage_items?: CoverageItem[]
+  covered?: CoverageItem[]
+  uncovered?: UncoveredItem[]
+  coverage_score?: number
+  matched_item_count?: number
+  fully_covered_item_count?: number
+  matched_quantity_total?: number
+  exact_match_count?: number
+  substitute_count?: number
+  missing_item_count?: number
+  company_id?: number
+  subtotal?: number
+  total_items?: number
+  [key: string]: unknown
+}
+
+interface PaymentSnapshotItem {
+  item_id?: number; product_name?: string; original_product_name?: string | null
+  substitute_applied?: boolean; quantity?: number; unit_price?: number; line_total?: number
+  source_pharmacy_id?: number | null; distance_km?: number | null; pharmacy_name?: string | null
+  [key: string]: unknown
+}
+interface PaymentSnapshotExcludedItem {
+  item_id?: number; product_name?: string; reason?: string; [key: string]: unknown
+}
+interface PaymentSnapshot {
+  version?: number; captured_at?: string | null
+  selected_items?: PaymentSnapshotItem[]; excluded_items?: PaymentSnapshotExcludedItem[]
+  summary?: { total_paid?: number; source_pharmacy_count?: number; [key: string]: unknown }
+  payment?: { method?: string; amount_paid?: number; paid_at?: string | null; [key: string]: unknown }
+  [key: string]: unknown
+}
+interface CustomerDecision {
+  id?: number
+  status?: string
+  decision_type?: string
+  created_at?: string
+  customer_notified_at?: string | null
+  expires_at?: string | null
+  payload?: {
+    payment_snapshot?: PaymentSnapshot | null
+    decision_items?: DecisionItem[]
+    summary?: {
+      decision_context?: string; requested_items?: number; available_items?: number
+      missing_items?: number; substitute_proposals?: number; is_split_source?: boolean
+      source_pharmacy_count?: number; [key: string]: unknown
+    }
+    [key: string]: unknown
+  }
+  whatsapp_url?: string | null
+  [key: string]: unknown
+}
+
+interface DecisionItem {
+  item_id?: number; item_name?: string; product_name?: string; status?: string
+  unit_price?: number | null; quantity?: number; source_pharmacy_id?: number | null
+  source_pharmacy_name?: string | null; substitute_name?: string | null
+  substitute_note?: string | null
+  substitute_option?: { marked_up_price?: number; name?: string; [key: string]: unknown } | null
+  [key: string]: unknown
+}
+
+interface RequestFeedback {
+  rating?: number | null
+  reason?: string | null
+  comment?: string | null
+  created_at?: string | null
+  [key: string]: unknown
+}
+
+interface RichOrderRequest {
+  id: number
+  request_number?: string
+  customer_id?: number
+  customer_name?: string | null
+  customer_phone?: string | null
+  customer_address?: string | null
+  customer_latitude?: number | null
+  customer_longitude?: number | null
+  customer_lat?: number | null
+  customer_lng?: number | null
+  latitude?: number | null
+  longitude?: number | null
+  lat?: number | null
+  lng?: number | null
+  delivery_latitude?: number | null
+  delivery_longitude?: number | null
+  delivery_lat?: number | null
+  delivery_lng?: number | null
+  status: string
+  created_at: string
+  updated_at?: string
+  expires_at?: string | null
+  items?: RequestItem[]
+  fulfillment_type?: string | null
+  delivery_fee?: number | null
+  request_fee?: number | string | null
+  computed_cost?: number | null
+  item_count?: number
+  has_prescription?: boolean
+  prescription_image_url?: string | null
+  prescription_images?: string[]
+  nearby_pharmacies?: PharmacyQueueEntry[]
+  pharmacy_queue?: PharmacyQueueEntry[]
+  customer_decisions?: CustomerDecision[]
+  feedback?: RequestFeedback | null
+  admin_notes?: string | null
+  sourcing_radius_km?: number | null
+  [key: string]: unknown
+}
+
+interface OrderStats {
+  pending: number
+  processing: number
+  completed: number
+  total: number
+  [key: string]: unknown
+}
+
+interface Delivery {
+  id?: number; status?: string; delivery_status?: string
+  pharmacy_name?: string | null; pharmacy_whatsapp_number?: string | null
+  pharmacy_domain?: string | null; pickup_pharmacy_id?: number | null
+  net_delivery_fee?: number | null; delivery_fee?: number | null
+  distance_km?: number | null; distance_method?: string | null
+  duration_minutes?: number | null; driver_name?: string | null; driver_id?: number | null
+  [key: string]: unknown
+}
+
+interface PharmacyCoverageData {
+  pharmacies?: PharmacyQueueEntry[]
+  data?: { pharmacies?: PharmacyQueueEntry[]; [key: string]: unknown }
+  [key: string]: unknown
+}
+
+interface ProductSearchResult {
+  id?: number
+  product_description?: string | null
+  product_name?: string | null
+  brand_name?: string | null
+  master_name?: string | null
+  strength?: string | null
+  unit?: string | null
+  price?: number | null
+  min_price?: number | null
+  max_price?: number | null
+  available_quantity?: number | null
+  distance_km?: number | null
+  company_name?: string | null
+  pharmacy_id?: number | null
+  company_id?: number | null
+  pharmacy_name?: string | null
+  uniqid?: number | null
+  [key: string]: unknown
+}
+
+interface LedgerEntry {
+  pharmacy_id?: number
+  request_count?: number
+  last_transaction_at?: string | null
+  [key: string]: unknown
+}
+
+interface PhoneEditState {
+  editing: boolean
+  value: string
+  saving: boolean
+}
+
+interface AllocationSummary {
+  [key: string]: unknown
+}
+
+interface LogisticsAssessment {
+  [key: string]: unknown
+}
+
+interface NextRecommendedPharmacy {
+  pharmacy_id?: number
+  pharmacy_name?: string
+  [key: string]: unknown
+}
+
+interface FulfillmentPlanItem {
+  item_id?: number
+  product_name?: string
+  matched_quantity?: number
+  available_quantity?: number
+  unit_price?: number | null
+  source_pharmacy_id?: number | null
+  likely_match_type?: string
+  allocated_quantity?: number
+  allocations?: Array<{ pharmacy_id?: number; matched_quantity?: number; available_quantity?: number; unit_price?: number | null; distance_km?: number }>
+  [key: string]: unknown
+}
+
+interface FulfillmentPlan {
+  label?: string
+  pharmacies?: Array<{ pharmacy_id?: number; pharmacy_name?: string; [key: string]: unknown }>
+  items?: FulfillmentPlanItem[]
+  [key: string]: unknown
+}
+
+// ---------------------------------------------------------------------------
+
 const PIPELINE_STAGES = [
   { label: 'Pending',         statuses: ['pending'],                                                                                      nextStatus: 'composing',       nextLabel: 'Start Composing'      },
   { label: 'Composing',       statuses: ['composing', 'composed'],                                                                        nextStatus: 'sourcing',        nextLabel: 'Start Sourcing'       },
@@ -2283,59 +2606,59 @@ const orderRequestsService = createOrderRequestsService(useApi())
 
 // State
 const loading = ref(false)
-const requests = ref([])
-const stats = ref(null)
+const requests = ref<RichOrderRequest[]>([])
+const stats = ref<OrderStats | null>(null)
 const searchQuery = ref('')
 const statusFilter = ref('')
-const selectedRequest = ref(null)
+const selectedRequest = ref<RichOrderRequest | null>(null)
 const selectedStatus = ref('')
-const composedSummaryRequest = ref(null)
+const composedSummaryRequest = ref<RichOrderRequest | null>(null)
 const composedSummaryStatus = ref('')
-const composedGroupActions = ref({})
-const openingRequestId = ref(null)
-const activeRequestItemId = ref(null)
+const composedGroupActions = ref<Record<string | number, string>>({})
+const openingRequestId = ref<number | null>(null)
+const activeRequestItemId = ref<number | null>(null)
 const activePrescriptionImageIndex = ref(0)
 const adminNotes = ref('')
-const nearbyPharmacies = ref([])
-const candidatePlans = ref([])
-const fulfillmentPlans = ref([])
+const nearbyPharmacies = ref<PharmacyQueueEntry[]>([])
+const candidatePlans = ref<FulfillmentPlan[]>([])
+const fulfillmentPlans = ref<FulfillmentPlan[]>([])
 const fulfillmentProcessLoading = ref(false)
-const allocationSummary = ref(null)
-const pharmacyQueue = ref([])
-const nextRecommendedPharmacy = ref(null)
-const logisticsAssessment = ref(null)
-const pharmacyLedgerMap = ref({}) // keyed by pharmacy_id
-const pharmacyPhoneEdit = ref({}) // keyed by pharmacy_id: { editing, value, saving }
-const message = ref(null)
+const allocationSummary = ref<AllocationSummary | null>(null)
+const pharmacyQueue = ref<PharmacyQueueEntry[]>([])
+const nextRecommendedPharmacy = ref<NextRecommendedPharmacy | null>(null)
+const logisticsAssessment = ref<LogisticsAssessment | null>(null)
+const pharmacyLedgerMap = ref<Record<number, LedgerEntry>>({}) // keyed by pharmacy_id
+const pharmacyPhoneEdit = ref<Record<number, PhoneEditState>>({}) // keyed by pharmacy_id
+const message = ref<{ text: string; type: string } | null>(null)
 
 // --- Delivery management state ---
-const requestDeliveries = ref([])
+const requestDeliveries = ref<Delivery[]>([])
 const loadingDeliveries = ref(false)
-const forceAssignModal = ref(null) // { delivery, driverId }
-const assignPharmacyModal = ref(null)
+const forceAssignModal = ref<{ delivery: Delivery; driverId: string | number } | null>(null)
+const assignPharmacyModal = ref<{ delivery: Delivery } | null>(null)
 const assigningPharmacy = ref(false)
 
 // --- Coverage matrix state ---
-const pharmacyCoverage = ref(null)
+const pharmacyCoverage = ref<PharmacyCoverageData | null>(null)
 const coverageLoading = ref(false)
-const masterSearchResults = ref([])
+const masterSearchResults = ref<ProductSearchResult[]>([])
 const masterSearchLoading = ref(false)
 const masterSearchQuery = ref('')
-const resolvingItemId = ref(null)
-let masterSearchDebounce = null
+const resolvingItemId = ref<number | null>(null)
+let masterSearchDebounce: ReturnType<typeof setTimeout> | null = null
 const showStatusOverride = ref(false)
 const showAdminNotes = ref(false)
 const resolveSearchMode = ref('pharmacy') // 'master' | 'pharmacy'
-const pharmResolveResults = ref([])
+const pharmResolveResults = ref<ProductSearchResult[]>([])
 const pharmResolveLoading = ref(false)
-let pharmResolveDebounce = null
+let pharmResolveDebounce: ReturnType<typeof setTimeout> | null = null
 
 // --- Coverage substitute search state ---
-const coverageSubSearch = ref({ pharmacyId: null, itemId: null, query: '', results: [], loading: false })
-let coverageSubDebounce = null
+const coverageSubSearch = ref<{ pharmacyId: number | null; companyId?: number | null; itemId: number | null; query: string; results: ProductSearchResult[]; loading: boolean }>({ pharmacyId: null, itemId: null, query: '', results: [], loading: false })
+let coverageSubDebounce: ReturnType<typeof setTimeout> | null = null
 // --- End coverage substitute search state ---
 
-const isItemResolved = (item) =>
+const isItemResolved = (item: RequestItem) =>
   item.resolution_status === 'resolved' || Boolean(item.master_product_id) || Boolean(item.source_pharmacy_id)
 const resolvedItemCount = computed(() => {
   const items = requestItems.value || []
@@ -2350,7 +2673,7 @@ const isComposeLocked = computed(() => selectedRequest.value?.status === 'pendin
 // --- End coverage matrix state ---
 
 const REQUEST_POLL_MS = 5000
-let requestPollTimer = null
+let requestPollTimer: number | null = null
 const medicineUnitOptions = [
   'tab',
   'capsule',
@@ -2363,7 +2686,15 @@ const medicineUnitOptions = [
   'pack',
   'other'
 ]
-const createAdminNewItemDraft = () => ({
+const createAdminNewItemDraft = (): {
+  product_id: string | null; product_search: string; requested_unit: string
+  quantity: number; requested_quantity: number
+  selected_source_pharmacy_id: number | null; selected_source_product_id: number | null
+  selected_source_distance_km: number | null; selected_source_summary: SourceSummary | null
+  selected_source_price: number | null; productSearchResults: ProductSearchResult[]
+  showProductDropdown: boolean; product_search_loading: boolean
+  productSearchDebounceHandle: ReturnType<typeof setTimeout> | null
+} => ({
   product_id: null,
   product_search: '',
   requested_unit: '',
@@ -2380,7 +2711,12 @@ const createAdminNewItemDraft = () => ({
   productSearchDebounceHandle: null
 })
 const adminNewItem = reactive(createAdminNewItemDraft())
-const alternativeModal = ref({
+const alternativeModal = ref<{
+  open: boolean; item: RequestItem | null; pharmacy_id: string
+  allocated_quantity: number; name: string; productSearchResults: ProductSearchResult[]
+  showProductDropdown: boolean; product_search_loading: boolean; note: string; price: string
+  productSearchDebounceHandle?: ReturnType<typeof setTimeout> | null
+}>({
   open: false,
   item: null,
   pharmacy_id: '',
@@ -2392,13 +2728,25 @@ const alternativeModal = ref({
   note: '',
   price: ''
 })
-const responseModal = ref({
+interface ResponseModalItem {
+  id?: number; item_id?: number; product_name?: string | null; available: boolean
+  requested_quantity?: number; requested_unit?: string | null
+  available_quantity?: number; unit_price?: number | string | null
+  is_price_from_catalog?: boolean; showSubstitute?: boolean
+  allocation_type?: string; substitute_name?: string; substitute_note?: string
+  catalog_price?: number | null; catalog_synced_at?: string | null
+  [key: string]: unknown
+}
+const responseModal = ref<{
+  open: boolean; pharmacy: PharmacyQueueEntry | null; mode: string
+  submitting: boolean; note: string; items: ResponseModalItem[]
+}>({
   open: false,
-  pharmacy: null,   // full pharmacyQueue entry
-  mode: 'full',     // 'full' | 'partial'
+  pharmacy: null,
+  mode: 'full',
   submitting: false,
   note: '',
-  items: []         // per-item working state
+  items: []
 })
 const sourcingMode = ref('single') // 'single' | 'split'
 const prescriptionPreview = ref({
@@ -2431,9 +2779,9 @@ const STATUS_SELECTOR_OPTIONS = [
   { value: 'driver_unavailable', label: 'Driver Unavailable (legacy)' }
 ]
 
-const normalizeRequestStatus = (value) => String(value || '').trim().toLowerCase()
+const normalizeRequestStatus = (value: unknown) => String(value || '').trim().toLowerCase()
 
-const matchesStatusFilter = (request, filterValue = statusFilter.value) => {
+const matchesStatusFilter = (request: RichOrderRequest, filterValue = statusFilter.value) => {
   if (!filterValue) return true
 
   const status = normalizeRequestStatus(request?.status)
@@ -2446,7 +2794,7 @@ const matchesStatusFilter = (request, filterValue = statusFilter.value) => {
 const sortKey = ref('updated_at')
 const sortDir = ref('desc')
 
-const toggleSort = (key) => {
+const toggleSort = (key: string) => {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   } else {
@@ -2455,7 +2803,7 @@ const toggleSort = (key) => {
   }
 }
 
-const getNextStageLabel = (req) => {
+const getNextStageLabel = (req: RichOrderRequest | null | undefined) => {
   const status = normalizeRequestStatus(req?.status)
   if (!status) return null
   const idx = PIPELINE_STAGES.findIndex(s => s.statuses.includes(status))
@@ -2463,16 +2811,16 @@ const getNextStageLabel = (req) => {
   const isPickup = String(req?.fulfillment_type || '').toLowerCase().includes('pickup')
   if (idx === 5) return isPickup ? 'Ready for Pickup' : 'In Transit'
   if (idx === 6) return isPickup ? 'Picked Up' : 'Delivered'
-  return PIPELINE_STAGES[idx + 1].label
+  return PIPELINE_STAGES[idx + 1]?.label ?? null
 }
 
-const getRequestComposedCost = (req) => {
+const getRequestComposedCost = (req: RichOrderRequest | null | undefined) => {
   const precomputed = Number(req?.computed_cost ?? null)
   if (Number.isFinite(precomputed) && precomputed > 0) return precomputed
   const items = Array.isArray(req?.items) ? req.items : []
   const sourcedItems = items.filter((item) => isSavedSelectionItem(item))
   if (!sourcedItems.length) return null
-  return sourcedItems.reduce((sum, item) => {
+  return sourcedItems.reduce((sum: number, item: RequestItem) => {
     const lineTotal = Number(item?.line_total || 0)
     if (Number.isFinite(lineTotal) && lineTotal > 0) return sum + lineTotal
     const qty = Number(item?.quantity || 1)
@@ -2489,7 +2837,7 @@ const filteredRequests = computed(() => {
       if (!a.expires_at && !b.expires_at) return 0
       if (!a.expires_at) return 1
       if (!b.expires_at) return -1
-      return new Date(a.expires_at) - new Date(b.expires_at)
+      return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime()
     })
   }
   const key = sortKey.value
@@ -2527,14 +2875,14 @@ const expiringSoonCount = computed(() =>
   requests.value.filter(r =>
     r.status === 'pending' &&
     r.expires_at &&
-    new Date(r.expires_at) - Date.now() > 0 &&
-    new Date(r.expires_at) - Date.now() < EXPIRY_WARN_MS
+    new Date(r.expires_at).getTime() - Date.now() > 0 &&
+    new Date(r.expires_at).getTime() - Date.now() < EXPIRY_WARN_MS
   ).length
 )
 
-const rowUrgencyStyle = (req) => {
+const rowUrgencyStyle = (req: RichOrderRequest) => {
   if (req.status !== 'pending' || !req.expires_at) return ''
-  const remaining = new Date(req.expires_at) - Date.now()
+  const remaining = new Date(req.expires_at).getTime() - Date.now()
   if (remaining <= 0) return ''
   if (remaining < EXPIRY_CRITICAL_MS) return 'background: #fff1f2 !important; border-left: 3px solid #f87171;'
   if (remaining < EXPIRY_WARN_MS) return 'background: #fffbeb !important; border-left: 3px solid #fbbf24;'
@@ -2544,13 +2892,13 @@ const rowUrgencyStyle = (req) => {
 const statusTabs = computed(() => STATUS_TAB_CONFIG.map((tab) => ({
   ...tab,
   count: tab.value
-    ? requests.value.filter((request) => tab.statuses.includes(normalizeRequestStatus(request?.status))).length
+    ? requests.value.filter((request: RichOrderRequest) => tab.statuses.includes(normalizeRequestStatus(request?.status))).length
     : requests.value.length
 })))
 
 const statusSelectorOptions = computed(() => STATUS_SELECTOR_OPTIONS.map((option) => ({
   ...option,
-  count: requests.value.filter((request) => normalizeRequestStatus(request?.status) === option.value).length
+  count: requests.value.filter((request: RichOrderRequest) => normalizeRequestStatus(request?.status) === option.value).length
 })))
 
 const requestItems = computed(() => getCustomerRequestItems(selectedRequest.value))
@@ -2567,10 +2915,10 @@ const activeRequestItem = computed(() => {
 
 const persistedSelectionItems = computed(() => {
   const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
-  return items.filter((item) => isSavedSelectionItem(item))
+  return items.filter((item: RequestItem) => isSavedSelectionItem(item))
 })
 
-const savedSelectionsTotal = computed(() => persistedSelectionItems.value.reduce((sum, item) => {
+const savedSelectionsTotal = computed(() => persistedSelectionItems.value.reduce((sum: number, item: RequestItem) => {
   const lineTotal = Number(item?.line_total || 0)
   if (Number.isFinite(lineTotal) && lineTotal > 0) {
     return sum + lineTotal
@@ -2596,12 +2944,12 @@ const selectedAlternativeDistance = computed(() => {
   return `${formatDistance(selectedAlternativePharmacy.value.distance_km)} away`
 })
 
-const getCustomerWhatsAppUrl = (phone) => {
+const getCustomerWhatsAppUrl = (phone: string | null | undefined) => {
   const digits = phoneUtils.formatWhatsApp(phone)
   return digits ? `https://wa.me/${digits}` : ''
 }
 
-const buildCustomerOrderLink = (id) => {
+const buildCustomerOrderLink = (id: number | string | null | undefined) => {
   if (!id) return ''
   const base = typeof window !== 'undefined' ? window.location.origin : ''
   return `${base}/customer?tab=requests&requestId=${encodeURIComponent(id)}`
@@ -2664,7 +3012,7 @@ const canSaveAlternative = computed(() => {
   )
 })
 
-const getRequestedQuantity = (item) => {
+const getRequestedQuantity = (item: RequestItem | null | undefined) => {
   const legacyQuantity = Number(item?.quantity || 0)
   const normalizedQuantity = Number(item?.requested_quantity || 0)
   const effectiveQuantity = Math.max(legacyQuantity, normalizedQuantity)
@@ -2679,7 +3027,7 @@ const incrementAdminNewItemQty = () => {
   adminNewItem.quantity = Math.max(1, Number(adminNewItem.quantity || 1) + 1)
 }
 
-const syncActiveRequestItem = (items = []) => {
+const syncActiveRequestItem = (items: RequestItem[] = []) => {
   const normalizedItems = Array.isArray(items) ? items : []
   const requestSideItems = normalizedItems.filter((item) => !isSavedSelectionItem(item))
   const itemPool = requestSideItems.length > 0 ? requestSideItems : normalizedItems
@@ -2696,13 +3044,13 @@ const syncActiveRequestItem = (items = []) => {
   activeRequestItemId.value = Number(itemPool[0]?.id || 0) || null
 }
 
-const selectRequestItem = (item) => {
+const selectRequestItem = (item: RequestItem) => {
   const itemId = Number(item?.id || 0)
   if (itemId <= 0) return
   activeRequestItemId.value = itemId
 }
 
-const selectPrescriptionImage = (index) => {
+const selectPrescriptionImage = (index: number) => {
   const nextIndex = Number(index || 0)
   if (nextIndex < 0 || nextIndex >= prescriptionAttachmentUrls.value.length) return
   activePrescriptionImageIndex.value = nextIndex
@@ -2716,7 +3064,7 @@ const getPrescriptionTargetItem = () => {
   return items[targetIndex] || null
 }
 
-const advanceToNextRequestItem = (currentItemId) => {
+const advanceToNextRequestItem = (currentItemId: number | null | undefined) => {
   const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
   if (!items.length) return false
 
@@ -2730,12 +3078,12 @@ const advanceToNextRequestItem = (currentItemId) => {
   return true
 }
 
-const getAllocationPharmacy = (item) => {
+const getAllocationPharmacy = (item: RequestItem | null | undefined) => {
   if (!item?.allocation_pharmacy_id) return null
   return nearbyPharmacies.value?.find((p) => p.id === item.allocation_pharmacy_id) || null
 }
 
-const getPersistedItemSourceSummary = (item) => {
+const getPersistedItemSourceSummary = (item: RequestItem | null | undefined) => {
   const pharmacyName = String(item?.pharmacy_name || '').trim()
   const sourcePharmacyId = Number(item?.source_pharmacy_id || 0)
   const sourceProductId = Number(item?.source_product_id || 0)
@@ -2755,14 +3103,14 @@ const getPersistedItemSourceSummary = (item) => {
   }
 }
 
-const getDraftItemSourceSummary = (item) => {
+const getDraftItemSourceSummary = (item: RequestItem | null | undefined) => {
   if (item?.selected_source_summary && (item.selected_source_summary.pharmacyId || item.selected_source_summary.name)) {
     return item.selected_source_summary
   }
   return null
 }
 
-const getAdminSelectedItemTitle = (item) => {
+const getAdminSelectedItemTitle = (item: RequestItem | null | undefined) => {
   const draftName = String(getDraftItemSourceSummary(item)?.productName || '').trim()
   if (draftName) return draftName
 
@@ -2772,24 +3120,24 @@ const getAdminSelectedItemTitle = (item) => {
   return 'No pharmacy product selected'
 }
 
-const hasPersistedItemSource = (item) => Boolean(getPersistedItemSourceSummary(item))
+const hasPersistedItemSource = (item: RequestItem | null | undefined) => Boolean(getPersistedItemSourceSummary(item))
 
-const hasDraftItemSource = (item) => Boolean(getDraftItemSourceSummary(item))
+const hasDraftItemSource = (item: RequestItem | null | undefined) => Boolean(getDraftItemSourceSummary(item))
 
-const getSelectedSourceDraftLabel = (item) => String(
+const getSelectedSourceDraftLabel = (item: RequestItem | null | undefined) => String(
   getDraftItemSourceSummary(item)?.productName
   || getPersistedItemSourceSummary(item)?.productName
   || item?.product_name
   || ''
 ).trim().toLowerCase()
 
-const canSaveItemSelection = (item) => {
+const canSaveItemSelection = (item: RequestItem | null | undefined) => {
   const pharmacyId = Number(item?.allocation_pharmacy_id || 0)
   const price = Number(item?.edit_price || item?.unit_price || 0)
   return pharmacyId > 0 && Number.isFinite(price) && price > 0 && !item?.selection_dirty
 }
 
-const clearItemSelection = (item) => {
+const clearItemSelection = (item: RequestItem) => {
   const persistedPharmacyId = Number(item?.source_pharmacy_id || getActiveAllocationPharmacyId(item) || 0)
   const persistedPrice = Number(item?.marked_up_price || item?.unit_price || 0)
   const persistedProductName = String(item?.source_product_name || item?.product_name || '').trim()
@@ -2809,17 +3157,17 @@ const clearItemSelection = (item) => {
   item.productSearchResults = []
 }
 
-const getSourcingOptions = (item, excludeCurrent = false) => {
+const getSourcingOptions = (item: RequestItem, excludeCurrent = false) => {
   const itemId = Number(item?.id || 0)
   if (!itemId) return []
   const sourceList = Array.isArray(pharmacyQueue.value) && pharmacyQueue.value.length > 0 ? pharmacyQueue.value : []
   const excludeId = excludeCurrent ? Number(item?.allocation_pharmacy_id || 0) : 0
   return sourceList
-    .map((pharmacy) => {
+    .map((pharmacy: PharmacyQueueEntry) => {
       const pharmacyId = Number(pharmacy?.id || pharmacy?.pharmacy_id || 0)
       if (excludeId > 0 && pharmacyId === excludeId) return null
       const coverage = Array.isArray(pharmacy?.coverage_items)
-        ? pharmacy.coverage_items.find((entry) => Number(entry?.item_id || 0) === itemId)
+        ? pharmacy.coverage_items.find((entry: CoverageItem) => Number(entry?.item_id || 0) === itemId)
         : null
       const availableQuantity = Number(coverage?.available_quantity || 0)
       const matchedQuantity = Number(coverage?.matched_quantity || 0)
@@ -2833,7 +3181,7 @@ const getSourcingOptions = (item, excludeCurrent = false) => {
         unitPrice: coverage?.unit_price != null ? Number(coverage.unit_price) : null
       }
     })
-    .filter(Boolean)
+    .filter((x): x is NonNullable<typeof x> => x != null)
     .sort((a, b) => {
       if (b.matchedQuantity !== a.matchedQuantity) return b.matchedQuantity - a.matchedQuantity
       if (b.availableQuantity !== a.availableQuantity) return b.availableQuantity - a.availableQuantity
@@ -2841,14 +3189,14 @@ const getSourcingOptions = (item, excludeCurrent = false) => {
     })
 }
 
-const getRecommendedSourcingOption = (item) => {
+const getRecommendedSourcingOption = (item: RequestItem) => {
   const recommendedPharmacyId = Number(nextRecommendedPharmacy.value?.pharmacy_id || 0)
   if (recommendedPharmacyId <= 0) return null
 
   return getSourcingOptions(item, false).find((option) => Number(option.pharmacyId || 0) === recommendedPharmacyId) || null
 }
 
-const toggleSourcingDropdown = (item) => {
+const toggleSourcingDropdown = (item: RequestItem) => {
   const next = !item.showSourcingDropdown
   const allItems = selectedRequest.value?.items || []
   for (const otherItem of allItems) {
@@ -2857,7 +3205,7 @@ const toggleSourcingDropdown = (item) => {
   item.showSourcingDropdown = next
 }
 
-const selectSourcingOption = (item, option, options = {}) => {
+const selectSourcingOption = (item: RequestItem, option: { pharmacyId: number; name: string; distanceKm?: number; unitPrice?: number | null; matchedQuantity?: number; availableQuantity?: number }, options: { silent?: boolean; successMessage?: string | null } = {}) => {
   const { silent = false, successMessage = null } = options
   item.showSourcingDropdown = false
   const name = String(item.product_name || 'this item').trim()
@@ -2889,27 +3237,27 @@ const selectSourcingOption = (item, option, options = {}) => {
 }
 
 const hasQuantitySplit = computed(() => {
-  return fulfillmentPlans.value.some((plan) =>
-    (plan.items || []).some((item) => Number(item.allocated_quantity || 0) > 0 && Number(item.allocated_quantity || 0) < getRequestedQuantity(item))
+  return fulfillmentPlans.value.some((plan: FulfillmentPlan) =>
+    (plan.items || []).some((item: FulfillmentPlanItem) => Number(item.allocated_quantity || 0) > 0 && Number((item as unknown as RequestItem).allocation_quantity || 0) < getRequestedQuantity(item as unknown as RequestItem))
   )
 })
 
 const customerReadySummary = computed(() => {
   const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
-  const readyItems = items.filter((item) => {
+  const readyItems = items.filter((item: RequestItem) => {
     const status = item.sourcing_status || item.item_status || ''
     const hasCustomerPrice = Number(item.marked_up_price || 0) > 0
     return hasCustomerPrice || ['available', 'ready_to_order', 'ordered', 'allocated', 'partially_allocated'].includes(status)
   })
 
-  const sourcePharmacyIds = new Set()
-  readyItems.forEach((item) => {
+  const sourcePharmacyIds = new Set<number>()
+  readyItems.forEach((item: RequestItem) => {
     if (item.source_pharmacy_id) {
       sourcePharmacyIds.add(Number(item.source_pharmacy_id))
     }
 
     if (Array.isArray(item.allocations)) {
-      item.allocations.forEach((allocation) => {
+      item.allocations.forEach((allocation: Allocation) => {
         if (allocation?.pharmacy_id) {
           sourcePharmacyIds.add(Number(allocation.pharmacy_id))
         }
@@ -2928,7 +3276,7 @@ const customerReadySummary = computed(() => {
 
 const requestItemAvailabilitySummary = computed(() => {
   const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
-  const unavailable = items.filter((item) => {
+  const unavailable = items.filter((item: RequestItem) => {
     const status = item.sourcing_status || item.item_status || ''
     return status === 'unavailable' || item.item_status === 'not_available'
   }).length
@@ -2953,7 +3301,7 @@ const prescriptionAttachmentUrls = computed(() => {
   const urls = Array.isArray(selectedRequest.value.prescription_images) && selectedRequest.value.prescription_images.length
     ? selectedRequest.value.prescription_images
     : [selectedRequest.value.prescription_image_url].filter(Boolean)
-  return urls.filter((url) => typeof url === 'string' && url.trim())
+  return urls.filter((url): url is string => typeof url === 'string' && !!url.trim())
 })
 
 const activePrescriptionImageUrl = computed(() => {
@@ -3023,13 +3371,13 @@ const composedCoverageSummary = computed(() => {
   }
 })
 
-const buildComposedPharmacyWhatsAppUrl = (request, group) => {
+const buildComposedPharmacyWhatsAppUrl = (request: RichOrderRequest | null | undefined, group: { phone?: string; name?: string; items?: Array<{ productName: string; quantity?: number; price?: number | null }> }) => {
   const digits = phoneUtils.formatWhatsApp(group?.phone || '')
   if (!digits) return ''
 
   const requestNumber = String(request?.request_number || '').trim()
   const customerName = String(request?.customer_name || '').trim()
-  const lines = (group?.items || []).map((entry) => {
+  const lines = (group?.items || []).map((entry: { productName: string; quantity?: number; price?: number | null }) => {
     const qtyPart = entry.quantity ? `Qty ${entry.quantity}` : null
     const pricePart = entry.price != null ? `GHS ${Number(entry.price).toFixed(2)}` : null
     return `- ${entry.productName}${qtyPart ? ` (${qtyPart}${pricePart ? `, ${pricePart}` : ''})` : ''}`
@@ -3045,7 +3393,7 @@ const buildComposedPharmacyWhatsAppUrl = (request, group) => {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
 }
 
-const buildComposedPharmacySummary = (request) => {
+const buildComposedPharmacySummary = (request: RichOrderRequest | null | undefined) => {
   const items = Array.isArray(request?.items) ? request.items : []
   const grouped = new Map()
 
@@ -3096,9 +3444,19 @@ const buildComposedPharmacySummary = (request) => {
   }))
 }
 
+interface ComposedSummaryGroup {
+  pharmacyId?: number | null
+  name?: string | null
+  phone?: string
+  distanceKm?: number | null
+  items?: Array<{ id?: number; productName: string; quantity?: number; price?: number | null }>
+  totalValue?: number
+  whatsappUrl?: string
+}
+
 const composedPharmacySummary = computed(() => buildComposedPharmacySummary(composedSummaryRequest.value))
 
-const getComposedSummaryGroupKey = (group) => group?.pharmacyId || group?.name || ''
+const getComposedSummaryGroupKey = (group: ComposedSummaryGroup | null | undefined): string | number => group?.pharmacyId || group?.name || ''
 
 const getComposedSummaryQueueEntries = () => {
   const request = composedSummaryRequest.value
@@ -3108,7 +3466,7 @@ const getComposedSummaryQueueEntries = () => {
   return Array.isArray(queue) ? queue : []
 }
 
-const getComposedSummaryPharmacyEntry = (group) => {
+const getComposedSummaryPharmacyEntry = (group: ComposedSummaryGroup | null | undefined) => {
   const queue = getComposedSummaryQueueEntries()
   if (!queue.length) return null
 
@@ -3126,7 +3484,7 @@ const getComposedSummaryPharmacyEntry = (group) => {
   }) || null
 }
 
-const getComposedSummaryGroupStatus = (group) => {
+const getComposedSummaryGroupStatus = (group: ComposedSummaryGroup | null | undefined) => {
   const groupKey = getComposedSummaryGroupKey(group)
   const localAction = groupKey ? composedGroupActions.value[groupKey] : ''
   if (localAction === 'confirmed') return 'confirmed'
@@ -3146,16 +3504,16 @@ const getComposedSummaryGroupStatus = (group) => {
 }
 
 const syncComposedSummaryGroupActions = () => {
-  const nextActions = {}
+  const nextActions: Record<string | number, string> = {}
   for (const group of composedPharmacySummary.value || []) {
-    const key = getComposedSummaryGroupKey(group)
+    const key = getComposedSummaryGroupKey(group as ComposedSummaryGroup)
     if (!key) continue
-    nextActions[key] = getComposedSummaryGroupStatus(group)
+    nextActions[key] = getComposedSummaryGroupStatus(group as ComposedSummaryGroup)
   }
   composedGroupActions.value = nextActions
 }
 
-const applyLocalComposedSummaryPharmacyAction = (group, action) => {
+const applyLocalComposedSummaryPharmacyAction = (group: ComposedSummaryGroup | null | undefined, action: string) => {
   if (!composedSummaryRequest.value || !group) return false
 
   const queueEntries = getComposedSummaryQueueEntries()
@@ -3210,7 +3568,7 @@ const applyLocalComposedSummaryPharmacyAction = (group, action) => {
   return false
 }
 
-const isComposedSummaryGroupConfirmed = (group) => {
+const isComposedSummaryGroupConfirmed = (group: ComposedSummaryGroup | null | undefined) => {
   return getComposedSummaryGroupStatus(group) === 'confirmed'
 }
 
@@ -3252,6 +3610,7 @@ const nextStepAction = computed(() => {
   if (idx === 5) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'In Transit', status: 'in_transit' }
   if (idx === 6) return isPickup ? { label: 'Mark Picked Up', status: 'picked_up' } : { label: 'Mark Delivered', status: 'delivered' }
   const stage = PIPELINE_STAGES[idx]
+  if (!stage) return null
   return stage.nextStatus ? { label: stage.nextLabel, status: stage.nextStatus } : null
 })
 
@@ -3280,20 +3639,20 @@ const canSendSplitFulfillmentDecision = computed(() => {
     && customerReadySummary.value.isSplitSource
 })
 
-const buildFallbackPaymentSnapshotFromRequest = (request) => {
+const buildFallbackPaymentSnapshotFromRequest = (request: RichOrderRequest | null | undefined) => {
   const paidStatuses = new Set(['paid', 'preparing', 'ready_for_pickup', 'picked_up', 'in_transit', 'driver_assigned', 'out_for_delivery', 'delivered'])
   const status = String(request?.status || '').toLowerCase()
   if (!paidStatuses.has(status)) return null
 
   const items = Array.isArray(request?.items) ? request.items : []
   const selectedItems = items
-    .filter((item) => {
+    .filter((item: RequestItem) => {
       const unavailable = ['not_available', 'unavailable'].includes(String(item?.item_status || item?.sourcing_status || '').toLowerCase())
       const unitPrice = Number(item?.marked_up_price || item?.unit_price || 0)
       const lineTotal = Number(item?.line_total || 0)
       return !unavailable && (unitPrice > 0 || lineTotal > 0)
     })
-    .map((item) => {
+    .map((item: RequestItem) => {
       const quantity = Number(item?.quantity || item?.requested_quantity || 1) || 1
       const unitPrice = Number(item?.marked_up_price || item?.unit_price || 0)
       const lineTotal = Number(item?.line_total || (unitPrice * quantity) || 0)
@@ -3306,14 +3665,14 @@ const buildFallbackPaymentSnapshotFromRequest = (request) => {
         line_total: Number(lineTotal.toFixed(2)),
         source_pharmacy_id: Number(item?.source_pharmacy_id || 0) || null,
         distance_km: null
-      }
+      } as PaymentSnapshotItem
     })
 
   if (!selectedItems.length) return null
 
   const excludedItems = items
-    .filter((item) => !selectedItems.some((entry) => Number(entry.item_id) === Number(item?.id || 0)))
-    .map((item) => ({
+    .filter((item: RequestItem) => !selectedItems.some((entry) => Number(entry.item_id) === Number(item?.id || 0)))
+    .map((item: RequestItem) => ({
       item_id: Number(item?.id || 0),
       product_name: item?.product_name || 'Item',
       reason: ['not_available', 'unavailable'].includes(String(item?.item_status || item?.sourcing_status || '').toLowerCase())
@@ -3321,7 +3680,7 @@ const buildFallbackPaymentSnapshotFromRequest = (request) => {
         : 'not_included'
     }))
 
-  const itemsSubtotal = selectedItems.reduce((sum, item) => sum + Number(item?.line_total || 0), 0)
+  const itemsSubtotal = selectedItems.reduce((sum: number, item) => sum + Number(item?.line_total || 0), 0)
   const deliveryFee = request?.fulfillment_type === 'delivery' ? Number(request?.delivery_fee || 0) : 0
   const totalPaid = Number((itemsSubtotal + (Number.isFinite(deliveryFee) ? deliveryFee : 0)).toFixed(2))
   const sourceCount = new Set(
@@ -3375,14 +3734,14 @@ const paidSnapshotExcludedItems = computed(() => {
 const paymentModeItems = computed(() => {
   if (paidSnapshotItems.value.length) return paidSnapshotItems.value
   return (selectedRequest.value?.items || [])
-    .filter(i => Number(i?.marked_up_price || i?.unit_price || 0) > 0 || Number(i?.line_total || 0) > 0)
-    .map(i => ({
+    .filter((i: RequestItem) => Number(i?.marked_up_price || i?.unit_price || 0) > 0 || Number(i?.line_total || 0) > 0)
+    .map((i: RequestItem): PaymentSnapshotItem => ({
       item_id: i.id,
       product_name: i.product_name || 'Item',
       quantity: Number(i.quantity || i.requested_quantity || 1),
       unit_price: Number(i.marked_up_price || i.unit_price || 0),
       line_total: Number(i.line_total || (Number(i.marked_up_price || i.unit_price || 0) * Number(i.quantity || i.requested_quantity || 1))),
-      pharmacy_name: i.pharmacy_name,
+      pharmacy_name: i.pharmacy_name ?? null,
     }))
 })
 const paymentModeSubtotal = computed(() =>
@@ -3412,36 +3771,40 @@ const workspaceMode = computed(() => {
   return 'compose'
 })
 
-const fullMatchQueue = computed(() => pharmacyQueue.value.filter(p => p.fully_covers_request))
-const partialMatchQueue = computed(() => pharmacyQueue.value.filter(p => !p.fully_covers_request))
+const fullMatchQueue = computed(() => pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.fully_covers_request))
+const partialMatchQueue = computed(() => pharmacyQueue.value.filter((p: PharmacyQueueEntry) => !p.fully_covers_request))
 const escalationReady = computed(() => {
   const full = fullMatchQueue.value
   if (!full.length) return false
-  return full.every(p => p.queue_state !== 'not_contacted') && full.every(p => !p.is_confirmed)
+  return full.every((p: PharmacyQueueEntry) => p.queue_state !== 'not_contacted') && full.every((p: PharmacyQueueEntry) => !p.is_confirmed)
 })
 const allItemsCovered = computed(() => {
   const items = selectedRequest.value?.items || []
-  return items.length > 0 && items.every(i =>
+  return items.length > 0 && items.every((i: RequestItem) =>
     Number(i.sourced_quantity || 0) >= Number(i.requested_quantity || i.quantity || 1)
   )
 })
+
+// Typed error helper — safely extracts .message from unknown catch values
+const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
 // API helper — delegates to useApi so auth headers and base URL are
 // injected centrally. The call signature is preserved so all 70+ callers
 // inside this page remain unchanged.
 const _api = useApi()
-const apiCall = async (method, url, data = null) => {
-  const opts = { method }
-  if (data !== null) opts.body = JSON.stringify(data)
-  return _api.request(url, opts)
+const apiCall = async (method: string, url: string, data: unknown = null): Promise<{ data: unknown; message?: string; success?: boolean; [key: string]: unknown }> => {
+  const opts: Record<string, unknown> = { method }
+  if (data !== null) opts['body'] = JSON.stringify(data)
+  return _api.request(url, opts) as Promise<{ data: unknown; message?: string; success?: boolean; [key: string]: unknown }>
 }
 
 // Fetch
-const fetchRequests = async ({ silent = false } = {}) => {
+const fetchRequests = async (optsOrEvt?: { silent?: boolean } | Event) => {
+  const silent = optsOrEvt instanceof Event ? false : (optsOrEvt?.silent ?? false)
   if (!silent) loading.value = true
   try {
     const res = await orderRequestsService.listAdmin({ search: searchQuery.value })
-    requests.value = res.data || []
+    requests.value = (res.data as RichOrderRequest[] | null) || []
   } catch (e) {
     if (!silent) showMessage('Failed to load requests', 'error')
   } finally {
@@ -3449,7 +3812,8 @@ const fetchRequests = async ({ silent = false } = {}) => {
   }
 }
 
-const fetchStats = async ({ silent = false } = {}) => {
+const fetchStats = async (optsOrEvt?: { silent?: boolean } | Event) => {
+  const silent = optsOrEvt instanceof Event ? false : (optsOrEvt?.silent ?? false)
   try {
     const res = await orderRequestsService.getAdminStats()
     const raw = res.data || {}
@@ -3465,38 +3829,38 @@ const fetchStats = async ({ silent = false } = {}) => {
   }
 }
 
-const setStatusFilter = (value) => {
+const setStatusFilter = (value: string) => {
   statusFilter.value = value
 }
 
-const formatRequestItemsLabel = (request) => {
+const formatRequestItemsLabel = (request: RichOrderRequest | null | undefined) => {
   const itemCount = Number(request?.item_count || getCustomerRequestItems(request).length || 0)
   if (itemCount > 0) return itemCount
   if (request?.has_prescription) return 'Rx'
   return '-'
 }
 
-const isSavedSelectionItem = (item) => Boolean(
+const isSavedSelectionItem = (item: RequestItem | null | undefined) => Boolean(
   Number(item?.source_pharmacy_id || 0) > 0
   || Number(item?.source_product_id || 0) > 0
   || Number(item?.unit_price || 0) > 0
   || Number(item?.marked_up_price || 0) > 0
 )
 
-const getCustomerRequestItems = (request) => {
+const getCustomerRequestItems = (request: RichOrderRequest | null | undefined) => {
   if (!request) return []
   return Array.isArray(request?.items) ? request.items : []
 }
 
-const getCustomerRequestItemCount = (request) => {
+const getCustomerRequestItemCount = (request: RichOrderRequest | null | undefined) => {
   return getCustomerRequestItems(request).length
 }
 
-const getActiveAllocationPharmacyId = (item) => {
+const getActiveAllocationPharmacyId = (item: RequestItem | null | undefined) => {
   const allocations = Array.isArray(item?.allocations) ? item.allocations : []
   const active = allocations
-    .filter((allocation) => ['proposed', 'confirmed'].includes(String(allocation?.status || '').toLowerCase()))
-    .sort((a, b) => {
+    .filter((allocation: Allocation) => ['proposed', 'confirmed'].includes(String(allocation?.status || '').toLowerCase()))
+    .sort((a: Allocation, b: Allocation) => {
       const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0
       const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0
       if (timeA !== timeB) return timeB - timeA
@@ -3508,7 +3872,7 @@ const getActiveAllocationPharmacyId = (item) => {
   return Number(preferredExact?.pharmacy_id || active[0]?.pharmacy_id || 0)
 }
 
-const getDefaultAllocationPharmacyId = (item) => {
+const getDefaultAllocationPharmacyId = (item: RequestItem | null | undefined) => {
   const existingSelection = Number(item?.allocation_pharmacy_id || 0)
   if (existingSelection > 0) return existingSelection
 
@@ -3521,7 +3885,7 @@ const getDefaultAllocationPharmacyId = (item) => {
   return ''
 }
 
-const hydrateItemUiState = (items = []) => {
+const hydrateItemUiState = (items: RequestItem[] = []) => {
   for (const item of items) {
     if (item.editing === undefined) item.editing = false
     if (item.edit_price === undefined) item.edit_price = item.marked_up_price || item.unit_price || 0
@@ -3578,7 +3942,7 @@ const clearAdminSelectedProduct = () => {
   adminNewItem.product_search_loading = false
 }
 
-const hydrateAllocationUiState = (allocation) => {
+const hydrateAllocationUiState = (allocation: Allocation | null | undefined) => {
   if (!allocation) return
   if (allocation.editing === undefined) allocation.editing = false
   if (allocation.edit_allocated_quantity === undefined) allocation.edit_allocated_quantity = Number(allocation.allocated_quantity || 1)
@@ -3588,22 +3952,23 @@ const hydrateAllocationUiState = (allocation) => {
   if (allocation.edit_substitute_note === undefined) allocation.edit_substitute_note = allocation.substitute_note || ''
 }
 
-const openAlternativeModal = (item) => {
+const openAlternativeModal = (item: RequestItem | null | undefined) => {
   if (!item) return
   const existingAlternative = getLatestSubstituteAllocation(item)
   const existingDetails = getItemSubstituteDetails(item)
 
+  const _altPharmacyIdNum = Number(existingAlternative?.pharmacy_id || item?.allocation_pharmacy_id || item?.source_pharmacy_id || getDefaultAllocationPharmacyId(item) || 0)
   alternativeModal.value = {
     open: true,
     item,
-    pharmacy_id: Number(existingAlternative?.pharmacy_id || item?.allocation_pharmacy_id || item?.source_pharmacy_id || getDefaultAllocationPharmacyId(item) || 0) || '',
+    pharmacy_id: _altPharmacyIdNum > 0 ? String(_altPharmacyIdNum) : '',
     allocated_quantity: Number(existingAlternative?.allocated_quantity || getRequestedQuantity(item) || 1),
     name: String(existingAlternative?.substitute_name || existingDetails?.name || '').trim(),
     productSearchResults: [],
     showProductDropdown: false,
     product_search_loading: false,
     note: String(existingAlternative?.substitute_note || existingDetails?.note || '').trim(),
-    price: existingAlternative?.unit_price ?? existingDetails?.price ?? ''
+    price: String(existingAlternative?.unit_price ?? existingDetails?.price ?? '')
   }
 }
 
@@ -3622,7 +3987,7 @@ const closeAlternativeModal = () => {
   }
 }
 
-const openPrescriptionPreview = (url, index = 0) => {
+const openPrescriptionPreview = (url: string | null | undefined, index = 0) => {
   const normalizedUrl = String(url || '').trim()
   if (!normalizedUrl) return
   prescriptionPreview.value = {
@@ -3640,13 +4005,14 @@ const closePrescriptionPreview = () => {
   }
 }
 
-const viewRequest = async (req) => {
+const viewRequest = async (req: { id: number | string }) => {
   try {
     const res = await apiCall('GET', `/api/order-requests/admin/${req.id}`)
-    selectedRequest.value = res.data
-    selectedStatus.value = res.data.status || ''
-    adminNotes.value = res.data.admin_notes || ''
-    nearbyPharmacies.value = res.data.nearby_pharmacies || []
+    const reqData = res.data as RichOrderRequest
+    selectedRequest.value = reqData
+    selectedStatus.value = reqData.status || ''
+    adminNotes.value = (reqData.admin_notes as string | undefined) || ''
+    nearbyPharmacies.value = (reqData.nearby_pharmacies || []) as PharmacyQueueEntry[]
     candidatePlans.value = []
     fulfillmentPlans.value = []
     allocationSummary.value = null
@@ -3679,7 +4045,7 @@ const viewRequest = async (req) => {
 // DELIVERY MANAGEMENT
 // ============================
 
-const fetchRequestDeliveries = async (requestId) => {
+const fetchRequestDeliveries = async (requestId: number | string | null | undefined) => {
   if (!requestId) return
   loadingDeliveries.value = true
   try {
@@ -3700,13 +4066,13 @@ const initiateDeliveries = async () => {
     requestDeliveries.value = Array.isArray(res.data) ? res.data : []
     showMessage(res.message || 'Deliveries initiated', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to initiate deliveries', 'error')
+    showMessage(errMsg(e) || 'Failed to initiate deliveries', 'error')
   } finally {
     loadingDeliveries.value = false
   }
 }
 
-const openAssignToPharmacy = (delivery) => {
+const openAssignToPharmacy = (delivery: Delivery) => {
   assignPharmacyModal.value = { delivery }
 }
 const closeAssignToPharmacy = () => {
@@ -3722,15 +4088,15 @@ const submitAssignToPharmacy = async () => {
     })
     showMessage('Delivery assigned to pharmacy', 'success')
     assignPharmacyModal.value = null
-    fetchRequestDeliveries(selectedRequest.value.id)
+    fetchRequestDeliveries(selectedRequest.value?.id)
   } catch (e) {
-    showMessage(e.message || 'Assign to pharmacy failed', 'error')
+    showMessage(errMsg(e) || 'Assign to pharmacy failed', 'error')
   } finally {
     assigningPharmacy.value = false
   }
 }
 
-const buildPharmacyWhatsAppUrl = (delivery) => {
+const buildPharmacyWhatsAppUrl = (delivery: Delivery) => {
   if (!delivery.pharmacy_whatsapp_number) return '#'
   const phone = phoneUtils.formatWhatsApp(delivery.pharmacy_whatsapp_number)
   const req = selectedRequest.value
@@ -3761,7 +4127,7 @@ const buildPharmacyWhatsAppUrl = (delivery) => {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
 }
 
-const openForceAssign = (delivery) => {
+const openForceAssign = (delivery: Delivery) => {
   forceAssignModal.value = { delivery, driverId: '' }
 }
 
@@ -3778,9 +4144,9 @@ const submitForceAssign = async () => {
     })
     showMessage('Rider force-assigned', 'success')
     forceAssignModal.value = null
-    fetchRequestDeliveries(selectedRequest.value.id)
+    fetchRequestDeliveries(selectedRequest.value?.id)
   } catch (e) {
-    showMessage(e.message || 'Force assign failed', 'error')
+    showMessage(errMsg(e) || 'Force assign failed', 'error')
   }
 }
 
@@ -3793,7 +4159,7 @@ const fetchPharmacyCoverage = async () => {
   coverageLoading.value = true
   try {
     const res = await apiCall('GET', `/api/order-requests/admin/${reqId}/pharmacy-coverage`)
-    pharmacyCoverage.value = res || null
+    pharmacyCoverage.value = (res as PharmacyCoverageData) || null
   } catch (e) {
     pharmacyCoverage.value = null
   } finally {
@@ -3801,7 +4167,7 @@ const fetchPharmacyCoverage = async () => {
   }
 }
 
-const searchMasterProductsForResolve = async (query) => {
+const searchMasterProductsForResolve = async (query: string) => {
   const q = String(query || '').trim()
   if (q.length < 2) {
     masterSearchResults.value = []
@@ -3810,7 +4176,8 @@ const searchMasterProductsForResolve = async (query) => {
   masterSearchLoading.value = true
   try {
     const res = await apiCall('GET', `/api/order-requests/admin/master-products/search?q=${encodeURIComponent(q)}&limit=10`)
-    masterSearchResults.value = Array.isArray(res?.data?.products) ? res.data.products : []
+    const mdata = (res?.data ?? {}) as { products?: ProductSearchResult[] }
+    masterSearchResults.value = Array.isArray(mdata.products) ? mdata.products : []
   } catch (e) {
     masterSearchResults.value = []
   } finally {
@@ -3818,7 +4185,7 @@ const searchMasterProductsForResolve = async (query) => {
   }
 }
 
-const onMasterSearchInput = (query) => {
+const onMasterSearchInput = (query: string) => {
   masterSearchQuery.value = query
   if (masterSearchDebounce) clearTimeout(masterSearchDebounce)
   if (String(query || '').trim().length < 2) {
@@ -3830,7 +4197,7 @@ const onMasterSearchInput = (query) => {
   }, 300)
 }
 
-const searchPharmResolve = async (query) => {
+const searchPharmResolve = async (query: string) => {
   const q = String(query || '').trim()
   if (q.length < 2) { pharmResolveResults.value = []; return }
   pharmResolveLoading.value = true
@@ -3843,14 +4210,14 @@ const searchPharmResolve = async (query) => {
   }
 }
 
-const onPharmResolveInput = (query) => {
+const onPharmResolveInput = (query: string) => {
   masterSearchQuery.value = query
-  clearTimeout(pharmResolveDebounce)
+  clearTimeout(pharmResolveDebounce ?? undefined)
   if (String(query || '').trim().length < 2) { pharmResolveResults.value = []; return }
   pharmResolveDebounce = setTimeout(() => searchPharmResolve(query), 300)
 }
 
-const setResolveMode = (mode) => {
+const setResolveMode = (mode: string) => {
   resolveSearchMode.value = mode
   masterSearchResults.value = []
   pharmResolveResults.value = []
@@ -3860,13 +4227,13 @@ const setResolveMode = (mode) => {
   }
 }
 
-const startResolvingItem = (item) => {
+const startResolvingItem = (item: RequestItem) => {
   resolvingItemId.value = item.id
   masterSearchQuery.value = item.product_name || ''
   masterSearchResults.value = []
   pharmResolveResults.value = []
   resolveSearchMode.value = 'pharmacy'
-  searchPharmResolve(item.product_name)
+  searchPharmResolve(item.product_name ?? '')
 }
 
 const cancelResolving = () => {
@@ -3878,10 +4245,13 @@ const cancelResolving = () => {
 }
 
 // --- Pharmacy stock resolution (no master catalog needed) ---
-const resolveItemToPharmProduct = async (item, pharmProduct) => {
+const resolveItemToPharmProduct = async (item: RequestItem, pharmProduct: ProductSearchResult) => {
   if (!item?.id || !pharmProduct?.id) return
   try {
-    const payload = {
+    const payload: {
+      product_name: string | null | undefined; resolution_status: string
+      source_pharmacy_id: number | null; source_product_id: number | null; master_product_id?: number | null
+    } = {
       product_name: pharmProduct.product_description || pharmProduct.brand_name || pharmProduct.product_name,
       resolution_status: 'resolved',
       source_pharmacy_id: pharmProduct.pharmacy_id || pharmProduct.company_id || null,
@@ -3892,7 +4262,7 @@ const resolveItemToPharmProduct = async (item, pharmProduct) => {
     if (selectedRequest.value?.items) {
       const localItem = selectedRequest.value.items.find(i => i.id === item.id)
       if (localItem) {
-        localItem.product_name = payload.product_name
+        localItem.product_name = payload.product_name ?? null
         localItem.resolution_status = 'resolved'
         localItem.source_pharmacy_id = payload.source_pharmacy_id
         localItem.source_product_id = payload.source_product_id
@@ -3910,7 +4280,7 @@ const resolveItemToPharmProduct = async (item, pharmProduct) => {
 }
 
 // --- Coverage substitute search (per-pharmacy catalog search for uncovered items) ---
-const searchPharmacyProductsForResolve = async (query, companyId = null) => {
+const searchPharmacyProductsForResolve = async (query: string, companyId: number | null = null) => {
   const trimmed = String(query || '').trim()
   if (trimmed.length < 2) return []
   const coords = getRequestSearchCoordinates()
@@ -3923,10 +4293,11 @@ const searchPharmacyProductsForResolve = async (query, companyId = null) => {
   }
   if (companyId) params.append('company_id', String(companyId))
   const res = await apiCall('GET', `/api/order-requests/admin/pharmacy-products/search?${params.toString()}`)
-  return Array.isArray(res?.data?.products) ? res.data.products : []
+  const pdata = (res?.data ?? {}) as { products?: ProductSearchResult[] }
+  return Array.isArray(pdata.products) ? pdata.products : []
 }
 
-const simplifyCoverageSearchQuery = (productName) => {
+const simplifyCoverageSearchQuery = (productName: string | null | undefined) => {
   if (!productName) return ''
   return String(productName)
     .replace(/\([^)]*\)/g, ' ')
@@ -3940,12 +4311,12 @@ const simplifyCoverageSearchQuery = (productName) => {
     .trim()
 }
 
-const startCoverageSubSearch = (pharmacy, uncoveredItem) => {
+const startCoverageSubSearch = (pharmacy: PharmacyQueueEntry, uncoveredItem: UncoveredItem) => {
   const simplified = simplifyCoverageSearchQuery(uncoveredItem.product_name)
   coverageSubSearch.value = {
-    pharmacyId: pharmacy.pharmacy_id,
-    companyId: pharmacy.company_id || pharmacy.pharmacy_id,
-    itemId: uncoveredItem.item_id,
+    pharmacyId: pharmacy.pharmacy_id ?? null,
+    companyId: pharmacy.company_id ?? pharmacy.pharmacy_id ?? null,
+    itemId: uncoveredItem.item_id ?? null,
     query: simplified || uncoveredItem.product_name || '',
     results: [],
     loading: false
@@ -3956,11 +4327,11 @@ const startCoverageSubSearch = (pharmacy, uncoveredItem) => {
 }
 
 const closeCoverageSubSearch = () => {
-  clearTimeout(coverageSubDebounce)
+  clearTimeout(coverageSubDebounce ?? undefined)
   coverageSubSearch.value = { pharmacyId: null, companyId: null, itemId: null, query: '', results: [], loading: false }
 }
 
-const searchCoverageSubstitute = async (query, pharmacy = null) => {
+const searchCoverageSubstitute = async (query: string, pharmacy: PharmacyQueueEntry | null = null) => {
   const companyId = pharmacy?.company_id || pharmacy?.pharmacy_id || coverageSubSearch.value.companyId
   coverageSubSearch.value.loading = true
   try {
@@ -3972,26 +4343,26 @@ const searchCoverageSubstitute = async (query, pharmacy = null) => {
   }
 }
 
-const onCoverageSubSearchInput = (query) => {
+const onCoverageSubSearchInput = (query: string) => {
   coverageSubSearch.value.query = query
-  clearTimeout(coverageSubDebounce)
+  clearTimeout(coverageSubDebounce ?? undefined)
   coverageSubDebounce = setTimeout(() => searchCoverageSubstitute(query), 300)
 }
 
-const selectCoverageSubstitute = async (pharmacy, uncoveredItem, selectedProduct) => {
+const selectCoverageSubstitute = async (pharmacy: PharmacyQueueEntry, uncoveredItem: UncoveredItem, selectedProduct: ProductSearchResult) => {
   // Move uncovered item to covered with Fuzzy badge (local state)
   const covered = pharmacy.covered || (pharmacy.covered = [])
   covered.push({
-    item_id: uncoveredItem.item_id,
-    product_name: uncoveredItem.product_name,
-    matched_product_id: selectedProduct.id || null,
+    ...(uncoveredItem.item_id !== undefined ? { item_id: uncoveredItem.item_id } : {}),
+    ...(uncoveredItem.product_name !== undefined ? { product_name: uncoveredItem.product_name } : {}),
+    matched_product_id: selectedProduct.id ?? null,
     fuzzy_match: {
-      matched_product_name: selectedProduct.product_description || selectedProduct.brand_name || selectedProduct.product_name,
-      price: selectedProduct.price || 0,
-      stock: selectedProduct.available_quantity || 0
+      matched_product_name: (selectedProduct.product_description || selectedProduct.brand_name || selectedProduct.product_name) ?? '',
+      price: selectedProduct.price ?? 0,
+      stock: selectedProduct.available_quantity ?? 0
     }
-  })
-  pharmacy.uncovered = (pharmacy.uncovered || []).filter(u => u.item_id !== uncoveredItem.item_id)
+  } as CoverageItem)
+  pharmacy.uncovered = (pharmacy.uncovered || []).filter((u: UncoveredItem) => u.item_id !== uncoveredItem.item_id)
   pharmacy.coverage_score = (pharmacy.coverage_score || 0) + 1
   closeCoverageSubSearch()
 
@@ -4014,7 +4385,7 @@ const selectCoverageSubstitute = async (pharmacy, uncoveredItem, selectedProduct
 }
 // --- End coverage substitute search ---
 
-const resolveItemToMaster = async (item, masterProduct) => {
+const resolveItemToMaster = async (item: RequestItem, masterProduct: ProductSearchResult) => {
   if (!item?.id || !masterProduct?.id) return
   try {
     await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
@@ -4026,11 +4397,11 @@ const resolveItemToMaster = async (item, masterProduct) => {
     if (selectedRequest.value?.items) {
       const localItem = selectedRequest.value.items.find(i => i.id === item.id)
       if (localItem) {
-        localItem.master_product_id = masterProduct.id
-        localItem.master_product_description = masterProduct.product_description
-        localItem.master_product_strength = masterProduct.strength
-        localItem.master_product_unit = masterProduct.unit
-        localItem.product_name = masterProduct.product_description
+        localItem.master_product_id = masterProduct.id ?? null
+        localItem.master_product_description = masterProduct.product_description ?? null
+        localItem.master_product_strength = masterProduct.strength ?? null
+        localItem.master_product_unit = masterProduct.unit ?? null
+        localItem.product_name = masterProduct.product_description ?? null
         localItem.resolution_status = 'resolved'
       }
     }
@@ -4044,7 +4415,7 @@ const resolveItemToMaster = async (item, masterProduct) => {
   }
 }
 
-const unresolveItem = async (item) => {
+const unresolveItem = async (item: RequestItem) => {
   if (!item?.id) return
   try {
     await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
@@ -4067,7 +4438,7 @@ const unresolveItem = async (item) => {
   }
 }
 
-const routePharmacyAction = async (pharmacy) => {
+const routePharmacyAction = async (pharmacy: PharmacyQueueEntry) => {
   const reqId = selectedRequest.value?.id
   if (!reqId || !pharmacy?.pharmacy_id) return
   const coveredItems = (pharmacy.covered || []).map(c => ({
@@ -4096,14 +4467,14 @@ const routePharmacyAction = async (pharmacy) => {
   }
 }
 
-const getPharmacyWhatsAppUrl = (phone) => {
+const getPharmacyWhatsAppUrl = (phone: string | null | undefined) => {
   if (!phone) return null
   const digits = phoneUtils.formatWhatsApp(phone)
   if (digits.length < 10) return null
   return `https://wa.me/${digits}`
 }
 
-const getCoverageColor = (score, total) => {
+const getCoverageColor = (score: number, total: number) => {
   if (total === 0) return '#9ca3af'
   const ratio = score / total
   if (ratio >= 1) return '#10b981'
@@ -4111,11 +4482,11 @@ const getCoverageColor = (score, total) => {
   return '#ef4444'
 }
 
-const openComposedSummary = async (req) => {
+const openComposedSummary = async (req: { id: number | string } | null | undefined) => {
   if (!req?.id) return
   try {
     const res = await apiCall('GET', `/api/order-requests/admin/${req.id}`)
-    composedSummaryRequest.value = res.data
+    composedSummaryRequest.value = res.data as RichOrderRequest
     composedSummaryStatus.value = ''
     syncComposedSummaryGroupActions()
   } catch (e) {
@@ -4131,7 +4502,7 @@ const closeComposedSummary = () => {
 
 const isComposedTabActive = computed(() => statusFilter.value === 'composing')
 
-const handleProcessRequest = async (req) => {
+const handleProcessRequest = async (req: RichOrderRequest) => {
   const requestId = Number(req?.id || 0)
   if (requestId <= 0 || openingRequestId.value === requestId) return
 
@@ -4143,7 +4514,7 @@ const handleProcessRequest = async (req) => {
   }
 }
 
-const canRunFulfillment = (status) => {
+const canRunFulfillment = (status: string) => {
   const allowed = new Set([
     'pending',
     'composing',
@@ -4161,7 +4532,7 @@ const canRunFulfillment = (status) => {
   return allowed.has(status)
 }
 
-const syncPharmacyCoverageFromQueue = (queue = []) => {
+const syncPharmacyCoverageFromQueue = (queue: PharmacyQueueEntry[] = []) => {
   if (!Array.isArray(queue) || !queue.length || !Array.isArray(nearbyPharmacies.value) || !nearbyPharmacies.value.length) {
     return
   }
@@ -4189,7 +4560,7 @@ const syncPharmacyCoverageFromQueue = (queue = []) => {
       missing_item_count: coverage.missing_item_count ?? pharmacy.missing_item_count ?? 0,
       fully_covers_request: coverage.fully_covers_request ?? pharmacy.fully_covers_request ?? false
     }
-  })
+  }) as PharmacyQueueEntry[]
 }
 
 const PHARMACY_CONTACT_ACTIONS = Object.freeze({
@@ -4199,7 +4570,7 @@ const PHARMACY_CONTACT_ACTIONS = Object.freeze({
       response_status: 'pending',
       is_confirmed: false
     },
-    successMessage: (pharm) => `${pharm.name} marked as contacted`,
+    successMessage: (pharm: { name?: string | null }) => `${pharm.name} marked as contacted`,
     errorMessage: 'Failed to log pharmacy contact'
   },
   confirmed: {
@@ -4208,7 +4579,7 @@ const PHARMACY_CONTACT_ACTIONS = Object.freeze({
       response_status: 'full',
       is_confirmed: true
     },
-    successMessage: (pharm) => `Confirmed ${pharm.name} will fulfill this order`,
+    successMessage: (pharm: { name?: string | null }) => `Confirmed ${pharm.name} will fulfill this order`,
     errorMessage: 'Failed to confirm pharmacy'
   },
   declined: {
@@ -4217,7 +4588,7 @@ const PHARMACY_CONTACT_ACTIONS = Object.freeze({
       response_status: 'declined',
       is_confirmed: false
     },
-    successMessage: (pharm) => `${pharm.name} marked unavailable`,
+    successMessage: (pharm: { name?: string | null }) => `${pharm.name} marked unavailable`,
     errorMessage: 'Failed to mark pharmacy unavailable'
   },
   partial: {
@@ -4226,7 +4597,7 @@ const PHARMACY_CONTACT_ACTIONS = Object.freeze({
       response_status: 'partial',
       is_confirmed: false
     },
-    successMessage: (pharm) => `${pharm.name} marked as partially available`,
+    successMessage: (pharm: { name?: string | null }) => `${pharm.name} marked as partially available`,
     errorMessage: 'Failed to mark pharmacy partial'
   },
   timed_out: {
@@ -4235,12 +4606,12 @@ const PHARMACY_CONTACT_ACTIONS = Object.freeze({
       response_status: 'timeout',
       is_confirmed: false
     },
-    successMessage: (pharm) => `${pharm.name} marked as timed out`,
+    successMessage: (pharm: { name?: string | null }) => `${pharm.name} marked as timed out`,
     errorMessage: 'Failed to mark pharmacy timeout'
   }
 })
 
-const applyLocalPharmacyContactState = (pharm, action) => {
+const applyLocalPharmacyContactState = (pharm: PharmacyQueueEntry | null | undefined, action: string) => {
   if (!pharm) return
 
   if (action === 'contacted') {
@@ -4300,7 +4671,7 @@ const applyLocalPharmacyContactState = (pharm, action) => {
   }
 }
 
-const maybePromoteRequestToConfirming = (action) => {
+const maybePromoteRequestToConfirming = (action: string) => {
   if (!selectedRequest.value) return
 
   const currentStatus = normalizeRequestStatus(selectedRequest.value.status)
@@ -4311,7 +4682,7 @@ const maybePromoteRequestToConfirming = (action) => {
   selectedStatus.value = 'composing'
 }
 
-const maybePromoteSummaryRequestToConfirming = (action) => {
+const maybePromoteSummaryRequestToConfirming = (action: string) => {
   if (!composedSummaryRequest.value) return
 
   const currentStatus = normalizeRequestStatus(composedSummaryRequest.value.status)
@@ -4321,11 +4692,11 @@ const maybePromoteSummaryRequestToConfirming = (action) => {
   composedSummaryRequest.value.status = 'composing'
 }
 
-const recordPharmacyContactAction = async (pharm, action, options = {}) => {
+const recordPharmacyContactAction = async (pharm: PharmacyQueueEntry | null | undefined, action: string, options: { showSuccess?: boolean; note?: string } = {}) => {
   if (!selectedRequest.value || !pharm) return false
 
   const { showSuccess = true, note = '' } = options
-  const actionConfig = PHARMACY_CONTACT_ACTIONS[action]
+  const actionConfig = (PHARMACY_CONTACT_ACTIONS as Record<string, typeof PHARMACY_CONTACT_ACTIONS[keyof typeof PHARMACY_CONTACT_ACTIONS] | undefined>)[action]
   if (!actionConfig) {
     showMessage('Unknown pharmacy contact action', 'error')
     return false
@@ -4346,7 +4717,7 @@ const recordPharmacyContactAction = async (pharm, action, options = {}) => {
     return true
   } catch (e) {
     if (showSuccess) {
-      showMessage(e.message || actionConfig.errorMessage, 'error')
+      showMessage(errMsg(e) || actionConfig.errorMessage, 'error')
     }
     return false
   }
@@ -4355,8 +4726,9 @@ const recordPharmacyContactAction = async (pharm, action, options = {}) => {
 const loadPharmacyLedger = async () => {
   try {
     const res = await apiCall('GET', '/api/order-requests/admin/pharmacy-ledger?limit=100')
-    const pharmacies = res.data?.pharmacies || []
-    const map = {}
+    const ledgerData = (res.data ?? {}) as { pharmacies?: LedgerEntry[] }
+    const pharmacies = ledgerData.pharmacies || []
+    const map: Record<number, LedgerEntry> = {}
     for (const entry of pharmacies) {
       if (entry.pharmacy_id) map[Number(entry.pharmacy_id)] = entry
     }
@@ -4366,21 +4738,22 @@ const loadPharmacyLedger = async () => {
   }
 }
 
-const startPharmacyPhoneEdit = (pharmId) => {
+const startPharmacyPhoneEdit = (pharmId: number) => {
   pharmacyPhoneEdit.value = {
     ...pharmacyPhoneEdit.value,
     [pharmId]: { editing: true, value: '', saving: false }
   }
 }
 
-const cancelPharmacyPhoneEdit = (pharmId) => {
+const cancelPharmacyPhoneEdit = (pharmId: number) => {
   const updated = { ...pharmacyPhoneEdit.value }
   delete updated[pharmId]
   pharmacyPhoneEdit.value = updated
 }
 
-const savePharmacyPhone = async (pharm) => {
+const savePharmacyPhone = async (pharm: PharmacyQueueEntry) => {
   const pharmId = pharm.pharmacy_id
+  if (!pharmId) return
   const editState = pharmacyPhoneEdit.value[pharmId]
   if (!editState) return
   const phone = String(editState.value || '').trim()
@@ -4396,11 +4769,11 @@ const savePharmacyPhone = async (pharm) => {
     showMessage(`Phone saved for ${pharm.pharmacy_name}`, 'success')
   } catch (e) {
     pharmacyPhoneEdit.value = { ...pharmacyPhoneEdit.value, [pharmId]: { ...editState, saving: false } }
-    showMessage(e.message || 'Failed to save phone number', 'error')
+    showMessage(errMsg(e) || 'Failed to save phone number', 'error')
   }
 }
 
-const openResponseModal = async (pharm, mode) => {
+const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
   // Refresh the cached pharmacy_queue so coverage prices reflect the current
   // products table, not a stale snapshot from the last "Run fulfillment process".
   // Best-effort: if it fails we still open the modal with whatever's cached.
@@ -4419,7 +4792,7 @@ const openResponseModal = async (pharm, mode) => {
   for (const item of allItems) {
     const activeAlloc = (item.allocations || []).find(
       a => Number(a.pharmacy_id) === Number(freshPharm.pharmacy_id) &&
-           ['confirmed', 'proposed'].includes(a.status)
+           ['confirmed', 'proposed'].includes(a.status ?? '')
     )
     if (activeAlloc) existingAllocsByItemId.set(item.id, activeAlloc)
   }
@@ -4443,7 +4816,7 @@ const openResponseModal = async (pharm, mode) => {
       : (catalogPrice != null ? String(catalogPrice) : null)
     return {
       item_id: item.id,
-      product_name: item.product_name,
+      product_name: item.product_name ?? null,
       requested_quantity: remainingQty,
       requested_unit: item.requested_unit || '',
       available: existingAlloc ? true : (mode === 'full'),
@@ -4485,8 +4858,7 @@ const submitResponseModal = async () => {
   modal.submitting = true
   try {
     const action = modal.mode === 'full' ? 'confirmed' : 'partial'
-    const pharm = { id: modal.pharmacy.pharmacy_id, name: modal.pharmacy.pharmacy_name }
-    const ok = await recordPharmacyContactAction(pharm, action, {
+    const ok = await recordPharmacyContactAction(modal.pharmacy, action, {
       showSuccess: false,
       note: modal.note
     })
@@ -4515,22 +4887,23 @@ const submitResponseModal = async () => {
     // Refresh request items so allocations are current for next modal open
     try {
       const freshReq = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value?.id}`)
-      if (freshReq?.data?.items) {
-        selectedRequest.value = { ...selectedRequest.value, ...freshReq.data }
+      const freshData = freshReq?.data as RichOrderRequest | null | undefined
+      if (freshData?.items) {
+        selectedRequest.value = { ...selectedRequest.value, ...freshData } as RichOrderRequest
         hydrateItemUiState(selectedRequest.value.items || [])
       }
     } catch { /* non-critical */ }
   } catch (e) {
-    showMessage(e.message || 'Failed to submit pharmacy response', 'error')
+    showMessage(errMsg(e) || 'Failed to submit pharmacy response', 'error')
   } finally {
     modal.submitting = false
   }
 }
 
-const recordComposedPharmacyContactAction = async (group, action) => {
+const recordComposedPharmacyContactAction = async (group: { pharmacyId?: number | null; name?: string | null; phone?: string | null }, action: string) => {
   if (!composedSummaryRequest.value || !group?.pharmacyId) return false
 
-  const actionConfig = PHARMACY_CONTACT_ACTIONS[action]
+  const actionConfig = (PHARMACY_CONTACT_ACTIONS as Record<string, typeof PHARMACY_CONTACT_ACTIONS[keyof typeof PHARMACY_CONTACT_ACTIONS] | undefined>)[action]
   if (!actionConfig) {
     showMessage('Unknown pharmacy contact action', 'error')
     return false
@@ -4541,12 +4914,12 @@ const recordComposedPharmacyContactAction = async (group, action) => {
       ...actionConfig.payload,
       response_note: null
     })
-    applyLocalComposedSummaryPharmacyAction(group, action)
+    applyLocalComposedSummaryPharmacyAction(group as ComposedSummaryGroup, action)
     syncComposedSummaryGroupActions()
     maybePromoteSummaryRequestToConfirming(action)
     await fetchRequests({ silent: true })
     await fetchStats({ silent: true })
-    showMessage(actionConfig.successMessage({ name: group.name }), 'success')
+    showMessage(actionConfig.successMessage({ name: group.name ?? null }), 'success')
 
     if (action === 'confirmed') {
       if (isComposedSummaryFullyConfirmed()) {
@@ -4556,13 +4929,13 @@ const recordComposedPharmacyContactAction = async (group, action) => {
     }
     return true
   } catch (e) {
-    showMessage(e.message || actionConfig.errorMessage, 'error')
+    showMessage(errMsg(e) || actionConfig.errorMessage, 'error')
     return false
   }
 }
 
-const updateComposedPharmacyStatus = async (group) => {
-  const groupKey = group?.pharmacyId || group?.name
+const updateComposedPharmacyStatus = async (group: { pharmacyId?: number | null; name?: string | null }) => {
+  const groupKey = group?.pharmacyId ?? group?.name ?? ''
   const action = composedGroupActions.value[groupKey]
   if (!action) return
   loading.value = true
@@ -4589,29 +4962,30 @@ const updateComposedRequestStatus = async () => {
     await fetchStats({ silent: true })
     showMessage('Request status updated', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to update request status', 'error')
+    showMessage(errMsg(e) || 'Failed to update request status', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const loadFulfillment = async (options = {}) => {
+const loadFulfillment = async (options: { silent?: boolean; refreshLists?: boolean } = {}) => {
   const { silent = false, refreshLists = true } = options
   if (!selectedRequest.value || !canRunFulfillment(selectedRequest.value.status)) return
   loading.value = true
   try {
     const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
-      const fullRequest = res.data.request || selectedRequest.value
-      selectedRequest.value = { ...fullRequest, status: res.data.status || fullRequest.status }
+      const d = res.data as { request?: RichOrderRequest; status?: string; nearby_pharmacies?: PharmacyQueueEntry[]; candidate_plans?: FulfillmentPlan[]; fulfillment_plans?: FulfillmentPlan[]; allocation_summary?: AllocationSummary; pharmacy_queue?: PharmacyQueueEntry[]; next_recommended_pharmacy?: NextRecommendedPharmacy; logistics_assessment?: LogisticsAssessment }
+      const fullRequest = d.request || selectedRequest.value
+      selectedRequest.value = { ...fullRequest, status: d.status || fullRequest.status }
       selectedStatus.value = selectedRequest.value.status || ''
-      adminNotes.value = selectedRequest.value.admin_notes || ''
-      nearbyPharmacies.value = res.data.nearby_pharmacies || []
-      candidatePlans.value = res.data.candidate_plans || []
-      fulfillmentPlans.value = res.data.fulfillment_plans || []
-      allocationSummary.value = res.data.allocation_summary || null
-      pharmacyQueue.value = res.data.pharmacy_queue || []
-      nextRecommendedPharmacy.value = res.data.next_recommended_pharmacy || null
-      logisticsAssessment.value = res.data.logistics_assessment || null
+      adminNotes.value = (selectedRequest.value.admin_notes as string | undefined) || ''
+      nearbyPharmacies.value = d.nearby_pharmacies || []
+      candidatePlans.value = d.candidate_plans || []
+      fulfillmentPlans.value = d.fulfillment_plans || []
+      allocationSummary.value = d.allocation_summary || null
+      pharmacyQueue.value = d.pharmacy_queue || []
+      nextRecommendedPharmacy.value = d.next_recommended_pharmacy || null
+      logisticsAssessment.value = d.logistics_assessment || null
       syncPharmacyCoverageFromQueue(pharmacyQueue.value)
       hydrateItemUiState(selectedRequest.value.items || [])
       loadPharmacyLedger()
@@ -4636,7 +5010,7 @@ const runFulfillmentManually = async () => {
   }
 }
 
-const autoRanFulfillmentForRequestId = ref(null)
+const autoRanFulfillmentForRequestId = ref<number | null>(null)
 watch(
   () => ({
     id: selectedRequest.value?.id || null,
@@ -4653,20 +5027,22 @@ watch(
   { immediate: true }
 )
 
-const contactPharmacy = async (payload) => {
+const contactPharmacy = async (payload: PharmacyQueueEntry & { pharmacy?: PharmacyQueueEntry; note?: string }) => {
   if (!selectedRequest.value) return
   const pharm = payload?.pharmacy || payload
   const note = String(payload?.note || '').trim()
   if (!pharm) return
 
   // Open WhatsApp immediately
-  window.open(pharm.whatsapp_url, '_blank')
+  window.open(pharm.whatsapp_url ?? undefined, '_blank')
 
   await recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false, note })
 }
 
-const handlePharmacyContactStatus = async ({ pharmacy, action, note } = {}) => {
-  await recordPharmacyContactAction(pharmacy, action, { note })
+const handlePharmacyContactStatus = async ({ pharmacy, action, note }: { pharmacy?: PharmacyQueueEntry; action?: string; note?: string } = {}) => {
+  const opts: { showSuccess?: boolean; note?: string } = {}
+  if (note !== undefined) opts.note = note
+  await recordPharmacyContactAction(pharmacy, action ?? '', opts)
 }
 
 const updateStatus = async () => {
@@ -4709,7 +5085,7 @@ const updateStatus = async () => {
     // Only load fulfillment context when explicitly entering the sourcing phase.
     if (['composing', 'sourcing', 'confirming_with_pharm', 'processing'].includes(newStatus) && canRunFulfillment(newStatus)) {
       const procRes = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
-      nearbyPharmacies.value = procRes.data.nearby_pharmacies || []
+      nearbyPharmacies.value = ((procRes.data as { nearby_pharmacies?: PharmacyQueueEntry[] })?.nearby_pharmacies) || []
     }
 
     await fetchRequests()
@@ -4729,10 +5105,10 @@ const updateStatus = async () => {
       logisticsAssessment.value = null
     }
   } catch (e) {
-    if (e.code === 'BACKWARDS_TRANSITION') {
+    if ((e as { code?: string }).code === 'BACKWARDS_TRANSITION') {
       showMessage('This would move backwards. Use "Override" to force it.', 'error')
     } else {
-      showMessage(e.message || 'Failed to update status', 'error')
+      showMessage(errMsg(e) || 'Failed to update status', 'error')
     }
   } finally {
     loading.value = false
@@ -4753,13 +5129,13 @@ const markRequestComposed = async () => {
     await fetchStats()
     showMessage(statusRes?.message || 'Request moved to Sourcing', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to mark request composed', 'error')
+    showMessage(errMsg(e) || 'Failed to mark request composed', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const applyNextStep = async (statusOverride) => {
+const applyNextStep = async (statusOverride?: string | null) => {
   const targetStatus = statusOverride || nextStepAction.value?.status
   if (!targetStatus || !selectedRequest.value) return
   // Advancing to awaiting_input must create a decision record (not just a status bump)
@@ -4798,18 +5174,19 @@ const calculateTotals = async () => {
   if (!selectedRequest.value) return
   try {
     const res = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}/totals`)
-    showMessage(`Subtotal: GHS ${res.data.subtotal} | ${res.data.available_items.length} available, ${res.data.unavailable_items.length} unavailable`, 'success')
+    const totals = res.data as { subtotal?: number; available_items?: unknown[]; unavailable_items?: unknown[] }
+    showMessage(`Subtotal: GHS ${totals.subtotal} | ${(totals.available_items || []).length} available, ${(totals.unavailable_items || []).length} unavailable`, 'success')
   } catch (e) {
     showMessage('Failed to calculate totals', 'error')
   }
 }
 
-const fetchFulfillmentPlans = async (options = {}) => {
+const fetchFulfillmentPlans = async (options: { silent?: boolean } = {}) => {
   const { silent = false } = options
   if (!selectedRequest.value) return
     try {
       const res = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}/fulfillment-plans`)
-        const data = res.data || {}
+        const data = (res.data || {}) as { candidate_plans?: FulfillmentPlan[]; plans?: FulfillmentPlan[]; summary?: AllocationSummary; pharmacy_queue?: PharmacyQueueEntry[]; next_recommended_pharmacy?: NextRecommendedPharmacy; logistics_assessment?: LogisticsAssessment }
       candidatePlans.value = data.candidate_plans || []
       fulfillmentPlans.value = data.plans || []
       allocationSummary.value = data.summary || null
@@ -4823,7 +5200,7 @@ const fetchFulfillmentPlans = async (options = {}) => {
     }
 }
 
-const requestCustomerDecision = async (decisionType) => {
+const requestCustomerDecision = async (decisionType: string) => {
   if (!selectedRequest.value) return
 
   if (decisionType === 'partial_availability' && !canSendPartialAvailabilityDecision.value) {
@@ -4841,10 +5218,10 @@ const requestCustomerDecision = async (decisionType) => {
     const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/decisions`, {
       decision_type: decisionType
     })
-    const decision = res?.data || {}
+    const decision = (res?.data ?? {}) as { whatsapp_url?: string | null }
     await fetchRequests()
     const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-    selectedRequest.value = detailRes.data
+    selectedRequest.value = detailRes.data as RichOrderRequest
     await fetchFulfillmentPlans({ silent: true })
 
     if (decision.whatsapp_url && typeof window !== 'undefined') {
@@ -4858,16 +5235,16 @@ const requestCustomerDecision = async (decisionType) => {
         : 'Customer decision request sent'
     showMessage(successMessage, 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to create customer decision', 'error')
+    showMessage(errMsg(e) || 'Failed to create customer decision', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const decisionOrderValue = (dec) => {
+const decisionOrderValue = (dec: CustomerDecision) => {
   const items = Array.isArray(dec.payload?.decision_items) ? dec.payload.decision_items : []
   const total = items.reduce((sum, item) => {
-    if (['available', 'substitute_available', 'partially_available'].includes(item.status)) {
+    if (['available', 'substitute_available', 'partially_available'].includes(item.status ?? '')) {
       const price = Number(item.unit_price ?? item.substitute_option?.marked_up_price ?? 0)
       const qty = Number(item.quantity || 1)
       return sum + price * qty
@@ -4877,10 +5254,10 @@ const decisionOrderValue = (dec) => {
   return total > 0 ? total : null
 }
 
-const decisionDeclineConsequence = (dec) => {
+const decisionDeclineConsequence = (dec: CustomerDecision) => {
   const items = Array.isArray(dec.payload?.decision_items) ? dec.payload.decision_items : []
   if (!items.length) return null
-  const sourceable = items.filter(i => ['available', 'substitute_available', 'partially_available'].includes(i.status)).length
+  const sourceable = items.filter(i => ['available', 'substitute_available', 'partially_available'].includes(i.status ?? '')).length
   const unsourceable = items.filter(i => i.status === 'not_available').length
   const parts = []
   if (sourceable > 0) parts.push(`${sourceable} item${sourceable > 1 ? 's' : ''} return to sourcing`)
@@ -4888,7 +5265,7 @@ const decisionDeclineConsequence = (dec) => {
   return parts.length ? `If declined: ${parts.join(', ')}.` : null
 }
 
-const formatWaitingTime = (d) => {
+const formatWaitingTime = (d: string | null | undefined) => {
   if (!d) return null
   const ms = Date.now() - new Date(d).getTime()
   if (ms < 0) return null
@@ -4902,24 +5279,24 @@ const formatWaitingTime = (d) => {
   return remHrs > 0 ? `${days}d ${remHrs}h` : `${days}d`
 }
 
-const decisionNotifyingId = ref(null)
+const decisionNotifyingId = ref<number | null>(null)
 
-const renotifyDecision = async (decisionId) => {
+const renotifyDecision = async (decisionId: number) => {
   if (!selectedRequest.value || decisionNotifyingId.value) return
   decisionNotifyingId.value = decisionId
   try {
     await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/decisions/${decisionId}/notify`)
     const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-    selectedRequest.value = detailRes.data
+    selectedRequest.value = detailRes.data as RichOrderRequest
     showMessage('Customer notified via SMS', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to notify customer', 'error')
+    showMessage(errMsg(e) || 'Failed to notify customer', 'error')
   } finally {
     decisionNotifyingId.value = null
   }
 }
 
-const resolveDecisionAsAdmin = async (decisionId, response) => {
+const resolveDecisionAsAdmin = async (decisionId: number, response: string) => {
   if (!selectedRequest.value) return
   const label = response === 'approved' ? 'approve' : 'decline'
   const ok = window.confirm(`${response === 'approved' ? 'Approve' : 'Decline'} this decision on behalf of the customer?`)
@@ -4929,37 +5306,37 @@ const resolveDecisionAsAdmin = async (decisionId, response) => {
     await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/decisions/${decisionId}/resolve`, { response })
     await fetchRequests()
     const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-    selectedRequest.value = detailRes.data
+    selectedRequest.value = detailRes.data as RichOrderRequest
     showMessage(`Decision ${label}d on behalf of customer`, 'success')
   } catch (e) {
-    showMessage(e.message || `Failed to ${label} decision`, 'error')
+    showMessage(errMsg(e) || `Failed to ${label} decision`, 'error')
   } finally {
     loading.value = false
   }
 }
 
-const startEditItem = (item) => {
+const startEditItem = (item: RequestItem) => {
   item.editing = true
   item.edit_price = item.unit_price || 0
 }
 
 const getRequestSearchCoordinates = () => {
-  const request = selectedRequest.value || {}
+  const request: RichOrderRequest | null = selectedRequest.value
   const lat = Number(
-    request.customer_latitude
-    ?? request.customer_lat
-    ?? request.latitude
-    ?? request.lat
-    ?? request.delivery_latitude
-    ?? request.delivery_lat
+    request?.customer_latitude
+    ?? request?.customer_lat
+    ?? request?.latitude
+    ?? request?.lat
+    ?? request?.delivery_latitude
+    ?? request?.delivery_lat
   )
   const lng = Number(
-    request.customer_longitude
-    ?? request.customer_lng
-    ?? request.longitude
-    ?? request.lng
-    ?? request.delivery_longitude
-    ?? request.delivery_lng
+    request?.customer_longitude
+    ?? request?.customer_lng
+    ?? request?.longitude
+    ?? request?.lng
+    ?? request?.delivery_longitude
+    ?? request?.delivery_lng
   )
   return {
     hasCoords: Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0,
@@ -4968,7 +5345,7 @@ const getRequestSearchCoordinates = () => {
   }
 }
 
-const getProductSearchLabel = (result) => {
+const getProductSearchLabel = (result: ProductSearchResult | null | undefined) => {
   const baseName = String(
     result?.product_description
     || result?.master_name
@@ -4985,7 +5362,7 @@ const getProductSearchLabel = (result) => {
   return baseName
 }
 
-const getProductResultMeta = (result) => {
+const getProductResultMeta = (result: ProductSearchResult | null | undefined) => {
   const parts = []
   const companyName = String(result?.company_name || '').trim()
   if (companyName) {
@@ -5022,7 +5399,7 @@ const getProductResultMeta = (result) => {
   return parts.join(' • ')
 }
 
-const fetchProductSearchResults = async (query, options = {}) => {
+const fetchProductSearchResults = async (query: string | null | undefined, options: { requestedUnit?: string; pharmacySearch?: string } = {}) => {
   const trimmedQuery = String(query || '').trim()
   if (trimmedQuery.length < 2) return []
 
@@ -5048,10 +5425,11 @@ const fetchProductSearchResults = async (query, options = {}) => {
   }
 
   const res = await apiCall('GET', `/api/inventory-analytics/search-products?${params.toString()}`)
-  return Array.isArray(res?.data?.products) ? res.data.products : []
+  const resData = res?.data as { products?: ProductSearchResult[] } | null
+  return Array.isArray(resData?.products) ? resData!.products! : []
 }
 
-const searchAdminProducts = async (item) => {
+const searchAdminProducts = async (item: RequestItem) => {
   const query = String(item.product_search || '').trim()
   if (query.length < 2) {
     item.productSearchResults = []
@@ -5070,7 +5448,7 @@ const searchAdminProducts = async (item) => {
   }
 }
 
-const onAdminProductInput = (item) => {
+const onAdminProductInput = (item: RequestItem) => {
   item.showProductDropdown = true
   item.product_id = null
   const typedQuery = String(item.product_search || '').trim().toLowerCase()
@@ -5088,7 +5466,7 @@ const onAdminProductInput = (item) => {
   }, 300)
 }
 
-const selectAdminProduct = (item, result) => {
+const selectAdminProduct = (item: RequestItem, result: ProductSearchResult) => {
   const label = getProductSearchLabel(result)
   if (!label) return
   item.product_search = label
@@ -5135,7 +5513,7 @@ const selectAdminProduct = (item, result) => {
   }
 }
 
-const closeAdminProductDropdown = (item) => {
+const closeAdminProductDropdown = (item: RequestItem) => {
   setTimeout(() => {
     item.showProductDropdown = false
   }, 160)
@@ -5174,19 +5552,19 @@ const onAlternativeProductInput = () => {
   }, 300)
 }
 
-const selectAlternativeProduct = (result) => {
+const selectAlternativeProduct = (result: ProductSearchResult) => {
   const label = getProductSearchLabel(result)
   if (!label) return
   alternativeModal.value.name = label
 
   const selectedPharmacyId = Number(result?.company_id || 0)
   if (selectedPharmacyId > 0) {
-    alternativeModal.value.pharmacy_id = selectedPharmacyId
+    alternativeModal.value.pharmacy_id = String(selectedPharmacyId)
   }
 
   const price = Number(result?.price || 0)
   if (price > 0 && (alternativeModal.value.price === '' || alternativeModal.value.price === null || alternativeModal.value.price === undefined)) {
-    alternativeModal.value.price = Number(price.toFixed(2))
+    alternativeModal.value.price = String(Number(price.toFixed(2)))
   }
 
   alternativeModal.value.showProductDropdown = false
@@ -5219,10 +5597,11 @@ const saveAdminNewItem = async () => {
     resetAdminNewItem()
 
     const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-    selectedRequest.value = detailRes.data
-    selectedStatus.value = detailRes.data.status || ''
-    adminNotes.value = detailRes.data.admin_notes || ''
-    hydrateItemUiState(selectedRequest.value.items || [])
+    const detailData = detailRes.data as RichOrderRequest
+    selectedRequest.value = detailData
+    selectedStatus.value = detailData.status || ''
+    adminNotes.value = (detailData.admin_notes as string | undefined) || ''
+    hydrateItemUiState(selectedRequest.value?.items || [])
     nearbyPharmacies.value = []
     candidatePlans.value = []
     fulfillmentPlans.value = []
@@ -5235,13 +5614,13 @@ const saveAdminNewItem = async () => {
     await fetchStats({ silent: true })
     showMessage('Item added to request', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to add item', 'error')
+    showMessage(errMsg(e) || 'Failed to add item', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const useNextRecommendedPharmacy = (item) => {
+const useNextRecommendedPharmacy = (item: RequestItem) => {
   const option = getRecommendedSourcingOption(item)
   if (!option) {
     showMessage('The next follow-up source does not cover this item', 'info')
@@ -5286,11 +5665,11 @@ const prefillNextRecommendedSource = () => {
   showMessage(`Prefilled ${label} for ${updatedCount} item${updatedCount === 1 ? '' : 's'} - save allocations to confirm`, 'success')
 }
 
-const fillFullAllocation = (item) => {
+const fillFullAllocation = (item: RequestItem) => {
   item.allocation_quantity = getRequestedQuantity(item)
 }
 
-const isPlanItemMissing = (planItem) => {
+const isPlanItemMissing = (planItem: FulfillmentPlanItem | null | undefined) => {
   if (!planItem) return true
   const matchedQuantity = Number(planItem.matched_quantity || 0)
   if (matchedQuantity > 0) return false
@@ -5300,7 +5679,7 @@ const isPlanItemMissing = (planItem) => {
   return !likelyType || likelyType === 'none'
 }
 
-const getPlanAllocationForPharmacy = (planItem, pharmacyId) => {
+const getPlanAllocationForPharmacy = (planItem: FulfillmentPlanItem | null | undefined, pharmacyId: number | string | null | undefined) => {
   const normalizedPharmacyId = Number(pharmacyId || 0)
   if (!planItem || normalizedPharmacyId <= 0) return null
 
@@ -5330,7 +5709,7 @@ const getPlanAllocationForPharmacy = (planItem, pharmacyId) => {
   return null
 }
 
-const applyCandidatePlan = async (input) => {
+const applyCandidatePlan = async (input: FulfillmentPlan & { plan?: FulfillmentPlan; pharmacy?: PharmacyQueueEntry }) => {
   const plan = input?.plan || input
   const selectedPharmacy = input?.pharmacy || null
   const selectedPharmacyId = Number(selectedPharmacy?.id || selectedPharmacy?.pharmacy_id || 0)
@@ -5343,7 +5722,7 @@ const applyCandidatePlan = async (input) => {
   loading.value = true
   const items = selectedRequest.value.items
   const effectivePlanPharmacies = hasPlanPharmacies
-    ? plan.pharmacies
+    ? (plan.pharmacies ?? [])
     : [{ pharmacy_id: selectedPharmacyId, pharmacy_name: selectedPharmacy?.name || `Pharmacy ${selectedPharmacyId}` }]
   const planPharmacyIds = new Set(effectivePlanPharmacies.map((entry) => Number(entry?.pharmacy_id || 0)).filter((id) => id > 0))
   const defaultPharmacyId = Number(effectivePlanPharmacies[0]?.pharmacy_id || 0) || ''
@@ -5400,7 +5779,7 @@ const applyCandidatePlan = async (input) => {
           if (Number(b.matched_quantity || 0) !== Number(a.matched_quantity || 0)) {
             return Number(b.matched_quantity || 0) - Number(a.matched_quantity || 0)
           }
-          return Number(a.distance_km || 0) - Number(b.distance_km || 0)
+          return Number((a as { distance_km?: number }).distance_km || 0) - Number((b as { distance_km?: number }).distance_km || 0)
         })[0] || null
       const explicitPharmacyId = Number(
         preferredAllocation?.pharmacy_id
@@ -5434,7 +5813,7 @@ const applyCandidatePlan = async (input) => {
       item.allocation_unit_price = ''
       item.substitute_name = ''
       item.substitute_note = ''
-      if (Number.isFinite(sourcedUnitPrice) && sourcedUnitPrice > 0) {
+      if (sourcedUnitPrice !== null && Number.isFinite(sourcedUnitPrice) && sourcedUnitPrice > 0) {
         const normalizedUnitPrice = Number(sourcedUnitPrice.toFixed(2))
         item.edit_price = normalizedUnitPrice
         item.unit_price = normalizedUnitPrice
@@ -5452,13 +5831,19 @@ const applyCandidatePlan = async (input) => {
       showMessage(`Prefilled confirmed allocation controls from ${sourceLabel}`, 'success')
     }
   } catch (e) {
-    showMessage(e.message || 'Failed to apply plan', 'error')
+    showMessage(errMsg(e) || 'Failed to apply plan', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const buildAllocationPayload = (item, source = item) => {
+interface AllocationSource {
+  allocation_type?: string; allocation_pharmacy_id?: number | string
+  allocation_quantity?: number; substitute_name?: string; substitute_note?: string
+  allocation_unit_price?: number | string | null; edit_price?: number | string | null
+  unit_price?: number | null; [key: string]: unknown
+}
+const buildAllocationPayload = (item: RequestItem, source: AllocationSource = item) => {
   const allocationType = source.allocation_type || 'exact'
   const pharmacyId = Number(source.allocation_pharmacy_id || 0)
   const quantity = Number(source.allocation_quantity || 0)
@@ -5478,10 +5863,10 @@ const buildAllocationPayload = (item, source = item) => {
     ? null
     : Number(source.allocation_unit_price)
   const exactUnitPrice = source.edit_price === '' || source.edit_price === null || source.edit_price === undefined
-    ? (source.unit_price === '' || source.unit_price === null || source.unit_price === undefined ? null : Number(source.unit_price))
+    ? (source.unit_price === null || source.unit_price === undefined ? null : Number(source.unit_price))
     : Number(source.edit_price)
 
-  if (allocationType === 'substitute' && (!Number.isFinite(allocationUnitPrice) || allocationUnitPrice <= 0)) {
+  if (allocationType === 'substitute' && (allocationUnitPrice === null || !Number.isFinite(allocationUnitPrice) || allocationUnitPrice <= 0)) {
     throw new Error('Alternative price must be greater than 0')
   }
 
@@ -5493,7 +5878,7 @@ const buildAllocationPayload = (item, source = item) => {
     substitute_note: allocationType === 'substitute' ? String(source.substitute_note || '').trim() : null,
     unit_price: allocationType === 'substitute'
       ? allocationUnitPrice
-      : (Number.isFinite(exactUnitPrice) && exactUnitPrice > 0 ? exactUnitPrice : null),
+      : (exactUnitPrice !== null && Number.isFinite(exactUnitPrice) && exactUnitPrice > 0 ? exactUnitPrice : null),
     status: 'confirmed'
   }
 }
@@ -5501,9 +5886,9 @@ const buildAllocationPayload = (item, source = item) => {
 const refreshSelectedRequestState = async () => {
   if (!selectedRequest.value) return
   const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-  selectedRequest.value = detailRes.data
-  adminNotes.value = selectedRequest.value.admin_notes || ''
-  hydrateItemUiState(selectedRequest.value.items || [])
+  selectedRequest.value = detailRes.data as RichOrderRequest
+  adminNotes.value = (selectedRequest.value?.admin_notes as string | undefined) || ''
+  hydrateItemUiState(selectedRequest.value?.items || [])
   nearbyPharmacies.value = []
   candidatePlans.value = []
   fulfillmentPlans.value = []
@@ -5525,13 +5910,13 @@ const refreshSelectedRequestDetails = async () => {
     await refreshSelectedRequestState()
     showMessage('Request refreshed', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to refresh request', 'error')
+    showMessage(errMsg(e) || 'Failed to refresh request', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const applyCandidatePlanNow = async (plan) => {
+const applyCandidatePlanNow = async (plan: FulfillmentPlan) => {
   if (!selectedRequest.value) return
 
   await applyCandidatePlan(plan)
@@ -5550,15 +5935,15 @@ const applyCandidatePlanNow = async (plan) => {
     }
 
     await refreshSelectedRequestState()
-    showMessage(`Applied ${plan.label.toLowerCase()} as confirmed allocations`, 'success')
+    showMessage(`Applied ${(plan.label ?? '').toLowerCase()} as confirmed allocations`, 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to apply suggested plan', 'error')
+    showMessage(errMsg(e) || 'Failed to apply suggested plan', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const createAllocationForItem = async (item, options = { autoAdvance: true }) => {
+const createAllocationForItem = async (item: RequestItem, options: { autoAdvance?: boolean } = { autoAdvance: true }) => {
   if (!selectedRequest.value) return
 
   if (item?.selection_dirty) {
@@ -5594,18 +5979,18 @@ const createAllocationForItem = async (item, options = { autoAdvance: true }) =>
     
     showMessage('Selection saved', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to create allocation', 'error')
+    showMessage(errMsg(e) || 'Failed to create allocation', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const startAllocationEdit = (allocation) => {
+const startAllocationEdit = (allocation: Allocation) => {
   hydrateAllocationUiState(allocation)
   allocation.editing = true
 }
 
-const cancelAllocationEdit = (allocation) => {
+const cancelAllocationEdit = (allocation: Allocation) => {
   allocation.editing = false
   allocation.edit_allocated_quantity = Number(allocation.allocated_quantity || 1)
   allocation.edit_allocation_type = allocation.allocation_type || 'exact'
@@ -5614,7 +5999,7 @@ const cancelAllocationEdit = (allocation) => {
   allocation.edit_substitute_note = allocation.substitute_note || ''
 }
 
-const saveAllocation = async (item, allocation) => {
+const saveAllocation = async (item: RequestItem, allocation: Allocation) => {
   const quantity = Number(allocation.edit_allocated_quantity || 0)
   if (!Number.isFinite(quantity) || quantity <= 0) {
     showMessage('Allocation quantity must be greater than 0', 'error')
@@ -5645,7 +6030,7 @@ const saveAllocation = async (item, allocation) => {
   }
 }
 
-const saveItemPrice = async (item) => {
+const saveItemPrice = async (item: RequestItem) => {
   const sourcePharmacyId = Number(item?.allocation_pharmacy_id || item?.source_pharmacy_id || 0)
   const sourceProductId = Number(item?.selected_source_product_id || item?.source_product_id || 0)
   const sourceDistanceKm = item?.selected_source_distance_km ?? item?.source_distance_km ?? null
@@ -5691,13 +6076,13 @@ const saveItemPrice = async (item) => {
     await refreshSelectedRequestState()
     showMessage('Selection updated', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to update selection', 'error')
+    showMessage(errMsg(e) || 'Failed to update selection', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const clearSavedSelection = async (item) => {
+const clearSavedSelection = async (item: RequestItem) => {
   if (!item?.id) return
 
   loading.value = true
@@ -5712,13 +6097,13 @@ const clearSavedSelection = async (item) => {
     await refreshSelectedRequestState()
     showMessage('Saved selection cleared', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to clear saved selection', 'error')
+    showMessage(errMsg(e) || 'Failed to clear saved selection', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const deleteRequestItem = async (item) => {
+const deleteRequestItem = async (item: RequestItem) => {
   if (!item?.id) return
 
   const confirmed = window.confirm(`Delete "${item.product_name}" from this request?`)
@@ -5732,7 +6117,7 @@ const deleteRequestItem = async (item) => {
     await fetchStats({ silent: true })
     showMessage('Request item deleted', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to delete request item', 'error')
+    showMessage(errMsg(e) || 'Failed to delete request item', 'error')
   } finally {
     loading.value = false
   }
@@ -5742,14 +6127,14 @@ const deleteRequestItem = async (item) => {
 const STATUS_LABEL_OVERRIDES = {
   awaiting_method_selection: 'Payment Pending',
 }
-const formatStatus = (status) => {
-  if (status && STATUS_LABEL_OVERRIDES[status]) return STATUS_LABEL_OVERRIDES[status]
-  return (status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatStatus = (status: string | null | undefined) => {
+  if (status && STATUS_LABEL_OVERRIDES[status as keyof typeof STATUS_LABEL_OVERRIDES]) return STATUS_LABEL_OVERRIDES[status as keyof typeof STATUS_LABEL_OVERRIDES]
+  return (status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
 }
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
-const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-'
-const formatCurrency = (value) => `GHS ${Number(value || 0).toFixed(2)}`
-const formatRelativeTime = (d) => {
+const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
+const formatDateTime = (d: string | null | undefined) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-'
+const formatCurrency = (value: number | string | null | undefined) => `GHS ${Number(value || 0).toFixed(2)}`
+const formatRelativeTime = (d: string | null | undefined) => {
   if (!d) return null
   const diffMs = Date.now() - new Date(d).getTime()
   const diffMins = Math.floor(diffMs / 60000)
@@ -5761,23 +6146,23 @@ const formatRelativeTime = (d) => {
   const diffMonths = Math.floor(diffDays / 30)
   return `${diffMonths}mo ago`
 }
-const formatSignedCurrency = (value) => {
+const formatSignedCurrency = (value: number | string | null | undefined) => {
   const amount = Number(value || 0)
   const sign = amount > 0 ? '+' : amount < 0 ? '-' : ''
   return `${sign}GHS ${Math.abs(amount).toFixed(2)}`
 }
-const formatRatingStars = (rating) => {
+const formatRatingStars = (rating: number | string | null | undefined) => {
   const safeRating = Math.max(0, Math.min(5, Number(rating || 0)))
   return `${'★'.repeat(safeRating)}${'☆'.repeat(Math.max(5 - safeRating, 0))}`
 }
-const formatExcludedReason = (reason) => {
+const formatExcludedReason = (reason: string | null | undefined) => {
   const key = String(reason || '').toLowerCase()
   if (key === 'removed_by_customer') return 'Removed by customer'
   if (key === 'unavailable') return 'Unavailable'
   return 'Not included'
 }
-const formatDistance = (km) => `${Number(km || 0).toFixed(1)} km`
-const normalizeItemStatus = (item) => {
+const formatDistance = (km: number | string | null | undefined) => `${Number(km || 0).toFixed(1)} km`
+const normalizeItemStatus = (item: RequestItem | null | undefined) => {
   const rawStatus = item?.sourcing_status || item?.item_status || 'pending'
   const hasQuote = Number(item?.unit_price || 0) > 0 || Number(item?.marked_up_price || 0) > 0
 
@@ -5785,17 +6170,17 @@ const normalizeItemStatus = (item) => {
   if (hasQuote) return 'confirmed'
   return rawStatus
 }
-const isItemUnavailable = (item) => normalizeItemStatus(item) === 'unavailable'
-const getLatestSubstituteAllocation = (item) => {
+const isItemUnavailable = (item: RequestItem | null | undefined) => normalizeItemStatus(item) === 'unavailable'
+const getLatestSubstituteAllocation = (item: RequestItem | null | undefined) => {
   if (!Array.isArray(item?.allocations)) return null
 
   const substituteAllocations = item.allocations
-    .filter((allocation) => {
+    .filter((allocation: Allocation) => {
       const type = String(allocation?.allocation_type || '').toLowerCase()
       const status = String(allocation?.status || '').toLowerCase()
       return type === 'substitute' && ['proposed', 'confirmed'].includes(status)
     })
-    .sort((a, b) => {
+    .sort((a: Allocation, b: Allocation) => {
       const aTime = new Date(a?.updated_at || a?.created_at || 0).getTime()
       const bTime = new Date(b?.updated_at || b?.created_at || 0).getTime()
       return bTime - aTime
@@ -5803,7 +6188,7 @@ const getLatestSubstituteAllocation = (item) => {
 
   return substituteAllocations[0] || null
 }
-const getItemSubstituteDetails = (item) => {
+const getItemSubstituteDetails = (item: RequestItem | null | undefined) => {
   const allocation = getLatestSubstituteAllocation(item)
   if (allocation) {
     const name = String(allocation.substitute_name || '').trim() || String(item?.substitute_name || '').trim()
@@ -5852,39 +6237,31 @@ const saveAlternativeForItem = async () => {
     closeAlternativeModal()
     showMessage('Alternative saved', 'success')
   } catch (e) {
-    showMessage(e.message || 'Failed to save alternative', 'error')
+    showMessage(errMsg(e) || 'Failed to save alternative', 'error')
   } finally {
     loading.value = false
   }
 }
-const formatItemStatus = (item) => normalizeItemStatus(item)
-const itemStatusClass = (item) => normalizeItemStatus(item)
-const formatQueueState = (state) => (state || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-const formatAllocationTypeLabel = (value) => ({
-  exact: 'Exact',
-  substitute: 'Alternative'
-}[value] || 'Exact')
-const formatAllocationStatusLabel = (value) => ({
-  proposed: 'Confirmed',
-  confirmed: 'Confirmed',
-  declined: 'Declined',
-  expired: 'Expired'
-}[value] || 'Confirmed')
-const allocationStatusClass = (value) => ({
+const formatItemStatus = (item: RequestItem | null | undefined) => normalizeItemStatus(item)
+const itemStatusClass = (item: RequestItem | null | undefined) => normalizeItemStatus(item)
+const formatQueueState = (state: string | null | undefined) => (state || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+const formatAllocationTypeLabel = (value: string | null | undefined) => ({ exact: 'Exact', substitute: 'Alternative' } as Record<string, string>)[value ?? ''] ?? 'Exact'
+const formatAllocationStatusLabel = (value: string | null | undefined) => ({ proposed: 'Confirmed', confirmed: 'Confirmed', declined: 'Declined', expired: 'Expired' } as Record<string, string>)[value ?? ''] ?? 'Confirmed'
+const allocationStatusClass = (value: string | null | undefined) => ({
   confirmed: value === 'confirmed' || value === 'proposed',
   declined: value === 'declined',
   expired: value === 'expired'
 })
-const createAllocationLabel = (item) => item?.allocation_status === 'confirmed'
+const createAllocationLabel = (item: RequestItem | null | undefined) => item?.allocation_status === 'confirmed'
   ? 'Add Confirmed Allocation'
   : 'Add Confirmed Allocation'
-const queueStateClass = (state) => ({
-  success: ['full'].includes(state),
-  current: ['awaiting_response', 'partial'].includes(state),
-  muted: ['not_contacted', 'pending', 'unknown'].includes(state),
-  danger: ['declined', 'timeout'].includes(state)
+const queueStateClass = (state: string | null | undefined) => ({
+  success: ['full'].includes(state ?? ''),
+  current: ['awaiting_response', 'partial'].includes(state ?? ''),
+  muted: ['not_contacted', 'pending', 'unknown'].includes(state ?? ''),
+  danger: ['declined', 'timeout'].includes(state ?? '')
 })
-const showMessage = (text, type = 'success') => {
+const showMessage = (text: string, type = 'success') => {
   message.value = { text, type }
   setTimeout(() => { message.value = null }, 4000)
 }
@@ -5905,7 +6282,7 @@ const pollRequestList = async () => {
 const route = useRoute()
 const router = useRouter()
 
-const openRequestByQueryId = async (rawId) => {
+const openRequestByQueryId = async (rawId: string | string[] | null | undefined) => {
   const id = Number(rawId || 0)
   if (!id) return
   if (Number(selectedRequest.value?.id || 0) === id) return
@@ -5920,14 +6297,14 @@ const openRequestByQueryId = async (rawId) => {
 }
 
 watch(() => route.query.requestId, (val) => {
-  if (val) openRequestByQueryId(val)
+  if (val) openRequestByQueryId(val as string | string[] | null | undefined)
 })
 
 onMounted(async () => {
   await fetchRequests()
   fetchStats()
   requestPollTimer = window.setInterval(pollRequestList, REQUEST_POLL_MS)
-  if (route.query.requestId) openRequestByQueryId(route.query.requestId)
+  if (route.query.requestId) openRequestByQueryId(route.query.requestId as string | string[] | null | undefined)
 })
 
 onUnmounted(() => {
