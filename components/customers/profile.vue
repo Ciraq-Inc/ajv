@@ -206,6 +206,100 @@
           </div>
         </form>
       </div>
+
+      <!-- Professional Verification Card -->
+      <div class="mt-5 rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-zinc-100">
+          <IdentificationIcon class="w-5 h-5 text-[#4F217A] flex-shrink-0" />
+          <div>
+            <h2 class="text-sm font-bold text-zinc-900">Health Professional Verification</h2>
+            <p class="text-xs text-zinc-500 mt-0.5">Verified professionals get fee waivers on every request and access to browse pharmacy stock directly.</p>
+          </div>
+        </div>
+
+        <!-- Status row (when application exists) -->
+        <div v-if="profApplication && !profLoading" class="px-6 py-4 border-b border-zinc-100 flex items-center gap-3">
+          <CheckBadgeIcon v-if="profStatus === 'approved'" class="w-5 h-5 text-emerald-600 flex-shrink-0" />
+          <ClockIcon v-else-if="profStatus === 'pending'" class="w-5 h-5 text-amber-500 flex-shrink-0" />
+          <XCircleIcon v-else class="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div class="flex-1 min-w-0">
+            <span
+              class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+              :class="{
+                'bg-emerald-50 text-emerald-700 border border-emerald-200': profStatus === 'approved',
+                'bg-amber-50 text-amber-700 border border-amber-200': profStatus === 'pending',
+                'bg-red-50 text-red-700 border border-red-200': profStatus === 'rejected',
+              }"
+            >{{ profStatus }}</span>
+            <p v-if="profStatus === 'approved'" class="text-xs text-zinc-500 mt-1 capitalize">
+              {{ profApplication?.profession_type }} · {{ profApplication?.license_number }}
+            </p>
+            <p v-else-if="profStatus === 'pending'" class="text-xs text-zinc-500 mt-1">
+              Your application is under review. We'll notify you once it's processed.
+            </p>
+            <p v-else-if="profStatus === 'rejected' && profApplication?.rejection_reason" class="text-xs text-red-600 mt-1">
+              Reason: {{ profApplication?.rejection_reason }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Approved: no form, just confirmation -->
+        <div v-if="profStatus === 'approved'" class="px-6 py-4 text-xs text-zinc-500">
+          Your professional status is active. Fee waivers and Browse Stock are enabled on your account.
+        </div>
+
+        <!-- Application form (none or rejected state) -->
+        <form v-if="showProfForm && !profLoading" @submit.prevent="submitProfessionalApplication" class="p-6 space-y-4">
+          <p v-if="profStatus === 'rejected'" class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-2 rounded-lg">
+            Your previous application was rejected. You may submit a revised application below.
+          </p>
+
+          <div v-if="profError" class="text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg font-semibold">
+            {{ profError }}
+          </div>
+          <div v-if="profSuccess" class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-lg font-semibold">
+            Application submitted — we'll review it and let you know.
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-zinc-700">Profession Type <span class="text-red-500">*</span></label>
+              <select v-model="profForm.profession_type" required
+                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 bg-white">
+                <option value="">Select profession</option>
+                <option value="doctor">Doctor</option>
+                <option value="pharmacist">Pharmacist</option>
+                <option value="nurse">Nurse / Midwife</option>
+                <option value="other">Other Licensed Health Worker</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-zinc-700">License / Registration Number <span class="text-red-500">*</span></label>
+              <input v-model="profForm.license_number" type="text" placeholder="e.g. MDC-2024-12345" required
+                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
+            </div>
+            <div class="flex flex-col gap-1.5 sm:col-span-2">
+              <label class="text-sm font-semibold text-zinc-700">Issuing Authority <span class="text-zinc-400 font-medium">(optional)</span></label>
+              <input v-model="profForm.license_body" type="text" placeholder="e.g. Ghana Medical and Dental Council"
+                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button type="submit" :disabled="profSubmitting"
+              class="inline-flex items-center gap-2 bg-[#4F217A] text-white py-2.5 px-6 rounded-xl text-sm font-bold hover:bg-[#3d1861] transition-colors shadow-sm disabled:opacity-60">
+              <ArrowPathIcon v-if="profSubmitting" class="w-4 h-4 animate-spin" />
+              {{ profSubmitting ? 'Submitting...' : (profStatus === 'rejected' ? 'Re-submit Application' : 'Apply for Professional Status') }}
+            </button>
+          </div>
+        </form>
+
+        <!-- Loading state -->
+        <div v-if="profLoading" class="px-6 py-6 flex items-center justify-center">
+          <ArrowPathIcon class="w-5 h-5 text-zinc-400 animate-spin" />
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -226,7 +320,14 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
   InformationCircleIcon,
+  IdentificationIcon,
+  CheckBadgeIcon,
+  ClockIcon,
+  XCircleIcon,
 } from '@heroicons/vue/24/outline'
+import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService'
+import type { ProfessionalProfile } from '~/services/customerAuth/customerAuthService'
+import { useApi } from '~/composables/useApi'
 
 interface AddressSuggestion {
   display_name?: string;
@@ -464,9 +565,67 @@ const saveProfile = async (): Promise<void> => {
   }
 };
 
+// Professional verification state
+const profApplication = ref<ProfessionalProfile | null>(null);
+const profLoading = ref(false);
+const profSubmitting = ref(false);
+const profError = ref<string | null>(null);
+const profSuccess = ref(false);
+const profForm = reactive({
+  profession_type: '' as '' | 'doctor' | 'pharmacist' | 'nurse' | 'other',
+  license_number: '',
+  license_body: '',
+});
+
+const profStatus = computed(() => profApplication.value?.status ?? null);
+const showProfForm = computed(() => profStatus.value === null || profStatus.value === 'rejected');
+
+const loadProfessionalApplication = async () => {
+  profLoading.value = true;
+  try {
+    const service = createCustomerAuthService(useApi());
+    const res = await service.getMyProfessionalApplication() as { data?: ProfessionalProfile | null };
+    profApplication.value = res.data ?? null;
+    if (profApplication.value) {
+      profForm.profession_type = (profApplication.value.profession_type ?? '') as typeof profForm.profession_type;
+      profForm.license_number = profApplication.value.license_number ?? '';
+      profForm.license_body = profApplication.value.license_body ?? '';
+    }
+  } catch {
+    profApplication.value = null;
+  } finally {
+    profLoading.value = false;
+  }
+};
+
+const submitProfessionalApplication = async () => {
+  if (!profForm.profession_type || !profForm.license_number.trim()) {
+    profError.value = 'Profession type and license number are required.';
+    return;
+  }
+  profSubmitting.value = true;
+  profError.value = null;
+  profSuccess.value = false;
+  try {
+    const service = createCustomerAuthService(useApi());
+    await service.applyForProfessional({
+      profession_type: profForm.profession_type,
+      license_number: profForm.license_number.trim(),
+      license_body: profForm.license_body.trim() || null,
+    });
+    profSuccess.value = true;
+    await loadProfessionalApplication();
+  } catch (e: unknown) {
+    profError.value = e instanceof Error ? e.message : 'Submission failed. Please try again.';
+  } finally {
+    profSubmitting.value = false;
+  }
+};
+
 // Initialize
 onMounted(() => {
   void loadProfile();
+  void loadProfessionalApplication();
 });
 
 onUnmounted(() => {

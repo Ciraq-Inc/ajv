@@ -36,6 +36,10 @@
           <component :is="activeNav === 'profile' ? UserSolid : UserOutline" class="w-6 h-6" />
           Profile
         </button>
+        <button v-if="isProfessionalApproved" @click="goTo('stock')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'stock' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
+          <component :is="activeNav === 'stock' ? BeakerSolid : BeakerOutline" class="w-6 h-6" />
+          Browse Stock
+        </button>
       </nav>
 
       <div class="mt-auto pt-6 border-t border-[#ede3f2]">
@@ -134,9 +138,9 @@
            </div>
            <span class="text-[10px] font-semibold">Wallet</span>
         </button>
-        <button @click="showMenu = true" :aria-label="'More'" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="['orders','profile','companies'].includes(activeNav) ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="['orders','profile','companies'].includes(activeNav) ? 'bg-[#efdbff]' : ''">
-             <component :is="['orders','profile','companies'].includes(activeNav) ? MoreSolid : MoreOutline" class="w-6 h-6" />
+        <button @click="showMenu = true" :aria-label="'More'" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="['orders','profile','companies','stock'].includes(activeNav) ? 'text-[#4F217A]' : 'text-zinc-500'">
+           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="['orders','profile','companies','stock'].includes(activeNav) ? 'bg-[#efdbff]' : ''">
+             <component :is="['orders','profile','companies','stock'].includes(activeNav) ? MoreSolid : MoreOutline" class="w-6 h-6" />
            </div>
            <span class="text-[10px] font-semibold">More</span>
         </button>
@@ -164,6 +168,9 @@
             </button>
             <button @click="showMenu = false; goTo('orders')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
               <ReceiptOutline class="w-6 h-6 text-[#71717a]" /> History
+            </button>
+            <button v-if="isProfessionalApproved" @click="showMenu = false; goTo('stock')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
+              <BeakerOutline class="w-6 h-6 text-[#71717a]" /> Browse Stock
             </button>
             <div class="h-px w-full bg-[#f3ebf3] my-2"></div>
             <button @click="handleLogout" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-[#ffdad6] text-[#ba1a1a] transition-colors text-left font-semibold">
@@ -223,6 +230,7 @@ import {
   EllipsisHorizontalIcon as MoreOutline,
   ExclamationCircleIcon as ErrorIcon,
   CheckCircleIcon as CheckIcon,
+  BeakerIcon as BeakerOutline,
 } from '@heroicons/vue/24/outline'
 import {
   HomeIcon as HomeSolid,
@@ -232,6 +240,7 @@ import {
   BuildingStorefrontIcon as PharmacySolid,
   UserIcon as UserSolid,
   EllipsisHorizontalIcon as MoreSolid,
+  BeakerIcon as BeakerSolid,
 } from '@heroicons/vue/24/solid'
 
 const userStore = useUserStore()
@@ -261,6 +270,7 @@ const displayUserInitials = computed(() => hasMounted.value ? userInitials.value
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
 const activeNav = computed(() => route.query.tab || 'new')
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'new' && route.query.tab !== 'requests')
+const isProfessionalApproved = computed(() => userStore.masterCustomer?.professional_status === 'approved')
 const greetingLabel = computed(() => {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'

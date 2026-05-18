@@ -229,8 +229,8 @@
                             </div>
                             <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
                                 <span class="text-zinc-500">Charge</span>
-                                <span class="font-black" :class="firstRequestFree ? 'text-emerald-600' : 'text-zinc-900'">
-                                    {{ firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
+                                <span class="font-black" :class="(firstRequestFree || isProfessional) ? 'text-emerald-600' : 'text-zinc-900'">
+                                    {{ isProfessional ? 'Free (Pro)' : firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
                                 </span>
                             </div>
                             <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
@@ -258,8 +258,8 @@
                 <div class="bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
                     <div class="flex-1 min-w-0">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
-                        <p class="text-lg font-black leading-tight" :class="firstRequestFree ? 'text-emerald-600' : 'text-zinc-900'">
-                            {{ firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
+                        <p class="text-lg font-black leading-tight" :class="(firstRequestFree || isProfessional) ? 'text-emerald-600' : 'text-zinc-900'">
+                            {{ isProfessional ? 'Free (Pro)' : firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
                         </p>
                         <p class="text-[11px] font-semibold mt-0.5"
                             :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">
@@ -806,7 +806,8 @@
             <div class="modal-content priority-modal">
                 <div class="modal-header">
                     <div>
-                        <span v-if="firstRequestFree" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — first request</span>
+                        <span v-if="isProfessional" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — professional</span>
+                        <span v-else-if="firstRequestFree" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — first request</span>
                         <span v-else class="text-xs font-bold text-zinc-500 uppercase tracking-wide">GHS {{ requestFee.toFixed(2) }} charge</span>
                     </div>
                     <button @click="showPriorityModal = false" class="modal-close">
@@ -816,7 +817,10 @@
 
                 <div class="modal-body">
                     <div class="priority-hero">
-                        <p v-if="firstRequestFree" class="priority-copy">
+                        <p v-if="isProfessional" class="priority-copy">
+                            You're a verified health professional — no fee will be charged for this request.
+                        </p>
+                        <p v-else-if="firstRequestFree" class="priority-copy">
                             Your first request is free — no fee will be charged.
                         </p>
                         <p v-else class="priority-copy">
@@ -1156,6 +1160,7 @@ const submittedNumber = ref<string>('')
 const requestFee = ref<number>(5)
 const requestRefundMinutes = ref<number>(30)
 const firstRequestFree = ref<boolean>(false)
+const isProfessional = ref<boolean>(false)
 const paymentOptionsByRequest = ref<Record<string | number, PaymentOptions>>({})
 const paymentOptionsLoading = ref<Record<string | number, boolean>>({})
 const selectedPaymentMethodByRequest = ref<Record<string | number, string>>({})
@@ -1504,6 +1509,7 @@ const isUploading = computed<boolean>(() => isSubmitting.value && uploadProgress
 const homeLocationAvailable = computed<boolean>(() => !!(savedHomeLocation.value?.latitude && savedHomeLocation.value?.longitude))
 const canSearchProducts = computed<boolean>(() =>
     firstRequestFree.value ||
+    isProfessional.value ||
     Number(walletBalance.value ?? 0) >= Number(requestFee.value ?? 5)
 )
 const canSubmit = computed<boolean>(() => {
@@ -1994,14 +2000,16 @@ const apiCall = async (method: string, url: string, data: Record<string, unknown
 
 const fetchRequestSettings = async (): Promise<void> => {
     try {
-        const res = await orderRequestsService.getCustomerSettings() as { data?: { request_submission_fee?: number; request_no_response_refund_minutes?: number; first_request_free?: boolean } }
+        const res = await orderRequestsService.getCustomerSettings() as { data?: { request_submission_fee?: number; request_no_response_refund_minutes?: number; first_request_free?: boolean; is_professional?: boolean } }
         requestFee.value = Number(res.data?.request_submission_fee ?? 5)
         requestRefundMinutes.value = Number(res.data?.request_no_response_refund_minutes ?? 30)
         firstRequestFree.value = Boolean(res.data?.first_request_free ?? false)
+        isProfessional.value = Boolean(res.data?.is_professional ?? false)
     } catch {
         requestFee.value = 5
         requestRefundMinutes.value = 30
         firstRequestFree.value = false
+        isProfessional.value = false
     }
 }
 

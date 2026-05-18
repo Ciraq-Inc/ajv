@@ -271,6 +271,10 @@
       <div v-if="currentTab === 'companies'" class="page-view">
         <LinkedCompanies />
       </div>
+
+      <div v-if="currentTab === 'stock' && isProfessionalApproved" class="page-view">
+        <ProfessionalStock />
+      </div>
     </template>
   </div>
 </template>
@@ -293,6 +297,7 @@ import Orders from '~/components/customers/orders.vue'
 import OrderRequests from '~/components/customers/orderRequests.vue'
 import Profile from '~/components/customers/profile.vue'
 import Wallet from '~/components/customers/wallet.vue'
+import ProfessionalStock from '~/components/customers/professionalStock.vue'
 import { useUserStore } from '~/stores/user'
 import { getCompactAddressLines } from '~/utils/addressFormat'
 import { useOrderStatus } from '~/composables/useOrderStatus'
@@ -353,6 +358,7 @@ const HOME_STATS_POLL_MS = 15000
 let homeStatsPollTimer: ReturnType<typeof setInterval> | null = null
 
 const currentTab = computed<string>(() => String(route.query['tab'] ?? 'new'))
+const isProfessionalApproved = computed<boolean>(() => (userStore.masterCustomer as Record<string, unknown> | undefined)?.professional_status === 'approved')
 const requestIdFromQuery = computed<string | null>(() => {
   const value = route.query['requestId']
   if (Array.isArray(value)) return value[0] ?? null

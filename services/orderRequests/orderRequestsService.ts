@@ -58,4 +58,19 @@ export const createOrderRequestsService = (api: ApiInstance) => ({
     const qs = params.toString();
     return api.get(`/api/order-requests/admin/pharmacy-ledger${qs ? `?${qs}` : ''}`);
   },
+
+  searchProducts({ q, lat, lng }: SearchProductsParams = {}): Promise<ApiEnvelope<unknown[]>> {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (lat != null) params.set('lat', String(lat));
+    if (lng != null) params.set('lng', String(lng));
+    const qs = params.toString();
+    return api.get(`/api/order-requests/customer/search-products${qs ? `?${qs}` : ''}`);
+  },
 });
+
+export interface SearchProductsParams {
+  q?: string;
+  lat?: number | string | null;
+  lng?: number | string | null;
+}

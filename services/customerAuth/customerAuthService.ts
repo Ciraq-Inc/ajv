@@ -228,4 +228,29 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
     if (lng !== undefined && lng !== null) params['lng'] = lng;
     return api.get('/api/auth/customer/reverse-geocode', { params });
   },
+
+  applyForProfessional(payload: ProfessionalApplicationPayload): Promise<ApiEnvelope<{ status: string }>> {
+    return api.post('/api/professionals/customer/apply', payload);
+  },
+
+  getMyProfessionalApplication(): Promise<ApiEnvelope<ProfessionalProfile | null>> {
+    return api.get('/api/professionals/customer/application');
+  },
 });
+
+export interface ProfessionalApplicationPayload {
+  profession_type: 'doctor' | 'pharmacist' | 'nurse' | 'other';
+  license_number: string;
+  license_body?: string | null;
+}
+
+export interface ProfessionalProfile {
+  id?: number;
+  profession_type?: string | null;
+  license_number?: string | null;
+  license_body?: string | null;
+  status?: 'pending' | 'approved' | 'rejected' | null;
+  rejection_reason?: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+}
