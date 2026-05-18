@@ -497,7 +497,7 @@ const submitLogin = async (): Promise<void> => {
     if (result.status === 'registered') {
       try {
         await userStore.login(phoneNumber.value, password.value);
-        emit('login-success', { destination: 'home', action: 'login' });
+        emit('login-success', { destination: 'new', action: 'login' });
         closeModal();
       } catch (loginErr) {
         console.error('Login error:', loginErr);

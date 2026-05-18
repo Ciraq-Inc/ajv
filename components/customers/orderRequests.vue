@@ -8,15 +8,9 @@
                 <div>
                     <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">New Request
                     </h2>
-                    <p class="text-sm font-medium text-zinc-600 mt-1">Describe the medicines you need. A pharmacist will
-                        source and confirm pricing.</p>
+                    <p class="text-sm font-medium text-zinc-600 mt-1">A pharmacist will source and price your medicines.</p>
                 </div>
                 <div class="flex flex-col items-end gap-2 flex-shrink-0 mt-1">
-                    <button @click="goToRequestHistory" type="button"
-                        class="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
-                        <ClockIcon class="w-[18px] h-[18px]" />
-                        My Requests
-                    </button>
                     <button @click="openWalletTab" type="button"
                         class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors"
                         :class="canSearchProducts ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'">
@@ -26,28 +20,11 @@
                 </div>
             </div>
 
-            <!-- Wallet lock banner -->
-            <div v-if="!canSearchProducts"
-                class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
-                <div
-                    class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <ExcTriIcon class="w-4 h-4" />
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="font-black text-amber-900 text-sm">Top up before sending your request</p>
-                    <p class="text-xs text-amber-700 mt-0.5">You need at least GHS {{ requestFee.toFixed(2) }} in your
-                        wallet before submission. Current balance: GHS {{ walletBalance.toFixed(2) }}.</p>
-                </div>
-                <button type="button" @click="openWalletTab"
-                    class="flex-shrink-0 bg-amber-900 text-white px-3 py-2 rounded-xl text-xs font-semibold hover:bg-amber-800 transition-colors">
-                    Top Up
-                </button>
-            </div>
-
             <!-- Main content: form + desktop sidebar -->
             <div class="flex flex-col lg:flex-row gap-6 lg:items-start">
                 <!-- Left column: form sections -->
                 <div class="flex-1 min-w-0 space-y-4">
+                <div class="relative space-y-4">
 
                     <!-- Add Medication (with inline triggers for prescription + notes) -->
                     <section class="bg-white rounded-2xl p-5">
@@ -65,11 +42,7 @@
                                     autocapitalize="words"
                                     inputmode="text"
                                     placeholder="Medicine name, brand, or strength"
-                                    aria-describedby="request-medicine-help"
                                     class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
-                                <p v-if="index === 0" id="request-medicine-help" class="text-[11px] font-medium text-zinc-500">
-                                    Include the strength if you know it (e.g. Paracetamol 500mg).
-                                </p>
 
                                 <div v-if="item.product_name.trim()" class="flex items-center gap-2">
                                     <select v-model="item.requested_unit"
@@ -97,120 +70,61 @@
                                 </div>
                             </div>
                         </div>
-                        <button @click="addItem" type="button"
-                            class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors disabled:opacity-40">
-                            <PlusIcon class="w-4 h-4" /> Add another medication
-                        </button>
-
-                        <!-- Inline triggers for optional sections -->
-                        <div v-if="!showPrescriptionField || !showNotesField"
-                            class="mt-4 pt-4 border-t border-zinc-100 flex flex-wrap gap-x-6 gap-y-2">
-                            <button v-if="!showPrescriptionField" @click="openPrescriptionField" type="button"
-                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors">
-                                <PlusIcon class="w-4 h-4" /> Attach prescription
-                            </button>
-                            <button v-if="!showNotesField" @click="openNotesField" type="button"
-                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4F217A] hover:text-[#350062] transition-colors">
-                                <PlusIcon class="w-4 h-4" /> Add a note
-                            </button>
-                        </div>
-
-                        <!-- Prescription (revealed inline) -->
-                        <div v-if="showPrescriptionField" class="mt-5 pt-5 border-t border-zinc-100">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="text-sm font-semibold text-zinc-700">Prescription <span class="font-normal text-zinc-400">(optional)</span></h4>
-                                <button v-if="!prescriptionFiles.length" @click="dismissPrescriptionField" type="button"
-                                    class="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
-                                    × Cancel
-                                </button>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <label
-                                    class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
-                                    <div
-                                        class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
-                                        <CameraIcon class="w-5 h-5" />
-                                    </div>
-                                    <span class="text-sm font-semibold text-zinc-700">Take a Photo</span>
-                                    <input ref="prescriptionPicker" type="file" accept="image/*" multiple
-                                        @change="onPrescriptionFilesSelected" class="hidden" />
+                        <!-- Prescription -->
+                        <div class="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between">
+                            <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Prescription</span>
+                            <div class="flex items-center gap-2">
+                                <label class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors" title="Take a photo">
+                                    <CameraIcon class="w-4 h-4" />
+                                    <input ref="prescriptionPicker" type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
-                                <label
-                                    class="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 cursor-pointer hover:border-zinc-300 hover:bg-white transition-all">
-                                    <div
-                                        class="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center">
-                                        <ArrowUpTrayIcon class="w-5 h-5" />
-                                    </div>
-                                    <span class="text-sm font-semibold text-zinc-700">Upload Document</span>
-                                    <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected"
-                                        class="hidden" />
+                                <label class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors" title="Upload file">
+                                    <ArrowUpTrayIcon class="w-4 h-4" />
+                                    <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
-                            </div>
-                            <input ref="prescriptionReplacePicker" type="file" accept="image/*" class="hidden"
-                                @change="onReplacePrescriptionFile" />
-                            <div v-if="prescriptionFiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                                <div v-for="(image, index) in prescriptionFiles" :key="image.id"
-                                    class="relative group rounded-lg overflow-hidden border border-zinc-200 aspect-square bg-zinc-100 shadow-sm">
-                                    <img :src="image.previewUrl" :alt="image.file.name"
-                                        class="w-full h-full object-cover" />
-                                    <div
-                                        class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
-                                        <strong class="block text-[11px] text-white font-bold tracking-wider">Page {{ index
-                                            + 1 }}</strong>
-                                        <span class="block text-[9px] text-white/80 font-medium truncate">{{ image.file.name
-                                            }}</span>
-                                    </div>
-                                    <div
-                                        class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
-                                        <button type="button"
-                                            class="text-[11px] font-bold text-white uppercase tracking-wider hover:underline"
-                                            @click="queuePrescriptionReplace(index)">Retake</button>
-                                        <button type="button"
-                                            class="text-[11px] font-bold text-red-300 uppercase tracking-wider hover:text-red-400 hover:underline"
-                                            @click="removePrescriptionFile(index)">Delete</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div v-if="isUploading"
-                                class="mt-5 rounded-xl border border-[#4F217A]/20 bg-[#fbf9fc] p-4 shadow-sm">
-                                <div class="flex items-center justify-between mb-2 pb-1 border-b border-[#4F217A]/10">
-                                    <strong class="text-xs font-black uppercase tracking-wider text-[#4F217A]">Uploading
-                                        prescription photos</strong>
-                                    <span class="text-xs font-black text-[#5d4679]">{{ Math.round(uploadProgress) }}%</span>
-                                </div>
-                                <div class="w-full h-2 bg-[#4F217A]/10 rounded-full overflow-hidden">
-                                    <span class="block h-full bg-[#4F217A] transition-all duration-300"
-                                        :style="{ width: `${uploadProgress}%` }"></span>
-                                </div>
                             </div>
                         </div>
 
-                        <!-- Notes (revealed inline) -->
-                        <div v-if="showNotesField" class="mt-5 pt-5 border-t border-zinc-100">
-                            <div class="flex items-center justify-between mb-2">
-                                <label for="request-notes" class="text-sm font-semibold text-zinc-700">Notes <span class="font-normal text-zinc-400">(optional)</span></label>
-                                <button v-if="!customerNotes.trim()" @click="dismissNotesField" type="button"
-                                    class="text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
-                                    × Cancel
-                                </button>
+                        <div v-if="isUploading" class="mt-3 flex items-center gap-3">
+                            <div class="flex-1 h-1.5 bg-[#4F217A]/10 rounded-full overflow-hidden">
+                                <span class="block h-full bg-[#4F217A] transition-all duration-300"
+                                    :style="{ width: `${uploadProgress}%` }"></span>
                             </div>
+                            <span class="text-xs font-bold text-[#4F217A] tabular-nums">{{ Math.round(uploadProgress) }}%</span>
+                        </div>
+
+                        <!-- Notes -->
+                        <div v-if="showNotesField" class="mt-4 pt-4 border-t border-zinc-100 flex items-start gap-2">
                             <textarea v-model="customerNotes" rows="2"
                                 ref="notesTextarea"
                                 id="request-notes"
                                 inputmode="text"
                                 autocapitalize="sentences"
-                                placeholder="e.g. brand preference, dosage form..."
-                                class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
+                                placeholder="Notes — e.g. brand preference, dosage form..."
+                                class="flex-1 rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
+                            <button v-if="!customerNotes.trim()" @click="dismissNotesField" type="button"
+                                class="mt-1 w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors flex-shrink-0">
+                                <XMarkIcon class="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <!-- Icon action row -->
+                        <div class="mt-5 pt-4 border-t border-zinc-100 flex items-center gap-2">
+                            <button @click="addItem" type="button" title="Add another medication"
+                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-[#4F217A]/[0.07] text-[#4F217A] hover:bg-[#4F217A]/[0.14] transition-colors">
+                                <PlusIcon class="w-5 h-5" />
+                            </button>
+                            <button v-if="!showNotesField" @click="openNotesField" type="button" title="Add a note"
+                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 transition-colors">
+                                <ChatBubbleLeftEllipsisIcon class="w-5 h-5" />
+                            </button>
                         </div>
                     </section>
 
 
                     <!-- Address & Location -->
                     <section class="bg-white rounded-2xl p-5">
-                        <div class="flex items-center gap-3 mb-4">
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Your Address</h3>
-                        </div>
+                        <h3 class="font-black text-zinc-900 text-base tracking-tight mb-4">Your Address</h3>
                         <button @click="getLocation" :disabled="gettingLocation"
                             class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300"
                             :class="{ 'bg-emerald-50/50 border-emerald-200': customerLat }">
@@ -224,16 +138,10 @@
                                 <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel }}</strong>
                                 <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{ locationSublabel }}</span>
                             </div>
-                            <div v-if="customerLat" class="flex flex-col items-center gap-0.5 flex-shrink-0">
-                                <CheckCircleIconSolid class="w-4 h-4 text-emerald-500" />
-                                <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Edit</span>
-                            </div>
+                            <CheckCircleIconSolid v-if="customerLat" class="w-4 h-4 text-emerald-500 flex-shrink-0" />
                         </button>
                         <div class="flex flex-col gap-2">
                             <div class="relative">
-                                <label for="delivery-address-search"
-                                    class="block text-xs font-black uppercase tracking-[0.12em] text-zinc-500 mb-2">Search
-                                    address</label>
                                 <div
                                     class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
                                     <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
@@ -256,10 +164,6 @@
                                     role="listbox"
                                     aria-label="Address suggestions"
                                     class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain list-none m-0 p-0">
-                                    <li class="flex items-center justify-between gap-2 border-b border-zinc-100 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-zinc-400" aria-hidden="true">
-                                        <span>Suggestions</span>
-                                        <span>{{ deliveryAddressSuggestions.length }}</span>
-                                    </li>
                                     <li v-for="(suggestion, index) in deliveryAddressSuggestions"
                                         :key="`${suggestion.display_name}-${index}`"
                                         :id="`delivery-address-option-${index}`"
@@ -286,8 +190,25 @@
                         </div>
                     </section>
 
+                    <!-- Wallet gate overlay -->
+                    <div v-if="!canSearchProducts"
+                        class="absolute inset-0 z-10 rounded-2xl bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 px-6 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                            <WalletIcon class="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p class="font-black text-zinc-900 text-sm">Top up to continue</p>
+                            <p class="text-xs text-zinc-500 mt-0.5">GHS {{ requestFee.toFixed(2) }} needed · Balance: GHS {{ (walletBalance ?? 0).toFixed(2) }}</p>
+                        </div>
+                        <button @click="openWalletTab" type="button"
+                            class="bg-[#4F217A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors">
+                            Top Up Wallet
+                        </button>
+                    </div>
+                </div><!-- /wallet gate wrapper -->
+
                     <!-- Privacy note -->
-                  
+
                 </div><!-- /left form column -->
 
                 <!-- Right sidebar (desktop only) -->
@@ -308,7 +229,9 @@
                             </div>
                             <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
                                 <span class="text-zinc-500">Charge</span>
-                                <span class="font-black text-zinc-900">GHS {{ requestFee.toFixed(2) }}</span>
+                                <span class="font-black" :class="firstRequestFree ? 'text-emerald-600' : 'text-zinc-900'">
+                                    {{ firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
+                                </span>
                             </div>
                             <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
                                 <span class="text-zinc-500">Wallet Balance</span>
@@ -316,7 +239,7 @@
                                     :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">GHS {{ walletBalance.toFixed(2) }}</span>
                             </div>
                         </div>
-                        <p class="text-[11px] text-zinc-500 leading-snug mb-3">You'll choose pickup or delivery on the next screen, where you can compare prices and pharmacy distance.</p>
+                        <p class="text-[11px] text-zinc-500 leading-snug mb-3">Pickup or delivery options shown at next step.</p>
                         <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
                             class="w-full bg-purple-700 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
@@ -332,11 +255,12 @@
 
             <!-- Mobile submit bar -->
             <div class="lg:hidden space-y-2">
-                <p class="text-[11px] text-zinc-500 leading-snug px-1">You'll choose pickup or delivery on the next screen, where you can compare prices and pharmacy distance.</p>
                 <div class="bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
                     <div class="flex-1 min-w-0">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
-                        <p class="text-lg font-black text-zinc-900 leading-tight">GHS {{ requestFee.toFixed(2) }}</p>
+                        <p class="text-lg font-black leading-tight" :class="firstRequestFree ? 'text-emerald-600' : 'text-zinc-900'">
+                            {{ firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
+                        </p>
                         <p class="text-[11px] font-semibold mt-0.5"
                             :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">
                             Balance: GHS {{ walletBalance.toFixed(2) }}
@@ -362,7 +286,6 @@
                     </button>
                     <div>
                         <h1 class="text-lg font-bold text-zinc-900 tracking-tight">My Requests</h1>
-                        <p class="text-xs text-zinc-500 font-medium mt-0.5">Track your custom pharmacy orders</p>
                     </div>
                 </div>
             </header>
@@ -883,7 +806,8 @@
             <div class="modal-content priority-modal">
                 <div class="modal-header">
                     <div>
-                        <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">GHS {{ requestFee.toFixed(2) }} charge</span>
+                        <span v-if="firstRequestFree" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — first request</span>
+                        <span v-else class="text-xs font-bold text-zinc-500 uppercase tracking-wide">GHS {{ requestFee.toFixed(2) }} charge</span>
                     </div>
                     <button @click="showPriorityModal = false" class="modal-close">
                         <XMarkIcon class="close-svg" />
@@ -892,7 +816,10 @@
 
                 <div class="modal-body">
                     <div class="priority-hero">
-                        <p class="priority-copy">
+                        <p v-if="firstRequestFree" class="priority-copy">
+                            Your first request is free — no fee will be charged.
+                        </p>
+                        <p v-else class="priority-copy">
                             A GHS {{ requestFee.toFixed(2) }} search fee is deducted from your wallet — it's credited back against your order if you proceed, or kept if you don't.
                         </p>
                     </div>
@@ -1228,6 +1155,7 @@ const showPriorityModal = ref<boolean>(false)
 const submittedNumber = ref<string>('')
 const requestFee = ref<number>(5)
 const requestRefundMinutes = ref<number>(30)
+const firstRequestFree = ref<boolean>(false)
 const paymentOptionsByRequest = ref<Record<string | number, PaymentOptions>>({})
 const paymentOptionsLoading = ref<Record<string | number, boolean>>({})
 const selectedPaymentMethodByRequest = ref<Record<string | number, string>>({})
@@ -1574,7 +1502,10 @@ const hasItemImageFiles = computed<boolean>(() => requestItems.value.some((item)
 const hasMultipartUploads = computed<boolean>(() => hasPrescriptionFiles.value || hasItemImageFiles.value)
 const isUploading = computed<boolean>(() => isSubmitting.value && uploadProgress.value > 0)
 const homeLocationAvailable = computed<boolean>(() => !!(savedHomeLocation.value?.latitude && savedHomeLocation.value?.longitude))
-const canSearchProducts = computed<boolean>(() => Number(walletBalance.value ?? 0) >= Number(requestFee.value ?? 5))
+const canSearchProducts = computed<boolean>(() =>
+    firstRequestFree.value ||
+    Number(walletBalance.value ?? 0) >= Number(requestFee.value ?? 5)
+)
 const canSubmit = computed<boolean>(() => {
     const hasRequestContent = validItems.value.length > 0 || prescriptionFiles.value.length > 0
     if (!hasRequestContent || !customerLat.value) return false
@@ -1589,12 +1520,9 @@ const canSubmit = computed<boolean>(() => {
 })
 
 const locationLabel = computed<string>(() => {
-    if (locationMode.value === 'home' && homeLocationAvailable.value) return 'Home location ready'
-    if (locationMode.value === 'current-request' && customerLat.value) return 'Request location updated'
     if (customerLat.value) return 'Location set'
     if (gettingLocation.value) return 'Getting location...'
-    if (homeLocationAvailable.value) return 'Use current location for this request'
-    return 'Use My Current Location'
+    return 'Use my location'
 })
 const locationSublabel = computed<string>(() => {
     if (locationMode.value === 'home' && savedHomeLocation.value?.address) {
@@ -1604,7 +1532,7 @@ const locationSublabel = computed<string>(() => {
         return formatCompactAddress(customerAddress.value, { primaryCount: 3, fallback: customerAddress.value })
     }
     if (customerLat.value) return `${customerLat.value.toFixed(4)}, ${customerLng.value?.toFixed(4) ?? ''}`
-    return 'We need this to find nearby pharmacies'
+    return 'Tap to detect your location'
 })
 
 const compactAddress = (value: string): string => formatCompactAddress(value, { primaryCount: 3, fallback: value ?? '' })
@@ -2066,12 +1994,14 @@ const apiCall = async (method: string, url: string, data: Record<string, unknown
 
 const fetchRequestSettings = async (): Promise<void> => {
     try {
-        const res = await orderRequestsService.getCustomerSettings() as { data?: { request_submission_fee?: number; request_no_response_refund_minutes?: number } }
+        const res = await orderRequestsService.getCustomerSettings() as { data?: { request_submission_fee?: number; request_no_response_refund_minutes?: number; first_request_free?: boolean } }
         requestFee.value = Number(res.data?.request_submission_fee ?? 5)
         requestRefundMinutes.value = Number(res.data?.request_no_response_refund_minutes ?? 30)
+        firstRequestFree.value = Boolean(res.data?.first_request_free ?? false)
     } catch {
         requestFee.value = 5
         requestRefundMinutes.value = 30
+        firstRequestFree.value = false
     }
 }
 

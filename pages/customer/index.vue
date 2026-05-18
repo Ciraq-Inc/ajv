@@ -352,7 +352,7 @@ const activeRequestCount = ref<number>(0)
 const HOME_STATS_POLL_MS = 15000
 let homeStatsPollTimer: ReturnType<typeof setInterval> | null = null
 
-const currentTab = computed<string>(() => String(route.query['tab'] ?? 'home'))
+const currentTab = computed<string>(() => String(route.query['tab'] ?? 'new'))
 const requestIdFromQuery = computed<string | null>(() => {
   const value = route.query['requestId']
   if (Array.isArray(value)) return value[0] ?? null

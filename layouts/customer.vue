@@ -4,7 +4,7 @@
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- SideNavBar -->
     <aside class="fixed left-0 top-0 h-full hidden lg:flex flex-col p-5 gap-2 bg-white border-r border-zinc-200 w-64 z-50 ">
-      <div class="flex items-center gap-3 mb-10 px-2 cursor-pointer" @click="goTo('home')">
+      <div class="flex items-center gap-3 mb-10 px-2 cursor-pointer" @click="goTo('new')">
         <img src="~/assets/images/rigellogo.png" class="h-10 w-auto object-contain" alt="MedsGH Logo" />
         <div>
           <h1 class="text-[1.7rem] font-semibold text-zinc-900 leading-none tracking-tight">MedsGh</h1>
@@ -12,8 +12,8 @@
       </div>
 
       <nav class="flex-1 space-y-2">
-        <button @click="goTo('home')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'home' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'" >
-          <component :is="activeNav === 'home' ? HomeSolid : HomeOutline" class="w-6 h-6" />
+        <button @click="goTo('new')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'new' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'" >
+          <component :is="activeNav === 'new' ? HomeSolid : HomeOutline" class="w-6 h-6" />
           Home
         </button>
         <button @click="goTo('requests')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'requests' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
@@ -55,17 +55,17 @@
       <header
         v-if="activeNav !== 'new' && activeNav !== 'requests'"
         class="sticky top-0 z-40 bg-[#f4f4f5]/92 backdrop-blur-md px-4 lg:px-8 flex justify-between items-center border-b border-zinc-200"
-        :class="activeNav === 'home' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
+        :class="activeNav === 'new' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
       >
-        <div v-if="activeNav === 'home' || canGoBack" class="flex min-w-0 flex-1 items-center gap-2.5 lg:gap-3">
-          <div v-if="activeNav === 'home' && !canGoBack" class="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#e9daf7] bg-white shadow-sm">
+        <div v-if="activeNav === 'new' || canGoBack" class="flex min-w-0 flex-1 items-center gap-2.5 lg:gap-3">
+          <div v-if="activeNav === 'new' && !canGoBack" class="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#e9daf7] bg-white shadow-sm">
             <img :src="brandLogo" alt="MedsGH Logo" class="h-7 w-7 object-contain" />
           </div>
-          <button v-else-if="canGoBack" @click="goTo('home')" aria-label="Back to home" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
+          <button v-else-if="canGoBack" @click="goTo('new')" aria-label="Back to home" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
             <ArrowLeftIcon class="w-6 h-6" />
           </button>
 
-          <div v-if="activeNav === 'home'" class="min-w-0 flex-1">
+          <div v-if="activeNav === 'new'" class="min-w-0 flex-1">
             <h2 class="truncate text-[1.05rem] font-bold leading-tight tracking-tight text-zinc-900 lg:text-[2rem]">
               {{ headerGreeting }}
             </h2>
@@ -92,7 +92,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-3 lg:gap-5" :class="activeNav === 'home' ? '' : 'ml-auto'">
+        <div class="flex items-center gap-3 lg:gap-5" :class="activeNav === 'new' ? '' : 'ml-auto'">
           <button aria-label="Notifications" class="relative w-10 h-10 hidden lg:flex items-center justify-center rounded-xl text-[#71717a] hover:bg-[#e8e0e8] transition-colors">
             <BellIcon class="w-6 h-6" />
             <span v-if="notificationCount > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none pointer-events-none">
@@ -116,9 +116,9 @@
 
       <!-- Mobile Bottom Nav -->
       <nav class="lg:hidden fixed bottom-3 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-md -translate-x-1/2 items-center justify-around rounded-xl border border-[#e8dff0] bg-white/92 px-2 py-2 shadow-[0_20px_45px_-25px_rgba(53,0,98,0.4)] backdrop-blur-md pb-safe">
-        <button @click="goTo('home')" :aria-label="'Home'" :aria-current="activeNav === 'home' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'home' ? 'text-[#4F217A]' : 'text-zinc-500'">
-          <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'home' ? 'bg-[#efdbff]' : ''">
-            <component :is="activeNav === 'home' ? HomeSolid : HomeOutline" class="w-6 h-6" />
+        <button @click="goTo('new')" :aria-label="'Home'" :aria-current="activeNav === 'new' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'new' ? 'text-[#4F217A]' : 'text-zinc-500'">
+          <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'new' ? 'bg-[#efdbff]' : ''">
+            <component :is="activeNav === 'new' ? HomeSolid : HomeOutline" class="w-6 h-6" />
           </div>
           <span class="text-[10px] font-semibold">Home</span>
         </button>
@@ -128,11 +128,6 @@
            </div>
            <span class="text-[10px] font-semibold">Requests</span>
         </button>
-        <div class="relative -top-5">
-           <button @click="goTo('new')" :aria-label="'New request'" class="w-14 h-14 primary-gradient text-white rounded-full flex items-center justify-center shadow-[0_18px_34px_-18px_rgba(53,0,98,0.7)] hover:scale-95 transition-transform border-[4px] border-white">
-              <PlusIcon class="w-6 h-6" />
-           </button>
-        </div>
         <button @click="goTo('wallet')" :aria-label="'Wallet'" :aria-current="activeNav === 'wallet' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'wallet' ? 'text-[#4F217A]' : 'text-zinc-500'">
            <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'wallet' ? 'bg-[#efdbff]' : ''">
              <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-6 h-6" />
@@ -264,8 +259,8 @@ const displayUserName = computed(() => hasMounted.value ? userName.value : 'Cust
 const displayUserFirstName = computed(() => hasMounted.value ? userFirstName.value : 'Customer')
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
-const activeNav = computed(() => route.query.tab || 'home')
-const canGoBack = computed(() => route.query.tab && route.query.tab !== 'home' && route.query.tab !== 'new' && route.query.tab !== 'requests')
+const activeNav = computed(() => route.query.tab || 'new')
+const canGoBack = computed(() => route.query.tab && route.query.tab !== 'new' && route.query.tab !== 'requests')
 const greetingLabel = computed(() => {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'

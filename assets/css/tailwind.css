@@ -19,6 +19,7 @@
     max-width: 100%;
   }
 
+
   /* Accessible "skip to main content" link.
      Visually hidden until it receives keyboard focus; required by
      WCAG 2.4.1 (Bypass Blocks) so keyboard / screen-reader users
@@ -45,6 +46,12 @@
 /* WCAG 2.3.3 / 2.2.2: honour the OS-level reduced-motion preference.
    Strips animations, transitions, and Nuxt's `page-*` route transition
    so users with vestibular sensitivities aren't pulled by motion. */
+/* Outside any @layer so it wins over Tailwind utility classes (text-sm etc.)
+   Prevents iOS Safari from zooming on input focus when font-size < 16px */
+input, textarea, select {
+  font-size: max(16px, 1em);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

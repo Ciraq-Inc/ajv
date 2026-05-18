@@ -49,10 +49,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       charset: "utf-8",
-      // WCAG 1.4.4 (Resize Text): allow pinch-zoom up to at least 200%.
-      // Do NOT add `maximum-scale=1` or `user-scalable=no` — they break zoom
-      // for low-vision users on mobile and inside the Android WebView wrapper.
-      viewport: "width=device-width, initial-scale=1",
+      viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
       htmlAttrs: {
         lang: "en",
       },
