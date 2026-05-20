@@ -129,7 +129,7 @@
               <div class="flex items-center justify-between gap-4 border-b border-gray-100 pb-2">
                 <div>
                   <p class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">FY {{ group.year }}</p>
-                  <p class="text-[11px] text-gray-400">{{ group.rangeLabel }} - {{ group.months.length }} month{{ group.months.length === 1 ? '' : 's' }}</p>
+                  <p class="text-[11px] text-gray-500">{{ group.rangeLabel }} - {{ group.months.length }} month{{ group.months.length === 1 ? '' : 's' }}</p>
                 </div>
                 <button
                   class="rounded border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition cs-subtle-btn"
@@ -233,7 +233,7 @@
     </section>
 
     <section class="border-t border-gray-200 pt-5">
-      <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">System last updated</p>
+      <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-500">System last updated</p>
       <p class="mt-1 text-sm font-medium text-gray-700">
         {{ status.lastSuccessfulSyncAt ? formatDateTime(status.lastSuccessfulSyncAt) : 'No successful sync recorded yet' }}
       </p>

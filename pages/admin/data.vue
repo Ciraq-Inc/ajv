@@ -3,7 +3,7 @@
     <!-- Vertical Grouped Nav -->
     <aside class="data-sidebar bg-gray-100 rounded-xl p-3 flex flex-col gap-4">
       <div v-for="group in tabGroups" :key="group.label" class="flex flex-col gap-1">
-        <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 select-none leading-none mb-1">
+        <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-2 select-none leading-none mb-1">
           {{ group.label }}
         </span>
         <button

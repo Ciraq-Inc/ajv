@@ -301,7 +301,7 @@
             <h3 class="text-lg font-semibold text-gray-900">Top Up Money Balance</h3>
             <button
               @click="closeTopUpModal"
-              class="text-gray-400 hover:text-gray-600"
+              class="text-gray-500 hover:text-gray-700"
             >
               <Icon name="X" class="h-6 w-6" />
             </button>

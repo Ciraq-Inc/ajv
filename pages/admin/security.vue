@@ -149,7 +149,7 @@
       </div>
 
       <!-- Footer note -->
-      <div class="text-xs text-gray-400 mt-2 space-y-1">
+      <div class="text-xs text-gray-500 mt-2 space-y-1">
         <p>Passkeys are bound to this browser and device. If you remove all passkeys, login falls back to SMS verification.</p>
         <p>Register passkeys on each device you log in from — they do not sync across devices automatically.</p>
       </div>

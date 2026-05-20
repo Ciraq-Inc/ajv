@@ -9,7 +9,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-12 text-center text-gray-400">Loading wallet...</div>
+    <div v-if="loading" class="py-12 text-center text-gray-500">Loading wallet...</div>
 
     <template v-else>
       <!-- Balance cards -->
@@ -46,13 +46,13 @@
             <div>
               <div class="text-sm font-medium text-gray-900">{{ txLabel(tx.transaction_type) }}</div>
               <div class="text-xs text-gray-500 mt-0.5">{{ tx.description || '—' }}</div>
-              <div class="text-xs text-gray-400 mt-0.5">{{ formatDate(tx.created_at) }}</div>
+              <div class="text-xs text-gray-500 mt-0.5">{{ formatDate(tx.created_at) }}</div>
             </div>
             <div class="text-right shrink-0">
               <div class="text-sm font-semibold" :class="parseFloat(String(tx.amount)) >= 0 ? 'text-green-600' : 'text-red-600'">
                 {{ parseFloat(String(tx.amount)) >= 0 ? '+' : '' }}GH₵{{ fmt(Math.abs(Number(tx.amount))) }}
               </div>
-              <div class="text-xs text-gray-400 mt-0.5">Bal: GH₵{{ fmt(tx.balance_after) }}</div>
+              <div class="text-xs text-gray-500 mt-0.5">Bal: GH₵{{ fmt(tx.balance_after) }}</div>
             </div>
           </div>
         </div>

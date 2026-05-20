@@ -92,7 +92,7 @@
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
       </div>
 
-      <div v-else-if="!rows.length && !error" class="text-center py-16 text-gray-400">
+      <div v-else-if="!rows.length && !error" class="text-center py-16 text-gray-500">
         <p class="text-lg mb-1">No data</p>
         <p class="text-sm">Select a date range and click Load, or no records have been synced yet.</p>
       </div>
@@ -113,7 +113,7 @@
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="(row, i) in rows" :key="row.company_id ?? i" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-gray-400">{{ i + 1 }}</td>
+              <td class="px-4 py-3 text-gray-500">{{ i + 1 }}</td>
               <td class="px-4 py-3 font-medium text-gray-900">{{ row.company_name }}</td>
               <td class="px-4 py-3 text-gray-600">{{ row.company_id }}</td>
               <td class="px-4 py-3 text-gray-500">{{ row.alternate_company_id || '—' }}</td>

@@ -29,7 +29,7 @@
                 </span>
                 <button
                   @click="close"
-                  class="text-gray-400 hover:text-gray-600 transition-colors"
+                  class="text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   <XMarkIcon class="h-6 w-6" />
                 </button>
@@ -238,7 +238,7 @@
                           <div v-if="log.metadata" class="font-mono bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
                             {{ JSON.stringify(log.metadata, null, 2) }}
                           </div>
-                          <span v-else class="text-gray-400">-</span>
+                          <span v-else class="text-gray-500">-</span>
                         </td>
                       </tr>
                     </tbody>

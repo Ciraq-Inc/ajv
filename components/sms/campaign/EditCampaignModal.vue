@@ -16,7 +16,7 @@
               </div>
               <button
                 @click="close"
-                class="text-gray-400 hover:text-gray-600 transition-colors"
+                class="text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <XMarkIcon class="h-6 w-6" />
               </button>

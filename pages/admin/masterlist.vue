@@ -354,7 +354,7 @@
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
           <h3 class="text-lg font-semibold text-gray-900">Upload Product Image</h3>
-          <button @click="closeUploadModal" class="text-gray-400 hover:text-gray-600">
+          <button @click="closeUploadModal" class="text-gray-500 hover:text-gray-700">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -441,7 +441,7 @@
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
           <h3 class="text-lg font-semibold text-gray-900">Bulk Upload Product Images</h3>
           <button @click="closeAutoUploadModal" :disabled="autoUploading"
-            class="text-gray-400 hover:text-gray-600 disabled:opacity-50">
+            class="text-gray-500 hover:text-gray-700 disabled:opacity-50">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -506,7 +506,7 @@
                   <div class="flex items-center space-x-2">
                     <span class="font-medium text-indigo-600">{{ getProductIdFromFile(file.name) }}</span>
                     <span class="text-gray-500">{{ file.name }}</span>
-                    <span class="text-gray-400 text-xs">({{ formatFileSize(file.size) }})</span>
+                    <span class="text-gray-500 text-xs">({{ formatFileSize(file.size) }})</span>
                   </div>
                   <button @click="removeFileFromSelection(index)" class="text-red-500 hover:text-red-700">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

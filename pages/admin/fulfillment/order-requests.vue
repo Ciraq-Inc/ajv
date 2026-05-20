@@ -333,7 +333,7 @@
                                     :placeholder="resolveSearchMode === 'master' ? 'Search master catalog...' : 'Search pharmacy stock...'"
                                     autofocus
                                   />
-                                  <button @click="cancelResolving" class="shrink-0 text-gray-400 hover:text-gray-600 p-0.5" title="Cancel">
+                                  <button @click="cancelResolving" class="shrink-0 text-gray-500 hover:text-gray-700 p-0.5" title="Cancel">
                                     <XMarkIcon class="w-3.5 h-3.5" />
                                   </button>
                                 </div>
@@ -354,7 +354,7 @@
                                 </div>
                                 <!-- Master catalog results -->
                                 <template v-if="resolveSearchMode === 'master'">
-                                  <div v-if="masterSearchLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
+                                  <div v-if="masterSearchLoading" class="text-[10px] text-gray-500 px-1">Searching...</div>
                                   <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
                                     <button
                                       v-for="(mp, mpIdx) in masterSearchResults"
@@ -371,13 +371,13 @@
                                       </span>
                                     </button>
                                   </div>
-                                  <div v-else-if="masterSearchQuery.length >= 2 && !masterSearchLoading" class="text-[10px] text-gray-400 px-1">
+                                  <div v-else-if="masterSearchQuery.length >= 2 && !masterSearchLoading" class="text-[10px] text-gray-500 px-1">
                                     No master products found
                                   </div>
                                 </template>
                                 <!-- Pharmacy stock results -->
                                 <template v-else>
-                                  <div v-if="pharmResolveLoading" class="text-[10px] text-gray-400 px-1">Searching...</div>
+                                  <div v-if="pharmResolveLoading" class="text-[10px] text-gray-500 px-1">Searching...</div>
                                   <div v-else-if="pharmResolveResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
                                     <button
                                       v-for="(pp, ppIdx) in pharmResolveResults"
@@ -395,7 +395,7 @@
                                       </span>
                                     </button>
                                   </div>
-                                  <div v-else-if="masterSearchQuery.length >= 2 && !pharmResolveLoading" class="text-[10px] text-gray-400 px-1">
+                                  <div v-else-if="masterSearchQuery.length >= 2 && !pharmResolveLoading" class="text-[10px] text-gray-500 px-1">
                                     No pharmacy stock found
                                   </div>
                                 </template>
@@ -581,7 +581,7 @@
                           <div class="flex items-center gap-2">
                             <div class="w-1.5 h-1.5 rounded-full bg-[#4F217A] shrink-0"></div>
                             <span class="text-xs font-bold text-gray-700">Pharmacy Coverage</span>
-                            <span v-if="pharmacyCoverage?.data?.pharmacies" class="text-[9px] font-bold text-gray-400">{{ pharmacyCoverage.data.pharmacies.length }} nearby</span>
+                            <span v-if="pharmacyCoverage?.data?.pharmacies" class="text-[9px] font-bold text-gray-500">{{ pharmacyCoverage.data.pharmacies.length }} nearby</span>
                           </div>
                           <button
                             @click="fetchPharmacyCoverage"
@@ -607,7 +607,7 @@
 
                         <!-- Loading state -->
                         <div v-if="coverageLoading" class="coverage-loading">
-                          <div class="flex flex-col items-center justify-center py-10 gap-2 text-gray-400">
+                          <div class="flex flex-col items-center justify-center py-10 gap-2 text-gray-500">
                             <svg class="animate-spin w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -618,7 +618,7 @@
 
                         <!-- No results -->
                         <div v-else-if="pharmacyCoverage && (!pharmacyCoverage.data?.pharmacies || pharmacyCoverage.data.pharmacies.length === 0)" class="coverage-empty">
-                          <div class="flex flex-col items-center justify-center py-10 gap-2 text-gray-400">
+                          <div class="flex flex-col items-center justify-center py-10 gap-2 text-gray-500">
                             <span class="text-xs font-semibold">No nearby pharmacies have matching products.</span>
                             <span class="text-[10px]">Try resolving more items or expanding the search radius.</span>
                           </div>
@@ -635,14 +635,14 @@
                             <div class="coverage-pharmacy-header">
                               <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                  <span class="text-[10px] font-black text-gray-400 shrink-0">#{{ pIdx + 1 }}</span>
+                                  <span class="text-[10px] font-black text-gray-500 shrink-0">#{{ pIdx + 1 }}</span>
                                   <strong class="text-sm font-bold text-gray-900 truncate">{{ pharmacy.pharmacy_name }}</strong>
                                 </div>
                                 <div class="flex items-center gap-2 mt-0.5">
                                   <span class="text-[10px] text-gray-500 font-semibold" title="Straight-line distance (approximate)">
                                     {{ Number.isFinite(Number(pharmacy.distance_km)) ? `~${Number(pharmacy.distance_km).toFixed(1)} km` : '-' }}
                                   </span>
-                                  <span v-if="pharmacy.location" class="text-[10px] text-gray-400">{{ pharmacy.location }}</span>
+                                  <span v-if="pharmacy.location" class="text-[10px] text-gray-500">{{ pharmacy.location }}</span>
                                 </div>
                               </div>
                               </div>
@@ -712,7 +712,7 @@
                                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-gray-300 shrink-0">
                                     <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
                                   </svg>
-                                  <span class="text-xs text-gray-400 font-medium truncate flex-1">{{ ui.product_name }}</span>
+                                  <span class="text-xs text-gray-500 font-medium truncate flex-1">{{ ui.product_name }}</span>
                                   <button
                                     v-if="coverageSubSearch.pharmacyId === pharmacy.pharmacy_id && coverageSubSearch.itemId === ui.item_id"
                                     type="button"
@@ -740,7 +740,7 @@
                                     :placeholder="`Search ${pharmacy.pharmacy_name} catalog...`"
                                     autofocus
                                   />
-                                  <div v-if="coverageSubSearch.loading" class="text-[10px] text-gray-400 px-1 py-1">Searching...</div>
+                                  <div v-if="coverageSubSearch.loading" class="text-[10px] text-gray-500 px-1 py-1">Searching...</div>
                                   <div v-else-if="coverageSubSearch.results.length" class="coverage-sub-search-results">
                                     <button
                                       v-for="(sp, spIdx) in coverageSubSearch.results"
@@ -756,7 +756,7 @@
                                       </span>
                                     </button>
                                   </div>
-                                  <div v-else-if="coverageSubSearch.query.length >= 2 && !coverageSubSearch.loading" class="text-[10px] text-gray-400 px-1 py-1">
+                                  <div v-else-if="coverageSubSearch.query.length >= 2 && !coverageSubSearch.loading" class="text-[10px] text-gray-500 px-1 py-1">
                                     No products found in this pharmacy's catalog.
                                   </div>
                                 </div>

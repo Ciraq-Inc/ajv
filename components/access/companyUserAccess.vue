@@ -608,7 +608,7 @@ onMounted(() => {
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .search-input {
@@ -891,7 +891,7 @@ input:disabled + .slider {
 }
 
 .text-muted {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 /* Buttons */
@@ -977,7 +977,7 @@ button:disabled {
 .no-results {
   padding: 40px;
   text-align: center;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 /* Responsive */

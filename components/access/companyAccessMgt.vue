@@ -740,7 +740,7 @@ onBeforeUnmount(() => {
 }
 
 .dropdown-item.no-results {
-  color: #94a3b8;
+  color: #64748b;
   cursor: default;
   text-align: center;
 }
@@ -1123,7 +1123,7 @@ button:disabled {
 .no-results {
   padding: 40px;
   text-align: center;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 /* Modal */

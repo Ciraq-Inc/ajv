@@ -164,7 +164,7 @@
       <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white" @click.stop>
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Sample User Records</h3>
-          <button @click="showUsersModal = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showUsersModal = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>

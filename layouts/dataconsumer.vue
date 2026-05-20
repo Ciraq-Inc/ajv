@@ -32,18 +32,18 @@
           <p v-if="isSidebarExpanded" class="section-title">Reports</p>
           
           <NuxtLink to="/dataconsumer/dashboard" class="nav-item" active-class="active">
-            <HomeIcon class="nav-icon" />
-            <span v-if="isSidebarExpanded" class="nav-label">Dashboard</span>
+            <HomeIcon class="nav-icon" aria-hidden="true" />
+            <span :class="!isSidebarExpanded ? 'sr-only' : 'nav-label'">Dashboard</span>
           </NuxtLink>
 
           <NuxtLink to="/dataconsumer/sales-reports" class="nav-item" active-class="active">
-            <ChartBarIcon class="nav-icon" />
-            <span v-if="isSidebarExpanded" class="nav-label">Sales Reports</span>
+            <ChartBarIcon class="nav-icon" aria-hidden="true" />
+            <span :class="!isSidebarExpanded ? 'sr-only' : 'nav-label'">Sales Reports</span>
           </NuxtLink>
 
           <NuxtLink to="/dataconsumer/purchase-reports" class="nav-item" active-class="active">
-            <DocumentChartBarIcon class="nav-icon" />
-            <span v-if="isSidebarExpanded" class="nav-label">Purchase Reports</span>
+            <DocumentChartBarIcon class="nav-icon" aria-hidden="true" />
+            <span :class="!isSidebarExpanded ? 'sr-only' : 'nav-label'">Purchase Reports</span>
           </NuxtLink>
         </div>
 
@@ -52,13 +52,13 @@
           <p v-if="isSidebarExpanded" class="section-title">Account</p>
 
           <NuxtLink to="/dataconsumer/profile" class="nav-item" active-class="active">
-            <UserIcon class="nav-icon" />
-            <span v-if="isSidebarExpanded" class="nav-label">Profile</span>
+            <UserIcon class="nav-icon" aria-hidden="true" />
+            <span :class="!isSidebarExpanded ? 'sr-only' : 'nav-label'">Profile</span>
           </NuxtLink>
 
           <button @click="handleLogout" class="nav-item logout-btn">
-            <ArrowRightOnRectangleIcon class="nav-icon" />
-            <span v-if="isSidebarExpanded" class="nav-label">Logout</span>
+            <ArrowRightOnRectangleIcon class="nav-icon" aria-hidden="true" />
+            <span :class="!isSidebarExpanded ? 'sr-only' : 'nav-label'">Logout</span>
           </button>
         </div>
       </nav>

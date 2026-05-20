@@ -240,7 +240,7 @@
                   >
                     {{ log.billing_status }}
                   </span>
-                  <span v-else class="text-gray-400">-</span>
+                  <span v-else class="text-gray-500">-</span>
                 </td>
                 <td class="px-4 py-3 text-sm text-red-600">
                   {{ log.error_message ?? '-' }}
@@ -252,7 +252,7 @@
 
         <!-- No Logs -->
         <div v-else class="text-center py-8">
-          <Icon name="FileText" class="h-12 w-12 mx-auto mb-2 text-gray-400" />
+          <Icon name="FileText" class="h-12 w-12 mx-auto mb-2 text-gray-500" />
           <p class="text-gray-600">No message logs yet</p>
         </div>
       </div>

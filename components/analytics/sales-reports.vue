@@ -352,7 +352,7 @@
       <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white" @click.stop>
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Sample Sales Items Records</h3>
-          <button @click="showSalesItemsModal = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showSalesItemsModal = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>
@@ -443,7 +443,7 @@
       <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white" @click.stop>
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Select Columns to Export</h3>
-          <button @click="showColumnSelector = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showColumnSelector = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>
@@ -506,7 +506,7 @@
             <h3 class="text-lg font-semibold text-gray-800">Company Sales Details</h3>
             <p class="text-sm text-gray-600 mt-1">{{ selectedCompanyDetails?.company_name }}</p>
           </div>
-          <button @click="showCompanyModal = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showCompanyModal = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>

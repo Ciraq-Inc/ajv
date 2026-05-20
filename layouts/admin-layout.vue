@@ -34,8 +34,8 @@
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Analytics</div>
 
           <NuxtLink to="/admin/data" class="nav-item" active-class="active">
-            <ChartBarIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Data</span>
+            <ChartBarIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Data</span>
           </NuxtLink>
         </div>
 
@@ -44,27 +44,27 @@
 
           <!-- Fulfillment parent label -->
           <div class="nav-item" :class="{ active: isInFulfillment }" style="cursor:default; pointer-events:none;">
-            <ClipboardDocumentListIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Fulfillment</span>
+            <ClipboardDocumentListIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Fulfillment</span>
           </div>
 
           <!-- Fulfillment child links -->
           <template v-if="isInFulfillment || !isSidebarCollapsed">
             <NuxtLink to="/admin/fulfillment/requests" class="nav-item nav-child-item" active-class="active">
-              <ClipboardDocumentListIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
-              <span v-if="!isSidebarCollapsed" class="nav-text">Order Requests</span>
+              <ClipboardDocumentListIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
+              <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Order Requests</span>
             </NuxtLink>
             <NuxtLink to="/admin/fulfillment/deliveries" class="nav-item nav-child-item" active-class="active">
-              <TruckIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
-              <span v-if="!isSidebarCollapsed" class="nav-text">Deliveries</span>
+              <TruckIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
+              <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Deliveries</span>
             </NuxtLink>
             <NuxtLink to="/admin/fulfillment/dispatch-companies" class="nav-item nav-child-item" active-class="active">
-              <BuildingOffice2Icon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
-              <span v-if="!isSidebarCollapsed" class="nav-text">Dispatch Companies</span>
+              <BuildingOffice2Icon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
+              <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Dispatch Companies</span>
             </NuxtLink>
             <NuxtLink to="/admin/fulfillment/pharmacy-ledger" class="nav-item nav-child-item" active-class="active">
-              <BanknotesIcon class="nav-icon" style="width:16px;height:16px;min-width:16px;" />
-              <span v-if="!isSidebarCollapsed" class="nav-text">Pharmacy Ledger</span>
+              <BanknotesIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
+              <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Ledger</span>
             </NuxtLink>
           </template>
         </div>
@@ -73,35 +73,35 @@
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Products</div>
 
           <NuxtLink to="/admin/masterlist" class="nav-item" active-class="active">
-            <CubeIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Master Products</span>
+            <CubeIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Master Products</span>
           </NuxtLink>
         </div>
 
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Companies & Users</div>
 
-          <NuxtLink 
-            to="/admin/access?tab=companies" 
+          <NuxtLink
+            to="/admin/access?tab=companies"
             class="nav-item"
             exact-active-class="active"
           >
-            <KeyIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Companies</span>
+            <KeyIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Companies</span>
           </NuxtLink>
 
-          <NuxtLink 
-            to="/admin/useraccess" 
+          <NuxtLink
+            to="/admin/useraccess"
             class="nav-item"
             active-class="active"
           >
-            <UserGroupIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">User Access</span>
+            <UserGroupIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">User Access</span>
           </NuxtLink>
 
           <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
-            <ClipboardDocumentCheckIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Waitlist Signups</span>
+            <ClipboardDocumentCheckIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Waitlist Signups</span>
           </NuxtLink>
         </div>
 
@@ -109,13 +109,13 @@
           <div v-if="!isSidebarCollapsed" class="nav-section-title">SMS</div>
 
           <NuxtLink to="/admin/sms-campaigns" class="nav-item" active-class="active">
-            <DevicePhoneMobileIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Campaigns</span>
+            <DevicePhoneMobileIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Campaigns</span>
           </NuxtLink>
 
           <NuxtLink to="/admin/sms-billing" class="nav-item" active-class="active">
-            <CreditCardIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Billing</span>
+            <CreditCardIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Billing</span>
           </NuxtLink>
 
          
@@ -129,8 +129,8 @@
             class="nav-item"
             active-class="active"
           >
-            <Cog6ToothIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Platform Settings</span>
+            <Cog6ToothIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Platform Settings</span>
           </NuxtLink>
 
           <NuxtLink
@@ -138,27 +138,27 @@
             class="nav-item"
             active-class="active"
           >
-            <BanknotesIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Fee Schedules</span>
+            <BanknotesIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Fee Schedules</span>
           </NuxtLink>
 
-          <NuxtLink 
-            to="/admin/store-settings" 
+          <NuxtLink
+            to="/admin/store-settings"
             class="nav-item"
             active-class="active"
           >
-            <SwatchIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Store Settings</span>
+            <SwatchIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Store Settings</span>
           </NuxtLink>
 
-           <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
-            <Cog6ToothIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">SMS Settings</span>
+          <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
+            <Cog6ToothIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">SMS Settings</span>
           </NuxtLink>
 
           <NuxtLink to="/admin/security" class="nav-item" active-class="active">
-            <LockClosedIcon class="nav-icon" />
-            <span v-if="!isSidebarCollapsed" class="nav-text">Security</span>
+            <LockClosedIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Security</span>
           </NuxtLink>
         </div>
       </nav>
@@ -166,8 +166,8 @@
       <!-- Logout Button -->
       <div class="sidebar-footer">
         <button @click="handleLogout" class="logout-btn">
-          <ArrowLeftOnRectangleIcon class="nav-icon" />
-          <span v-if="!isSidebarCollapsed" class="nav-text">Logout</span>
+          <ArrowLeftOnRectangleIcon class="nav-icon" aria-hidden="true" />
+          <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Logout</span>
         </button>
       </div>
     </aside>

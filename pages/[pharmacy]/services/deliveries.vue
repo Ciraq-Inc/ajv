@@ -9,7 +9,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-12 text-center text-gray-400">Loading deliveries...</div>
+    <div v-if="loading" class="py-12 text-center text-gray-500">Loading deliveries...</div>
 
     <template v-else>
       <!-- ── Section 1: Rider proposed (external dispatch) ── -->
@@ -24,7 +24,7 @@
               <div>
                 <div class="font-medium text-gray-900">Delivery #{{ d.id }}</div>
                 <div class="text-sm text-gray-500 mt-0.5">To: {{ d.delivery_address }}</div>
-                <div v-if="d.request_number" class="text-xs text-gray-400 mt-0.5">Ref: {{ d.request_number }}</div>
+                <div v-if="d.request_number" class="text-xs text-gray-500 mt-0.5">Ref: {{ d.request_number }}</div>
               </div>
               <span class="text-xs font-medium px-2 py-1 rounded-full shrink-0 cs-badge">
                 rider proposed
@@ -67,7 +67,7 @@
               <div>
                 <div class="font-medium text-gray-900">Delivery #{{ d.id }}</div>
                 <div class="text-sm text-gray-500 mt-0.5">To: {{ d.delivery_address }}</div>
-                <div v-if="d.request_number" class="text-xs text-gray-400 mt-0.5">Ref: {{ d.request_number }}</div>
+                <div v-if="d.request_number" class="text-xs text-gray-500 mt-0.5">Ref: {{ d.request_number }}</div>
               </div>
               <span class="text-xs font-medium px-2 py-1 rounded-full shrink-0" :class="statusClass(d.delivery_status)">
                 {{ d.delivery_status?.replace(/_/g, ' ') }}
@@ -107,7 +107,7 @@
             </div>
 
             <!-- In progress -->
-            <div v-else class="text-sm text-gray-400">Delivery is in progress</div>
+            <div v-else class="text-sm text-gray-500">Delivery is in progress</div>
 
             <div v-if="errors[d.id]" class="mt-2 text-xs text-red-600">{{ errors[d.id] }}</div>
           </div>

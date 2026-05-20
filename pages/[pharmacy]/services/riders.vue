@@ -69,7 +69,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-12 text-center text-gray-400">Loading fleet...</div>
+    <div v-if="loading" class="py-12 text-center text-gray-500">Loading fleet...</div>
 
     <!-- Empty -->
     <div v-else-if="riders.length === 0 && !showForm" class="py-12 text-center text-gray-500 bg-gray-50 rounded-lg">
@@ -85,7 +85,7 @@
         <div>
           <div class="font-medium text-gray-900">{{ r.name }}</div>
           <div class="text-sm text-gray-500 mt-0.5">{{ r.phone }}</div>
-          <div class="text-xs text-gray-400 mt-0.5">
+          <div class="text-xs text-gray-500 mt-0.5">
             @{{ r.username }}
             <span v-if="r.vehicle_type"> · {{ r.vehicle_type }}</span>
             <span v-if="r.vehicle_registration"> {{ r.vehicle_registration }}</span>

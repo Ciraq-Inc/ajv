@@ -14,7 +14,7 @@
           <h3 class="text-lg md:text-xl font-bold text-gray-900">Top Up Money Balance</h3>
           <button
             @click="close"
-            class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+            class="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
             :disabled="processing"
           >
             <Icon name="X" class="h-5 w-5 md:h-6 md:w-6" />

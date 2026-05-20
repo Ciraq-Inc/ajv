@@ -88,12 +88,14 @@ export function useModalA11y(
       if (typeof document === 'undefined') return
       if (open) {
         previouslyFocused = document.activeElement as HTMLElement | null
+        document.body.style.overflow = 'hidden'
         document.addEventListener('keydown', onKeydown, true)
         await nextTick()
         const focusables = getFocusable(containerRef.value)
         const target = focusables[0] ?? containerRef.value
         target?.focus()
       } else {
+        document.body.style.overflow = ''
         document.removeEventListener('keydown', onKeydown, true)
         previouslyFocused?.focus()
         previouslyFocused = null

@@ -37,10 +37,9 @@
             :key="item.path"
             :to="item.path"
             class="nav-item"
-            :title="sidebarCollapsed ? item.label : ''"
           >
-            <component :is="item.icon" class="nav-icon" />
-            <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+            <component :is="item.icon" class="nav-icon" aria-hidden="true" />
+            <span :class="sidebarCollapsed ? 'sr-only' : 'nav-label'">{{ item.label }}</span>
             <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
           </NuxtLink>
         </div>

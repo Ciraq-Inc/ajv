@@ -16,17 +16,17 @@
         <div class="composed-summary-hero" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: #fdfdfd; display: flex; flex-direction: column; gap: 1rem;">
           <div class="composed-summary-stats" style="display: flex; gap: 2rem; align-items: baseline; padding-bottom: 0.5rem;">
             <span class="composed-stat-item" style="display: flex; align-items: baseline; gap: 0.5rem;">
-              <span style="font-size: 0.65rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+              <span style="font-size: 0.65rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
               <strong style="font-size: 1rem; font-weight: 600; color: #111827;">{{ formatStatus(request.status) }}</strong>
             </span>
             <div style="width: 1px; height: 1rem; background: #e5e7eb; align-self: center;"></div>
             <span class="composed-stat-item" style="display: flex; align-items: baseline; gap: 0.5rem;">
-              <span style="font-size: 0.65rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Items</span>
+              <span style="font-size: 0.65rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Items</span>
               <strong style="font-size: 1rem; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">{{ Array.isArray(request.items) ? request.items.length : 0 }}</strong>
             </span>
             <div style="width: 1px; height: 1rem; background: #e5e7eb; align-self: center;"></div>
             <span class="composed-stat-item" style="display: flex; align-items: baseline; gap: 0.5rem;">
-              <span style="font-size: 0.65rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Sources</span>
+              <span style="font-size: 0.65rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Sources</span>
               <strong style="font-size: 1rem; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">{{ pharmacySummary?.length ?? 0 }}</strong>
             </span>
           </div>
@@ -76,7 +76,7 @@
           >
             <div class="composed-pharmacy-head" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f3f4f6; background: #fcfcfc;">
               <div class="composed-pharmacy-identity">
-                <span class="composed-section-kicker" style="font-size: 0.7rem; font-weight: 700; color: #9ca3af; text-transform: uppercase;">Assigned Pharmacy</span>
+                <span class="composed-section-kicker" style="font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase;">Assigned Pharmacy</span>
                 <div class="composed-info-row" style="margin-top: 0.25rem;">
                   <strong style="font-size: 1.1rem; color: #111827;">{{ group.name || 'Unknown pharmacy' }}</strong>
                 </div>
@@ -105,7 +105,7 @@
                   <i class="ri-whatsapp-line"></i>
                   <span>Contact</span>
                 </a>
-                <span v-else class="composed-whatsapp-missing" style="font-size: 0.75rem; color: #9ca3af; font-style: italic;">No WhatsApp</span>
+                <span v-else class="composed-whatsapp-missing" style="font-size: 0.75rem; color: #6b7280; font-style: italic;">No WhatsApp</span>
                 <div class="composed-status-actions" style="display: flex; gap: 0.4rem; align-items: center;">
                   <select
                     :value="(groupActions ?? {})[String(group.pharmacyId ?? group.name ?? '')]"

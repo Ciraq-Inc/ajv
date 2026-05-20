@@ -88,9 +88,9 @@
           </h3>
           <div v-if="!props.hidePrices" class="text-sm font-bold text-gray-900">
             GHS {{ formatPrice(product.sellingPrice) }}
-            <span class="text-gray-400 text-xs font-normal ml-0.5">/ {{ product.unit || 'unit' }}</span>
+            <span class="text-gray-500 text-xs font-normal ml-0.5">/ {{ product.unit || 'unit' }}</span>
           </div>
-          <div v-else class="text-gray-400 text-xs italic">Price on request</div>
+          <div v-else class="text-gray-500 text-xs italic">Price on request</div>
 
           <!-- Qty + Add button -->
           <div class="mt-auto pt-1 flex items-center gap-1.5">
@@ -160,7 +160,7 @@
               </p>
               <p v-if="!props.hidePrices" class="text-xl font-bold text-gray-900 mt-2">
                 GHS {{ formatPrice(lightboxProduct.sellingPrice) }}
-                <span class="text-sm font-normal text-gray-400">/ {{ lightboxProduct.unit || 'unit' }}</span>
+                <span class="text-sm font-normal text-gray-500">/ {{ lightboxProduct.unit || 'unit' }}</span>
               </p>
               <div
                 v-if="lightboxProduct.stockQty > 0 && lightboxProduct.stockQty <= 5"

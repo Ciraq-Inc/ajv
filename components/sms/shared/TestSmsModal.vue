@@ -23,7 +23,7 @@
               <button
                 @click="close"
                 type="button"
-                class="text-gray-400 hover:text-gray-600 transition-colors"
+                class="text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <Icon name="X" class="h-5 w-5" />
               </button>
