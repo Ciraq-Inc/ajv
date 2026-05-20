@@ -155,6 +155,11 @@
             <Cog6ToothIcon class="nav-icon" />
             <span v-if="!isSidebarCollapsed" class="nav-text">SMS Settings</span>
           </NuxtLink>
+
+          <NuxtLink to="/admin/security" class="nav-item" active-class="active">
+            <LockClosedIcon class="nav-icon" />
+            <span v-if="!isSidebarCollapsed" class="nav-text">Security</span>
+          </NuxtLink>
         </div>
       </nav>
 
@@ -206,8 +211,11 @@
           <!-- <NuxtLink to="/admin/profile" class="dropdown-item">
             <UserIcon class="dropdown-icon-small" /> My Profile
           </NuxtLink> -->
-          <NuxtLink to="/admin/settings" class="dropdown-item">
+          <NuxtLink to="/admin/settings" class="dropdown-item" @click="showProfileMenu = false">
             <Cog6ToothIcon class="dropdown-icon-small" /> Settings
+          </NuxtLink>
+          <NuxtLink to="/admin/security" class="dropdown-item" @click="showProfileMenu = false">
+            <LockClosedIcon class="dropdown-icon-small" /> Security
           </NuxtLink>
           <hr class="dropdown-divider">
           <button @click="handleLogout" class="dropdown-item logout">
@@ -290,6 +298,7 @@ import {
   BanknotesIcon,
   SwatchIcon,
   BellIcon,
+  LockClosedIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
@@ -353,6 +362,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/platform-settings')) return 'Platform Settings'
   if (path.includes('/admin/fee-schedules')) return 'Fee Schedules'
   if (path.includes('/admin/store-settings')) return 'Store Settings'
+  if (path.includes('/admin/security')) return 'Account Security'
   return 'Dashboard'
 })
 

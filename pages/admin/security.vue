@@ -11,13 +11,40 @@
     </div>
 
     <template v-else>
+      <!-- Login flow status banner -->
+      <div
+        :class="credentials.length > 0
+          ? 'bg-green-50 border-green-200 text-green-800'
+          : 'bg-blue-50 border-blue-200 text-blue-800'"
+        class="border rounded-xl px-5 py-4 mb-5 flex items-start gap-3"
+      >
+        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path v-if="credentials.length > 0" stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path v-else stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+        </svg>
+        <div class="text-sm">
+          <p v-if="credentials.length > 0" class="font-semibold mb-0.5">Passkey active — your login is upgraded</p>
+          <p v-else class="font-semibold mb-0.5">Your current login uses SMS verification</p>
+          <p v-if="credentials.length > 0">
+            Your next login will ask for your <strong>device PIN, fingerprint, or face</strong> instead of an SMS code.
+            No signal required, and no SMS code to wait for.
+          </p>
+          <p v-else>
+            After each password you enter, we send a 6-digit code to your registered phone.
+            Add a passkey below to replace that step with a faster, more secure device unlock.
+          </p>
+        </div>
+      </div>
+
       <!-- Passkey registration section -->
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm mb-6">
         <div class="px-6 py-5 border-b border-gray-100">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-base font-semibold text-gray-900">Passkeys</h2>
-              <p class="text-xs text-gray-500 mt-0.5">Sign in with your fingerprint, face, or security key. Phishing-resistant.</p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Optional upgrade — replaces SMS codes with your device's built-in unlock (fingerprint, PIN, or face).
+              </p>
             </div>
             <button
               @click="startRegistration"
@@ -50,10 +77,10 @@
             />
             <button
               @click="confirmRegistration"
-              :disabled="registering"
+              :disabled="confirming"
               class="px-4 py-2 text-sm font-medium text-white bg-[#5A2468] hover:bg-[#4A1A55] rounded-lg disabled:opacity-50 transition-colors"
             >
-              Save
+              {{ confirming ? 'Saving...' : 'Save' }}
             </button>
             <button
               @click="cancelRegistration"
@@ -69,9 +96,26 @@
           <div v-if="loadingCredentials" class="px-6 py-4 text-sm text-gray-500">
             Loading passkeys...
           </div>
-          <div v-else-if="credentials.length === 0" class="px-6 py-4 text-sm text-gray-500">
-            No passkeys registered yet. Add one above to enable passkey login.
+
+          <!-- Empty state with benefits -->
+          <div v-else-if="credentials.length === 0" class="px-6 py-5">
+            <p class="text-sm text-gray-500 mb-4">No passkeys registered yet.</p>
+            <div class="grid grid-cols-3 gap-3">
+              <div class="bg-gray-50 rounded-lg px-3 py-3 text-center">
+                <p class="text-xs font-semibold text-gray-700 mb-0.5">No SMS wait</p>
+                <p class="text-xs text-gray-500">Instant unlock — no code to receive or type</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg px-3 py-3 text-center">
+                <p class="text-xs font-semibold text-gray-700 mb-0.5">Works offline</p>
+                <p class="text-xs text-gray-500">No signal needed — the key lives on your device</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg px-3 py-3 text-center">
+                <p class="text-xs font-semibold text-gray-700 mb-0.5">Phishing-proof</p>
+                <p class="text-xs text-gray-500">Only works on the real portal — fakes can't steal it</p>
+              </div>
+            </div>
           </div>
+
           <div
             v-for="cred in credentials"
             :key="cred.id"
@@ -85,10 +129,10 @@
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-900">{{ cred.friendly_name || 'Unnamed passkey' }}</p>
+                <p class="text-sm font-medium text-gray-900">{{ cred.friendlyName || 'Unnamed passkey' }}</p>
                 <p class="text-xs text-gray-500">
-                  Added {{ formatDate(cred.created_at) }}
-                  <template v-if="cred.last_used_at"> &middot; Last used {{ formatDate(cred.last_used_at) }}</template>
+                  Added {{ formatDate(cred.createdAt) }}
+                  <template v-if="cred.lastUsedAt"> &middot; Last used {{ formatDate(cred.lastUsedAt) }}</template>
                   <template v-if="cred.transports && cred.transports.length"> &middot; {{ cred.transports.join(', ') }}</template>
                 </p>
               </div>
@@ -104,10 +148,10 @@
         </div>
       </div>
 
-      <!-- Informational note -->
-      <div class="text-xs text-gray-400 mt-2">
-        Passkeys are bound to this browser and device. Registering a passkey replaces SMS OTP / TOTP as your primary second factor when you have at least one passkey enrolled.
-        Keep at least one passkey registered if you rely on this feature.
+      <!-- Footer note -->
+      <div class="text-xs text-gray-400 mt-2 space-y-1">
+        <p>Passkeys are bound to this browser and device. If you remove all passkeys, login falls back to SMS verification.</p>
+        <p>Register passkeys on each device you log in from — they do not sync across devices automatically.</p>
       </div>
     </template>
   </div>
@@ -118,15 +162,15 @@ import { ref, computed, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
 
 definePageMeta({
-  // TODO(ts): was 'auth' which is not a registered middleware; using 'admin' until confirmed correct
-  middleware: 'admin',
+  middleware: 'admin-auth',
+  layout: 'admin-layout',
 });
 
 interface Credential {
   id: string | number;
-  friendly_name?: string;
-  created_at?: string;
-  last_used_at?: string;
+  friendlyName?: string;
+  createdAt?: string;
+  lastUsedAt?: string;
   transports?: string[];
 }
 
@@ -162,7 +206,8 @@ const credentials = ref<Credential[]>([]);
 const loadingCredentials = ref<boolean>(false);
 
 // Registration state
-const registering = ref<boolean>(false);
+const registering = ref<boolean>(false);   // true while browser prompt is open (disables Add Passkey)
+const confirming = ref<boolean>(false);    // true while POST /register/verify is in flight (disables Save)
 const registrationError = ref<string>('');
 const registrationSuccess = ref<string>('');
 const awaitingFriendlyName = ref<boolean>(false);
@@ -294,7 +339,7 @@ const startRegistration = async (): Promise<void> => {
 // Step 2: User has (optionally) typed a name — submit to the backend.
 const confirmRegistration = async (): Promise<void> => {
   if (!pendingAttestation.value || !pendingChallengeId.value) return;
-  registering.value = true;
+  confirming.value = true;
   registrationError.value = '';
 
   try {
@@ -318,6 +363,7 @@ const confirmRegistration = async (): Promise<void> => {
   } catch (err) {
     registrationError.value = err instanceof Error ? err.message : 'Registration failed.';
   } finally {
+    confirming.value = false;
     registering.value = false;
   }
 };

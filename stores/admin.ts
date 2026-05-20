@@ -433,7 +433,8 @@ export const useAdminStore = defineStore('admin', {
         );
 
         if (data.success) {
-          const payload = data.data as {
+          // Backend returns { success, token, user } flat — no nested data field.
+          const payload = data as unknown as {
             token?: string;
             user?: AdminProfile | Record<string, unknown>;
           };
