@@ -366,6 +366,8 @@ interface UserStoreShape {
 }
 
 const userStore = useUserStore() as unknown as UserStoreShape;
+const api = useApi();
+const profService = createCustomerAuthService(api);
 
 // State
 const isLoading = ref<boolean>(false);
@@ -583,8 +585,7 @@ const showProfForm = computed(() => profStatus.value === null || profStatus.valu
 const loadProfessionalApplication = async () => {
   profLoading.value = true;
   try {
-    const service = createCustomerAuthService(useApi());
-    const res = await service.getMyProfessionalApplication() as { data?: ProfessionalProfile | null };
+    const res = await profService.getMyProfessionalApplication() as { data?: ProfessionalProfile | null };
     profApplication.value = res.data ?? null;
     if (profApplication.value) {
       profForm.profession_type = (profApplication.value.profession_type ?? '') as typeof profForm.profession_type;
@@ -607,8 +608,7 @@ const submitProfessionalApplication = async () => {
   profError.value = null;
   profSuccess.value = false;
   try {
-    const service = createCustomerAuthService(useApi());
-    await service.applyForProfessional({
+    await profService.applyForProfessional({
       profession_type: profForm.profession_type,
       license_number: profForm.license_number.trim(),
       license_body: profForm.license_body.trim() || null,

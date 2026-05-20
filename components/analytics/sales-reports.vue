@@ -806,22 +806,22 @@
           v-for="(quarter, index) in [1, 2, 3, 4]"
           :key="index"
           class="bg-white rounded-lg shadow-md p-4 border-l-4 min-w-0 cursor-pointer hover:shadow-lg transition-shadow"
-          :class="getQuarterColor(index)"
+          :class="getQuarterColor(quarter)"
         >
           <div class="flex items-start gap-2">
             <input
               type="checkbox"
-              :v-model="selectedQuarters[`q${index}`]"
-              @change="selectedQuarters[`q${index}`] = !selectedQuarters[`q${index}`]"
+              :v-model="selectedQuarters[`q${quarter}`]"
+              @change="selectedQuarters[`q${quarter}`] = !selectedQuarters[`q${quarter}`]"
               class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 flex-shrink-0"
             />
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-600 truncate">{{ getQuarterName(index) }}</p>
-              <p class="text-xs text-gray-500">{{ getQuarterDates(index) }}</p>
+              <p class="text-sm font-medium text-gray-600 truncate">{{ getQuarterName(quarter) }}</p>
+              <p class="text-xs text-gray-500">{{ getQuarterDates(quarter) }}</p>
               <div class="space-y-1 mt-2">
                 <div>
                   <p class="text-xs text-gray-500">Transactions</p>
-                  <p class="text-lg font-bold text-gray-900">{{ quarterlyData[`q${index}`]?.transactions?.toLocaleString() || 0 }}</p>
+                  <p class="text-lg font-bold text-gray-900">{{ quarterlyData[`q${quarter}`]?.transactions?.toLocaleString() || 0 }}</p>
                 </div>
               </div>
             </div>

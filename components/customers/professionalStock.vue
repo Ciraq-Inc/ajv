@@ -96,6 +96,7 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const userStore = useUserStore();
+const stockService = createOrderRequestsService(useApi());
 
 const query = ref('');
 const results = ref<Record<string, unknown>[]>([]);
@@ -129,8 +130,7 @@ const searchProducts = async (q: string) => {
   loading.value = true;
   error.value = null;
   try {
-    const service = createOrderRequestsService(useApi());
-    const res = await service.searchProducts({ q: q.trim(), lat: lat.value, lng: lng.value }) as { data?: unknown[] };
+    const res = await stockService.searchProducts({ q: q.trim(), lat: lat.value, lng: lng.value }) as { data?: unknown[] };
     results.value = (res.data ?? []) as Record<string, unknown>[];
     searched.value = true;
   } catch (e: unknown) {
