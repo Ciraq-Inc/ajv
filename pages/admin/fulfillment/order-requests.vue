@@ -21,6 +21,60 @@
       @clear-search="searchQuery = ''; fetchRequests()"
     />
 
+    <!-- Create customer + first request button -->
+    <div v-if="!selectedRequest" class="create-customer-action-row">
+      <button type="button" class="btn-create-customer" @click="showCreateCustomerModal = true">
+        + New customer request
+      </button>
+    </div>
+
+    <!-- Create customer + request modal -->
+    <div v-if="showCreateCustomerModal" class="modal-overlay" @click.self="showCreateCustomerModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>New customer &amp; first request</h3>
+          <button class="modal-close" @click="showCreateCustomerModal = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="text-sm text-zinc-500 mb-4">Creates the customer account (or uses an existing one) and places their first request.</p>
+          <div class="form-field mb-3">
+            <label class="field-label">Phone *</label>
+            <input v-model="ccForm.phone" type="tel" class="form-input" placeholder="e.g. 0241234567" />
+          </div>
+          <div class="form-field-row mb-3">
+            <div class="form-field">
+              <label class="field-label">First name</label>
+              <input v-model="ccForm.fname" type="text" class="form-input" />
+            </div>
+            <div class="form-field">
+              <label class="field-label">Last name</label>
+              <input v-model="ccForm.lname" type="text" class="form-input" />
+            </div>
+          </div>
+          <div class="form-field mb-3">
+            <label class="field-label">Delivery address</label>
+            <input v-model="ccForm.delivery_address" type="text" class="form-input" placeholder="Full address" />
+          </div>
+          <div class="form-field mb-3">
+            <label class="field-label">Items *</label>
+            <div v-for="(item, idx) in ccForm.items" :key="idx" class="cc-item-row">
+              <input v-model="item.product_name" type="text" class="form-input cc-item-name" placeholder="Product name" />
+              <input v-model.number="item.quantity" type="number" min="1" class="form-input cc-item-qty" placeholder="Qty" />
+              <button type="button" class="cc-item-remove" @click="ccForm.items.splice(idx, 1)" :disabled="ccForm.items.length === 1">✕</button>
+            </div>
+            <button type="button" class="btn-link mt-1" @click="ccForm.items.push({ product_name: '', quantity: 1 })">+ Add item</button>
+          </div>
+          <p v-if="ccError" class="text-sm text-red-600 mb-2">{{ ccError }}</p>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" @click="showCreateCustomerModal = false">Cancel</button>
+            <button type="button" class="btn-primary" :disabled="ccSubmitting" @click="submitCreateCustomerRequest">
+              {{ ccSubmitting ? 'Creating…' : 'Create request' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <OrderRequestsTable
       v-if="!selectedRequest"
       :loading="loading"
@@ -113,9 +167,9 @@
               </div>
               <div class="workspace-overview-item">
                 <span class="workspace-overview-key">Phone</span>
-                <strong v-if="getCustomerWhatsAppUrl(selectedRequest.customer_phone)" class="workspace-overview-phone">
+                <strong v-if="getCustomerWhatsAppUrl(selectedRequest.customer_phone, selectedRequest)" class="workspace-overview-phone">
                   <a
-                    :href="getCustomerWhatsAppUrl(selectedRequest.customer_phone)"
+                    :href="getCustomerWhatsAppUrl(selectedRequest.customer_phone, selectedRequest)"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="workspace-overview-phone-link"
@@ -2460,6 +2514,39 @@ const masterSearchLoading = ref(false)
 const masterSearchQuery = ref('')
 const resolvingItemId = ref<number | null>(null)
 let masterSearchDebounce: ReturnType<typeof setTimeout> | null = null
+
+// Create customer + request modal state
+const showCreateCustomerModal = ref(false)
+const ccSubmitting = ref(false)
+const ccError = ref('')
+const ccForm = ref({ phone: '', fname: '', lname: '', delivery_address: '', items: [{ product_name: '', quantity: 1 }] })
+
+const submitCreateCustomerRequest = async () => {
+  ccError.value = ''
+  if (!ccForm.value.phone.trim()) { ccError.value = 'Phone is required'; return }
+  const validItems = ccForm.value.items.filter(i => i.product_name.trim())
+  if (!validItems.length) { ccError.value = 'Add at least one item'; return }
+  ccSubmitting.value = true
+  try {
+    const { call: apiCall } = useApi()
+    await apiCall('POST', '/api/order-requests/admin/create-customer-request', {
+      phone: ccForm.value.phone.trim(),
+      fname: ccForm.value.fname.trim() || undefined,
+      lname: ccForm.value.lname.trim() || undefined,
+      delivery_address: ccForm.value.delivery_address.trim() || undefined,
+      items: validItems.map(i => ({ product_name: i.product_name.trim(), quantity: Number(i.quantity) || 1 }))
+    })
+    showCreateCustomerModal.value = false
+    ccForm.value = { phone: '', fname: '', lname: '', delivery_address: '', items: [{ product_name: '', quantity: 1 }] }
+    showMessage('Customer request created. An SMS has been sent to the customer.', 'success')
+    await fetchRequests({ silent: true })
+  } catch (err) {
+    ccError.value = err instanceof Error ? err.message : 'Failed to create request'
+  } finally {
+    ccSubmitting.value = false
+  }
+}
+
 const showStatusOverride = ref(false)
 const showAdminNotes = ref(false)
 const resolveSearchMode = ref('pharmacy') // 'master' | 'pharmacy'
@@ -2758,9 +2845,12 @@ const selectedAlternativeDistance = computed(() => {
   return `${formatDistance(selectedAlternativePharmacy.value.distance_km)} away`
 })
 
-const getCustomerWhatsAppUrl = (phone: string | null | undefined) => {
+const getCustomerWhatsAppUrl = (phone: string | null | undefined, request?: { request_number?: string | number; [key: string]: unknown } | null) => {
   const digits = phoneUtils.formatWhatsApp(phone)
-  return digits ? `https://wa.me/${digits}` : ''
+  if (!digits) return ''
+  if (!request?.request_number) return `https://wa.me/${digits}`
+  const msg = encodeURIComponent(`Hi, I'm reaching out about your MedsGH order request #${request.request_number}. `)
+  return `https://wa.me/${digits}?text=${msg}`
 }
 
 const buildCustomerOrderLink = (id: number | string | null | undefined) => {

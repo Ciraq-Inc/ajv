@@ -469,6 +469,17 @@
                         </a>
                     </div>
 
+                    <!-- Pickup location (revealed after payment for pickup orders) -->
+                    <div v-if="selectedRequest.fulfillment_type === 'pickup' && selectedRequest.pharmacy?.name" class="rider-contact-card">
+                        <span class="detail-label">Pickup Location</span>
+                        <p class="rider-name">{{ selectedRequest.pharmacy.name }}</p>
+                        <p v-if="selectedRequest.pharmacy.address" class="text-sm text-zinc-500 mt-0.5">{{ selectedRequest.pharmacy.address }}</p>
+                        <a v-if="selectedRequest.pharmacy.phone" :href="`tel:${selectedRequest.pharmacy.phone}`" class="rider-whatsapp-btn mt-2">
+                            <PhoneIcon class="w-4 h-4" />
+                            Call pharmacy
+                        </a>
+                    </div>
+
                     <!-- Totals (hidden while pickup vs delivery is still being chosen — the
                          comparison cards below carry per-method totals) -->
                     <div v-if="selectedRequest.estimated_total && !requiresMethodSelection(selectedRequest)" class="totals-box">
@@ -484,30 +495,83 @@
                         <div class="feedback-head">
                             <div>
                                 <span class="detail-label">Your Feedback</span>
-                                <p class="feedback-copy">How did this request feel from start to finish?</p>
+                                <p class="feedback-copy">
+                                    {{ selectedRequest.fulfillment_type === 'pickup' ? 'How was your pickup experience?' : 'How was your delivery experience?' }}
+                                </p>
                             </div>
                             <span v-if="selectedRequest.feedback?.created_at" class="feedback-date">
                                 {{ formatDate(selectedRequest.feedback?.created_at) }}
                             </span>
                         </div>
 
-                        <div class="feedback-stars" role="radiogroup" aria-label="Rate this request">
-                            <button v-for="star in 5" :key="`feedback-star-${star}`" type="button"
-                                class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating }"
-                                @click="feedbackForm.rating = star">
-                                <StarIcon class="feedback-star-icon" />
-                                <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
-                            </button>
-                        </div>
+                        <!-- Delivery categories: Product · Delivery quality · Overall -->
+                        <template v-if="selectedRequest.fulfillment_type === 'delivery'">
+                            <div class="feedback-category">
+                                <span class="feedback-category-label">Product quality</span>
+                                <div class="feedback-stars" role="radiogroup" aria-label="Product quality rating">
+                                    <button v-for="star in 5" :key="`prod-star-${star}`" type="button"
+                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_product }"
+                                        @click="feedbackForm.rating_product = star">
+                                        <StarIcon class="feedback-star-icon" />
+                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="feedback-category">
+                                <span class="feedback-category-label">Delivery quality</span>
+                                <div class="feedback-stars" role="radiogroup" aria-label="Delivery quality rating">
+                                    <button v-for="star in 5" :key="`del-star-${star}`" type="button"
+                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_delivery }"
+                                        @click="feedbackForm.rating_delivery = star">
+                                        <StarIcon class="feedback-star-icon" />
+                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="feedback-category">
+                                <span class="feedback-category-label">Overall</span>
+                                <div class="feedback-stars" role="radiogroup" aria-label="Overall rating">
+                                    <button v-for="star in 5" :key="`overall-star-${star}`" type="button"
+                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_overall }"
+                                        @click="feedbackForm.rating_overall = star">
+                                        <StarIcon class="feedback-star-icon" />
+                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
 
-                        <textarea v-model="feedbackForm.comment" rows="3" maxlength="1000"
+                        <!-- Pickup categories: Product · Customer Service -->
+                        <template v-else>
+                            <div class="feedback-category">
+                                <span class="feedback-category-label">Product quality</span>
+                                <div class="feedback-stars" role="radiogroup" aria-label="Product quality rating">
+                                    <button v-for="star in 5" :key="`prod-star-${star}`" type="button"
+                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_product }"
+                                        @click="feedbackForm.rating_product = star">
+                                        <StarIcon class="feedback-star-icon" />
+                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="feedback-category">
+                                <span class="feedback-category-label">Customer Service</span>
+                                <div class="feedback-stars" role="radiogroup" aria-label="Customer service rating">
+                                    <button v-for="star in 5" :key="`svc-star-${star}`" type="button"
+                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_service }"
+                                        @click="feedbackForm.rating_service = star">
+                                        <StarIcon class="feedback-star-icon" />
+                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <textarea v-model="feedbackForm.notes" rows="3" maxlength="2000"
                             class="form-textarea feedback-textarea"
                             placeholder="Optional: tell us what worked well or what felt difficult."></textarea>
 
                         <div class="feedback-actions">
-                            <span v-if="selectedRequest.feedback?.rating" class="feedback-saved-note">
-                                Saved rating: {{ selectedRequest.feedback.rating }}/5
-                            </span>
                             <button type="button" class="nav-submit feedback-submit-btn" :disabled="savingFeedback"
                                 @click="submitFeedback">
                                 <ArrowPathIcon v-if="savingFeedback" class="nav-svg spin" />
@@ -633,19 +697,14 @@
                                                 </span>
                                             </div>
                                             <div v-if="selectedPaymentOptions?.pickup?.available && selectedPaymentOptions?.pickup?.pharmacy" class="fulfillment-option-meta">
-                                                <span>{{ selectedPaymentOptions?.pickup?.pharmacy?.name }}</span>
-                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.area">
-                                                    · {{ selectedPaymentOptions?.pickup?.pharmacy?.area }}
-                                                </span>
-                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">
-                                                    · {{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away
-                                                </span>
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">{{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away</span>
                                                 <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours">
                                                     · Open 24 hours
                                                 </span>
                                                 <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at">
                                                     · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}
                                                 </span>
+                                                <span class="fulfillment-option-meta--muted"> · Pharmacy shown after payment</span>
                                             </div>
                                             <div v-else-if="selectedPaymentOptions?.pickup?.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
                                                 {{ formatPickupReason(selectedPaymentOptions?.pickup?.unavailable_reason) }}
@@ -722,7 +781,8 @@
                         </div>
 
                         <div class="payment-method-grid">
-                            <button @click="payForRequest(selectedRequest.id, 'wallet')" class="pay-request-btn"
+                            <button @click="payForRequest(selectedRequest.id, 'wallet')"
+                                :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? '' : 'secondary-pay-btn']"
                                 :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
                                 <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
                                 <CurrencyDollarIcon v-else class="pay-svg" />
@@ -735,7 +795,7 @@
                                 </span>
                             </button>
                             <button @click="payForRequest(selectedRequest.id, 'paystack')"
-                                class="pay-request-btn secondary-pay-btn"
+                                :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? 'secondary-pay-btn' : '']"
                                 :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
                                 <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'"
                                     class="pay-svg spin" />
@@ -950,7 +1010,7 @@ import { ref, computed, onMounted, onUnmounted, watch, watchEffect, nextTick } f
 import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
-import { useApi } from '~/composables/useApi'
+import { useApi, ApiError } from '~/composables/useApi'
 import { formatCompactAddress } from '~/utils/addressFormat'
 import {
     PAYABLE_REQUEST_STATUSES as payableStatuses,
@@ -966,7 +1026,7 @@ import {
     MinusSmallIcon, PlusSmallIcon, CreditCardIcon,
     ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon,
     ClockIcon, WalletIcon, InboxIcon, BeakerIcon, ChatBubbleLeftEllipsisIcon,
-    BuildingStorefrontIcon,
+    BuildingStorefrontIcon, PhoneIcon,
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
@@ -1482,9 +1542,12 @@ const requestListTab = ref<string>('active')
 const respondingDecisionId = ref<number | string | null>(null)
 const decisionSelections = ref<Record<string | number, Record<string, string>>>({})
 const savingFeedback = ref<boolean>(false)
-const feedbackForm = ref<{ rating: number; comment: string }>({
-    rating: 0,
-    comment: ''
+const feedbackForm = ref<{
+    rating: number; comment: string;
+    rating_product: number; rating_delivery: number; rating_service: number; rating_overall: number; notes: string;
+}>({
+    rating: 0, comment: '',
+    rating_product: 0, rating_delivery: 0, rating_service: 0, rating_overall: 0, notes: ''
 })
 const POLL_INTERVAL_MS = 15000
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -1689,7 +1752,12 @@ const syncFeedbackForm = (): void => {
     const feedback = selectedRequest.value?.feedback ?? null
     feedbackForm.value = {
         rating: Number(feedback?.rating ?? 0),
-        comment: feedback?.comment ?? ''
+        comment: String(feedback?.comment ?? ''),
+        rating_product: Number(feedback?.rating_product ?? 0),
+        rating_delivery: Number(feedback?.rating_delivery ?? 0),
+        rating_service: Number(feedback?.rating_service ?? 0),
+        rating_overall: Number(feedback?.rating_overall ?? 0),
+        notes: String(feedback?.notes ?? '')
     }
 }
 
@@ -2005,7 +2073,12 @@ const fetchRequestSettings = async (): Promise<void> => {
         requestRefundMinutes.value = Number(res.data?.request_no_response_refund_minutes ?? 30)
         firstRequestFree.value = Boolean(res.data?.first_request_free ?? false)
         isProfessional.value = Boolean(res.data?.is_professional ?? false)
-    } catch {
+    } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+            userStore.clearAuthState()
+            await navigateTo('/')
+            return
+        }
         requestFee.value = 5
         requestRefundMinutes.value = 30
         firstRequestFree.value = false
@@ -2073,18 +2146,36 @@ const refreshSelectedRequest = async (): Promise<void> => {
 
 const submitFeedback = async (): Promise<void> => {
     if (!selectedRequest.value?.id || savingFeedback.value) return
-    const rating = Number(feedbackForm.value.rating ?? 0)
-    if (rating < 1 || rating > 5) {
-        showToast('Choose a star rating before saving feedback.', 'error')
-        return
+    const type = selectedRequest.value.fulfillment_type
+    const f = feedbackForm.value
+
+    let overallRating: number
+    if (type === 'delivery') {
+        overallRating = f.rating_overall || f.rating
+        if (!f.rating_product || !f.rating_delivery || !overallRating) {
+            showToast('Please rate Product quality, Delivery quality, and Overall.', 'error')
+            return
+        }
+    } else {
+        if (!f.rating_product || !f.rating_service) {
+            showToast('Please rate Product quality and Customer Service.', 'error')
+            return
+        }
+        overallRating = Math.round((f.rating_product + f.rating_service) / 2)
     }
 
     savingFeedback.value = true
     try {
-        const res = await apiCall('POST', `/api/order-requests/customer/${String(selectedRequest.value.id)}/feedback`, {
-            rating,
-            comment: feedbackForm.value.comment?.trim() ?? ''
-        })
+        const body: Record<string, unknown> = {
+            rating: overallRating,
+            comment: f.notes?.trim() ?? '',
+            rating_product: f.rating_product || null,
+            rating_delivery: type === 'delivery' ? (f.rating_delivery || null) : undefined,
+            rating_service: type === 'pickup' ? (f.rating_service || null) : undefined,
+            rating_overall: type === 'delivery' ? (overallRating || null) : undefined,
+            notes: f.notes?.trim() || null
+        }
+        const res = await apiCall('POST', `/api/order-requests/customer/${String(selectedRequest.value.id)}/feedback`, body)
 
         selectedRequest.value = {
             ...selectedRequest.value,
@@ -5575,10 +5666,24 @@ void isPaymentPendingRequest
     white-space: nowrap;
 }
 
+.feedback-category {
+    margin-bottom: 0.75rem;
+}
+
+.feedback-category-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.3rem;
+}
+
 .feedback-stars {
     display: flex;
     gap: 0.35rem;
-    margin-bottom: 0.85rem;
+    margin-bottom: 0.25rem;
 }
 
 .feedback-star-btn {

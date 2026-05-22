@@ -8,7 +8,7 @@ import type { ApiEnvelope } from '~/services/types'
 // without casting to `any`.
 // ---------------------------------------------------------------------------
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
     super(message)
@@ -87,6 +87,13 @@ function resolveToken(endpoint: string): string | null {
     if (t) return t
   } else if (endpoint.startsWith('/api/admin')) {
     const t = localStorage.getItem('adminToken')
+    if (t) return t
+  } else if (
+    endpoint.startsWith('/api/order-requests/customer') ||
+    endpoint.startsWith('/api/wallet') ||
+    endpoint.startsWith('/api/customer')
+  ) {
+    const t = localStorage.getItem('customerAuthToken')
     if (t) return t
   }
 
