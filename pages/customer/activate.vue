@@ -2,7 +2,7 @@
   <div class="activate-page">
     <div class="activate-card">
       <div class="activate-logo">
-        <img src="/brand/rig-wordmark.svg" alt="MedsGH" class="h-10" />
+        <img src="/brand/rig-mark.svg" alt="MedsGH" class="h-10" />
       </div>
 
       <template v-if="status === 'idle' || status === 'submitting'">
