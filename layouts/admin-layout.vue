@@ -297,6 +297,7 @@ import {
   ChartBarIcon,
   KeyIcon,
   UserGroupIcon,
+  UserCircleIcon,
   DevicePhoneMobileIcon,
   CreditCardIcon,
   Cog6ToothIcon,

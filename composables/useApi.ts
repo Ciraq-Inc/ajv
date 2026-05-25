@@ -91,6 +91,7 @@ function resolveToken(endpoint: string): string | null {
     const t = localStorage.getItem('adminToken')
     if (t) return t
   } else if (
+    endpoint.startsWith('/api/auth/customer') ||
     endpoint.startsWith('/api/order-requests/customer') ||
     endpoint.startsWith('/api/wallet') ||
     endpoint.startsWith('/api/customer') ||
