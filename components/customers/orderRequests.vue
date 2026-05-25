@@ -88,7 +88,7 @@
                                 <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Take a photo">
                                     <CameraIcon class="w-4 h-4 flex-shrink-0" />
                                     Photo
-                                    <input ref="prescriptionPicker" type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
+                                    <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
                                 <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Upload file">
                                     <ArrowUpTrayIcon class="w-4 h-4 flex-shrink-0" />

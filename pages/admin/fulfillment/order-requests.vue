@@ -521,21 +521,50 @@
                           <span>Click <strong>Start Composing →</strong> above to edit this request.</span>
                         </div>
                         <div v-else class="pane-quick-add-body">
+                          <!-- Search input with live-search dropdown -->
                           <div class="relative">
                             <input
+                              ref="adminNewItemInput"
                               v-model="adminNewItem.product_search"
                               type="text"
-                              class="w-full pl-3 pr-9 py-0 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold h-[32px]"
-                              placeholder="Type product name to add..."
+                              class="w-full pl-3 pr-7 py-0 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold h-[32px]"
+                              placeholder="Search product to add..."
+                              autocomplete="off"
+                              @input="onAdminQuickAddInput(($event.target as HTMLInputElement).value)"
                               @keyup.enter.prevent="saveAdminNewItem"
+                              @focus="adminNewItemDropdownOpen = true"
+                              @blur="closeAdminNewItemDropdown"
                             />
+                            <button v-if="adminNewItem.product_search" @click="resetAdminNewItemSearch" type="button"
+                              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 leading-none">
+                              <XMarkIcon class="w-3 h-3" />
+                            </button>
+                            <!-- Results dropdown -->
+                            <div v-if="adminNewItemDropdownOpen && (pharmResolveLoading || pharmResolveResults.length)"
+                              class="absolute z-20 top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
+                              <div v-if="pharmResolveLoading" class="px-3 py-2 text-[10px] text-gray-500">Searching...</div>
+                              <button
+                                v-for="(pp, i) in pharmResolveResults" :key="pp.id ?? i"
+                                type="button"
+                                class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
+                                @mousedown.prevent="selectAdminQuickAddProduct(pp)"
+                              >
+                                <span class="text-xs font-bold text-gray-900 block truncate">{{ pp.product_description || pp.brand_name }}</span>
+                                <span class="text-[10px] text-gray-500">
+                                  {{ pp.pharmacy_name }}
+                                  <template v-if="(pp.price ?? 0) > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
+                                  <template v-if="(pp.available_quantity ?? 0) > 0"> · {{ pp.available_quantity }} in stock</template>
+                                </span>
+                              </button>
+                            </div>
                           </div>
-                          <div class="flex items-center gap-2">
+                          <!-- Unit + Qty + Add — only shown once a name is typed -->
+                          <div v-if="adminNewItem.product_search.trim()" class="flex items-center gap-2">
                             <select
                               v-model="adminNewItem.requested_unit"
                               class="flex-1 px-3 bg-gray-50 border border-gray-200 rounded-xl text-[11px] text-gray-700 font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all cursor-pointer h-[32px]"
                             >
-                              <option value="">Unit...</option>
+                              <option value="">Unit (optional)</option>
                               <option v-for="option in medicineUnitOptions" :key="`pane-unit-${option}`" :value="option">{{ option }}</option>
                             </select>
                             <div class="flex items-center bg-gray-50 border border-gray-200 rounded-xl overflow-hidden h-[32px] shrink-0">
@@ -543,7 +572,12 @@
                               <input v-model.number="adminNewItem.quantity" type="number" min="1" step="1" class="w-8 h-full text-center text-[11px] font-black text-gray-900 border-x border-gray-200 bg-white focus:outline-none appearance-none m-0 p-0" placeholder="1" @keyup.enter.prevent="saveAdminNewItem" />
                               <button type="button" class="w-7 h-full flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-900 font-bold transition-colors" @click="incrementAdminNewItemQty">+</button>
                             </div>
-                            <button @click="saveAdminNewItem" class="px-3 bg-[#4F217A] bg-opacity-10 text-[#4F217A] rounded-xl text-[11px] font-black transition-all hover:bg-opacity-20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink-0 h-[32px] flex items-center justify-center" :disabled="loading || !canAddAdminItem">
+                            <button
+                              @click="saveAdminNewItem"
+                              class="px-3 rounded-xl text-[11px] font-black transition-all whitespace-nowrap shrink-0 h-[32px] flex items-center justify-center"
+                              :class="canAddAdminItem && !loading ? 'bg-[#4F217A] text-white hover:bg-[#4F217A]/90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'"
+                              :disabled="loading || !canAddAdminItem"
+                            >
                               Add
                             </button>
                           </div>
@@ -2143,7 +2177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
@@ -2637,6 +2671,9 @@ const createAdminNewItemDraft = (): {
   productSearchDebounceHandle: null
 })
 const adminNewItem = reactive(createAdminNewItemDraft())
+const adminNewItemSelection = ref<ProductSearchResult | null>(null)
+const adminNewItemDropdownOpen = ref(false)
+const adminNewItemInput = ref<HTMLInputElement | null>(null)
 const alternativeModal = ref<{
   open: boolean; item: RequestItem | null; pharmacy_id: string
   allocated_quantity: number; name: string; productSearchResults: ProductSearchResult[]
@@ -3880,6 +3917,31 @@ const resetAdminNewItem = () => {
     clearTimeout(adminNewItem.productSearchDebounceHandle)
   }
   Object.assign(adminNewItem, createAdminNewItemDraft())
+}
+
+const onAdminQuickAddInput = (query: string) => {
+  adminNewItemSelection.value = null
+  onPharmResolveInput(query)
+  adminNewItemDropdownOpen.value = true
+}
+
+const selectAdminQuickAddProduct = (pp: ProductSearchResult) => {
+  adminNewItemSelection.value = pp
+  adminNewItem.product_search = pp.product_description || pp.brand_name || pp.product_name || ''
+  if (pp.unit && !adminNewItem.requested_unit) adminNewItem.requested_unit = pp.unit
+  adminNewItemDropdownOpen.value = false
+  pharmResolveResults.value = []
+}
+
+const resetAdminNewItemSearch = () => {
+  adminNewItemSelection.value = null
+  adminNewItemDropdownOpen.value = false
+  pharmResolveResults.value = []
+  resetAdminNewItem()
+}
+
+const closeAdminNewItemDropdown = () => {
+  setTimeout(() => { adminNewItemDropdownOpen.value = false }, 150)
 }
 
 const clearAdminSelectedProduct = () => {
@@ -5537,10 +5599,11 @@ const saveAdminNewItem = async () => {
   if (!selectedRequest.value || !canAddAdminItem.value) return
 
   loading.value = true
+  const selection = adminNewItemSelection.value
   try {
     const quantity = Number(adminNewItem.quantity || 1)
     const productName = String(adminNewItem.product_search || '').trim()
-    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/items`, {
+    const createRes = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/items`, {
       product_id: adminNewItem.product_id || null,
       product_name: productName,
       requested_unit: String(adminNewItem.requested_unit || '').trim().toLowerCase() || null,
@@ -5550,6 +5613,7 @@ const saveAdminNewItem = async () => {
       notes: null
     })
 
+    adminNewItemSelection.value = null
     resetAdminNewItem()
 
     const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
@@ -5566,9 +5630,22 @@ const saveAdminNewItem = async () => {
     nextRecommendedPharmacy.value = null
     logisticsAssessment.value = null
 
+    // Auto-resolve if a product was selected from the search dropdown
+    if (selection) {
+      const newItemId = Number((createRes?.data as { id?: number } | null)?.id || 0)
+      if (newItemId > 0) {
+        await resolveItemToPharmProduct({ id: newItemId } as RequestItem, selection)
+        const refreshed = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+        selectedRequest.value = refreshed.data as RichOrderRequest
+        hydrateItemUiState(selectedRequest.value?.items || [])
+      }
+    }
+
     await fetchRequests({ silent: true })
     await fetchStats({ silent: true })
     showMessage('Item added to request', 'success')
+    await nextTick()
+    adminNewItemInput.value?.focus()
   } catch (e) {
     showMessage(errMsg(e) || 'Failed to add item', 'error')
   } finally {
