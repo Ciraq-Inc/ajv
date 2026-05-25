@@ -67,6 +67,16 @@
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Ledger</span>
             </NuxtLink>
           </template>
+
+          <NuxtLink to="/admin/professionals" class="nav-item" active-class="active">
+            <IdentificationIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
+          </NuxtLink>
+
+          <NuxtLink to="/admin/customers" class="nav-item" active-class="active">
+            <UsersIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Customers</span>
+          </NuxtLink>
         </div>
 
         <div class="nav-section">
@@ -102,16 +112,6 @@
           <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
             <ClipboardDocumentCheckIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Waitlist Signups</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/professionals" class="nav-item" active-class="active">
-            <IdentificationIcon class="nav-icon" aria-hidden="true" />
-            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/customers" class="nav-item" active-class="active">
-            <UsersIcon class="nav-icon" aria-hidden="true" />
-            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Customers</span>
           </NuxtLink>
         </div>
 
