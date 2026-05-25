@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <div class="campaign-edit-page">
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center justify-between mb-4">
         <div>
           <nuxt-link
-            :to="`/${route.params.pharmacy}/services/sms-campaigns`"
+            :to="`/${route.params['pharmacy']}/services/sms-campaigns`"
             class="cs-text flex items-center gap-2 mb-2"
           >
             <ArrowLeftIcon class="h-4 w-4" />
@@ -24,14 +24,14 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+    <div v-else-if="loadError" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
       <div class="flex items-start gap-3">
         <ExclamationTriangleIcon class="h-6 w-6 text-red-600 flex-shrink-0" />
         <div class="flex-1">
           <h3 class="text-red-900 font-semibold">Error Loading Campaign</h3>
-          <p class="text-red-700 mt-1">{{ error }}</p>
+          <p class="text-red-700 mt-1">{{ loadError }}</p>
           <button
-            @click="fetchCampaignData"
+            @click="void fetchCampaignData()"
             class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -51,7 +51,7 @@
             Only campaigns with status "draft" or "paused" can be edited.
           </p>
           <nuxt-link
-            :to="`/${route.params.pharmacy}/services/sms-campaigns/${route.params.id}`"
+            :to="`/${route.params['pharmacy']}/services/sms-campaigns/${route.params['id']}`"
             class="mt-4 inline-block px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
           >
             View Campaign Details
@@ -71,7 +71,7 @@
           <div>
             <p class="text-sm font-medium cs-text">Campaign Status: {{ campaign.status?.toUpperCase() }}</p>
             <p class="text-xs cs-text mt-1">
-              Created {{ new Date(campaign.created_at).toLocaleDateString() }}
+              Created {{ new Date(campaign.created_at ?? '').toLocaleDateString() }}
               {{ campaign.total_recipients ? `• ${campaign.total_recipients} recipients` : '' }}
             </p>
           </div>
@@ -98,197 +98,228 @@
           </div>
         </div>
 
-        <form @submit.prevent="saveCampaign" class="space-y-6">
-        <!-- Campaign Name -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Campaign Name *
-          </label>
-          <input
-            v-model="formData.name"
-            type="text"
-            required
-            maxlength="100"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input"
-            placeholder="e.g., Monthly Promotion"
-          />
-          <p class="mt-1 text-xs text-gray-500">
-            {{ formData.name?.length || 0 }}/100 characters
-          </p>
-        </div>
-
-        <!-- Message -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Message *
-          </label>
-          <div class="relative">
-            <textarea
-              v-model="formData.message"
+        <form @submit.prevent="void saveCampaign()" class="space-y-6">
+          <!-- Campaign Name -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Campaign Name *
+            </label>
+            <input
+              v-model="formData.name"
+              type="text"
               required
-              rows="6"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input resize-none"
-              placeholder="Type your message here..."
-              @input="validateMessage"
-            ></textarea>
-            <div class="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 py-1 rounded">
-              {{ messageLength }} characters, {{ messageParts }} SMS
+              maxlength="100"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input"
+              placeholder="e.g., Monthly Promotion"
+            />
+            <p class="mt-1 text-xs text-gray-500">
+              {{ formData.name.length }}/100 characters
+            </p>
+          </div>
+
+          <!-- Message -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Message *
+            </label>
+            <div class="relative">
+              <textarea
+                v-model="formData.message"
+                required
+                rows="6"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input resize-none"
+                placeholder="Type your message here..."
+                @input="validateMessage"
+              ></textarea>
+              <div class="absolute bottom-3 right-3 text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                {{ messageLength }} characters, {{ messageParts }} SMS
+              </div>
+            </div>
+            <div class="mt-2 flex items-start gap-2">
+              <div class="flex-1">
+                <p class="text-sm text-gray-600">
+                  {{ messageLength <= 160 ? 'Single SMS' : `${messageParts} SMS messages` }}
+                  ({{ messageLength }} / {{ messageParts * 160 }} characters)
+                </p>
+                <p v-if="messageLength > 160" class="text-xs text-amber-600 mt-1">
+                  Messages over 160 characters will be sent as {{ messageParts }} separate SMS
+                </p>
+              </div>
             </div>
           </div>
-          <div class="mt-2 flex items-start gap-2">
-            <div class="flex-1">
-              <p class="text-sm text-gray-600">
-                {{ messageLength <= 160 ? 'Single SMS' : `${messageParts} SMS messages` }}
-                ({{ messageLength }} / {{ messageParts * 160 }} characters)
-              </p>
-              <p v-if="messageLength > 160" class="text-xs text-amber-600 mt-1">
-                ⚠️ Messages over 160 characters will be sent as {{ messageParts }} separate SMS
-              </p>
-            </div>
+
+          <!-- SMS Provider (if applicable) -->
+          <div v-if="formData.sms_provider">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              SMS Provider
+            </label>
+            <input
+              v-model="formData.sms_provider"
+              type="text"
+              disabled
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+            />
+            <p class="mt-1 text-sm text-gray-500">
+              Provider cannot be changed after campaign creation
+            </p>
           </div>
-        </div>
 
-        <!-- SMS Provider (if applicable) -->
-        <div v-if="formData.sms_provider">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            SMS Provider
-          </label>
-          <input
-            v-model="formData.sms_provider"
-            type="text"
-            disabled
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-          />
-          <p class="mt-1 text-sm text-gray-500">
-            Provider cannot be changed after campaign creation
-          </p>
-        </div>
+          <!-- Sender ID (if applicable) -->
+          <div v-if="formData.sender_id">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Sender ID
+            </label>
+            <input
+              v-model="formData.sender_id"
+              type="text"
+              disabled
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+            />
+            <p class="mt-1 text-sm text-gray-500">
+              Sender ID cannot be changed after campaign creation
+            </p>
+          </div>
 
-        <!-- Sender ID (if applicable) -->
-        <div v-if="formData.sender_id">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Sender ID
-          </label>
-          <input
-            v-model="formData.sender_id"
-            type="text"
-            disabled
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-          />
-          <p class="mt-1 text-sm text-gray-500">
-            Sender ID cannot be changed after campaign creation
-          </p>
-        </div>
+          <!-- Recipients Info (Read-only) -->
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold cs-text mb-2">Recipients</h3>
+            <p class="text-sm cs-text">
+              Total Recipients: <strong>{{ campaign.total_recipients ?? 0 }}</strong>
+            </p>
+            <p class="text-xs cs-text mt-1">
+              To change recipients, please create a new campaign or use the "Reuse Campaign" feature.
+            </p>
+          </div>
 
-        <!-- Recipients Info (Read-only) -->
-        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h3 class="text-sm font-semibold cs-text mb-2">Recipients</h3>
-          <p class="text-sm cs-text">
-            Total Recipients: <strong>{{ campaign.total_recipients || 0 }}</strong>
-          </p>
-          <p class="text-xs cs-text mt-1">
-            To change recipients, please create a new campaign or use the "Reuse Campaign" feature.
-          </p>
-        </div>
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-4 pt-4 border-t border-gray-200">
+            <button
+              type="submit"
+              :disabled="saving"
+              class="px-6 py-3 cs-btn text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {{ saving ? 'Saving...' : 'Save Changes' }}
+            </button>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-4 pt-4 border-t border-gray-200">
-          <button
-            type="submit"
-            :disabled="saving"
-            class="px-6 py-3 cs-btn text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-          >
-            {{ saving ? 'Saving...' : 'Save Changes' }}
-          </button>
-
-          <nuxt-link
-            :to="`/${route.params.pharmacy}/services/sms-campaigns/${route.params.id}`"
-            class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-          >
-            Cancel
-          </nuxt-link>
-        </div>
-      </form>
+            <nuxt-link
+              :to="`/${route.params['pharmacy']}/services/sms-campaigns/${route.params['id']}`"
+              class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            >
+              Cancel
+            </nuxt-link>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ArrowLeftIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
-import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
+import { useRoute, useRouter } from 'vue-router'
 
 definePageMeta({
   layout: 'company',
   middleware: 'company-auth',
-  title: 'Edit Campaign'
+  title: 'Edit Campaign',
 })
+
+interface CampaignRecord {
+  id: number | string
+  name?: string | null
+  status?: string | null
+  message?: string | null
+  sms_provider?: string | null
+  sender_id?: string | null
+  created_at?: string | null
+  total_recipients?: number | null
+  [key: string]: unknown
+}
+
+interface FetchCampaignResponse {
+  success?: boolean
+  message?: string | null
+  data?: CampaignRecord | null
+  campaign?: CampaignRecord | null
+}
+
+interface UpdateCampaignResponse {
+  success?: boolean
+  message?: string | null
+}
+
+// TODO: remove once composables/ are .ts
+const { fetchCampaign, updateCampaign: updateCampaignAction } = useSMSCampaigns() as unknown as {
+  fetchCampaign: (id: number | string) => Promise<FetchCampaignResponse>
+  updateCampaign: (id: number | string, data: Record<string, unknown>) => Promise<UpdateCampaignResponse>
+}
 
 const route = useRoute()
 const router = useRouter()
-const { fetchCampaign, updateCampaign: updateCampaignAction } = useSMSCampaigns()
 
-const campaign = ref(null)
-const loading = ref(true)
-const error = ref(null)
-const saving = ref(false)
-const saveError = ref(null)
+const campaign = ref<CampaignRecord | null>(null)
+const loading = ref<boolean>(true)
+const loadError = ref<string | null>(null)
+const saving = ref<boolean>(false)
+const saveError = ref<string | null>(null)
 
-const formData = ref({
+const formData = ref<{
+  name: string
+  message: string
+  sms_provider: string
+  sender_id: string
+}>({
   name: '',
   message: '',
   sms_provider: '',
-  sender_id: ''
+  sender_id: '',
 })
 
-const messageLength = computed(() => formData.value.message?.length || 0)
+const messageLength = computed<number>(() => formData.value.message.length)
 
-const messageParts = computed(() => {
+const messageParts = computed<number>(() => {
   const length = messageLength.value
   if (length === 0) return 0
   if (length <= 160) return 1
-  return Math.ceil(length / 153) // Multi-part SMS uses 153 chars per part
+  return Math.ceil(length / 153)
 })
 
-const canEdit = computed(() => {
+const canEdit = computed<boolean>(() => {
   if (!campaign.value) return false
-  return ['draft', 'paused'].includes(campaign.value.status)
+  return ['draft', 'paused'].includes(campaign.value.status ?? '')
 })
 
-const validateMessage = () => {
-  // Additional validation can be added here
-  // For now, just ensure it's not empty
-  if (!formData.value.message || formData.value.message.trim().length === 0) {
-    return false
-  }
-  return true
+const validateMessage = (): boolean => {
+  return formData.value.message.trim().length > 0
 }
 
-const fetchCampaignData = async () => {
+const fetchCampaignData = async (): Promise<void> => {
   loading.value = true
-  error.value = null
-  
+  loadError.value = null
+
   try {
-    const response = await fetchCampaign(route.params.id)
-    campaign.value = response.data || response.campaign
-    
-    // Populate form data
-    formData.value = {
-      name: campaign.value.name || '',
-      message: campaign.value.message || '',
-      sms_provider: campaign.value.sms_provider || '',
-      sender_id: campaign.value.sender_id || ''
+    const idParam = route.params['id']
+    const response = await fetchCampaign(String(idParam))
+    campaign.value = response.data ?? response.campaign ?? null
+
+    if (campaign.value) {
+      formData.value = {
+        name: campaign.value.name ?? '',
+        message: campaign.value.message ?? '',
+        sms_provider: campaign.value.sms_provider ?? '',
+        sender_id: campaign.value.sender_id ?? '',
+      }
     }
   } catch (err) {
-    error.value = err.message || 'Failed to load campaign'
+    loadError.value = err instanceof Error ? err.message : 'Failed to load campaign'
     console.error('Error loading campaign:', err)
   } finally {
     loading.value = false
   }
 }
 
-const saveCampaign = async () => {
+const saveCampaign = async (): Promise<void> => {
   if (!formData.value.name || !formData.value.message) {
     saveError.value = 'Please fill in all required fields'
     scrollTo({ top: 0, behavior: 'smooth' })
@@ -297,36 +328,30 @@ const saveCampaign = async () => {
 
   saving.value = true
   saveError.value = null
-  
+
   try {
-    const updateData = {
+    const updateData: Record<string, unknown> = {
       name: formData.value.name.trim(),
-      message: formData.value.message.trim()
+      message: formData.value.message.trim(),
     }
-    
-    const response = await updateCampaignAction(route.params.id, updateData)
-    
+
+    const idParam = route.params['id']
+    const response = await updateCampaignAction(String(idParam), updateData)
+
     if (response.success) {
-      // Show success message
       alert('Campaign updated successfully!')
-      
-      // Navigate back to campaign details
-      await router.push(`/${route.params.pharmacy}/services/sms-campaigns/${route.params.id}`)
+      void router.push(`/${String(route.params['pharmacy'])}/services/sms-campaigns/${String(idParam)}`)
     } else {
-      throw new Error(response.message || 'Failed to update campaign')
+      throw new Error(response.message ?? 'Failed to update campaign')
     }
   } catch (err) {
-    saveError.value = err.message || 'Failed to save campaign'
+    saveError.value = err instanceof Error ? err.message : 'Failed to save campaign'
     console.error('Error saving campaign:', err)
-    
-    // Scroll to top to show error
     scrollTo({ top: 0, behavior: 'smooth' })
   } finally {
     saving.value = false
   }
 }
 
-onMounted(() => {
-  fetchCampaignData()
-})
+onMounted(() => { void fetchCampaignData() })
 </script>

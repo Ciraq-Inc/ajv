@@ -14,7 +14,7 @@
           <h3 class="text-lg md:text-xl font-bold text-gray-900">Top Up Money Balance</h3>
           <button
             @click="close"
-            class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+            class="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
             :disabled="processing"
           >
             <Icon name="X" class="h-5 w-5 md:h-6 md:w-6" />
@@ -165,77 +165,76 @@
   </teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { usePaystack } from '~/composables/usePaystack'
 import { useApi } from '~/composables/useApi'
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false
-  },
-  currentBalance: {
-    type: Number,
-    default: 0
-  }
-})
+// TODO: remove once composables/ are .ts
+const props = defineProps<{
+  isOpen?: boolean
+  currentBalance?: number
+}>()
 
-const emit = defineEmits(['close', 'success'])
+const emit = defineEmits<{
+  close: []
+  success: [data: unknown]
+}>()
 
 const { initializePayment } = usePaystack()
 const { post, get } = useApi()
 
-const form = ref({
+interface TopUpForm {
+  amount: number | null
+  email: string
+  autoPurchaseSMS: boolean
+}
+
+const form = ref<TopUpForm>({
   amount: null,
   email: '',
-  autoPurchaseSMS: true // Default to true
+  autoPurchaseSMS: true,
 })
 
 const processing = ref(false)
 const error = ref('')
-const smsRate = ref(0.05) // Default SMS rate
+const smsRate = ref(0.05)
 
-// Calculate Paystack fees
-const paystackFee = computed(() => {
+const paystackFee = computed<number>(() => {
   if (!form.value.amount || form.value.amount <= 0) return 0
-  return (form.value.amount * 0.0195) + 0.50
+  return form.value.amount * 0.0195 + 0.5
 })
 
-const totalAmount = computed(() => {
+const totalAmount = computed<number>(() => {
   if (!form.value.amount || form.value.amount <= 0) return 0
   return form.value.amount + paystackFee.value
 })
 
-const balanceAfterTopup = computed(() => {
-  // If auto-purchase SMS is enabled, balance stays the same (money converted to SMS)
-  // If disabled, balance increases by the amount
-  if (form.value.autoPurchaseSMS) {
-    return props.currentBalance
-  }
-  return props.currentBalance + (form.value.amount || 0)
+const balanceAfterTopup = computed<number>(() => {
+  if (form.value.autoPurchaseSMS) return props.currentBalance ?? 0
+  return (props.currentBalance ?? 0) + (form.value.amount ?? 0)
 })
 
-const estimatedSMSCredits = computed(() => {
+const estimatedSMSCredits = computed<number>(() => {
   if (!form.value.amount || form.value.amount <= 0) return 0
   return Math.floor(form.value.amount / smsRate.value)
 })
 
-const canSubmit = computed(() => {
-  return form.value.amount && 
-         form.value.amount > 0 && 
-         form.value.amount <= 10000 &&
-         form.value.email && 
-         form.value.email.includes('@') &&
-         !processing.value
-})
+const canSubmit = computed<boolean>(() =>
+  !!form.value.amount &&
+  form.value.amount > 0 &&
+  form.value.amount <= 10000 &&
+  !!form.value.email &&
+  form.value.email.includes('@') &&
+  !processing.value,
+)
 
-// Fetch SMS rate on mount
-const fetchSMSRate = async () => {
+const fetchSMSRate = async (): Promise<void> => {
   try {
-    const response = await get('/api/sms-credits/rate')
+    // get() is untyped (composable not yet .ts)
+    const response = await get('/api/sms-credits/rate') as { success: boolean; data?: { rate?: number; sms_rate?: number } }
     if (response.success && response.data) {
-      smsRate.value = response.data.rate || response.data.sms_rate || 0.05
+      smsRate.value = response.data.rate ?? response.data.sms_rate ?? 0.05
     }
   } catch (err) {
     console.warn('Could not fetch SMS rate, using default:', err)
@@ -243,113 +242,93 @@ const fetchSMSRate = async () => {
   }
 }
 
-const calculateTotal = () => {
-  // Trigger reactivity for computed properties
+const calculateTotal = (): void => {
   form.value = { ...form.value }
 }
 
-const formatMoney = (amount) => {
+const formatMoney = (amount: number | null | undefined): string => {
   if (!amount && amount !== 0) return '0.00'
-  return parseFloat(amount).toFixed(2)
+  return parseFloat(String(amount)).toFixed(2)
 }
 
-const close = () => {
+const close = (): void => {
   if (!processing.value) {
-    form.value = { amount: null, email: '' }
+    form.value = { amount: null, email: '', autoPurchaseSMS: true }
     error.value = ''
     emit('close')
   }
 }
 
-const handleBackdropClick = () => {
-  if (!processing.value) {
-    close()
-  }
+const handleBackdropClick = (): void => {
+  if (!processing.value) close()
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (): Promise<void> => {
   if (!canSubmit.value) return
 
   processing.value = true
   error.value = ''
 
   try {
-    console.log('=== Starting Paystack Payment ===')
-    console.log('Amount:', form.value.amount)
-    console.log('Email:', form.value.email)
-    console.log('Auto-purchase SMS:', form.value.autoPurchaseSMS)
-    
-    // Step 1: Initialize payment with backend
-    console.log('Step 1: Initializing payment with backend...')
+    // post() is untyped (composable not yet .ts)
     const initResponse = await post('/api/sms-credits/paystack/initialize', {
       amount: form.value.amount,
       email: form.value.email,
-      auto_purchase_sms: form.value.autoPurchaseSMS
-    })
-    
-    console.log('Backend response:', initResponse)
+      auto_purchase_sms: form.value.autoPurchaseSMS,
+    }) as { success: boolean; message?: string; data: { reference: string; amount: number; email: string; metadata?: unknown } }
 
     if (!initResponse.success) {
-      throw new Error(initResponse.message || 'Failed to initialize payment')
+      throw new Error(initResponse.message ?? 'Failed to initialize payment')
     }
 
     const { reference, amount, email, metadata } = initResponse.data
 
-    // Step 2: Open Paystack popup
     await initializePayment(
-      { 
-        amount, 
-        email, 
-        reference, 
-        metadata 
-      },
-      async (response) => {
-        // Payment successful callback
-        console.log('Payment successful, verifying...', response)
-        
+      { amount, email, reference, ...(metadata != null && { metadata: metadata as Record<string, unknown> }) },
+      async (response: { reference: string }) => {
         try {
-          // Step 3: Verify payment with backend
           const verifyResponse = await post('/api/sms-credits/paystack/verify', {
-            reference: response.reference
-          })
+            reference: response.reference,
+          }) as { success: boolean; message?: string; data: unknown }
 
           if (verifyResponse.success) {
-            // Success! Close modal and refresh parent
             emit('success', verifyResponse.data)
-            form.value = { amount: null, email: '' }
+            form.value = { amount: null, email: '', autoPurchaseSMS: true }
             processing.value = false
           } else {
-            throw new Error(verifyResponse.message || 'Payment verification failed')
+            throw new Error(verifyResponse.message ?? 'Payment verification failed')
           }
-        } catch (verifyError) {
-          error.value = verifyError.message || 'Payment verification failed. Please contact support.'
+        } catch (verifyError: unknown) {
+          error.value =
+            verifyError instanceof Error
+              ? verifyError.message
+              : 'Payment verification failed. Please contact support.'
           processing.value = false
         }
       },
       () => {
-        // Payment closed callback
         processing.value = false
-      }
+      },
     )
-
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('Payment initialization error:', err)
-    error.value = err.message || 'Failed to initialize payment. Please try again.'
+    error.value =
+      err instanceof Error ? err.message : 'Failed to initialize payment. Please try again.'
     processing.value = false
   }
 }
 
-// Watch for modal open to reset form and fetch SMS rate
-watch(() => props.isOpen, (newValue) => {
-  if (newValue) {
-    fetchSMSRate()
-    // Don't reset form when opening to preserve any pre-filled values
-  } else {
-    // Reset form when closing
-    form.value = { amount: null, email: '', autoPurchaseSMS: true }
-    error.value = ''
-  }
-})
+watch(
+  () => props.isOpen,
+  (newValue) => {
+    if (newValue) {
+      fetchSMSRate()
+    } else {
+      form.value = { amount: null, email: '', autoPurchaseSMS: true }
+      error.value = ''
+    }
+  },
+)
 </script>
 
 <style scoped>

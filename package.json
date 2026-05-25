@@ -9,20 +9,15 @@
     "dev": "nuxi dev --no-fork --port 4000 --host 0.0.0.0",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "node scripts/generate-remixicon-slim.mjs && nuxt prepare"
   },
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
     "@nuxt/fonts": "^0.14.0",
     "@pinia/nuxt": "^0.7.0",
     "browser-image-compression": "^2.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "esbuild": "^0.24.0",
     "firebase": "^10.14.1",
-    "firebase-admin": "^12.7.0",
-    "firebaseui": "^6.1.0",
-    "material-symbols": "^0.44.5",
+    "libphonenumber-js": "^1.13.3",
     "nuxt": "^3.14.159",
     "nuxt-gtag": "^3.0.2",
     "nuxt-vuefire": "^1.0.4",

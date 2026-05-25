@@ -9,7 +9,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-12 text-center text-gray-400">Loading deliveries...</div>
+    <div v-if="loading" class="py-12 text-center text-gray-500">Loading deliveries...</div>
 
     <template v-else>
       <!-- ── Section 1: Rider proposed (external dispatch) ── -->
@@ -24,7 +24,7 @@
               <div>
                 <div class="font-medium text-gray-900">Delivery #{{ d.id }}</div>
                 <div class="text-sm text-gray-500 mt-0.5">To: {{ d.delivery_address }}</div>
-                <div v-if="d.request_number" class="text-xs text-gray-400 mt-0.5">Ref: {{ d.request_number }}</div>
+                <div v-if="d.request_number" class="text-xs text-gray-500 mt-0.5">Ref: {{ d.request_number }}</div>
               </div>
               <span class="text-xs font-medium px-2 py-1 rounded-full shrink-0 cs-badge">
                 rider proposed
@@ -67,7 +67,7 @@
               <div>
                 <div class="font-medium text-gray-900">Delivery #{{ d.id }}</div>
                 <div class="text-sm text-gray-500 mt-0.5">To: {{ d.delivery_address }}</div>
-                <div v-if="d.request_number" class="text-xs text-gray-400 mt-0.5">Ref: {{ d.request_number }}</div>
+                <div v-if="d.request_number" class="text-xs text-gray-500 mt-0.5">Ref: {{ d.request_number }}</div>
               </div>
               <span class="text-xs font-medium px-2 py-1 rounded-full shrink-0" :class="statusClass(d.delivery_status)">
                 {{ d.delivery_status?.replace(/_/g, ' ') }}
@@ -107,7 +107,7 @@
             </div>
 
             <!-- In progress -->
-            <div v-else class="text-sm text-gray-400">Delivery is in progress</div>
+            <div v-else class="text-sm text-gray-500">Delivery is in progress</div>
 
             <div v-if="errors[d.id]" class="mt-2 text-xs text-red-600">{{ errors[d.id] }}</div>
           </div>
@@ -125,31 +125,60 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 
 definePageMeta({
   middleware: ['company-auth'],
-  layout: 'company'
+  layout: 'company',
 })
 
+interface DeliveryRow {
+  id: number | string
+  delivery_address?: string | null
+  request_number?: string | null
+  delivery_status?: string | null
+  driver_id?: number | string | null
+  driver_name?: string | null
+  driver_phone?: string | null
+}
+
+interface RiderRow {
+  id: number | string
+  name: string
+  phone: string
+}
+
+interface DeliveryListResponse {
+  success?: boolean
+  message?: string | null
+  deliveries?: DeliveryRow[] | null
+  riders?: RiderRow[] | null
+}
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  makeAuthRequest: (url: string, options?: RequestInit) => Promise<DeliveryListResponse>
+}
+
 const route = useRoute()
-const pharmacy = computed(() => route.params.pharmacy)
-const companyStore = useCompanyStore()
+const pharmacy = computed<string>(() => String(route.params['pharmacy'] ?? ''))
 
-const loading = ref(true)
-const proposedDeliveries = ref([])
-const claimedDeliveries = ref([])
-const riders = ref([])
-const acting = ref(null)
-const errors = ref({})
-const riderSelections = ref({})
+const loading = ref<boolean>(true)
+const proposedDeliveries = ref<DeliveryRow[]>([])
+const claimedDeliveries = ref<DeliveryRow[]>([])
+const riders = ref<RiderRow[]>([])
+const acting = ref<number | string | null>(null)
+const errors = ref<Record<string | number, string | null>>({})
+const riderSelections = ref<Record<string | number, number | string>>({})
 
-const proposed = computed(() => proposedDeliveries.value)
-const claimed = computed(() => claimedDeliveries.value)
+const proposed = computed<DeliveryRow[]>(() => proposedDeliveries.value)
+const claimed = computed<DeliveryRow[]>(() => claimedDeliveries.value)
 
-const statusClass = (status) => {
-  const map = {
+const statusClass = (status: string | null | undefined): string => {
+  const map: Record<string, string> = {
     open: 'bg-orange-100 text-orange-700',
     rider_proposed: 'cs-badge',
     assigned: 'bg-purple-100 text-purple-700',
@@ -157,10 +186,11 @@ const statusClass = (status) => {
     picked_up: 'bg-indigo-100 text-indigo-700',
     in_transit: 'bg-green-100 text-green-700',
   }
-  return map[status] || 'bg-gray-100 text-gray-700'
+  if (status === undefined || status === null) return 'bg-gray-100 text-gray-700'
+  return (status !== undefined ? map[status] : undefined) ?? 'bg-gray-100 text-gray-700'
 }
 
-const fetchAll = async () => {
+const fetchAll = async (): Promise<void> => {
   loading.value = true
   try {
     const [proposedRes, claimedRes, ridersRes] = await Promise.all([
@@ -170,10 +200,10 @@ const fetchAll = async () => {
     ])
     // pending endpoint returns open + rider_proposed; filter to rider_proposed only
     if (proposedRes.success) {
-      proposedDeliveries.value = (proposedRes.deliveries || []).filter(d => d.delivery_status === 'rider_proposed')
+      proposedDeliveries.value = (proposedRes.deliveries ?? []).filter(d => d.delivery_status === 'rider_proposed')
     }
-    if (claimedRes.success) claimedDeliveries.value = claimedRes.deliveries || []
-    if (ridersRes.success) riders.value = ridersRes.riders || []
+    if (claimedRes.success) claimedDeliveries.value = claimedRes.deliveries ?? []
+    if (ridersRes.success) riders.value = ridersRes.riders ?? []
   } catch (e) {
     console.error('Failed to fetch deliveries', e)
   } finally {
@@ -181,31 +211,34 @@ const fetchAll = async () => {
   }
 }
 
-const doAction = async (id, path, body = {}) => {
+const doAction = async (id: number | string, path: string, body: Record<string, unknown> = {}): Promise<void> => {
   acting.value = id
   errors.value[id] = null
   try {
     const hasBody = Object.keys(body).length > 0
-    const res = await companyStore.makeAuthRequest(`/api/pharmacy/deliveries/${id}/${path}`, {
+    const res = await companyStore.makeAuthRequest(`/api/pharmacy/deliveries/${String(id)}/${path}`, {
       method: 'POST',
       headers: hasBody ? { 'Content-Type': 'application/json' } : {},
-      body: hasBody ? JSON.stringify(body) : undefined
+      ...(hasBody && { body: JSON.stringify(body) }),
     })
     if (res.success) {
       await fetchAll()
     } else {
-      errors.value[id] = res.message || 'Action failed'
+      errors.value[id] = res.message ?? 'Action failed'
     }
   } catch (e) {
-    errors.value[id] = e.message || 'Error'
+    errors.value[id] = e instanceof Error ? e.message : 'Error'
   } finally {
     acting.value = null
   }
 }
 
-const confirmRider = (id) => doAction(id, 'confirm-rider')
-const rejectRider = (id) => doAction(id, 'reject-rider')
-const assignRider = (id) => doAction(id, 'assign-rider', { rider_id: riderSelections.value[id] })
+const confirmRider = (id: number | string): void => { void doAction(id, 'confirm-rider') }
+const rejectRider = (id: number | string): void => { void doAction(id, 'reject-rider') }
+const assignRider = (id: number | string): void => {
+  const riderId = riderSelections.value[id]
+  void doAction(id, 'assign-rider', riderId !== undefined ? { rider_id: riderId } : {})
+}
 
-onMounted(fetchAll)
+onMounted(() => { void fetchAll() })
 </script>

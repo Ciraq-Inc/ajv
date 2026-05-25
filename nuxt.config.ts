@@ -22,21 +22,66 @@ export default defineNuxtConfig({
           }
         }
       }
-    ]
+    ],
+    build: {
+      // Split Firebase + vuefire into their own chunk so route-level chunks
+      // are not bloated by Firebase code on pages that don't use it.
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes('node_modules')) {
+              if (id.includes('/firebase/') || id.includes('@firebase/') || id.includes('/vuefire/')) {
+                return 'firebase-vendor'
+              }
+              if (id.includes('/@heroicons/')) {
+                return 'heroicons-vendor'
+              }
+            }
+            return undefined
+          }
+        }
+      }
+    }
   },
 
+  ssr: false,
   compatibilityDate: "2024-04-03",
   devtools: { enabled: false },
   app: {
     head: {
       charset: "utf-8",
       viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+      htmlAttrs: {
+        lang: "en",
+      },
     },
     // Add page transitions for smoother navigation with pharmacy routing
     pageTransition: { name: 'page', mode: 'out-in' }
   },
 
-  modules: ["@nuxtjs/tailwindcss", "@nuxt/fonts", "@pinia/nuxt", "nuxt-vuefire", "nuxt-gtag"],
+  modules: [
+    "@nuxtjs/tailwindcss",
+    "@nuxt/fonts",
+    "@pinia/nuxt",
+    "nuxt-vuefire",
+    "nuxt-gtag",
+    // Workaround: with ssr:false, Nuxt 3.15+ skips creating the SSR Vite server, so
+    // vite:serverCreated(isServer:true) never fires and NUXT_VITE_NODE_OPTIONS.socketPath
+    // is never set — causing "Vite Node IPC socket path not configured" on every request.
+    // Fix: re-emit the hook on the client server. Also add input.server so that
+    // resolveServerEntry() succeeds (it requires that key; entryPath is only metadata).
+    function viteNodeSsrFix(_options: unknown, nuxt: any) {
+      if (!nuxt.options.dev || nuxt.options.ssr) return
+      nuxt.hook('vite:serverCreated', async (server: any, ctx: any) => {
+        if (!ctx.isClient) return
+        const input = server.config?.build?.rollupOptions?.input
+        if (input && typeof input === 'object' && !Array.isArray(input) && !('server' in input)) {
+          input.server = Object.values(input)[0]
+        }
+        await nuxt.callHook('vite:serverCreated', server, { isClient: false, isServer: true })
+      })
+    },
+  ],
 
   fonts: {
     families: [
@@ -81,7 +126,7 @@ export default defineNuxtConfig({
   ],
 
   gtag: {
-		id: process.env.GTAG_ID,
+		id: process.env.GTAG_ID ?? '',
 	},
 
   vuefire: {
@@ -106,7 +151,7 @@ export default defineNuxtConfig({
   // Runtime configuration for API endpoints
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.API_BASE_URL,
+      apiBase: process.env.NUXT_PUBLIC_API_BASE ?? process.env.API_BASE_URL ?? '',
       paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
       paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || '',
       accessControlUsername: process.env.NUXT_PUBLIC_ACCESS_CONTROL_USERNAME || process.env.ACCESS_CONTROL_USERNAME || 'admin',

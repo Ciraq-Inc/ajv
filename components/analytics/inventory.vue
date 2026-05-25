@@ -74,25 +74,25 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(company, index) in filteredCompanies" :key="company.company_id">
+                <tr v-for="(company, index) in filteredCompanies" :key="String(company.company_id ?? index)">
                   <td class="row-number">{{ index + 1 }}</td>
                   <td class="company-name">{{ company.company_name }}</td>
-                  <td>{{ formatNumber(company.inventory.total_products) }}</td>
-                  <td>{{ formatNumber(company.inventory.total_units) }}</td>
-                  <td>GH₵ {{ formatNumber(company.valuation.cost_value) }}</td>
-                  <td>GH₵ {{ formatNumber(company.valuation.selling_value) }}</td>
-                  <td class="profit">GH₵ {{ formatNumber(company.valuation.potential_profit) }}</td>
-                 
+                  <td>{{ formatNumber(company.inventory?.total_products) }}</td>
+                  <td>{{ formatNumber(company.inventory?.total_units) }}</td>
+                  <td>GH₵ {{ formatNumber(company.valuation?.cost_value) }}</td>
+                  <td>GH₵ {{ formatNumber(company.valuation?.selling_value) }}</td>
+                  <td class="profit">GH₵ {{ formatNumber(company.valuation?.potential_profit) }}</td>
+
                   <td>
                     <div class="alert-badges">
-                      <span v-if="company.stock_health.out_of_stock > 0" class="badge critical">
-                        {{ company.stock_health.out_of_stock }} Out
+                      <span v-if="(company.stock_health?.out_of_stock ?? 0) > 0" class="badge critical">
+                        {{ company.stock_health?.out_of_stock }} Out
                       </span>
-                      <span v-if="company.stock_health.low_stock > 0" class="badge warning">
-                        {{ company.stock_health.low_stock }} Low
+                      <span v-if="(company.stock_health?.low_stock ?? 0) > 0" class="badge warning">
+                        {{ company.stock_health?.low_stock }} Low
                       </span>
-                      <span v-if="company.stock_health.expiring_soon > 0" class="badge info">
-                        {{ company.stock_health.expiring_soon }} Exp
+                      <span v-if="(company.stock_health?.expiring_soon ?? 0) > 0" class="badge info">
+                        {{ company.stock_health?.expiring_soon }} Exp
                       </span>
                     </div>
                   </td>
@@ -141,7 +141,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="product in topProducts" :key="product.product_id">
+                <tr v-for="product in topProducts" :key="String(product.product_id ?? product.rank ?? 0)">
                   <td class="rank">
                     <span class="rank-badge" :class="getRankClass(product.rank)">
                       #{{ product.rank }}
@@ -151,11 +151,11 @@
                     <strong>{{ product.product_name }}</strong>
                     <span v-if="product.strength" class="strength">{{ product.strength }}</span>
                   </td>
-                  <td>{{ formatNumber(product.performance.total_quantity) }}</td>
-                  <td>GH₵ {{ formatNumber(product.performance.total_revenue) }}</td>
-                  <td class="profit">GH₵ {{ formatNumber(product.performance.total_profit) }}</td>
-                  <td>{{ product.performance.profit_margin }}%</td>
-                  <td>{{ product.distribution.company_count }}</td>
+                  <td>{{ formatNumber(product.performance?.total_quantity) }}</td>
+                  <td>GH₵ {{ formatNumber(product.performance?.total_revenue) }}</td>
+                  <td class="profit">GH₵ {{ formatNumber(product.performance?.total_profit) }}</td>
+                  <td>{{ product.performance?.profit_margin }}%</td>
+                  <td>{{ product.distribution?.company_count }}</td>
                 </tr>
               </tbody>
             </table>
@@ -196,28 +196,28 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="alert in alertsList" :key="`${alert.product_id}-${alert.company.id}`">
+                <tr v-for="alert in alertsList" :key="`${alert.product_id ?? ''}-${alert.company?.id ?? ''}`">
                   <td>
-                    <span class="severity-badge" :class="alert.alert.severity">
-                      {{ alert.alert.severity }}
+                    <span class="severity-badge" :class="alert.alert?.severity">
+                      {{ alert.alert?.severity }}
                     </span>
                   </td>
                   <td class="product-name">
-                    <strong>{{ alert.product.name }}</strong>
-                    <span v-if="alert.product.strength" class="strength">{{ alert.product.strength }}</span>
+                    <strong>{{ alert.product?.name }}</strong>
+                    <span v-if="alert.product?.strength" class="strength">{{ alert.product?.strength }}</span>
                   </td>
-                  <td>{{ alert.company.name }}</td>
-                  <td :class="{ 'text-danger': alert.stock.current === 0 }">
-                    {{ alert.stock.current }}
+                  <td>{{ alert.company?.name }}</td>
+                  <td :class="{ 'text-danger': alert.stock?.current === 0 }">
+                    {{ alert.stock?.current }}
                   </td>
-                  <td>{{ alert.stock.reorder_level }}</td>
+                  <td>{{ alert.stock?.reorder_level }}</td>
                   <td>{{ formatDate(alert.expiry?.date) }}</td>
                   <td :class="getExpiryClass(alert.expiry?.days_remaining)">
                     {{ alert.expiry?.days_remaining || 'N/A' }}
                   </td>
                   <td>
-                    <span class="alert-type-badge" :class="alert.alert.type.toLowerCase()">
-                      {{ formatAlertType(alert.alert.type) }}
+                    <span class="alert-type-badge" :class="(alert.alert?.type ?? '').toLowerCase()">
+                      {{ formatAlertType(alert.alert?.type) }}
                     </span>
                   </td>
                 </tr>
@@ -281,25 +281,25 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="product in productsList" :key="`${product.product_id}-${product.company.id}`">
+                <tr v-for="product in productsList" :key="`${product.product_id ?? ''}-${product.company?.id ?? ''}`">
                   <td class="product-name">
-                    <strong>{{ product.product.brand_name }}</strong>
-                    <span v-if="product.product.strength" class="strength">
-                      {{ product.product.strength }}
+                    <strong>{{ product.product?.brand_name }}</strong>
+                    <span v-if="product.product?.strength" class="strength">
+                      {{ product.product?.strength }}
                     </span>
-                    <span class="unit">{{ product.product.unit }}</span>
+                    <span class="unit">{{ product.product?.unit }}</span>
                   </td>
-                  <td>{{ product.company.name }}</td>
-                  <td>{{ product.stock.quantity }}</td>
+                  <td>{{ product.company?.name }}</td>
+                  <td>{{ product.stock?.quantity }}</td>
                   <td>
-                    <span class="status-badge" :class="product.stock.status.toLowerCase()">
-                      {{ formatStatus(product.stock.status) }}
+                    <span class="status-badge" :class="(product.stock?.status ?? '').toLowerCase()">
+                      {{ formatStatus(product.stock?.status ?? '') }}
                     </span>
                   </td>
-                  <td>GH₵ {{ product.pricing.cost_price.toFixed(2) }}</td>
-                  <td>GH₵ {{ product.pricing.selling_price.toFixed(2) }}</td>
-                  <td>GH₵ {{ formatNumber(product.pricing.total_value) }}</td>
-                  <td>{{ product.stock.shelf_location || 'N/A' }}</td>
+                  <td>GH₵ {{ (product.pricing?.cost_price ?? 0).toFixed(2) }}</td>
+                  <td>GH₵ {{ (product.pricing?.selling_price ?? 0).toFixed(2) }}</td>
+                  <td>GH₵ {{ formatNumber(product.pricing?.total_value) }}</td>
+                  <td>{{ product.stock?.shelf_location || 'N/A' }}</td>
                   <td>
                     <div class="expiry-info">
                       <div>{{ formatDate(product.expiry?.expiry_date) }}</div>
@@ -341,45 +341,219 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import ProductsTable from './ProductsTable.vue'
 
+interface StockHealth {
+  out_of_stock?: number;
+  low_stock?: number;
+  expiring_soon?: number;
+  [key: string]: unknown;
+}
+
+interface StockInventory {
+  total_products?: number;
+  total_units?: number;
+  [key: string]: unknown;
+}
+
+interface StockValuation {
+  cost_value?: number;
+  selling_value?: number;
+  potential_profit?: number;
+  [key: string]: unknown;
+}
+
+interface StockCompany {
+  company_id?: number | string;
+  company_name?: string;
+  total_value?: number;
+  inventory?: StockInventory;
+  valuation?: StockValuation;
+  stock_health?: StockHealth;
+  [key: string]: unknown;
+}
+
+interface StockValueData {
+  companies?: StockCompany[];
+  [key: string]: unknown;
+}
+
+interface AlertProduct {
+  name?: string;
+  strength?: string;
+  [key: string]: unknown;
+}
+
+interface AlertCompany {
+  id?: number | string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface AlertStock {
+  current?: number;
+  reorder_level?: number;
+  [key: string]: unknown;
+}
+
+interface AlertExpiry {
+  date?: string;
+  days_remaining?: number;
+  [key: string]: unknown;
+}
+
+interface AlertInfo {
+  severity?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface AlertItem {
+  product_id?: number | string;
+  product?: AlertProduct;
+  company?: AlertCompany;
+  stock?: AlertStock;
+  expiry?: AlertExpiry;
+  alert?: AlertInfo;
+  [key: string]: unknown;
+}
+
+interface AlertsData {
+  alerts?: AlertItem[];
+  [key: string]: unknown;
+}
+
+interface TopProductPerformance {
+  total_quantity?: number;
+  total_revenue?: number;
+  total_profit?: number;
+  profit_margin?: number | string;
+  [key: string]: unknown;
+}
+
+interface TopProductDistribution {
+  company_count?: number;
+  [key: string]: unknown;
+}
+
+interface TopProduct {
+  rank?: number;
+  product_id?: number | string;
+  product_name?: string;
+  strength?: string;
+  revenue?: number;
+  quantity?: number;
+  margin?: number | string;
+  performance?: TopProductPerformance;
+  distribution?: TopProductDistribution;
+  [key: string]: unknown;
+}
+
+interface ProductItemProduct {
+  brand_name?: string;
+  strength?: string;
+  unit?: string;
+  [key: string]: unknown;
+}
+
+interface ProductItemCompany {
+  id?: number | string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface ProductItemStock {
+  quantity?: number;
+  status?: string;
+  shelf_location?: string;
+  [key: string]: unknown;
+}
+
+interface ProductItemPricing {
+  cost_price?: number;
+  selling_price?: number;
+  total_value?: number;
+  [key: string]: unknown;
+}
+
+interface ProductItemExpiry {
+  expiry_date?: string;
+  days_to_expiry?: number;
+  [key: string]: unknown;
+}
+
+interface ProductItem {
+  id?: number | string;
+  product_id?: number | string;
+  product_name?: string;
+  stock_level?: number;
+  reorder_level?: number;
+  expiry_date?: string;
+  days_to_expiry?: number;
+  status?: string;
+  product?: ProductItemProduct;
+  company?: ProductItemCompany;
+  stock?: ProductItemStock;
+  pricing?: ProductItemPricing;
+  expiry?: ProductItemExpiry;
+  [key: string]: unknown;
+}
+
+interface Pagination {
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
+}
+
+interface ReportsServiceShape {
+  exportInventoryStockValueCsv: () => Promise<Blob>;
+}
+
 // Use admin store
-const adminStore = useAdminStore()
+const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reportsService = createReportsExportService(useApi()) as unknown as ReportsServiceShape
 
 // API Configuration
 const API_BASE = '/api/inventory-analytics'
 
 // State
-const loading = ref(false)
-const error = ref(null)
-const exporting = ref(false)
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
+const exporting = ref<boolean>(false)
 
 // Data
-const stockValue = ref(null)
-const alerts = ref(null)
-const topProducts = ref([])
-const alertsList = ref([])
-const productsList = ref([])
-const productsPagination = ref({ total: 0, limit: 100, offset: 0, has_more: false })
+const stockValue = ref<StockValueData | null>(null)
+const alerts = ref<AlertsData | null>(null)
+const topProducts = ref<TopProduct[]>([])
+const alertsList = ref<AlertItem[]>([])
+const productsList = ref<ProductItem[]>([])
+const productsPagination = ref<Pagination>({ total: 0, limit: 100, offset: 0, has_more: false })
 
 // UI State
-const activeTab = ref('companies')
-const companySearch = ref('')
-const productSearch = ref('')
-const showOnlyLowStock = ref(false)
-const showOnlyExpiring = ref(false)
-const topProductsMetric = ref('revenue')
-const topProductsLimit = ref(20)
-const alertFilter = ref('')
-const loadingTopProducts = ref(false)
-const loadingAlerts = ref(false)
-const loadingProducts = ref(false)
+const activeTab = ref<string>('companies')
+const companySearch = ref<string>('')
+const productSearch = ref<string>('')
+const showOnlyLowStock = ref<boolean>(false)
+const showOnlyExpiring = ref<boolean>(false)
+const topProductsMetric = ref<string>('revenue')
+const topProductsLimit = ref<number>(20)
+const alertFilter = ref<string>('')
+const loadingTopProducts = ref<boolean>(false)
+const loadingAlerts = ref<boolean>(false)
+const loadingProducts = ref<boolean>(false)
 
 // Tabs
-const tabs = [
+const tabs: Array<{ id: string; label: string; icon: string }> = [
   { id: 'companies', label: 'Companies', icon: 'Building2' },
   { id: 'multi-tenant-products', label: 'All Products', icon: 'Package' },
   // { id: 'top-products', label: 'Top Products', icon: 'Trophy' },
@@ -388,118 +562,107 @@ const tabs = [
 ]
 
 // Computed
-const filteredCompanies = computed(() => {
+const filteredCompanies = computed<StockCompany[]>(() => {
   if (!stockValue.value?.companies) return []
   if (!companySearch.value) return stockValue.value.companies
-  
+
   const search = companySearch.value.toLowerCase()
-  return stockValue.value.companies.filter(c => 
-    c.company_name.toLowerCase().includes(search)
+  return stockValue.value.companies.filter(c =>
+    (c.company_name ?? '').toLowerCase().includes(search)
   )
 })
 
 // Helper Functions
-const apiCall = async (endpoint, params = {}) => {
-  const queryString = new URLSearchParams(params).toString()
+const apiCall = async (endpoint: string, params: Record<string, string | number | boolean> = {}): Promise<unknown> => {
+  const queryString = new URLSearchParams(
+    Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
+  ).toString()
   const url = `${API_BASE}${endpoint}${queryString ? '?' + queryString : ''}`
-  
+
   const data = await adminStore.makeAuthRequest(url)
-  
+
   if (!data.success) {
-    throw new Error(data.message || 'API request failed')
+    throw new Error(data.message ?? 'API request failed')
   }
-  
+
   return data.data
 }
 
 // Data Loading Functions
-const loadStockValue = async () => {
-  stockValue.value = await apiCall('/composite-stock-value')
+const loadStockValue = async (): Promise<void> => {
+  stockValue.value = await apiCall('/composite-stock-value') as StockValueData
 }
 
-const loadAlerts = async () => {
+const loadAlerts = async (): Promise<void> => {
   loadingAlerts.value = true
   try {
-    const params = alertFilter.value ? { alertType: alertFilter.value } : {}
-    const data = await apiCall('/alerts', params)
+    const params: Record<string, string> = alertFilter.value ? { alertType: alertFilter.value } : {}
+    const data = await apiCall('/alerts', params) as AlertsData
     alerts.value = data
-    alertsList.value = data.alerts || []
+    alertsList.value = data.alerts ?? []
   } finally {
     loadingAlerts.value = false
   }
 }
 
-const loadTopProducts = async () => {
+const loadTopProducts = async (): Promise<void> => {
   loadingTopProducts.value = true
   try {
-    topProducts.value = (await apiCall('/top-products', {
+    const result = await apiCall('/top-products', {
       metric: topProductsMetric.value,
       limit: topProductsLimit.value
-    })).products || []
+    }) as { products?: TopProduct[] }
+    topProducts.value = result.products ?? []
   } finally {
     loadingTopProducts.value = false
   }
 }
 
-const searchProducts = async () => {
+const searchProducts = async (): Promise<void> => {
   loadingProducts.value = true
   try {
-    const params = {
+    const params: Record<string, string | number | boolean> = {
       limit: productsPagination.value.limit,
       offset: productsPagination.value.offset
     }
-    
-    if (productSearch.value) params.productName = productSearch.value
-    if (showOnlyLowStock.value) params.belowReorder = true
-    if (showOnlyExpiring.value) params.expiringSoon = true
-    
-    const data = await apiCall('/product-stock-details', params)
-    productsList.value = data.products || []
-    productsPagination.value = data.pagination || { total: 0, limit: 100, offset: 0, has_more: false }
+
+    if (productSearch.value) params['productName'] = productSearch.value
+    if (showOnlyLowStock.value) params['belowReorder'] = true
+    if (showOnlyExpiring.value) params['expiringSoon'] = true
+
+    const data = await apiCall('/product-stock-details', params) as { products?: ProductItem[]; pagination?: Pagination }
+    productsList.value = data.products ?? []
+    productsPagination.value = data.pagination ?? { total: 0, limit: 100, offset: 0, has_more: false }
   } finally {
     loadingProducts.value = false
   }
 }
 
-const refreshData = async () => {
+const refreshData = async (): Promise<void> => {
   loading.value = true
   error.value = null
-  
+
   try {
     await Promise.all([
       loadStockValue(),
       loadAlerts()
     ])
-    
+
     // Load data for active tab
     if (activeTab.value === 'top-products') await loadTopProducts()
     if (activeTab.value === 'products') await searchProducts()
   } catch (err) {
-    error.value = err.message || 'Failed to load data'
+    error.value = err instanceof Error ? err.message : 'Failed to load data'
     console.error('Error loading data:', err)
   } finally {
     loading.value = false
   }
 }
 
-const exportToCSV = async () => {
+const exportToCSV = async (): Promise<void> => {
   exporting.value = true
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-    
-    const response = await fetch(`${baseURL}${API_BASE}/export/stock-value`, {
-      headers: { 
-        'Authorization': `Bearer ${adminStore.token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error('Export failed')
-    }
-    
-    const blob = await response.blob()
+    const blob = await reportsService.exportInventoryStockValueCsv()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -517,61 +680,61 @@ const exportToCSV = async () => {
 }
 
 // Pagination
-const nextPage = () => {
+const nextPage = (): void => {
   productsPagination.value.offset += productsPagination.value.limit
-  searchProducts()
+  void searchProducts()
 }
 
-const previousPage = () => {
+const previousPage = (): void => {
   productsPagination.value.offset = Math.max(0, productsPagination.value.offset - productsPagination.value.limit)
-  searchProducts()
+  void searchProducts()
 }
 
 // Filter Functions
-const filterAlerts = (type) => {
+const filterAlerts = (type: string): void => {
   alertFilter.value = type
   activeTab.value = 'alerts'
-  loadAlerts()
+  void loadAlerts()
 }
 
 // Formatting Functions
-const formatNumber = (num) => {
+const formatNumber = (num: number | null | undefined): string => {
   if (num === null || num === undefined) return '0'
   return num.toLocaleString('en-US', { maximumFractionDigits: 2 })
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
-  return new Date(dateString).toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   })
 }
 
-const formatAlertType = (type) => {
-  return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const formatAlertType = (type: string | undefined): string => {
+  return (type ?? '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
-const formatStatus = (status) => {
+const formatStatus = (status: string): string => {
   return status.replace(/_/g, ' ')
 }
 
 // Class Helpers
-const getMarginClass = (margin) => {
-  const m = parseFloat(margin)
+const getMarginClass = (margin: number | string | undefined): string => {
+  const m = parseFloat(String(margin ?? 0))
   if (m >= 30) return 'high'
   if (m >= 20) return 'medium'
   return 'low'
 }
 
-const getRankClass = (rank) => {
-  if (rank <= 3) return 'top'
+const getRankClass = (rank: number | undefined): string => {
+  if (!rank || rank <= 3) return 'top'
   if (rank <= 10) return 'good'
   return 'normal'
 }
 
-const getExpiryClass = (days) => {
+const getExpiryClass = (days: number | undefined): string => {
   if (!days || days < 0) return 'expired'
   if (days <= 30) return 'critical'
   if (days <= 90) return 'warning'

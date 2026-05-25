@@ -66,7 +66,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { createJobsService } from '~/services/jobs/jobsService'
@@ -75,25 +75,38 @@ import phoneUtils from '~/utils/phone'
 
 definePageMeta({ layout: false })
 
+interface Seeker {
+  id: number | string
+  profession?: string | null
+  fullName?: string | null
+  bio?: string | null
+  location?: string | null
+  yearsOfExperience?: number | string | null
+  phone?: string | null
+  email?: string | null
+  resumeUrl?: string | null
+  [key: string]: unknown
+}
+
 const route = useRoute()
 const api = useApi()
 const jobsService = createJobsService(api)
 
-const seeker = ref(null)
-const loading = ref(true)
-const error = ref('')
+const seeker = ref<Seeker | null>(null)
+const loading = ref<boolean>(true)
+const error = ref<string>('')
 
-const whatsappSeekerUrl = (s) => {
-  const num = phoneUtils.formatWhatsApp(s.phone)
-  const text = encodeURIComponent(`Hi ${s.fullName}, I saw your profile on Rigel Jobs and I'm interested in connecting.`)
+const whatsappSeekerUrl = (s: Seeker): string => {
+  const num = phoneUtils.formatWhatsApp(s.phone ?? '')
+  const text = encodeURIComponent(`Hi ${s.fullName ?? ''}, I saw your profile on Rigel Jobs and I'm interested in connecting.`)
   return `https://wa.me/${num}?text=${text}`
 }
 
 onMounted(async () => {
   try {
-    const response = await jobsService.getSeekerById(route.params.id)
-    seeker.value = response.data
-  } catch (err) {
+    const response = await jobsService.getSeekerById(String(route.params['id']))
+    seeker.value = (response.data ?? null) as unknown as Seeker | null
+  } catch {
     error.value = 'Failed to load profile. It may have been removed.'
   } finally {
     loading.value = false

@@ -247,264 +247,368 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue';
-import { useApi } from '~~/composables/useApi';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+
+interface CompanyRow {
+  id: number
+  name: string
+  phone: string
+  email?: string | null
+  contact_person?: string | null
+  address?: string | null
+  operating_area?: string | null
+  latitude?: number | string | null
+  longitude?: number | string | null
+  commission_rate?: number | string | null
+  is_trusted?: boolean | number | null
+  admin_count?: number | null
+  rider_count?: number | null
+}
+
+interface AdminRow {
+  id: number
+  name?: string | null
+  username: string
+  phone?: string | null
+  email?: string | null
+  is_active?: boolean | number | null
+}
+
+interface ApiResponse<T = unknown> {
+  success?: boolean
+  data?: T
+  message?: string
+}
+
+interface CompanyDetailData {
+  admins?: AdminRow[]
+}
+
+interface NewCompanyForm {
+  name: string
+  phone: string
+  address1: string
+  location: string
+  latitude: string
+  longitude: string
+}
+
+interface EditCompanyForm {
+  name: string
+  phone: string
+  email: string
+  contact_person: string
+  address: string
+  operating_area: string
+  latitude: string
+  longitude: string
+  commission_rate: string
+  is_trusted: boolean
+}
+
+interface NewAdminForm {
+  name: string
+  phone: string
+  username: string
+  password: string
+}
+
+interface EditAdminForm {
+  name: string
+  phone: string
+  email: string
+  password: string
+}
+
+// TODO: remove once composables/ are .ts
+const api = useApi() as unknown as {
+  get: (url: string, opts?: Record<string, unknown>) => Promise<ApiResponse<unknown>>
+  post: (url: string, body?: unknown) => Promise<ApiResponse<unknown>>
+  put: (url: string, body?: unknown) => Promise<ApiResponse<unknown>>
+  delete: (url: string) => Promise<ApiResponse<unknown>>
+}
 
 definePageMeta({
-    layout: 'admin-layout',
-    middleware: 'admin-auth'
-});
+  layout: 'admin-layout',
+  middleware: 'admin-auth',
+})
 
-const api = useApi();
-const companies = ref([]);
-const loading = ref(false);
-const error = ref('');
+const companies = ref<CompanyRow[]>([])
+const loading = ref<boolean>(false)
+const error = ref<string>('')
 
 // Create Company
-const showCreateModal = ref(false);
-const saving = ref(false);
-const newCompany = ref({ name: '', phone: '', address1: '', location: '', latitude: '', longitude: '' });
+const showCreateModal = ref<boolean>(false)
+const saving = ref<boolean>(false)
+const newCompany = ref<NewCompanyForm>({ name: '', phone: '', address1: '', location: '', latitude: '', longitude: '' })
 
 // Edit Company
-const showEditModal = ref(false);
-const savingEdit = ref(false);
-const editCompanyId = ref(null);
-const editCompanyForm = ref({
-    name: '', phone: '', email: '', contact_person: '',
-    address: '', operating_area: '', latitude: '', longitude: '',
-    commission_rate: '', is_trusted: false
-});
+const showEditModal = ref<boolean>(false)
+const savingEdit = ref<boolean>(false)
+const editCompanyId = ref<number | null>(null)
+const editCompanyForm = ref<EditCompanyForm>({
+  name: '', phone: '', email: '', contact_person: '',
+  address: '', operating_area: '', latitude: '', longitude: '',
+  commission_rate: '', is_trusted: false,
+})
 
 // Manage Admins
-const selectedCompany = ref(null);
-const selectedCompanyAdmins = ref([]);
-const savingAdmin = ref(false);
-const newAdmin = ref({ name: '', phone: '', username: '', password: '' });
+const selectedCompany = ref<CompanyRow | null>(null)
+const selectedCompanyAdmins = ref<AdminRow[]>([])
+const savingAdmin = ref<boolean>(false)
+const newAdmin = ref<NewAdminForm>({ name: '', phone: '', username: '', password: '' })
 
 // Edit Admin
-const editingAdminId = ref(null);
-const savingEditAdmin = ref(false);
-const editAdminForm = ref({ name: '', phone: '', email: '', password: '' });
+const editingAdminId = ref<number | null>(null)
+const savingEditAdmin = ref<boolean>(false)
+const editAdminForm = ref<EditAdminForm>({ name: '', phone: '', email: '', password: '' })
 
 
-const fetchCompanies = async () => {
-    loading.value = true;
-    error.value = '';
-    try {
-        const response = await api.get('/api/deliveries/dispatch-companies');
-        if (response.success) {
-            companies.value = response.data || [];
-        } else {
-            error.value = response.message || 'Failed to fetch companies';
-        }
-    } catch (e) {
-        error.value = e.message || 'An error occurred';
-        console.error(e);
-    } finally {
-        loading.value = false;
+const fetchCompanies = async (): Promise<void> => {
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await api.get('/api/deliveries/dispatch-companies') as ApiResponse<CompanyRow[]>
+    if (response.success) {
+      companies.value = response.data ?? []
+    } else {
+      error.value = response.message ?? 'Failed to fetch companies'
     }
-};
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'An error occurred'
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
 
-const createCompany = async () => {
-    if (!newCompany.value.name || !newCompany.value.phone) return alert('Company name and phone are required');
+const createCompany = async (): Promise<void> => {
+  if (!newCompany.value.name || !newCompany.value.phone) {
+    alert('Company name and phone are required')
+    return
+  }
 
-    saving.value = true;
-    try {
-        const payload = {
-            name: newCompany.value.name,
-            phone: newCompany.value.phone,
-            address: newCompany.value.address1,
-            operating_area: newCompany.value.location,
-            latitude: newCompany.value.latitude ? parseFloat(newCompany.value.latitude) : undefined,
-            longitude: newCompany.value.longitude ? parseFloat(newCompany.value.longitude) : undefined
-        };
-
-        const response = await api.post('/api/deliveries/dispatch-companies', payload);
-        if (response.success) {
-            showCreateModal.value = false;
-            newCompany.value = { name: '', phone: '', address1: '', location: '', latitude: '', longitude: '' };
-            await fetchCompanies();
-        } else {
-            alert(response.message || 'Failed to create');
-        }
-    } catch (e) {
-        console.error(e);
-        alert(e.message || 'Error creating company');
-    } finally {
-        saving.value = false;
+  saving.value = true
+  try {
+    const payload: Record<string, unknown> = {
+      name: newCompany.value.name,
+      phone: newCompany.value.phone,
+      address: newCompany.value.address1,
+      operating_area: newCompany.value.location,
     }
-};
+    if (newCompany.value.latitude) payload['latitude'] = parseFloat(newCompany.value.latitude)
+    if (newCompany.value.longitude) payload['longitude'] = parseFloat(newCompany.value.longitude)
 
-const openEditCompany = (company) => {
-    editCompanyId.value = company.id;
-    editCompanyForm.value = {
-        name: company.name || '',
-        phone: company.phone || '',
-        email: company.email || '',
-        contact_person: company.contact_person || '',
-        address: company.address || '',
-        operating_area: company.operating_area || '',
-        latitude: company.latitude || '',
-        longitude: company.longitude || '',
-        commission_rate: company.commission_rate || '',
-        is_trusted: !!company.is_trusted
-    };
-    showEditModal.value = true;
-};
-
-const saveEditCompany = async () => {
-    if (!editCompanyForm.value.name || !editCompanyForm.value.phone) return alert('Name and phone are required');
-
-    savingEdit.value = true;
-    try {
-        const payload = { ...editCompanyForm.value };
-        if (payload.latitude === '') delete payload.latitude;
-        if (payload.longitude === '') delete payload.longitude;
-        if (payload.commission_rate === '') delete payload.commission_rate;
-
-        const response = await api.put(`/api/deliveries/dispatch-companies/${editCompanyId.value}`, payload);
-        if (response.success) {
-            showEditModal.value = false;
-            await fetchCompanies();
-        } else {
-            alert(response.message || 'Failed to save');
-        }
-    } catch (e) {
-        console.error(e);
-        alert(e.message || 'Error saving company');
-    } finally {
-        savingEdit.value = false;
+    const response = await api.post('/api/deliveries/dispatch-companies', payload)
+    if (response.success) {
+      showCreateModal.value = false
+      newCompany.value = { name: '', phone: '', address1: '', location: '', latitude: '', longitude: '' }
+      await fetchCompanies()
+    } else {
+      alert(response.message ?? 'Failed to create')
     }
-};
+  } catch (e) {
+    console.error(e)
+    alert(e instanceof Error ? e.message : 'Error creating company')
+  } finally {
+    saving.value = false
+  }
+}
 
-const deleteCompany = async (company) => {
-    if (!confirm(`Deactivate "${company.name}"? This will hide it from the active list.`)) return;
+const openEditCompany = (company: CompanyRow): void => {
+  editCompanyId.value = company.id
+  editCompanyForm.value = {
+    name: company.name ?? '',
+    phone: company.phone ?? '',
+    email: company.email ?? '',
+    contact_person: company.contact_person ?? '',
+    address: company.address ?? '',
+    operating_area: company.operating_area ?? '',
+    latitude: company.latitude !== null && company.latitude !== undefined ? String(company.latitude) : '',
+    longitude: company.longitude !== null && company.longitude !== undefined ? String(company.longitude) : '',
+    commission_rate: company.commission_rate !== null && company.commission_rate !== undefined ? String(company.commission_rate) : '',
+    is_trusted: !!company.is_trusted,
+  }
+  showEditModal.value = true
+}
 
-    try {
-        const response = await api.delete(`/api/deliveries/dispatch-companies/${company.id}`);
-        if (response.success) {
-            await fetchCompanies();
-        } else {
-            alert(response.message || 'Failed to delete');
-        }
-    } catch (e) {
-        console.error(e);
-        alert(e.message || 'Error deleting company');
+const saveEditCompany = async (): Promise<void> => {
+  if (!editCompanyForm.value.name || !editCompanyForm.value.phone) {
+    alert('Name and phone are required')
+    return
+  }
+
+  savingEdit.value = true
+  try {
+    const payload: Record<string, unknown> = {
+      name: editCompanyForm.value.name,
+      phone: editCompanyForm.value.phone,
+      email: editCompanyForm.value.email,
+      contact_person: editCompanyForm.value.contact_person,
+      address: editCompanyForm.value.address,
+      operating_area: editCompanyForm.value.operating_area,
+      is_trusted: editCompanyForm.value.is_trusted,
     }
-};
+    if (editCompanyForm.value.latitude !== '') payload['latitude'] = parseFloat(editCompanyForm.value.latitude)
+    if (editCompanyForm.value.longitude !== '') payload['longitude'] = parseFloat(editCompanyForm.value.longitude)
+    if (editCompanyForm.value.commission_rate !== '') payload['commission_rate'] = parseFloat(editCompanyForm.value.commission_rate)
 
-const manageAdmins = async (company) => {
-    selectedCompany.value = company;
-    selectedCompanyAdmins.value = [];
-    editingAdminId.value = null;
-    newAdmin.value = { name: '', phone: '', username: '', password: '' };
-
-    try {
-        const response = await api.get(`/api/deliveries/dispatch-companies/${company.id}`);
-        if (response.success && response.data) {
-            selectedCompanyAdmins.value = response.data.admins || [];
-        }
-    } catch (e) {
-        console.error('Error fetching admins', e);
+    const response = await api.put(`/api/deliveries/dispatch-companies/${editCompanyId.value}`, payload)
+    if (response.success) {
+      showEditModal.value = false
+      await fetchCompanies()
+    } else {
+      alert(response.message ?? 'Failed to save')
     }
-};
+  } catch (e) {
+    console.error(e)
+    alert(e instanceof Error ? e.message : 'Error saving company')
+  } finally {
+    savingEdit.value = false
+  }
+}
 
-const closeAdminsModal = () => {
-    selectedCompany.value = null;
-    editingAdminId.value = null;
-};
+const deleteCompany = async (company: CompanyRow): Promise<void> => {
+  if (!confirm(`Deactivate "${company.name}"? This will hide it from the active list.`)) return
 
-const createAdmin = async () => {
-    if (!newAdmin.value.name || !newAdmin.value.phone || !newAdmin.value.username || !newAdmin.value.password) {
-        return alert('Name, phone, username and password are required');
+  try {
+    const response = await api.delete(`/api/deliveries/dispatch-companies/${company.id}`)
+    if (response.success) {
+      await fetchCompanies()
+    } else {
+      alert(response.message ?? 'Failed to delete')
     }
+  } catch (e) {
+    console.error(e)
+    alert(e instanceof Error ? e.message : 'Error deleting company')
+  }
+}
 
-    savingAdmin.value = true;
-    try {
-        const response = await api.post(`/api/deliveries/dispatch-companies/${selectedCompany.value.id}/admins`, {
-            name: newAdmin.value.name,
-            phone: newAdmin.value.phone,
-            username: newAdmin.value.username,
-            password: newAdmin.value.password
-        });
+const manageAdmins = async (company: CompanyRow): Promise<void> => {
+  selectedCompany.value = company
+  selectedCompanyAdmins.value = []
+  editingAdminId.value = null
+  newAdmin.value = { name: '', phone: '', username: '', password: '' }
 
-        if (response.success) {
-            newAdmin.value = { name: '', phone: '', username: '', password: '' };
-            await manageAdmins(selectedCompany.value);
-            fetchCompanies();
-        } else {
-            alert(response.message || 'Failed to add admin');
-        }
-    } catch (e) {
-        alert(e.message || 'An error occurred');
-    } finally {
-        savingAdmin.value = false;
+  try {
+    const response = await api.get(`/api/deliveries/dispatch-companies/${company.id}`) as ApiResponse<CompanyDetailData>
+    if (response.success && response.data) {
+      selectedCompanyAdmins.value = response.data.admins ?? []
     }
-};
+  } catch (e) {
+    console.error('Error fetching admins', e)
+  }
+}
 
-const openEditAdmin = (admin) => {
-    editingAdminId.value = admin.id;
-    editAdminForm.value = {
-        name: admin.name || '',
-        phone: admin.phone || '',
-        email: admin.email || '',
-        password: ''
-    };
-};
+const closeAdminsModal = (): void => {
+  selectedCompany.value = null
+  editingAdminId.value = null
+}
 
-const saveEditAdmin = async (admin) => {
-    if (!editAdminForm.value.name || !editAdminForm.value.phone) return alert('Name and phone are required');
+const createAdmin = async (): Promise<void> => {
+  if (!newAdmin.value.name || !newAdmin.value.phone || !newAdmin.value.username || !newAdmin.value.password) {
+    alert('Name, phone, username and password are required')
+    return
+  }
 
-    savingEditAdmin.value = true;
-    try {
-        const payload = {
-            name: editAdminForm.value.name,
-            phone: editAdminForm.value.phone,
-            email: editAdminForm.value.email || undefined
-        };
-        if (editAdminForm.value.password) payload.password = editAdminForm.value.password;
+  savingAdmin.value = true
+  try {
+    const company = selectedCompany.value
+    if (!company) return
 
-        const response = await api.put(
-            `/api/deliveries/dispatch-companies/${selectedCompany.value.id}/admins/${admin.id}`,
-            payload
-        );
-        if (response.success) {
-            editingAdminId.value = null;
-            await manageAdmins(selectedCompany.value);
-        } else {
-            alert(response.message || 'Failed to save admin');
-        }
-    } catch (e) {
-        console.error(e);
-        alert(e.message || 'Error updating admin');
-    } finally {
-        savingEditAdmin.value = false;
+    const response = await api.post(`/api/deliveries/dispatch-companies/${company.id}/admins`, {
+      name: newAdmin.value.name,
+      phone: newAdmin.value.phone,
+      username: newAdmin.value.username,
+      password: newAdmin.value.password,
+    })
+
+    if (response.success) {
+      newAdmin.value = { name: '', phone: '', username: '', password: '' }
+      await manageAdmins(company)
+      void fetchCompanies()
+    } else {
+      alert(response.message ?? 'Failed to add admin')
     }
-};
+  } catch (e) {
+    alert(e instanceof Error ? e.message : 'An error occurred')
+  } finally {
+    savingAdmin.value = false
+  }
+}
 
-const removeAdmin = async (admin) => {
-    if (!confirm(`Remove admin "${admin.name || admin.username}"? They will no longer be able to log in.`)) return;
+const openEditAdmin = (admin: AdminRow): void => {
+  editingAdminId.value = admin.id
+  editAdminForm.value = {
+    name: admin.name ?? '',
+    phone: admin.phone ?? '',
+    email: admin.email ?? '',
+    password: '',
+  }
+}
 
-    try {
-        const response = await api.delete(
-            `/api/deliveries/dispatch-companies/${selectedCompany.value.id}/admins/${admin.id}`
-        );
-        if (response.success) {
-            await manageAdmins(selectedCompany.value);
-            fetchCompanies();
-        } else {
-            alert(response.message || 'Failed to remove admin');
-        }
-    } catch (e) {
-        console.error(e);
-        alert(e.message || 'Error removing admin');
+const saveEditAdmin = async (admin: AdminRow): Promise<void> => {
+  if (!editAdminForm.value.name || !editAdminForm.value.phone) {
+    alert('Name and phone are required')
+    return
+  }
+
+  savingEditAdmin.value = true
+  try {
+    const company = selectedCompany.value
+    if (!company) return
+
+    const payload: Record<string, unknown> = {
+      name: editAdminForm.value.name,
+      phone: editAdminForm.value.phone,
     }
-};
+    if (editAdminForm.value.email) payload['email'] = editAdminForm.value.email
+    if (editAdminForm.value.password) payload['password'] = editAdminForm.value.password
+
+    const response = await api.put(
+      `/api/deliveries/dispatch-companies/${company.id}/admins/${admin.id}`,
+      payload,
+    )
+    if (response.success) {
+      editingAdminId.value = null
+      await manageAdmins(company)
+    } else {
+      alert(response.message ?? 'Failed to save admin')
+    }
+  } catch (e) {
+    console.error(e)
+    alert(e instanceof Error ? e.message : 'Error updating admin')
+  } finally {
+    savingEditAdmin.value = false
+  }
+}
+
+const removeAdmin = async (admin: AdminRow): Promise<void> => {
+  if (!confirm(`Remove admin "${admin.name ?? admin.username}"? They will no longer be able to log in.`)) return
+
+  try {
+    const company = selectedCompany.value
+    if (!company) return
+
+    const response = await api.delete(
+      `/api/deliveries/dispatch-companies/${company.id}/admins/${admin.id}`,
+    )
+    if (response.success) {
+      await manageAdmins(company)
+      void fetchCompanies()
+    } else {
+      alert(response.message ?? 'Failed to remove admin')
+    }
+  } catch (e) {
+    console.error(e)
+    alert(e instanceof Error ? e.message : 'Error removing admin')
+  }
+}
 
 onMounted(() => {
-    fetchCompanies();
-});
+  void fetchCompanies()
+})
 </script>
 
 <style scoped>

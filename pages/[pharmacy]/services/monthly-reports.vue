@@ -129,7 +129,7 @@
               <div class="flex items-center justify-between gap-4 border-b border-gray-100 pb-2">
                 <div>
                   <p class="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">FY {{ group.year }}</p>
-                  <p class="text-[11px] text-gray-400">{{ group.rangeLabel }} - {{ group.months.length }} month{{ group.months.length === 1 ? '' : 's' }}</p>
+                  <p class="text-[11px] text-gray-500">{{ group.rangeLabel }} - {{ group.months.length }} month{{ group.months.length === 1 ? '' : 's' }}</p>
                 </div>
                 <button
                   class="rounded border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-gray-600 transition cs-subtle-btn"
@@ -233,7 +233,7 @@
     </section>
 
     <section class="border-t border-gray-200 pt-5">
-      <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">System last updated</p>
+      <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-500">System last updated</p>
       <p class="mt-1 text-sm font-medium text-gray-700">
         {{ status.lastSuccessfulSyncAt ? formatDateTime(status.lastSuccessfulSyncAt) : 'No successful sync recorded yet' }}
       </p>
@@ -241,10 +241,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
+import { createPharmacyReportsService } from '~/services/pharmacyReports/pharmacyReportsService'
 
 definePageMeta({
   layout: 'company',
@@ -252,15 +253,55 @@ definePageMeta({
   title: 'Monthly Reports',
 })
 
-const config = useRuntimeConfig()
+interface ReportRecord {
+  status?: 'ready' | 'pending' | 'failed' | string | null
+  generatedAt?: string | null
+  errorMessage?: string | null
+}
+
+interface ReportStatus {
+  reportMonth?: string
+  reportMonthLabel?: string
+  availableReportMonths?: string[]
+  defaultReportMonths?: string[]
+  selectedReportMonths?: string[]
+  selectedReportLabel?: string
+  lastSuccessfulSyncAt?: string | null
+  canRequestReport?: boolean
+  report?: ReportRecord | null
+}
+
+interface MonthEntry {
+  value: string
+  shortLabel: string
+  fullLabel: string
+  selected: boolean
+  orderValue: string
+}
+
+interface MonthGroup {
+  year: number
+  months: MonthEntry[]
+  rangeLabel: string
+}
+
+type StatusTone = 'neutral' | 'positive' | 'warning' | 'danger'
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  isLoggedIn: boolean
+  currentCompany?: { name?: string | null } | null
+  checkAuthState: () => Promise<void>
+}
+
 const route = useRoute()
 const router = useRouter()
-const companyStore = useCompanyStore()
+const pharmacyReportsService = createPharmacyReportsService(useApi())
 
-const loading = ref(false)
-const isRequesting = ref(false)
-const isDownloadingPdf = ref(false)
-const status = ref({
+const loading = ref<boolean>(false)
+const isRequesting = ref<boolean>(false)
+const isDownloadingPdf = ref<boolean>(false)
+const status = ref<ReportStatus>({
   reportMonth: '',
   reportMonthLabel: '',
   availableReportMonths: [],
@@ -271,33 +312,60 @@ const status = ref({
   canRequestReport: false,
   report: null,
 })
-const statusMessage = ref('')
-const statusMessageTone = ref('neutral')
-const selectedReportMonths = ref([])
-const generatedSelectionKey = ref('')
-const generatedSelectionLabel = ref('')
+const statusMessage = ref<string>('')
+const statusMessageTone = ref<StatusTone>('neutral')
+const selectedReportMonths = ref<string[]>([])
+const generatedSelectionKey = ref<string>('')
+const generatedSelectionLabel = ref<string>('')
 
-const availableReportMonths = computed(() => status.value.availableReportMonths || [])
-const selectedReportMonthsSorted = computed(() => [...selectedReportMonths.value].sort())
-const selectedSelectionKey = computed(() => selectedReportMonthsSorted.value.join('|'))
-const defaultSelectionKey = computed(() => [...(status.value.defaultReportMonths || [])].sort().join('|'))
-const statusSelectionKey = computed(() => [...(status.value.selectedReportMonths || [])].sort().join('|'))
-const persistedSelectionReady = computed(() => status.value.report?.status === 'ready' && selectedSelectionKey.value === statusSelectionKey.value)
-const generatedMatchesSelection = computed(() => Boolean(generatedSelectionKey.value) && generatedSelectionKey.value === selectedSelectionKey.value)
-const showSyncFirstNotice = computed(() => !status.value.canRequestReport)
-const selectedMonthCount = computed(() => selectedReportMonthsSorted.value.length)
-const showSuggestedReset = computed(() => selectedSelectionKey.value !== defaultSelectionKey.value && Boolean(defaultSelectionKey.value))
-const companyNameLabel = computed(() => companyStore.currentCompany?.name || String(route.params.pharmacy || 'Pharmacy'))
-const newestReportYear = computed(() => {
+const availableReportMonths = computed<string[]>(() => status.value.availableReportMonths ?? [])
+const selectedReportMonthsSorted = computed<string[]>(() => [...selectedReportMonths.value].sort())
+const selectedSelectionKey = computed<string>(() => selectedReportMonthsSorted.value.join('|'))
+const defaultSelectionKey = computed<string>(() => [...(status.value.defaultReportMonths ?? [])].sort().join('|'))
+const statusSelectionKey = computed<string>(() => [...(status.value.selectedReportMonths ?? [])].sort().join('|'))
+const persistedSelectionReady = computed<boolean>(() =>
+  status.value.report?.status === 'ready' && selectedSelectionKey.value === statusSelectionKey.value
+)
+const generatedMatchesSelection = computed<boolean>(() =>
+  Boolean(generatedSelectionKey.value) && generatedSelectionKey.value === selectedSelectionKey.value
+)
+const showSyncFirstNotice = computed<boolean>(() => !status.value.canRequestReport)
+const selectedMonthCount = computed<number>(() => selectedReportMonthsSorted.value.length)
+const showSuggestedReset = computed<boolean>(() =>
+  selectedSelectionKey.value !== defaultSelectionKey.value && Boolean(defaultSelectionKey.value)
+)
+const companyNameLabel = computed<string>(() =>
+  companyStore.currentCompany?.name ?? String(route.params['pharmacy'] ?? 'Pharmacy')
+)
+const newestReportYear = computed<number>(() => {
   const first = availableReportMonths.value[0]
   if (!first) return new Date().getFullYear()
   return new Date(`${first}T00:00:00`).getFullYear()
 })
 
-const selectedReportSummary = computed(() => {
+const formatMonthLabel = (value: string | null | undefined): string => {
+  if (!value) return 'Unknown month'
+  return new Date(`${value}T00:00:00`).toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+const formatDateTime = (value: string | null | undefined): string => {
+  if (!value) return 'Not yet available'
+  return new Date(value).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const selectedReportSummary = computed<string>(() => {
   if (!selectedReportMonthsSorted.value.length) return 'No months selected'
   const labels = selectedReportMonthsSorted.value.map((value) => formatMonthLabel(value))
-  if (labels.length === 1) return labels[0]
+  if (labels.length === 1) return labels[0] ?? 'No months selected'
   if (labels.length === 2) return `${labels[0]} & ${labels[1]}`
   return `${labels[0]}, ${labels[1]} +${labels.length - 2} more`
 })
@@ -305,8 +373,8 @@ const selectedReportSummary = computed(() => {
 const availableDataWindow = computed(() => {
   if (!availableReportMonths.value.length) {
     return {
-      start: null,
-      end: null,
+      start: null as string | null,
+      end: null as string | null,
       count: 0,
       label: 'No synced reportable months yet.',
       shortLabel: '0 available',
@@ -314,8 +382,8 @@ const availableDataWindow = computed(() => {
   }
 
   const sorted = [...availableReportMonths.value].sort()
-  const start = sorted[0]
-  const end = sorted[sorted.length - 1]
+  const start = sorted[0] ?? null
+  const end = sorted[sorted.length - 1] ?? null
   const sameMonth = start === end
   const count = sorted.length
 
@@ -332,29 +400,29 @@ const availableDataWindow = computed(() => {
   }
 })
 
-const availableDataWindowLabel = computed(() => availableDataWindow.value.label)
-const availableDataWindowShort = computed(() => availableDataWindow.value.shortLabel)
+const availableDataWindowLabel = computed<string>(() => availableDataWindow.value.label)
+const availableDataWindowShort = computed<string>(() => availableDataWindow.value.shortLabel)
 
-const reportingPeriodHint = computed(() => {
+const reportingPeriodHint = computed<string>(() => {
   if (!availableReportMonths.value.length) {
     return 'No reportable periods have loaded yet. Complete a sync and the available months will appear here.'
   }
   return `${availableDataWindowLabel.value} Select one or more months, then run the PDF export for that exact reporting window.`
 })
 
-const selectedReportDetail = computed(() => {
+const selectedReportDetail = computed<string>(() => {
   if (!selectedReportMonthsSorted.value.length) return 'Choose at least one month to continue.'
   if (selectedReportMonthsSorted.value.length === 1) return 'A focused single-month report.'
   return 'A combined report across the selected months.'
 })
 
-const reportMonthGroups = computed(() => {
-  const groups = new Map()
+const reportMonthGroups = computed<MonthGroup[]>(() => {
+  const groups = new Map<number, MonthEntry[]>()
   for (const value of availableReportMonths.value) {
     const date = new Date(`${value}T00:00:00`)
     const year = date.getFullYear()
     if (!groups.has(year)) groups.set(year, [])
-    groups.get(year).push({
+    groups.get(year)!.push({
       value,
       shortLabel: date.toLocaleString('en-US', { month: 'short' }),
       fullLabel: formatMonthLabel(value),
@@ -367,27 +435,31 @@ const reportMonthGroups = computed(() => {
     .sort((a, b) => Number(b[0]) - Number(a[0]))
     .map(([year, months]) => {
       const sortedMonths = [...months].sort((a, b) => b.orderValue.localeCompare(a.orderValue))
+      const first = sortedMonths[0]
+      const last = sortedMonths[sortedMonths.length - 1]
       return {
         year,
         months: sortedMonths,
         rangeLabel: sortedMonths.length === 1
-          ? sortedMonths[0].fullLabel
-          : `${sortedMonths[sortedMonths.length - 1].shortLabel} - ${sortedMonths[0].shortLabel}`,
+          ? (first?.fullLabel ?? '')
+          : `${last?.shortLabel ?? ''} - ${first?.shortLabel ?? ''}`,
       }
     })
 })
 
-const syncStateLabel = computed(() => {
+const syncStateLabel = computed<string>(() => {
   if (!status.value.lastSuccessfulSyncAt) return 'Waiting for sync'
   return 'Synced and reportable'
 })
 
-const syncStateHint = computed(() => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const syncStateHint = computed<string>(() => {
   if (!status.value.lastSuccessfulSyncAt) return 'The report unlocks after the latest sync completes successfully.'
   return `Latest sync finished ${formatDateTime(status.value.lastSuccessfulSyncAt)}.`
 })
 
-const reportStatusLabel = computed(() => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const reportStatusLabel = computed<string>(() => {
   if (isRequesting.value) return 'Generating'
   if (isDownloadingPdf.value) return 'Exporting'
   if (generatedMatchesSelection.value || persistedSelectionReady.value) return 'Ready'
@@ -399,44 +471,45 @@ const reportStatusLabel = computed(() => {
   return 'Not generated'
 })
 
-const reportStatusHint = computed(() => {
+const reportStatusHint = computed<string>(() => {
   if (!selectedReportMonths.value.length) return 'Choose one or more months to prepare a report.'
   if (generatedMatchesSelection.value) return `${generatedSelectionLabel.value} has been generated and is ready to export.`
-  if (persistedSelectionReady.value) return `Generated ${formatDateTime(status.value.report?.generatedAt)} for ${status.value.selectedReportLabel || selectedReportSummary.value}.`
+  if (persistedSelectionReady.value) return `Generated ${formatDateTime(status.value.report?.generatedAt)} for ${status.value.selectedReportLabel ?? selectedReportSummary.value}.`
   if (generatedSelectionKey.value && !generatedMatchesSelection.value) return 'The month selection changed. Generate again to export the updated selection.'
   if (!status.value.report) return 'No report has been generated yet for the current selection.'
   if (status.value.report?.status === 'ready') return `Generated ${formatDateTime(status.value.report.generatedAt)}.`
   if (status.value.report?.status === 'pending') return 'The latest sync is preparing a background report snapshot.'
-  if (status.value.report?.status === 'failed') return status.value.report.errorMessage || 'The last report attempt failed.'
+  if (status.value.report?.status === 'failed') return status.value.report.errorMessage ?? 'The last report attempt failed.'
   return 'Generate a report after choosing the months you want included.'
 })
 
-const reportBadgeClass = computed(() => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const reportBadgeClass = computed<string>(() => {
   if (generatedMatchesSelection.value || persistedSelectionReady.value) return 'border border-emerald-200 bg-emerald-50 text-emerald-800'
   if (generatedSelectionKey.value && !generatedMatchesSelection.value) return 'border border-amber-200 bg-amber-50 text-amber-800'
   if (status.value.report?.status === 'failed') return 'border border-rose-200 bg-rose-50 text-rose-800'
   return 'border border-[#e7ddf4] bg-[#faf7fd] text-[#5d4c70]'
 })
 
-const statusMessageClass = computed(() => {
+const statusMessageClass = computed<string>(() => {
   if (statusMessageTone.value === 'positive') return 'border border-emerald-200 bg-emerald-50 text-emerald-800'
   if (statusMessageTone.value === 'warning') return 'border border-amber-200 bg-amber-50 text-amber-900'
   if (statusMessageTone.value === 'danger') return 'border border-rose-200 bg-rose-50 text-rose-800'
   return 'border border-[#e7ddf4] bg-[#faf7fd] text-[#5d4c70]'
 })
 
-const bannerMessage = computed(() => {
+const bannerMessage = computed<string>(() => {
   if (showSyncFirstNotice.value) return 'No recent sync has been detected for this pharmacy.'
   return `All systems operational. The last data fetch completed successfully on ${formatDateTime(status.value.lastSuccessfulSyncAt)}.`
 })
 
-const bannerSubMessage = computed(() => {
+const bannerSubMessage = computed<string>(() => {
   if (showSyncFirstNotice.value) return 'Complete a successful sync first. Once sync finishes, the PDF action will unlock here.'
   return reportStatusHint.value
 })
 
-const syncPillLabel = computed(() => (status.value.lastSuccessfulSyncAt ? 'Synced and ready' : 'Waiting for sync'))
-const reportPillLabel = computed(() => {
+const syncPillLabel = computed<string>(() => (status.value.lastSuccessfulSyncAt ? 'Synced and ready' : 'Waiting for sync'))
+const reportPillLabel = computed<string>(() => {
   if (isRequesting.value) return 'Generating'
   if (isDownloadingPdf.value) return 'Exporting'
   if (generatedMatchesSelection.value || persistedSelectionReady.value) return 'Ready to export'
@@ -444,13 +517,13 @@ const reportPillLabel = computed(() => {
   return 'Generate report'
 })
 
-const primaryActionDisabled = computed(() => {
+const primaryActionDisabled = computed<boolean>(() => {
   if (!status.value.canRequestReport) return true
   if (!selectedReportMonthsSorted.value.length) return true
   return isRequesting.value || isDownloadingPdf.value
 })
 
-const primaryActionLabel = computed(() => {
+const primaryActionLabel = computed<string>(() => {
   if (isRequesting.value) return 'Generating PDF report...'
   if (isDownloadingPdf.value) return 'Exporting PDF...'
   if (!status.value.canRequestReport) return 'Sync data to continue'
@@ -458,62 +531,25 @@ const primaryActionLabel = computed(() => {
   return 'Generate PDF'
 })
 
-const heroStatusWidth = computed(() => {
+const heroStatusWidth = computed<string>(() => {
   if (generatedMatchesSelection.value || persistedSelectionReady.value) return '100%'
   if (status.value.canRequestReport) return '72%'
   return '22%'
 })
 
-const heroStatusMessage = computed(() => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const heroStatusMessage = computed<string>(() => {
   if (!status.value.canRequestReport) return 'Run a successful sync first. Once reporting data is ready, this action panel will unlock PDF export.'
   if (generatedMatchesSelection.value || persistedSelectionReady.value) return `${selectedReportSummary.value} is ready. Export the finished PDF whenever you are set.`
   return `The selected reporting window is loaded. Generate the curated PDF for ${selectedReportSummary.value} when you are ready.`
 })
 
-const apiHeaders = computed(() => companyStore.getApiHeaders())
-
-const ensureAuth = async () => {
-  await companyStore.checkAuthState()
-  if (!companyStore.isLoggedIn) {
-    await router.push(`/${route.params.pharmacy}/services/login`)
-    return false
-  }
-  return true
-}
-
-const setStatusMessage = (message, tone = 'neutral') => {
+const setStatusMessage = (message: string, tone: StatusTone = 'neutral'): void => {
   statusMessage.value = message
   statusMessageTone.value = tone
 }
 
-const handleExpiredCompanySession = async () => {
-  companyStore.clearAuthState()
-  setStatusMessage('Your pharmacy session expired. Please sign in again to continue.', 'warning')
-  await router.push(`/${route.params.pharmacy}/services/login?redirect=${encodeURIComponent(route.fullPath)}`)
-}
-
-const fetchWithCompanyAuth = async (url, options = {}) => {
-  const response = await fetch(url, options)
-
-  if (response.status === 401) {
-    let message = 'Invalid or expired token'
-    try {
-      const payload = await response.clone().json()
-      message = payload.message || message
-    } catch {
-      // keep fallback message
-    }
-
-    if (/invalid|expired token/i.test(message)) {
-      await handleExpiredCompanySession()
-      throw new Error('Your pharmacy session expired. Please sign in again.')
-    }
-  }
-
-  return response
-}
-
-const syncSelectedMonthsWithStatus = () => {
+const syncSelectedMonthsWithStatus = (): void => {
   const available = availableReportMonths.value
   const filtered = selectedReportMonths.value.filter((value) => available.includes(value))
   if (filtered.length) {
@@ -521,67 +557,59 @@ const syncSelectedMonthsWithStatus = () => {
     return
   }
 
-  const defaults = (status.value.defaultReportMonths || []).filter((value) => available.includes(value))
+  const defaults = (status.value.defaultReportMonths ?? []).filter((value) => available.includes(value))
   if (defaults.length) {
     selectedReportMonths.value = defaults
     return
   }
 
-  selectedReportMonths.value = available.length ? [available[0]] : []
+  selectedReportMonths.value = available.length ? [available[0]!] : []
 }
 
-const fetchStatus = async () => {
-  const params = new URLSearchParams()
-  selectedReportMonthsSorted.value.forEach((value) => params.append('reportMonths', value))
-  const query = params.toString()
-  const response = await fetchWithCompanyAuth(`${config.public.apiBase}/api/pharmacy-reports/current/status${query ? `?${query}` : ''}`, {
-    headers: apiHeaders.value,
-  })
-  const result = await response.json()
+const fetchStatus = async (): Promise<void> => {
+  const result = await pharmacyReportsService.getStatus(selectedReportMonthsSorted.value)
   if (!result.success) {
-    throw new Error(result.message || 'Failed to load report status')
+    throw new Error(result.message ?? 'Failed to load report status')
   }
-  status.value = result.data
+  status.value = result.data as ReportStatus
   syncSelectedMonthsWithStatus()
 }
 
-const initializePage = async () => {
+const ensureAuth = async (): Promise<boolean> => {
+  await companyStore.checkAuthState()
+  if (!companyStore.isLoggedIn) {
+    await router.push(`/${String(route.params['pharmacy'])}/services/login`)
+    return false
+  }
+  return true
+}
+
+const initializePage = async (): Promise<void> => {
   loading.value = true
   try {
     const okay = await ensureAuth()
     if (!okay) return
-
     await fetchStatus()
   } catch (error) {
     console.error(error)
-    setStatusMessage(error.message || 'Failed to load monthly reports.', 'danger')
+    setStatusMessage(error instanceof Error ? error.message : 'Failed to load monthly reports.', 'danger')
   } finally {
     loading.value = false
   }
 }
 
-const requestReport = async ({ suppressSuccessMessage = false } = {}) => {
+const requestReport = async ({ suppressSuccessMessage = false } = {}): Promise<boolean> => {
   isRequesting.value = true
   setStatusMessage(`Generating the report for ${selectedReportSummary.value}. This may take a few moments.`, 'neutral')
   try {
-    const response = await fetchWithCompanyAuth(`${config.public.apiBase}/api/pharmacy-reports/current/request`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...apiHeaders.value,
-      },
-      body: JSON.stringify({
-        reportMonths: selectedReportMonthsSorted.value,
-      }),
-    })
-    const result = await response.json()
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Failed to generate report')
+    const result = await pharmacyReportsService.requestReport(selectedReportMonthsSorted.value)
+    if (!result.success) {
+      throw new Error(result.message ?? 'Failed to generate report')
     }
 
     await fetchStatus()
     generatedSelectionKey.value = selectedSelectionKey.value
-    generatedSelectionLabel.value = result.data?.reportMonthLabel || selectedReportSummary.value
+    generatedSelectionLabel.value = result.data?.reportMonthLabel ?? selectedReportSummary.value
 
     if (!suppressSuccessMessage) {
       setStatusMessage(`Report generated successfully for ${generatedSelectionLabel.value}. You can now export the PDF.`, 'positive')
@@ -589,43 +617,26 @@ const requestReport = async ({ suppressSuccessMessage = false } = {}) => {
     return true
   } catch (error) {
     console.error(error)
-    setStatusMessage(error.message || 'Failed to generate report.', 'danger')
+    setStatusMessage(error instanceof Error ? error.message : 'Failed to generate report.', 'danger')
     return false
   } finally {
     isRequesting.value = false
   }
 }
 
-const downloadPdf = async () => {
+const downloadPdf = async (): Promise<boolean> => {
   isDownloadingPdf.value = true
   setStatusMessage('Preparing your PDF report. This may take a short moment.', 'neutral')
 
   try {
-    const params = new URLSearchParams()
-    selectedReportMonthsSorted.value.forEach((value) => params.append('reportMonths', value))
-    const response = await fetchWithCompanyAuth(`${config.public.apiBase}/api/pharmacy-reports/current/pdf?${params.toString()}`, {
-      headers: apiHeaders.value,
-    })
+    const blob = await pharmacyReportsService.getPdfBlob(selectedReportMonthsSorted.value)
 
-    if (!response.ok) {
-      let message = 'Failed to export PDF'
-      try {
-        const result = await response.json()
-        message = result.message || message
-      } catch {
-        // ignore JSON parse failure and keep fallback message
-      }
-      throw new Error(message)
-    }
-
-    const contentType = response.headers.get('content-type') || ''
-    const buffer = await response.arrayBuffer()
+    const buffer = await blob.arrayBuffer()
     const bytes = new Uint8Array(buffer)
-    const pdfSignature = String.fromCharCode(...bytes.slice(0, 5))
+    const pdfSignature = String.fromCharCode(...Array.from(bytes.slice(0, 5)))
 
-    if (!contentType.toLowerCase().includes('application/pdf') || pdfSignature !== '%PDF-') {
+    if (!blob.type.toLowerCase().includes('application/pdf') || pdfSignature !== '%PDF-') {
       let diagnosticMessage = 'The exported file was not returned as a valid PDF.'
-
       try {
         const text = new TextDecoder().decode(bytes)
         if (text) {
@@ -634,15 +645,10 @@ const downloadPdf = async () => {
       } catch {
         // keep fallback diagnostic message
       }
-
       throw new Error(diagnosticMessage)
     }
 
-    const blob = new Blob([buffer], { type: 'application/pdf' })
-    const disposition = response.headers.get('content-disposition') || ''
-    const filenameMatch = disposition.match(/filename="([^"]+)"/i)
-    const filename = filenameMatch?.[1] || `monthly-report-${selectedReportMonthsSorted.value.join('-') || 'current'}.pdf`
-
+    const filename = `monthly-report-${selectedReportMonthsSorted.value.join('-') || 'current'}.pdf`
     const url = window.URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -658,14 +664,14 @@ const downloadPdf = async () => {
     return true
   } catch (error) {
     console.error(error)
-    setStatusMessage(error.message || 'Failed to export PDF.', 'danger')
+    setStatusMessage(error instanceof Error ? error.message : 'Failed to export PDF.', 'danger')
     return false
   } finally {
     isDownloadingPdf.value = false
   }
 }
 
-const handlePrimaryAction = async () => {
+const handlePrimaryAction = async (): Promise<void> => {
   if (!status.value.canRequestReport) {
     setStatusMessage('Complete a successful sync first. Once sync finishes, the PDF action will unlock here.', 'warning')
     return
@@ -685,56 +691,38 @@ const handlePrimaryAction = async () => {
   )
 }
 
-const toggleReportMonth = (reportMonth) => {
+const toggleReportMonth = (reportMonth: string): void => {
   if (selectedReportMonths.value.includes(reportMonth)) {
     if (selectedReportMonths.value.length === 1) return
     selectedReportMonths.value = selectedReportMonths.value.filter((value) => value !== reportMonth)
     return
   }
-
   selectedReportMonths.value = [...selectedReportMonths.value, reportMonth].sort()
 }
 
-const keepLatestMonthOnly = () => {
+const keepLatestMonthOnly = (): void => {
   if (!selectedReportMonthsSorted.value.length) return
-  selectedReportMonths.value = [selectedReportMonthsSorted.value[selectedReportMonthsSorted.value.length - 1]]
+  const latest = selectedReportMonthsSorted.value[selectedReportMonthsSorted.value.length - 1]
+  if (latest !== undefined) selectedReportMonths.value = [latest]
 }
 
-const resetToSuggestedMonths = () => {
-  const defaults = (status.value.defaultReportMonths || []).filter((value) => availableReportMonths.value.includes(value))
+const resetToSuggestedMonths = (): void => {
+  const defaults = (status.value.defaultReportMonths ?? []).filter((value) => availableReportMonths.value.includes(value))
   if (defaults.length) {
     selectedReportMonths.value = defaults
   }
 }
 
-const selectYearMonths = (year) => {
-  const yearMonths = reportMonthGroups.value.find((group) => group.year === year)?.months.map((month) => month.value) || []
+const selectYearMonths = (year: number): void => {
+  const yearMonths = reportMonthGroups.value.find((group) => group.year === year)?.months.map((month) => month.value) ?? []
   selectedReportMonths.value = [...new Set([...selectedReportMonths.value, ...yearMonths])].sort()
 }
 
-const monthStateLabel = (year) => (Number(year) === Number(newestReportYear.value) ? 'Available' : 'Archive')
-
-const formatMonthLabel = (value) => {
-  if (!value) return 'Unknown month'
-  return new Date(`${value}T00:00:00`).toLocaleString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
-const formatDateTime = (value) => {
-  if (!value) return 'Not yet available'
-  return new Date(value).toLocaleString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+const monthStateLabel = (year: number): string =>
+  Number(year) === Number(newestReportYear.value) ? 'Available' : 'Archive'
 
 onMounted(() => {
-  initializePage()
+  void initializePage()
 })
 
 watch(selectedSelectionKey, async (nextKey, previousKey) => {
@@ -745,7 +733,7 @@ watch(selectedSelectionKey, async (nextKey, previousKey) => {
     await fetchStatus()
   } catch (error) {
     console.error(error)
-    setStatusMessage(error.message || 'Failed to refresh report status for the selected months.', 'danger')
+    setStatusMessage(error instanceof Error ? error.message : 'Failed to refresh report status for the selected months.', 'danger')
   }
 })
 </script>

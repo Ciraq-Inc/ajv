@@ -6,7 +6,13 @@
 
       <!-- Modal -->
       <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div class="transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+        <div
+          ref="dialogRef"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-success-title"
+          tabindex="-1"
+          class="transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
           <!-- Success Icon & Header -->
           <div class="bg-green-50 px-4 py-8 sm:px-6 text-center">
             <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -15,7 +21,7 @@
               </svg>
             </div>
             <div class="mt-3 text-center sm:mt-5">
-              <h3 class="text-2xl font-semibold leading-6 text-green-700">
+              <h3 id="order-success-title" class="text-2xl font-semibold leading-6 text-green-700">
                 Order Successful!
               </h3>
               <div class="mt-2">
@@ -41,15 +47,15 @@
                 <div class="bg-gray-50 rounded-lg p-3 mb-3">
                   <div class="flex justify-between text-sm mb-1">
                     <span>Total Items:</span>
-                    <span>{{ orderSummary.totalItems || 0 }}</span>
+                    <span>{{ orderSummary?.totalItems || 0 }}</span>
                   </div>
                   <div class="flex justify-between text-sm mb-1">
                     <span>Total Quantity:</span>
-                    <span>{{ orderSummary.totalQuantity || 0 }}</span>
+                    <span>{{ orderSummary?.totalQuantity || 0 }}</span>
                   </div>
                   <div class="flex justify-between font-semibold">
                     <span>Total Amount:</span>
-                    <span>GHS{{ formatPrice(orderSummary.totalAmount) }}</span>
+                    <span>GHS{{ formatPrice(orderSummary?.totalAmount) }}</span>
                   </div>
                 </div>
               </div>
@@ -85,70 +91,58 @@
   </Teleport>
 </template>
 
-<script setup>
-import { computed } from 'vue';
+<script setup lang="ts">
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
+import { useModalA11y } from '~/composables/useModalA11y';
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false
-  },
-  orderId: {
-    type: String,
-    default: ''
-  },
-  orderSummary: {
-    type: Object,
-    default: () => ({
-      totalItems: 0,
-      totalQuantity: 0,
-      totalAmount: 0
-    })
-  }
-});
+// TODO: remove once stores/ are .ts
 
-const emit = defineEmits(['close']);
+interface OrderSummary {
+  totalItems?: number
+  totalQuantity?: number
+  totalAmount?: number
+}
+
+const props = defineProps<{
+  isOpen?: boolean
+  orderId?: string
+  orderSummary?: OrderSummary
+}>();
+
+const emit = defineEmits<{ close: [] }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'));
 
 const router = useRouter();
 const pharmacyStore = usePharmacyStore();
 
-// Format pharmacy name
-const pharmacyName = computed(() => {
-  return pharmacyStore.pharmacyData?.name || 'the pharmacy';
+const pharmacyName = computed<string>(() => {
+  // pharmacyStore is untyped (store not yet .ts)
+  const store = pharmacyStore as { pharmacyData?: { name?: string }; pharmacySlug?: string }
+  return store.pharmacyData?.name ?? 'the pharmacy'
 });
 
-// Format order ID to be more readable
-const formatOrderId = (orderId) => {
+const formatOrderId = (orderId: string | undefined): string => {
   if (!orderId) return 'N/A';
-  
-  // Return the last 8 characters if it's too long
   return orderId.length > 8 ? `...${orderId.slice(-8)}` : orderId;
 };
 
-// Format price with 2 decimal places
-const formatPrice = (price) => {
-  return Number(price || 0).toFixed(2);
-};
+const formatPrice = (price: number | undefined): string =>
+  Number(price ?? 0).toFixed(2);
 
-// Close the modal
-const close = () => {
-  emit('close');
-};
+const close = (): void => emit('close');
 
-// Go to order history
-const viewOrderHistory = () => {
+const viewOrderHistory = (): void => {
   close();
   router.push('/customer');
 };
 
-// Continue shopping
-const continueShopping = () => {
+const continueShopping = (): void => {
   close();
-  // Go back to pharmacy page
-  if (pharmacyStore.pharmacySlug) {
-    router.push(`/${pharmacyStore.pharmacySlug}`);
-  }
+  const store = pharmacyStore as { pharmacySlug?: string }
+  if (store.pharmacySlug) router.push(`/${store.pharmacySlug}`);
 };
 </script>

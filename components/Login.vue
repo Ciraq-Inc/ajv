@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
+  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="login-dialog-title" ref="dialogRef" tabindex="-1">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-[#1e1a22]/50 backdrop-blur-md" @click="closeModal"></div>
 
@@ -20,7 +20,7 @@
           </button>
           <div class="pr-10">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#520094] mb-2">MedsGh</p>
-            <h3 class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
+            <h3 id="login-dialog-title" class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
             <p class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
           </div>
         </div>
@@ -50,10 +50,15 @@
               <div class="mb-4">
                 <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
                 <div class="flex">
-                  <span
-                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453]">
-                    +233
-                  </span>
+                  <select
+                    v-model="selectedCountry"
+                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453] focus:outline-none focus:ring-2 focus:ring-[#520094]/20"
+                    @change="onPhoneInput"
+                  >
+                    <option value="GH">🇬🇭 +233</option>
+                    <option value="US">🇺🇸 +1</option>
+                    <option value="GB">🇬🇧 +44</option>
+                  </select>
                   <input v-model="phoneNumber" type="tel" id="phoneNumber"
                     :class="phoneInputClass"
                     placeholder="eg. 24 123 4567" required @input="onPhoneInput">
@@ -239,19 +244,62 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
+import { useModalA11y } from '~/composables/useModalA11y';
+import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
+import phoneUtils from '~/utils/phone';
 
-const props = defineProps({
-  isOpen: Boolean,
-});
+type LoginStep = 'signin' | 'reset';
+type LoginMode = 'login' | 'verify' | 'register';
 
-const emit = defineEmits(['close', 'login-success']);
+interface LoginSuccessPayload {
+  destination: string;
+  action: string;
+}
 
-const userStore = useUserStore();
-const pharmacyStore = usePharmacyStore();
+// TODO: remove once stores/ are .ts
+interface UserStoreShape {
+  formatPhoneNumber: (phone: string) => string;
+  checkPhoneStatus: (phone: string) => Promise<{ status: string }>;
+  login: (phone: string, password: string) => Promise<void>;
+  sendSetupOTP: (phone: string) => Promise<void>;
+  setupPassword: (phone: string, otp: string, password: string) => Promise<void>;
+  register: (payload: {
+    company_id?: unknown;
+    fname: string;
+    lname: string;
+    phone: string;
+    password: string;
+    email: string;
+    otp: string;
+  }) => Promise<void>;
+  sendResetOTP: (phone: string) => Promise<void>;
+  resetPassword: (phone: string, otp: string, password: string) => Promise<void>;
+}
+
+// TODO: remove once stores/ are .ts
+interface PharmacyStoreShape {
+  pharmacyData: { name?: string } | null;
+  currentPharmacy: unknown;
+}
+
+const props = defineProps<{ isOpen?: boolean }>();
+
+const emit = defineEmits<{
+  close: [];
+  'login-success': [payload: LoginSuccessPayload];
+}>();
+
+const userStore = useUserStore() as unknown as UserStoreShape;
+const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
+const customerAuthService = createCustomerAuthService(useApi());
+
+// Focus trap, ESC-to-close, restore focus to invoker (WAI-ARIA dialog pattern).
+const dialogRef = ref<HTMLElement | null>(null);
+useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'));
 
 const subtleCardClass = 'mb-4 rounded-2xl border-none bg-[#f4ebf7] p-4 text-sm text-[#4c4453]';
 const inputClass = 'w-full rounded-full border-none shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 transition-colors';
@@ -261,56 +309,57 @@ const primaryButtonClass = 'rounded-xl bg-[#520094] px-5 py-2.5 text-sm font-sem
 const fullPrimaryButtonClass = 'w-full rounded-xl bg-[#520094] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
 
 // State
-const currentStep = ref('signin'); // 'signin' | 'reset'
-const mode = ref('login'); // within signin: 'login' | 'verify' | 'register'
-const phoneNumber = ref('');
-const password = ref('');
-const confirmPassword = ref('');
-const otp = ref('');
-const firstName = ref('');
-const lastName = ref('');
-const email = ref('');
-const gender = ref('');
-const isOver18 = ref(false);
-const otpSent = ref(false);
-const isLoading = ref(false);
-const errorMessage = ref('');
-const phoneNumberError = ref('');
-const rememberMe = ref(true);
+const currentStep = ref<LoginStep>('signin');
+const mode = ref<LoginMode>('login');
+const phoneNumber = ref<string>('');
+const selectedCountry = ref<string>('GH');
+const password = ref<string>('');
+const confirmPassword = ref<string>('');
+const otp = ref<string>('');
+const firstName = ref<string>('');
+const lastName = ref<string>('');
+const email = ref<string>('');
+const gender = ref<string>('');
+const isOver18 = ref<boolean>(false);
+const otpSent = ref<boolean>(false);
+const isLoading = ref<boolean>(false);
+const errorMessage = ref<string>('');
+const phoneNumberError = ref<string>('');
+const rememberMe = ref<boolean>(true);
 
-const registrationCompany = computed(() => pharmacyStore.pharmacyData?.name || null);
+const registrationCompany = computed<string | null>(() => pharmacyStore.pharmacyData?.name ?? null);
 
-const stepTitle = computed(() => {
+const stepTitle = computed<string>(() => {
   if (currentStep.value === 'reset') return 'Reset your password';
   if (mode.value === 'verify') return 'Quick verification';
   if (mode.value === 'register') return 'Create your account';
   return 'Sign in to MedsGh';
 });
 
-const stepSubtitle = computed(() => {
+const stepSubtitle = computed<string>(() => {
   if (currentStep.value === 'reset') return 'Verify your number and set a new password.';
-  if (mode.value === 'verify') return 'Confirm the code we sent and we\'ll activate your account.';
+  if (mode.value === 'verify') return "Confirm the code we sent and we'll activate your account.";
   if (mode.value === 'register') {
     return registrationCompany.value
       ? `Registering with ${registrationCompany.value}. Orders will be available there right after signup.`
-      : 'A couple more details and you\'re in.';
+      : "A couple more details and you're in.";
   }
   return 'Welcome back. Enter your phone and password.';
 });
 
-const submitLabel = computed(() => {
+const submitLabel = computed<string>(() => {
   if (mode.value === 'verify') return 'Activate account';
   if (mode.value === 'register') return 'Create account';
   return 'Sign in';
 });
 
-const submittingLabel = computed(() => {
+const submittingLabel = computed<string>(() => {
   if (mode.value === 'verify') return 'Activating...';
   if (mode.value === 'register') return 'Creating...';
   return 'Signing in...';
 });
 
-const canSubmit = computed(() => {
+const canSubmit = computed<boolean>(() => {
   if (mode.value === 'login') {
     return Boolean(phoneNumber.value) && Boolean(password.value) && password.value.length >= 6;
   }
@@ -325,7 +374,7 @@ const canSubmit = computed(() => {
   return false;
 });
 
-const resolveCurrentPharmacyId = () => {
+const resolveCurrentPharmacyId = (): unknown => {
   if (pharmacyStore.currentPharmacy) {
     return pharmacyStore.currentPharmacy;
   }
@@ -334,82 +383,40 @@ const resolveCurrentPharmacyId = () => {
     try {
       const savedPharmacyId = localStorage.getItem('currentPharmacyId');
       if (savedPharmacyId) {
-        pharmacyStore.currentPharmacy = savedPharmacyId;
+        (pharmacyStore as { currentPharmacy: unknown }).currentPharmacy = savedPharmacyId;
         return savedPharmacyId;
       }
-    } catch (error) {
-      console.error('Failed to restore pharmacy ID:', error);
+    } catch (err) {
+      console.error('Failed to restore pharmacy ID:', err);
     }
   }
 
   return null;
 };
 
-const formattedPhoneNumber = computed(() => {
-  if (!phoneNumber.value) return '';
-  let formatted = phoneNumber.value;
-  if (formatted.startsWith('0')) {
-    formatted = '+233 ' + formatted.substring(1);
-  } else if (!formatted.startsWith('+')) {
-    formatted = '+233 ' + formatted;
-  }
-  return formatted;
-});
+const phoneE164 = computed<string>(() =>
+  phoneUtils.formatToE164(phoneNumber.value, selectedCountry.value)
+);
 
-const validatePhoneNumber = () => {
-  const digitsOnly = phoneNumber.value.replace(/\D/g, '');
+const formattedPhoneNumber = computed<string>(() =>
+  phoneE164.value ? phoneUtils.formatForDisplay(phoneE164.value) : phoneNumber.value
+);
 
-  if (digitsOnly.length === 0) {
+const validatePhoneNumber = (): boolean => {
+  if (!phoneNumber.value.replace(/\D/g, '')) {
     phoneNumberError.value = '';
     return false;
   }
-
-  const validPrefixes = ['20', '23', '24', '25', '26', '27', '50', '53', '54', '55', '59', '57', '56'];
-
-  if (digitsOnly.length === 10 && digitsOnly.startsWith('0')) {
-    const prefix = digitsOnly.substring(1, 3);
-    if (!validPrefixes.includes(prefix)) {
-      phoneNumberError.value = 'Please enter a valid Ghanaian number.';
-      return false;
-    }
+  if (phoneUtils.isValidPhone(phoneNumber.value, selectedCountry.value)) {
     phoneNumberError.value = '';
     return true;
   }
-
-  if (digitsOnly.length === 9) {
-    const prefix = digitsOnly.substring(0, 2);
-    if (!validPrefixes.includes(prefix)) {
-      phoneNumberError.value = 'Please enter a valid Ghanaian number.';
-      return false;
-    }
-    phoneNumberError.value = '';
-    return true;
-  }
-
-  if (digitsOnly.length === 12 && digitsOnly.startsWith('233')) {
-    const prefix = digitsOnly.substring(3, 5);
-    if (!validPrefixes.includes(prefix)) {
-      phoneNumberError.value = 'Please enter a valid Ghanaian number.';
-      return false;
-    }
-    phoneNumberError.value = '';
-    return true;
-  }
-
-  if (digitsOnly.length < 9) {
-    phoneNumberError.value = 'Phone number is too short.';
-    return false;
-  } else if (digitsOnly.length > 12) {
-    phoneNumberError.value = 'Phone number is too long.';
-    return false;
-  }
-
   phoneNumberError.value = 'Please enter a valid phone number.';
   return false;
 };
 
 // If user edits phone after a reveal, snap back to login mode
-const onPhoneInput = () => {
+const onPhoneInput = (): void => {
   validatePhoneNumber();
   if (mode.value !== 'login') {
     mode.value = 'login';
@@ -423,27 +430,23 @@ const onPhoneInput = () => {
   }
 };
 
-// Send registration OTP via the same backend endpoint used by the original flow
-const sendNewCustomerOTP = async () => {
-  const config = useRuntimeConfig();
-  const response = await fetch(`${config.public.apiBase}/api/auth/customer/send-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: userStore.formatPhoneNumber(phoneNumber.value) })
-  });
-  const data = await response.json();
-  if (!data.success) throw new Error(data.message || 'Failed to send verification code');
+// Send registration OTP via the service layer.
+const sendNewCustomerOTP = async (): Promise<void> => {
+  const data = await customerAuthService.sendSetupOtp({
+    phone: phoneE164.value,
+  }) as { success: boolean; message?: string };
+  if (!data.success) throw new Error(data.message ?? 'Failed to send verification code');
 };
 
 // Unified submit dispatcher
-const onSignInSubmit = async () => {
+const onSignInSubmit = async (): Promise<void> => {
   if (mode.value === 'login') return submitLogin();
   if (mode.value === 'verify') return submitVerify();
   if (mode.value === 'register') return submitRegister();
 };
 
 // Path A: phone + password submitted. Decide what to do.
-const submitLogin = async () => {
+const submitLogin = async (): Promise<void> => {
   if (!validatePhoneNumber()) return;
   if (!password.value || password.value.length < 6) {
     errorMessage.value = 'Enter your password (min. 6 characters).';
@@ -454,22 +457,22 @@ const submitLogin = async () => {
   isLoading.value = true;
 
   try {
-    const result = await userStore.checkPhoneStatus(phoneNumber.value);
+    const result = await userStore.checkPhoneStatus(phoneE164.value);
 
     if (result.status === 'registered') {
       try {
-        await userStore.login(phoneNumber.value, password.value);
-        emit('login-success', { destination: 'home', action: 'login' });
+        await userStore.login(phoneE164.value, password.value);
+        emit('login-success', { destination: 'new', action: 'login' });
         closeModal();
-      } catch (loginError) {
-        console.error('Login error:', loginError);
+      } catch (loginErr) {
+        console.error('Login error:', loginErr);
         errorMessage.value = `Wrong password for ${formattedPhoneNumber.value}. Try again or reset.`;
       }
       return;
     }
 
     if (result.status === 'existing_customer_no_password') {
-      await userStore.sendSetupOTP(phoneNumber.value);
+      await userStore.sendSetupOTP(phoneE164.value);
       otpSent.value = true;
       mode.value = 'verify';
       return;
@@ -483,33 +486,33 @@ const submitLogin = async () => {
     }
 
     throw new Error('Unknown account status.');
-  } catch (error) {
-    console.error('Sign-in error:', error);
-    errorMessage.value = error.message || 'Something went wrong. Please try again.';
+  } catch (err) {
+    console.error('Sign-in error:', err);
+    errorMessage.value = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
 // Path B: existing customer activates with OTP; reuse already-typed password.
-const submitVerify = async () => {
+const submitVerify = async (): Promise<void> => {
   errorMessage.value = '';
   isLoading.value = true;
 
   try {
-    await userStore.setupPassword(phoneNumber.value, otp.value, password.value);
+    await userStore.setupPassword(phoneE164.value, otp.value, password.value);
     emit('login-success', { destination: 'new', action: 'setup' });
     closeModal();
-  } catch (error) {
-    console.error('Activate account error:', error);
-    errorMessage.value = error.message || 'Failed to activate account. Please try again.';
+  } catch (err) {
+    console.error('Activate account error:', err);
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to activate account. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
 // Path C: new customer registers; reuse already-typed password.
-const submitRegister = async () => {
+const submitRegister = async (): Promise<void> => {
   errorMessage.value = '';
   isLoading.value = true;
 
@@ -517,52 +520,52 @@ const submitRegister = async () => {
     const companyId = resolveCurrentPharmacyId();
 
     await userStore.register({
-      company_id: companyId || undefined,
+      company_id: companyId ?? undefined,
       fname: firstName.value,
       lname: lastName.value,
-      phone: phoneNumber.value,
+      phone: phoneE164.value,
       password: password.value,
       email: email.value,
-      otp: otp.value
+      otp: otp.value,
     });
 
     emit('login-success', { destination: 'new', action: 'register' });
     closeModal();
-  } catch (error) {
-    console.error('Registration error:', error);
-    errorMessage.value = error.message || 'Registration failed. Please try again.';
+  } catch (err) {
+    console.error('Registration error:', err);
+    errorMessage.value = err instanceof Error ? err.message : 'Registration failed. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-const resendVerifyOTP = async () => {
+const resendVerifyOTP = async (): Promise<void> => {
   errorMessage.value = '';
   isLoading.value = true;
   try {
-    await userStore.sendSetupOTP(phoneNumber.value);
-  } catch (error) {
-    console.error('Resend verify OTP error:', error);
-    errorMessage.value = error.message || 'Failed to resend code. Please try again.';
+    await userStore.sendSetupOTP(phoneE164.value);
+  } catch (err) {
+    console.error('Resend verify OTP error:', err);
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-const resendRegisterOTP = async () => {
+const resendRegisterOTP = async (): Promise<void> => {
   errorMessage.value = '';
   isLoading.value = true;
   try {
     await sendNewCustomerOTP();
-  } catch (error) {
-    console.error('Resend register OTP error:', error);
-    errorMessage.value = error.message || 'Failed to resend code. Please try again.';
+  } catch (err) {
+    console.error('Resend register OTP error:', err);
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-const forgotPassword = () => {
+const forgotPassword = (): void => {
   currentStep.value = 'reset';
   mode.value = 'login';
   otpSent.value = false;
@@ -572,22 +575,22 @@ const forgotPassword = () => {
   errorMessage.value = '';
 };
 
-const sendResetOTP = async () => {
+const sendResetOTP = async (): Promise<void> => {
   errorMessage.value = '';
   isLoading.value = true;
 
   try {
-    await userStore.sendResetOTP(phoneNumber.value);
+    await userStore.sendResetOTP(phoneE164.value);
     otpSent.value = true;
-  } catch (error) {
-    console.error('Error sending reset OTP:', error);
-    errorMessage.value = error.message || 'Failed to send reset code. Please try again.';
+  } catch (err) {
+    console.error('Error sending reset OTP:', err);
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to send reset code. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-const handleResetPassword = async () => {
+const handleResetPassword = async (): Promise<void> => {
   if (password.value !== confirmPassword.value) {
     errorMessage.value = 'Passwords do not match';
     return;
@@ -597,7 +600,7 @@ const handleResetPassword = async () => {
   isLoading.value = true;
 
   try {
-    await userStore.resetPassword(phoneNumber.value, otp.value, password.value);
+    await userStore.resetPassword(phoneE164.value, otp.value, password.value);
 
     errorMessage.value = '';
     currentStep.value = 'signin';
@@ -610,15 +613,15 @@ const handleResetPassword = async () => {
     setTimeout(() => {
       alert(tempSuccess);
     }, 100);
-  } catch (error) {
-    console.error('Reset password error:', error);
-    errorMessage.value = error.message || 'Failed to reset password. Please try again.';
+  } catch (err) {
+    console.error('Reset password error:', err);
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to reset password. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-const backToSignIn = () => {
+const backToSignIn = (): void => {
   currentStep.value = 'signin';
   mode.value = 'login';
   password.value = '';
@@ -632,7 +635,7 @@ const backToSignIn = () => {
   errorMessage.value = '';
 };
 
-const closeModal = () => {
+const closeModal = (): void => {
   emit('close');
   setTimeout(() => {
     currentStep.value = 'signin';
@@ -652,7 +655,7 @@ const closeModal = () => {
   }, 300);
 };
 
-const tryToRestorePhone = () => {
+const tryToRestorePhone = (): void => {
   if (typeof localStorage !== 'undefined') {
     const savedPhone = localStorage.getItem('lastPhoneNumber');
     if (savedPhone) {

@@ -16,7 +16,7 @@
               </div>
               <button
                 @click="close"
-                class="text-gray-400 hover:text-gray-600 transition-colors"
+                class="text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <XMarkIcon class="h-6 w-6" />
               </button>
@@ -170,247 +170,220 @@
   </Transition>
 </template>
 
-<script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { 
-  XMarkIcon, 
-  ArrowPathIcon, 
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import {
+  XMarkIcon,
+  ArrowPathIcon,
   PaperAirplaneIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import MessageComposer from '~/components/sms/campaign/MessageComposer.vue'
 import RecipientSelector from '~/components/sms/campaign/RecipientSelector.vue'
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true
-  },
-  campaignId: {
-    type: [Number, String],
-    default: null
-  }
-})
+// TODO: remove once composables/ are .ts
+const props = defineProps<{
+  isOpen: boolean
+  campaignId?: number | string | null
+}>()
 
-const emit = defineEmits(['close', 'updated'])
+const emit = defineEmits<{ close: []; updated: [] }>()
+
+interface MessageValidation {
+  isValid: boolean
+  messageInfo: { parts: number; length: number } | null
+  invalidVariables: string[]
+}
+
+interface Recipients {
+  type: string
+  filters: Record<string, unknown>
+  customer_ids: string
+  totalRecipients: number
+  totalCost: number
+}
+
+interface CampaignRecord {
+  name?: string
+  message?: string
+  recipient_type?: string
+  customer_ids?: string
+  status?: string
+  [key: string]: unknown
+}
+
+interface Customer { id: number | string; [key: string]: unknown }
 
 const { fetchCampaign, updateCampaign, startCampaign } = useSMSCampaigns()
 const { balance, fetchBalance } = useSMSBilling()
 
 const loading = ref(false)
 const saving = ref(false)
-const loadError = ref(null)
-const campaignData = ref(null)
+const loadError = ref<string | null>(null)
+const campaignData = ref<CampaignRecord | null>(null)
 
-const campaign = ref({
-  name: '',
-  message: ''
-})
-
-const recipients = ref({
+const campaign = ref({ name: '', message: '' })
+const recipients = ref<Recipients>({
   type: 'all',
   filters: {},
   customer_ids: '',
   totalRecipients: 0,
-  totalCost: 0
+  totalCost: 0,
 })
-
-const messageValidation = ref({
+const messageValidation = ref<MessageValidation>({
   isValid: false,
   messageInfo: null,
-  invalidVariables: []
+  invalidVariables: [],
 })
 
-// Recipient selector variables
 const selectedType = ref('all')
-const selectedCustomers = ref([])
+const selectedCustomers = ref<Customer[]>([])
 const customIds = ref('')
 const estimatedCount = ref(0)
 
-// Cost calculations
-const messageParts = computed(() => messageValidation.value.messageInfo?.parts || 1)
+const messageParts = computed<number>(() => messageValidation.value.messageInfo?.parts ?? 1)
 
-const totalRecipients = computed(() => {
+const totalRecipients = computed<number>(() => {
   if (selectedType.value === 'all') return estimatedCount.value
   if (selectedType.value === 'filtered') return selectedCustomers.value.length
   if (selectedType.value === 'custom') {
     if (!customIds.value) return 0
-    const lines = customIds.value.split('\n').filter(line => line.trim().length > 0)
-    return lines.length
+    return customIds.value.split('\n').filter((line) => line.trim().length > 0).length
   }
   return 0
 })
 
-const totalCost = computed(() => {
-  return totalRecipients.value * messageParts.value
-})
+const totalCost = computed<number>(() => totalRecipients.value * messageParts.value)
 
-// Watch for modal open
-watch(() => props.isOpen, (isOpen) => {
-  if (isOpen && props.campaignId) {
-    loadCampaign()
-    fetchBalance()
-  }
-})
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen && props.campaignId) {
+      loadCampaign()
+      fetchBalance()
+    }
+  },
+)
 
-// Load campaign data
-const loadCampaign = async () => {
+const loadCampaign = async (): Promise<void> => {
   try {
     loading.value = true
     loadError.value = null
-    
-    const response = await fetchCampaign(props.campaignId)
-    campaignData.value = response.data || response.campaign
-    
-    // Populate form
-    campaign.value.name = campaignData.value.name || ''
-    campaign.value.message = campaignData.value.message || ''
-    
-    // Set recipient type
-    selectedType.value = campaignData.value.recipient_type || 'all'
-    
-    // Parse customer_ids if present
-    if (campaignData.value.customer_ids) {
-      if (selectedType.value === 'filtered') {
-        // For filtered type, we need to fetch the actual customer objects
-        // For now, just store the IDs as comma-separated string
-        customIds.value = campaignData.value.customer_ids
-      } else if (selectedType.value === 'custom') {
-        customIds.value = campaignData.value.customer_ids
+
+    const response = await fetchCampaign(props.campaignId ?? '') as {
+      data?: CampaignRecord
+      campaign?: CampaignRecord
+    }
+    campaignData.value = response.data ?? response.campaign ?? null
+
+    if (campaignData.value) {
+      campaign.value.name = String(campaignData.value.name ?? '')
+      campaign.value.message = String(campaignData.value.message ?? '')
+      selectedType.value = String(campaignData.value.recipient_type ?? 'all')
+
+      if (campaignData.value.customer_ids) {
+        customIds.value = String(campaignData.value.customer_ids)
       }
     }
-    
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error loading campaign:', error)
-    loadError.value = error.message || 'Failed to load campaign'
+    loadError.value = error instanceof Error ? error.message : 'Failed to load campaign'
   } finally {
     loading.value = false
   }
 }
 
-// Handle message validation
-const handleMessageValidation = (validation) => {
+const handleMessageValidation = (validation: MessageValidation): void => {
   messageValidation.value = validation
 }
 
-// Update recipients object
-const updateRecipients = () => {
-  let recipientData = {
+const updateRecipients = (): void => {
+  const recipientData: Recipients = {
     type: selectedType.value,
     filters: {},
     customer_ids: '',
     totalRecipients: totalRecipients.value,
-    totalCost: totalCost.value
+    totalCost: totalCost.value,
   }
 
   if (selectedType.value === 'filtered') {
-    recipientData.customer_ids = selectedCustomers.value.map(c => c.id).join(',')
+    recipientData.customer_ids = selectedCustomers.value.map((c) => c.id).join(',')
     recipientData.filters = { type: 'filtered' }
   } else if (selectedType.value === 'custom') {
     recipientData.customer_ids = customIds.value
     recipientData.filters = { type: 'custom' }
-  } else if (selectedType.value === 'all') {
+  } else {
     recipientData.filters = { type: 'all' }
   }
 
   recipients.value = recipientData
 }
 
-// Check if can save
-const canSave = () => {
-  return campaign.value.name && 
-         campaign.value.message && 
-         messageValidation.value.isValid &&
-         totalRecipients.value > 0
-}
+const canSave = (): boolean =>
+  !!(campaign.value.name && campaign.value.message && messageValidation.value.isValid && totalRecipients.value > 0)
 
-// Get totals
-const getTotalRecipients = () => totalRecipients.value
-const getTotalCost = () => totalCost.value
+const getTotalRecipients = (): number => totalRecipients.value
+const getTotalCost = (): number => totalCost.value
 
-// Check sufficient balance
-const hasSufficientBalance = () => {
-  return (balance.value?.sms_balance || 0) >= getTotalCost()
-}
+const getSmsBalance = (): number =>
+  (balance.value as { sms_balance?: number } | null)?.sms_balance ?? 0
 
-// Save changes
-const saveChanges = async () => {
+const hasSufficientBalance = (): boolean => getSmsBalance() >= getTotalCost()
+
+const saveChanges = async (): Promise<void> => {
+  if (!canSave()) { alert('Please fill in all required fields'); return }
+  saving.value = true
   try {
-    if (!canSave()) {
-      alert('Please fill in all required fields')
-      return
-    }
-
-    saving.value = true
     updateRecipients()
-
-    const updateData = {
+    await updateCampaign(props.campaignId ?? '', {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
       filters: recipients.value.filters,
-      customer_ids: recipients.value.customer_ids
-    }
-
-    await updateCampaign(props.campaignId, updateData)
+      customer_ids: recipients.value.customer_ids,
+    })
     alert('Campaign updated successfully!')
     emit('updated')
     close()
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating campaign:', error)
-    alert('Failed to update campaign: ' + error.message)
+    alert('Failed to update campaign: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     saving.value = false
   }
 }
 
-// Save and send
-const saveAndSend = async () => {
+const saveAndSend = async (): Promise<void> => {
+  if (!canSave()) { alert('Please fill in all required fields'); return }
+  if (!hasSufficientBalance()) {
+    alert(`Insufficient balance. You need ${getTotalCost() - getSmsBalance()} more credits.`)
+    return
+  }
+  saving.value = true
   try {
-    if (!canSave()) {
-      alert('Please fill in all required fields')
-      return
-    }
-
-    if (!hasSufficientBalance()) {
-      alert(`Insufficient balance. You need ${getTotalCost() - (balance.value?.sms_balance || 0)} more credits to send this campaign.`)
-      return
-    }
-
-    saving.value = true
     updateRecipients()
-
-    // First update the campaign
-    const updateData = {
+    await updateCampaign(props.campaignId ?? '', {
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
       filters: recipients.value.filters,
-      customer_ids: recipients.value.customer_ids
-    }
-
-    await updateCampaign(props.campaignId, updateData)
-    
-    // Then start it
-    await startCampaign(props.campaignId)
-    
+      customer_ids: recipients.value.customer_ids,
+    })
+    await startCampaign(props.campaignId ?? '')
     alert('Campaign updated and started! SMS messages are being sent.')
     emit('updated')
     close()
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating and sending campaign:', error)
-    alert('Failed to update and send campaign: ' + error.message)
+    alert('Failed to update and send campaign: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
     saving.value = false
   }
 }
 
-// Close modal
-const close = () => {
-  emit('close')
-}
+const close = (): void => emit('close')
 </script>
 
 <style scoped>

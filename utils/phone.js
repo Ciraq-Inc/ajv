@@ -1,83 +1,95 @@
-// utils/phoneUtils.js
-//   Utility functions for phone number handling
+import {
+  parsePhoneNumber,
+  isValidPhoneNumber,
+  ParseError,
+} from 'libphonenumber-js';
 
 export const phoneUtils = {
-  formatPhoneNumber(phone) {
-    if (!phone) return "";
+  /**
+   * Convert a phone number to E.164 format.
+   * @param {string} phone - User-typed phone (national or international)
+   * @param {string} countryCode - ISO 3166-1 alpha-2 country code ('GH', 'US', 'GB')
+   * @returns {string} E.164 string (e.g. '+233241234567') or empty string if invalid
+   */
+  formatToE164(phone, countryCode = 'GH') {
+    if (!phone) return '';
+    let raw = phone.toString().trim();
 
-    let formatted = phone.toString().trim();
-
-    // Remove any non-digit characters
-    formatted = formatted.replace(/\D/g, "");
-
-    // Format consistently for Ghana numbers
-    if (formatted.startsWith("0")) {
-      formatted = "+233" + formatted.substring(1);
-    } else if (!formatted.startsWith("+")) {
-      if (formatted.startsWith("233")) {
-        formatted = "+" + formatted;
-      } else {
-        formatted = "+233" + formatted;
-      }
+    // Pre-process legacy bare-prefix formats so libphonenumber-js can parse them.
+    // e.g. '233241234567' → '+233241234567', '44XXXXXXXXXX' → '+44XXXXXXXXXX'
+    if (!raw.startsWith('+')) {
+      const digits = raw.replace(/\D/g, '');
+      if (digits.startsWith('233') && digits.length === 12) raw = '+' + digits;
+      else if (digits.startsWith('1') && digits.length === 11) raw = '+' + digits;
+      else if (digits.startsWith('44') && digits.length === 12) raw = '+' + digits;
     }
 
-    return formatted;
-  },
-
-  getMNotifyFormattedPhone(phone) {
-    let formatted = phone.replace(/\D/g, "");
-
-    if (formatted.startsWith("233")) {
-      formatted = formatted.substring(3);
+    try {
+      const parsed = parsePhoneNumber(raw, countryCode);
+      if (parsed && parsed.isValid()) return parsed.format('E.164');
+    } catch (e) {
+      if (!(e instanceof ParseError)) throw e;
     }
-
-    if (!formatted.startsWith("0")) {
-      formatted = "0" + formatted;
-    }
-
-    return formatted;
-  },
-
-  comparePhoneNumbers(phone1, phone2) {
-    if (!phone1 || !phone2) return false;
-
-    // Normalize both phone numbers to remove all non-digit characters
-    const normalizedPhone1 = phone1.toString().replace(/\D/g, "");
-    const normalizedPhone2 = phone2.toString().replace(/\D/g, "");
-
-    // If either number starts with country code, remove it for comparison
-    const cleanPhone1 = normalizedPhone1.startsWith("233")
-      ? normalizedPhone1.substring(3)
-      : normalizedPhone1;
-    const cleanPhone2 = normalizedPhone2.startsWith("233")
-      ? normalizedPhone2.substring(3)
-      : normalizedPhone2;
-
-    // Handle cases where one number might start with 0 and the other doesn't
-    const finalPhone1 = cleanPhone1.startsWith("0")
-      ? cleanPhone1
-      : "0" + cleanPhone1;
-    const finalPhone2 = cleanPhone2.startsWith("0")
-      ? cleanPhone2
-      : "0" + cleanPhone2;
-
-    return finalPhone1 === finalPhone2;
+    return '';
   },
 
   /**
-   * Format a phone number for use in wa.me links.
-   * Returns digits only with Ghana country code (233), e.g. "233240000000".
-   * Returns empty string if phone is falsy.
+   * Validate a phone number for a given country.
+   * @param {string} phone
+   * @param {string} countryCode
+   * @returns {boolean}
    */
-  formatWhatsApp(phone) {
-    if (!phone) return '';
-    let digits = phone.toString().trim().replace(/\D/g, '');
-    if (digits.startsWith('0')) {
-      digits = '233' + digits.substring(1);
-    } else if (!digits.startsWith('233')) {
-      digits = '233' + digits;
+  isValidPhone(phone, countryCode = 'GH') {
+    if (!phone) return false;
+    try {
+      return isValidPhoneNumber(phone.toString().trim(), countryCode);
+    } catch {
+      return false;
     }
-    return digits;
+  },
+
+  /**
+   * Format an E.164 number for human-readable display.
+   * e.g. '+233241234567' → '+233 24 123 4567'
+   * @param {string} phone - E.164 or any parseable format
+   * @returns {string}
+   */
+  formatForDisplay(phone) {
+    if (!phone) return '';
+    try {
+      const parsed = parsePhoneNumber(phone.toString().trim());
+      if (parsed) return parsed.formatInternational();
+    } catch {
+      // fall through
+    }
+    return phone;
+  },
+
+  /**
+   * Compare two phone numbers for equality (country-aware).
+   * @param {string} phone1
+   * @param {string} phone2
+   * @param {string} countryCode - default country for bare numbers
+   * @returns {boolean}
+   */
+  comparePhoneNumbers(phone1, phone2, countryCode = 'GH') {
+    if (!phone1 || !phone2) return false;
+    const e1 = this.formatToE164(phone1, countryCode);
+    const e2 = this.formatToE164(phone2, countryCode);
+    return e1 !== '' && e1 === e2;
+  },
+
+  /**
+   * Return digits-only with country code for wa.me links.
+   * e.g. '+233241234567' → '233241234567'
+   * @param {string} phone
+   * @param {string} countryCode
+   * @returns {string}
+   */
+  formatWhatsApp(phone, countryCode = 'GH') {
+    if (!phone) return '';
+    const e164 = this.formatToE164(phone, countryCode);
+    return e164 ? e164.replace(/^\+/, '') : '';
   },
 };
 

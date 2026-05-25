@@ -69,30 +69,46 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import phoneUtils from '~/utils/phone'
 
 definePageMeta({ layout: false })
 
-const route = useRoute()
+interface JobRecord {
+  id: number | string
+  title?: string | null
+  status?: string | null
+  companyName?: string | null
+  location?: string | null
+  description?: string | null
+  employmentType?: string | null
+  salaryMin?: number | null
+  salaryMax?: number | null
+  expiresAt?: string | null
+  contactEmail?: string | null
+  contactPhone?: string | null
+  [key: string]: unknown
+}
+
 const { selectedJob, loading, error, fetchJobById } = useJobs()
 
-const formatDate = (iso) => {
+const route = useRoute()
+
+const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const isExpired = (iso) => iso && new Date(iso).getTime() < Date.now()
+const isExpired = (iso: string | null | undefined): boolean =>
+  Boolean(iso && new Date(iso).getTime() < Date.now())
 
-const whatsappJobUrl = (job) => {
-  const num = phoneUtils.formatWhatsApp(job.contactPhone)
-  const text = encodeURIComponent(`Hi, I'm interested in the ${job.title} position listed on Rigel Jobs.`)
+const whatsappJobUrl = (job: JobRecord): string => {
+  const num = phoneUtils.formatWhatsApp(job.contactPhone ?? '')
+  const text = encodeURIComponent(`Hi, I'm interested in the ${job.title ?? ''} position listed on Rigel Jobs.`)
   return `https://wa.me/${num}?text=${text}`
 }
 
-onMounted(async () => {
-  await fetchJobById(route.params.id)
-})
+onMounted(() => { void fetchJobById(String(route.params['id'])) })
 </script>

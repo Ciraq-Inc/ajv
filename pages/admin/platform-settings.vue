@@ -56,7 +56,7 @@
             <input
               v-else
               v-model="editedSettings[setting.key]"
-              :type="setting.inputType"
+              :type="setting.inputType ?? 'text'"
               class="form-control"
               :step="setting.step || '1'"
             />
@@ -76,20 +76,44 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import type { InputTypeHTMLAttribute } from 'vue'
+import { createPlatformSettingsService } from '~/services/platformSettings/platformSettingsService'
+import type { PlatformSetting, PlatformSettingUpdate, ApiEnvelope } from '~/services/types'
 
-const adminStore = useAdminStore()
-const config = useRuntimeConfig()
-const apiBaseUrl = config.public.apiBase
+const platformSettingsService = createPlatformSettingsService(useApi())
 
-const loading = ref(false)
-const message = ref(null)
-const originalSettings = reactive({})
-const editedSettings = reactive({})
+const loading = ref<boolean>(false)
+const message = ref<{ text: string; type: string } | null>(null)
+const originalSettings = reactive<Record<string, string>>({})
+const editedSettings = reactive<Record<string, string>>({})
 
-const sections = [
+interface SettingOption {
+  value: string;
+  label: string;
+}
+
+interface SettingDefinition {
+  key: string;
+  label: string;
+  help: string;
+  type: 'number' | 'string' | 'boolean' | 'select';
+  inputType?: InputTypeHTMLAttribute;
+  step?: string;
+  defaultValue: string;
+  options?: SettingOption[];
+}
+
+interface SectionDefinition {
+  id: string;
+  short: string;
+  title: string;
+  description: string;
+  settings: SettingDefinition[];
+}
+
+const sections: SectionDefinition[] = [
   {
     id: 'order',
     short: 'OPS',
@@ -299,6 +323,30 @@ const sections = [
         type: 'string',
         inputType: 'text',
         defaultValue: 'MedsGh'
+      },
+      {
+        key: 'twilio_account_sid',
+        label: 'Twilio Account SID',
+        help: 'Account SID from the Twilio console — used for international (non-Ghana) numbers',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: ''
+      },
+      {
+        key: 'twilio_auth_token',
+        label: 'Twilio Auth Token',
+        help: 'Auth token from the Twilio console',
+        type: 'string',
+        inputType: 'password',
+        defaultValue: ''
+      },
+      {
+        key: 'twilio_from_number',
+        label: 'Twilio From Number',
+        help: 'E.164 sender number for Twilio (e.g. +12015550123)',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: ''
       }
     ]
   },
@@ -320,43 +368,37 @@ const sections = [
   // }
 ]
 
-const allSettings = computed(() => sections.flatMap((section) => section.settings))
+const allSettings = computed<SettingDefinition[]>(() => sections.flatMap((section) => section.settings))
 
-const hasChanges = computed(() => {
-  return allSettings.value.some((setting) => editedSettings[setting.key] !== originalSettings[setting.key])
-})
+const hasChanges = computed<boolean>(() =>
+  allSettings.value.some((setting) => editedSettings[setting.key] !== originalSettings[setting.key])
+)
 
-const showMessage = (text, type = 'success') => {
+const showMessage = (text: string, type: string = 'success'): void => {
   message.value = { text, type }
   setTimeout(() => {
     message.value = null
   }, 4500)
 }
 
-const apiCall = async (method, url, data = null) => {
-  const opts = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${adminStore.token}`
-    }
-  }
-  if (data) opts.body = JSON.stringify(data)
-
-  const response = await fetch(`${apiBaseUrl}${url}`, opts)
-  const payload = await response.json().catch(() => ({}))
-
-  if (!response.ok || payload.success === false) {
-    throw new Error(payload.message || `API error: ${response.status}`)
+// Domain calls go through `platformSettingsService` (created above).
+// Envelope nuance: the previous inline `apiCall` rejected on
+// `payload.success === false` even when the HTTP status was 2xx.
+// `useApi` only throws on HTTP status, so each call site below
+// preserves the `success === false` guard explicitly and re-throws
+// with `payload.message`, matching the prior behavior byte-for-byte.
+const ensureSuccess = <T>(payload: ApiEnvelope<T>): ApiEnvelope<T> => {
+  if (payload && payload.success === false) {
+    throw new Error(payload.message ?? 'API error')
   }
   return payload
 }
 
-const fetchSettings = async () => {
+const fetchSettings = async (): Promise<void> => {
   loading.value = true
   try {
-    const res = await apiCall('GET', '/api/platform-settings')
-    const current = Array.isArray(res.data) ? res.data : []
+    const res = ensureSuccess(await platformSettingsService.listSettings())
+    const current: PlatformSetting[] = Array.isArray(res.data) ? res.data : []
 
     for (const setting of allSettings.value) {
       const found = current.find((row) => row.setting_key === setting.key)
@@ -367,25 +409,25 @@ const fetchSettings = async () => {
 
     showMessage('Settings loaded')
   } catch (error) {
-    showMessage(error.message || 'Failed to load settings', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to load settings', 'error')
   } finally {
     loading.value = false
   }
 }
 
-const saveAll = async () => {
+const saveAll = async (): Promise<void> => {
   loading.value = true
   try {
-    const changedSettings = allSettings.value
+    const changedSettings: PlatformSettingUpdate[] = allSettings.value
       .filter((setting) => editedSettings[setting.key] !== originalSettings[setting.key])
-      .map((setting) => ({ key: setting.key, value: editedSettings[setting.key] }))
+      .map((setting) => ({ key: setting.key, value: editedSettings[setting.key] ?? '' }))
 
     if (changedSettings.length === 0) {
       showMessage('No changes to save')
       return
     }
 
-    await apiCall('PUT', '/api/platform-settings/bulk', { settings: changedSettings })
+    ensureSuccess(await platformSettingsService.bulkUpdate(changedSettings))
 
     for (const { key, value } of changedSettings) {
       originalSettings[key] = value
@@ -393,13 +435,13 @@ const saveAll = async () => {
 
     showMessage(`${changedSettings.length} setting(s) saved`)
   } catch (error) {
-    showMessage(error.message || 'Failed to save settings', 'error')
+    showMessage(error instanceof Error ? error.message : 'Failed to save settings', 'error')
   } finally {
     loading.value = false
   }
 }
 
-onMounted(fetchSettings)
+onMounted(() => { void fetchSettings() })
 
 definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
 </script>

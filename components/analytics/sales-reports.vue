@@ -114,7 +114,7 @@
          
           <div class="flex items-end gap-2">
             <button
-              @click="fetchData"
+              @click="() => fetchData()"
               class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
               :disabled="loading || !!dateRangeError"
             >
@@ -352,7 +352,7 @@
       <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white" @click.stop>
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Sample Sales Items Records</h3>
-          <button @click="showSalesItemsModal = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showSalesItemsModal = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>
@@ -402,7 +402,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="item in salesItems" :key="item.company_id" class="hover:bg-gray-50">
+              <tr v-for="item in salesItems" :key="item.company_id ?? ''" class="hover:bg-gray-50">
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                   {{ item.company_name }}
                 </td>
@@ -419,10 +419,10 @@
                   {{ item.total_quantity || 0 }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-semibold">
-                  ${{ parseFloat(item.total_value || 0).toFixed(2) }}
+                  ${{ parseFloat(String(item.total_value ?? 0)).toFixed(2) }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                  {{ item.avg_selling_price ? parseFloat(item.avg_selling_price).toFixed(2) : '0.00' }}
+                  {{ item.avg_selling_price ? parseFloat(String(item.avg_selling_price)).toFixed(2) : '0.00' }}
                 </td>
               </tr>
             </tbody>
@@ -443,7 +443,7 @@
       <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white" @click.stop>
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Select Columns to Export</h3>
-          <button @click="showColumnSelector = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showColumnSelector = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>
@@ -506,7 +506,7 @@
             <h3 class="text-lg font-semibold text-gray-800">Company Sales Details</h3>
             <p class="text-sm text-gray-600 mt-1">{{ selectedCompanyDetails?.company_name }}</p>
           </div>
-          <button @click="showCompanyModal = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showCompanyModal = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>
@@ -561,8 +561,8 @@
                     </td>
                     <td class="px-3 py-2 text-xs text-gray-700">{{ item.customer_name || 'N/A' }}</td>
                     <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{ item.product_qty }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{ parseFloat(item.selling_price || 0).toFixed(2) }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-green-600 font-semibold">{{ parseFloat(item.line_total || 0).toFixed(2) }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{ parseFloat(String(item.selling_price ?? 0)).toFixed(2) }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-green-600 font-semibold">{{ parseFloat(String(item.line_total ?? 0)).toFixed(2) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -580,7 +580,7 @@
           <button @click="showCompanyModal = false" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
             Close
           </button>
-          <button @click="exportCompanyData(selectedCompanyDetails)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button @click="selectedCompanyDetails && exportCompanyData(selectedCompanyDetails)" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
             Export Data
           </button>
         </div>
@@ -710,12 +710,12 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="pharmacy in pharmacySummary" :key="pharmacy.pharmacy_id" class="hover:bg-gray-50">
+              <tr v-for="pharmacy in pharmacySummary" :key="String(pharmacy.pharmacy_id ?? '')" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ pharmacy.pharmacy_id }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ pharmacy.alternate_pharmacy_id || 'N/A' }}</td>
                 <td class="px-6 py-4 text-sm text-gray-900">{{ pharmacy.pharmacy_name || 'N/A' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-blue-600">
-                  {{ pharmacy.number_of_transactions.toLocaleString() }}
+                  {{ (pharmacy.number_of_transactions ?? 0).toLocaleString() }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDateShort(pharmacy.first_transaction_date) }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDateShort(pharmacy.last_transaction_date) }}</td>
@@ -741,7 +741,7 @@
       <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap items-center gap-2">
         <select
           v-model="quarterlyFilters.year"
-          @change="fetchQuarterlyData"
+          @change="() => fetchQuarterlyData()"
           class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           title="Year"
         >
@@ -753,7 +753,7 @@
 
         <select
           v-model="quarterlyFilters.date_field"
-          @change="fetchQuarterlyData"
+          @change="() => fetchQuarterlyData()"
           class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           title="Date Field"
         >
@@ -806,22 +806,22 @@
           v-for="(quarter, index) in [1, 2, 3, 4]"
           :key="index"
           class="bg-white rounded-lg shadow-md p-4 border-l-4 min-w-0 cursor-pointer hover:shadow-lg transition-shadow"
-          :class="getQuarterColor(index)"
+          :class="getQuarterColor(quarter)"
         >
           <div class="flex items-start gap-2">
             <input
               type="checkbox"
-              :v-model="selectedQuarters[`q${index}`]"
-              @change="selectedQuarters[`q${index}`] = !selectedQuarters[`q${index}`]"
+              :v-model="selectedQuarters[`q${quarter}`]"
+              @change="selectedQuarters[`q${quarter}`] = !selectedQuarters[`q${quarter}`]"
               class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 flex-shrink-0"
             />
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-600 truncate">{{ getQuarterName(index) }}</p>
-              <p class="text-xs text-gray-500">{{ getQuarterDates(index) }}</p>
+              <p class="text-sm font-medium text-gray-600 truncate">{{ getQuarterName(quarter) }}</p>
+              <p class="text-xs text-gray-500">{{ getQuarterDates(quarter) }}</p>
               <div class="space-y-1 mt-2">
                 <div>
                   <p class="text-xs text-gray-500">Transactions</p>
-                  <p class="text-lg font-bold text-gray-900">{{ quarterlyData[`q${index}`]?.transactions?.toLocaleString() || 0 }}</p>
+                  <p class="text-lg font-bold text-gray-900">{{ quarterlyData[`q${quarter}`]?.transactions?.toLocaleString() || 0 }}</p>
                 </div>
               </div>
             </div>
@@ -848,8 +848,8 @@
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <input
                     type="checkbox"
-                    :checked="quarterlyPharmacies.every(p => selectedPharmacies[p.company_id])"
-                    @change="quarterlyPharmacies.forEach(p => selectedPharmacies[p.company_id] = !quarterlyPharmacies.every(p2 => selectedPharmacies[p2.company_id]))"
+                    :checked="quarterlyPharmacies.every(p => selectedPharmacies[String(p.company_id ?? '')])"
+                    @change="quarterlyPharmacies.forEach(p => selectedPharmacies[String(p.company_id ?? '')] = !quarterlyPharmacies.every(p2 => selectedPharmacies[String(p2.company_id ?? '')]))"
                     class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                     title="Select/Deselect all"
                   />
@@ -869,17 +869,17 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="(pharmacy, index) in quarterlyPharmacies" :key="pharmacy.company_id" class="hover:bg-gray-50" :class="{'bg-blue-50': selectedPharmacies[pharmacy.company_id]}">
+              <tr v-for="(pharmacy, index) in quarterlyPharmacies" :key="String(pharmacy.company_id ?? index)" class="hover:bg-gray-50" :class="{'bg-blue-50': selectedPharmacies[String(pharmacy.company_id ?? '')]}">
                 <td class="px-4 py-3 whitespace-nowrap text-xs">
                   <input
                     type="checkbox"
-                    :checked="selectedPharmacies[pharmacy.company_id]"
-                    @change="selectedPharmacies[pharmacy.company_id] = !selectedPharmacies[pharmacy.company_id]"
+                    :checked="selectedPharmacies[String(pharmacy.company_id ?? '')] ?? false"
+                    @change="selectedPharmacies[String(pharmacy.company_id ?? '')] = !selectedPharmacies[String(pharmacy.company_id ?? '')]"
                     class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-500">{{ index + 1 }}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900 max-w-xs truncate" :title="pharmacy.company_name">{{ pharmacy.company_name }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900 max-w-xs truncate" :title="pharmacy.company_name ?? ''">{{ pharmacy.company_name }}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">{{ pharmacy.alternate_company_id || 'N/A' }}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-900 font-semibold">{{ pharmacy.q1_transactions || 0 }}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">{{ pharmacy.q1_date_range || '-' }}</td>
@@ -916,7 +916,7 @@
         <div class="ml-3">
           <h3 class="text-sm font-medium text-red-800">Error</h3>
           <div class="mt-2 text-sm text-red-700">{{ error }}</div>
-          <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800">
+          <button @click="() => { void fetchData() }" class="mt-2 text-sm text-red-600 hover:text-red-800">
             Try again
           </button>
         </div>
@@ -925,31 +925,121 @@
   </div>
 </template>
 
-<script setup>
-// Only show Quarterly Reports for data_consumer
-const isDataConsumer = computed(() => adminStore.getRole === 'data_consumer')
+<script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
 
-const adminStore = useAdminStore()
+interface SalesSummary {
+  total_companies: number;
+  unique_products: number;
+  unique_customers: number;
+  total_transactions: number;
+  total_quantity: number;
+  total_value: number;
+  total_profit: number;
+  avg_selling_price: number;
+}
+
+interface CompanySalesRow {
+  company_id: number | string;
+  company_name: string;
+  alternate_company_id: string;
+  unique_products: number;
+  unique_customers: number;
+  transaction_count: number;
+  total_quantity: number;
+  total_value: number;
+  total_profit: number;
+  avg_selling_price: number;
+  [key: string]: unknown;
+}
+
+interface SalesItemRow {
+  company_id?: number | string;
+  company_name?: string;
+  unique_products?: number;
+  unique_customers?: number;
+  transaction_count?: number;
+  total_quantity?: number;
+  total_value?: number | string;
+  avg_selling_price?: number | string;
+  [key: string]: unknown;
+}
+
+interface CompanyDetailRow {
+  actual_date?: string;
+  product_description?: string;
+  strength?: string;
+  unit?: string;
+  customer_name?: string;
+  product_qty?: number | string;
+  selling_price?: number | string;
+  line_total?: number | string;
+  [key: string]: unknown;
+}
+
+interface ColumnOption {
+  key: string;
+  label: string;
+  selected: boolean;
+}
+
+interface PharmacyRow {
+  pharmacy_id?: number | string;
+  alternate_pharmacy_id?: string;
+  pharmacy_name?: string;
+  number_of_transactions?: number;
+  first_transaction_date?: string;
+  last_transaction_date?: string;
+  days_between_inclusive?: number;
+  [key: string]: unknown;
+}
+
+interface QuarterlyPharmacy {
+  company_id?: number | string;
+  company_name?: string;
+  alternate_company_id?: string;
+  q1_transactions?: number;
+  q1_date_range?: string;
+  q2_transactions?: number;
+  q2_date_range?: string;
+  q3_transactions?: number;
+  q3_date_range?: string;
+  q4_transactions?: number;
+  q4_date_range?: string;
+  [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string; [key: string]: unknown }>;
+  getRole?: string;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reportsService = createReportsExportService(useApi())
+
+// Only show Quarterly Reports for data_consumer
+const isDataConsumer = computed<boolean>(() => adminStore.getRole === 'data_consumer')
 
 // Active view
-const activeView = ref('sales')
+const activeView = ref<string>('sales')
 
 // Reactive data
-const loading = ref(false)
-const error = ref(null)
-const showSalesItemsModal = ref(false)
-const searchQuery = ref('')
-const showCompanyModal = ref(false)
-const selectedCompanyDetails = ref(null)
-const companyDetailedData = ref([])
-const loadingCompanyDetails = ref(false)
-const exportingRaw = ref(false)
-const dateRangeError = ref(null)
-const showColumnSelector = ref(false)
-const availableColumns = ref([
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
+const showSalesItemsModal = ref<boolean>(false)
+const searchQuery = ref<string>('')
+const showCompanyModal = ref<boolean>(false)
+const selectedCompanyDetails = ref<CompanySalesRow | null>(null)
+const companyDetailedData = ref<CompanyDetailRow[]>([])
+const loadingCompanyDetails = ref<boolean>(false)
+const exportingRaw = ref<boolean>(false)
+const dateRangeError = ref<string | null>(null)
+const showColumnSelector = ref<boolean>(false)
+const availableColumns = ref<ColumnOption[]>([
   { key: 'id', label: 'ID', selected: true },
   { key: 'company_id', label: 'Company ID', selected: true },
   { key: 'company_name', label: 'Company Name', selected: true },
@@ -969,43 +1059,43 @@ const availableColumns = ref([
   { key: 'profit_margin_percent', label: 'Profit Margin %', selected: true },
   { key: 'customer_name', label: 'Customer Name', selected: true },
   { key: 'created_at', label: 'Created At', selected: false },
-  { key: 'updated_at', label: 'Updated At', selected: false }
+  { key: 'updated_at', label: 'Updated At', selected: false },
 ])
 
 // Pharmacy-related state
-const pharmacyLoading = ref(false)
-const pharmacyError = ref('')
-const pharmacySummary = ref([])
-const pharmacyFilters = ref({
+const pharmacyLoading = ref<boolean>(false)
+const pharmacyError = ref<string>('')
+const pharmacySummary = ref<PharmacyRow[]>([])
+const pharmacyFilters = ref<{ company_input: string; start_date: string; end_date: string; date_field: string }>({
   company_input: '',
   start_date: '2025-07-01',
   end_date: '2025-10-01',
-  date_field: 'ddate'
+  date_field: 'ddate',
 })
 
 // Analytics data
-const summary = ref(null)
-const summaryByCompany = ref([])
-const salesItems = ref([])
+const summary = ref<SalesSummary | null>(null)
+const summaryByCompany = ref<CompanySalesRow[]>([])
+const salesItems = ref<SalesItemRow[]>([])
 
 // Filters
-const filters = ref({
+const filters = ref<{ start_date: string; end_date: string; date_field: string }>({
   start_date: '',
   end_date: '',
-  date_field: 'ddate'
+  date_field: 'ddate',
 })
 
 // Debounced search
-let searchTimeout = null
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout)
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+const debouncedSearch = (): void => {
+  if (searchTimeout !== null) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    fetchCompanyBreakdown()
+    void fetchCompanyBreakdown()
   }, 500)
 }
 
 // Validate date range
-const validateDateRange = () => {
+const validateDateRange = (): boolean => {
   if (filters.value.start_date && filters.value.end_date) {
     const startDate = new Date(filters.value.start_date)
     const endDate = new Date(filters.value.end_date)
@@ -1019,26 +1109,26 @@ const validateDateRange = () => {
 }
 
 // Fetch summary data from the cross-tenant summary API
-const fetchSummary = async (forceRefresh = false) => {
+const fetchSummary = async (forceRefresh = false): Promise<void> => {
   try {
     const params = new URLSearchParams()
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
     if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     if (forceRefresh) params.append('refresh', 'true')
-    
+
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items?${params}`)
     if (response.success) {
       // Normalize the response data
       summary.value = {
-        total_companies: response.total_companies || 0,
-        unique_products: response.unique_products || 0,
-        unique_customers: response.unique_customers || 0,
-        total_transactions: response.total_transactions || 0,
-        total_quantity: parseFloat(response.total_quantity) || 0,
-        total_value: parseFloat(response.total_value) || 0,
-        total_profit: parseFloat(response.total_profit) || 0,
-        avg_selling_price: parseFloat(response.avg_selling_price) || 0
+        total_companies: Number(response['total_companies'] ?? 0),
+        unique_products: Number(response['unique_products'] ?? 0),
+        unique_customers: Number(response['unique_customers'] ?? 0),
+        total_transactions: Number(response['total_transactions'] ?? 0),
+        total_quantity: parseFloat(String(response['total_quantity'] ?? 0)) || 0,
+        total_value: parseFloat(String(response['total_value'] ?? 0)) || 0,
+        total_profit: parseFloat(String(response['total_profit'] ?? 0)) || 0,
+        avg_selling_price: parseFloat(String(response['avg_selling_price'] ?? 0)) || 0,
       }
     } else {
       summary.value = null
@@ -1050,7 +1140,7 @@ const fetchSummary = async (forceRefresh = false) => {
 }
 
 // Fetch company breakdown (using sales-items summary by company)
-const fetchCompanyBreakdown = async (forceRefresh = false) => {
+const fetchCompanyBreakdown = async (forceRefresh = false): Promise<void> => {
   try {
     const params = new URLSearchParams()
     params.append('limit', '5000') // Increased limit
@@ -1059,22 +1149,22 @@ const fetchCompanyBreakdown = async (forceRefresh = false) => {
     if (filters.value.date_field) params.append('date_field', filters.value.date_field)
     if (searchQuery.value && searchQuery.value.trim()) params.append('search', searchQuery.value.trim())
     if (forceRefresh) params.append('refresh', 'true')
-    
+
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items/dataview?${params}`)
     if (response.success && response.data && Array.isArray(response.data)) {
       // API already returns company-level aggregates, just normalize null values
-      summaryByCompany.value = response.data.map(item => ({
-        company_id: item.company_id || 0,
-        company_name: item.company_name || 'Unknown',
-        alternate_company_id: item.alternate_company_id || '',
-        unique_products: item.unique_products || 0,
-        unique_customers: item.unique_customers || 0,
-        transaction_count: item.transaction_count || 0,
-        total_quantity: parseFloat(item.total_quantity) || 0,
-        total_value: parseFloat(item.total_value) || 0,
-        total_profit: parseFloat(item.total_profit) || 0,
-        avg_selling_price: parseFloat(item.avg_selling_price) || 0
-      }))
+      summaryByCompany.value = (response.data as Record<string, unknown>[]).map(item => ({
+        company_id: (item['company_id'] as number | string | undefined) ?? 0,
+        company_name: String(item['company_name'] ?? 'Unknown'),
+        alternate_company_id: String(item['alternate_company_id'] ?? ''),
+        unique_products: Number(item['unique_products'] ?? 0),
+        unique_customers: Number(item['unique_customers'] ?? 0),
+        transaction_count: Number(item['transaction_count'] ?? 0),
+        total_quantity: parseFloat(String(item['total_quantity'] ?? 0)) || 0,
+        total_value: parseFloat(String(item['total_value'] ?? 0)) || 0,
+        total_profit: parseFloat(String(item['total_profit'] ?? 0)) || 0,
+        avg_selling_price: parseFloat(String(item['avg_selling_price'] ?? 0)) || 0,
+      } satisfies CompanySalesRow))
     } else {
       summaryByCompany.value = []
     }
@@ -1085,11 +1175,11 @@ const fetchCompanyBreakdown = async (forceRefresh = false) => {
 }
 
 // Fetch sample sales items
-const fetchSalesItems = async () => {
+const fetchSalesItems = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/reports/cross-tenant/sales-items/dataview')
     if (response.success) {
-      salesItems.value = response.data || []
+      salesItems.value = (response.data ?? []) as SalesItemRow[]
     } else {
       salesItems.value = []
     }
@@ -1100,22 +1190,22 @@ const fetchSalesItems = async () => {
 }
 
 // Fetch all data
-const fetchData = async (forceRefresh = false) => {
+const fetchData = async (forceRefresh = false): Promise<void> => {
   // Validate date range first
   if (!validateDateRange()) {
     return
   }
-  
+
   loading.value = true
   error.value = null
 
   try {
     await Promise.all([
       fetchSummary(forceRefresh),
-      fetchCompanyBreakdown(forceRefresh)
+      fetchCompanyBreakdown(forceRefresh),
     ])
   } catch (err) {
-    error.value = err.message || 'Failed to fetch sales items data'
+    error.value = err instanceof Error ? err.message : 'Failed to fetch sales items data'
     console.error('Error fetching sales items data:', err)
   } finally {
     loading.value = false
@@ -1123,41 +1213,27 @@ const fetchData = async (forceRefresh = false) => {
 }
 
 // Refresh data (bypass cache)
-const refreshData = () => {
-  fetchData(true)
+const refreshData = (): void => {
+  void fetchData(true)
 }
 
 // View company details
-const viewCompanyDetails = async (company) => {
+const viewCompanyDetails = async (company: CompanySalesRow): Promise<void> => {
   selectedCompanyDetails.value = company
   showCompanyModal.value = true
   loadingCompanyDetails.value = true
   companyDetailedData.value = []
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-    
-    const params = new URLSearchParams()
-    params.append('company_ids', company.company_id)
-    params.append('limit', '100') // Get recent 100 transactions
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-        'Content-Type': 'application/json'
-      },
+    const data = await reportsService.getSalesItemsForCompany({
+      companyId: company.company_id,
+      limit: 100,
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
     })
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success && data.data) {
-        companyDetailedData.value = data.data
-      }
+    if (data.success && data.data) {
+      companyDetailedData.value = data.data as CompanyDetailRow[]
     }
   } catch (err) {
     console.error('Error fetching company details:', err)
@@ -1167,43 +1243,26 @@ const viewCompanyDetails = async (company) => {
 }
 
 // Export specific company data
-const exportCompanyData = async (company) => {
+const exportCompanyData = async (company: CompanySalesRow): Promise<void> => {
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    params.append('company_ids', company.company_id)
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
     loading.value = true
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
+    const blob = await reportsService.exportSalesItemsForCompanyCsv({
+      companyId: company.company_id,
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
     })
-
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      const companyName = company.company_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
-      link.download = `sales-${companyName}_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
-  } catch (error) {
-    console.error('Company export error:', error)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    const companyName = company.company_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+    link.download = `sales-${companyName}_${new Date().toISOString().split('T')[0] ?? ''}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Company export error:', err)
     alert('Export failed. Please try again.')
   } finally {
     loading.value = false
@@ -1211,7 +1270,7 @@ const exportCompanyData = async (company) => {
 }
 
 // Helper functions
-const getCompanyInitials = (name) => {
+const getCompanyInitials = (name: string | undefined): string => {
   if (!name) return '?'
   return name
     .split(' ')
@@ -1221,24 +1280,24 @@ const getCompanyInitials = (name) => {
     .slice(0, 2)
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   })
 }
 
 // Export functions
-const exportToJSON = async () => {
+const exportToJSON = async (): Promise<void> => {
   try {
     const params = new URLSearchParams()
     params.append('format', 'json')
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    
+
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items/export?${params}`)
     if (response.success && response.data) {
       const jsonString = JSON.stringify(response.data, null, 2)
@@ -1246,7 +1305,7 @@ const exportToJSON = async () => {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `cross-tenant-sales-summary_${new Date().toISOString().split('T')[0]}.json`
+      link.download = `cross-tenant-sales-summary_${new Date().toISOString().split('T')[0] ?? ''}.json`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -1254,135 +1313,100 @@ const exportToJSON = async () => {
     } else {
       alert('No data available for export')
     }
-  } catch (error) {
-    console.error('Export error:', error)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
-const exportToCSV = async () => {
+const exportToCSV = async (): Promise<void> => {
   try {
     // Validate date range first
     if (!validateDateRange()) {
       alert('Please fix the date range before exporting.')
       return
     }
-    
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
+
+    const blob = await reportsService.exportSalesItemsSummaryCsv({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
     })
-
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cross-tenant-sales-items_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
-  } catch (error) {
-    console.error('Export error:', error)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cross-tenant-sales-items_${new Date().toISOString().split('T')[0] ?? ''}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
-const exportRawDataCSV = async () => {
+const exportRawDataCSV = async (): Promise<void> => {
   try {
     // Validate date range first
     if (!validateDateRange()) {
       alert('Please fix the date range before exporting.')
       return
     }
-    
+
     // Check if at least one column is selected
     const selectedColumns = availableColumns.value.filter(col => col.selected)
     if (selectedColumns.length === 0) {
       alert('Please select at least one column to export')
       return
     }
-    
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    
+
     // Add selected columns to params
     const selectedColumnKeys = selectedColumns.map(col => col.key).join(',')
-    params.append('columns', selectedColumnKeys)
-    
+
     showColumnSelector.value = false
     exportingRaw.value = true
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-sales-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
+    const blob = await reportsService.exportSalesItemsRawCsv({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
+      columns: selectedColumnKeys,
     })
 
-    if (response.ok) {
-      const csvContent = await response.text()
-      
-      // Check if we got actual data
-      const lines = csvContent.trim().split('\n')
-      if (lines.length <= 1) {
-        alert('No data available for the selected date range')
-        return
-      }
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      
-      // Create filename with date range if applicable
-      let filename = 'raw-sales-items'
-      if (filters.value.start_date || filters.value.end_date) {
-        const startDate = filters.value.start_date || 'start'
-        const endDate = filters.value.end_date || 'end'
-        filename += `_${startDate}_to_${endDate}`
-      } else {
-        filename += '_full'
-      }
-      filename += `_${new Date().toISOString().split('T')[0]}.csv`
-      
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-      
-      // Show success message
-      const recordCount = lines.length - 1 // Subtract header row
-      alert(`Successfully exported ${recordCount.toLocaleString()} records`)
-    } else {
-      const errorData = await response.text()
-      console.error('Export error:', errorData)
-      alert('No data available for export')
+    // Read the blob text to count records (preserves legacy "X records exported" alert)
+    const csvContent = await blob.text()
+    const lines = csvContent.trim().split('\n')
+    if (lines.length <= 1) {
+      alert('No data available for the selected date range')
+      return
     }
-  } catch (error) {
-    console.error('Raw data export error:', error)
+
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+
+    // Create filename with date range if applicable
+    let filename = 'raw-sales-items'
+    if (filters.value.start_date || filters.value.end_date) {
+      const startDate = filters.value.start_date || 'start'
+      const endDate = filters.value.end_date || 'end'
+      filename += `_${startDate}_to_${endDate}`
+    } else {
+      filename += '_full'
+    }
+    filename += `_${new Date().toISOString().split('T')[0] ?? ''}.csv`
+
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    // Show success message
+    const recordCount = lines.length - 1 // Subtract header row
+    alert(`Successfully exported ${recordCount.toLocaleString()} records`)
+  } catch (err) {
+    console.error('Raw data export error:', err)
     alert('Raw data export failed. Please try again.')
   } finally {
     exportingRaw.value = false
@@ -1390,91 +1414,66 @@ const exportRawDataCSV = async () => {
 }
 
 // Pharmacy computed properties
-const totalPharmacyTransactions = computed(() => {
-  return pharmacySummary.value.reduce((sum, pharmacy) => sum + pharmacy.number_of_transactions, 0)
+const totalPharmacyTransactions = computed<number>(() => {
+  return pharmacySummary.value.reduce((sum, pharmacy) => sum + (pharmacy.number_of_transactions ?? 0), 0)
 })
 
-const avgPharmacyTransactions = computed(() => {
+const avgPharmacyTransactions = computed<number>(() => {
   if (pharmacySummary.value.length === 0) return 0
   return Math.round(totalPharmacyTransactions.value / pharmacySummary.value.length)
 })
 
 // Format date short
-const formatDateShort = (dateString) => {
+const formatDateShort = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 // Fetch pharmacy reports
-const fetchPharmacyReports = async () => {
+const fetchPharmacyReports = async (): Promise<void> => {
   pharmacyLoading.value = true
   pharmacyError.value = ''
   pharmacySummary.value = []
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
-
-    const params = new URLSearchParams({
-      format: 'json',
+    const data = await reportsService.getPharmacyTransactionSummary({
+      startDate: pharmacyFilters.value.start_date,
+      endDate: pharmacyFilters.value.end_date,
+      companyIds: pharmacyFilters.value.company_input,
+      dateField: pharmacyFilters.value.date_field,
     })
 
-    if (pharmacyFilters.value.start_date) {
-      params.append('start_date', pharmacyFilters.value.start_date)
-    }
-    if (pharmacyFilters.value.end_date) {
-      params.append('end_date', pharmacyFilters.value.end_date)
-    }
-    if (pharmacyFilters.value.company_input) {
-      params.append('company_ids', pharmacyFilters.value.company_input)
-    }
-    if (pharmacyFilters.value.date_field) {
-      params.append('date_field', pharmacyFilters.value.date_field)
-    }
-
-    const response = await fetch(
-      `${baseURL}/api/reports/cross-tenant/pharmacy-transaction-summary?${params}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminStore.token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    const data = await response.json()
-
     if (data.success) {
-      pharmacySummary.value = data.data
+      pharmacySummary.value = data.data as unknown as PharmacyRow[]
     } else {
-      throw new Error(data.message || 'Failed to fetch pharmacy transaction summary')
+      throw new Error(data.message ?? 'Failed to fetch pharmacy transaction summary')
     }
   } catch (err) {
     console.error('Error fetching pharmacy reports:', err)
-    pharmacyError.value = err.message || 'Failed to fetch reports. Please try again.'
+    pharmacyError.value = err instanceof Error ? err.message : 'Failed to fetch reports. Please try again.'
   } finally {
     pharmacyLoading.value = false
   }
 }
 
 // Export pharmacy to CSV helper
-const convertArrayToCSV = (data, headers) => {
+const convertArrayToCSV = (data: Record<string, unknown>[], headers: string[]): string => {
   const headerRow = headers.join(',')
-  const rows = data.map(row => 
+  const rows = data.map(row =>
     headers.map(header => {
       const value = row[header]
       if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
         return `"${value.replace(/"/g, '""')}"`
       }
-      return value !== null && value !== undefined ? value : ''
+      return value !== null && value !== undefined ? String(value) : ''
     }).join(',')
   )
   return [headerRow, ...rows].join('\n')
 }
 
 // Export pharmacy to CSV
-const exportPharmacyToCSV = () => {
+const exportPharmacyToCSV = (): void => {
   if (!pharmacySummary.value || pharmacySummary.value.length === 0) return
 
   const headers = [
@@ -1484,17 +1483,19 @@ const exportPharmacyToCSV = () => {
     'number_of_transactions',
     'first_transaction_date',
     'last_transaction_date',
-    'days_between_inclusive'
+    'days_between_inclusive',
   ]
-  
-  const csv = convertArrayToCSV(pharmacySummary.value, headers)
-  
+
+  const csv = convertArrayToCSV(pharmacySummary.value as Record<string, unknown>[], headers)
+
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  const companyLabel = pharmacyFilters.value.company_input ? pharmacyFilters.value.company_input.replace(/,/g, '-') : 'all-pharmacies'
-  a.download = `pharmacy-transaction-summary-${companyLabel}-${new Date().toISOString().split('T')[0]}.csv`
+  const companyLabel = pharmacyFilters.value.company_input
+    ? pharmacyFilters.value.company_input.replace(/,/g, '-')
+    : 'all-pharmacies'
+  a.download = `pharmacy-transaction-summary-${companyLabel}-${new Date().toISOString().split('T')[0] ?? ''}.csv`
   a.click()
   window.URL.revokeObjectURL(url)
 }
@@ -1504,116 +1505,98 @@ const exportPharmacyToCSV = () => {
 // ============================================
 
 // Quarterly state
-const quarterlyLoading = ref(false)
-const quarterlyError = ref('')
-const quarterlyData = ref(null)
-const quarterlyPharmacies = ref([])
-const quarterlyFilters = ref({
+const quarterlyLoading = ref<boolean>(false)
+const quarterlyError = ref<string>('')
+const quarterlyData = ref<Record<string, { transactions?: number; [key: string]: unknown } | undefined> | null>(null)
+const quarterlyPharmacies = ref<QuarterlyPharmacy[]>([])
+const quarterlyFilters = ref<{ year: string; date_field: string; pharmacy_search: string }>({
   year: String(new Date().getFullYear()),
   date_field: 'actual_date',
-  pharmacy_search: ''
+  pharmacy_search: '',
 })
 
 // Selected quarters and pharmacies for sending
-const selectedQuarters = ref({q1: false, q2: true, q3: true, q4: true})
-const selectedPharmacies = ref({})
+const selectedQuarters = ref<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean; [key: string]: boolean }>({ q1: false, q2: true, q3: true, q4: true })
+const selectedPharmacies = ref<Record<string | number, boolean>>({})
 
 // Get quarter name
-const getQuarterName = (index) => {
+const getQuarterName = (index: number): string => {
   const names = ['Q1', 'Q2', 'Q3', 'Q4']
-  return names[index - 1]
+  return names[index - 1] ?? `Q${index}`
 }
 
 // Get quarter dates
-const getQuarterDates = (index) => {
+const getQuarterDates = (index: number): string => {
   const year = parseInt(quarterlyFilters.value.year)
-  let start, end
-  switch(index) {
+  let start: string
+  let end: string
+  switch (index) {
     case 1: start = `${year}-01-01`; end = `${year}-03-31`; break
     case 2: start = `${year}-04-01`; end = `${year}-06-30`; break
     case 3: start = `${year}-07-01`; end = `${year}-09-30`; break
-    case 4: start = `${year}-10-01`; end = `${year}-12-31`; break
+    default: start = `${year}-10-01`; end = `${year}-12-31`; break
   }
   return `${start} to ${end}`
 }
 
 // Get quarter color for styling
-const getQuarterColor = (index) => {
+const getQuarterColor = (index: number): string => {
   const colors = [
     'border-blue-500',
     'border-green-500',
     'border-orange-500',
-    'border-purple-500'
+    'border-purple-500',
   ]
-  return colors[index - 1]
+  return colors[index - 1] ?? 'border-gray-500'
 }
 
 // Get quarter date range
-const getQuarterDateRange = (index) => {
+const getQuarterDateRange = (index: number): { start: string; end: string } => {
   const year = parseInt(quarterlyFilters.value.year)
-  let start, end
-  switch(index) {
+  let start: string
+  let end: string
+  switch (index) {
     case 1: start = `${year}-01-01`; end = `${year}-03-31`; break
     case 2: start = `${year}-04-01`; end = `${year}-06-30`; break
     case 3: start = `${year}-07-01`; end = `${year}-09-30`; break
-    case 4: start = `${year}-10-01`; end = `${year}-12-31`; break
+    default: start = `${year}-10-01`; end = `${year}-12-31`; break
   }
   return { start, end }
 }
 
 // Fetch quarterly data from API - single call to backend
-const fetchQuarterlyData = async (forceRefresh = false) => {
+const fetchQuarterlyData = async (forceRefresh = false): Promise<void> => {
   quarterlyLoading.value = true
   quarterlyError.value = ''
   quarterlyData.value = null
   quarterlyPharmacies.value = []
 
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase
+    const data = await reportsService.getQuarterlySummary({
+      year: quarterlyFilters.value.year,
+      dateField: quarterlyFilters.value.date_field,
+      companyIds: quarterlyFilters.value.pharmacy_search,
+      forceRefresh,
+    })
 
-    const params = new URLSearchParams()
-    params.append('year', quarterlyFilters.value.year)
-    params.append('date_field', quarterlyFilters.value.date_field)
-
-    if (quarterlyFilters.value.pharmacy_search) {
-      params.append('company_ids', quarterlyFilters.value.pharmacy_search)
-    }
-    if (forceRefresh === true) params.append('refresh', 'true')
-
-    const response = await fetch(
-      `${baseURL}/api/reports/cross-tenant/quarterly-summary?${params}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${adminStore.token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        quarterlyData.value = data.summary
-        quarterlyPharmacies.value = data.pharmacies || []
-      } else {
-        throw new Error(data.message || 'Failed to fetch quarterly data')
-      }
+    if (data.success) {
+      const envelope = data as unknown as { summary: unknown; pharmacies?: QuarterlyPharmacy[]; message?: string }
+      quarterlyData.value = envelope.summary as Record<string, { transactions?: number; [key: string]: unknown } | undefined> | null
+      quarterlyPharmacies.value = envelope.pharmacies ?? []
     } else {
-      throw new Error(`Server returned ${response.status}`)
+      throw new Error(data.message ?? 'Failed to fetch quarterly data')
     }
-
   } catch (err) {
     console.error('Error fetching quarterly data:', err)
-    quarterlyError.value = err.message || 'Failed to fetch quarterly data'
+    quarterlyError.value = err instanceof Error ? err.message : 'Failed to fetch quarterly data'
   } finally {
     quarterlyLoading.value = false
   }
 }
 
 // Get selected quarters list
-const getSelectedQuartersText = () => {
-  const quarters = []
+const getSelectedQuartersText = (): string => {
+  const quarters: string[] = []
   if (selectedQuarters.value.q1) quarters.push('Q1')
   if (selectedQuarters.value.q2) quarters.push('Q2')
   if (selectedQuarters.value.q3) quarters.push('Q3')
@@ -1622,59 +1605,59 @@ const getSelectedQuartersText = () => {
 }
 
 // Get selected pharmacies list
-const getSelectedPharmaciesText = () => {
-  const pharmacies = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
+const getSelectedPharmaciesText = (): string => {
+  const pharmacies = quarterlyPharmacies.value.filter(p => p.company_id !== undefined && selectedPharmacies.value[p.company_id])
   if (pharmacies.length === 0) return 'No pharmacies selected'
-  return pharmacies.map(p => `${p.company_name} (${p.alternate_company_id || p.company_id})`).join(', ')
+  return pharmacies.map(p => `${p.company_name ?? ''} (${p.alternate_company_id ?? p.company_id})`).join(', ')
 }
 
 // Check if WhatsApp button should be enabled
-const canSendWhatsApp = computed(() => {
+const canSendWhatsApp = computed<boolean>(() => {
   const hasSelectedQuarters = Object.values(selectedQuarters.value).some(v => v)
   const hasSelectedPharmacies = Object.values(selectedPharmacies.value).some(v => v)
-  return quarterlyData.value && quarterlyPharmacies.value.length > 0 && hasSelectedQuarters && hasSelectedPharmacies
+  return !!(quarterlyData.value && quarterlyPharmacies.value.length > 0 && hasSelectedQuarters && hasSelectedPharmacies)
 })
 
 // Send via WhatsApp
-const sendViaWhatsApp = () => {
+const sendViaWhatsApp = (): void => {
   if (!canSendWhatsApp.value) return
 
   const year = quarterlyFilters.value.year
   const quarters = getSelectedQuartersText()
   const pharmacies = getSelectedPharmaciesText()
-  
+
   const message = `${year} Quarterly Report Request\n\nQuarters: ${quarters}\n\nPharmacies:\n${pharmacies}`
   const encodedMessage = encodeURIComponent(message)
-  
+
   window.open(`https://wa.me/?text=${encodedMessage}`, '_blank')
 }
 
 // Export quarterly to CSV
-const exportQuarterlyToCSV = () => {
-  const selectedPharmacyList = quarterlyPharmacies.value.filter(p => selectedPharmacies.value[p.company_id])
+const exportQuarterlyToCSV = (): void => {
+  const selectedPharmacyList = quarterlyPharmacies.value.filter(p => p.company_id !== undefined && selectedPharmacies.value[p.company_id])
   if (selectedPharmacyList.length === 0) return
 
   let csv = 'Pharmacy Name,Alternate ID,Q1 Transactions,Q1 Dates,Q2 Transactions,Q2 Dates,Q3 Transactions,Q3 Dates,Q4 Transactions,Q4 Dates,Total Transactions\n'
-  
+
   selectedPharmacyList.forEach(pharmacy => {
     let total = 0
-    let row = `"${pharmacy.company_name}","${pharmacy.alternate_company_id || 'N/A'}"`
-    
-    if (selectedQuarters.value.q1) { 
-      row += `,${pharmacy.q1_transactions || 0},"${pharmacy.q1_date_range || '-'}"`
-      total += pharmacy.q1_transactions || 0
+    let row = `"${pharmacy.company_name ?? ''}","${pharmacy.alternate_company_id ?? 'N/A'}"`
+
+    if (selectedQuarters.value.q1) {
+      row += `,${pharmacy.q1_transactions ?? 0},"${pharmacy.q1_date_range ?? '-'}"`
+      total += pharmacy.q1_transactions ?? 0
     }
-    if (selectedQuarters.value.q2) { 
-      row += `,${pharmacy.q2_transactions || 0},"${pharmacy.q2_date_range || '-'}"`
-      total += pharmacy.q2_transactions || 0
+    if (selectedQuarters.value.q2) {
+      row += `,${pharmacy.q2_transactions ?? 0},"${pharmacy.q2_date_range ?? '-'}"`
+      total += pharmacy.q2_transactions ?? 0
     }
-    if (selectedQuarters.value.q3) { 
-      row += `,${pharmacy.q3_transactions || 0},"${pharmacy.q3_date_range || '-'}"`
-      total += pharmacy.q3_transactions || 0
+    if (selectedQuarters.value.q3) {
+      row += `,${pharmacy.q3_transactions ?? 0},"${pharmacy.q3_date_range ?? '-'}"`
+      total += pharmacy.q3_transactions ?? 0
     }
-    if (selectedQuarters.value.q4) { 
-      row += `,${pharmacy.q4_transactions || 0},"${pharmacy.q4_date_range || '-'}"`
-      total += pharmacy.q4_transactions || 0
+    if (selectedQuarters.value.q4) {
+      row += `,${pharmacy.q4_transactions ?? 0},"${pharmacy.q4_date_range ?? '-'}"`
+      total += pharmacy.q4_transactions ?? 0
     }
     row += `,${total}\n`
     csv += row
@@ -1684,7 +1667,7 @@ const exportQuarterlyToCSV = () => {
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `quarterly-report-${quarterlyFilters.value.year}-${new Date().toISOString().split('T')[0]}.csv`
+  a.download = `quarterly-report-${quarterlyFilters.value.year}-${new Date().toISOString().split('T')[0] ?? ''}.csv`
   a.click()
   window.URL.revokeObjectURL(url)
 }
@@ -1694,10 +1677,9 @@ onMounted(() => {
   // Set default dates for sales view
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-  filters.value.end_date = today.toISOString().split('T')[0]
-  filters.value.start_date = thirtyDaysAgo.toISOString().split('T')[0]
+  filters.value.end_date = today.toISOString().split('T')[0] ?? ''
+  filters.value.start_date = thirtyDaysAgo.toISOString().split('T')[0] ?? ''
 })
-
 </script>
 
 <style scoped>

@@ -116,7 +116,7 @@
                   {{ getCompanyTypeName(company.companytype) }}
                 </span>
                 <div
-                  v-if="company.maincompanyid > 0"
+                  v-if="(company.maincompanyid ?? 0) > 0"
                   class="text-xs text-gray-500 mt-1"
                 >
                   Subsidiary
@@ -650,30 +650,61 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, computed } from "vue";
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
 import { useAdminStore } from "~/stores/admin";
+import { createCompaniesAnalyticsService } from "~/services/analytics/companiesAnalyticsService";
+import type { Company } from "~/services/types";
 import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/outline";
 
-const adminStore = useAdminStore();
+/** Extended company shape — all fields from the admin list endpoint. */
+interface CompanyRow extends Company {
+  email?: string;
+  tel1?: string;
+  tel2?: string;
+  address1?: string;
+  address2?: string;
+  location?: string;
+  companytype?: number;
+  maincompanyid?: number;
+  ddate?: string;
+  alternate_company_id?: string;
+  country?: string;
+  region?: string;
+  location_detail?: string;
+  latitude?: number | string;
+  longitude?: number | string;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
 
-// Reactive data
-const companies = ref([]);
-const loading = ref(false);
-const error = ref(null);
-const searchQuery = ref("");
-const modalLoading = ref(false);
-const subsidiaryCount = ref(0);
+interface CompanyFormState {
+  uiid: string;
+  name: string;
+  email: string;
+  tel1: string;
+  tel2: string;
+  address1: string;
+  address2: string;
+  location: string;
+  companytype: number;
+  maincompanyid: number;
+  ddate: string;
+  domain_name: string;
+  whatsapp_number: string;
+  sender_id: string;
+  logo: string;
+  shop_banner: string;
+  alternate_company_id: string;
+  country: string;
+  region: string;
+  location_detail: string;
+  latitude: string;
+  longitude: string;
+}
 
-// Modal states
-const showCreateModal = ref(false);
-const showEditModal = ref(false);
-const showViewModal = ref(false);
-const showMoreFields = ref(false);
-const selectedCompany = ref(null);
-
-// Company form
-const companyForm = ref({
+const BLANK_FORM: CompanyFormState = {
   uiid: "",
   name: "",
   email: "",
@@ -696,48 +727,53 @@ const companyForm = ref({
   location_detail: "",
   latitude: "",
   longitude: "",
-});
+}
+
+const adminStore = useAdminStore();
+const companiesService = createCompaniesAnalyticsService(useApi());
+
+// Reactive data
+const companies = ref<CompanyRow[]>([]);
+const loading = ref<boolean>(false);
+const error = ref<string | null>(null);
+const searchQuery = ref<string>("");
+const modalLoading = ref<boolean>(false);
+const subsidiaryCount = ref<number>(0);
+
+// Modal states
+const showCreateModal = ref<boolean>(false);
+const showEditModal = ref<boolean>(false);
+const showViewModal = ref<boolean>(false);
+const showMoreFields = ref<boolean>(false);
+const selectedCompany = ref<CompanyRow | null>(null);
+
+// Company form
+const companyForm = ref<CompanyFormState>({ ...BLANK_FORM });
 
 // Debounced search
-let searchTimeout = null;
-const debouncedSearch = () => {
-  clearTimeout(searchTimeout);
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+const debouncedSearch = (): void => {
+  if (searchTimeout !== null) clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    fetchCompanies();
+    void fetchCompanies();
   }, 500);
 };
 
 // Fetch companies
-const fetchCompanies = async () => {
+const fetchCompanies = async (): Promise<void> => {
   loading.value = true;
   error.value = null;
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-    let endpoint = `${baseURL}/api/companies`;
-
-    if (searchQuery.value) {
-      endpoint = `${baseURL}/api/companies/search?q=${encodeURIComponent(
-        searchQuery.value
-      )}`;
-    }
-
-    const response = await fetch(endpoint);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await companiesService.list({ search: searchQuery.value });
 
     if (data.success) {
-      companies.value = data.data;
+      companies.value = data.data as CompanyRow[];
     } else {
-      error.value = data.message || "Failed to fetch companies";
+      error.value = data.message ?? "Failed to fetch companies";
     }
   } catch (err) {
-    error.value = err.message || "An error occurred while fetching companies";
+    error.value = err instanceof Error ? err.message : "An error occurred while fetching companies";
     console.error("Companies fetch error:", err);
   } finally {
     loading.value = false;
@@ -745,27 +781,28 @@ const fetchCompanies = async () => {
 };
 
 // Get company type name
-const getCompanyTypeName = (type) => {
-  const types = {
+const getCompanyTypeName = (type: number | undefined): string => {
+  const types: Record<number, string> = {
     0: "Pharmacy",
     1: "Hospital",
     2: "Clinic",
   };
-  return types[type] || "Unknown";
+  return (type !== undefined ? types[type] : undefined) ?? "Unknown";
 };
 
 // Get type class for styling
-const getTypeClass = (type) => {
-  const classes = {
+const getTypeClass = (type: number | undefined): string => {
+  const classes: Record<number, string> = {
     0: "bg-blue-100 text-blue-800",
     1: "bg-red-100 text-red-800",
     2: "bg-purple-100 text-purple-800",
   };
-  return classes[type] || "bg-gray-100 text-gray-800";
+  return (type !== undefined ? classes[type] : undefined) ?? "bg-gray-100 text-gray-800";
 };
 
 // Get company initials
-const getCompanyInitials = (name) => {
+const getCompanyInitials = (name: string | undefined): string => {
+  if (!name) return "?";
   return name
     .split(" ")
     .map((word) => word.charAt(0))
@@ -775,59 +812,23 @@ const getCompanyInitials = (name) => {
 };
 
 // Format date
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return "N/A";
   return new Date(dateString).toLocaleDateString();
 };
 
 // Create company
-const createCompany = async () => {
+const createCompany = async (): Promise<void> => {
   modalLoading.value = true;
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
-    const response = await fetch(`${baseURL}/api/companies`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(companyForm.value),
-    });
-
-    const data = await response.json();
+    const data = await companiesService.create(companyForm.value);
 
     if (data.success) {
       closeModals();
-      fetchCompanies();
-      // Reset form
-      companyForm.value = {
-        uiid: "",
-        name: "",
-        email: "",
-        tel1: "",
-        tel2: "",
-        address1: "",
-        address2: "",
-        location: "",
-        companytype: 0,
-        maincompanyid: 0,
-        ddate: "",
-        domain_name: "",
-        whatsapp_number: "",
-        sender_id: "",
-        logo: "",
-        shop_banner: "",
-        alternate_company_id: "",
-        country: "",
-        region: "",
-        location_detail: "",
-        latitude: "",
-        longitude: "",
-      };
+      void fetchCompanies();
     } else {
-      alert(data.message || "Failed to create company");
+      alert(data.message ?? "Failed to create company");
     }
   } catch (err) {
     console.error("Create company error:", err);
@@ -838,36 +839,34 @@ const createCompany = async () => {
 };
 
 // Edit company
-const editCompany = (company) => {
+const editCompany = (company: CompanyRow): void => {
   selectedCompany.value = company;
   // Only populate domain_name, whatsapp_number, sender_id, logo, and shop_banner for editing
   companyForm.value = {
-    domain_name: company.domain_name || "",
-    whatsapp_number: company.whatsapp_number || "",
-    sender_id: company.sender_id || "",
-    logo: company.logo || "",
-    shop_banner: company.shop_banner || "",
-    alternate_company_id: company.alternate_company_id || "",
-    country: company.country || "",
-    region: company.region || "",
-    location_detail: company.location_detail || "",
-    latitude: company.latitude || "",
-    longitude: company.longitude || "",
+    ...BLANK_FORM,
+    domain_name: company.domain_name ?? "",
+    whatsapp_number: company.whatsapp_number ?? "",
+    sender_id: company.sender_id ?? "",
+    logo: company.logo ?? "",
+    shop_banner: company.shop_banner ?? "",
+    alternate_company_id: company.alternate_company_id ?? "",
+    country: company.country ?? "",
+    region: company.region ?? "",
+    location_detail: company.location_detail ?? "",
+    latitude: String(company.latitude ?? ""),
+    longitude: String(company.longitude ?? ""),
   };
   showMoreFields.value = false;
   showEditModal.value = true;
 };
 
 // Update company
-const updateCompany = async () => {
+const updateCompany = async (): Promise<void> => {
   if (!selectedCompany.value) return;
 
   modalLoading.value = true;
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
     // Send all editable fields including the "more fields"
     const updateData = {
       domain_name: companyForm.value.domain_name,
@@ -880,24 +879,16 @@ const updateCompany = async () => {
       region: companyForm.value.region,
       location_detail: companyForm.value.location_detail,
       latitude: companyForm.value.latitude ? parseFloat(companyForm.value.latitude) : null,
-      longitude: companyForm.value.longitude ? parseFloat(companyForm.value.longitude) : null
+      longitude: companyForm.value.longitude ? parseFloat(companyForm.value.longitude) : null,
     };
 
-    const response = await fetch(`${baseURL}/api/companies/${selectedCompany.value.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updateData),
-    });
-
-    const data = await response.json();
+    const data = await companiesService.update(selectedCompany.value.id, updateData);
 
     if (data.success) {
       closeModals();
-      fetchCompanies();
+      void fetchCompanies();
     } else {
-      alert(data.message || "Failed to update company");
+      alert(data.message ?? "Failed to update company");
     }
   } catch (err) {
     console.error("Update company error:", err);
@@ -908,22 +899,18 @@ const updateCompany = async () => {
 };
 
 // View company
-const viewCompany = (company) => {
+const viewCompany = (company: CompanyRow): void => {
   selectedCompany.value = company;
   showViewModal.value = true;
 };
 
 // View subsidiaries
-const viewSubsidiaries = async (company) => {
+const viewSubsidiaries = async (company: CompanyRow): Promise<void> => {
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
-    const response = await fetch(`${baseURL}/api/companies/${company.id}/subsidiaries`);
-    const data = await response.json();
+    const data = await companiesService.listSubsidiaries(company.id);
 
     if (data.success) {
-      subsidiaryCount.value = data.count;
+      subsidiaryCount.value = (data as unknown as { count: number }).count ?? 0;
       // For now, just show an alert with subsidiary info
       if (data.data.length > 0) {
         const subsidiaryNames = data.data.map((sub) => sub.name).join(", ");
@@ -939,7 +926,7 @@ const viewSubsidiaries = async (company) => {
 };
 
 // Delete company
-const deleteCompany = async (company) => {
+const deleteCompany = async (company: CompanyRow): Promise<void> => {
   if (
     !confirm(
       `Are you sure you want to delete "${company.name}"? This action cannot be undone.`
@@ -949,19 +936,12 @@ const deleteCompany = async (company) => {
   }
 
   try {
-    const config = useRuntimeConfig();
-    const baseURL = config.public.apiBase;
-
-    const response = await fetch(`${baseURL}/api/companies/${company.id}`, {
-      method: "DELETE",
-    });
-
-    const data = await response.json();
+    const data = await companiesService.remove(company.id);
 
     if (data.success) {
-      fetchCompanies();
+      void fetchCompanies();
     } else {
-      alert(data.message || "Failed to delete company");
+      alert(data.message ?? "Failed to delete company");
     }
   } catch (err) {
     console.error("Delete company error:", err);
@@ -970,47 +950,24 @@ const deleteCompany = async (company) => {
 };
 
 // Close modals
-const closeModals = () => {
+const closeModals = (): void => {
   showCreateModal.value = false;
   showEditModal.value = false;
   showViewModal.value = false;
   showMoreFields.value = false;
   selectedCompany.value = null;
-  companyForm.value = {
-    uiid: "",
-    name: "",
-    email: "",
-    tel1: "",
-    tel2: "",
-    address1: "",
-    address2: "",
-    location: "",
-    companytype: 0,
-    maincompanyid: 0,
-    ddate: "",
-    domain_name: "",
-    whatsapp_number: "",
-    sender_id: "",
-    logo: "",
-    shop_banner: "",
-    alternate_company_id: "",
-    country: "",
-    region: "",
-    location_detail: "",
-    latitude: "",
-    longitude: "",
-  };
+  companyForm.value = { ...BLANK_FORM };
 };
 
 // Refresh companies
-const refreshCompanies = () => {
+const refreshCompanies = (): void => {
   searchQuery.value = "";
-  fetchCompanies();
+  void fetchCompanies();
 };
 
 // Initialize
 onMounted(() => {
-  fetchCompanies();
+  void fetchCompanies();
 });
 </script>
 

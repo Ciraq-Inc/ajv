@@ -61,9 +61,9 @@
           </div>
 
           <!-- Warnings -->
-          <div v-if="form.smsCount && calculateTotalCost > availableBalance" class="error-message">
+          <div v-if="form.smsCount && calculateTotalCost > (availableBalance ?? 0)" class="error-message">
             <Icon name="AlertCircle" size="16" />
-            <span>Insufficient balance. You need ₵{{ formatCurrency(calculateTotalCost - availableBalance) }} more.</span>
+            <span>Insufficient balance. You need ₵{{ formatCurrency(calculateTotalCost - (availableBalance ?? 0)) }} more.</span>
           </div>
 
           <!-- Action Buttons -->
@@ -75,7 +75,7 @@
               :disabled="
                 isLoading ||
                 !form.smsCount ||
-                calculateTotalCost > availableBalance
+                calculateTotalCost > (availableBalance ?? 0)
               "
             >
               {{ isLoading ? 'Processing...' : 'Confirm Purchase' }}
@@ -93,69 +93,51 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false,
-  },
-  currentBalance: {
-    type: Number,
-    default: 0,
-  },
-  availableBalance: {
-    type: Number,
-    default: 0,
-  },
-  smsRate: {
-    type: Number,
-    default: 0.05,
-  },
-  isLoading: {
-    type: Boolean,
-    default: false,
-  },
-})
+const props = defineProps<{
+  isOpen?: boolean
+  currentBalance?: number
+  availableBalance?: number
+  smsRate?: number
+  isLoading?: boolean
+}>()
 
-const emit = defineEmits(['close', 'purchase'])
+const emit = defineEmits<{
+  close: []
+  purchase: [payload: { smsCount: number; totalCost: number }]
+}>()
 
-const form = ref({
-  smsCount: null,
-})
+const form = ref<{ smsCount: number | null }>({ smsCount: null })
 
-const successMessage = ref(null)
+const successMessage = ref<string | null>(null)
 
-const calculateTotalCost = computed(() => {
-  return (form.value.smsCount || 0) * props.smsRate
-})
+const calculateTotalCost = computed<number>(
+  () => (form.value.smsCount ?? 0) * (props.smsRate ?? 0.05),
+)
 
-const formatCurrency = (value) => {
-  if (!value) return '0.00'
-  return parseFloat(value).toFixed(2)
+const formatCurrency = (value: number | null | undefined): string => {
+  if (!value && value !== 0) return '0.00'
+  return parseFloat(String(value)).toFixed(2)
 }
 
-const calculateCost = () => {
-  // Reactive computation happens automatically
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+const calculateCost = (): void => {}
 
-const handlePurchase = async () => {
+const handlePurchase = async (): Promise<void> => {
   if (!form.value.smsCount) return
-
   emit('purchase', {
     smsCount: form.value.smsCount,
     totalCost: calculateTotalCost.value,
   })
-
-  // Reset form after successful purchase
   setTimeout(() => {
     form.value.smsCount = null
     successMessage.value = null
   }, 2000)
 }
 
-const close = () => {
+const close = (): void => {
   form.value.smsCount = null
   successMessage.value = null
   emit('close')

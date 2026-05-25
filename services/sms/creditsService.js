@@ -3,7 +3,7 @@
  * Handles all SMS credit-related API calls
  */
 
-export default (apiBase) => ({
+export const createCreditsService = (apiBase) => ({
   /**
    * Get company credit balance
    */

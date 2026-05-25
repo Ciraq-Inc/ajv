@@ -19,7 +19,7 @@
 
       <!-- Balance Card -->
       <BalanceCard
-        :balance-data="balance"
+        v-bind="balance ? { balanceData: balance } : {}"
         :show-actions="true"
         :show-top-up="false"
         @refresh="fetchBalance"
@@ -332,7 +332,7 @@
                   <span class="font-medium">Sent:</span>
                   <span class="ml-1">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_sent || 0 }}</span>
                 </div>
-                <div v-if="campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed > 0" class="col-span-2">
+                <div v-if="(campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed ?? 0) > 0" class="col-span-2">
                   <span class="font-medium text-red-700">Failed Messages:</span>
                   <span class="ml-1 text-red-700">{{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed || 0 }}</span>
                 </div>
@@ -372,7 +372,7 @@
                   <span class="text-gray-900 font-medium">Resend to failed recipients only</span>
                   <p class="text-xs text-gray-600 mt-1">
                     Only resend to {{ campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed || 0 }} failed recipient(s)
-                    <span v-if="!(campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed > 0)" class="text-yellow-700 font-medium">
+                    <span v-if="!((campaigns.find(c => c.id === resendFormData.campaignId)?.messages_failed ?? 0) > 0)" class="text-yellow-700 font-medium">
                       (No failed messages)
                     </span>
                   </p>
@@ -402,22 +402,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { 
-  PlusIcon, 
-  InboxIcon, 
-  CheckCircleIcon, 
-  SparklesIcon, 
-  DocumentTextIcon, 
-  ArrowPathIcon, 
+import {
+  PlusIcon,
+  InboxIcon,
+  CheckCircleIcon,
+  SparklesIcon,
+  DocumentTextIcon,
+  ArrowPathIcon,
   XMarkIcon,
   ArchiveBoxIcon,
-  PaperAirplaneIcon
+  PaperAirplaneIcon,
 } from '@heroicons/vue/20/solid'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
+import type { SmsCampaign } from '~/services/types'
 import CampaignCard from '~/components/sms/campaign/CampaignCard.vue'
 import CampaignDetailsModal from '~/components/sms/campaign/CampaignDetailsModal.vue'
 import CreateCampaignModal from '~/components/sms/campaign/CreateCampaignModal.vue'
@@ -426,20 +427,45 @@ import BalanceCard from '~/components/sms/billing/BalanceCard.vue'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
 import TestSmsModal from '~/components/sms/shared/TestSmsModal.vue'
 
-// Define page metadata
 definePageMeta({
   layout: 'company',
   middleware: 'company-auth',
-  title: 'SMS Campaigns'
+  title: 'SMS Campaigns',
 })
 
-// Get route
+interface CampaignRecord {
+  id: number | string
+  name?: string | null
+  status: string
+  created_at: string
+  message?: string | null
+  total_recipients?: number | null
+  messages_sent?: number | null
+  messages_failed?: number | null
+  sms_provider?: string | null
+  [key: string]: unknown
+}
+
+type DialogType = 'warning' | 'danger' | 'info' | 'success' | 'error'
+
+interface ConfirmDialogState {
+  isOpen: boolean
+  title: string
+  message: string
+  type: DialogType
+  loading: boolean
+  action: string | null
+  campaignId: number | string | null
+  error: string | null
+  canRetry: boolean
+  isRetrying: boolean
+}
+
 const route = useRoute()
 
 const {
   campaigns,
   loading,
-  error,
   fetchCampaigns,
   startCampaign: startCampaignAction,
   pauseCampaign: pauseCampaignAction,
@@ -452,28 +478,23 @@ const {
   completedCampaigns,
   draftCampaigns,
   retryAction,
-  getRetryAttempts,
-  updateCampaign: updateCampaignAction,
   reuseCampaign: reuseCampaignAction,
-  resendCampaign: resendCampaignAction
+  resendCampaign: resendCampaignAction,
 } = useSMSCampaigns()
 
 const { balance, fetchBalance } = useSMSBilling()
 
-const filters = ref({
-  status: '',
-  provider: ''
-})
+const filters = ref({ status: '', provider: '' })
 
-const showArchived = ref(false)
-const showTestModal = ref(false)
-const showDetailsModal = ref(false)
-const showCreateModal = ref(false)
-const showEditModal = ref(false)
-const selectedCampaignId = ref(null)
-const editingCampaignId = ref(null)
+const showArchived = ref<boolean>(false)
+const showTestModal = ref<boolean>(false)
+const showDetailsModal = ref<boolean>(false)
+const showCreateModal = ref<boolean>(false)
+const showEditModal = ref<boolean>(false)
+const selectedCampaignId = ref<number | null>(null)
+const editingCampaignId = ref<number | string | null>(null)
 
-const confirmDialog = ref({
+const confirmDialog = ref<ConfirmDialogState>({
   isOpen: false,
   title: '',
   message: '',
@@ -483,161 +504,69 @@ const confirmDialog = ref({
   campaignId: null,
   error: null,
   canRetry: false,
-  isRetrying: false
+  isRetrying: false,
 })
 
-// State for reuse/resend modals
-const showReuseModal = ref(false)
-const showResendModal = ref(false)
-const reuseFormData = ref({
+const showReuseModal = ref<boolean>(false)
+const showResendModal = ref<boolean>(false)
+const reuseFormData = ref<{ campaignId: number | string | null; campaignName: string; newName: string }>({
   campaignId: null,
   campaignName: '',
-  newName: ''
+  newName: '',
 })
-const resendFormData = ref({
+const resendFormData = ref<{ campaignId: number | string | null; toFailedOnly: boolean }>({
   campaignId: null,
-  toFailedOnly: false
+  toFailedOnly: false,
 })
 
-// Filtered campaigns based on filters
-const filteredCampaigns = computed(() => {
+const filteredCampaigns = computed<SmsCampaign[]>(() => {
   let filtered = [...campaigns.value]
-
-  // Filter out archived campaigns by default unless showArchived is true or archived filter is selected
   if (!showArchived.value && filters.value.status !== 'archived') {
     filtered = filtered.filter(c => c.status !== 'archived')
   }
-
   if (filters.value.status) {
     filtered = filtered.filter(c => c.status === filters.value.status)
   }
-
   if (filters.value.provider) {
     filtered = filtered.filter(c => c.sms_provider === filters.value.provider)
   }
-
   return filtered
 })
 
-// Archived campaigns count
-const archivedCampaigns = computed(() => {
-  return campaigns.value.filter(c => c.status === 'archived')
-})
+const archivedCampaigns = computed<SmsCampaign[]>(() =>
+  campaigns.value.filter(c => c.status === 'archived')
+)
 
-// Failed campaigns count (status is 'failed' or has failed messages)
-const failedCampaigns = computed(() => {
-  return campaigns.value.filter(c => 
-    c.status === 'failed' || (c.messages_failed > 0 && c.status !== 'archived')
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const failedCampaigns = computed<SmsCampaign[]>(() =>
+  campaigns.value.filter(c =>
+    c.status === 'failed' || ((c.messages_failed ?? 0) > 0 && c.status !== 'archived')
   )
+)
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const companyDomain = computed<string>(() => {
+  const pathMatch = route.path.match(/\/([^/]+)\/services/)
+  return pathMatch?.[1] ?? 'company'
 })
 
-// Load data on mount
-let pollingInterval = null
+let pollingInterval: ReturnType<typeof setInterval> | null = null
 
-onMounted(async () => {
-  await Promise.all([
-    fetchCampaigns(),
-    fetchBalance()
-  ])
-  
-  // Start polling for active campaigns (every 10 seconds)
-  startCampaignPolling()
-})
-
-onUnmounted(() => {
-  // Clean up polling when component is destroyed
-  stopCampaignPolling()
-})
-
-// Polling mechanism for active campaigns
-const startCampaignPolling = () => {
-  pollingInterval = setInterval(async () => {
-    // Only poll if there are active campaigns (sending or paused)
-    const hasActiveCampaigns = campaigns.value.some(c => 
-      c.status === 'sending' || c.status === 'paused'
-    )
-    
-    if (hasActiveCampaigns && !loading.value) {
-      // Silent refresh - don't show loading state
-      try {
-        await fetchCampaigns(filters.value.status ? { status: filters.value.status } : {})
-      } catch (err) {
-        console.error('Polling error:', err)
-      }
-    }
-  }, 10000) // Poll every 10 seconds
-}
-
-const stopCampaignPolling = () => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-    pollingInterval = null
-  }
-}
-
-// Handle campaign completion notification
-const handleCampaignCompleted = async (campaign) => {
-  
-  // Show toast notification
-  showSuccessToast(`Campaign "${campaign.name}" completed successfully!`)
-  
-  // Refresh balance (credits may have been used)
-  await fetchBalance()
-  
-  // Optionally refresh campaigns to get updated stats
-  await refreshCampaigns()
-}
-
-// Handle campaign status changes
-const handleCampaignStatusChanged = (event) => {
-  
-  // If campaign is no longer active, we can reduce polling frequency
-  const hasActiveCampaigns = campaigns.value.some(c => 
-    c.status === 'sending' || c.status === 'paused'
-  )
-  
-  if (!hasActiveCampaigns) {
-    // Optionally reduce polling or stop it
-    // For now, we'll keep polling in case new campaigns are started
-  }
-}
-
-// Toast notification helper (you can implement your own toast system)
-const showSuccessToast = (message) => {
-  // This is a simple implementation - you can replace with your toast library
-  if (process.client) {
-    alert(message)
-    // Or use a toast library like vue-toastification
-  }
-}
-
-const companyDomain = computed(() => {
-  const pathMatch = route.path.match(/\/([^\/]+)\/services/)
-  return pathMatch ? pathMatch[1] : 'company'
-})
-
-// Refresh campaigns
-const refreshCampaigns = async () => {
+const refreshCampaigns = async (): Promise<void> => {
   await fetchCampaigns(filters.value.status ? { status: filters.value.status } : {})
 }
 
-// Apply filters
-const applyFilters = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const applyFilters = (): void => {
   // Filters are applied through computed property
 }
 
-// Clear filters
-const clearFilters = () => {
-  filters.value = {
-    status: '',
-    provider: ''
-  }
+const clearFilters = (): void => {
+  filters.value = { status: '', provider: '' }
 }
 
-// Toggle show archived campaigns
-const toggleShowArchived = () => {
+const toggleShowArchived = (): void => {
   showArchived.value = !showArchived.value
-  // If turning on archived view and no specific filter is set, show only archived
   if (showArchived.value && !filters.value.status) {
     filters.value.status = 'archived'
   } else if (!showArchived.value && filters.value.status === 'archived') {
@@ -645,309 +574,24 @@ const toggleShowArchived = () => {
   }
 }
 
-// View campaign details
-const viewCampaign = (campaignId) => {
-  selectedCampaignId.value = campaignId
+const viewCampaign = (campaignId: number | string): void => {
+  selectedCampaignId.value = Number(campaignId)
   showDetailsModal.value = true
 }
 
-// Close details modal
-const closeDetailsModal = () => {
+const closeDetailsModal = (): void => {
   showDetailsModal.value = false
   selectedCampaignId.value = null
 }
 
-// Edit campaign (redirect to edit page)
-const updateCampaign = (campaignId) => {
-  navigateTo(`/${route.params.pharmacy}/services/sms-campaigns/${campaignId}/edit`)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const updateCampaign = (campaignId: number | string): void => {
+  void navigateTo(`/${String(route.params['pharmacy'])}/services/sms-campaigns/${String(campaignId)}/edit`)
 }
 
-// Start campaign
-const startCampaign = (campaignId) => {
-  // Close details modal first
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  
+const makeConfirmDialog = (overrides: Partial<ConfirmDialogState>): void => {
   confirmDialog.value = {
     isOpen: true,
-    title: 'Start Campaign?',
-    message: `Are you sure you want to start "${campaign?.name}"? SMS messages will be sent to ${campaign?.total_recipients || 0} recipients.`,
-    type: 'info',
-    loading: false,
-    action: 'start',
-    campaignId
-  }
-}
-
-// Pause campaign
-const pauseCampaign = (campaignId) => {
-  // Close details modal first
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  
-  confirmDialog.value = {
-    isOpen: true,
-    title: 'Pause Campaign?',
-    message: `Are you sure you want to pause "${campaign?.name}"? You can resume it later.`,
-    type: 'warning',
-    loading: false,
-    action: 'pause',
-    campaignId
-  }
-}
-
-// Resume campaign
-const resumeCampaign = (campaignId) => {
-  // Close details modal first
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  
-  confirmDialog.value = {
-    isOpen: true,
-    title: 'Resume Campaign?',
-    message: `Resume sending SMS for "${campaign?.name}"?`,
-    type: 'info',
-    loading: false,
-    action: 'resume',
-    campaignId
-  }
-}
-
-// Cancel campaign
-const cancelCampaign = (campaignId) => {
-  // Close details modal first
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  
-  confirmDialog.value = {
-    isOpen: true,
-    title: 'Cancel Campaign?',
-    message: `Are you sure you want to cancel "${campaign?.name}"? This action cannot be undone.`,
-    type: 'error',
-    loading: false,
-    action: 'cancel',
-    campaignId
-  }
-}
-
-// Archive campaign
-const archiveCampaign = (campaignId) => {
-  // Close details modal first
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  
-  confirmDialog.value = {
-    isOpen: true,
-    title: 'Archive Campaign?',
-    message: `Archive "${campaign?.name}"? The campaign data will be preserved but hidden from the main list. You can restore it later.`,
-    type: 'warning',
-    loading: false,
-    action: 'archive',
-    campaignId,
-    error: null,
-    canRetry: false,
-    isRetrying: false
-  }
-}
-
-// Restore campaign
-const restoreCampaign = (campaignId) => {
-  // Close details modal first
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  
-  confirmDialog.value = {
-    isOpen: true,
-    title: 'Restore Campaign?',
-    message: `Restore "${campaign?.name}" from archive? The campaign will be visible in your campaigns list again.`,
-    type: 'info',
-    loading: false,
-    action: 'restore',
-    campaignId,
-    error: null,
-    canRetry: false,
-    isRetrying: false
-  }
-}
-
-// Delete campaign
-const deleteCampaign = (campaignId) => {
-  // Close details modal first
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  
-  const isDraft = campaign?.status === 'draft'
-  const message = isDraft 
-    ? `Permanently delete draft campaign "${campaign?.name}"? This action cannot be undone.`
-    : `Archive "${campaign?.name}"? The campaign will be moved to archives to preserve your analytics data.`
-  
-  confirmDialog.value = {
-    isOpen: true,
-    title: isDraft ? 'Delete Draft Campaign?' : 'Archive Campaign?',
-    message,
-    type: isDraft ? 'error' : 'warning',
-    loading: false,
-    action: 'delete',
-    campaignId,
-    error: null,
-    canRetry: false,
-    isRetrying: false
-  }
-}
-
-// Reuse campaign
-const openReuseCampaignModal = (campaignId) => {
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  reuseFormData.value = {
-    campaignId,
-    campaignName: campaign?.name || '',
-    newName: `${campaign?.name} (Copy)`
-  }
-  showReuseModal.value = true
-}
-
-// Resend campaign
-const openResendCampaignModal = (campaignId) => {
-  closeDetailsModal()
-  
-  const campaign = campaigns.value.find(c => c.id === campaignId)
-  // Default to failed only if the campaign has failed messages
-  const hasFailedMessages = campaign?.messages_failed > 0
-  resendFormData.value = {
-    campaignId,
-    toFailedOnly: hasFailedMessages // Smart default
-  }
-  showResendModal.value = true
-}
-
-// Handle reuse submission
-const handleReuseSubmit = async () => {
-  confirmDialog.value = {
-    isOpen: true,
-    title: 'Reuse Campaign?',
-    message: `Create a new campaign copy of "${reuseFormData.value.campaignName}"? The new campaign will be created as a draft.`,
-    type: 'info',
-    loading: false,
-    action: 'reuse',
-    campaignId: reuseFormData.value.campaignId,
-    error: null,
-    canRetry: false,
-    isRetrying: false
-  }
-  showReuseModal.value = false
-}
-
-// Handle resend submission
-const handleResendSubmit = async () => {
-  const campaign = campaigns.value.find(c => c.id === resendFormData.value.campaignId)
-  const filterText = resendFormData.value.toFailedOnly ? 'to failed recipients only' : 'to all recipients'
-  
-  confirmDialog.value = {
-    isOpen: true,
-    title: 'Resend Campaign?',
-    message: `Resend SMS for "${campaign?.name}" ${filterText}?`,
-    type: 'info',
-    loading: false,
-    action: 'resend',
-    campaignId: resendFormData.value.campaignId,
-    error: null,
-    canRetry: false,
-    isRetrying: false
-  }
-  showResendModal.value = false
-}
-
-// Handle confirmation
-const handleConfirm = async () => {
-  confirmDialog.value.loading = true
-  confirmDialog.value.error = null
-
-  try {
-    const { action, campaignId } = confirmDialog.value
-
-    if (action === 'start') {
-      await retryAction(() => startCampaignAction(campaignId), campaignId)
-    } else if (action === 'pause') {
-      await pauseCampaignAction(campaignId)
-    } else if (action === 'resume') {
-      await resumeCampaignAction(campaignId)
-    } else if (action === 'cancel') {
-      await cancelCampaignAction(campaignId)
-    } else if (action === 'archive') {
-      await archiveCampaignAction(campaignId)
-    } else if (action === 'restore') {
-      await restoreCampaignAction(campaignId)
-    } else if (action === 'delete') {
-      await deleteCampaignAction(campaignId)
-    } else if (action === 'reuse') {
-      await reuseCampaignAction(campaignId, reuseFormData.value.newName)
-    } else if (action === 'resend') {
-      await resendCampaignAction(campaignId, { to_failed_only: resendFormData.value.toFailedOnly })
-    }
-
-    closeConfirmDialog()
-    await refreshCampaigns()
-  } catch (err) {
-    console.error('Action failed:', err)
-    confirmDialog.value.error = err.message 
-    confirmDialog.value.canRetry = true
-    confirmDialog.value.type = 'error'
-    confirmDialog.value.loading = false
-  }
-}
-
-// Retry failed action
-const retryFailedAction = async () => {
-  confirmDialog.value.isRetrying = true
-  confirmDialog.value.error = null
-  confirmDialog.value.canRetry = false
-  
-  try {
-    const { action, campaignId } = confirmDialog.value
-
-    if (action === 'start') {
-      await retryAction(() => startCampaignAction(campaignId), campaignId)
-    } else if (action === 'pause') {
-      await pauseCampaignAction(campaignId)
-    } else if (action === 'resume') {
-      await resumeCampaignAction(campaignId)
-    } else if (action === 'cancel') {
-      await cancelCampaignAction(campaignId)
-    } else if (action === 'archive') {
-      await archiveCampaignAction(campaignId)
-    } else if (action === 'restore') {
-      await restoreCampaignAction(campaignId)
-    } else if (action === 'delete') {
-      await deleteCampaignAction(campaignId)
-    } else if (action === 'reuse') {
-      await reuseCampaignAction(campaignId, reuseFormData.value.newName)
-    } else if (action === 'resend') {
-      await resendCampaignAction(campaignId, { to_failed_only: resendFormData.value.toFailedOnly })
-    }
-
-    closeConfirmDialog()
-    await refreshCampaigns()
-  } catch (err) {
-    console.error('Retry failed:', err)
-    confirmDialog.value.error = err.message
-    confirmDialog.value.canRetry = true
-    confirmDialog.value.isRetrying = false
-  }
-}
-
-// Close confirm dialog
-const closeConfirmDialog = () => {
-  confirmDialog.value = {
-    isOpen: false,
     title: '',
     message: '',
     type: 'warning',
@@ -956,28 +600,251 @@ const closeConfirmDialog = () => {
     campaignId: null,
     error: null,
     canRetry: false,
-    isRetrying: false
+    isRetrying: false,
+    ...overrides,
   }
 }
 
-// Handle campaign created from modal
-const handleCampaignCreated = async () => {
+const startCampaign = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  makeConfirmDialog({
+    title: 'Start Campaign?',
+    message: `Are you sure you want to start "${campaign?.name ?? ''}"? SMS messages will be sent to ${campaign?.total_recipients ?? 0} recipients.`,
+    type: 'info',
+    action: 'start',
+    campaignId,
+  })
+}
+
+const pauseCampaign = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  makeConfirmDialog({
+    title: 'Pause Campaign?',
+    message: `Are you sure you want to pause "${campaign?.name ?? ''}"? You can resume it later.`,
+    type: 'warning',
+    action: 'pause',
+    campaignId,
+  })
+}
+
+const resumeCampaign = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  makeConfirmDialog({
+    title: 'Resume Campaign?',
+    message: `Resume sending SMS for "${campaign?.name ?? ''}"?`,
+    type: 'info',
+    action: 'resume',
+    campaignId,
+  })
+}
+
+const cancelCampaign = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  makeConfirmDialog({
+    title: 'Cancel Campaign?',
+    message: `Are you sure you want to cancel "${campaign?.name ?? ''}"? This action cannot be undone.`,
+    type: 'error',
+    action: 'cancel',
+    campaignId,
+  })
+}
+
+const archiveCampaign = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  makeConfirmDialog({
+    title: 'Archive Campaign?',
+    message: `Archive "${campaign?.name ?? ''}"? The campaign data will be preserved but hidden from the main list. You can restore it later.`,
+    type: 'warning',
+    action: 'archive',
+    campaignId,
+  })
+}
+
+const restoreCampaign = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  makeConfirmDialog({
+    title: 'Restore Campaign?',
+    message: `Restore "${campaign?.name ?? ''}" from archive? The campaign will be visible in your campaigns list again.`,
+    type: 'info',
+    action: 'restore',
+    campaignId,
+  })
+}
+
+const deleteCampaign = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  const isDraft = campaign?.status === 'draft'
+  const message = isDraft
+    ? `Permanently delete draft campaign "${campaign?.name ?? ''}"? This action cannot be undone.`
+    : `Archive "${campaign?.name ?? ''}"? The campaign will be moved to archives to preserve your analytics data.`
+  makeConfirmDialog({
+    title: isDraft ? 'Delete Draft Campaign?' : 'Archive Campaign?',
+    message,
+    type: isDraft ? 'error' : 'warning',
+    action: 'delete',
+    campaignId,
+  })
+}
+
+const openReuseCampaignModal = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  reuseFormData.value = {
+    campaignId,
+    campaignName: campaign?.name ?? '',
+    newName: `${campaign?.name ?? ''} (Copy)`,
+  }
+  showReuseModal.value = true
+}
+
+const openResendCampaignModal = (campaignId: number | string): void => {
+  closeDetailsModal()
+  const campaign = campaigns.value.find(c => c.id === campaignId)
+  const hasFailedMessages = (campaign?.messages_failed ?? 0) > 0
+  resendFormData.value = { campaignId, toFailedOnly: hasFailedMessages }
+  showResendModal.value = true
+}
+
+const handleReuseSubmit = (): void => {
+  makeConfirmDialog({
+    title: 'Reuse Campaign?',
+    message: `Create a new campaign copy of "${reuseFormData.value.campaignName}"? The new campaign will be created as a draft.`,
+    type: 'info',
+    action: 'reuse',
+    campaignId: reuseFormData.value.campaignId,
+  })
+  showReuseModal.value = false
+}
+
+const handleResendSubmit = (): void => {
+  const campaign = campaigns.value.find(c => c.id === resendFormData.value.campaignId)
+  const filterText = resendFormData.value.toFailedOnly ? 'to failed recipients only' : 'to all recipients'
+  makeConfirmDialog({
+    title: 'Resend Campaign?',
+    message: `Resend SMS for "${campaign?.name ?? ''}" ${filterText}?`,
+    type: 'info',
+    action: 'resend',
+    campaignId: resendFormData.value.campaignId,
+  })
+  showResendModal.value = false
+}
+
+const runDialogAction = async (): Promise<void> => {
+  const { action, campaignId } = confirmDialog.value
+  if (!campaignId) return
+  if (action === 'start') await retryAction(() => startCampaignAction(campaignId), campaignId)
+  else if (action === 'pause') await pauseCampaignAction(campaignId)
+  else if (action === 'resume') await resumeCampaignAction(campaignId)
+  else if (action === 'cancel') await cancelCampaignAction(campaignId)
+  else if (action === 'archive') await archiveCampaignAction(campaignId)
+  else if (action === 'restore') await restoreCampaignAction(campaignId)
+  else if (action === 'delete') await deleteCampaignAction(campaignId)
+  else if (action === 'reuse') await reuseCampaignAction(campaignId, reuseFormData.value.newName)
+  else if (action === 'resend') await resendCampaignAction(campaignId, { to_failed_only: resendFormData.value.toFailedOnly })
+}
+
+const closeConfirmDialog = (): void => {
+  confirmDialog.value = {
+    isOpen: false, title: '', message: '', type: 'warning',
+    loading: false, action: null, campaignId: null,
+    error: null, canRetry: false, isRetrying: false,
+  }
+}
+
+const handleConfirm = async (): Promise<void> => {
+  confirmDialog.value.loading = true
+  confirmDialog.value.error = null
+  try {
+    await runDialogAction()
+    closeConfirmDialog()
+    await refreshCampaigns()
+  } catch (err) {
+    console.error('Action failed:', err)
+    confirmDialog.value.error = err instanceof Error ? err.message : 'Action failed'
+    confirmDialog.value.canRetry = true
+    confirmDialog.value.type = 'error'
+    confirmDialog.value.loading = false
+  }
+}
+
+const retryFailedAction = async (): Promise<void> => {
+  confirmDialog.value.isRetrying = true
+  confirmDialog.value.error = null
+  confirmDialog.value.canRetry = false
+  try {
+    await runDialogAction()
+    closeConfirmDialog()
+    await refreshCampaigns()
+  } catch (err) {
+    console.error('Retry failed:', err)
+    confirmDialog.value.error = err instanceof Error ? err.message : 'Retry failed'
+    confirmDialog.value.canRetry = true
+    confirmDialog.value.isRetrying = false
+  }
+}
+
+const handleCampaignCompleted = async (campaign: CampaignRecord): Promise<void> => {
+  if (process.client) alert(`Campaign "${campaign.name ?? ''}" completed successfully!`)
+  await fetchBalance()
+  await refreshCampaigns()
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const handleCampaignStatusChanged = (_event: unknown): void => {
+  // Polling continues regardless
+}
+
+const startCampaignPolling = (): void => {
+  pollingInterval = setInterval(async () => {
+    const hasActive = campaigns.value.some(c => c.status === 'sending' || c.status === 'paused')
+    if (hasActive && !loading.value) {
+      try {
+        await fetchCampaigns(filters.value.status ? { status: filters.value.status } : {})
+      } catch (err) {
+        console.error('Polling error:', err)
+      }
+    }
+  }, 10000)
+}
+
+const stopCampaignPolling = (): void => {
+  if (pollingInterval !== null) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
+
+const handleCampaignCreated = async (): Promise<void> => {
   await refreshCampaigns()
   await fetchBalance()
 }
 
-// Open edit modal
-const openEditModal = (campaignId) => {
+const openEditModal = (campaignId: number | string): void => {
   closeDetailsModal()
   editingCampaignId.value = campaignId
   showEditModal.value = true
 }
 
-// Handle campaign updated
-const handleCampaignUpdated = async () => {
+const handleCampaignUpdated = async (): Promise<void> => {
   await refreshCampaigns()
   await fetchBalance()
 }
+
+onMounted(async () => {
+  await Promise.all([fetchCampaigns(), fetchBalance()])
+  startCampaignPolling()
+})
+
+onUnmounted(() => {
+  stopCampaignPolling()
+})
 </script>
 
 <style scoped>

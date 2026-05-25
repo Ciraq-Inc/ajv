@@ -25,7 +25,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-12 text-center text-gray-400">Loading orders...</div>
+    <div v-if="loading" class="py-12 text-center text-gray-500">Loading orders...</div>
 
     <!-- Empty -->
     <div v-else-if="filtered.length === 0" class="py-12 text-center text-gray-500 bg-gray-50 rounded-lg">
@@ -43,7 +43,7 @@
           <div>
             <div class="font-medium text-gray-900">{{ order.request_number }}</div>
             <div class="text-sm text-gray-500 mt-0.5">{{ order.customer_address }}</div>
-            <div class="text-xs text-gray-400 mt-1">{{ formatDate(order.created_at) }}</div>
+            <div class="text-xs text-gray-500 mt-1">{{ formatDate(order.created_at) }}</div>
             <div v-if="isAwaitingMethodSelection(order)" class="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1 text-[11px] font-semibold text-amber-800">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -53,7 +53,7 @@
           </div>
           <div class="text-right shrink-0">
             <div class="text-sm font-semibold text-green-600">GH₵{{ fmt(order.pharmacy_total) }}</div>
-            <div class="text-xs text-gray-400 mt-0.5">{{ order.item_count }} item(s)</div>
+            <div class="text-xs text-gray-500 mt-0.5">{{ order.item_count }} item(s)</div>
             <span class="mt-1 inline-block text-xs font-medium px-2 py-0.5 rounded-full" :class="statusClass(order.status)">
               {{ order.status?.replace(/_/g, ' ') }}
             </span>
@@ -78,7 +78,7 @@
           <!-- Header -->
           <div class="flex items-start justify-between p-5 border-b border-gray-200">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-widest text-gray-400">Order Request</p>
+              <p class="text-xs font-semibold uppercase tracking-widest text-gray-500">Order Request</p>
               <h2 class="text-lg font-bold text-gray-900 mt-0.5">{{ detailOrder?.request_number }}</h2>
             </div>
             <button @click="closeDetail" class="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition">
@@ -108,14 +108,14 @@
 
           <!-- Items -->
           <div class="flex-1 overflow-y-auto p-5">
-            <div v-if="detailLoading" class="py-12 text-center text-gray-400 text-sm">Loading items...</div>
+            <div v-if="detailLoading" class="py-12 text-center text-gray-500 text-sm">Loading items...</div>
 
-            <div v-else-if="detailItems.length === 0" class="py-8 text-center text-gray-400 text-sm">
+            <div v-else-if="detailItems.length === 0" class="py-8 text-center text-gray-500 text-sm">
               No items found for this order.
             </div>
 
             <div v-else class="space-y-3">
-              <p class="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Items ({{ detailItems.length }})</p>
+              <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">Items ({{ detailItems.length }})</p>
               <div
                 v-for="item in detailItems" :key="item.id"
                 class="bg-white border border-gray-200 rounded-lg p-3"
@@ -123,7 +123,7 @@
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-900 truncate">{{ item.resolved_name || item.product_name }}</p>
-                    <p v-if="item.requested_unit" class="text-xs text-gray-400 mt-0.5">{{ item.requested_unit }}</p>
+                    <p v-if="item.requested_unit" class="text-xs text-gray-500 mt-0.5">{{ item.requested_unit }}</p>
                   </div>
                   <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full" :class="sourcingClass(item.sourcing_status)">
                     {{ item.sourcing_status?.replace(/_/g, ' ') || 'pending' }}
@@ -132,15 +132,15 @@
 
                 <div class="mt-2 grid grid-cols-3 gap-2 text-xs text-gray-600">
                   <div>
-                    <p class="text-gray-400">Qty</p>
+                    <p class="text-gray-500">Qty</p>
                     <p class="font-medium">{{ item.quantity }}</p>
                   </div>
                   <div>
-                    <p class="text-gray-400">Unit price</p>
+                    <p class="text-gray-500">Unit price</p>
                     <p class="font-medium">{{ item.unit_price != null ? 'GH₵' + fmt(item.unit_price) : '—' }}</p>
                   </div>
                   <div>
-                    <p class="text-gray-400">Total</p>
+                    <p class="text-gray-500">Total</p>
                     <p class="font-medium text-green-700">{{ item.line_total != null ? 'GH₵' + fmt(item.line_total) : '—' }}</p>
                   </div>
                 </div>
@@ -151,7 +151,7 @@
           <!-- Footer total -->
           <div v-if="!detailLoading && detailItems.length > 0" class="border-t border-gray-200 px-5 py-4 flex items-center justify-between">
             <span class="text-sm text-gray-500">Your total</span>
-            <span class="text-base font-bold text-green-700">GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(i.line_total || 0), 0)) }}</span>
+            <span class="text-base font-bold text-green-700">GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(String(i.line_total || 0)), 0)) }}</span>
           </div>
         </div>
       </div>
@@ -159,39 +159,75 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { useCompanyStore } from '~/stores/company'
 
 definePageMeta({
   middleware: ['company-auth'],
-  layout: 'company'
+  layout: 'company',
 })
 
-const companyStore = useCompanyStore()
+interface OrderRow {
+  id: number | string
+  request_number?: string | null
+  customer_address?: string | null
+  created_at?: string | null
+  status?: string | null
+  pharmacy_total?: number | string | null
+  item_count?: number | null
+}
 
-const loading = ref(true)
-const orders = ref([])
-const activeTab = ref('all')
+interface OrderItem {
+  id: number | string
+  resolved_name?: string | null
+  product_name?: string | null
+  requested_unit?: string | null
+  sourcing_status?: string | null
+  quantity?: number | null
+  unit_price?: number | string | null
+  line_total?: number | string | null
+}
 
-const detailOpen = ref(false)
-const detailOrder = ref(null)
-const detailItems = ref([])
-const detailLoading = ref(false)
+interface OrderDetailResponse {
+  success?: boolean
+  order?: OrderRow | null
+  items?: OrderItem[] | null
+}
 
-const STATUS_GROUPS = {
+interface OrdersResponse {
+  success?: boolean
+  orders?: OrderRow[] | null
+}
+
+// TODO: remove once stores/ are .ts
+const companyStore = useCompanyStore() as unknown as {
+  makeAuthRequest: (url: string, options?: RequestInit) => Promise<OrderDetailResponse & OrdersResponse>
+}
+
+const loading = ref<boolean>(true)
+const orders = ref<OrderRow[]>([])
+const activeTab = ref<string>('all')
+
+const detailOpen = ref<boolean>(false)
+const detailOrder = ref<OrderRow | null>(null)
+const detailItems = ref<OrderItem[]>([])
+const detailLoading = ref<boolean>(false)
+
+const STATUS_GROUPS: Record<string, Set<string>> = {
   processing: new Set([
     'composing', 'sourcing', 'enquiry_sent', 'partially_available',
-    'confirming_with_pharm', 'confirmed_in_pharm', 'awaiting_input', 'awaiting_customer'
+    'confirming_with_pharm', 'confirmed_in_pharm', 'awaiting_input', 'awaiting_customer',
   ]),
   awaiting_payment: new Set(['payment_pending']),
   fulfillment: new Set([
     'paid', 'preparing', 'out_for_delivery', 'in_transit',
-    'ready_for_pickup', 'picking_up', 'picked_up'
+    'ready_for_pickup', 'picking_up', 'picked_up',
   ]),
   completed: new Set(['delivered', 'completed', 'returned']),
 }
 
-const tabs = [
+const tabs: Array<{ label: string; value: string }> = [
   { label: 'All Active', value: 'all' },
   { label: 'Processing', value: 'processing' },
   { label: 'Awaiting Payment', value: 'awaiting_payment' },
@@ -199,14 +235,14 @@ const tabs = [
   { label: 'Completed', value: 'completed' },
 ]
 
-const filtered = computed(() => {
+const filtered = computed<OrderRow[]>(() => {
   if (activeTab.value === 'all') return orders.value
-  const group = STATUS_GROUPS[activeTab.value]
-  return group ? orders.value.filter(o => group.has(o.status)) : orders.value
+  const group = activeTab.value !== 'all' ? STATUS_GROUPS[activeTab.value] : undefined
+  return group ? orders.value.filter(o => group.has(o.status ?? '')) : orders.value
 })
 
-const statusClass = (status) => {
-  const map = {
+const statusClass = (status: string | null | undefined): string => {
+  const map: Record<string, string> = {
     processing: 'cs-badge',
     awaiting_payment: 'bg-yellow-100 text-yellow-700',
     payment_confirmed: 'bg-purple-100 text-purple-700',
@@ -219,42 +255,45 @@ const statusClass = (status) => {
     payment_pending: 'bg-yellow-100 text-yellow-700',
     awaiting_method_selection: 'bg-amber-100 text-amber-800',
   }
-  return map[status] || 'bg-gray-100 text-gray-700'
+  if (status === undefined || status === null) return 'bg-gray-100 text-gray-700'
+  return (status !== undefined ? map[status] : undefined) ?? 'bg-gray-100 text-gray-700'
 }
 
-const isAwaitingMethodSelection = (order) => {
+const isAwaitingMethodSelection = (order: OrderRow | null | undefined): boolean => {
   if (!order) return false
-  return String(order.status || '').toLowerCase() === 'awaiting_method_selection'
+  return String(order.status ?? '').toLowerCase() === 'awaiting_method_selection'
 }
 
-const sourcingClass = (status) => {
-  const map = {
+const sourcingClass = (status: string | null | undefined): string => {
+  const map: Record<string, string> = {
     allocated: 'bg-green-100 text-green-700',
     partially_allocated: 'bg-yellow-100 text-yellow-700',
     unavailable: 'bg-red-100 text-red-600',
     substitute_proposed: 'bg-purple-100 text-purple-700',
     pending: 'bg-gray-100 text-gray-500',
   }
-  return map[status] || 'bg-gray-100 text-gray-500'
+  if (status === undefined || status === null) return 'bg-gray-100 text-gray-500'
+  return (status !== undefined ? map[status] : undefined) ?? 'bg-gray-100 text-gray-500'
 }
 
-const fmt = (val) => parseFloat(val || 0).toFixed(2)
+const fmt = (val: number | string | null | undefined): string =>
+  parseFloat(String(val ?? 0) || '0').toFixed(2)
 
-const formatDate = (d) => {
+const formatDate = (d: string | null | undefined): string => {
   if (!d) return ''
   return new Date(d).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const openDetail = async (order) => {
+const openDetail = async (order: OrderRow): Promise<void> => {
   detailOrder.value = order
   detailItems.value = []
   detailOpen.value = true
   detailLoading.value = true
   try {
-    const res = await companyStore.makeAuthRequest(`/api/pharmacy-portal/orders/${order.id}`)
+    const res = await companyStore.makeAuthRequest(`/api/pharmacy-portal/orders/${String(order.id)}`)
     if (res.success) {
-      detailOrder.value = res.order || order
-      detailItems.value = res.items || []
+      detailOrder.value = res.order ?? order
+      detailItems.value = res.items ?? []
     }
   } catch (e) {
     console.error('Failed to fetch order detail', e)
@@ -263,17 +302,17 @@ const openDetail = async (order) => {
   }
 }
 
-const closeDetail = () => {
+const closeDetail = (): void => {
   detailOpen.value = false
   detailOrder.value = null
   detailItems.value = []
 }
 
-const fetchOrders = async () => {
+const fetchOrders = async (): Promise<void> => {
   loading.value = true
   try {
     const res = await companyStore.makeAuthRequest('/api/pharmacy-portal/orders')
-    if (res.success) orders.value = res.orders || []
+    if (res.success) orders.value = res.orders ?? []
   } catch (e) {
     console.error('Failed to fetch orders', e)
   } finally {
@@ -281,5 +320,5 @@ const fetchOrders = async () => {
   }
 }
 
-onMounted(fetchOrders)
+onMounted(() => { void fetchOrders() })
 </script>

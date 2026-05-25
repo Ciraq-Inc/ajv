@@ -99,62 +99,96 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
 import { useRoute } from 'vue-router';
 
-const emit = defineEmits(['itemAddedToCart']);
+// Shape coming from the pharmacy store (camelCase hydrated from API)
+interface PharmacyProduct {
+  id: number;
+  brandName: string;
+  sellingPrice: number;
+  stockQty: number;
+  unit?: string;
+  productImageUrl?: string;
+  isActive?: boolean | number | string;
+  [key: string]: unknown;
+}
 
-const props = defineProps({
-  products: {
-    type: Array,
-    default: () => []
-  },
-  searchQuery: {
-    type: String,
-    default: ''
-  },
-  hidePrices: {
-    type: Boolean,
-    default: false
-  }
-});
+// Runtime display item — product with UI-only fields appended
+interface ProductItem extends PharmacyProduct {
+  quantity: number;
+  justAdded: boolean;
+}
+
+// TODO: remove once stores/ are .ts
+interface PharmacyStoreShape {
+  isLoading: boolean;
+  products: PharmacyProduct[];
+  currentPharmacy: unknown;
+  pharmacySlug: string;
+  fetchProducts: () => Promise<void>;
+}
+
+// TODO: remove once stores/ are .ts
+interface CartStoreShape {
+  items: { id: number; quantity: number; [key: string]: unknown }[];
+  addToCart: (item: {
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+    image?: string;
+    pharmacyId: unknown;
+    unit: string;
+  }) => void;
+}
+
+const emit = defineEmits<{ itemAddedToCart: [product: ProductItem] }>();
+
+const props = defineProps<{
+  products?: PharmacyProduct[];
+  searchQuery?: string;
+  hidePrices?: boolean;
+}>();
 
 const route = useRoute();
-const pharmacyStore = usePharmacyStore();
-const cartStore = useCartStore();
-const productItems = ref([]);
+const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
+const cartStore = useCartStore() as unknown as CartStoreShape;
+const productItems = ref<ProductItem[]>([]);
 
-const isProductActive = (product) =>
-  !(product?.isActive === false || product?.isActive === 0 || product?.isActive === '0');
+const isProductActive = (product: PharmacyProduct): boolean =>
+  !(product.isActive === false || product.isActive === 0 || product.isActive === '0');
 
-const handleImageError = (event) => {
-  event.target.style.display = 'none';
+const handleImageError = (event: Event): void => {
+  const target = event.target as HTMLImageElement;
+  target.style.display = 'none';
 };
 
 // Add loading state
-const loading = ref(true);
-const isFetching = ref(false); // Prevent duplicate fetches
+const loading = ref<boolean>(true);
+const isFetching = ref<boolean>(false); // Prevent duplicate fetches
 
 // Get pharmacy slug from route params
-const pharmacySlug = computed(() => route.params.pharmacy);
+const pharmacySlug = computed<string | string[]>(() => route.params['pharmacy'] ?? '');
 
-const initializeProductItems = () => {
+const initializeProductItems = (): void => {
   // Use passed products prop if available, otherwise fall back to store
-  const sourceProducts = props.products && props.products.length > 0
-    ? props.products
-    : pharmacyStore.products;
+  const sourceProducts: PharmacyProduct[] =
+    props.products && props.products.length > 0
+      ? props.products
+      : pharmacyStore.products;
 
   if (Array.isArray(sourceProducts)) {
     productItems.value = sourceProducts
       .filter((product) => isProductActive(product))
-      .map(product => ({
-      ...product,
-      quantity: 1,
-      justAdded: false
-    }));
+      .map((product): ProductItem => ({
+        ...product,
+        quantity: 1,
+        justAdded: false,
+      }));
   }
 };
 
@@ -164,7 +198,7 @@ onMounted(async () => {
 
   if (pharmacyStore.isLoading) {
     // If the main store is already loading, wait for it
-    watch(() => pharmacyStore.isLoading, (newVal) => {
+    watch(() => pharmacyStore.isLoading, (newVal: boolean) => {
       if (!newVal) {
         loading.value = false;
         // Initialize productItems when pharmacy store finishes loading
@@ -183,8 +217,8 @@ onMounted(async () => {
       }
       // Initialize productItems
       initializeProductItems();
-    } catch (error) {
-      console.error('Error fetching products:', error);
+    } catch (err) {
+      console.error('Error fetching products:', err);
     } finally {
       loading.value = false;
       isFetching.value = false;
@@ -213,8 +247,8 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
       await pharmacyStore.fetchProducts();
       // Reinitialize productItems
       initializeProductItems();
-    } catch (error) {
-      console.error('Error fetching products for pharmacy:', error);
+    } catch (err) {
+      console.error('Error fetching products for pharmacy:', err);
     } finally {
       loading.value = false;
       isFetching.value = false;
@@ -223,8 +257,8 @@ watch(() => pharmacyStore.currentPharmacy, async (newPharmacy, oldPharmacy) => {
 });
 
 // Enhanced computed property with safety checks
-const filteredProducts = computed(() => {
-  const query = props.searchQuery || '';
+const filteredProducts = computed<ProductItem[]>(() => {
+  const query = props.searchQuery ?? '';
 
   // If no search query, return all productItems
   if (!query.trim()) {
@@ -244,32 +278,32 @@ watch(() => props.products, () => {
   initializeProductItems();
 }, { deep: true });
 
-const formatPrice = (price) => {
-  return Number(price || 0).toFixed(2);
+const formatPrice = (price: number | null | undefined): string => {
+  return Number(price ?? 0).toFixed(2);
 };
 
-const increaseQuantity = (product) => {
-  product.quantity = (product.quantity || 1) + 1;
+const increaseQuantity = (product: ProductItem): void => {
+  product.quantity = (product.quantity ?? 1) + 1;
 };
 
-const decreaseQuantity = (product) => {
+const decreaseQuantity = (product: ProductItem): void => {
   if (product.quantity > 1) {
     product.quantity -= 1;
   }
 };
 
 // Check if product is already in cart
-const isProductInCart = (productId) => {
-  return cartStore.items.some(item => item.id === productId);
+const isProductInCart = (productId: number): boolean => {
+  return cartStore.items.some(item => item['id'] === productId);
 };
 
 // Find product quantity in cart
-const getCartQuantity = (productId) => {
-  const item = cartStore.items.find(item => item.id === productId);
-  return item ? item.quantity : 0;
+const getCartQuantity = (productId: number): number => {
+  const item = cartStore.items.find(item => item['id'] === productId);
+  return item ? (item['quantity'] as number) : 0;
 };
 
-const handleAddToCart = (product) => {
+const handleAddToCart = (product: ProductItem): void => {
   if (!isProductActive(product) || product.stockQty <= 0) return;
 
   // Format the product data to match cart store expectations
@@ -277,10 +311,10 @@ const handleAddToCart = (product) => {
     id: product.id,
     name: product.brandName,
     price: product.sellingPrice,
-    quantity: product.quantity || 1,  // Use the quantity from UI
-    image: product.productImageUrl,
+    quantity: product.quantity ?? 1,  // Use the quantity from UI
+    ...(product.productImageUrl != null && { image: product.productImageUrl }),
     pharmacyId: pharmacyStore.currentPharmacy,
-    unit: product.unit || 'unit'
+    unit: product.unit ?? 'unit',
   });
 
   // Set justAdded to true

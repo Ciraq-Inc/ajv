@@ -1,7 +1,7 @@
 // SMS Billing API Service
 // const apiBase = 'http://localhost:3000/api'
 
-export default (apiBase) => ({
+export const createBillingService = (apiBase) => ({
 
   // ========== Company Endpoints ==========
 

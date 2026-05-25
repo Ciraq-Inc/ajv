@@ -3,7 +3,7 @@
     <!-- Vertical Grouped Nav -->
     <aside class="data-sidebar bg-gray-100 rounded-xl p-3 flex flex-col gap-4">
       <div v-for="group in tabGroups" :key="group.label" class="flex flex-col gap-1">
-        <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 select-none leading-none mb-1">
+        <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-2 select-none leading-none mb-1">
           {{ group.label }}
         </span>
         <button
@@ -41,15 +41,16 @@
         <ExtendedSyncData
           v-if="syncTabEntity[activeTab]"
           :key="activeTab"
-          :entity="syncTabEntity[activeTab]"
+          :entity="syncTabEntity[activeTab] ?? null"
         />
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
+import type { Component } from "vue";
 import Companies from "~/components/analytics/companies.vue";
 import Inventory from "~/components/analytics/inventory.vue";
 import SalesReports from "~/components/analytics/sales-reports.vue";
@@ -79,10 +80,10 @@ definePageMeta({
   layout: 'admin-layout',
 });
 
-const activeTab = ref("companies");
+const activeTab = ref<string>("companies");
 
 // Maps tab id → entity key for ExtendedSyncData
-const syncTabEntity = {
+const syncTabEntity: Record<string, string> = {
   'cust-returns':    'customer_returns',
   'out-credits':     'outstanding_credits',
   'settled-credits': 'settled_credit_headers',
@@ -93,7 +94,18 @@ const syncTabEntity = {
   'expenses':        'expenses',
 };
 
-const tabGroups = [
+interface TabDefinition {
+  id: string;
+  short: string;
+  icon: Component;
+}
+
+interface TabGroup {
+  label: string;
+  tabs: TabDefinition[];
+}
+
+const tabGroups: TabGroup[] = [
   {
     label: 'Entities',
     tabs: [

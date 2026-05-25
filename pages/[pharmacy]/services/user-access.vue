@@ -4,12 +4,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import CompanyUserAccess from '~/components/access/companyUserAccess.vue'
 
 definePageMeta({
   middleware: ['company-auth'],
-  layout: 'company'
+  layout: 'company',
 })
 </script>
 

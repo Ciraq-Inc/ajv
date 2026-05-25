@@ -74,12 +74,12 @@
       <JobCard
         v-for="job in jobs"
         :key="job.id"
-        :job="job"
+        :job="(job as unknown as JobCardJobShape)"
         :show-manage="canManageJob(job)"
         :show-status-action="canManageJob(job)"
         :status-action-label="job.status === 'open' ? 'Close Job' : 'Reopen Job'"
-        @manage="openApplications"
-        @status-action="toggleJobStatus"
+        @manage="(j: unknown) => openApplications(j as JobRecord)"
+        @status-action="(j: unknown) => toggleJobStatus(j as JobRecord)"
       />
     </div>
 
@@ -129,17 +129,54 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import JobCard from '~/components/jobs/JobCard.vue'
 import ApplicationDrawer from '~/components/jobs/ApplicationDrawer.vue'
 
-const route = useRoute()
-const companyStore = useCompanyStore()
+/** Minimal shape that satisfies JobCard's `job` prop (mirrors JobCardJob in JobCard.vue). */
+type JobCardJobShape = {
+  id: number
+  title: string
+  companyName?: string
+  location?: string
+  description?: string
+  status?: string
+  employmentType?: string
+  salaryMin?: number
+  salaryMax?: number | string
+}
 
-const { jobs, loading: jobsLoading, error: jobsError, openJobs, fetchCompanyJobs, fetchJobs, createJob, updateJob } = useJobs()
+definePageMeta({
+  middleware: ['company-auth'],
+  layout: 'company',
+})
+
+interface JobRecord {
+  id: string | number
+  status?: string | null
+  companyDomain?: string | null
+  [key: string]: unknown
+}
+
+interface ApplicationRecord {
+  id: string | number
+  [key: string]: unknown
+}
+
+const {
+  jobs,
+  loading: jobsLoading,
+  error: jobsError,
+  openJobs,
+  fetchCompanyJobs,
+  fetchJobs,
+  createJob,
+  updateJob,
+} = useJobs()
+
 const {
   applications,
   loading: applicationsLoading,
@@ -147,23 +184,27 @@ const {
   updateApplicationStatus,
 } = useJobApplications()
 
-const showCreateModal = ref(false)
-const showApplications = ref(false)
-const activeJobId = ref('')
-const search = ref('')
-const status = ref('')
-const localError = ref('')
-const jobsNotice = ref('')
-const isFallbackPublicJobs = ref(false)
-const today = new Date().toISOString().split('T')[0]
+const companyStore = useCompanyStore()
+
+const route = useRoute()
+
+const showCreateModal = ref<boolean>(false)
+const showApplications = ref<boolean>(false)
+const activeJobId = ref<string | number>('')
+const search = ref<string>('')
+const status = ref<string>('')
+const localError = ref<string>('')
+const jobsNotice = ref<string>('')
+const isFallbackPublicJobs = ref<boolean>(false)
+const today = new Date().toISOString().split('T')[0]!
 
 const form = reactive({
   title: '',
   description: '',
   location: '',
   employmentType: 'Full-time',
-  salaryMin: null,
-  salaryMax: null,
+  salaryMin: null as number | null,
+  salaryMax: null as number | null,
   contactEmail: '',
   expiresAt: '',
   requireResume: false,
@@ -171,22 +212,22 @@ const form = reactive({
   requireCertificates: false,
 })
 
-const normalizedRole = computed(() =>
-  String(companyStore.userRole || '')
+const normalizedRole = computed<string>(() =>
+  String(companyStore.userRole ?? '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '_')
     .replace(/-/g, '_')
 )
 
-const canPostJobs = computed(() => {
+const canPostJobs = computed<boolean>(() => {
   const role = normalizedRole.value
   return ['company', 'admin', 'super_admin', 'manager', 'third_party_poster'].includes(role)
 })
 
-const closedJobs = computed(() => jobs.value.filter((item) => item.status === 'closed').length)
+const closedJobs = computed<number>(() => jobs.value.filter((item) => item.status === 'closed').length)
 
-const loadJobs = async () => {
+const loadJobs = async (): Promise<void> => {
   localError.value = ''
   jobsNotice.value = ''
   isFallbackPublicJobs.value = false
@@ -210,15 +251,16 @@ const loadJobs = async () => {
   }
 }
 
-const normalizeDomain = (value = '') => String(value).trim().toLowerCase()
+const normalizeDomain = (value: string | null | undefined = ''): string =>
+  String(value ?? '').trim().toLowerCase()
 
-const canManageJob = (job) => {
+const canManageJob = (job: JobRecord | null | undefined): boolean => {
   if (!canPostJobs.value || !job) return false
   if (!isFallbackPublicJobs.value) return true
-  return normalizeDomain(job.companyDomain) === normalizeDomain(route.params.pharmacy)
+  return normalizeDomain(job.companyDomain as string | undefined) === normalizeDomain(String(route.params['pharmacy'] ?? ''))
 }
 
-const openCreateModal = () => {
+const openCreateModal = (): void => {
   localError.value = ''
   if (!canPostJobs.value) {
     localError.value = 'You do not have permission to post jobs with this account.'
@@ -227,7 +269,7 @@ const openCreateModal = () => {
   showCreateModal.value = true
 }
 
-const handleCreateJob = async () => {
+const handleCreateJob = async (): Promise<void> => {
   localError.value = ''
   if (!canPostJobs.value) {
     localError.value = 'You do not have permission to post jobs with this account.'
@@ -236,8 +278,8 @@ const handleCreateJob = async () => {
 
   await createJob({
     ...form,
-    companyDomain: route.params.pharmacy,
-    companyName: companyStore.currentCompany?.name || 'Company',
+    companyDomain: String(route.params['pharmacy'] ?? ''),
+    companyName: companyStore.currentCompany?.name ?? 'Company',
   })
 
   showCreateModal.value = false
@@ -254,35 +296,28 @@ const handleCreateJob = async () => {
   form.requireCertificates = false
 }
 
-const openApplications = async (job) => {
+const openApplications = async (job: JobRecord): Promise<void> => {
   if (!canManageJob(job)) return
   activeJobId.value = job.id
   showApplications.value = true
   await fetchApplications(job.id)
 }
 
-const toggleJobStatus = async (job) => {
+const toggleJobStatus = async (job: JobRecord): Promise<void> => {
   if (!canManageJob(job)) return
-
   localError.value = ''
   const nextStatus = job.status === 'open' ? 'closed' : 'open'
-
   try {
     await updateJob(job.id, { status: nextStatus })
   } catch (err) {
-    localError.value = err.message || 'Failed to update job status'
+    localError.value = err instanceof Error ? err.message : 'Failed to update job status'
   }
 }
 
-const updateStatus = async (application, nextStatus) => {
+const updateStatus = async (application: ApplicationRecord, nextStatus: string): Promise<void> => {
   if (!activeJobId.value) return
   await updateApplicationStatus(activeJobId.value, application.id, nextStatus)
 }
 
-onMounted(loadJobs)
-
-definePageMeta({
-  middleware: ['company-auth'],
-  layout: 'company',
-})
+onMounted(() => { void loadJobs() })
 </script>

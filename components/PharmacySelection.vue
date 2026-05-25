@@ -136,57 +136,88 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useCartStore } from '~/stores/cart';
+import { createCompanyAuthService } from '~/services/companyAuth/companyAuthService';
+
+interface PharmacyEntry {
+  id: string;
+  name: string;
+  location: string;
+  tel: string;
+  subdomain: string;
+}
+
+// TODO: remove once stores/ are .ts
+interface PharmacyStoreShape {
+  currentPharmacy: unknown;
+  clearPharmacyData: () => void;
+  setCurrentPharmacy: (id: string) => Promise<void>;
+  setPharmacySlug: (slug: string) => void;
+  getPharmacyPath: (path: string) => string;
+}
+
+// TODO: remove once stores/ are .ts
+interface CartStoreShape {
+  setActivePharmacy: (id: string, slug: string) => Promise<false | void>;
+}
 
 const router = useRouter();
 const route = useRoute();
-const pharmacyStore = usePharmacyStore();
-const cartStore = useCartStore();
+const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
+const cartStore = useCartStore() as unknown as CartStoreShape;
+const companyAuthService = createCompanyAuthService(useApi());
 
-const config = useRuntimeConfig();
-const baseURL = config.public.apiBase;
-
-const pharmacies = ref([]);
-const loading = ref(true);
-const error = ref(null);
-const searchQuery = ref('');
-const selectingPharmacy = ref(false);
+const pharmacies = ref<PharmacyEntry[]>([]);
+const loading = ref<boolean>(true);
+const error = ref<string | null>(null);
+const searchQuery = ref<string>('');
+const selectingPharmacy = ref<boolean>(false);
 
 // Get any redirectParam from the URL
-const redirectTo = computed(() => route.query.redirect || '/');
+const redirectTo = computed<string>(() => {
+  const r = route.query['redirect'];
+  return (Array.isArray(r) ? r[0] : r) ?? '/';
+});
 
-const filteredPharmacies = computed(() => {
+const filteredPharmacies = computed<PharmacyEntry[]>(() => {
   if (!searchQuery.value) return pharmacies.value;
-  
+
   const query = searchQuery.value.toLowerCase();
-  return pharmacies.value.filter(pharmacy => 
+  return pharmacies.value.filter(pharmacy =>
     pharmacy.name.toLowerCase().includes(query) ||
     pharmacy.location.toLowerCase().includes(query)
   );
 });
 
-const fetchPharmacies = async () => {
+const fetchPharmacies = async (): Promise<void> => {
   loading.value = true;
   error.value = null;
-  
+
   try {
-    // Fetch companies from REST API
-    const response = await fetch(`${baseURL}/api/companies`);
-    const data = await response.json();
-    
+    const data = await companyAuthService.listCompanies() as {
+      success: boolean;
+      data?: Array<{
+        id: number;
+        companytype: number;
+        name?: string;
+        location?: string;
+        tel1?: string;
+        tel2?: string;
+        domain_name?: string;
+      }>;
+    };
     if (data.success && data.data) {
-      // Transform the API data to match the component's expected format
       pharmacies.value = data.data
         .filter(company => company.companytype === 0) // Only get pharmacies (type 0)
         .map(company => ({
           id: company.id.toString(),
-          name: company.name || 'Unknown Pharmacy',
-          location: company.location || 'Location not provided',
-          tel: company.tel1 || company.tel2 || 'No contact information',
-          subdomain: company.domain_name || company.id.toString()
+          name: company.name ?? 'Unknown Pharmacy',
+          location: company.location ?? 'Location not provided',
+          tel: company.tel1 ?? company.tel2 ?? 'No contact information',
+          subdomain: company.domain_name ?? company.id.toString(),
         }));
     } else {
       pharmacies.value = [];
@@ -199,31 +230,31 @@ const fetchPharmacies = async () => {
   }
 };
 
-const selectPharmacy = async (pharmacy) => {
+const selectPharmacy = async (pharmacy: PharmacyEntry): Promise<void> => {
   try {
     // Show selecting pharmacy state
     selectingPharmacy.value = true;
-    
+
     // Clear any existing pharmacy context first
     pharmacyStore.clearPharmacyData();
-    
+
     // Set in pharmacy store
     await pharmacyStore.setCurrentPharmacy(pharmacy.id);
-    
+
     // Set pharmacy slug for URL routing
     const slug = pharmacy.subdomain || pharmacy.id;
     pharmacyStore.setPharmacySlug(slug);
-    
+
     // Set in cart store
     const cartResult = await cartStore.setActivePharmacy(pharmacy.id, slug);
-    
+
     // Only redirect if cart was successfully set (user didn't cancel pharmacy switch)
     if (cartResult !== false) {
       // Redirect to the target page with pharmacy in URL
       const targetPath = redirectTo.value;
-      
+
       // Use the pharmacy path helper for correct routing
-      router.push(pharmacyStore.getPharmacyPath(targetPath === '/' ? '' : targetPath));
+      void router.push(pharmacyStore.getPharmacyPath(targetPath === '/' ? '' : targetPath));
     } else {
       // If user cancelled, hide the selecting state
       selectingPharmacy.value = false;
@@ -236,7 +267,7 @@ const selectPharmacy = async (pharmacy) => {
 };
 
 onMounted(() => {
-  fetchPharmacies();
+  void fetchPharmacies();
 });
 </script>
 

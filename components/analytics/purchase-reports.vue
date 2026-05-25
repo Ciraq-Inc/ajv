@@ -155,7 +155,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="item in purchaseItems" :key="item.id" class="hover:bg-gray-50">
+            <tr v-for="item in purchaseItems" :key="(item.id as PropertyKey | undefined) ?? ''" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                 {{ item.company_name }}
               </td>
@@ -196,34 +196,52 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
-const adminStore = useAdminStore()
+interface PurchaseItem {
+  [key: string]: unknown;
+}
+
+interface SummaryResponse {
+  success?: boolean;
+  data?: unknown;
+  message?: string;
+  [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<SummaryResponse>;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reportsService = createReportsExportService(useApi())
 
 // Reactive data
-const loading = ref(false)
-const error = ref(null)
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
 
 // Analytics data
-const summary = ref(null)
-const purchaseItems = ref([])
+const summary = ref<SummaryResponse | null>(null)
+const purchaseItems = ref<PurchaseItem[]>([])
 
 // Filters
-const filters = ref({
+const filters = ref<{ start_date: string; end_date: string }>({
   start_date: '',
   end_date: ''
 })
 
 // Fetch summary data from the cross-tenant summary API
-const fetchSummary = async () => {
+const fetchSummary = async (): Promise<void> => {
   try {
     const params = new URLSearchParams()
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    
+
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/purchase-items?${params}`)
     if (response.success) {
       summary.value = response
@@ -237,11 +255,11 @@ const fetchSummary = async () => {
 }
 
 // Fetch sample purchase items
-const fetchPurchaseItems = async () => {
+const fetchPurchaseItems = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/reports/cross-tenant/purchase-items/dataview')
     if (response.success) {
-      purchaseItems.value = response.data || []
+      purchaseItems.value = (response.data ?? []) as PurchaseItem[]
     } else {
       purchaseItems.value = []
     }
@@ -252,7 +270,7 @@ const fetchPurchaseItems = async () => {
 }
 
 // Fetch all data
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   loading.value = true
   error.value = null
 
@@ -262,7 +280,7 @@ const fetchData = async () => {
       fetchPurchaseItems()
     ])
   } catch (err) {
-    error.value = err.message || 'Failed to fetch purchase items data'
+    error.value = err instanceof Error ? err.message : 'Failed to fetch purchase items data'
     console.error('Error fetching purchase items data:', err)
   } finally {
     loading.value = false
@@ -270,12 +288,12 @@ const fetchData = async () => {
 }
 
 // Refresh data
-const refreshData = () => {
-  fetchData()
+const refreshData = (): void => {
+  void fetchData()
 }
 
 // Helper functions
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
@@ -286,13 +304,13 @@ const formatDate = (dateString) => {
 }
 
 // Export functions
-const exportToJSON = async () => {
+const exportToJSON = async (): Promise<void> => {
   try {
     const params = new URLSearchParams()
     params.append('format', 'json')
     if (filters.value.start_date) params.append('start_date', filters.value.start_date)
     if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    
+
     const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/purchase-items/export?${params}`)
     if (response.success && response.data) {
       const jsonString = JSON.stringify(response.data, null, 2)
@@ -300,7 +318,7 @@ const exportToJSON = async () => {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `cross-tenant-purchase-summary_${new Date().toISOString().split('T')[0]}.json`
+      link.download = `cross-tenant-purchase-summary_${new Date().toISOString().split('T')[0] ?? ''}.json`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -308,83 +326,49 @@ const exportToJSON = async () => {
     } else {
       alert('No data available for export')
     }
-  } catch (error) {
-    console.error('Export error:', error)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
-const exportToCSV = async () => {
+const exportToCSV = async (): Promise<void> => {
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/purchase-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
+    const blob = await reportsService.exportPurchaseItemsSummaryCsv({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
     })
-
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cross-tenant-purchase-items_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
-  } catch (error) {
-    console.error('Export error:', error)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cross-tenant-purchase-items_${new Date().toISOString().split('T')[0] ?? ''}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
-const exportRawDataCSV = async () => {
+const exportRawDataCSV = async (): Promise<void> => {
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const params = new URLSearchParams()
-    params.append('format', 'csv')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    
     loading.value = true
-    const response = await fetch(`${baseURL}/api/reports/cross-tenant/raw-purchase-items/export?${params}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
+    const blob = await reportsService.exportPurchaseItemsRawCsv({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
     })
-
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `raw-purchase-items_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
-  } catch (error) {
-    console.error('Raw data export error:', error)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `raw-purchase-items_${new Date().toISOString().split('T')[0] ?? ''}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Raw data export error:', err)
     alert('Raw data export failed. Please try again.')
   } finally {
     loading.value = false
@@ -393,7 +377,7 @@ const exportRawDataCSV = async () => {
 
 // Initialize
 onMounted(() => {
-  fetchData()
+  void fetchData()
 })
 </script>
 

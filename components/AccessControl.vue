@@ -46,28 +46,28 @@
     </div>
   </template>
   
-  <script setup>
+  <script setup lang="ts">
   const isAuthenticated = ref(false)
   const error = ref('')
   const config = useRuntimeConfig()
-  
+
   const credentials = ref({
     username: '',
-    password: ''
+    password: '',
   })
-  
-  const authenticate = () => {
-    const validUsername = String(config.public.accessControlUsername || '').trim()
-    const validPassword = String(config.public.accessControlPassword || '')
+
+  const authenticate = (): void => {
+    const validUsername = String(config.public.accessControlUsername ?? '').trim()
+    const validPassword = String(config.public.accessControlPassword ?? '')
 
     if (!validUsername || !validPassword) {
       error.value = 'Access control credentials are not configured.'
       isAuthenticated.value = false
       return
     }
-  
+
     if (
-      credentials.value.username === validUsername && 
+      credentials.value.username === validUsername &&
       credentials.value.password === validPassword
     ) {
       isAuthenticated.value = true
@@ -77,4 +77,4 @@
       isAuthenticated.value = false
     }
   }
-  </script>
+</script>

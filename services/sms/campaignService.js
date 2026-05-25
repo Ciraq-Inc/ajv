@@ -1,6 +1,6 @@
 // SMS Campaign API Service
 
-export default (apiBase) => ({
+export const createCampaignService = (apiBase) => ({
   // Create a new campaign
   async createCampaign(data, token) {
     const response = await fetch(`${apiBase}/api/sms-campaigns`, {

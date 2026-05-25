@@ -19,7 +19,7 @@
       :event="{
         type: 'warning',
         title: 'Request closing soon',
-        description: `Your request ${expiringOrder.request_number || ''} hasn't been matched and closes in ${minutesRemaining(expiringOrder.expires_at)} min. We're still searching.`,
+        description: `Your request ${expiringOrder.request_number || ''} hasn't been matched and closes in ${minutesRemaining(expiringOrder.expires_at ?? '')} min. We're still searching.`,
         actionLabel: 'View',
         id: expiringOrder.id
       }"
@@ -242,6 +242,21 @@
           </div>
         </div>
       </div>
+
+      <!-- Load more -->
+      <div v-if="userStore.nextCursor" class="mt-8 flex justify-center">
+        <button
+          :disabled="isLoadingMore"
+          @click="loadMore"
+          class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200 inline-flex items-center gap-2 shadow-md font-medium"
+        >
+          <svg v-if="isLoadingMore" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          {{ isLoadingMore ? 'Loading...' : 'Load more' }}
+        </button>
+      </div>
     </div>
 
     <!-- Cancel Order Modal -->
@@ -256,265 +271,276 @@
   </div>
 </template>
 
-<script setup>
-import { useRouter } from 'vue-router';
-import { useUserStore } from '~/stores/user';
-import { usePharmacyStore } from '~/stores/pharmacy';
-import { useCartStore } from '~/stores/cart';
-import AlertBanner from '~/components/customers/AlertBanner.vue';
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { useUserStore } from '~/stores/user'
+import { usePharmacyStore } from '~/stores/pharmacy'
+import { useCartStore } from '~/stores/cart'
+import AlertBanner from '~/components/customers/AlertBanner.vue'
 
-const router = useRouter();
-const userStore = useUserStore();
-const pharmacyStore = usePharmacyStore();
-const cartStore = useCartStore();
+interface OrderItem {
+  id: number | string
+  brandName: string
+  price: number | string
+  quantity: number
+  subtotal?: number | string
+}
+
+interface Order {
+  id: number | string
+  orderId: string
+  status: string
+  createdAt: string
+  expires_at?: string | null
+  items: OrderItem[]
+  totalQuantity?: number
+  totalAmount?: number | string
+  request_number?: string | null
+}
+
+// TODO: remove once stores/ are .ts
+const userStore = useUserStore() as unknown as {
+  isLoggedIn: boolean
+  nextCursor: string | null
+  checkAuthState: () => Promise<void>
+  getOrderHistory: (filters?: { status?: string; limit?: number; offset?: number; cursor?: string }) => Promise<Order[]>
+}
+const pharmacyStore = usePharmacyStore() as unknown as {
+  pharmacySlug?: string | null
+}
+const cartStore = useCartStore() as unknown as {
+  clearCart: () => void
+  addToCart: (item: { id: number | string; name: string; price: number | string; quantity: number }) => void
+  toggleCart: () => void
+}
+
+const router = useRouter()
 
 // Page state
-const orders = ref([]);
-const isLoading = ref(false);
-const error = ref('');
-const dismissedExpiryBanner = ref(false);
-const showLoginModal = ref(false);
-const showCancelModal = ref(false);
-const orderToCancel = ref('');
-const dateFilter = ref({
+const orders = ref<Order[]>([])
+const isLoading = ref<boolean>(false)
+const isLoadingMore = ref<boolean>(false)
+const error = ref<string>('')
+const dismissedExpiryBanner = ref<boolean>(false)
+const showLoginModal = ref<boolean>(false)
+const showCancelModal = ref<boolean>(false)
+const orderToCancel = ref<string>('')
+const dateFilter = ref<{ startDate: string; endDate: string }>({
   startDate: '',
-  endDate: ''
-});
+  endDate: '',
+})
 
 onMounted(async () => {
-  // First check if user is authenticated
-  await userStore.checkAuthState();
-  // Then fetch orders
-  await fetchOrders();
-});
+  await userStore.checkAuthState()
+  await fetchOrders()
+})
 
-// Define page metadata
 definePageMeta({
   layout: 'pharm',
-  middleware: ['pharmacy']
-});
+  middleware: ['pharmacy'],
+})
 
-const isFilterActive = computed(() => {
-  return dateFilter.value.startDate || dateFilter.value.endDate;
-});
+const isFilterActive = computed<boolean>(() => {
+  return !!(dateFilter.value.startDate || dateFilter.value.endDate)
+})
 
-const filteredOrders = computed(() => {
+const filteredOrders = computed<Order[]>(() => {
   if (!isFilterActive.value) {
-    return orders.value;
+    return orders.value
   }
 
   return orders.value.filter(order => {
-    const orderDate = new Date(order.createdAt);
+    const orderDate = new Date(order.createdAt)
+    orderDate.setHours(0, 0, 0, 0)
 
-    // Set time to midnight for proper comparison
-    orderDate.setHours(0, 0, 0, 0);
-
-    // Check if the order date is within the selected range
-    let isInRange = true;
+    let isInRange = true
 
     if (dateFilter.value.startDate) {
-      const startDate = new Date(dateFilter.value.startDate);
-      startDate.setHours(0, 0, 0, 0);
-      isInRange = isInRange && orderDate >= startDate;
+      const startDate = new Date(dateFilter.value.startDate)
+      startDate.setHours(0, 0, 0, 0)
+      isInRange = isInRange && orderDate >= startDate
     }
 
     if (dateFilter.value.endDate) {
-      const endDate = new Date(dateFilter.value.endDate);
-      endDate.setHours(23, 59, 59, 999); // End of the day
-      isInRange = isInRange && orderDate <= endDate;
+      const endDate = new Date(dateFilter.value.endDate)
+      endDate.setHours(23, 59, 59, 999)
+      isInRange = isInRange && orderDate <= endDate
     }
 
-    return isInRange;
-  });
-});
+    return isInRange
+  })
+})
 
-const EXPIRY_WARN_MS = 20 * 60 * 1000;
+const EXPIRY_WARN_MS = 20 * 60 * 1000
 
-const expiringOrder = computed(() =>
+const expiringOrder = computed<Order | undefined>(() =>
   orders.value.find(o =>
     o.status === 'pending' &&
     o.expires_at &&
-    new Date(o.expires_at) - Date.now() > 0 &&
-    new Date(o.expires_at) - Date.now() < EXPIRY_WARN_MS
+    new Date(o.expires_at).getTime() - Date.now() > 0 &&
+    new Date(o.expires_at).getTime() - Date.now() < EXPIRY_WARN_MS
   )
-);
+)
 
-const minutesRemaining = (expiresAt) =>
-  Math.max(0, Math.ceil((new Date(expiresAt) - Date.now()) / 60000));
+const minutesRemaining = (expiresAt: string): number =>
+  Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 60000))
 
-const scrollToOrder = (id) => {
-  const el = document.getElementById(`order-${id}`);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-};
+const scrollToOrder = (id: number | string): void => {
+  const el = document.getElementById(`order-${id}`)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
 
-// Fetch order history from user store
-const fetchOrders = async () => {
-  if (!userStore.isLoggedIn) return;
+const fetchOrders = async (): Promise<void> => {
+  if (!userStore.isLoggedIn) return
 
-  isLoading.value = true;
-  error.value = '';
+  isLoading.value = true
+  error.value = ''
 
   try {
-    const orderHistory = await userStore.getOrderHistory();
-    orders.value = orderHistory;
+    const orderHistory = await userStore.getOrderHistory()
+    orders.value = orderHistory
   } catch (err) {
-    console.error('Failed to fetch orders:', err);
-    error.value = err.message || 'Failed to load your order history. Please try again.';
+    console.error('Failed to fetch orders:', err)
+    error.value = err instanceof Error ? err.message : 'Failed to load your order history. Please try again.'
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
-// Format order ID to be more readable
-const formatOrderId = (orderId) => {
-  if (!orderId) return 'N/A';
+const loadMore = async (): Promise<void> => {
+  if (!userStore.isLoggedIn || !userStore.nextCursor || isLoadingMore.value) return
 
-  // Return the last 8 characters if it's too long
-  return orderId.length > 8 ? `...${orderId.slice(-8)}` : orderId;
-};
+  isLoadingMore.value = true
+  try {
+    const nextPage = await userStore.getOrderHistory({ cursor: userStore.nextCursor })
+    orders.value = [...orders.value, ...nextPage]
+  } catch (err) {
+    console.error('Failed to load more orders:', err)
+  } finally {
+    isLoadingMore.value = false
+  }
+}
 
-// Format order date to be more readable
-const formatOrderDate = (dateString) => {
-  if (!dateString) return 'Unknown date';
+const formatOrderId = (orderId: string | undefined | null): string => {
+  if (!orderId) return 'N/A'
+  return orderId.length > 8 ? `...${orderId.slice(-8)}` : orderId
+}
+
+const formatOrderDate = (dateString: string | undefined | null): string => {
+  if (!dateString) return 'Unknown date'
 
   try {
-    const date = new Date(dateString);
+    const date = new Date(dateString)
     return date.toLocaleString('en-GB', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    });
+      minute: '2-digit',
+    })
   } catch (e) {
-    return dateString;
+    return dateString
   }
-};
+}
 
-// Format price with 2 decimal places
-const formatPrice = (price) => {
-  return Number(price || 0).toFixed(2);
-};
+const formatPrice = (price: number | string | undefined | null): string => {
+  return Number(price ?? 0).toFixed(2)
+}
 
-// Capitalize the first letter of a string
-const capitalizeFirstLetter = (string) => {
-  if (!string) return '';
-  return string.charAt(0).toUpperCase() + string.slice(1);
-};
+const capitalizeFirstLetter = (string: string | undefined | null): string => {
+  if (!string) return ''
+  return string.charAt(0).toUpperCase() + string.slice(1)
+}
 
-// Get CSS classes for different order status colors
-const getStatusClass = (status) => {
+const getStatusClass = (status: string | undefined): string => {
   switch (status) {
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'processing':
-      return 'bg-blue-100 text-blue-800';
-    case 'delivered':
-      return 'bg-green-100 text-green-800';
-    case 'completed':
-      return 'bg-green-100 text-green-800';
-    case 'cancelled':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+    case 'pending':    return 'bg-yellow-100 text-yellow-800'
+    case 'processing': return 'bg-blue-100 text-blue-800'
+    case 'delivered':  return 'bg-green-100 text-green-800'
+    case 'completed':  return 'bg-green-100 text-green-800'
+    case 'cancelled':  return 'bg-red-100 text-red-800'
+    default:           return 'bg-gray-100 text-gray-800'
   }
-};
+}
 
-// Get header background colors based on order status
-const getHeaderBackgroundClass = (status) => {
+const getHeaderBackgroundClass = (status: string | undefined): string => {
   switch (status) {
-    case 'pending':
-      return 'bg-yellow-50 text-yellow-800';
-    case 'processing':
-      return 'bg-blue-50 text-blue-800';
-    case 'delivered':
-      return 'bg-green-50 text-green-800';
-    case 'completed':
-      return 'bg-green-50 text-green-800';
-    case 'cancelled':
-      return 'bg-red-50 text-red-800';
-    default:
-      return 'bg-gray-50 text-gray-800';
+    case 'pending':    return 'bg-yellow-50 text-yellow-800'
+    case 'processing': return 'bg-blue-50 text-blue-800'
+    case 'delivered':  return 'bg-green-50 text-green-800'
+    case 'completed':  return 'bg-green-50 text-green-800'
+    case 'cancelled':  return 'bg-red-50 text-red-800'
+    default:           return 'bg-gray-50 text-gray-800'
   }
-};
+}
 
-const clearDateFilter = () => {
-  dateFilter.value.startDate = '';
-  dateFilter.value.endDate = '';
-};
+const clearDateFilter = (): void => {
+  dateFilter.value.startDate = ''
+  dateFilter.value.endDate = ''
+}
 
-// Navigation functions
-const goBack = () => {
-  router.back();
-};
+const goBack = (): void => {
+  router.back()
+}
 
-const goShopping = () => {
+const goShopping = (): void => {
   if (pharmacyStore.pharmacySlug) {
-    router.push(`/${pharmacyStore.pharmacySlug}`);
+    void router.push(`/${pharmacyStore.pharmacySlug}`)
   } else {
-    router.push('/');
+    void router.push('/')
   }
-};
+}
 
-// Handle login success
-const handleLoginSuccess = async (payload = {}) => {
+const handleLoginSuccess = async (payload: { destination?: string } = {}): Promise<void> => {
   if (payload.destination === 'new') {
-    navigateTo('/customer?tab=new');
-    return;
+    void navigateTo('/customer?tab=new')
+    return
   }
-  showLoginModal.value = false;
-  await fetchOrders();
-};
+  showLoginModal.value = false
+  await fetchOrders()
+}
 
-// Cancel an order
-const cancelOrder = async (orderId) => {
-  orderToCancel.value = orderId;
-  showCancelModal.value = true;
-};
+const cancelOrder = (orderId: string): void => {
+  orderToCancel.value = orderId
+  showCancelModal.value = true
+}
 
-// Handle cancellation success
-const handleCancellationSuccess = async (orderId) => {
-  // Find the order in the list and update its status locally
-  const orderIndex = orders.value.findIndex(order => order.orderId === orderId);
+const handleCancellationSuccess = (orderId: string | undefined): void => {
+  const orderIndex = orders.value.findIndex(order => order.orderId === orderId)
   if (orderIndex !== -1) {
-    orders.value[orderIndex].status = 'cancelled';
+    const order = orders.value[orderIndex]
+    if (order) order.status = 'cancelled'
   }
 
-  // Fetch updated orders to ensure everything is in sync
   setTimeout(() => {
-    fetchOrders();
-  }, 1500); // Give the modal time to close
-};
+    void fetchOrders()
+  }, 1500)
+}
 
-// Reorder items from a previous order
-const reorderItems = (items) => {
-  if (!items || !items.length) return;
+const reorderItems = (items: OrderItem[] | undefined | null): void => {
+  if (!items || !items.length) return
 
-  // Clear the cart first
-  cartStore.clearCart();
+  cartStore.clearCart()
 
-  // Add each item to the cart
   items.forEach(item => {
     cartStore.addToCart({
       id: item.id,
       name: item.brandName,
       price: item.price,
       quantity: item.quantity,
-    });
-  });
+    })
+  })
 
-  // Navigate to the pharmacy page
   if (pharmacyStore.pharmacySlug) {
-    router.push(`/${pharmacyStore.pharmacySlug}`);
+    void router.push(`/${pharmacyStore.pharmacySlug}`)
   } else {
-    router.push('/');
+    void router.push('/')
   }
 
-  // Open the cart sidebar
   setTimeout(() => {
-    cartStore.toggleCart();
-  }, 500);
-};
+    cartStore.toggleCart()
+  }, 500)
+}
 </script>
 
 <style scoped>

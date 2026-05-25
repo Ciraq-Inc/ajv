@@ -1,11 +1,18 @@
 <template>
   <div v-if="isOpen" class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/50 p-4" @click.self="$emit('close')">
-    <div class="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+    <div
+      ref="dialogRef"
+      role="alertdialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
+      :aria-describedby="message ? descId : ''"
+      tabindex="-1"
+      class="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
       <div class="flex h-12 w-12 items-center justify-center rounded-2xl" :class="variant === 'danger' ? 'bg-red-100 text-red-600' : 'bg-sky-100 text-sky-700'">
-        <i :class="variant === 'danger' ? 'ri-logout-box-line' : 'ri-question-line'" class="text-2xl"></i>
+        <i :class="variant === 'danger' ? 'ri-logout-box-line' : 'ri-question-line'" class="text-2xl" aria-hidden="true"></i>
       </div>
-      <h3 class="mt-4 text-xl font-bold text-slate-900">{{ title }}</h3>
-      <p class="mt-2 text-sm leading-6 text-slate-600">{{ message }}</p>
+      <h3 :id="titleId" class="mt-4 text-xl font-bold text-slate-900">{{ title }}</h3>
+      <p :id="descId" class="mt-2 text-sm leading-6 text-slate-600">{{ message }}</p>
 
       <div class="mt-6 flex gap-3">
         <button
@@ -28,15 +35,29 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  isOpen: { type: Boolean, default: false },
-  title: { type: String, default: 'Are you sure?' },
-  message: { type: String, default: '' },
-  confirmText: { type: String, default: 'Confirm' },
-  cancelText: { type: String, default: 'Cancel' },
-  variant: { type: String, default: 'danger' },
-})
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useModalA11y } from '~/composables/useModalA11y'
 
-defineEmits(['close', 'confirm'])
+const props = defineProps<{
+  isOpen?: boolean
+  title?: string
+  message?: string
+  confirmText?: string
+  cancelText?: string
+  variant?: string
+}>()
+
+const emit = defineEmits<{
+  close: []
+  confirm: []
+}>()
+
+// Stable per-instance IDs so aria-labelledby / aria-describedby never collide.
+const _uid = Math.random().toString(36).slice(2, 9)
+const titleId = `confirm-dlg-title-${_uid}`
+const descId = `confirm-dlg-desc-${_uid}`
+
+const dialogRef = ref<HTMLElement | null>(null)
+useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'))
 </script>

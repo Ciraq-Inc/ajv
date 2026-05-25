@@ -1,5 +1,11 @@
-@import 'material-symbols/outlined.css';
-@import 'remixicon/fonts/remixicon.css';
+/*
+ * remixicon-slim.css is a generated copy of remixicon/fonts/remixicon.css with
+ * the @font-face block rewritten to woff2-only. Source vendor stylesheet
+ * referenced 5 font formats (eot/ttf/svg/woff/woff2 = ~4.7 MB total of which
+ * woff2 is 189 KB). Slim variant ships only woff2; all target browsers support
+ * it. Generator: scripts/generate-remixicon-slim.mjs (runs in postinstall).
+ */
+@import './remixicon-slim.css';
 @import './rigelis.css';
 
 @tailwind base;
@@ -11,5 +17,53 @@
   body {
     overflow-x: hidden;
     max-width: 100%;
+  }
+
+
+  /* Accessible "skip to main content" link.
+     Visually hidden until it receives keyboard focus; required by
+     WCAG 2.4.1 (Bypass Blocks) so keyboard / screen-reader users
+     can jump past the nav landmark. */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #3C0753;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    z-index: 1000;
+    border-radius: 0 0 0.5rem 0;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .skip-link:focus {
+    top: 0;
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+  }
+}
+
+/* WCAG 2.3.3 / 2.2.2: honour the OS-level reduced-motion preference.
+   Strips animations, transitions, and Nuxt's `page-*` route transition
+   so users with vestibular sensitivities aren't pulled by motion. */
+/* Outside any @layer so it wins over Tailwind utility classes (text-sm etc.)
+   Prevents iOS Safari from zooming on input focus when font-size < 16px */
+input, textarea, select {
+  font-size: max(16px, 1em);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .page-enter-active,
+  .page-leave-active {
+    transition: none !important;
   }
 }

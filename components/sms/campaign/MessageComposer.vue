@@ -142,35 +142,37 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { DYNAMIC_VARIABLES, validateMessageTemplate, replaceVariables, getSmsLengthInfo } from '~/utils/constants/sms'
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ''
-  },
-  showVariablePicker: {
-    type: Boolean,
-    default: true
-  },
-  showPreview: {
-    type: Boolean,
-    default: true
-  },
-  showTips: {
-    type: Boolean,
-    default: true
-  }
-})
+interface MessageValidationResult {
+  isValid: boolean
+  invalidVariables: string[]
+}
 
-const emit = defineEmits(['update:modelValue', 'validation'])
+interface MessageInfo {
+  length: number
+  parts: number
+  remaining: number
+}
 
-const localMessage = ref(props.modelValue)
+const props = defineProps<{
+  modelValue?: string
+  showVariablePicker?: boolean
+  showPreview?: boolean
+  showTips?: boolean
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  validation: [result: { isValid: boolean; messageInfo: MessageInfo; invalidVariables: string[] }]
+}>()
+
+const localMessage = ref(props.modelValue ?? '')
 const isVariablePickerOpen = ref(false)
 const useCustomPreviewData = ref(false)
-const textareaRef = ref(null)
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const cursorPosition = ref(0)
 
 const previewData = ref({
@@ -182,54 +184,43 @@ const previewData = ref({
   phone: '+233241234567',
   email: 'john@example.com',
   city: 'Accra',
-  customer_type: 'retail'
+  customer_type: 'retail',
 })
 
 const availableVariables = DYNAMIC_VARIABLES
 
-// Validate message
-const validation = computed(() => validateMessageTemplate(localMessage.value))
+const validation = computed<MessageValidationResult>(() => validateMessageTemplate(localMessage.value))
+const hasInvalidVariables = computed<boolean>(() => !validation.value.isValid)
+const invalidVariables = computed<string[]>(() => validation.value.invalidVariables)
+const messageInfo = computed<MessageInfo>(() => getSmsLengthInfo(localMessage.value))
 
-const hasInvalidVariables = computed(() => !validation.value.isValid)
-
-const invalidVariables = computed(() => validation.value.invalidVariables)
-
-// Get message info (length, parts)
-const messageInfo = computed(() => getSmsLengthInfo(localMessage.value))
-
-// Preview message with replaced variables
-const previewMessage = computed(() => {
+const previewMessage = computed<string>(() => {
   if (!localMessage.value) return 'Your message will appear here...'
   return replaceVariables(localMessage.value, previewData.value)
 })
 
-// Handle input
-const handleInput = () => {
+const handleInput = (): void => {
   emit('update:modelValue', localMessage.value)
   emit('validation', {
     isValid: validation.value.isValid,
     messageInfo: messageInfo.value,
-    invalidVariables: invalidVariables.value
+    invalidVariables: invalidVariables.value,
   })
 }
 
-// Update cursor position
-const updateCursorPosition = () => {
+const updateCursorPosition = (): void => {
   if (textareaRef.value) {
-    cursorPosition.value = textareaRef.value.selectionStart
+    cursorPosition.value = textareaRef.value.selectionStart ?? 0
   }
 }
 
-// Insert variable at cursor position
-const insertVariable = (variableKey) => {
+const insertVariable = (variableKey: string): void => {
   if (!textareaRef.value) return
-  
+
   const start = cursorPosition.value
   const text = localMessage.value
-  
   localMessage.value = text.substring(0, start) + variableKey + text.substring(start)
-  
-  // Move cursor after inserted variable
+
   nextTick(() => {
     if (textareaRef.value) {
       textareaRef.value.focus()
@@ -238,15 +229,15 @@ const insertVariable = (variableKey) => {
       cursorPosition.value = newPos
     }
   })
-  
+
   handleInput()
   isVariablePickerOpen.value = false
 }
 
-// Watch for external changes
-watch(() => props.modelValue, (newValue) => {
-  if (newValue !== localMessage.value) {
-    localMessage.value = newValue
-  }
-})
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue !== localMessage.value) localMessage.value = newValue ?? ''
+  },
+)
 </script>

@@ -231,59 +231,63 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useAdminStore } from '~/stores/admin';
+import { createAdminService } from '~/services/admin/adminService';
 
 definePageMeta({
   layout: 'admin-layout',
   middleware: ['admin-auth']
 });
 
-const config = useRuntimeConfig();
-const adminStore = useAdminStore();
+interface Signup {
+  id: string | number;
+  fname?: string;
+  lname?: string;
+  phone?: string;
+  email?: string;
+  gender?: string;
+  city?: string;
+  created_at?: string;
+}
+
+const adminService = createAdminService(useApi());
 
 // State
-const signups = ref([]);
-const isLoading = ref(false);
-const errorMessage = ref('');
-const searchQuery = ref('');
-const genderFilter = ref('');
-const cityFilter = ref('');
+const signups = ref<Signup[]>([]);
+const isLoading = ref<boolean>(false);
+const errorMessage = ref<string>('');
+const searchQuery = ref<string>('');
+const genderFilter = ref<string>('');
+const cityFilter = ref<string>('');
 
 // Fetch signups from API
-const fetchSignups = async () => {
+const fetchSignups = async (): Promise<void> => {
   isLoading.value = true;
   errorMessage.value = '';
-  
+
   try {
-    const response = await fetch(`${config.public.apiBase}/api/admin/signups`, {
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`
-      }
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.message || data.error || `HTTP ${response.status}: Failed to fetch signups`);
-    }
-    
-    signups.value = data.data || [];
+    // Service-layer call. Bearer header is injected by `useApi` (admin-token
+    // fallback for `/api/admin/*`). `listSignups()` throws on non-2xx with
+    // `error.message` already populated from the server envelope's
+    // `message`/`error` field, matching the prior raw-fetch behavior.
+    const data = await adminService.listSignups();
+
+    signups.value = (data.data ?? []) as Signup[];
     console.log('Loaded signups:', signups.value.length);
   } catch (error) {
     console.error('Error fetching signups:', error);
-    errorMessage.value = error.message || 'Failed to load signups';
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to load signups';
   } finally {
     isLoading.value = false;
   }
 };
 
 // Computed: Total signups
-const totalSignups = computed(() => signups.value.length);
+const totalSignups = computed<number>(() => signups.value.length);
 
 // Computed: Gender statistics
-const genderStats = computed(() => {
+const genderStats = computed<{ male: number; female: number; other: number }>(() => {
   const stats = { male: 0, female: 0, other: 0 };
   signups.value.forEach(signup => {
     if (signup.gender === 'male') stats.male++;
@@ -294,24 +298,24 @@ const genderStats = computed(() => {
 });
 
 // Computed: Email statistics
-const emailStats = computed(() => {
-  return signups.value.filter(s => s.email && s.email.trim() !== '').length;
-});
+const emailStats = computed<number>(() =>
+  signups.value.filter(s => s.email && s.email.trim() !== '').length
+);
 
 // Computed: Unique cities
-const uniqueCities = computed(() => {
-  const cities = [...new Set(signups.value.map(s => s.city).filter(Boolean))];
+const uniqueCities = computed<string[]>(() => {
+  const cities = [...new Set(signups.value.map(s => s.city).filter((c): c is string => !!c))];
   return cities.sort();
 });
 
 // Computed: Filtered signups
-const filteredSignups = computed(() => {
+const filteredSignups = computed<Signup[]>(() => {
   let filtered = [...signups.value];
-  
+
   // Search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(s => 
+    filtered = filtered.filter(s =>
       (s.fname && s.fname.toLowerCase().includes(query)) ||
       (s.lname && s.lname.toLowerCase().includes(query)) ||
       (s.phone && s.phone.includes(query)) ||
@@ -319,51 +323,51 @@ const filteredSignups = computed(() => {
       (s.city && s.city.toLowerCase().includes(query))
     );
   }
-  
+
   // Gender filter
   if (genderFilter.value) {
     filtered = filtered.filter(s => s.gender === genderFilter.value);
   }
-  
+
   // City filter
   if (cityFilter.value) {
     filtered = filtered.filter(s => s.city === cityFilter.value);
   }
-  
+
   return filtered;
 });
 
 // Helper: Get initials
-const getInitials = (fname, lname) => {
+const getInitials = (fname: string | undefined, lname: string | undefined): string => {
   const first = fname ? fname.charAt(0).toUpperCase() : '';
   const last = lname ? lname.charAt(0).toUpperCase() : '';
-  return first + last || '?';
+  return (first + last) || '?';
 };
 
 // Helper: Format gender
-const formatGender = (gender) => {
-  const map = {
-    'male': 'Male',
-    'female': 'Female',
-    'other': 'Other',
-    'prefer_not_to_say': 'N/A'
+const formatGender = (gender: string | undefined): string => {
+  const map: Record<string, string> = {
+    male: 'Male',
+    female: 'Female',
+    other: 'Other',
+    prefer_not_to_say: 'N/A',
   };
-  return map[gender] || gender || 'N/A';
+  return (gender !== undefined ? map[gender] : undefined) ?? gender ?? 'N/A';
 };
 
 // Helper: Get gender badge class
-const getGenderBadgeClass = (gender) => {
-  const classes = {
-    'male': 'bg-blue-100 text-blue-800',
-    'female': 'bg-pink-100 text-pink-800',
-    'other': 'bg-purple-100 text-purple-800',
-    'prefer_not_to_say': 'bg-gray-100 text-gray-800'
+const getGenderBadgeClass = (gender: string | undefined): string => {
+  const classes: Record<string, string> = {
+    male: 'bg-blue-100 text-blue-800',
+    female: 'bg-pink-100 text-pink-800',
+    other: 'bg-purple-100 text-purple-800',
+    prefer_not_to_say: 'bg-gray-100 text-gray-800',
   };
-  return classes[gender] || 'bg-gray-100 text-gray-800';
+  return (gender !== undefined ? classes[gender] : undefined) ?? 'bg-gray-100 text-gray-800';
 };
 
 // Helper: Format date
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return '-';
   const date = new Date(dateString);
   return date.toLocaleString('en-US', {
@@ -371,39 +375,39 @@ const formatDate = (dateString) => {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 };
 
 // Export to CSV
-const exportToCSV = () => {
+const exportToCSV = (): void => {
   const headers = ['Name', 'Phone', 'Email', 'Gender', 'City', 'Signed Up'];
   const rows = filteredSignups.value.map(s => [
-    `${s.fname} ${s.lname}`,
-    s.phone,
-    s.email || '',
+    `${s.fname ?? ''} ${s.lname ?? ''}`.trim(),
+    s.phone ?? '',
+    s.email ?? '',
     formatGender(s.gender),
-    s.city || '',
-    formatDate(s.created_at)
+    s.city ?? '',
+    formatDate(s.created_at),
   ]);
-  
+
   const csv = [
     headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
   ].join('\n');
-  
+
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `waitlist-signups-${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `waitlist-signups-${new Date().toISOString().split('T')[0] ?? 'export'}.csv`;
   a.click();
   window.URL.revokeObjectURL(url);
 };
 
 // Lifecycle
 onMounted(() => {
-  fetchSignups();
+  void fetchSignups();
 });
 </script>
 

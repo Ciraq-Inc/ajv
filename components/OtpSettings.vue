@@ -119,78 +119,96 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { otpConfig } from '~/utils/otpConfig';
 import { otpService } from '~/utils/otpService';
 
-const pharmacyStore = usePharmacyStore();
+// TODO: remove once stores/ are .ts
+interface PharmacyStoreShape {
+  currentPharmacy: unknown;
+}
+
+const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
+
+interface OtpSettings {
+  mNotifyApiKey: string;
+  senderID: string;
+  otpLength: number;
+  otpExpiryMinutes: number;
+  maxRetries: number;
+}
 
 // State
-const settings = reactive({
+const settings = reactive<OtpSettings>({
   mNotifyApiKey: '',
   senderID: 'PHARMACY',
   otpLength: 6,
   otpExpiryMinutes: 5,
-  maxRetries: 3
+  maxRetries: 3,
 });
 
-const isSaving = ref(false);
-const showSuccess = ref(false);
-const testPhone = ref('');
-const isSendingTest = ref(false);
-const testResult = ref('');
-const testSuccess = ref(false);
+const isSaving = ref<boolean>(false);
+const showSuccess = ref<boolean>(false);
+const testPhone = ref<string>('');
+const isSendingTest = ref<boolean>(false);
+const testResult = ref<string>('');
+const testSuccess = ref<boolean>(false);
 
 // Computed
 const pharmacyId = computed(() => pharmacyStore.currentPharmacy);
 
 // Convert OTP expiry from minutes to milliseconds
-const otpExpiryMs = computed(() => settings.otpExpiryMinutes * 60 * 1000);
+const otpExpiryMs = computed<number>(() => settings.otpExpiryMinutes * 60 * 1000);
 
 // Load settings on component mount
 onMounted(() => {
   // Load config from storage
-  const config = otpConfig.loadConfig(pharmacyId.value);
-  
+  const config = otpConfig.loadConfig(pharmacyId.value) as {
+    mNotifyApiKey?: string;
+    senderID?: string;
+    otpLength?: number;
+    maxRetries?: number;
+    otpExpiry?: number;
+  };
+
   // Update reactive settings
-  settings.mNotifyApiKey = config.mNotifyApiKey || '';
-  settings.senderID = config.senderID || 'PHARMACY';
-  settings.otpLength = config.otpLength || 6;
-  settings.maxRetries = config.maxRetries || 3;
-  
+  settings.mNotifyApiKey = config.mNotifyApiKey ?? '';
+  settings.senderID = config.senderID ?? 'PHARMACY';
+  settings.otpLength = config.otpLength ?? 6;
+  settings.maxRetries = config.maxRetries ?? 3;
+
   // Convert milliseconds to minutes for the UI
-  settings.otpExpiryMinutes = (config.otpExpiry || 300000) / (60 * 1000);
+  settings.otpExpiryMinutes = (config.otpExpiry ?? 300000) / (60 * 1000);
 });
 
 // Save settings
-const saveSettings = async () => {
+const saveSettings = async (): Promise<void> => {
   isSaving.value = true;
-  
+
   try {
     // Convert minutes to milliseconds for storage
     const updatedConfig = otpConfig.updateConfig(pharmacyId.value, {
       mNotifyApiKey: settings.mNotifyApiKey,
       senderID: settings.senderID,
-      otpLength: parseInt(settings.otpLength),
-      otpExpiry: parseInt(settings.otpExpiryMinutes) * 60 * 1000,
-      maxRetries: parseInt(settings.maxRetries)
-    });
-    
+      otpLength: parseInt(String(settings.otpLength), 10),
+      otpExpiry: parseInt(String(settings.otpExpiryMinutes), 10) * 60 * 1000,
+      maxRetries: parseInt(String(settings.maxRetries), 10),
+    }) as unknown as { otpLength: number; otpExpiry: number; mNotifyApiKey: string };
+
     // Update the OTP service with new settings
-    otpService.otpLength = updatedConfig.otpLength;
-    otpService.otpExpiry = updatedConfig.otpExpiry;
-    otpService.mNotifyApiKey = updatedConfig.mNotifyApiKey;
-    
+    (otpService as { otpLength: number }).otpLength = updatedConfig.otpLength;
+    (otpService as { otpExpiry: number }).otpExpiry = updatedConfig.otpExpiry;
+    (otpService as unknown as { mNotifyApiKey: string }).mNotifyApiKey = updatedConfig.mNotifyApiKey;
+
     // Show success message
     showSuccess.value = true;
     setTimeout(() => {
       showSuccess.value = false;
     }, 3000);
-    
-  } catch (error) {
-    console.error('Error saving OTP settings:', error);
+  } catch (err) {
+    console.error('Error saving OTP settings:', err);
     alert('Failed to save settings. Please try again.');
   } finally {
     isSaving.value = false;
@@ -198,36 +216,35 @@ const saveSettings = async () => {
 };
 
 // Send test OTP
-const sendTestOTP = async () => {
+const sendTestOTP = async (): Promise<void> => {
   if (!testPhone.value) {
     alert('Please enter a phone number for testing');
     return;
   }
-  
+
   isSendingTest.value = true;
   testResult.value = '';
   testSuccess.value = false;
-  
+
   try {
     // Format the phone number
-    const formattedPhone = otpService.formatPhoneNumber(testPhone.value);
-    
+    const formattedPhone = (otpService as { formatPhoneNumber: (p: string) => string }).formatPhoneNumber(testPhone.value);
+
     // Generate a test OTP
-    const otp = otpService.generateOtp();
-    
+    const otp = (otpService as { generateOtp: () => string }).generateOtp();
+
     // Update service with current settings
-    otpService.mNotifyApiKey = settings.mNotifyApiKey;
-    
+    (otpService as unknown as { mNotifyApiKey: string }).mNotifyApiKey = settings.mNotifyApiKey;
+
     // Send the OTP using mNotify
-    const response = await otpService.sendOtpViaMNotify(formattedPhone, otp);
-    
+    await (otpService as { sendOtpViaMNotify: (p: string, o: string) => Promise<unknown> }).sendOtpViaMNotify(formattedPhone, otp);
+
     // Show success message
     testResult.value = `Test OTP sent successfully! Code: ${otp} (Only shown for testing purposes)`;
     testSuccess.value = true;
-    
-  } catch (error) {
-    console.error('Error sending test OTP:', error);
-    testResult.value = `Error: ${error.message || 'Failed to send test OTP'}`;
+  } catch (err) {
+    console.error('Error sending test OTP:', err);
+    testResult.value = `Error: ${err instanceof Error ? err.message : 'Failed to send test OTP'}`;
     testSuccess.value = false;
   } finally {
     isSendingTest.value = false;

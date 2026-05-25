@@ -129,7 +129,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="company in summaryData" :key="company.company_id" class="hover:bg-gray-50">
+            <tr v-for="company in summaryData" :key="company.company_id ?? ''" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
@@ -164,7 +164,7 @@
       <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white" @click.stop>
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-800">Sample Customer Records</h3>
-          <button @click="showCustomerModal = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="showCustomerModal = false" class="text-gray-500 hover:text-gray-700">
             <span class="text-2xl">&times;</span>
           </button>
         </div>
@@ -208,7 +208,7 @@
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="customer in customers" :key="customer.id" class="hover:bg-gray-50">
+              <tr v-for="customer in customers" :key="customer.id ?? ''" class="hover:bg-gray-50">
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="flex items-center">
                   
@@ -261,59 +261,95 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, UserGroupIcon, CheckCircleIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
-const adminStore = useAdminStore()
+interface CompanySummary {
+  company_id?: string | number;
+  company_name?: string;
+  total_customers?: number;
+  active_customers?: number;
+  retail_customers?: number;
+  insurance_customers?: number;
+  wholesale_customers?: number;
+  vip_customers?: number;
+  inactive_customers?: number;
+  [key: string]: unknown;
+}
+
+interface Customer {
+  id?: string | number;
+  fname?: string;
+  lname?: string;
+  email?: string;
+  phone?: string;
+  company_name?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+// TODO: remove once stores/ are .ts
+interface AdminStoreShape {
+  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
+}
+
+// TODO: remove once services/ are .ts
+interface ReportsServiceShape {
+  exportCustomersCsv: () => Promise<Blob>;
+}
+
+const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reportsService = createReportsExportService(useApi()) as unknown as ReportsServiceShape
 
 // Reactive data
-const loading = ref(false)
-const error = ref(null)
-const showCustomerModal = ref(false)
+const loading = ref<boolean>(false)
+const error = ref<string | null>(null)
+const showCustomerModal = ref<boolean>(false)
 
 // Analytics data
-const summaryData = ref([])
-const customers = ref([])
+const summaryData = ref<CompanySummary[]>([])
+const customers = ref<Customer[]>([])
 
 // Computed properties for summary totals
-const totalCustomers = computed(() => {
+const totalCustomers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.total_customers || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.total_customers ?? 0), 0)
 })
 
-const totalActiveCustomers = computed(() => {
+const totalActiveCustomers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.active_customers || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.active_customers ?? 0), 0)
 })
 
-const totalRetailCustomers = computed(() => {
+const totalRetailCustomers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.retail_customers || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.retail_customers ?? 0), 0)
 })
 
-const totalInsuranceCustomers = computed(() => {
+const totalInsuranceCustomers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.insurance_customers || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.insurance_customers ?? 0), 0)
 })
 
-const totalWholesaleCustomers = computed(() => {
+const totalWholesaleCustomers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.wholesale_customers || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.wholesale_customers ?? 0), 0)
 })
 
-const totalVipCustomers = computed(() => {
+const totalVipCustomers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.vip_customers || 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (company.vip_customers ?? 0), 0)
 })
 
 // Fetch summary data from the cross-tenant summary API
-const fetchSummary = async () => {
+const fetchSummary = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/customers/cross-tenant/summary')
     if (response.success) {
-      summaryData.value = response.data || []
+      summaryData.value = (response.data ?? []) as CompanySummary[]
     } else {
       summaryData.value = []
     }
@@ -325,11 +361,11 @@ const fetchSummary = async () => {
 }
 
 // Fetch customers list (simplified - no pagination, search, or filtering)
-const fetchCustomers = async () => {
+const fetchCustomers = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/customers/cross-tenant/dataview')
     if (response.success) {
-      customers.value = response.data || []
+      customers.value = (response.data ?? []) as Customer[]
     } else {
       customers.value = []
     }
@@ -340,7 +376,7 @@ const fetchCustomers = async () => {
 }
 
 // Fetch all data
-const fetchData = async () => {
+const fetchData = async (): Promise<void> => {
   loading.value = true
   error.value = null
 
@@ -350,7 +386,7 @@ const fetchData = async () => {
       fetchCustomers()
     ])
   } catch (err) {
-    error.value = err.message || 'Failed to fetch customer data'
+    error.value = err instanceof Error ? err.message : 'Failed to fetch customer data'
     console.error('Error fetching customer data:', err)
   } finally {
     loading.value = false
@@ -358,12 +394,12 @@ const fetchData = async () => {
 }
 
 // Refresh data
-const refreshData = () => {
-  fetchData()
+const refreshData = (): void => {
+  void fetchData()
 }
 
 // Helper functions
-const getCustomerInitials = (name) => {
+const getCustomerInitials = (name: string | undefined): string => {
   if (!name) return '?'
   return name
     .split(' ')
@@ -373,7 +409,7 @@ const getCustomerInitials = (name) => {
     .slice(0, 2)
 }
 
-const getCompanyInitials = (name) => {
+const getCompanyInitials = (name: string | undefined): string => {
   if (!name) return '?'
   return name
     .split(' ')
@@ -383,7 +419,7 @@ const getCompanyInitials = (name) => {
     .slice(0, 2)
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
@@ -394,7 +430,7 @@ const formatDate = (dateString) => {
 }
 
 // Export functions
-const exportToJSON = async () => {
+const exportToJSON = async (): Promise<void> => {
   try {
     const response = await adminStore.makeAuthRequest('/api/customers/cross-tenant/export?format=json')
     if (response.success && response.data) {
@@ -403,7 +439,7 @@ const exportToJSON = async () => {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `cross-tenant-customers_${new Date().toISOString().split('T')[0]}.json`
+      link.download = `cross-tenant-customers_${new Date().toISOString().split('T')[0] ?? ''}.json`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -411,47 +447,32 @@ const exportToJSON = async () => {
     } else {
       alert('No data available for export')
     }
-  } catch (error) {
-    console.error('Export error:', error)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
-const exportToCSV = async () => {
+const exportToCSV = async (): Promise<void> => {
   try {
-    const config = useRuntimeConfig()
-    const baseURL = config.public.apiBase 
-    
-    const response = await fetch(`${baseURL}/api/customers/cross-tenant/export?format=csv`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminStore.token}`,
-      },
-    })
-
-    if (response.ok) {
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cross-tenant-customers_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
-  } catch (error) {
-    console.error('Export error:', error)
+    const blob = await reportsService.exportCustomersCsv()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cross-tenant-customers_${new Date().toISOString().split('T')[0] ?? ''}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Export error:', err)
     alert('Export failed. Please try again.')
   }
 }
 
 // Initialize
 onMounted(() => {
-  fetchData()
+  void fetchData()
 })
 </script>
 

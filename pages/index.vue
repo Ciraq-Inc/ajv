@@ -597,7 +597,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import Login from '~/components/Login.vue'
 import { useUserStore } from '~/stores/user'
@@ -630,24 +630,35 @@ import {
   CheckBadgeIcon,
 } from '@heroicons/vue/24/solid'
 
+interface DraftItem {
+  product_name: string;
+  requested_unit: string;
+  quantity: number;
+}
+
+interface LoginPayload {
+  destination?: string;
+  [key: string]: unknown;
+}
+
 const userStore = useUserStore()
 const route = useRoute()
 const heroOrderingImage = '/Gemini_Generated_Image_y204fby204fby204.png'
 const currentYear = new Date().getFullYear()
 
-const showLoginModal = ref(false)
-const toast = ref(null)
-const homepageSearchTerm = ref('')
-const homepageRequestedUnit = ref('')
-const homepageSelectedItems = ref([])
-const homepageImagePicker = ref(null)
-const homepagePrescriptionImage = ref(null)
-const homepagePrescriptionImagePreview = ref(null)
+const showLoginModal = ref<boolean>(false)
+const toast = ref<{ text: string; type: string } | null>(null)
+const homepageSearchTerm = ref<string>('')
+const homepageRequestedUnit = ref<string>('')
+const homepageSelectedItems = ref<DraftItem[]>([])
+const homepageImagePicker = ref<HTMLInputElement | null>(null)
+const homepagePrescriptionImage = ref<File | null>(null)
+const homepagePrescriptionImagePreview = ref<string | null>(null)
 
 const HOMEPAGE_PRESCRIPTION_DRAFT_KEY = 'medsgh_homepage_prescription_image'
 
-const onHomepagePrescriptionImageSelected = (e) => {
-  const file = e.target?.files?.[0]
+const onHomepagePrescriptionImageSelected = (e: Event): void => {
+  const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   if (homepagePrescriptionImagePreview.value) URL.revokeObjectURL(homepagePrescriptionImagePreview.value)
   homepagePrescriptionImage.value = file
@@ -659,13 +670,13 @@ const onHomepagePrescriptionImageSelected = (e) => {
     sessionStorage.setItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY, JSON.stringify({
       name: file.name,
       type: file.type,
-      data: ev.target.result
+      data: ev.target?.result,
     }))
   }
   reader.readAsDataURL(file)
 }
 
-const removeHomepagePrescriptionImage = () => {
+const removeHomepagePrescriptionImage = (): void => {
   if (homepagePrescriptionImagePreview.value) URL.revokeObjectURL(homepagePrescriptionImagePreview.value)
   homepagePrescriptionImage.value = null
   homepagePrescriptionImagePreview.value = null
@@ -673,12 +684,12 @@ const removeHomepagePrescriptionImage = () => {
   if (process.client) sessionStorage.removeItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY)
 }
 
-const homepageSelectedQuantity = computed(() => homepageSelectedItems.value.reduce((total, item) => {
-  return total + Math.max(1, Number(item?.quantity || 1))
+const homepageSelectedQuantity = computed<number>(() => homepageSelectedItems.value.reduce((total, item) => {
+  return total + Math.max(1, Number(item?.quantity ?? 1))
 }, 0))
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
-const medicineUnitOptions = [
+const medicineUnitOptions: string[] = [
   'tab',
   'capsule',
   'bottle',
@@ -688,32 +699,35 @@ const medicineUnitOptions = [
   'ampoule',
   'sachet',
   'pack',
-  'other'
+  'other',
 ]
 
-const showToast = (text, type = 'success') => {
+const showToast = (text: string, type = 'success'): void => {
   toast.value = { text, type }
   setTimeout(() => {
     toast.value = null
   }, 4000)
 }
 
-const normalizeHomepageDraftItem = (item) => {
-  const productName = String(typeof item === 'string' ? item : item?.product_name || '').trim()
+const normalizeHomepageDraftItem = (item: unknown): DraftItem | null => {
+  const productName = String(
+    typeof item === 'string' ? item : (item as Record<string, unknown>)?.['product_name'] ?? ''
+  ).trim()
   if (!productName) return null
 
+  const obj = item as Record<string, unknown> | null
   return {
     product_name: productName,
-    requested_unit: String(item?.requested_unit || '').trim().toLowerCase(),
-    quantity: Math.max(1, Number(item?.quantity || 1))
+    requested_unit: String(obj?.['requested_unit'] ?? '').trim().toLowerCase(),
+    quantity: Math.max(1, Number(obj?.['quantity'] ?? 1)),
   }
 }
 
-const persistHomepageRequestDraft = (items = []) => {
+const persistHomepageRequestDraft = (items: DraftItem[] = []): void => {
   if (!process.client) return
-  const normalizedItems = (Array.isArray(items) ? items : [items])
+  const normalizedItems = items
     .map(normalizeHomepageDraftItem)
-    .filter(Boolean)
+    .filter((x): x is DraftItem => x !== null)
 
   if (!normalizedItems.length) {
     sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY)
@@ -722,34 +736,34 @@ const persistHomepageRequestDraft = (items = []) => {
 
   sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({
     items: normalizedItems,
-    source: 'homepage-search'
+    source: 'homepage-search',
   }))
 }
 
-const hasHomepageRequestDraft = () => {
+const hasHomepageRequestDraft = (): boolean => {
   if (!process.client) return false
   return homepageSelectedItems.value.length > 0
     || Boolean(sessionStorage.getItem(HOMEPAGE_REQUEST_DRAFT_KEY))
     || Boolean(sessionStorage.getItem(HOMEPAGE_PRESCRIPTION_DRAFT_KEY))
 }
 
-const syncHomepageDraftItems = () => {
+const syncHomepageDraftItems = (): void => {
   persistHomepageRequestDraft(homepageSelectedItems.value)
 }
 
-const addHomepageSelectedItem = (item) => {
+const addHomepageSelectedItem = (item: unknown): boolean => {
   const normalized = normalizeHomepageDraftItem(item)
   if (!normalized) return false
 
   const existingIndex = homepageSelectedItems.value.findIndex((entry) =>
     entry.product_name.trim().toLowerCase() === normalized.product_name.trim().toLowerCase()
-    && String(entry.requested_unit || '').trim().toLowerCase() === String(normalized.requested_unit || '').trim().toLowerCase()
+    && String(entry.requested_unit ?? '').trim().toLowerCase() === String(normalized.requested_unit ?? '').trim().toLowerCase()
   )
 
   if (existingIndex >= 0) {
     homepageSelectedItems.value = homepageSelectedItems.value.map((entry, index) => (
       index === existingIndex
-        ? { ...entry, quantity: Math.max(1, Number(entry.quantity || 1)) + Math.max(1, Number(normalized.quantity || 1)) }
+        ? { ...entry, quantity: Math.max(1, Number(entry.quantity ?? 1)) + Math.max(1, Number(normalized.quantity ?? 1)) }
         : entry
     ))
     syncHomepageDraftItems()
@@ -761,11 +775,11 @@ const addHomepageSelectedItem = (item) => {
   return true
 }
 
-const addHomepageCurrentItem = () => {
+const addHomepageCurrentItem = (): void => {
   const added = addHomepageSelectedItem({
     product_name: homepageSearchTerm.value,
     requested_unit: homepageRequestedUnit.value,
-    quantity: 1
+    quantity: 1,
   })
 
   if (!added) return
@@ -774,8 +788,8 @@ const addHomepageCurrentItem = () => {
   homepageRequestedUnit.value = ''
 }
 
-const updateHomepageSelectedItemQuantity = (index, nextQuantity) => {
-  const parsedQuantity = Math.max(1, Number(nextQuantity || 1))
+const updateHomepageSelectedItemQuantity = (index: number, nextQuantity: number): void => {
+  const parsedQuantity = Math.max(1, Number(nextQuantity ?? 1))
   homepageSelectedItems.value = homepageSelectedItems.value.map((item, itemIndex) => (
     itemIndex === index
       ? { ...item, quantity: parsedQuantity }
@@ -784,38 +798,38 @@ const updateHomepageSelectedItemQuantity = (index, nextQuantity) => {
   syncHomepageDraftItems()
 }
 
-const increaseHomepageSelectedItemQuantity = (index) => {
+const increaseHomepageSelectedItemQuantity = (index: number): void => {
   const item = homepageSelectedItems.value[index]
   if (!item) return
-  updateHomepageSelectedItemQuantity(index, Number(item.quantity || 1) + 1)
+  updateHomepageSelectedItemQuantity(index, Number(item.quantity ?? 1) + 1)
 }
 
-const decreaseHomepageSelectedItemQuantity = (index) => {
+const decreaseHomepageSelectedItemQuantity = (index: number): void => {
   const item = homepageSelectedItems.value[index]
   if (!item) return
-  updateHomepageSelectedItemQuantity(index, Math.max(1, Number(item.quantity || 1) - 1))
+  updateHomepageSelectedItemQuantity(index, Math.max(1, Number(item.quantity ?? 1) - 1))
 }
 
-const removeHomepageSelectedItem = (index) => {
+const removeHomepageSelectedItem = (index: number): void => {
   homepageSelectedItems.value = homepageSelectedItems.value.filter((_, itemIndex) => itemIndex !== index)
   syncHomepageDraftItems()
 }
 
-const clearHomepageSelectedItems = () => {
+const clearHomepageSelectedItems = (): void => {
   homepageSelectedItems.value = []
   syncHomepageDraftItems()
 }
 
-const openOrderFlow = (draftItems = []) => {
+const openOrderFlow = (draftItems: DraftItem[] = []): void => {
   persistHomepageRequestDraft(draftItems)
   if (userStore.isLoggedIn) {
-    navigateTo('/customer?tab=new')
+    void navigateTo('/customer?tab=new')
     return
   }
   showLoginModal.value = true
 }
 
-const submitHomepageSearch = () => {
+const submitHomepageSearch = (): void => {
   const query = homepageSearchTerm.value.trim()
   if (query) {
     addHomepageCurrentItem()
@@ -823,16 +837,17 @@ const submitHomepageSearch = () => {
   openOrderFlow(homepageSelectedItems.value)
 }
 
-const scrollToHowItWorks = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const scrollToHowItWorks = (): void => {
   const target = document.getElementById('how-it-works')
   if (target) {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' })
     return
   }
-  navigateTo('/#how-it-works')
+  void navigateTo('/#how-it-works')
 }
 
-const handleLoginSuccess = async (payload = {}) => {
+const handleLoginSuccess = async (payload: LoginPayload | { destination: string; action: string } = {}): Promise<void> => {
   showLoginModal.value = false
   if (payload.destination === 'new' || hasHomepageRequestDraft()) {
     await navigateTo('/customer?tab=new')
@@ -841,13 +856,13 @@ const handleLoginSuccess = async (payload = {}) => {
   await navigateTo('/customer')
 }
 
-const handleLoggedOutNotice = async (flag) => {
+const handleLoggedOutNotice = async (flag: unknown): Promise<void> => {
   if (!flag) return
   showToast('You have been logged out.', 'success')
   await navigateTo({ path: '/', query: {} }, { replace: true })
 }
 
-const redirectLoggedInUsers = async () => {
+const redirectLoggedInUsers = async (): Promise<boolean> => {
   if (!userStore.isLoggedIn) return false
   if (hasHomepageRequestDraft()) {
     await navigateTo('/customer?tab=new', { replace: true })
@@ -858,11 +873,11 @@ const redirectLoggedInUsers = async () => {
 }
 
 onMounted(async () => {
-  await userStore.checkAuthState()
+  await (userStore as unknown as { checkAuthState: () => Promise<void> }).checkAuthState()
   await redirectLoggedInUsers()
 })
 
-watch(() => route.query.logged_out, handleLoggedOutNotice, { immediate: true })
+watch(() => route.query['logged_out'], handleLoggedOutNotice, { immediate: true })
 watch(
   () => userStore.isLoggedIn,
   async (isLoggedIn) => {

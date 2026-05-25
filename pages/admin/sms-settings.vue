@@ -123,73 +123,66 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
-
+import { createSmsSettingsService } from '~/services/sms/smsSettingsService'
+import type { SmsGlobalSettingsUpdate } from '~/services/types'
 
 // State
-const adminStore = useAdminStore()
-const loading = ref(false)
-const loadingMessage = ref('')
-const activeTab = ref('global')
-const message = ref(null)
-const config = useRuntimeConfig()
-const apiBaseUrl = config.public.apiBase
+const loading = ref<boolean>(false)
+const loadingMessage = ref<string>('')
+const activeTab = ref<string>('global')
+const message = ref<{ text: string; type: string } | null>(null)
+const smsSettingsService = createSmsSettingsService(useApi())
 
-// Data
-const globalSettings = reactive({
+// Data — SmsSettings has { id, rate, provider } but the backend may return
+// additional fields like `sms_rate_per_unit` and `updated_at`; use a wider shape.
+interface GlobalSettingsDisplay {
+  active_provider: string;
+  sms_rate_per_unit: number | string;
+  updated_at: string | null;
+  [key: string]: unknown;
+}
+
+const globalSettings = reactive<GlobalSettingsDisplay>({
   active_provider: '',
-  sms_rate: 0,
-  updated_at: null
+  sms_rate_per_unit: 0,
+  updated_at: null,
 })
 
 // Forms
-const updateRateForm = reactive({
+const updateRateForm = reactive<{
+  sms_rate: number | null;
+  active_provider: string;
+}>({
   sms_rate: null,
-  active_provider: ''
+  active_provider: '',
 })
 
 // Tabs configuration
-const tabs = [
+const tabs: Array<{ id: string; label: string; icon: string }> = [
   { id: 'global', label: 'Global Settings', icon: 'Settings' }
 ]
 
 // Computed
-const hasGlobalChanges = computed(() => {
-  return updateRateForm.sms_rate !== null || updateRateForm.active_provider !== ''
-})
+const hasGlobalChanges = computed<boolean>(() =>
+  updateRateForm.sms_rate !== null || updateRateForm.active_provider !== ''
+)
 
-// API Methods
-const apiCall = async (method, url, data = null) => {
-  const fullUrl = `${apiBaseUrl}${url}`
-  const config = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${adminStore.token}`
-    }
-  }
-
-  if (data) {
-    config.body = JSON.stringify(data)
-  }
-
-  const response = await fetch(fullUrl, config)
-  if (!response.ok) {
-    throw new Error(`API call failed: ${response.status}`)
-  }
-  return response.json()
-}
+// API access goes through `smsSettingsService` (created above). The
+// previous inline `apiCall` helper was a thin wrapper around `fetch`
+// that injected the admin Bearer token and threw on non-2xx —
+// `useApi` (consumed by the service) already does both, so we removed
+// the helper rather than re-implementing it twice.
 
 // Methods
-const refreshSettings = async () => {
+const refreshSettings = async (): Promise<void> => {
   loading.value = true
   loadingMessage.value = 'Loading settings...'
 
   try {
     // Load global settings
-    const globalData = await apiCall('GET', '/api/sms-settings/active')
+    const globalData = await smsSettingsService.getActiveSettings()
     if (globalData.success && globalData.data) {
       Object.assign(globalSettings, globalData.data)
     } else if (globalData.message === 'SMS settings not configured') {
@@ -200,7 +193,8 @@ const refreshSettings = async () => {
     showMessage('Settings refreshed successfully', 'success')
   } catch (error) {
     console.error('Failed to refresh settings:', error)
-    if (error.message.includes('404')) {
+    const msg = error instanceof Error ? error.message : ''
+    if (msg.includes('404')) {
       showMessage('SMS settings not configured yet', 'error')
     } else {
       showMessage('Failed to refresh settings', 'error')
@@ -210,16 +204,14 @@ const refreshSettings = async () => {
   }
 }
 
-const updateSmsRate = async () => {
+const updateSmsRate = async (): Promise<void> => {
   if (updateRateForm.sms_rate === null) return
 
   loading.value = true
   loadingMessage.value = 'Updating SMS rate...'
 
   try {
-    const data = { rate: updateRateForm.sms_rate }
-
-    await apiCall('PUT', '/api/sms-settings/rate', data)
+    await smsSettingsService.updateRate(updateRateForm.sms_rate)
 
     // Reset form
     updateRateForm.sms_rate = null
@@ -236,12 +228,12 @@ const updateSmsRate = async () => {
   }
 }
 
-const saveGlobalSettings = async () => {
+const saveGlobalSettings = async (): Promise<void> => {
   loading.value = true
   loadingMessage.value = 'Saving global settings...'
 
   try {
-    const data = {}
+    const data: SmsGlobalSettingsUpdate = {}
     if (updateRateForm.sms_rate !== null) {
       data.rate = updateRateForm.sms_rate
     }
@@ -249,7 +241,7 @@ const saveGlobalSettings = async () => {
       data.provider = updateRateForm.active_provider
     }
 
-    await apiCall('PUT', '/api/sms-settings', data)
+    await smsSettingsService.updateGlobalSettings(data)
 
     // Reset form
     updateRateForm.sms_rate = null
@@ -267,16 +259,14 @@ const saveGlobalSettings = async () => {
   }
 }
 
-const updateProvider = async () => {
+const updateProvider = async (): Promise<void> => {
   if (!updateRateForm.active_provider) return
 
   loading.value = true
   loadingMessage.value = 'Updating provider...'
 
   try {
-    const data = { provider: updateRateForm.active_provider }
-
-    await apiCall('PUT', '/api/sms-settings/provider', data)
+    await smsSettingsService.updateProvider(updateRateForm.active_provider)
 
     // Reset form
     updateRateForm.active_provider = ''
@@ -293,16 +283,17 @@ const updateProvider = async () => {
   }
 }
 
-const closeModals = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const closeModals = (): void => {
   // No modals to close
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return 'Never'
   return new Date(dateString).toLocaleDateString()
 }
 
-const showMessage = (text, type = 'success') => {
+const showMessage = (text: string, type: string = 'success'): void => {
   message.value = { text, type }
   setTimeout(() => {
     message.value = null
@@ -310,16 +301,13 @@ const showMessage = (text, type = 'success') => {
 }
 
 // Initialize
-onMounted(async () => {
-  await refreshSettings()
-})
+onMounted(() => { void refreshSettings() })
 
 // Define page metadata
 definePageMeta({
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })
-
 </script>
 
 <style scoped>

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="campaign-details-page">
     <!-- Header with back button -->
     <div class="mb-6">
@@ -12,7 +12,7 @@
 
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">{{ campaign?.name || 'Loading...' }}</h1>
+          <h1 class="text-3xl font-bold text-gray-900">{{ campaign?.name ?? 'Loading...' }}</h1>
           <p class="text-gray-600 mt-1">Campaign Details & Statistics</p>
         </div>
         <div v-if="campaign" class="flex items-center gap-3">
@@ -55,7 +55,7 @@
           </button>
 
           <button
-            v-if="['draft', 'sending', 'paused'].includes(campaign.status)"
+            v-if="campaign.status !== null && campaign.status !== undefined && ['draft', 'sending', 'paused'].includes(campaign.status)"
             @click="cancelCampaign"
             class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
           >
@@ -73,12 +73,12 @@
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+    <div v-else-if="localError" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
       <Icon name="AlertCircle" class="h-12 w-12 mx-auto mb-4 text-red-600" />
       <h3 class="text-xl font-semibold text-red-900 mb-2">Failed to load campaign</h3>
-      <p class="text-red-600 mb-4">{{ error }}</p>
+      <p class="text-red-600 mb-4">{{ localError }}</p>
       <button
-        @click="loadCampaign"
+        @click="void loadCampaign()"
         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
       >
         Try Again
@@ -96,7 +96,7 @@
             </div>
             <div>
               <p class="text-sm text-gray-600">Total Recipients</p>
-              <p class="text-2xl font-bold text-gray-900">{{ campaign.total_recipients || 0 }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ campaign.total_recipients ?? 0 }}</p>
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@
             </div>
             <div>
               <p class="text-sm text-gray-600">Sent</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats?.sent || 0 }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ stats?.sent ?? 0 }}</p>
             </div>
           </div>
         </div>
@@ -120,7 +120,7 @@
             </div>
             <div>
               <p class="text-sm text-gray-600">Pending</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats?.pending || 0 }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ stats?.pending ?? 0 }}</p>
             </div>
           </div>
         </div>
@@ -132,7 +132,7 @@
             </div>
             <div>
               <p class="text-sm text-gray-600">Failed</p>
-              <p class="text-2xl font-bold text-gray-900">{{ stats?.failed || 0 }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ stats?.failed ?? 0 }}</p>
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@
 
             <div>
               <label class="text-sm text-gray-600">Sender ID</label>
-              <p class="text-gray-900 mt-1">{{ campaign.sender_id || 'Default' }}</p>
+              <p class="text-gray-900 mt-1">{{ campaign.sender_id ?? 'Default' }}</p>
             </div>
 
             <div>
@@ -183,7 +183,7 @@
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-semibold text-gray-900">Message Logs</h2>
           <button
-            @click="refreshLogs"
+            @click="void refreshLogs()"
             :disabled="loadingLogs"
             class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
           >
@@ -240,10 +240,10 @@
                   >
                     {{ log.billing_status }}
                   </span>
-                  <span v-else class="text-gray-400">-</span>
+                  <span v-else class="text-gray-500">-</span>
                 </td>
                 <td class="px-4 py-3 text-sm text-red-600">
-                  {{ log.error_message || '-' }}
+                  {{ log.error_message ?? '-' }}
                 </td>
               </tr>
             </tbody>
@@ -252,7 +252,7 @@
 
         <!-- No Logs -->
         <div v-else class="text-center py-8">
-          <Icon name="FileText" class="h-12 w-12 mx-auto mb-2 text-gray-400" />
+          <Icon name="FileText" class="h-12 w-12 mx-auto mb-2 text-gray-500" />
           <p class="text-gray-600">No message logs yet</p>
         </div>
       </div>
@@ -266,91 +266,140 @@
       :type="confirmDialog.type"
       :loading="confirmDialog.loading"
       :error="confirmDialog.error"
-      @confirm="handleConfirm"
+      @confirm="void handleConfirm()"
       @close="closeConfirmDialog"
     />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
 
-// Define page metadata
 definePageMeta({
   layout: 'company',
   middleware: 'company-auth',
-  title: 'Campaign Details'
+  title: 'Campaign Details',
 })
 
-const route = useRoute()
-const router = useRouter()
+interface CampaignRecord {
+  id: number | string
+  name?: string | null
+  status?: string | null
+  message?: string | null
+  sms_provider?: string | null
+  sender_id?: string | null
+  created_at?: string | null
+  started_at?: string | null
+  completed_at?: string | null
+  total_recipients?: number | null
+  [key: string]: unknown
+}
 
+interface CampaignStats {
+  sent?: number | null
+  pending?: number | null
+  failed?: number | null
+}
+
+interface MessageLog {
+  id: number | string
+  phone_number?: string | null
+  status?: string | null
+  sent_at?: string | null
+  billing_status?: string | null
+  error_message?: string | null
+}
+
+type DialogType = 'warning' | 'danger' | 'info' | 'success' | 'error'
+
+interface ConfirmDialogState {
+  isOpen: boolean
+  title: string
+  message: string
+  type: DialogType
+  loading: boolean
+  action: string | null
+  error: string | null
+}
+
+// TODO: remove once composables/ are .ts
 const {
   campaigns,
   loading,
-  error,
   fetchCampaigns,
   getCampaignStats,
   getCampaignLogs,
   startCampaign: startCampaignAction,
   pauseCampaign: pauseCampaignAction,
   resumeCampaign: resumeCampaignAction,
-  cancelCampaign: cancelCampaignAction
-} = useSMSCampaigns()
+  cancelCampaign: cancelCampaignAction,
+} = useSMSCampaigns() as unknown as {
+  campaigns: { value: CampaignRecord[] }
+  loading: { value: boolean }
+  fetchCampaigns: () => Promise<void>
+  getCampaignStats: (id: number | string) => Promise<CampaignStats | null>
+  getCampaignLogs: (id: number | string) => Promise<MessageLog[]>
+  startCampaign: (id: number | string) => Promise<void>
+  pauseCampaign: (id: number | string) => Promise<void>
+  resumeCampaign: (id: number | string) => Promise<void>
+  cancelCampaign: (id: number | string) => Promise<void>
+}
 
-const campaign = ref(null)
-const stats = ref(null)
-const logs = ref([])
-const loadingLogs = ref(false)
+const route = useRoute()
+const router = useRouter()
 
-const confirmDialog = ref({
+const campaign = ref<CampaignRecord | null>(null)
+const stats = ref<CampaignStats | null>(null)
+const logs = ref<MessageLog[]>([])
+const loadingLogs = ref<boolean>(false)
+const localError = ref<string>('')
+
+const confirmDialog = ref<ConfirmDialogState>({
   isOpen: false,
   title: '',
   message: '',
   type: 'warning',
   loading: false,
   action: null,
-  error: null
+  error: null,
 })
 
-// Load campaign data
-const loadCampaign = async () => {
+const loadCampaign = async (): Promise<void> => {
+  localError.value = ''
   try {
     await fetchCampaigns()
-    campaign.value = campaigns.value.find(c => c.id === parseInt(route.params.id))
-    
+    const idParam = route.params['id']
+    const numericId = parseInt(String(idParam), 10)
+    campaign.value = campaigns.value.find((c) => Number(c.id) === numericId) ?? null
+
     if (!campaign.value) {
-      error.value = 'Campaign not found'
+      localError.value = 'Campaign not found'
       return
     }
 
-    // Load stats and logs
-    await Promise.all([
-      loadStats(),
-      loadLogs()
-    ])
+    await Promise.all([loadStats(), loadLogs()])
   } catch (err) {
     console.error('Failed to load campaign:', err)
+    localError.value = err instanceof Error ? err.message : 'Failed to load campaign'
   }
 }
 
-// Load campaign stats
-const loadStats = async () => {
+const loadStats = async (): Promise<void> => {
   try {
-    stats.value = await getCampaignStats(route.params.id)
+    const idParam = route.params['id']
+    stats.value = await getCampaignStats(String(idParam))
   } catch (err) {
     console.error('Failed to load stats:', err)
   }
 }
 
-// Load campaign logs
-const loadLogs = async () => {
+const loadLogs = async (): Promise<void> => {
   loadingLogs.value = true
   try {
-    logs.value = await getCampaignLogs(route.params.id)
+    const idParam = route.params['id']
+    logs.value = await getCampaignLogs(String(idParam))
   } catch (err) {
     console.error('Failed to load logs:', err)
   } finally {
@@ -358,96 +407,93 @@ const loadLogs = async () => {
   }
 }
 
-// Refresh logs
-const refreshLogs = async () => {
+const refreshLogs = async (): Promise<void> => {
   await loadLogs()
 }
 
-// Format date
-const formatDate = (date) => {
+const formatDate = (date: string | null | undefined): string => {
   if (!date) return '-'
   return new Date(date).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
-// Get status class
-const getStatusClass = (status) => {
-  const classes = {
+const getStatusClass = (status: string | null | undefined): string => {
+  const classes: Record<string, string> = {
     draft: 'bg-gray-100 text-gray-800',
     sending: 'cs-badge',
     completed: 'bg-green-100 text-green-800',
     paused: 'bg-yellow-100 text-yellow-800',
-    cancelled: 'bg-red-100 text-red-800'
+    cancelled: 'bg-red-100 text-red-800',
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  if (status === undefined || status === null) return 'bg-gray-100 text-gray-800'
+  return (status !== undefined ? classes[status] : undefined) ?? 'bg-gray-100 text-gray-800'
 }
 
-// Go back to campaigns list
-const goBack = () => {
-  router.push(`/${route.params.pharmacy}/services/sms-campaigns`)
+const goBack = (): void => {
+  void router.push(`/${String(route.params['pharmacy'])}/services/sms-campaigns`)
 }
 
-// Start campaign
-const startCampaign = () => {
+const startCampaign = (): void => {
   confirmDialog.value = {
     isOpen: true,
     title: 'Start Campaign?',
-    message: `Are you sure you want to start "${campaign.value.name}"? SMS messages will be sent to ${campaign.value.total_recipients || 0} recipients.`,
+    message: `Are you sure you want to start "${campaign.value?.name ?? ''}"? SMS messages will be sent to ${campaign.value?.total_recipients ?? 0} recipients.`,
     type: 'info',
     loading: false,
-    action: 'start'
+    action: 'start',
+    error: null,
   }
 }
 
-// Pause campaign
-const pauseCampaign = () => {
+const pauseCampaign = (): void => {
   confirmDialog.value = {
     isOpen: true,
     title: 'Pause Campaign?',
-    message: `Are you sure you want to pause "${campaign.value.name}"?`,
+    message: `Are you sure you want to pause "${campaign.value?.name ?? ''}"?`,
     type: 'warning',
     loading: false,
-    action: 'pause'
+    action: 'pause',
+    error: null,
   }
 }
 
-// Resume campaign
-const resumeCampaign = () => {
+const resumeCampaign = (): void => {
   confirmDialog.value = {
     isOpen: true,
     title: 'Resume Campaign?',
-    message: `Resume sending SMS for "${campaign.value.name}"?`,
+    message: `Resume sending SMS for "${campaign.value?.name ?? ''}"?`,
     type: 'info',
     loading: false,
-    action: 'resume'
+    action: 'resume',
+    error: null,
   }
 }
 
-// Cancel campaign
-const cancelCampaign = () => {
+const cancelCampaign = (): void => {
   confirmDialog.value = {
     isOpen: true,
     title: 'Cancel Campaign?',
-    message: `Are you sure you want to cancel "${campaign.value.name}"? This action cannot be undone.`,
+    message: `Are you sure you want to cancel "${campaign.value?.name ?? ''}"? This action cannot be undone.`,
     type: 'error',
     loading: false,
-    action: 'cancel'
+    action: 'cancel',
+    error: null,
   }
 }
 
-// Handle confirmation
-const handleConfirm = async () => {
+const handleConfirm = async (): Promise<void> => {
   confirmDialog.value.loading = true
   confirmDialog.value.error = null
 
   try {
     const { action } = confirmDialog.value
-    const campaignId = campaign.value.id
+    const campaignId = campaign.value?.id
+    if (!campaignId) return
 
     if (action === 'start') {
       await startCampaignAction(campaignId)
@@ -463,13 +509,12 @@ const handleConfirm = async () => {
     await loadCampaign()
   } catch (err) {
     console.error('Action failed:', err)
-    confirmDialog.value.error = err.message
+    confirmDialog.value.error = err instanceof Error ? err.message : 'Action failed'
     confirmDialog.value.loading = false
   }
 }
 
-// Close confirm dialog
-const closeConfirmDialog = () => {
+const closeConfirmDialog = (): void => {
   confirmDialog.value = {
     isOpen: false,
     title: '',
@@ -477,14 +522,11 @@ const closeConfirmDialog = () => {
     type: 'warning',
     loading: false,
     action: null,
-    error: null
+    error: null,
   }
 }
 
-// Load data on mount
-onMounted(async () => {
-  await loadCampaign()
-})
+onMounted(() => { void loadCampaign() })
 </script>
 
 <style scoped>

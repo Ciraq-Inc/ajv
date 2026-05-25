@@ -137,17 +137,36 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import GuestOtpStep from '~/components/jobs/GuestOtpStep.vue'
+import { createApplicationsService } from '~/services/jobs/applicationsService'
 
 definePageMeta({ layout: false })
 
-const route = useRoute()
-const config = useRuntimeConfig()
+interface JobRecord {
+  id: number | string
+  title?: string | null
+  requireResume?: boolean | null
+  requireCv?: boolean | null
+  requireCertificates?: boolean | null
+  expiresAt?: string | null
+  [key: string]: unknown
+}
+
+interface UploadSlot {
+  uploading: boolean
+  url: string | null
+  error: string
+}
+
 const { selectedJob, fetchJobById } = useJobs()
-const { loading, error: appError, requestGuestOtp, verifyGuestOtp, submitApplication } = useJobApplications()
+
+const { loading, requestGuestOtp, verifyGuestOtp, submitApplication } = useJobApplications()
+
+const route = useRoute()
+const applicationsService = createApplicationsService(useApi())
 
 const form = reactive({
   fullName: '',
@@ -156,29 +175,30 @@ const form = reactive({
   coverLetter: '',
 })
 
-const uploads = reactive({
+const uploads = reactive<Record<'resume' | 'cv' | 'certificates', UploadSlot>>({
   resume:       { uploading: false, url: null, error: '' },
   cv:           { uploading: false, url: null, error: '' },
   certificates: { uploading: false, url: null, error: '' },
 })
 
-const anyUploading = computed(() => Object.values(uploads).some((u) => u.uploading))
+const anyUploading = computed<boolean>(() => Object.values(uploads).some((u) => u.uploading))
 
-const isGuest = ref(true)
-const otpVerified = ref(false)
-const guestOtpToken = ref('')
-const otpError = ref('')
-const debugCode = ref('')
-const formError = ref('')
-const submitted = ref(false)
+const isGuest = ref<boolean>(true)
+const otpVerified = ref<boolean>(false)
+const guestOtpToken = ref<string>('')
+const otpError = ref<string>('')
+const debugCode = ref<string>('')
+const formError = ref<string>('')
+const submitted = ref<boolean>(false)
 
-const formatDate = (iso) => {
+const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const handleFileUpload = async (event, field) => {
-  const file = event.target.files?.[0]
+const handleFileUpload = async (event: Event, field: 'resume' | 'cv' | 'certificates'): Promise<void> => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
   if (!file) return
 
   uploads[field].error = ''
@@ -189,41 +209,43 @@ const handleFileUpload = async (event, field) => {
     const fd = new FormData()
     fd.append('file', file)
 
-    const res = await $fetch(`${config.public.apiBase}/api/jobs/upload-document`, { method: 'POST', body: fd })
-    uploads[field].url = res.url
+    const res = await applicationsService.uploadDocument(fd)
+    uploads[field].url = res.data?.url ?? null
   } catch (err) {
-    uploads[field].error = err?.data?.statusMessage || err?.message || 'Upload failed'
+    const e = err as Record<string, unknown>
+    const data = e['data'] as Record<string, unknown> | undefined
+    uploads[field].error = String(data?.['statusMessage'] ?? e['message'] ?? 'Upload failed')
   } finally {
     uploads[field].uploading = false
     // reset so same file can be re-picked if re-upload needed
-    event.target.value = ''
+    target.value = ''
   }
 }
 
-const handleRequestOtp = async (phone) => {
+const handleRequestOtp = async (phone: string): Promise<void> => {
   otpError.value = ''
   otpVerified.value = false
   try {
-    const response = await requestGuestOtp(phone)
-    debugCode.value = response.debugCode || ''
+    const response = await requestGuestOtp(phone) as { debugCode?: string } | null
+    debugCode.value = response?.debugCode ?? ''
   } catch (err) {
-    otpError.value = err.message || 'Failed to request OTP'
+    otpError.value = err instanceof Error ? err.message : 'Failed to request OTP'
   }
 }
 
-const handleVerifyOtp = async ({ phone, code }) => {
+const handleVerifyOtp = async ({ phone, code }: { phone: string; code: string }): Promise<void> => {
   otpError.value = ''
   try {
-    const response = await verifyGuestOtp(phone, code)
-    guestOtpToken.value = response.guestOtpToken
+    const response = await verifyGuestOtp(phone, code) as { token?: string; guestOtpToken?: string }
+    guestOtpToken.value = response.guestOtpToken ?? response.token ?? ''
     otpVerified.value = true
   } catch (err) {
-    otpError.value = err.message || 'OTP verification failed'
+    otpError.value = err instanceof Error ? err.message : 'OTP verification failed'
     otpVerified.value = false
   }
 }
 
-const onSubmit = async () => {
+const onSubmit = async (): Promise<void> => {
   formError.value = ''
   try {
     if (selectedJob.value?.requireResume && !uploads.resume.url) {
@@ -236,23 +258,23 @@ const onSubmit = async () => {
       throw new Error('Certificates upload is required for this job')
     }
 
-    await submitApplication(route.params.id, {
+    await submitApplication(String(route.params['id']), {
       ...form,
-      resumeUrl: uploads.resume.url || null,
-      cvUrl: uploads.cv.url || null,
-      certificatesUrl: uploads.certificates.url || null,
+      resumeUrl: uploads.resume.url ?? null,
+      cvUrl: uploads.cv.url ?? null,
+      certificatesUrl: uploads.certificates.url ?? null,
       isGuest: isGuest.value,
       guestOtpToken: guestOtpToken.value,
     })
     submitted.value = true
   } catch (err) {
-    formError.value = err?.data?.message || err?.message || 'Failed to submit application. Please try again.'
+    const e = err as Record<string, unknown>
+    const data = e['data'] as Record<string, unknown> | undefined
+    formError.value = String(data?.['message'] ?? e['message'] ?? 'Failed to submit application. Please try again.')
   }
 }
 
-onMounted(async () => {
-  await fetchJobById(route.params.id)
-})
+onMounted(() => { void fetchJobById(String(route.params['id'])) })
 </script>
 
 <style scoped>

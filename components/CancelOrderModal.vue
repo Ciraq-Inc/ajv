@@ -5,10 +5,16 @@
     <div class="fixed inset-0 bg-black opacity-50" @click="closeModal"></div>
 
     <!-- Modal Container -->
-    <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md mx-4 overflow-hidden">
+    <div
+      ref="dialogRef"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-order-title"
+      tabindex="-1"
+      class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md mx-4 overflow-hidden">
       <!-- Modal Header -->
       <div class="bg-red-600 text-white py-4 px-6">
-        <h3 class="text-lg font-medium">Cancel Order</h3>
+        <h3 id="cancel-order-title" class="text-lg font-medium">Cancel Order</h3>
         <p class="text-red-100 text-sm mt-1">
           Order #{{ formatOrderId }}
         </p>
@@ -16,7 +22,7 @@
 
       <!-- Modal Body -->
       <div class="p-6">
-        <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+        <div v-if="errorMessage" role="alert" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4">
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
@@ -107,66 +113,68 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useUserStore } from '~/stores/user';
+import { useModalA11y } from '~/composables/useModalA11y';
 
-const props = defineProps({
-  isOpen: Boolean,
-  orderId: String
-});
+// TODO: remove once stores/ are .ts
 
-const emit = defineEmits(['close', 'cancellation-success']);
+const props = defineProps<{
+  isOpen?: boolean
+  orderId?: string
+}>();
+
+const emit = defineEmits<{
+  close: []
+  'cancellation-success': [orderId: string | undefined]
+}>();
+
 const userStore = useUserStore();
 
-// State management
+const dialogRef = ref<HTMLElement | null>(null);
+useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'));
+
 const isLoading = ref(false);
 const errorMessage = ref('');
 const cancellationReason = ref('');
 const otherReasonText = ref('');
 const isSuccess = ref(false);
 
-// Format order ID to be more readable
-const formatOrderId = computed(() => {
+const formatOrderId = computed<string>(() => {
   if (!props.orderId) return 'N/A';
-  
-  // Return the last 8 characters if it's too long
   return props.orderId.length > 8 ? `...${props.orderId.slice(-8)}` : props.orderId;
 });
 
-// Get final reason text (either selected reason or other reason text)
-const finalReason = computed(() => {
+const finalReason = computed<string>(() => {
   if (cancellationReason.value === 'Other' && otherReasonText.value) {
     return otherReasonText.value;
   }
   return cancellationReason.value;
 });
 
-// Confirm cancellation
-const confirmCancellation = async () => {
+const confirmCancellation = async (): Promise<void> => {
   if (isLoading.value) return;
-  
   isLoading.value = true;
   errorMessage.value = '';
-  
+
   try {
-    await userStore.cancelOrder(props.orderId, finalReason.value);
+    // userStore.cancelOrder is untyped (store not yet .ts)
+    await (userStore as { cancelOrder: (id: string | undefined, reason: string) => Promise<void> })
+      .cancelOrder(props.orderId, finalReason.value);
     isSuccess.value = true;
     emit('cancellation-success', props.orderId);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error cancelling order:', error);
-    errorMessage.value = error.message || 'Failed to cancel order. Please try again.';
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to cancel order. Please try again.';
   } finally {
     isLoading.value = false;
   }
 };
 
-// Close the modal and reset state
-const closeModal = () => {
+const closeModal = (): void => {
   if (isSuccess.value) {
-    // If cancellation was successful, delay closing to show success message
     setTimeout(() => {
       emit('close');
-      // Reset the state after closing animation
       setTimeout(() => {
         isSuccess.value = false;
         errorMessage.value = '';
@@ -176,7 +184,6 @@ const closeModal = () => {
     }, 1000);
   } else {
     emit('close');
-    // Reset state after closing animation
     setTimeout(() => {
       errorMessage.value = '';
       cancellationReason.value = '';

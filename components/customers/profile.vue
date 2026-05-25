@@ -139,7 +139,7 @@
                     aria-autocomplete="list"
                     aria-controls="profile-address-suggestions"
                     :aria-expanded="addressSuggestions.length > 0"
-                    :aria-activedescendant="addressActiveIndex >= 0 ? `profile-address-option-${addressActiveIndex}` : undefined"
+                    :aria-activedescendant="addressActiveIndex >= 0 ? `profile-address-option-${addressActiveIndex}` : ''"
                     autocomplete="street-address"
                     inputmode="text"
                     @keydown="onAddressKeydown"
@@ -206,12 +206,106 @@
           </div>
         </form>
       </div>
+
+      <!-- Professional Verification Card -->
+      <div class="mt-5 rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+        <div class="flex items-center gap-3 px-6 py-4 border-b border-zinc-100">
+          <IdentificationIcon class="w-5 h-5 text-[#4F217A] flex-shrink-0" />
+          <div>
+            <h2 class="text-sm font-bold text-zinc-900">Health Professional Verification</h2>
+            <p class="text-xs text-zinc-500 mt-0.5">Verified professionals get fee waivers on every request and access to browse pharmacy stock directly.</p>
+          </div>
+        </div>
+
+        <!-- Status row (when application exists) -->
+        <div v-if="profApplication && !profLoading" class="px-6 py-4 border-b border-zinc-100 flex items-center gap-3">
+          <CheckBadgeIcon v-if="profStatus === 'approved'" class="w-5 h-5 text-emerald-600 flex-shrink-0" />
+          <ClockIcon v-else-if="profStatus === 'pending'" class="w-5 h-5 text-amber-500 flex-shrink-0" />
+          <XCircleIcon v-else class="w-5 h-5 text-red-500 flex-shrink-0" />
+          <div class="flex-1 min-w-0">
+            <span
+              class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+              :class="{
+                'bg-emerald-50 text-emerald-700 border border-emerald-200': profStatus === 'approved',
+                'bg-amber-50 text-amber-700 border border-amber-200': profStatus === 'pending',
+                'bg-red-50 text-red-700 border border-red-200': profStatus === 'rejected',
+              }"
+            >{{ profStatus }}</span>
+            <p v-if="profStatus === 'approved'" class="text-xs text-zinc-500 mt-1 capitalize">
+              {{ profApplication?.profession_type }} · {{ profApplication?.license_number }}
+            </p>
+            <p v-else-if="profStatus === 'pending'" class="text-xs text-zinc-500 mt-1">
+              Your application is under review. We'll notify you once it's processed.
+            </p>
+            <p v-else-if="profStatus === 'rejected' && profApplication?.rejection_reason" class="text-xs text-red-600 mt-1">
+              Reason: {{ profApplication?.rejection_reason }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Approved: no form, just confirmation -->
+        <div v-if="profStatus === 'approved'" class="px-6 py-4 text-xs text-zinc-500">
+          Your professional status is active. Fee waivers and Browse Stock are enabled on your account.
+        </div>
+
+        <!-- Application form (none or rejected state) -->
+        <form v-if="showProfForm && !profLoading" @submit.prevent="submitProfessionalApplication" class="p-6 space-y-4">
+          <p v-if="profStatus === 'rejected'" class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-2 rounded-lg">
+            Your previous application was rejected. You may submit a revised application below.
+          </p>
+
+          <div v-if="profError" class="text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg font-semibold">
+            {{ profError }}
+          </div>
+          <div v-if="profSuccess" class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-lg font-semibold">
+            Application submitted — we'll review it and let you know.
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-zinc-700">Profession Type <span class="text-red-500">*</span></label>
+              <select v-model="profForm.profession_type" required
+                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 bg-white">
+                <option value="">Select profession</option>
+                <option value="doctor">Doctor</option>
+                <option value="pharmacist">Pharmacist</option>
+                <option value="nurse">Nurse / Midwife</option>
+                <option value="other">Other Licensed Health Worker</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-semibold text-zinc-700">License / Registration Number <span class="text-red-500">*</span></label>
+              <input v-model="profForm.license_number" type="text" placeholder="e.g. MDC-2024-12345" required
+                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
+            </div>
+            <div class="flex flex-col gap-1.5 sm:col-span-2">
+              <label class="text-sm font-semibold text-zinc-700">Issuing Authority <span class="text-zinc-400 font-medium">(optional)</span></label>
+              <input v-model="profForm.license_body" type="text" placeholder="e.g. Ghana Medical and Dental Council"
+                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button type="submit" :disabled="profSubmitting"
+              class="inline-flex items-center gap-2 bg-[#4F217A] text-white py-2.5 px-6 rounded-xl text-sm font-bold hover:bg-[#3d1861] transition-colors shadow-sm disabled:opacity-60">
+              <ArrowPathIcon v-if="profSubmitting" class="w-4 h-4 animate-spin" />
+              {{ profSubmitting ? 'Submitting...' : (profStatus === 'rejected' ? 'Re-submit Application' : 'Apply for Professional Status') }}
+            </button>
+          </div>
+        </form>
+
+        <!-- Loading state -->
+        <div v-if="profLoading" class="px-6 py-6 flex items-center justify-center">
+          <ArrowPathIcon class="w-5 h-5 text-zinc-400 animate-spin" />
+        </div>
+      </div>
+
     </div>
 
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useUserStore } from '~/stores/user';
 import {
@@ -226,80 +320,125 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
   InformationCircleIcon,
+  IdentificationIcon,
+  CheckBadgeIcon,
+  ClockIcon,
+  XCircleIcon,
 } from '@heroicons/vue/24/outline'
+import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService'
+import type { ProfessionalProfile } from '~/services/customerAuth/customerAuthService'
+import { useApi } from '~/composables/useApi'
+import phoneUtils from '~/utils/phone'
 
-const userStore = useUserStore();
-const config = useRuntimeConfig();
+interface AddressSuggestion {
+  display_name?: string;
+  latitude?: string | number;
+  longitude?: string | number;
+  [key: string]: unknown;
+}
+
+interface ProfileData {
+  fname?: string;
+  lname?: string;
+  email?: string;
+  home_address?: string;
+  address?: string;
+  home_latitude?: number | null;
+  home_longitude?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+// TODO: remove once stores/ are .ts
+interface UserStoreShape {
+  currentUser?: { fname?: string; lname?: string; email?: string; phone?: string };
+  userPhoneNumber?: string;
+  getProfile: () => Promise<ProfileData | null>;
+  updateProfile: (data: {
+    fname: string;
+    lname: string;
+    email: string;
+    home_address: string | null;
+    home_latitude: number | null;
+    home_longitude: number | null;
+  }) => Promise<void>;
+  autocompleteLocation: (query: string) => Promise<AddressSuggestion[]>;
+  reverseGeocodeHomeLocation: (lat: number, lng: number) => Promise<{ address?: string }>;
+}
+
+const userStore = useUserStore() as unknown as UserStoreShape;
+const api = useApi();
+const profService = createCustomerAuthService(api);
 
 // State
-const isLoading = ref(false);
-const isLocating = ref(false);
-const updateSuccess = ref(false);
-const error = ref(null);
-const addressSearch = ref('');
-const addressSuggestions = ref([]);
-const addressActiveIndex = ref(-1);
-const autocompleteLoading = ref(false);
-let addressAutocompleteTimer = null;
+const isLoading = ref<boolean>(false);
+const isLocating = ref<boolean>(false);
+const updateSuccess = ref<boolean>(false);
+const error = ref<string | null>(null);
+const addressSearch = ref<string>('');
+const addressSuggestions = ref<AddressSuggestion[]>([]);
+const addressActiveIndex = ref<number>(-1);
+const autocompleteLoading = ref<boolean>(false);
+let addressAutocompleteTimer: ReturnType<typeof setTimeout> | null = null;
 let addressAutocompleteSuspend = false;
 
 // Profile form
-const profile = reactive({
+const profile = reactive<{
+  fname: string;
+  lname: string;
+  email: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+}>({
   fname: '',
   lname: '',
   email: '',
   address: '',
   latitude: null,
-  longitude: null
+  longitude: null,
 });
 
-const profileDisplayName = computed(() => {
-  const fullName = `${profile.fname || ''} ${profile.lname || ''}`.trim();
+const profileDisplayName = computed<string>(() => {
+  const fullName = `${profile.fname} ${profile.lname}`.trim();
   return fullName || 'Customer Profile';
 });
 
-const profileInitials = computed(() => {
-  const initials = `${(profile.fname || '')[0] || ''}${(profile.lname || '')[0] || ''}`.toUpperCase();
+const profileInitials = computed<string>(() => {
+  const initials = `${profile.fname[0] ?? ''}${profile.lname[0] ?? ''}`.toUpperCase();
   return initials || 'CP';
 });
 
-// Format phone number
-const formatPhoneNumber = (phone) => {
+const formatPhoneNumber = (phone: string | undefined): string => {
   if (!phone) return '';
-  let formatted = phone;
-  if (formatted.startsWith('233')) {
-    formatted = '+233 ' + formatted.substring(3, 5) + ' ' + formatted.substring(5, 8) + ' ' + formatted.substring(8);
-  } else if (formatted.startsWith('+233')) {
-    formatted = '+233 ' + formatted.substring(4, 6) + ' ' + formatted.substring(6, 9) + ' ' + formatted.substring(9);
-  }
-  return formatted;
+  return phoneUtils.formatForDisplay(phone) || phone;
 };
 
 // Load profile data
-const loadProfile = async () => {
+const loadProfile = async (): Promise<void> => {
   try {
     const profileData = await userStore.getProfile();
     if (profileData) {
-      profile.fname = profileData?.fname || userStore.currentUser?.fname || '';
-      profile.lname = profileData?.lname || userStore.currentUser?.lname || '';
-      profile.email = profileData?.email || userStore.currentUser?.email || '';
-      profile.address = profileData?.home_address || profileData?.address || '';
-      profile.latitude = profileData?.home_latitude ?? profileData?.latitude ?? null;
-      profile.longitude = profileData?.home_longitude ?? profileData?.longitude ?? null;
-      addressSearch.value = profile.address || '';
+      profile.fname = profileData.fname ?? userStore.currentUser?.fname ?? '';
+      profile.lname = profileData.lname ?? userStore.currentUser?.lname ?? '';
+      profile.email = profileData.email ?? userStore.currentUser?.email ?? '';
+      profile.address = profileData.home_address ?? profileData.address ?? '';
+      profile.latitude = profileData.home_latitude ?? profileData.latitude ?? null;
+      profile.longitude = profileData.home_longitude ?? profileData.longitude ?? null;
+      addressSearch.value = profile.address;
     }
   } catch (err) {
     console.error('Error loading profile:', err);
   }
 };
 
-const clearAddressSuggestions = () => {
+const clearAddressSuggestions = (): void => {
   addressSuggestions.value = [];
   addressActiveIndex.value = -1;
   autocompleteLoading.value = false;
 };
 
-const onAddressKeydown = (event) => {
+const onAddressKeydown = (event: KeyboardEvent): void => {
   const count = addressSuggestions.value.length;
   if (!count) return;
   if (event.key === 'ArrowDown') {
@@ -310,14 +449,14 @@ const onAddressKeydown = (event) => {
     addressActiveIndex.value = addressActiveIndex.value <= 0 ? count - 1 : addressActiveIndex.value - 1;
   } else if (event.key === 'Enter' && addressActiveIndex.value >= 0) {
     event.preventDefault();
-    applyAddressSuggestion(addressSuggestions.value[addressActiveIndex.value]);
+    applyAddressSuggestion(addressSuggestions.value[addressActiveIndex.value]!);
   } else if (event.key === 'Escape') {
     clearAddressSuggestions();
   }
 };
 
-const fetchAddressSuggestions = async (query) => {
-  const trimmed = String(query || '').trim();
+const fetchAddressSuggestions = async (query: string): Promise<void> => {
+  const trimmed = String(query).trim();
   if (trimmed.length < 3) {
     clearAddressSuggestions();
     return;
@@ -325,17 +464,8 @@ const fetchAddressSuggestions = async (query) => {
 
   try {
     autocompleteLoading.value = true;
-    const response = await fetch(`${config.public.apiBase}/api/auth/customer/autocomplete-location?q=${encodeURIComponent(trimmed)}&limit=5`, {
-      headers: {
-        Authorization: `Bearer ${userStore.customerAuthToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to load address suggestions');
-    }
-    addressSuggestions.value = Array.isArray(data.data) ? data.data : [];
+    const suggestions = await userStore.autocompleteLocation(trimmed);
+    addressSuggestions.value = suggestions;
     addressActiveIndex.value = addressSuggestions.value.length > 0 ? 0 : -1;
   } catch (err) {
     console.error('Autocomplete failed:', err);
@@ -345,8 +475,8 @@ const fetchAddressSuggestions = async (query) => {
   }
 };
 
-const applyAddressSuggestion = (suggestion) => {
-  profile.address = suggestion.display_name || '';
+const applyAddressSuggestion = (suggestion: AddressSuggestion): void => {
+  profile.address = suggestion.display_name ?? '';
   profile.latitude = Number.isFinite(Number(suggestion.latitude)) ? Number(suggestion.latitude) : profile.latitude;
   profile.longitude = Number.isFinite(Number(suggestion.longitude)) ? Number(suggestion.longitude) : profile.longitude;
   addressAutocompleteSuspend = true;
@@ -354,21 +484,10 @@ const applyAddressSuggestion = (suggestion) => {
   clearAddressSuggestions();
 };
 
-const reverseGeocode = async (latitude, longitude) => {
-  const response = await fetch(`${config.public.apiBase}/api/auth/customer/reverse-geocode?lat=${latitude}&lng=${longitude}`, {
-    headers: {
-      'Authorization': `Bearer ${userStore.customerAuthToken}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.message || 'Failed to look up your address');
-  }
-  return data.data;
-};
+const reverseGeocode = (latitude: number, longitude: number) =>
+  userStore.reverseGeocodeHomeLocation(latitude, longitude);
 
-const captureHomeLocation = () => {
+const captureHomeLocation = (): void => {
   if (!navigator.geolocation) {
     error.value = 'Location is not available in this browser';
     return;
@@ -385,17 +504,17 @@ const captureHomeLocation = () => {
         const result = await reverseGeocode(latitude, longitude);
         profile.latitude = latitude;
         profile.longitude = longitude;
-        profile.address = result.address || '';
+        profile.address = result.address ?? '';
         addressSearch.value = profile.address;
       } catch (err) {
-        error.value = err.message || 'Failed to generate your home address';
+        error.value = err instanceof Error ? err.message : 'Failed to generate your home address';
       } finally {
         isLocating.value = false;
       }
     },
     (geoError) => {
       isLocating.value = false;
-      if (geoError?.code === geoError.PERMISSION_DENIED) {
+      if (geoError.code === geoError.PERMISSION_DENIED) {
         error.value = 'Location permission was denied. Allow location access and try again.';
         return;
       }
@@ -405,7 +524,7 @@ const captureHomeLocation = () => {
   );
 };
 
-const clearHomeLocation = () => {
+const clearHomeLocation = (): void => {
   profile.address = '';
   profile.latitude = null;
   profile.longitude = null;
@@ -414,7 +533,7 @@ const clearHomeLocation = () => {
 };
 
 // Save profile
-const saveProfile = async () => {
+const saveProfile = async (): Promise<void> => {
   try {
     isLoading.value = true;
     error.value = null;
@@ -425,7 +544,7 @@ const saveProfile = async () => {
       email: profile.email,
       home_address: profile.address || null,
       home_latitude: profile.latitude,
-      home_longitude: profile.longitude
+      home_longitude: profile.longitude,
     });
 
     updateSuccess.value = true;
@@ -433,7 +552,7 @@ const saveProfile = async () => {
       updateSuccess.value = false;
     }, 3000);
   } catch (err) {
-    error.value = err.message || 'Failed to update profile';
+    error.value = err instanceof Error ? err.message : 'Failed to update profile';
     setTimeout(() => {
       error.value = null;
     }, 5000);
@@ -442,9 +561,65 @@ const saveProfile = async () => {
   }
 };
 
+// Professional verification state
+const profApplication = ref<ProfessionalProfile | null>(null);
+const profLoading = ref(false);
+const profSubmitting = ref(false);
+const profError = ref<string | null>(null);
+const profSuccess = ref(false);
+const profForm = reactive({
+  profession_type: '' as '' | 'doctor' | 'pharmacist' | 'nurse' | 'other',
+  license_number: '',
+  license_body: '',
+});
+
+const profStatus = computed(() => profApplication.value?.status ?? null);
+const showProfForm = computed(() => profStatus.value === null || profStatus.value === 'rejected');
+
+const loadProfessionalApplication = async () => {
+  profLoading.value = true;
+  try {
+    const res = await profService.getMyProfessionalApplication() as { data?: ProfessionalProfile | null };
+    profApplication.value = res.data ?? null;
+    if (profApplication.value) {
+      profForm.profession_type = (profApplication.value.profession_type ?? '') as typeof profForm.profession_type;
+      profForm.license_number = profApplication.value.license_number ?? '';
+      profForm.license_body = profApplication.value.license_body ?? '';
+    }
+  } catch {
+    profApplication.value = null;
+  } finally {
+    profLoading.value = false;
+  }
+};
+
+const submitProfessionalApplication = async () => {
+  if (!profForm.profession_type || !profForm.license_number.trim()) {
+    profError.value = 'Profession type and license number are required.';
+    return;
+  }
+  profSubmitting.value = true;
+  profError.value = null;
+  profSuccess.value = false;
+  try {
+    await profService.applyForProfessional({
+      profession_type: profForm.profession_type,
+      license_number: profForm.license_number.trim(),
+      license_body: profForm.license_body.trim() || null,
+    });
+    profSuccess.value = true;
+    await loadProfessionalApplication();
+  } catch (e: unknown) {
+    profError.value = e instanceof Error ? e.message : 'Submission failed. Please try again.';
+  } finally {
+    profSubmitting.value = false;
+  }
+};
+
 // Initialize
 onMounted(() => {
-  loadProfile();
+  void loadProfile();
+  void loadProfessionalApplication();
 });
 
 onUnmounted(() => {
@@ -465,14 +640,14 @@ watch(addressSearch, (value) => {
     addressAutocompleteTimer = null;
   }
 
-  const trimmed = String(value || '').trim();
+  const trimmed = String(value).trim();
   if (!trimmed) {
     clearAddressSuggestions();
     return;
   }
 
   addressAutocompleteTimer = setTimeout(() => {
-    fetchAddressSuggestions(trimmed);
+    void fetchAddressSuggestions(trimmed);
   }, 300);
 });
 </script>

@@ -1,5 +1,6 @@
 <template>
   <div class="company-layout" :style="themeVars">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Mobile Overlay -->
     <div v-if="mobileMenuOpen" class="mobile-overlay" @click="closeMobileMenu"></div>
 
@@ -36,10 +37,9 @@
             :key="item.path"
             :to="item.path"
             class="nav-item"
-            :title="sidebarCollapsed ? item.label : ''"
           >
-            <component :is="item.icon" class="nav-icon" />
-            <span v-if="!sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+            <component :is="item.icon" class="nav-icon" aria-hidden="true" />
+            <span :class="sidebarCollapsed ? 'sr-only' : 'nav-label'">{{ item.label }}</span>
             <span v-if="!sidebarCollapsed && item.badge" class="nav-badge">{{ item.badge }}</span>
           </NuxtLink>
         </div>
@@ -127,7 +127,7 @@
       </div>
 
       <!-- Page Content -->
-      <main class="page-content">
+      <main id="main-content" tabindex="-1" class="page-content">
         <slot />
       </main>
     </div>
