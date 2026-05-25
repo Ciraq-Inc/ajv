@@ -43,8 +43,8 @@
             </div>
           </div>
 
-          <!-- Sign in (unified single screen) -->
-          <div v-if="currentStep === 'signin'">
+          <!-- ── Sign in (unified single screen) ── -->
+          <div v-if="view === 'login' && currentStep === 'signin'">
             <form @submit.prevent="onSignInSubmit">
               <!-- Always visible: phone -->
               <div class="mb-4">
@@ -113,7 +113,7 @@
                 </div>
               </Transition>
 
-              <!-- Reveal: register (new customer) -->
+              <!-- Reveal: register (new customer — auto-detected path) -->
               <Transition
                 enter-from-class="opacity-0 -translate-y-2"
                 enter-active-class="transition duration-200 ease-out"
@@ -180,11 +180,19 @@
                 </span>
                 <span v-else>{{ submitLabel }}</span>
               </button>
+
+              <!-- Sign up link -->
+              <p class="mt-4 text-center text-sm text-[#7d7484]">
+                New here?
+                <button type="button" @click="goToSignup" class="font-semibold text-[#520094] hover:text-[#6029b4]">
+                  Create an account
+                </button>
+              </p>
             </form>
           </div>
 
-          <!-- Reset Password (separate flow) -->
-          <div v-else-if="currentStep === 'reset'">
+          <!-- ── Reset Password (separate flow) ── -->
+          <div v-else-if="view === 'login' && currentStep === 'reset'">
             <form @submit.prevent="handleResetPassword">
               <div :class="subtleCardClass">
                 <p>Resetting password for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
@@ -238,6 +246,123 @@
               </div>
             </form>
           </div>
+
+          <!-- ── Sign up (explicit new-user path) ── -->
+          <div v-else-if="view === 'signup'">
+            <!-- Step 1: Phone + send OTP -->
+            <div v-if="!signupOtpSent">
+              <div class="mb-4">
+                <label for="signupPhone" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
+                <div class="flex">
+                  <select
+                    v-model="selectedCountry"
+                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453] focus:outline-none focus:ring-2 focus:ring-[#520094]/20"
+                  >
+                    <option value="GH">🇬🇭 +233</option>
+                    <option value="US">🇺🇸 +1</option>
+                    <option value="GB">🇬🇧 +44</option>
+                  </select>
+                  <input v-model="phoneNumber" type="tel" id="signupPhone"
+                    :class="phoneInputClass"
+                    placeholder="eg. 24 123 4567" @input="validatePhoneNumber">
+                </div>
+                <p v-if="phoneNumberError" class="mt-1 text-sm text-red-600">{{ phoneNumberError }}</p>
+              </div>
+
+              <button
+                type="button"
+                :disabled="isLoading || !phoneNumber || !!phoneNumberError"
+                @click="sendSignupOTP"
+                :class="fullPrimaryButtonClass"
+              >
+                <span v-if="isLoading" class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Sending code…
+                </span>
+                <span v-else>Send verification code</span>
+              </button>
+            </div>
+
+            <!-- Step 2: Details + submit -->
+            <form v-else @submit.prevent="submitSignup" class="space-y-3">
+              <div class="rounded-2xl bg-[#f7efff] border border-[#e9d6fb] px-4 py-3 text-xs text-[#4c4453]">
+                Verification code sent to <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong>.
+                <button type="button" @click="signupOtpSent = false; otp = ''" class="ml-1 font-medium text-[#520094] hover:text-[#6029b4]">Change number</button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="su-fname" class="block text-sm font-medium text-[#4c4453] mb-1">First name <span class="text-red-500">*</span></label>
+                  <input v-model="firstName" type="text" id="su-fname" :class="inputClass" placeholder="John" required>
+                </div>
+                <div>
+                  <label for="su-lname" class="block text-sm font-medium text-[#4c4453] mb-1">Last name <span class="text-red-500">*</span></label>
+                  <input v-model="lastName" type="text" id="su-lname" :class="inputClass" placeholder="Doe" required>
+                </div>
+              </div>
+
+              <div>
+                <label for="su-email" class="block text-sm font-medium text-[#4c4453] mb-1">Email <span class="text-[#7d7484] font-normal">(optional)</span></label>
+                <input v-model="email" type="email" id="su-email" :class="inputClass" placeholder="john@example.com">
+              </div>
+
+              <div>
+                <label for="su-otp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification code <span class="text-red-500">*</span></label>
+                <input v-model="otp" type="text" id="su-otp" :class="inputClass"
+                  placeholder="6-digit code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+                <button type="button" @click="sendSignupOTP" :disabled="isLoading"
+                  class="mt-1 text-xs font-medium text-[#520094] hover:text-[#6029b4] disabled:opacity-50">
+                  Resend code
+                </button>
+              </div>
+
+              <div>
+                <label for="su-password" class="block text-sm font-medium text-[#4c4453] mb-1">Create a password <span class="text-red-500">*</span></label>
+                <input v-model="password" type="password" id="su-password" :class="inputClass"
+                  placeholder="Min. 6 characters" required minlength="6">
+              </div>
+
+              <div>
+                <label for="su-confirm" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm password <span class="text-red-500">*</span></label>
+                <input v-model="confirmPassword" type="password" id="su-confirm" :class="inputClass"
+                  placeholder="Re-enter password" required minlength="6">
+                <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-xs text-red-600">
+                  Passwords do not match
+                </p>
+              </div>
+
+              <div class="flex items-start">
+                <input id="su-age" v-model="isOver18" type="checkbox"
+                  class="mt-1 h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]" required>
+                <label for="su-age" class="ml-2 block text-xs text-[#4c4453]">
+                  I confirm I am 18 years or older <span class="text-red-500">*</span>
+                </label>
+              </div>
+
+              <button type="submit" :disabled="isLoading || !canSignupSubmit" :class="fullPrimaryButtonClass">
+                <span v-if="isLoading" class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating account…
+                </span>
+                <span v-else>Create account</span>
+              </button>
+            </form>
+
+            <!-- Back to login link -->
+            <p class="mt-4 text-center text-sm text-[#7d7484]">
+              Already have an account?
+              <button type="button" @click="goToLogin" class="font-semibold text-[#520094] hover:text-[#6029b4]">
+                Sign in
+              </button>
+            </p>
+          </div>
+
         </div>
       </div>
     </div>
@@ -254,6 +379,7 @@ import phoneUtils from '~/utils/phone';
 
 type LoginStep = 'signin' | 'reset';
 type LoginMode = 'login' | 'verify' | 'register';
+type LoginView = 'login' | 'signup';
 
 interface LoginSuccessPayload {
   destination: string;
@@ -309,6 +435,7 @@ const primaryButtonClass = 'rounded-xl bg-[#520094] px-5 py-2.5 text-sm font-sem
 const fullPrimaryButtonClass = 'w-full rounded-xl bg-[#520094] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
 
 // State
+const view = ref<LoginView>('login');
 const currentStep = ref<LoginStep>('signin');
 const mode = ref<LoginMode>('login');
 const phoneNumber = ref<string>('');
@@ -322,6 +449,7 @@ const email = ref<string>('');
 const gender = ref<string>('');
 const isOver18 = ref<boolean>(false);
 const otpSent = ref<boolean>(false);
+const signupOtpSent = ref<boolean>(false);
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 const phoneNumberError = ref<string>('');
@@ -330,6 +458,9 @@ const rememberMe = ref<boolean>(true);
 const registrationCompany = computed<string | null>(() => pharmacyStore.pharmacyData?.name ?? null);
 
 const stepTitle = computed<string>(() => {
+  if (view.value === 'signup') {
+    return signupOtpSent.value ? 'Almost there' : 'Create your account';
+  }
   if (currentStep.value === 'reset') return 'Reset your password';
   if (mode.value === 'verify') return 'Quick verification';
   if (mode.value === 'register') return 'Create your account';
@@ -337,6 +468,14 @@ const stepTitle = computed<string>(() => {
 });
 
 const stepSubtitle = computed<string>(() => {
+  if (view.value === 'signup') {
+    if (signupOtpSent.value) {
+      return registrationCompany.value
+        ? `Fill in your details and join ${registrationCompany.value}.`
+        : 'Fill in a few details and you\'re in.';
+    }
+    return 'Enter your number and we\'ll send a verification code.';
+  }
   if (currentStep.value === 'reset') return 'Verify your number and set a new password.';
   if (mode.value === 'verify') return "Confirm the code we sent and we'll activate your account.";
   if (mode.value === 'register') {
@@ -373,6 +512,14 @@ const canSubmit = computed<boolean>(() => {
   }
   return false;
 });
+
+const canSignupSubmit = computed<boolean>(() =>
+  signupOtpSent.value &&
+  Boolean(firstName.value) && Boolean(lastName.value) &&
+  otp.value.length === 6 &&
+  password.value.length >= 6 && password.value === confirmPassword.value &&
+  isOver18.value
+);
 
 const resolveCurrentPharmacyId = (): unknown => {
   if (pharmacyStore.currentPharmacy) {
@@ -429,6 +576,85 @@ const onPhoneInput = (): void => {
     errorMessage.value = '';
   }
 };
+
+// ── View navigation ──────────────────────────────────────────────────────────
+
+const resetSharedFields = (): void => {
+  phoneNumber.value = '';
+  selectedCountry.value = 'GH';
+  password.value = '';
+  confirmPassword.value = '';
+  otp.value = '';
+  firstName.value = '';
+  lastName.value = '';
+  email.value = '';
+  isOver18.value = false;
+  errorMessage.value = '';
+  phoneNumberError.value = '';
+};
+
+const goToSignup = (): void => {
+  view.value = 'signup';
+  signupOtpSent.value = false;
+  resetSharedFields();
+};
+
+const goToLogin = (): void => {
+  view.value = 'login';
+  currentStep.value = 'signin';
+  mode.value = 'login';
+  signupOtpSent.value = false;
+  otpSent.value = false;
+  resetSharedFields();
+};
+
+// ── Signup flow ──────────────────────────────────────────────────────────────
+
+const sendSignupOTP = async (): Promise<void> => {
+  if (!validatePhoneNumber()) return;
+  errorMessage.value = '';
+  isLoading.value = true;
+  try {
+    const data = await customerAuthService.sendSetupOtp({
+      phone: phoneE164.value,
+    }) as { success: boolean; message?: string };
+    if (!data.success) throw new Error(data.message ?? 'Failed to send verification code');
+    signupOtpSent.value = true;
+    otp.value = '';
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Failed to send code. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const submitSignup = async (): Promise<void> => {
+  if (password.value !== confirmPassword.value) {
+    errorMessage.value = 'Passwords do not match';
+    return;
+  }
+  errorMessage.value = '';
+  isLoading.value = true;
+  try {
+    await userStore.register({
+      company_id: resolveCurrentPharmacyId() ?? undefined,
+      fname: firstName.value,
+      lname: lastName.value,
+      phone: phoneE164.value,
+      password: password.value,
+      email: email.value,
+      otp: otp.value,
+    });
+    emit('login-success', { destination: 'new', action: 'register' });
+    closeModal();
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// ── Login flow (unchanged) ───────────────────────────────────────────────────
 
 // Send registration OTP via the service layer.
 const sendNewCustomerOTP = async (): Promise<void> => {
@@ -511,7 +737,7 @@ const submitVerify = async (): Promise<void> => {
   }
 };
 
-// Path C: new customer registers; reuse already-typed password.
+// Path C: new customer registers via auto-detect; reuse already-typed password.
 const submitRegister = async (): Promise<void> => {
   errorMessage.value = '';
   isLoading.value = true;
@@ -638,8 +864,10 @@ const backToSignIn = (): void => {
 const closeModal = (): void => {
   emit('close');
   setTimeout(() => {
+    view.value = 'login';
     currentStep.value = 'signin';
     mode.value = 'login';
+    signupOtpSent.value = false;
     phoneNumber.value = '';
     password.value = '';
     confirmPassword.value = '';
