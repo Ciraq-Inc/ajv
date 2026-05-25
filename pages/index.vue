@@ -427,7 +427,7 @@
                     Apply to Partner
                   </a>
                   <a
-                    href="tel:+233552587974"
+                    href="tel:+233556637177"
                     class="inline-flex items-center gap-2 rounded-full border border-[#5c2d8a] bg-[#2d1050] hover:bg-[#3d1a66] px-6 py-3 text-sm font-bold text-[#dbb8ff] transition-all"
                   >
                     <PhoneIcon class="w-[18px] h-[18px]" />

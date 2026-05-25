@@ -67,6 +67,16 @@
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Ledger</span>
             </NuxtLink>
           </template>
+
+          <NuxtLink to="/admin/professionals" class="nav-item" active-class="active">
+            <IdentificationIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
+          </NuxtLink>
+
+          <NuxtLink to="/admin/customers" class="nav-item" active-class="active">
+            <UsersIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Customers</span>
+          </NuxtLink>
         </div>
 
         <div class="nav-section">
@@ -102,16 +112,6 @@
           <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
             <ClipboardDocumentCheckIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Waitlist Signups</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/professionals" class="nav-item" active-class="active">
-            <IdentificationIcon class="nav-icon" aria-hidden="true" />
-            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
-          </NuxtLink>
-
-          <NuxtLink to="/admin/customers" class="nav-item" active-class="active">
-            <UserCircleIcon class="nav-icon" aria-hidden="true" />
-            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Customers</span>
           </NuxtLink>
         </div>
 
@@ -311,6 +311,7 @@ import {
   BellIcon,
   LockClosedIcon,
   IdentificationIcon,
+  UsersIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
@@ -375,7 +376,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/fee-schedules')) return 'Fee Schedules'
   if (path.includes('/admin/store-settings')) return 'Store Settings'
   if (path.includes('/admin/security')) return 'Account Security'
-  if (path.includes('/admin/customers')) return 'Create Customer'
+  if (path.includes('/admin/customers')) return 'Customers'
   return 'Dashboard'
 })
 

@@ -27,7 +27,7 @@
 
         <div class="ml-auto hidden items-center gap-2 lg:flex">
           <a
-            href="tel:+233552587974"
+            href="tel:+233556637177"
             class="inline-flex items-center gap-2 rounded-full bg-[#f7efff] px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f0e2ff]"
           >
             <i class="ri-phone-line text-sm"></i>
@@ -37,7 +37,7 @@
           <a
             target="_blank"
             rel="noopener noreferrer"
-            href="https://wa.me/+233552587974"
+            href="https://wa.me/+233556637177"
             class="inline-flex items-center gap-2 rounded-full bg-[#520094] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6c24b3]"
           >
             <i class="ri-whatsapp-line text-base"></i>
@@ -162,14 +162,14 @@
           </nuxt-link>
 
           <div class="mt-3 flex flex-col gap-2 rounded-lg bg-white p-3">
-            <a href="tel:+233552587974" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <a href="tel:+233556637177" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
               <i class="ri-phone-line text-sm"></i>
               (+233) 55-258-7974
             </a>
             <a
               target="_blank"
               rel="noopener noreferrer"
-              href="https://wa.me/+233552587974"
+              href="https://wa.me/+233556637177"
               class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#520094] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6c24b3] transition"
             >
               <i class="ri-whatsapp-line text-base"></i>

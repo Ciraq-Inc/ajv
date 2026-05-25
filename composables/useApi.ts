@@ -10,10 +10,12 @@ import type { ApiEnvelope } from '~/services/types'
 
 export class ApiError extends Error {
   status: number
-  constructor(message: string, status: number) {
+  body?: unknown
+  constructor(message: string, status: number, body?: unknown) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.body = body
   }
 }
 
@@ -171,6 +173,7 @@ export const useApi = (): ApiInstance => {
         throw new ApiError(
           (data as { message?: string }).message ?? `API request failed with status ${response.status}`,
           response.status,
+          data,
         )
       }
 

@@ -162,6 +162,14 @@ export const createAdminService = (api: ApiInstance) => ({
   },
 
   /**
+   * Search customers by name or phone fragment.
+   * GET /api/admin/customers?q=<query>
+   */
+  searchCustomers(q: string): Promise<ApiEnvelope<Array<{ id: string; name: string | null; phone: string; is_active: boolean; phone_verified: boolean }>>> {
+    return api.get('/api/admin/customers', { params: { q } });
+  },
+
+  /**
    * Create a new customer account.
    * POST /api/admin/customers
    * Returns `{ success, data: { id, name, phone }, message }`.
