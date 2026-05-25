@@ -101,6 +101,22 @@
               <span class="text-gray-800 text-right max-w-xs">{{ detailOrder?.customer_address || '—' }}</span>
             </div>
             <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">Customer</span>
+              <span class="text-gray-800">{{ detailOrder?.customer_name || '—' }}</span>
+            </div>
+            <div v-if="detailOrder?.customer_phone" class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">Customer phone</span>
+              <a :href="`tel:${detailOrder.customer_phone}`" class="text-gray-800 hover:underline">{{ detailOrder.customer_phone }}</a>
+            </div>
+            <div v-if="detailOrder?.driver_name" class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">Driver</span>
+              <span class="text-gray-800">{{ detailOrder.driver_name }}</span>
+            </div>
+            <div v-if="detailOrder?.driver_phone" class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">Driver phone</span>
+              <a :href="`tel:${detailOrder.driver_phone}`" class="text-gray-800 hover:underline">{{ detailOrder.driver_phone }}</a>
+            </div>
+            <div class="flex items-center justify-between text-sm">
               <span class="text-gray-500">Date</span>
               <span class="text-gray-800">{{ formatDate(detailOrder?.created_at) }}</span>
             </div>
@@ -172,6 +188,10 @@ interface OrderRow {
   id: number | string
   request_number?: string | null
   customer_address?: string | null
+  customer_name?: string | null
+  customer_phone?: string | null
+  driver_name?: string | null
+  driver_phone?: string | null
   created_at?: string | null
   status?: string | null
   pharmacy_total?: number | string | null

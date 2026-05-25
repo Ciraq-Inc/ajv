@@ -108,6 +108,11 @@
             <IdentificationIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
           </NuxtLink>
+
+          <NuxtLink to="/admin/customers" class="nav-item" active-class="active">
+            <UserCircleIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Customers</span>
+          </NuxtLink>
         </div>
 
         <div class="nav-section">
@@ -292,6 +297,7 @@ import {
   ChartBarIcon,
   KeyIcon,
   UserGroupIcon,
+  UserCircleIcon,
   DevicePhoneMobileIcon,
   CreditCardIcon,
   Cog6ToothIcon,
@@ -369,6 +375,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/fee-schedules')) return 'Fee Schedules'
   if (path.includes('/admin/store-settings')) return 'Store Settings'
   if (path.includes('/admin/security')) return 'Account Security'
+  if (path.includes('/admin/customers')) return 'Create Customer'
   return 'Dashboard'
 })
 
