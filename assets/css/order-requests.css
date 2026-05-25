@@ -3676,6 +3676,26 @@
 }
 
 
+.outreach-search-bar {
+  margin-top: 0.75rem;
+}
+
+.outreach-search-input {
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.outreach-search-input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
 .outreach-summary-bar {
   display: flex;
   align-items: center;

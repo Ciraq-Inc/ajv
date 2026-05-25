@@ -85,13 +85,14 @@ function resolveToken(endpoint: string): string | null {
   } else if (endpoint.startsWith('/api/dispatch')) {
     const t = localStorage.getItem('dispatch_token')
     if (t) return t
-  } else if (endpoint.startsWith('/api/admin')) {
+  } else if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
     const t = localStorage.getItem('adminToken')
     if (t) return t
   } else if (
     endpoint.startsWith('/api/order-requests/customer') ||
     endpoint.startsWith('/api/wallet') ||
-    endpoint.startsWith('/api/customer')
+    endpoint.startsWith('/api/customer') ||
+    endpoint.startsWith('/api/professionals/customer')
   ) {
     const t = localStorage.getItem('customerAuthToken')
     if (t) return t

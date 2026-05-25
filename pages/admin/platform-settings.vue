@@ -323,6 +323,30 @@ const sections: SectionDefinition[] = [
         type: 'string',
         inputType: 'text',
         defaultValue: 'MedsGh'
+      },
+      {
+        key: 'twilio_account_sid',
+        label: 'Twilio Account SID',
+        help: 'Account SID from the Twilio console — used for international (non-Ghana) numbers',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: ''
+      },
+      {
+        key: 'twilio_auth_token',
+        label: 'Twilio Auth Token',
+        help: 'Auth token from the Twilio console',
+        type: 'string',
+        inputType: 'password',
+        defaultValue: ''
+      },
+      {
+        key: 'twilio_from_number',
+        label: 'Twilio From Number',
+        help: 'E.164 sender number for Twilio (e.g. +12015550123)',
+        type: 'string',
+        inputType: 'text',
+        defaultValue: ''
       }
     ]
   },

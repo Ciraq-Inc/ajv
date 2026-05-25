@@ -17,6 +17,7 @@
     "@pinia/nuxt": "^0.7.0",
     "browser-image-compression": "^2.0.2",
     "firebase": "^10.14.1",
+    "libphonenumber-js": "^1.13.3",
     "nuxt": "^3.14.159",
     "nuxt-gtag": "^3.0.2",
     "nuxt-vuefire": "^1.0.4",

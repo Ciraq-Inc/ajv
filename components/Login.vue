@@ -50,10 +50,15 @@
               <div class="mb-4">
                 <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
                 <div class="flex">
-                  <span
-                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453]">
-                    +233
-                  </span>
+                  <select
+                    v-model="selectedCountry"
+                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453] focus:outline-none focus:ring-2 focus:ring-[#520094]/20"
+                    @change="onPhoneInput"
+                  >
+                    <option value="GH">🇬🇭 +233</option>
+                    <option value="US">🇺🇸 +1</option>
+                    <option value="GB">🇬🇧 +44</option>
+                  </select>
                   <input v-model="phoneNumber" type="tel" id="phoneNumber"
                     :class="phoneInputClass"
                     placeholder="eg. 24 123 4567" required @input="onPhoneInput">
@@ -245,6 +250,7 @@ import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useModalA11y } from '~/composables/useModalA11y';
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
+import phoneUtils from '~/utils/phone';
 
 type LoginStep = 'signin' | 'reset';
 type LoginMode = 'login' | 'verify' | 'register';
@@ -306,6 +312,7 @@ const fullPrimaryButtonClass = 'w-full rounded-xl bg-[#520094] px-4 py-3 text-sm
 const currentStep = ref<LoginStep>('signin');
 const mode = ref<LoginMode>('login');
 const phoneNumber = ref<string>('');
+const selectedCountry = ref<string>('GH');
 const password = ref<string>('');
 const confirmPassword = ref<string>('');
 const otp = ref<string>('');
@@ -387,65 +394,23 @@ const resolveCurrentPharmacyId = (): unknown => {
   return null;
 };
 
-const formattedPhoneNumber = computed<string>(() => {
-  if (!phoneNumber.value) return '';
-  let formatted = phoneNumber.value;
-  if (formatted.startsWith('0')) {
-    formatted = '+233 ' + formatted.substring(1);
-  } else if (!formatted.startsWith('+')) {
-    formatted = '+233 ' + formatted;
-  }
-  return formatted;
-});
+const phoneE164 = computed<string>(() =>
+  phoneUtils.formatToE164(phoneNumber.value, selectedCountry.value)
+);
+
+const formattedPhoneNumber = computed<string>(() =>
+  phoneE164.value ? phoneUtils.formatForDisplay(phoneE164.value) : phoneNumber.value
+);
 
 const validatePhoneNumber = (): boolean => {
-  const digitsOnly = phoneNumber.value.replace(/\D/g, '');
-
-  if (digitsOnly.length === 0) {
+  if (!phoneNumber.value.replace(/\D/g, '')) {
     phoneNumberError.value = '';
     return false;
   }
-
-  const validPrefixes = ['20', '23', '24', '25', '26', '27', '50', '53', '54', '55', '59', '57', '56'];
-
-  if (digitsOnly.length === 10 && digitsOnly.startsWith('0')) {
-    const prefix = digitsOnly.substring(1, 3);
-    if (!validPrefixes.includes(prefix)) {
-      phoneNumberError.value = 'Please enter a valid Ghanaian number.';
-      return false;
-    }
+  if (phoneUtils.isValidPhone(phoneNumber.value, selectedCountry.value)) {
     phoneNumberError.value = '';
     return true;
   }
-
-  if (digitsOnly.length === 9) {
-    const prefix = digitsOnly.substring(0, 2);
-    if (!validPrefixes.includes(prefix)) {
-      phoneNumberError.value = 'Please enter a valid Ghanaian number.';
-      return false;
-    }
-    phoneNumberError.value = '';
-    return true;
-  }
-
-  if (digitsOnly.length === 12 && digitsOnly.startsWith('233')) {
-    const prefix = digitsOnly.substring(3, 5);
-    if (!validPrefixes.includes(prefix)) {
-      phoneNumberError.value = 'Please enter a valid Ghanaian number.';
-      return false;
-    }
-    phoneNumberError.value = '';
-    return true;
-  }
-
-  if (digitsOnly.length < 9) {
-    phoneNumberError.value = 'Phone number is too short.';
-    return false;
-  } else if (digitsOnly.length > 12) {
-    phoneNumberError.value = 'Phone number is too long.';
-    return false;
-  }
-
   phoneNumberError.value = 'Please enter a valid phone number.';
   return false;
 };
@@ -468,7 +433,7 @@ const onPhoneInput = (): void => {
 // Send registration OTP via the service layer.
 const sendNewCustomerOTP = async (): Promise<void> => {
   const data = await customerAuthService.sendSetupOtp({
-    phone: userStore.formatPhoneNumber(phoneNumber.value),
+    phone: phoneE164.value,
   }) as { success: boolean; message?: string };
   if (!data.success) throw new Error(data.message ?? 'Failed to send verification code');
 };
@@ -492,11 +457,11 @@ const submitLogin = async (): Promise<void> => {
   isLoading.value = true;
 
   try {
-    const result = await userStore.checkPhoneStatus(phoneNumber.value);
+    const result = await userStore.checkPhoneStatus(phoneE164.value);
 
     if (result.status === 'registered') {
       try {
-        await userStore.login(phoneNumber.value, password.value);
+        await userStore.login(phoneE164.value, password.value);
         emit('login-success', { destination: 'new', action: 'login' });
         closeModal();
       } catch (loginErr) {
@@ -507,7 +472,7 @@ const submitLogin = async (): Promise<void> => {
     }
 
     if (result.status === 'existing_customer_no_password') {
-      await userStore.sendSetupOTP(phoneNumber.value);
+      await userStore.sendSetupOTP(phoneE164.value);
       otpSent.value = true;
       mode.value = 'verify';
       return;
@@ -535,7 +500,7 @@ const submitVerify = async (): Promise<void> => {
   isLoading.value = true;
 
   try {
-    await userStore.setupPassword(phoneNumber.value, otp.value, password.value);
+    await userStore.setupPassword(phoneE164.value, otp.value, password.value);
     emit('login-success', { destination: 'new', action: 'setup' });
     closeModal();
   } catch (err) {
@@ -558,7 +523,7 @@ const submitRegister = async (): Promise<void> => {
       company_id: companyId ?? undefined,
       fname: firstName.value,
       lname: lastName.value,
-      phone: phoneNumber.value,
+      phone: phoneE164.value,
       password: password.value,
       email: email.value,
       otp: otp.value,
@@ -578,7 +543,7 @@ const resendVerifyOTP = async (): Promise<void> => {
   errorMessage.value = '';
   isLoading.value = true;
   try {
-    await userStore.sendSetupOTP(phoneNumber.value);
+    await userStore.sendSetupOTP(phoneE164.value);
   } catch (err) {
     console.error('Resend verify OTP error:', err);
     errorMessage.value = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
@@ -615,7 +580,7 @@ const sendResetOTP = async (): Promise<void> => {
   isLoading.value = true;
 
   try {
-    await userStore.sendResetOTP(phoneNumber.value);
+    await userStore.sendResetOTP(phoneE164.value);
     otpSent.value = true;
   } catch (err) {
     console.error('Error sending reset OTP:', err);
@@ -635,7 +600,7 @@ const handleResetPassword = async (): Promise<void> => {
   isLoading.value = true;
 
   try {
-    await userStore.resetPassword(phoneNumber.value, otp.value, password.value);
+    await userStore.resetPassword(phoneE164.value, otp.value, password.value);
 
     errorMessage.value = '';
     currentStep.value = 'signin';

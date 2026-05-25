@@ -42,28 +42,36 @@
                                     autocapitalize="words"
                                     inputmode="text"
                                     placeholder="Medicine name, brand, or strength"
+                                    @input="debouncedSaveFormDraft()"
                                     class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
 
-                                <div v-if="item.product_name.trim()" class="flex items-center gap-2">
-                                    <select v-model="item.requested_unit"
-                                        class="flex-1 h-10 bg-zinc-50 border border-zinc-200 rounded-xl px-3 text-sm font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 cursor-pointer">
-                                        <option value="">Unit</option>
-                                        <option v-for="option in medicineUnitOptions" :key="option" :value="option">{{ option }}</option>
-                                    </select>
+                                <!-- Unit + Qty with labels -->
+                                <div v-if="item.product_name.trim()" class="flex items-end gap-2">
+                                    <div class="flex-1 flex flex-col gap-1">
+                                        <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-400">Unit</span>
+                                        <select v-model="item.requested_unit"
+                                            class="h-10 w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 text-sm font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 cursor-pointer">
+                                            <option value="">Choose unit…</option>
+                                            <option v-for="option in medicineUnitOptions" :key="option" :value="option">{{ option }}</option>
+                                        </select>
+                                    </div>
 
-                                    <div class="flex items-center h-10 bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden">
-                                        <button type="button"
-                                            class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 transition-colors"
-                                            @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
-                                        <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
-                                            class="w-10 h-full text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-200 appearance-none bg-transparent p-0" />
-                                        <button type="button"
-                                            class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-                                            @click="incrementQty(item)">+</button>
+                                    <div class="flex flex-col gap-1 flex-shrink-0">
+                                        <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-400">Qty</span>
+                                        <div class="flex items-center h-10 bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden">
+                                            <button type="button"
+                                                class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 transition-colors"
+                                                @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
+                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
+                                                class="w-10 h-full text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-200 appearance-none bg-transparent p-0" />
+                                            <button type="button"
+                                                class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                                                @click="incrementQty(item)">+</button>
+                                        </div>
                                     </div>
 
                                     <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
-                                        class="w-10 h-10 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0"
+                                        class="w-10 h-10 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0 mb-0.5"
                                         type="button">
                                         <XMarkIcon class="w-4 h-4" />
                                     </button>
@@ -71,17 +79,23 @@
                             </div>
                         </div>
                         <!-- Prescription -->
-                        <div class="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between">
-                            <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Prescription</span>
+                        <div class="mt-4 pt-4 border-t border-zinc-100">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Prescription</span>
+                                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Optional</span>
+                            </div>
                             <div class="flex items-center gap-2">
-                                <label class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors" title="Take a photo">
-                                    <CameraIcon class="w-4 h-4" />
+                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Take a photo">
+                                    <CameraIcon class="w-4 h-4 flex-shrink-0" />
+                                    Photo
                                     <input ref="prescriptionPicker" type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
-                                <label class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors" title="Upload file">
-                                    <ArrowUpTrayIcon class="w-4 h-4" />
+                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Upload file">
+                                    <ArrowUpTrayIcon class="w-4 h-4 flex-shrink-0" />
+                                    Upload
                                     <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
+                                <span class="text-[11px] text-zinc-400 ml-1">Attach if you have one</span>
                             </div>
                         </div>
 
@@ -108,15 +122,17 @@
                             </button>
                         </div>
 
-                        <!-- Icon action row -->
-                        <div class="mt-5 pt-4 border-t border-zinc-100 flex items-center gap-2">
-                            <button @click="addItem" type="button" title="Add another medication"
-                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-[#4F217A]/[0.07] text-[#4F217A] hover:bg-[#4F217A]/[0.14] transition-colors">
-                                <PlusIcon class="w-5 h-5" />
+                        <!-- Action row -->
+                        <div class="mt-5 pt-4 border-t border-zinc-100 flex items-center gap-3">
+                            <button @click="addItem" type="button"
+                                class="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#4F217A]/[0.07] text-[#4F217A] hover:bg-[#4F217A]/[0.14] transition-colors text-sm font-semibold">
+                                <PlusIcon class="w-4 h-4 flex-shrink-0" />
+                                Add medication
                             </button>
-                            <button v-if="!showNotesField" @click="openNotesField" type="button" title="Add a note"
-                                class="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 transition-colors">
-                                <ChatBubbleLeftEllipsisIcon class="w-5 h-5" />
+                            <button v-if="!showNotesField" @click="openNotesField" type="button"
+                                class="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 transition-colors text-sm font-semibold">
+                                <ChatBubbleLeftEllipsisIcon class="w-4 h-4 flex-shrink-0" />
+                                Add note
                             </button>
                         </div>
                     </section>
@@ -124,24 +140,43 @@
 
                     <!-- Address & Location -->
                     <section class="bg-white rounded-2xl p-5">
-                        <h3 class="font-black text-zinc-900 text-base tracking-tight mb-4">Your Address</h3>
-                        <button @click="getLocation" :disabled="gettingLocation"
-                            class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300"
-                            :class="{ 'bg-emerald-50/50 border-emerald-200': customerLat }">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 transition-colors"
-                                :class="customerLat ? 'bg-emerald-500 text-white' : 'bg-white border border-zinc-200 text-zinc-500'">
-                                <MapPinIconSolid v-if="customerLat" class="w-5 h-5" />
-                                <ArrowPathIcon v-else-if="gettingLocation" class="w-5 h-5 animate-spin" />
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Your Address</h3>
+                            <button v-if="customerLat && !editingAddress" @click="editingAddress = true" type="button"
+                                class="text-xs font-semibold text-[#4F217A] hover:underline">
+                                Change
+                            </button>
+                        </div>
+
+                        <!-- GPS button: shown when no location OR editing -->
+                        <button v-if="showAddressSearch" @click="getLocation" :disabled="gettingLocation"
+                            class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-3 transition-all hover:bg-zinc-100 hover:border-zinc-300">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 bg-white border border-zinc-200 text-zinc-500">
+                                <ArrowPathIcon v-if="gettingLocation" class="w-5 h-5 animate-spin" />
                                 <MapPinIcon v-else class="w-5 h-5" />
+                            </div>
+                            <div class="flex-1 text-left min-w-0">
+                                <strong class="block text-sm font-bold text-zinc-900">Use my current location</strong>
+                                <span class="block text-[11px] font-semibold text-zinc-500 mt-0.5">{{ gettingLocation ? 'Getting location…' : 'Tap to detect via GPS' }}</span>
+                            </div>
+                        </button>
+
+                        <!-- Confirmed location row: shown when set and not editing -->
+                        <div v-if="customerLat && !editingAddress"
+                            class="flex items-center gap-3 bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 mb-3">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-sm flex-shrink-0">
+                                <MapPinIconSolid class="w-5 h-5" />
                             </div>
                             <div class="flex-1 text-left min-w-0">
                                 <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel }}</strong>
                                 <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{ locationSublabel }}</span>
                             </div>
-                            <CheckCircleIconSolid v-if="customerLat" class="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                        </button>
+                            <CheckCircleIconSolid class="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        </div>
+
                         <div class="flex flex-col gap-2">
-                            <div class="relative">
+                            <!-- Address search: shown only when no location or editing -->
+                            <div v-if="showAddressSearch" class="relative">
                                 <div
                                     class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
                                     <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
@@ -174,14 +209,13 @@
                                         @click="applyDeliveryAddressSuggestion(suggestion)"
                                         @mouseenter="deliveryAddressActiveIndex = index">
                                         <div class="px-4 py-3.5">
-                                            <p class="text-sm font-semibold text-zinc-900 line-clamp-2">{{
-                                                suggestion.display_name }}</p>
-                                            <p class="mt-1 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-400">
-                                                {{ suggestion.type || 'Address' }}</p>
+                                            <p class="text-sm font-semibold text-zinc-900 truncate">{{ formatSuggestionPrimary(String(suggestion.display_name ?? '')) }}</p>
+                                            <p class="mt-0.5 text-[11px] font-medium text-zinc-400 truncate">{{ formatSuggestionSecondary(String(suggestion.display_name ?? '')) || suggestion.type || '' }}</p>
                                         </div>
                                     </li>
                                 </ul>
                             </div>
+
                             <textarea v-model="deliveryAddress" rows="2"
                                 placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
                                 autocomplete="street-address"
@@ -240,14 +274,26 @@
                             </div>
                         </div>
                         <p class="text-[11px] text-zinc-500 leading-snug mb-3">Pickup or delivery options shown at next step.</p>
+                        <!-- Progress checklist -->
+                        <div class="flex flex-wrap gap-x-3 gap-y-1.5 mb-3">
+                            <span class="flex items-center gap-1.5 text-[11px] font-semibold"
+                                :class="(validItems.length > 0 || prescriptionFiles.length > 0) ? 'text-emerald-600' : 'text-zinc-400'">
+                                <CheckCircleIconSolid v-if="validItems.length > 0 || prescriptionFiles.length > 0" class="w-3.5 h-3.5 flex-shrink-0" />
+                                <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
+                                Medications
+                            </span>
+                            <span class="flex items-center gap-1.5 text-[11px] font-semibold"
+                                :class="(customerLat && deliveryAddress.trim()) ? 'text-emerald-600' : 'text-zinc-400'">
+                                <CheckCircleIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-3.5 h-3.5 flex-shrink-0" />
+                                <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
+                                Location & address
+                            </span>
+                        </div>
                         <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
                             class="w-full bg-purple-700 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
                             <template v-else>Send Request ›</template>
                         </button>
-                        <p v-if="!canSubmit && !isSubmitting" class="text-[11px] text-zinc-400 text-center mt-2">
-                            {{ !validItems.length && !prescriptionFiles.length ? 'Add a medication or prescription' : !customerLat ? 'Set your location' : !deliveryAddress.trim() ? 'Add your address' : !canSearchProducts ? `Top up your wallet to GHS ${requestFee.toFixed(2)} to send` : '' }}
-                        </p>
                     </div>
                 </div><!-- /right sidebar -->
 
@@ -255,6 +301,21 @@
 
             <!-- Mobile submit bar -->
             <div class="lg:hidden space-y-2">
+                <!-- Progress checklist (mobile) -->
+                <div class="flex flex-wrap gap-x-4 gap-y-1.5 px-1">
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold"
+                        :class="(validItems.length > 0 || prescriptionFiles.length > 0) ? 'text-emerald-600' : 'text-zinc-400'">
+                        <CheckCircleIconSolid v-if="validItems.length > 0 || prescriptionFiles.length > 0" class="w-3.5 h-3.5 flex-shrink-0" />
+                        <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
+                        Medications
+                    </span>
+                    <span class="flex items-center gap-1.5 text-[11px] font-semibold"
+                        :class="(customerLat && deliveryAddress.trim()) ? 'text-emerald-600' : 'text-zinc-400'">
+                        <CheckCircleIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-3.5 h-3.5 flex-shrink-0" />
+                        <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
+                        Location & address
+                    </span>
+                </div>
                 <div class="bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
                     <div class="flex-1 min-w-0">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
@@ -344,7 +405,7 @@
                             <div class="flex items-center gap-4 min-w-0">
                                 <!-- Colored Icon Box based on status -->
                                 <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-                                    :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (req.status === 'processing' || req.status === 'composed' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100')">
+                                    :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-purple-50 text-purple-600 border-purple-100'">
                                     <component :is="req.status === 'completed' ? CheckCircleIcon : BeakerIcon" class="w-5 h-5" />
                                 </div>
                                 <div class="min-w-0">
@@ -364,7 +425,7 @@
                                 <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
                                     <span
                                         class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
-                                        :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
+                                        :style="req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #f5eefb; color: #6c24b3; border-color: #dbb8ff;'">
                                         <span v-if="req.status === 'pending' || req.status === 'searching'"
                                             class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
                                         {{ formatStatus(getRequestStatus(req)) }}
@@ -385,7 +446,7 @@
                                     <!-- Mobile Badge Fallback -->
                                     <span
                                         class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
-                                        :style="req.status === 'pending' ? 'background: #fffbeb; color: #d97706; border-color: #fcd34d;' : req.status === 'processing' ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : req.status === 'composed' ? 'background: #f5f3ff; color: #9333ea; border-color: #d8b4fe;' : 'background: #f3f4f6; color: #374151; border-color: #e5e7eb;'">
+                                        :style="req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #f5eefb; color: #6c24b3; border-color: #dbb8ff;'">
                                         <span v-if="req.status === 'pending' || req.status === 'searching'"
                                             class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
                                         {{ formatStatus(getRequestStatus(req)) }}
@@ -1064,6 +1125,7 @@ interface LocationIssue {
     instructions: string;
 }
 
+
 interface DecisionItem {
     item_id?: number | string;
     status?: string;
@@ -1489,6 +1551,8 @@ const customerNotes = ref<string>('')
 const notesTextarea = ref<HTMLTextAreaElement | null>(null)
 const showPrescriptionField = ref<boolean>(false)
 const showNotesField = ref<boolean>(false)
+const editingAddress = ref<boolean>(false)
+const showAddressSearch = computed<boolean>(() => !customerLat.value || editingAddress.value)
 const locationIssue = ref<LocationIssue | null>(null)
 const uploadProgress = ref<number>(0)
 
@@ -1515,6 +1579,7 @@ const dismissNotesField = (): void => {
     if (customerNotes.value.trim().length) return
     showNotesField.value = false
 }
+
 
 watch(prescriptionFiles, (files) => {
     if (files.length > 0) showPrescriptionField.value = true
@@ -1627,6 +1692,18 @@ const filteredRequests = computed<OrderRequest[]>(() => (
 
 const buildLocationIssue = (message: string, instructions: string): LocationIssue => ({ message, instructions })
 
+const formatSuggestionPrimary = (displayName: string): string => {
+    const parts = displayName.split(',').map(p => p.trim()).filter(Boolean)
+    return parts.slice(0, 3).join(', ')
+}
+
+const formatSuggestionSecondary = (displayName: string): string => {
+    const parts = displayName.split(',').map(p => p.trim()).filter(Boolean)
+    if (parts.length <= 3) return ''
+    const tail = parts.slice(3).filter(p => !/^[A-Z]{2}-\d/.test(p))
+    return tail.slice(-2).join(', ')
+}
+
 const clearDeliveryAddressSuggestions = (): void => {
     deliveryAddressSuggestions.value = []
     deliveryAddressActiveIndex.value = -1
@@ -1689,6 +1766,7 @@ const applyDeliveryAddressSuggestion = (suggestion: AddressSuggestion | undefine
     }
 
     deliveryAutocompleteSuspend = true
+    editingAddress.value = false
     clearDeliveryAddressSuggestions()
 }
 
@@ -1701,6 +1779,7 @@ const applySavedHomeLocation = (homeLocation: HomeLocation | null | undefined, {
     customerAddress.value = homeLocation.address ?? ''
     if (fulfillmentType.value === 'delivery' && (!deliveryAddress.value.trim() || force || locationMode.value !== 'current-request')) {
         deliveryAddress.value = homeLocation.address ?? ''
+        deliveryAutocompleteSuspend = true
         deliveryAddressSearch.value = deliveryAddress.value
     }
     locationMode.value = 'home'
@@ -1739,6 +1818,7 @@ const selectFulfillment = (type: string): void => {
     fulfillmentType.value = type
     if (type === 'delivery' && !deliveryAddress.value.trim()) {
         deliveryAddress.value = customerAddress.value ?? ''
+        deliveryAutocompleteSuspend = true
         deliveryAddressSearch.value = deliveryAddress.value
     }
 }
@@ -1989,8 +2069,10 @@ const getLocation = (): void => {
                 const locationData = await reverseGeocodeLocation(customerLat.value, customerLng.value)
                 if (locationData?.address) {
                     customerAddress.value = locationData.address
+                    editingAddress.value = false
                     if (fulfillmentType.value === 'delivery') {
                         deliveryAddress.value = locationData.address
+                        deliveryAutocompleteSuspend = true
                         deliveryAddressSearch.value = locationData.address
                     }
                     try {
@@ -2364,16 +2446,8 @@ const getCustomerStatus = (s: string): string => {
 const getStatusClasses = (status: string): string => {
     switch (status) {
         case 'paid': case 'verified': case 'preparing': return 'bg-green-100 text-green-700';
-        case 'pending': case 'composing': return 'bg-[#efdbff] text-[#621fa4]';
-        case 'sourcing': case 'searching': case 'confirming_with_pharm': case 'finding_pharmacist': return 'bg-[#f0f9ff] text-[#531dab]';
-        case 'awaiting_input': case 'awaiting_customer': return 'bg-orange-100 text-orange-700';
-        case 'payment_pending': case 'quote_available': return 'bg-blue-100 text-blue-700';
-        case 'driver_assigned': case 'on the way': case 'in_transit': case 'out_for_delivery': return 'bg-indigo-100 text-indigo-700';
-        case 'ready_for_pickup': return 'bg-teal-100 text-teal-700';
-        case 'processing': return 'bg-yellow-100 text-yellow-700';
-        case 'expired': return 'bg-amber-100 text-amber-700';
         case 'cancelled': case 'rejected': return 'bg-red-100 text-red-700';
-        default: return 'bg-gray-100 text-gray-700';
+        default: return 'bg-[#f5eefb] text-[#6c24b3]';
     }
 }
 const formatStatus = (s: string | undefined): string => getCustomerStatus(s ?? '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
@@ -4918,7 +4992,7 @@ void isPaymentPendingRequest
 }
 
 .progress-fill.ready_for_pickup {
-    background: #f97316;
+    background: #7c3aed;
 }
 
 .progress-fill.picked_up {
@@ -4942,7 +5016,7 @@ void isPaymentPendingRequest
 }
 
 .progress-fill.awaiting_customer {
-    background: #f97316;
+    background: #7c3aed;
 }
 
 .progress-fill.confirmed {
@@ -4972,93 +5046,32 @@ void isPaymentPendingRequest
     padding: 0.125rem 0.5rem;
 }
 
-.status-badge.pending {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.status-badge.processing {
-    background: #dbeafe;
-    color: #1e40af;
-}
-
-.status-badge.confirming_with_pharm {
-    background: #efdbff;
-    color: #520094;
-}
-
-.status-badge.confirmed_in_pharm {
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid #6ee7b7;
-}
-
-.status-badge.paid {
-    background: #e0f2fe;
-    color: #0c4a6e;
-}
-
-.status-badge.logistics_pending {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.status-badge.driver_unavailable {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-.status-badge.ready_for_pickup {
-    background: #ffedd5;
-    color: #9a3412;
-}
-
-.status-badge.picked_up {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.status-badge.out_for_delivery {
-    background: #e0e7ff;
-    color: #3730a3;
-}
-
-.status-badge.delivered {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.status-badge.returned {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
+.status-badge.pending,
+.status-badge.processing,
+.status-badge.confirming_with_pharm,
+.status-badge.paid,
+.status-badge.logistics_pending,
+.status-badge.ready_for_pickup,
+.status-badge.out_for_delivery,
 .status-badge.items_sourced,
-.status-badge.sourced {
-    background: #ede9fe;
-    color: #5b21b6;
-}
-
-.status-badge.awaiting_customer {
-    background: #ffedd5;
-    color: #9a3412;
-}
-
+.status-badge.sourced,
+.status-badge.awaiting_customer,
 .status-badge.confirmed {
-    background: #cffafe;
-    color: #155e75;
+    background: #f5eefb;
+    color: #6c24b3;
 }
 
+.status-badge.confirmed_in_pharm,
+.status-badge.picked_up,
+.status-badge.delivered,
 .status-badge.completed {
     background: #dcfce7;
     color: #166534;
 }
 
-.status-badge.cancelled {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
+.status-badge.driver_unavailable,
+.status-badge.returned,
+.status-badge.cancelled,
 .status-badge.unavailable {
     background: #fee2e2;
     color: #991b1b;
@@ -5168,8 +5181,8 @@ void isPaymentPendingRequest
 .priority-hero {
     padding: 1rem 1.1rem;
     border-radius: 14px;
-    background: #520094;
-    color: #ffffff;
+
+    color: #374151;
     margin-bottom: 1rem;
 }
 
@@ -5179,14 +5192,14 @@ void isPaymentPendingRequest
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #dbb8ff;
+    color: #374151;
 }
 
 .priority-copy {
     margin: 0;
     font-size: 0.92rem;
     line-height: 1.65;
-    color: #f3e8ff;
+    color: #374151;
 }
 
 .priority-points {

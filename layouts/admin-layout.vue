@@ -103,6 +103,11 @@
             <ClipboardDocumentCheckIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Waitlist Signups</span>
           </NuxtLink>
+
+          <NuxtLink to="/admin/professionals" class="nav-item" active-class="active">
+            <IdentificationIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
+          </NuxtLink>
         </div>
 
         <div class="nav-section">
@@ -299,6 +304,7 @@ import {
   SwatchIcon,
   BellIcon,
   LockClosedIcon,
+  IdentificationIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute, useRouter } from 'vue-router'

@@ -59,7 +59,29 @@ export default defineNuxtConfig({
     pageTransition: { name: 'page', mode: 'out-in' }
   },
 
-  modules: ["@nuxtjs/tailwindcss", "@nuxt/fonts", "@pinia/nuxt", "nuxt-vuefire", "nuxt-gtag"],
+  modules: [
+    "@nuxtjs/tailwindcss",
+    "@nuxt/fonts",
+    "@pinia/nuxt",
+    "nuxt-vuefire",
+    "nuxt-gtag",
+    // Workaround: with ssr:false, Nuxt 3.15+ skips creating the SSR Vite server, so
+    // vite:serverCreated(isServer:true) never fires and NUXT_VITE_NODE_OPTIONS.socketPath
+    // is never set — causing "Vite Node IPC socket path not configured" on every request.
+    // Fix: re-emit the hook on the client server. Also add input.server so that
+    // resolveServerEntry() succeeds (it requires that key; entryPath is only metadata).
+    function viteNodeSsrFix(_options: unknown, nuxt: any) {
+      if (!nuxt.options.dev || nuxt.options.ssr) return
+      nuxt.hook('vite:serverCreated', async (server: any, ctx: any) => {
+        if (!ctx.isClient) return
+        const input = server.config?.build?.rollupOptions?.input
+        if (input && typeof input === 'object' && !Array.isArray(input) && !('server' in input)) {
+          input.server = Object.values(input)[0]
+        }
+        await nuxt.callHook('vite:serverCreated', server, { isClient: false, isServer: true })
+      })
+    },
+  ],
 
   fonts: {
     families: [

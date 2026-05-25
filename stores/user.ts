@@ -180,14 +180,14 @@ export const useUserStore = defineStore('user', {
 
     formatPhoneNumber(phone: string): string {
       if (!phone) return '';
-      let digits = phone.replace(/\D/g, '');
-      if (digits.startsWith('0')) {
-        digits = '233' + digits.slice(1);
-      }
-      if (!digits.startsWith('233')) {
-        digits = '233' + digits;
-      }
-      return digits;
+      const trimmed = phone.trim();
+      // E.164 input (from country-picker-aware Login.vue) — pass through
+      if (trimmed.startsWith('+')) return trimmed;
+      // Legacy Ghana national format fallback
+      let digits = trimmed.replace(/\D/g, '');
+      if (digits.startsWith('0')) digits = '233' + digits.slice(1);
+      if (!digits.startsWith('233')) digits = '233' + digits;
+      return '+' + digits;
     },
 
     // -------------------------------------------------------------------

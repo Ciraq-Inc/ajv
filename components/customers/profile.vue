@@ -328,6 +328,7 @@ import {
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService'
 import type { ProfessionalProfile } from '~/services/customerAuth/customerAuthService'
 import { useApi } from '~/composables/useApi'
+import phoneUtils from '~/utils/phone'
 
 interface AddressSuggestion {
   display_name?: string;
@@ -408,16 +409,9 @@ const profileInitials = computed<string>(() => {
   return initials || 'CP';
 });
 
-// Format phone number
 const formatPhoneNumber = (phone: string | undefined): string => {
   if (!phone) return '';
-  let formatted = phone;
-  if (formatted.startsWith('233')) {
-    formatted = '+233 ' + formatted.substring(3, 5) + ' ' + formatted.substring(5, 8) + ' ' + formatted.substring(8);
-  } else if (formatted.startsWith('+233')) {
-    formatted = '+233 ' + formatted.substring(4, 6) + ' ' + formatted.substring(6, 9) + ' ' + formatted.substring(9);
-  }
-  return formatted;
+  return phoneUtils.formatForDisplay(phone) || phone;
 };
 
 // Load profile data

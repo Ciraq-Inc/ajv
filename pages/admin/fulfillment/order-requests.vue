@@ -921,6 +921,15 @@
                 </span>
               </div>
 
+              <div v-if="pharmacyQueue?.length" class="outreach-search-bar">
+                <input
+                  v-model="pharmacySearchQuery"
+                  type="search"
+                  class="outreach-search-input"
+                  placeholder="Search pharmacies…"
+                />
+              </div>
+
               <div v-if="pharmacyQueue?.length" class="pharmacy-outreach-list">
                 <!-- Full coverage pharmacies -->
                 <template v-if="fullMatchQueue.length > 0">
@@ -1199,6 +1208,17 @@
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
                   <a
+                    v-if="fulfillmentPharmacyWhatsAppUrl"
+                    :href="fulfillmentPharmacyWhatsAppUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-whatsapp-nudge"
+                    title="WhatsApp fulfilling pharmacy"
+                  >
+                    <i class="ri-whatsapp-line"></i>
+                    WhatsApp Pharmacy
+                  </a>
+                  <a
                     v-if="customerPaymentWhatsAppUrl"
                     :href="customerPaymentWhatsAppUrl"
                     target="_blank"
@@ -1228,6 +1248,10 @@
                 <div class="workspace-overview-item">
                   <span class="workspace-overview-key">Fulfillment</span>
                   <strong>{{ selectedRequest?.fulfillment_type || '-' }}</strong>
+                </div>
+                <div v-if="fulfillmentPharmacyLabel" class="workspace-overview-item">
+                  <span class="workspace-overview-key">Pharmacy</span>
+                  <strong>{{ fulfillmentPharmacyLabel }}</strong>
                 </div>
                 <div class="workspace-overview-item">
                   <span class="workspace-overview-key">Customer</span>
@@ -1302,8 +1326,8 @@
               <div class="section-head">
                 <h4 class="section-title">Fulfillment Plan</h4>
               </div>
-              <div v-if="pharmacyQueue?.length" class="pharmacy-queue-list">
-                <div v-for="(plan, pqIdx) in pharmacyQueue" :key="plan.pharmacy_id ?? plan.pharmacy_name ?? pqIdx" class="pharmacy-queue-row">
+              <div v-if="confirmedFulfillmentPharmacies?.length" class="pharmacy-queue-list">
+                <div v-for="(plan, pqIdx) in confirmedFulfillmentPharmacies" :key="plan.pharmacy_id ?? plan.pharmacy_name ?? pqIdx" class="pharmacy-queue-row">
                   <div class="pharmacy-queue-info">
                     <strong>{{ plan.pharmacy_name }}</strong>
                     <span v-if="plan.subtotal !== undefined">{{ formatCurrency(plan.subtotal) }}</span>
@@ -2493,6 +2517,7 @@ const fulfillmentPlans = ref<FulfillmentPlan[]>([])
 const fulfillmentProcessLoading = ref(false)
 const allocationSummary = ref<AllocationSummary | null>(null)
 const pharmacyQueue = ref<PharmacyQueueEntry[]>([])
+const pharmacySearchQuery = ref('')
 const nextRecommendedPharmacy = ref<NextRecommendedPharmacy | null>(null)
 const logisticsAssessment = ref<LogisticsAssessment | null>(null)
 const pharmacyLedgerMap = ref<Record<number, LedgerEntry>>({}) // keyed by pharmacy_id
@@ -3675,8 +3700,35 @@ const workspaceMode = computed(() => {
   return 'compose'
 })
 
-const fullMatchQueue = computed(() => pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.fully_covers_request))
-const partialMatchQueue = computed(() => pharmacyQueue.value.filter((p: PharmacyQueueEntry) => !p.fully_covers_request))
+const fullMatchQueue = computed(() => {
+  const q = pharmacySearchQuery.value.toLowerCase().trim()
+  return pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.fully_covers_request && (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q)))
+})
+const partialMatchQueue = computed(() => {
+  const q = pharmacySearchQuery.value.toLowerCase().trim()
+  return pharmacyQueue.value.filter((p: PharmacyQueueEntry) => !p.fully_covers_request && (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q)))
+})
+const confirmedFulfillmentPharmacies = computed(() => {
+  const confirmed = pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.is_confirmed)
+  return confirmed.length ? confirmed : pharmacyQueue.value
+})
+
+const fulfillmentPharmacyLabel = computed(() => {
+  const confirmed = pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.is_confirmed)
+  if (confirmed.length) return confirmed.map(p => p.pharmacy_name).filter(Boolean).join(', ')
+  const names = [...new Set(paymentModeItems.value.map((i: PaymentSnapshotItem) => i.pharmacy_name).filter(Boolean))]
+  return names.join(', ') || null
+})
+
+const fulfillmentPharmacyWhatsAppUrl = computed(() => {
+  const confirmed = pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.is_confirmed)
+  const pharm = confirmed[0]
+  if (!pharm) return null
+  if (pharm.whatsapp_url) return pharm.whatsapp_url
+  if (pharm.phone) return `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`
+  return null
+})
+
 const escalationReady = computed(() => {
   const full = fullMatchQueue.value
   if (!full.length) return false
@@ -4607,7 +4659,7 @@ const recordPharmacyContactAction = async (pharm: PharmacyQueueEntry | null | un
   }
 
   try {
-    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/contact/${pharm.id}`, {
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/contact/${pharm.pharmacy_id ?? pharm.id}`, {
       ...actionConfig.payload,
       response_note: String(note || '').trim() || null
     })
