@@ -162,6 +162,38 @@ export const createAdminService = (api: ApiInstance) => ({
   },
 
   /**
+   * Search customers by name or phone fragment.
+   * GET /api/admin/customers?q=<query>
+   */
+  searchCustomers(q: string): Promise<ApiEnvelope<Array<{ id: string; name: string | null; phone: string; is_active: boolean; phone_verified: boolean }>>> {
+    return api.get('/api/admin/customers', { params: { q } });
+  },
+
+  /**
+   * Create a new customer account.
+   * POST /api/admin/customers
+   * Returns `{ success, data: { id, name, phone }, message }`.
+   * On 409 conflict the server returns `{ success: false, customer_id: X, message }`;
+   * the caller must check `result.success` and read `result.customer_id` for that case.
+   */
+  createCustomer(data: { name: string; phone: string; address?: string }): Promise<ApiEnvelope<{ id: number; name: string; phone: string }> & { customer_id?: number }> {
+    return api.post('/api/admin/customers', data) as Promise<ApiEnvelope<{ id: number; name: string; phone: string }> & { customer_id?: number }>;
+  },
+
+  /**
+   * Place a first order on behalf of a customer.
+   * POST /api/admin/order-requests/on-behalf
+   */
+  placeOrderOnBehalf(data: {
+    customer_id: number;
+    items: Array<{ name: string; quantity: number; unit?: string }>;
+    address?: string;
+    notes?: string;
+  }): Promise<ApiEnvelope<{ request_number: string }>> {
+    return api.post('/api/admin/order-requests/on-behalf', data);
+  },
+
+  /**
    * Generic authenticated request used by the legacy
    * `adminStore.makeAuthRequest(endpoint, options)` helper. Thin
    * passthrough to `useApi`; the store wraps this to translate 401 into

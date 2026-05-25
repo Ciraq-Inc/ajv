@@ -134,4 +134,16 @@ export const createAdminService = (api) => ({
   request(endpoint, options = {}) {
     return api.request(endpoint, options);
   },
+
+  searchCustomers(q) {
+    return api.get('/api/admin/customers', { params: { q } });
+  },
+
+  createCustomer(data) {
+    return api.post('/api/admin/customers', data);
+  },
+
+  placeOrderOnBehalf(data) {
+    return api.post('/api/admin/order-requests/on-behalf', data);
+  },
 });
