@@ -755,6 +755,23 @@
   flex: 1;
 }
 
+.modal-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding-right: 0.75rem;
+  border-right: 1px solid #e5e7eb;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+.modal-back-btn:hover:not(:disabled) {
+  color: #1e3a8a;
+  background: transparent;
+}
+
 .modal-header-actions {
   display: flex;
   align-items: center;
@@ -4764,6 +4781,12 @@
 .coverage-match-badge--fuzzy {
   background: #e0f2fe;
   color: #0369a1;
+}
+
+.coverage-item-match-row--selected {
+  background: #f0fdf4;
+  border-radius: 6px;
+  outline: 1px solid #bbf7d0;
 }
 
 .coverage-sub-search-panel {

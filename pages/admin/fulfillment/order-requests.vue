@@ -99,6 +99,10 @@
       <div class="modal-content modal-lg modal-elevated modal-content--workspace">
         <div class="modal-header">
           <div class="modal-header-left">
+            <button @click="selectedRequest = null" class="btn-ghost btn-sm modal-back-btn" :disabled="loading">
+              <ArrowLeftIcon class="icon-sm" />
+              Requests
+            </button>
             <div class="modal-title-wrap">
               <div class="modal-title-row">
                 <h3>Order Request <span class="modal-req-num">#{{ selectedRequest.request_number }}</span></h3>
@@ -145,9 +149,6 @@
             <button @click="refreshSelectedRequestDetails()" class="btn-secondary btn-sm" :disabled="loading">
               <ArrowPathIcon class="icon-sm" :class="{ 'animate-spin': loading }" />
               <span>Refresh</span>
-            </button>
-            <button @click="selectedRequest = null" class="btn-secondary btn-sm" :disabled="loading">
-              Back to Requests
             </button>
           </div>
         </div>
@@ -362,7 +363,7 @@
                         <div class="request-items-pane-actions">
                           <span class="request-items-pane-count">{{ requestItems.length }}</span>
                           <span v-if="requestItems.length" class="text-[9px] font-bold px-1.5 py-0.5 rounded" :style="{ background: allItemsResolved ? '#ecfdf5' : '#fffbeb', color: allItemsResolved ? '#059669' : '#d97706' }">
-                            {{ resolvedItemCount }}/{{ requestItems.length }} resolved
+                            {{ resolvedItemCount }}/{{ requestItems.length }} refined
                           </span>
                         </div>
                       </div>
@@ -381,10 +382,10 @@
                                 <div style="display: flex; align-items: center; gap: 4px;">
                                   <input
                                     :value="masterSearchQuery"
-                                    @input="resolveSearchMode === 'master' ? onMasterSearchInput(($event.target as HTMLInputElement).value) : onPharmResolveInput(($event.target as HTMLInputElement).value)"
+                                    @input="resolveSearchMode === 'master' ? onMasterSearchInput(($event.target as HTMLInputElement).value) : resolveSearchMode === 'pharmacy' ? onPharmResolveInput(($event.target as HTMLInputElement).value) : (masterSearchQuery = ($event.target as HTMLInputElement).value)"
                                     type="text"
                                     class="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-all font-bold"
-                                    :placeholder="resolveSearchMode === 'master' ? 'Search master catalog...' : 'Search pharmacy stock...'"
+                                    :placeholder="resolveSearchMode === 'free' ? 'Type search term...' : resolveSearchMode === 'master' ? 'Search master catalog...' : 'Search pharmacy stock...'"
                                     autofocus
                                   />
                                   <button @click="cancelResolving" class="shrink-0 text-gray-500 hover:text-gray-700 p-0.5" title="Cancel">
@@ -396,18 +397,27 @@
                                   <button
                                     type="button"
                                     class="resolve-mode-tab"
-                                    :class="{ active: resolveSearchMode === 'pharmacy' }"
-                                    @click="setResolveMode('pharmacy')"
-                                  >Pharmacy stock</button>
+                                    :class="{ active: resolveSearchMode === 'free' }"
+                                    @click="setResolveMode('free')"
+                                  >Free type</button>
                                   <button
                                     type="button"
                                     class="resolve-mode-tab"
                                     :class="{ active: resolveSearchMode === 'master' }"
                                     @click="setResolveMode('master')"
-                                  >Master catalog</button>
+                                  >Masterlist</button>
                                 </div>
+                                <!-- Free type -->
+                                <template v-if="resolveSearchMode === 'free'">
+                                  <div class="text-[10px] text-gray-400 px-1">This term will be used when searching pharmacy coverage for this item.</div>
+                                  <div class="flex gap-1 mt-0.5">
+                                    <button type="button" class="text-[9px] font-bold px-2 py-0.5 rounded bg-[#4F217A] text-white hover:bg-[#4F217A]/80 transition-colors" @click="saveItemFreeTypeOverride(item)">Apply</button>
+                                    <button type="button" class="text-[9px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" @click="cancelResolving">Cancel</button>
+                                    <button v-if="(item as any).search_term_override" type="button" class="text-[9px] font-semibold px-2 py-0.5 rounded text-red-500 hover:bg-red-50 transition-colors" @click="masterSearchQuery = ''; saveItemFreeTypeOverride(item)">Clear</button>
+                                  </div>
+                                </template>
                                 <!-- Master catalog results -->
-                                <template v-if="resolveSearchMode === 'master'">
+                                <template v-else-if="resolveSearchMode === 'master'">
                                   <div v-if="masterSearchLoading" class="text-[10px] text-gray-500 px-1">Searching...</div>
                                   <div v-else-if="masterSearchResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
                                     <button
@@ -429,46 +439,34 @@
                                     No master products found
                                   </div>
                                 </template>
-                                <!-- Pharmacy stock results -->
-                                <template v-else>
-                                  <div v-if="pharmResolveLoading" class="text-[10px] text-gray-500 px-1">Searching...</div>
-                                  <div v-else-if="pharmResolveResults.length" class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden max-h-[200px] overflow-y-auto">
-                                    <button
-                                      v-for="(pp, ppIdx) in pharmResolveResults"
-                                      :key="pp.id ?? ppIdx"
-                                      type="button"
-                                      class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
-                                      @click="resolveItemToPharmProduct(item, pp)"
-                                    >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ pp.product_description || pp.brand_name }}</span>
-                                      <span class="text-[10px] text-gray-500">
-                                        {{ pp.pharmacy_name }}
-                                        <template v-if="pp.distance_km !== null"> · {{ Number(pp.distance_km).toFixed(1) }} km</template>
-                                        <template v-if="(pp.price ?? 0) > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
-                                        <template v-if="(pp.available_quantity ?? 0) > 0"> · {{ pp.available_quantity }} in stock</template>
-                                      </span>
-                                    </button>
-                                  </div>
-                                  <div v-else-if="masterSearchQuery.length >= 2 && !pharmResolveLoading" class="text-[10px] text-gray-500 px-1">
-                                    No pharmacy stock found
-                                  </div>
-                                </template>
                               </div>
                             </template>
                             <!-- Normal display -->
                             <template v-else>
                               <div class="flex items-center gap-2 min-w-0">
-                                <strong class="truncate">{{ item.product_name }}</strong>
-                                <template v-if="item.master_product_id || item.source_pharmacy_id || item.resolution_status === 'resolved'">
+                                <strong class="truncate">{{ (item as any).search_term_override || item.product_name }}</strong>
+                                <template v-if="item.master_product_id || item.resolution_status === 'resolved'">
                                   <button
                                     type="button"
                                     class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                                     :class="isComposeLocked ? 'cursor-default' : 'hover:bg-emerald-100 cursor-pointer'"
                                     @click.stop="!isComposeLocked && startResolvingItem(item)"
-                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Change resolution'"
+                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Change refinement'"
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                     Resolved
+                                  </button>
+                                </template>
+                                <template v-else-if="(item as any).search_term_override">
+                                  <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-violet-50 text-violet-700 border border-violet-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                    :class="isComposeLocked ? 'cursor-default' : 'hover:bg-violet-100 cursor-pointer'"
+                                    @click.stop="!isComposeLocked && startResolvingItem(item)"
+                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Change search term'"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    Refined
                                   </button>
                                 </template>
                                 <template v-else>
@@ -477,10 +475,10 @@
                                     class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 transition-colors cursor-pointer border-0 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                                     @click.stop="startResolvingItem(item)"
                                     :disabled="isComposeLocked"
-                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Resolve to master product'"
+                                    :title="isComposeLocked ? 'Start Composing to edit' : 'Refine search term or link product'"
                                   >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                    Resolve
+                                    Refine
                                   </button>
                                 </template>
                               </div>
@@ -488,6 +486,7 @@
                                 <span>Qty {{ getRequestedQuantity(item) }}</span>
                                 <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
                               </div>
+                              <div v-if="(item as any).search_term_override" class="text-[9px] text-gray-400 mt-0.5">{{ item.product_name }}</div>
                               <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
                                 → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
                               </div>
@@ -671,13 +670,29 @@
                             <span class="text-xs font-bold text-gray-700">Pharmacy Coverage</span>
                             <span v-if="pharmacyCoverage?.data?.pharmacies" class="text-[9px] font-bold text-gray-500">{{ pharmacyCoverage.data.pharmacies.length }} nearby</span>
                           </div>
-                          <button
-                            @click="fetchPharmacyCoverage"
-                            class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors"
-                            :disabled="coverageLoading"
-                          >
-                            {{ coverageLoading ? 'Loading...' : 'Refresh' }}
-                          </button>
+                          <div class="flex items-center gap-1.5">
+                            <div class="flex items-center rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                              <button
+                                type="button"
+                                class="text-[9px] font-bold px-2 py-1 transition-colors"
+                                :class="coverageSortMode === 'availability' ? 'bg-[#4F217A] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'"
+                                @click="setSortMode('availability')"
+                              >Availability</button>
+                              <button
+                                type="button"
+                                class="text-[9px] font-bold px-2 py-1 transition-colors border-l border-gray-200"
+                                :class="coverageSortMode === 'distance' ? 'bg-[#4F217A] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'"
+                                @click="setSortMode('distance')"
+                              >Distance</button>
+                            </div>
+                            <button
+                              @click="fetchPharmacyCoverage"
+                              class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-bold transition-colors"
+                              :disabled="coverageLoading"
+                            >
+                              {{ coverageLoading ? 'Loading...' : 'Refresh' }}
+                            </button>
+                          </div>
                         </div>
 
                         <!-- Resolve prompt -->
@@ -725,6 +740,7 @@
                                 <div class="flex items-center gap-2">
                                   <span class="text-[10px] font-black text-gray-500 shrink-0">#{{ pIdx + 1 }}</span>
                                   <strong class="text-sm font-bold text-gray-900 truncate">{{ pharmacy.pharmacy_name }}</strong>
+                                  <span v-if="pharmacy.is_composed_source" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">Composed</span>
                                 </div>
                                 <div class="flex items-center gap-2 mt-0.5">
                                   <span class="text-[10px] text-gray-500 font-semibold" title="Straight-line distance (approximate)">
@@ -763,30 +779,67 @@
                                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 text-emerald-500 shrink-0">
                                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                                   </svg>
-                                  <span class="text-xs text-gray-800 font-semibold truncate flex-1">{{ ci.product_name }}</span>
-                                </div>
-                                <!-- Masterlist match sub-row -->
-                                <div v-if="ci.master_match" class="coverage-item-match-row">
-                                  <span class="coverage-match-badge coverage-match-badge--master">Masterlist</span>
-                                  <span class="text-[10px] text-gray-700 font-medium truncate flex-1">{{ ci.master_match.matched_product_name }}</span>
-                                  <span v-if="ci.master_match.price" class="text-[10px] font-bold text-gray-900 shrink-0">
-                                    GHS {{ Number(ci.master_match.price).toFixed(2) }}
-                                  </span>
-                                  <span class="text-[9px] font-bold px-1 py-0.5 rounded shrink-0" :class="Number(ci.master_match.stock) > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
-                                    {{ ci.master_match.stock }} left
+                                  <span class="text-xs text-gray-800 font-semibold truncate flex-1">
+                                    {{ ci.product_name }}
+                                    <span v-if="ci.search_term_override" class="text-[9px] text-violet-500 font-normal ml-1">(searched: {{ ci.search_term_override }})</span>
                                   </span>
                                 </div>
-                                <!-- Fuzzy match sub-row -->
-                                <div v-if="ci.fuzzy_match" class="coverage-item-match-row">
-                                  <span class="coverage-match-badge coverage-match-badge--fuzzy">Fuzzy</span>
-                                  <span class="text-[10px] text-gray-700 font-medium truncate flex-1">{{ ci.fuzzy_match.matched_product_name }}</span>
-                                  <span v-if="ci.fuzzy_match.price" class="text-[10px] font-bold text-gray-900 shrink-0">
-                                    GHS {{ Number(ci.fuzzy_match.price).toFixed(2) }}
-                                  </span>
-                                  <span class="text-[9px] font-bold px-1 py-0.5 rounded shrink-0" :class="Number(ci.fuzzy_match.stock) > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
-                                    {{ ci.fuzzy_match.stock }} left
-                                  </span>
+                                <!-- Top matches with select buttons -->
+                                <div
+                                  v-for="(match, mIdx) in (ci.top_matches || []).slice(0, coverageShowAll[`${pharmacy.pharmacy_id}-${ci.item_id}`] ? 10 : 3)"
+                                  :key="`match-${pharmacy.pharmacy_id}-${ci.item_id}-${mIdx}`"
+                                  class="coverage-item-match-row"
+                                  :class="isItemSelectedFromPharmacy(ci.item_id, pharmacy.pharmacy_id, match.matched_product_id) ? 'coverage-item-match-row--selected' : ''"
+                                >
+                                  <span class="coverage-match-badge coverage-match-badge--fuzzy">{{ mIdx + 1 }}</span>
+                                  <span class="text-[10px] text-gray-700 font-medium truncate flex-1">{{ match.matched_product_name }}</span>
+                                  <span v-if="match.price" class="text-[10px] font-bold text-gray-900 shrink-0">GHS {{ Number(match.price).toFixed(2) }}</span>
+                                  <span class="text-[9px] font-bold px-1 py-0.5 rounded shrink-0" :class="Number(match.stock || 0) > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ match.stock ?? 0 }} left</span>
+                                  <button
+                                    type="button"
+                                    class="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 transition-colors disabled:opacity-60"
+                                    :class="isItemSelectedFromPharmacy(ci.item_id, pharmacy.pharmacy_id, match.matched_product_id)
+                                      ? 'bg-emerald-100 text-emerald-700 cursor-default'
+                                      : 'bg-[#4F217A] text-white hover:bg-[#4F217A]/80'"
+                                    :disabled="isComposeLocked || isItemSelectedFromPharmacy(ci.item_id, pharmacy.pharmacy_id, match.matched_product_id)"
+                                    @click="selectCoverageMatch(pharmacy, ci, match)"
+                                  >{{ isItemSelectedFromPharmacy(ci.item_id, pharmacy.pharmacy_id, match.matched_product_id) ? '✓ Selected' : 'Select' }}</button>
                                 </div>
+                                <!-- Show more / less -->
+                                <button
+                                  v-if="(ci.top_matches || []).length > 3"
+                                  type="button"
+                                  class="text-[9px] text-violet-500 hover:text-violet-700 font-semibold px-1 py-0.5 self-start mt-0.5 transition-colors"
+                                  @click="coverageShowAll[`${pharmacy.pharmacy_id}-${ci.item_id}`] = !coverageShowAll[`${pharmacy.pharmacy_id}-${ci.item_id}`]"
+                                >
+                                  {{ coverageShowAll[`${pharmacy.pharmacy_id}-${ci.item_id}`] ? 'Show less' : `+${(ci.top_matches || []).length - 3} more` }}
+                                </button>
+                                <!-- Per-item search override -->
+                                <template v-if="coverageItemOverride.itemId === ci.item_id">
+                                  <div class="coverage-sub-search-panel mt-1">
+                                    <input
+                                      :value="coverageItemOverride.query"
+                                      @input="coverageItemOverride.query = ($event.target as HTMLInputElement).value"
+                                      type="text"
+                                      class="w-full px-2 py-1 bg-white border border-violet-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 transition-all"
+                                      :placeholder="`Override search term (current: ${ci.search_term_override || ci.product_name})`"
+                                      autofocus
+                                      @keyup.enter="saveSearchOverride(ci)"
+                                    />
+                                    <div class="flex gap-1 mt-1">
+                                      <button type="button" class="text-[9px] font-bold px-2 py-0.5 rounded bg-[#4F217A] text-white hover:bg-[#4F217A]/80 transition-colors" @click="saveSearchOverride(ci)">Apply</button>
+                                      <button type="button" class="text-[9px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" @click="coverageItemOverride = { itemId: null, query: '' }">Cancel</button>
+                                      <button v-if="ci.search_term_override" type="button" class="text-[9px] font-semibold px-2 py-0.5 rounded text-red-500 hover:bg-red-50 transition-colors" @click="coverageItemOverride.query = ''; saveSearchOverride(ci)">Clear override</button>
+                                    </div>
+                                  </div>
+                                </template>
+                                <button
+                                  v-else
+                                  type="button"
+                                  class="text-[9px] text-violet-400 hover:text-violet-600 font-semibold self-start transition-colors"
+                                  :disabled="isComposeLocked"
+                                  @click="coverageItemOverride = { itemId: ci.item_id ?? null, query: ci.search_term_override || ci.product_name || '' }"
+                                >refine search</button>
                               </div>
                             </div>
 
@@ -982,6 +1035,7 @@
                       <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
                       <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ ({ not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' } as Record<string, string>)[pharm.queue_state ?? ''] || pharm.queue_state }}</span>
                       <span class="outreach-coverage-chip outreach-coverage-chip--full">Full match</span>
+                      <span v-if="composedSourcePharmacyIds.has(Number(pharm.pharmacy_id || 0))" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">Composed</span>
                       <span v-if="pharm.pharmacy_id && pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0) === 0 }">
                         {{ pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0 }} orders
                         <template v-if="pharmacyLedgerMap[pharm.pharmacy_id!]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id!]!.last_transaction_at) }}</template>
@@ -1033,6 +1087,7 @@
                       <strong>{{ pharm.pharmacy_name }}</strong>
                       <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
                       <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ ({ not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' } as Record<string, string>)[pharm.queue_state ?? ''] || pharm.queue_state }}</span>
+                      <span v-if="composedSourcePharmacyIds.has(Number(pharm.pharmacy_id || 0))" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">Composed</span>
                       <span v-if="pharm.matched_item_count ?? 0 > 0" class="outreach-coverage-chip">{{ pharm.matched_item_count }} item{{ pharm.matched_item_count !== 1 ? 's' : '' }}</span>
                       <span v-if="pharm.pharmacy_id && pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0) === 0 }">
                         {{ pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0 }} orders
@@ -2184,6 +2239,7 @@ import { phoneUtils } from '~/utils/phone'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import {
   ArrowPathIcon,
+  ArrowLeftIcon,
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
   CheckCircleIcon,
@@ -2279,19 +2335,33 @@ interface SourceSummary {
 interface CoverageItem {
   item_id?: number
   product_name?: string
+  search_term_override?: string | null
   matched_product_id?: number | null
   available_quantity?: number
   matched_quantity?: number
   unit_price?: number | null
   catalog_synced_at?: string | null
+  top_matches?: TopMatch[]
+  // Legacy fields kept for backwards compat
   fuzzy_match?: { matched_product_name?: string; price?: number; stock?: number } | null
   master_match?: { matched_product_name?: string; price?: number; stock?: number } | null
   [key: string]: unknown
 }
 
+interface TopMatch {
+  matched_product_name?: string | null
+  matched_product_id?: number | null
+  matched_product_identity?: string | null
+  price?: number | null
+  stock?: number | null
+  unit?: string | null
+  strength?: string | null
+}
+
 interface UncoveredItem {
   item_id?: number
   product_name?: string
+  search_term_override?: string | null
   [key: string]: unknown
 }
 
@@ -2324,6 +2394,7 @@ interface PharmacyQueueEntry {
   company_id?: number
   subtotal?: number
   total_items?: number
+  is_composed_source?: boolean
   [key: string]: unknown
 }
 
@@ -2568,6 +2639,9 @@ const assigningPharmacy = ref(false)
 // --- Coverage matrix state ---
 const pharmacyCoverage = ref<PharmacyCoverageData | null>(null)
 const coverageLoading = ref(false)
+const coverageSortMode = ref<'availability' | 'distance'>('availability')
+const coverageShowAll = ref<Record<string, boolean>>({})
+const coverageItemOverride = ref<{ itemId: number | null; query: string }>({ itemId: null, query: '' })
 const masterSearchResults = ref<ProductSearchResult[]>([])
 const masterSearchLoading = ref(false)
 const masterSearchQuery = ref('')
@@ -2608,7 +2682,7 @@ const submitCreateCustomerRequest = async () => {
 
 const showStatusOverride = ref(false)
 const showAdminNotes = ref(false)
-const resolveSearchMode = ref('pharmacy') // 'master' | 'pharmacy'
+const resolveSearchMode = ref('free') // 'free' | 'pharmacy' | 'master'
 const pharmResolveResults = ref<ProductSearchResult[]>([])
 const pharmResolveLoading = ref(false)
 let pharmResolveDebounce: ReturnType<typeof setTimeout> | null = null
@@ -2619,7 +2693,7 @@ let coverageSubDebounce: ReturnType<typeof setTimeout> | null = null
 // --- End coverage substitute search state ---
 
 const isItemResolved = (item: RequestItem) =>
-  item.resolution_status === 'resolved' || Boolean(item.master_product_id) || Boolean(item.source_pharmacy_id)
+  item.resolution_status === 'resolved' || Boolean(item.master_product_id) || Boolean((item as Record<string, unknown>).search_term_override)
 const resolvedItemCount = computed(() => {
   const items = requestItems.value || []
   return items.filter(isItemResolved).length
@@ -3737,6 +3811,11 @@ const workspaceMode = computed(() => {
   return 'compose'
 })
 
+const composedSourcePharmacyIds = computed(() => new Set(
+  (selectedRequest.value?.items || [])
+    .map(i => Number((i as Record<string, unknown>).source_pharmacy_id || 0))
+    .filter(id => id > 0)
+))
 const fullMatchQueue = computed(() => {
   const q = pharmacySearchQuery.value.toLowerCase().trim()
   return pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.fully_covers_request && (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q)))
@@ -4175,14 +4254,20 @@ const fetchPharmacyCoverage = async () => {
   const reqId = selectedRequest.value?.id
   if (!reqId) return
   coverageLoading.value = true
+  coverageShowAll.value = {}
   try {
-    const res = await apiCall('GET', `/api/order-requests/admin/${reqId}/pharmacy-coverage`)
+    const res = await apiCall('GET', `/api/order-requests/admin/${reqId}/pharmacy-coverage?sort=${coverageSortMode.value}`)
     pharmacyCoverage.value = (res as PharmacyCoverageData) || null
   } catch (e) {
     pharmacyCoverage.value = null
   } finally {
     coverageLoading.value = false
   }
+}
+
+const setSortMode = (mode: 'availability' | 'distance') => {
+  coverageSortMode.value = mode
+  fetchPharmacyCoverage()
 }
 
 const searchMasterProductsForResolve = async (query: string) => {
@@ -4239,7 +4324,7 @@ const setResolveMode = (mode: string) => {
   resolveSearchMode.value = mode
   masterSearchResults.value = []
   pharmResolveResults.value = []
-  if (masterSearchQuery.value.length >= 2) {
+  if (mode !== 'free' && masterSearchQuery.value.length >= 2) {
     if (mode === 'master') searchMasterProductsForResolve(masterSearchQuery.value)
     else searchPharmResolve(masterSearchQuery.value)
   }
@@ -4247,11 +4332,10 @@ const setResolveMode = (mode: string) => {
 
 const startResolvingItem = (item: RequestItem) => {
   resolvingItemId.value = item.id
-  masterSearchQuery.value = item.product_name || ''
+  masterSearchQuery.value = (item as Record<string, unknown>).search_term_override as string || item.product_name || ''
   masterSearchResults.value = []
   pharmResolveResults.value = []
-  resolveSearchMode.value = 'pharmacy'
-  searchPharmResolve(item.product_name ?? '')
+  resolveSearchMode.value = 'free'
 }
 
 const cancelResolving = () => {
@@ -4259,7 +4343,7 @@ const cancelResolving = () => {
   masterSearchQuery.value = ''
   masterSearchResults.value = []
   pharmResolveResults.value = []
-  resolveSearchMode.value = 'pharmacy'
+  resolveSearchMode.value = 'free'
 }
 
 // --- Pharmacy stock resolution (no master catalog needed) ---
@@ -4402,6 +4486,80 @@ const selectCoverageSubstitute = async (pharmacy: PharmacyQueueEntry, uncoveredI
   }
 }
 // --- End coverage substitute search ---
+
+const selectCoverageMatch = async (pharmacy: PharmacyQueueEntry, coveredItem: CoverageItem, match: TopMatch) => {
+  const itemId = coveredItem.item_id
+  if (!itemId || !pharmacy.pharmacy_id) return
+  try {
+    await apiCall('PUT', `/api/order-requests/admin/items/${itemId}`, {
+      source_pharmacy_id: pharmacy.pharmacy_id,
+      source_product_id: match.matched_product_id || null,
+      unit_price: match.price || null,
+      source_distance_km: pharmacy.distance_km ?? null,
+    })
+    // Update local item state so the items panel reflects the selection
+    if (selectedRequest.value?.items) {
+      const localItem = selectedRequest.value.items.find(i => i.id === itemId)
+      if (localItem) {
+        localItem.source_pharmacy_id = pharmacy.pharmacy_id
+        localItem.pharmacy_name = pharmacy.pharmacy_name || null
+        localItem.unit_price = match.price ?? null
+        localItem.resolution_status = 'resolved'
+      }
+    }
+    // Refresh coverage so is_composed_source updates
+    await fetchPharmacyCoverage()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to save selection', 'error')
+  }
+}
+
+const isItemSelectedFromPharmacy = (itemId: number | undefined, pharmacyId: number | undefined, productId: number | null | undefined): boolean => {
+  if (!itemId || !pharmacyId) return false
+  const item = (selectedRequest.value?.items || []).find(i => i.id === itemId)
+  if (!item) return false
+  return Number(item.source_pharmacy_id || 0) === pharmacyId &&
+    (productId == null || Number(item.source_product_id || 0) === productId)
+}
+
+const saveSearchOverride = async (coveredItem: CoverageItem) => {
+  const itemId = coveredItem.item_id
+  if (!itemId || coverageItemOverride.value.itemId !== itemId) return
+  const override = coverageItemOverride.value.query.trim()
+  try {
+    await apiCall('PUT', `/api/order-requests/admin/items/${itemId}`, {
+      search_term_override: override || null
+    })
+    // Update local item state
+    if (selectedRequest.value?.items) {
+      const localItem = selectedRequest.value.items.find(i => i.id === itemId)
+      if (localItem) (localItem as Record<string, unknown>).search_term_override = override || null
+    }
+    coverageItemOverride.value = { itemId: null, query: '' }
+    await fetchPharmacyCoverage()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to save search override', 'error')
+  }
+}
+
+const saveItemFreeTypeOverride = async (item: RequestItem) => {
+  if (!item?.id) return
+  const term = masterSearchQuery.value.trim()
+  try {
+    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
+      search_term_override: term || null
+    })
+    if (selectedRequest.value?.items) {
+      const local = selectedRequest.value.items.find(i => i.id === item.id)
+      if (local) (local as Record<string, unknown>).search_term_override = term || null
+    }
+    resolvingItemId.value = null
+    masterSearchQuery.value = ''
+    await fetchPharmacyCoverage()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to save search term', 'error')
+  }
+}
 
 const resolveItemToMaster = async (item: RequestItem, masterProduct: ProductSearchResult) => {
   if (!item?.id || !masterProduct?.id) return
@@ -5001,7 +5159,21 @@ const loadFulfillment = async (options: { silent?: boolean; refreshLists?: boole
       candidatePlans.value = d.candidate_plans || []
       fulfillmentPlans.value = d.fulfillment_plans || []
       allocationSummary.value = d.allocation_summary || null
-      pharmacyQueue.value = d.pharmacy_queue || []
+      const rawQueue = d.pharmacy_queue || []
+      // Sort composed-source pharmacies (those the admin selected during composing) to the top
+      const composedSourceIds = new Set(
+        (selectedRequest.value?.items || [])
+          .map(i => Number((i as Record<string, unknown>).source_pharmacy_id || 0))
+          .filter(id => id > 0)
+      )
+      pharmacyQueue.value = composedSourceIds.size > 0
+        ? [...rawQueue].sort((a, b) => {
+            const aC = composedSourceIds.has(Number(a.pharmacy_id || a.id || 0))
+            const bC = composedSourceIds.has(Number(b.pharmacy_id || b.id || 0))
+            if (aC !== bC) return aC ? -1 : 1
+            return 0
+          })
+        : rawQueue
       nextRecommendedPharmacy.value = d.next_recommended_pharmacy || null
       logisticsAssessment.value = d.logistics_assessment || null
       syncPharmacyCoverageFromQueue(pharmacyQueue.value)
