@@ -5064,7 +5064,10 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
     const prefillPrice = existingAlloc?.unit_price != null
       ? String(existingAlloc.unit_price)
       : (catalogPrice != null ? String(catalogPrice) : null)
-    const matchedStockName = coverageItem?.matched_product_name ?? null
+    const isSelectedFromThisPharmacy = Number(item.source_pharmacy_id || 0) === Number(freshPharm.pharmacy_id || 0)
+    const matchedStockName = (isSelectedFromThisPharmacy && item.source_product_name)
+      ? item.source_product_name
+      : (coverageItem?.matched_product_name ?? null)
     return {
       item_id: item.id,
       product_name: item.product_name ?? null,
