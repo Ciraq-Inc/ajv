@@ -489,6 +489,9 @@
                               <div v-if="(item as any).search_term_override" class="text-[9px] text-gray-400 mt-0.5">{{ item.product_name }}</div>
                               <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
                                 → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
+                                <template v-if="(item as any).source_product_name">
+                                  <span class="font-normal text-purple-400 mx-0.5">·</span>{{ (item as any).source_product_name }}<template v-if="item.unit_price"> · GHS {{ Number(item.unit_price).toFixed(2) }}</template>
+                                </template>
                               </div>
                             </template>
                           </div>
@@ -1018,9 +1021,61 @@
               </div>
 
               <div v-if="pharmacyQueue?.length" class="pharmacy-outreach-list">
+                <!-- Composed selection pharmacies -->
+                <template v-if="composedPharmacyQueue.length > 0">
+                  <div class="outreach-section-head outreach-section-head--composed">
+                    <span class="outreach-section-label outreach-section-label--composed">Composed selection</span>
+                    <span class="outreach-section-note">Selected during composing — contact these first</span>
+                  </div>
+                  <div
+                    v-for="(pharm, cpIdx) in composedPharmacyQueue"
+                    :key="pharm.pharmacy_id ?? cpIdx"
+                    class="pharmacy-outreach-row pharmacy-outreach-row--composed"
+                    :class="{ 'pharmacy-outreach-row--next': nextRecommendedPharmacy?.pharmacy_id === pharm.pharmacy_id }"
+                  >
+                    <div class="pharmacy-outreach-info">
+                      <strong>{{ pharm.pharmacy_name }}</strong>
+                      <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
+                      <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ ({ not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' } as Record<string, string>)[pharm.queue_state ?? ''] || pharm.queue_state }}</span>
+                      <span :class="pharm.fully_covers_request ? 'outreach-coverage-chip outreach-coverage-chip--full' : 'outreach-coverage-chip'">{{ pharm.fully_covers_request ? 'Full match' : `${pharm.matched_item_count ?? 0} items` }}</span>
+                      <span v-if="pharm.pharmacy_id && pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0) === 0 }">
+                        {{ pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0 }} orders
+                        <template v-if="pharmacyLedgerMap[pharm.pharmacy_id!]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id!]!.last_transaction_at) }}</template>
+                      </span>
+                      <span v-else-if="Object.keys(pharmacyLedgerMap).length > 0" class="outreach-orders-chip outreach-orders-chip--low">0 orders</span>
+                    </div>
+                    <div class="pharmacy-outreach-actions">
+                      <a v-if="pharm.phone" :href="pharm.whatsapp_url || `https://wa.me/${phoneUtils.formatWhatsApp(pharm.phone)}`" target="_blank" class="outreach-btn outreach-btn--wa" :title="`WhatsApp ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false })"><span>WhatsApp</span></a>
+                      <a v-if="pharm.phone" :href="`tel:${pharm.phone}`" class="outreach-btn outreach-btn--call" :title="`Call ${pharm.pharmacy_name}`" @click="recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false })"><span>Call</span></a>
+                      <template v-if="!pharm.phone">
+                        <template v-if="pharmacyPhoneEdit[pharm.pharmacy_id!]?.editing">
+                          <input
+                            v-model="pharmacyPhoneEdit[pharm.pharmacy_id!]!.value"
+                            type="tel"
+                            class="outreach-phone-input"
+                            placeholder="e.g. 0241234567"
+                            :disabled="pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false"
+                            @keydown.enter="savePharmacyPhone(pharm)"
+                            @keydown.esc="cancelPharmacyPhoneEdit(pharm.pharmacy_id!)"
+                          />
+                          <button type="button" class="outreach-btn outreach-btn--confirm" :disabled="(pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false) || !pharmacyPhoneEdit[pharm.pharmacy_id!]?.value" @click="savePharmacyPhone(pharm)">{{ pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ? 'Saving…' : 'Save' }}</button>
+                          <button type="button" class="outreach-btn outreach-btn--cancel" :disabled="pharmacyPhoneEdit[pharm.pharmacy_id!]?.saving ?? false" @click="cancelPharmacyPhoneEdit(pharm.pharmacy_id!)">✕</button>
+                        </template>
+                        <button v-else type="button" class="outreach-btn outreach-btn--add-phone" @click="startPharmacyPhoneEdit(pharm.pharmacy_id!)">+ Add phone</button>
+                      </template>
+                      <template v-if="pharm.queue_state !== 'not_contacted'">
+                        <button type="button" class="outreach-btn outreach-btn--confirm" :class="{ active: pharm.queue_state === 'full' }" @click="openResponseModal(pharm, 'full')">Available ✓</button>
+                        <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
+                        <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction(pharm, 'declined', { showSuccess: true })">Unavailable ✗</button>
+                      </template>
+                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading" @click="routePharmacyAction(pharm)">Route here</button>
+                    </div>
+                  </div>
+                </template>
+
                 <!-- Full coverage pharmacies -->
                 <template v-if="fullMatchQueue.length > 0">
-                  <div class="outreach-section-head">
+                  <div class="outreach-section-head" :class="{ 'outreach-section-head--spaced': composedPharmacyQueue.length > 0 }">
                     <span class="outreach-section-label outreach-section-label--full">Full coverage</span>
                     <span class="outreach-section-note">These pharmacies have all items in stock</span>
                   </div>
@@ -1035,7 +1090,6 @@
                       <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
                       <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ ({ not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' } as Record<string, string>)[pharm.queue_state ?? ''] || pharm.queue_state }}</span>
                       <span class="outreach-coverage-chip outreach-coverage-chip--full">Full match</span>
-                      <span v-if="composedSourcePharmacyIds.has(Number(pharm.pharmacy_id || 0))" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">Composed</span>
                       <span v-if="pharm.pharmacy_id && pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0) === 0 }">
                         {{ pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0 }} orders
                         <template v-if="pharmacyLedgerMap[pharm.pharmacy_id!]?.last_transaction_at"> · last {{ formatRelativeTime(pharmacyLedgerMap[pharm.pharmacy_id!]!.last_transaction_at) }}</template>
@@ -1087,7 +1141,6 @@
                       <strong>{{ pharm.pharmacy_name }}</strong>
                       <span class="muted" title="Straight-line distance (approximate)">~{{ Number(pharm.distance_km).toFixed(1) }} km</span>
                       <span class="outreach-queue-chip" :class="'outreach-queue-chip--' + pharm.queue_state">{{ ({ not_contacted: 'Not contacted', awaiting_response: 'Awaiting response', full: 'Available ✓', partial: 'Partial', declined: 'Unavailable', unknown: 'Unknown' } as Record<string, string>)[pharm.queue_state ?? ''] || pharm.queue_state }}</span>
-                      <span v-if="composedSourcePharmacyIds.has(Number(pharm.pharmacy_id || 0))" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">Composed</span>
                       <span v-if="pharm.matched_item_count ?? 0 > 0" class="outreach-coverage-chip">{{ pharm.matched_item_count }} item{{ pharm.matched_item_count !== 1 ? 's' : '' }}</span>
                       <span v-if="pharm.pharmacy_id && pharmacyLedgerMap[pharm.pharmacy_id]" class="outreach-orders-chip" :class="{ 'outreach-orders-chip--low': (pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0) === 0 }">
                         {{ pharmacyLedgerMap[pharm.pharmacy_id!]?.request_count || 0 }} orders
@@ -1958,7 +2011,10 @@
               <!-- Availability toggle -->
               <label class="response-item-checkbox">
                 <input type="checkbox" v-model="item.available" />
-                <span class="response-item-name">{{ item.product_name }}</span>
+                <span class="response-item-name">
+                  {{ item.matched_stock_name || item.product_name }}
+                  <span v-if="item.matched_stock_name && item.matched_stock_name !== item.product_name" class="response-item-name-sub">({{ item.product_name }})</span>
+                </span>
                 <span class="response-item-req">
                   ×{{ item.requested_quantity }}<template v-if="item.requested_unit"> {{ item.requested_unit }}</template>
                 </span>
@@ -2335,6 +2391,7 @@ interface SourceSummary {
 interface CoverageItem {
   item_id?: number
   product_name?: string
+  matched_product_name?: string | null
   search_term_override?: string | null
   matched_product_id?: number | null
   available_quantity?: number
@@ -3816,13 +3873,28 @@ const composedSourcePharmacyIds = computed(() => new Set(
     .map(i => Number((i as Record<string, unknown>).source_pharmacy_id || 0))
     .filter(id => id > 0)
 ))
+const composedPharmacyQueue = computed(() => {
+  const q = pharmacySearchQuery.value.toLowerCase().trim()
+  return pharmacyQueue.value.filter((p: PharmacyQueueEntry) =>
+    composedSourcePharmacyIds.value.has(Number(p.pharmacy_id || 0)) &&
+    (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q))
+  )
+})
 const fullMatchQueue = computed(() => {
   const q = pharmacySearchQuery.value.toLowerCase().trim()
-  return pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.fully_covers_request && (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q)))
+  return pharmacyQueue.value.filter((p: PharmacyQueueEntry) =>
+    p.fully_covers_request &&
+    !composedSourcePharmacyIds.value.has(Number(p.pharmacy_id || 0)) &&
+    (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q))
+  )
 })
 const partialMatchQueue = computed(() => {
   const q = pharmacySearchQuery.value.toLowerCase().trim()
-  return pharmacyQueue.value.filter((p: PharmacyQueueEntry) => !p.fully_covers_request && (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q)))
+  return pharmacyQueue.value.filter((p: PharmacyQueueEntry) =>
+    !p.fully_covers_request &&
+    !composedSourcePharmacyIds.value.has(Number(p.pharmacy_id || 0)) &&
+    (!q || (p.pharmacy_name ?? '').toLowerCase().includes(q))
+  )
 })
 const confirmedFulfillmentPharmacies = computed(() => {
   const confirmed = pharmacyQueue.value.filter((p: PharmacyQueueEntry) => p.is_confirmed)
@@ -4504,7 +4576,9 @@ const selectCoverageMatch = async (pharmacy: PharmacyQueueEntry, coveredItem: Co
         localItem.source_pharmacy_id = pharmacy.pharmacy_id
         localItem.pharmacy_name = pharmacy.pharmacy_name || null
         localItem.unit_price = match.price ?? null
-        localItem.resolution_status = 'resolved'
+        localItem.resolution_status = 'resolved';
+        (localItem as Record<string, unknown>).source_product_id = match.matched_product_id || null;
+        (localItem as Record<string, unknown>).source_product_name = match.matched_product_name || null
       }
     }
     // Refresh coverage so is_composed_source updates
@@ -4518,8 +4592,8 @@ const isItemSelectedFromPharmacy = (itemId: number | undefined, pharmacyId: numb
   if (!itemId || !pharmacyId) return false
   const item = (selectedRequest.value?.items || []).find(i => i.id === itemId)
   if (!item) return false
-  return Number(item.source_pharmacy_id || 0) === pharmacyId &&
-    (productId == null || Number(item.source_product_id || 0) === productId)
+  return Number(item.source_pharmacy_id || 0) === Number(pharmacyId || 0) &&
+    (productId == null || String(item.source_product_id) === String(productId))
 }
 
 const saveSearchOverride = async (coveredItem: CoverageItem) => {
@@ -4990,9 +5064,11 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
     const prefillPrice = existingAlloc?.unit_price != null
       ? String(existingAlloc.unit_price)
       : (catalogPrice != null ? String(catalogPrice) : null)
+    const matchedStockName = coverageItem?.matched_product_name ?? null
     return {
       item_id: item.id,
       product_name: item.product_name ?? null,
+      matched_stock_name: matchedStockName,
       requested_quantity: remainingQty,
       requested_unit: item.requested_unit || '',
       available: existingAlloc ? true : (mode === 'full'),
