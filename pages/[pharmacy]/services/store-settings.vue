@@ -1,15 +1,26 @@
 <template>
     <div class="min-h-screen bg-slate-100">
         <div class="border-b border-slate-200 bg-white px-6 py-5 shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="rounded-2xl bg-slate-900 p-3 text-white shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
-                    </svg>
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="rounded-2xl bg-slate-900 p-3 text-white shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-semibold text-slate-900">Shopfront Customization</h1>
+                        <p class="text-sm text-slate-500">Control branding, colors, pricing visibility, and promotional ads.</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-xl font-semibold text-slate-900">Shopfront Customization</h1>
-                    <p class="text-sm text-slate-500">Control branding, colors, pricing visibility, and promotional ads.</p>
+                <div class="flex items-center gap-3">
+                    <transition name="fade">
+                        <p v-if="saveSuccess" class="text-sm font-medium text-emerald-600">Saved</p>
+                        <p v-else-if="saveError" class="text-sm font-medium text-rose-600">{{ saveError }}</p>
+                    </transition>
+                    <button @click="saveSettings" :disabled="saving || !isDirty" class="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300">
+                        {{ saving ? 'Saving...' : 'Save Shopfront' }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -273,23 +284,6 @@
                             </div>
                         </section>
 
-                        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <div class="flex items-center justify-between gap-4">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-slate-900">Publish</h3>
-                                    <p class="mt-1 text-sm text-slate-500">Save branding, theme, and pricing updates to your public storefront.</p>
-                                </div>
-                                <button @click="saveSettings" :disabled="saving || !isDirty" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                    {{ saving ? 'Saving...' : 'Save Shopfront' }}
-                                </button>
-                            </div>
-
-                            <transition name="fade">
-                                <p v-if="saveSuccess" class="mt-4 text-sm font-medium text-emerald-600">Shopfront settings saved.</p>
-                                <p v-else-if="saveError" class="mt-4 text-sm font-medium text-rose-600">{{ saveError }}</p>
-                                <p v-else class="mt-4 text-sm text-slate-500">Changes apply immediately on your public storefront.</p>
-                            </transition>
-                        </section>
                     </div>
                 </div>
             </template>
