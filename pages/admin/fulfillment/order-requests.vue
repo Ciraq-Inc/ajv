@@ -4,21 +4,20 @@
       v-if="!selectedRequest"
       :stats="stats"
       :loading="loading"
+      :search-query="searchQuery"
       @fetch-stats="fetchStats"
       @fetch-requests="fetchRequests"
+      @update:search-query="searchQuery = $event"
+      @clear-search="searchQuery = ''; fetchRequests()"
     />
 
     <OrderRequestsFilters
       v-if="!selectedRequest"
       :status-filter="statusFilter"
-      :search-query="searchQuery"
       :status-tabs="statusTabs"
       :status-selector-options="statusSelectorOptions"
       :expiring-soon-count="expiringSoonCount"
       @set-status-filter="setStatusFilter"
-      @fetch-requests="fetchRequests"
-      @update:search-query="searchQuery = $event"
-      @clear-search="searchQuery = ''; fetchRequests()"
     />
 
     <!-- Create customer + first request button -->
@@ -1005,9 +1004,6 @@
                   <strong>{{ pharmacyQueue.filter(p => p.queue_state === 'awaiting_response').length }}</strong> awaiting
                   &nbsp;·&nbsp;
                   <strong>{{ pharmacyQueue.filter(p => p.queue_state === 'not_contacted').length }}</strong> not contacted
-                </span>
-                <span v-if="nextRecommendedPharmacy" class="outreach-next-chip">
-                  Next: {{ nextRecommendedPharmacy.pharmacy_name }}
                 </span>
               </div>
 
@@ -5061,10 +5057,13 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
     const catalogPrice = coverageItem?.unit_price != null && Number(coverageItem.unit_price) > 0
       ? Number(coverageItem.unit_price)
       : null
+    const isSelectedFromThisPharmacy = Number(item.source_pharmacy_id || 0) === Number(freshPharm.pharmacy_id || 0)
+    const adminSavedPrice = isSelectedFromThisPharmacy && item.unit_price != null && Number(item.unit_price) > 0
+      ? String(item.unit_price)
+      : null
     const prefillPrice = existingAlloc?.unit_price != null
       ? String(existingAlloc.unit_price)
-      : (catalogPrice != null ? String(catalogPrice) : null)
-    const isSelectedFromThisPharmacy = Number(item.source_pharmacy_id || 0) === Number(freshPharm.pharmacy_id || 0)
+      : (adminSavedPrice ?? (catalogPrice != null ? String(catalogPrice) : null))
     const matchedStockName = (isSelectedFromThisPharmacy && item.source_product_name)
       ? item.source_product_name
       : (coverageItem?.matched_product_name ?? null)
@@ -5079,7 +5078,7 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
       unit_price: prefillPrice,
       catalog_price: catalogPrice,
       catalog_synced_at: coverageItem?.catalog_synced_at || null,
-      is_price_from_catalog: existingAlloc?.unit_price == null && catalogPrice != null,
+      is_price_from_catalog: existingAlloc?.unit_price == null && adminSavedPrice == null && catalogPrice != null,
       allocation_type: existingAlloc?.allocation_type || 'exact',
       substitute_name: existingAlloc?.substitute_name || '',
       substitute_note: existingAlloc?.substitute_note || '',
