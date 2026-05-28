@@ -129,6 +129,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 
+definePageMeta({
+    layout: 'company',
+})
+
 interface DayHours {
   day_of_week: number
   opens_at: string
