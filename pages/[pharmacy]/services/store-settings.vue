@@ -19,7 +19,7 @@
                         <p v-else-if="saveError" class="text-sm font-medium text-rose-600">{{ saveError }}</p>
                     </transition>
                     <button @click="saveSettings" :disabled="saving || !isDirty" class="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                        {{ saving ? 'Saving...' : 'Save Shopfront' }}
+                        {{ saving ? 'Saving...' : 'Save changes' }}
                     </button>
                 </div>
             </div>
