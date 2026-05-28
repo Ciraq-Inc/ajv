@@ -90,10 +90,10 @@
                                         <img v-if="settings.logo" :src="settings.logo" alt="Shop logo" class="h-full w-full object-cover" />
                                         <span v-else class="text-sm text-slate-400">No logo</span>
                                     </div>
-                                    <label class="inline-flex cursor-pointer items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700">
-                                        <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleAssetUpload($event, 'logo')" />
+                                    <input ref="logoFileInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleAssetUpload($event, 'logo')" />
+                                    <button type="button" class="inline-flex cursor-pointer items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700" @click="(logoFileInput as HTMLInputElement).click()">
                                         {{ uploading.logo ? 'Uploading...' : 'Upload logo' }}
-                                    </label>
+                                    </button>
                                 </div>
 
                                 <div class="rounded-2xl border border-slate-200 p-4">
@@ -105,10 +105,10 @@
                                         <img v-if="settings.shop_banner" :src="settings.shop_banner" alt="Shop banner" class="h-full w-full object-cover" />
                                         <div v-else class="flex h-full items-center justify-center text-sm text-slate-400">No banner</div>
                                     </div>
-                                    <label class="inline-flex cursor-pointer items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700">
-                                        <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleAssetUpload($event, 'banner')" />
+                                    <input ref="bannerFileInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleAssetUpload($event, 'banner')" />
+                                    <button type="button" class="inline-flex cursor-pointer items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700" @click="(bannerFileInput as HTMLInputElement).click()">
                                         {{ uploading.banner ? 'Uploading...' : 'Upload banner' }}
-                                    </label>
+                                    </button>
                                 </div>
                             </div>
                         </section>
@@ -237,10 +237,10 @@
                                 <div v-if="adForm.type === 'image'">
                                     <label class="block text-sm font-medium text-slate-700">Ad Image</label>
                                     <div class="mt-2 flex flex-wrap items-center gap-3">
-                                        <label class="inline-flex cursor-pointer items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700">
-                                            <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleAdImageUpload" />
+                                        <input ref="adImageFileInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleAdImageUpload" />
+                                        <button type="button" class="inline-flex cursor-pointer items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700" @click="(adImageFileInput as HTMLInputElement).click()">
                                             {{ uploading.ad ? 'Uploading...' : 'Upload ad image' }}
-                                        </label>
+                                        </button>
                                         <span v-if="adForm.image_url" class="text-xs text-slate-500">Image attached</span>
                                     </div>
                                     <img v-if="adForm.image_url" :src="adForm.image_url" alt="Ad preview" class="mt-4 h-36 w-full rounded-2xl object-cover" />
@@ -390,6 +390,10 @@ const uploadStatus = ref<string>('')
 const adsStatus = ref<string>('')
 const adsSaving = ref<boolean>(false)
 const editingAdId = ref<number | string | null>(null)
+
+const logoFileInput = ref<HTMLInputElement | null>(null)
+const bannerFileInput = ref<HTMLInputElement | null>(null)
+const adImageFileInput = ref<HTMLInputElement | null>(null)
 
 const uploading = ref<{ logo: boolean; banner: boolean; ad: boolean }>({
     logo: false,
