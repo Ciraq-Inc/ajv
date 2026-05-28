@@ -536,7 +536,9 @@ const handleAssetUpload = async (event: Event, assetType: 'logo' | 'banner'): Pr
         } else {
             settings.value.shop_banner = imageUrl
         }
-        uploadStatus.value = `${assetType === 'logo' ? 'Logo' : 'Banner'} uploaded`
+        uploadStatus.value = `Saving...`
+        await saveSettings()
+        uploadStatus.value = `${assetType === 'logo' ? 'Logo' : 'Banner'} saved`
     } catch (error) {
         console.error(`Error uploading ${assetType}:`, error)
         uploadStatus.value = error instanceof Error ? error.message : `Could not upload ${assetType}`
