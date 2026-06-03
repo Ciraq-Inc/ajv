@@ -755,6 +755,23 @@
   flex: 1;
 }
 
+.modal-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding-right: 0.75rem;
+  border-right: 1px solid #e5e7eb;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+.modal-back-btn:hover:not(:disabled) {
+  color: #1e3a8a;
+  background: transparent;
+}
+
 .modal-header-actions {
   display: flex;
   align-items: center;
@@ -4040,7 +4057,13 @@
 .outreach-section-label { font-size: 0.72rem; font-weight: 700; border-radius: 5px; padding: 0.1rem 0.45rem; }
 .outreach-section-label--full { background: #dcfce7; color: #166534; }
 .outreach-section-label--partial { background: #fff7ed; color: #9a3412; }
+.outreach-section-label--composed { background: #ede9fe; color: #5b21b6; }
+.outreach-section-head--composed { margin-bottom: 0.2rem; }
 .outreach-section-note { font-size: 0.72rem; color: #94a3b8; }
+.pharmacy-outreach-row--composed {
+  border-color: #c4b5fd;
+  background: #faf5ff;
+}
 /* Response modal split note */
 .response-modal-split-note {
   font-size: 0.72rem;
@@ -4143,6 +4166,12 @@
   font-weight: 600;
   color: #111827;
   flex: 1;
+}
+.response-item-name-sub {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-left: 0.25rem;
 }
 .response-item-req {
   font-size: 0.78rem;
@@ -4764,6 +4793,12 @@
 .coverage-match-badge--fuzzy {
   background: #e0f2fe;
   color: #0369a1;
+}
+
+.coverage-item-match-row--selected {
+  background: #f0fdf4;
+  border-radius: 6px;
+  outline: 1px solid #bbf7d0;
 }
 
 .coverage-sub-search-panel {

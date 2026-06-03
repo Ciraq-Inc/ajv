@@ -132,6 +132,20 @@
         </div>
 
         <div class="nav-section">
+          <div v-if="!isSidebarCollapsed" class="nav-section-title">Platform Services</div>
+
+          <NuxtLink to="/admin/discounts" class="nav-item" active-class="active">
+            <TagIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Discounts</span>
+          </NuxtLink>
+
+          <NuxtLink to="/admin/developers" class="nav-item" active-class="active">
+            <CodeBracketSquareIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Developer API</span>
+          </NuxtLink>
+        </div>
+
+        <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Settings</div>
 
           <NuxtLink
@@ -312,6 +326,8 @@ import {
   LockClosedIcon,
   IdentificationIcon,
   UsersIcon,
+  TagIcon,
+  CodeBracketSquareIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
@@ -747,6 +763,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;
 }
 
 .sidebar.collapsed~.main-content {

@@ -56,28 +56,25 @@
         <table class="w-full">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 #
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Company
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Type
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Contact
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Location
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                UUID
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ID
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -88,27 +85,14 @@
               :key="company.id"
               class="hover:bg-gray-50 transition-colors duration-150"
             >
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
+              <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
                 {{ index + 1 }}
               </td>
-              <td class="px-6 py-4 ">
-                <div class="flex items-center">
-                  <!-- <div class="flex-shrink-0 h-10 w-10">
-                    <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span class="text-sm font-medium text-gray-700">{{
-                        getCompanyInitials(company.name)
-                      }}</span>
-                    </div>
-                  </div> -->
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">
-                      {{ company.name }}
-                    </div>
-                    <div class="text-sm text-gray-500">{{ company.uiid }}</div>
-                  </div>
-                </div>
+              <td class="px-4 py-4" style="max-width: 200px;">
+                <div class="text-sm font-medium text-gray-900 truncate">{{ company.name }}</div>
+                <div class="text-xs text-gray-400 truncate font-mono" :title="company.uiid">{{ company.uiid }}</div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-4 py-4">
                 <span
                   class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
                   :class="getTypeClass(company.companytype)"
@@ -122,21 +106,18 @@
                   Subsidiary
                 </div>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-500">
+              <td class="px-4 py-4 text-sm text-gray-500">
                 <div>{{ company.email || "N/A" }}</div>
                 <div>{{ company.tel1 || company.tel2 || "N/A" }}</div>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-500">
+              <td class="px-4 py-4 text-sm text-gray-500">
                 <div>{{ company.location || "N/A" }}</div>
                 <div class="text-xs">{{ company.address1 || "" }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
-                {{ company.uiid }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+              <td class="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                 {{ company.id }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex items-center space-x-2">
                   <button
                     @click="viewCompany(company)"
