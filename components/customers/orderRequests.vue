@@ -461,40 +461,18 @@
                 </div>
 
                 <div class="modal-body">
-                    <div v-if="selectedRequest.prescription_images?.length" class="detail-section">
-                        <span class="detail-label">Prescription Images</span>
-                        <div class="detail-prescription-grid">
-                            <a v-for="(imageUrl, imageIndex) in selectedRequest.prescription_images"
-                                :key="`prescription-${imageIndex}`" :href="imageUrl" target="_blank"
-                                rel="noopener noreferrer" class="detail-prescription-link">
-                                <img :src="imageUrl" :alt="`Prescription image ${imageIndex + 1}`"
-                                    class="detail-prescription-image" />
-                            </a>
-                        </div>
-                    </div>
-
                     <!-- Items -->
                     <div v-if="selectedRequest.items?.length" class="detail-section">
                         <div v-for="(item, itemIdx) in selectedRequest.items" :key="item.id ?? itemIdx" class="detail-item">
                             <div>
                                 <strong>{{ item.product_name }}</strong>
                                 <span class="item-qty">Qty: {{ item.quantity }}</span>
-                                <div v-if="item.item_images?.length" class="detail-item-images">
-                                    <a v-for="(imageUrl, imageIndex) in item.item_images"
-                                        :key="`${item.id}-img-${imageIndex}`" :href="imageUrl" target="_blank"
-                                        rel="noopener noreferrer" class="detail-item-image-link">
-                                        <img :src="imageUrl" :alt="`${item.product_name} photo ${imageIndex + 1}`"
-                                            class="detail-item-image" />
-                                    </a>
-                                </div>
                             </div>
                             <div class="item-price-info">
                                 <span v-if="item.marked_up_price" class="item-price">GHS {{
                                     parseFloat(String(item.marked_up_price)).toFixed(2) }}</span>
                                 <span v-else class="price-pending">Price pending</span>
-                                <span class="status-badge sm" :class="item.item_status || 'pending'">{{ item.item_status
-                                    ||
-                                    'pending' }}</span>
+                                <span class="status-badge sm" :class="item.item_status || 'pending'">{{ item.item_status || 'pending' }}</span>
                             </div>
                         </div>
                     </div>
@@ -698,9 +676,9 @@
 
                     <div v-if="canPayRequest(selectedRequest) && !selectedRequest.pending_decisions?.length"
                         class="payment-action">
-                        <!-- Pickup vs delivery comparison (flag-gated) -->
+                        <!-- Fulfillment picker — shown when no method is locked yet -->
                         <div v-if="requiresMethodSelection(selectedRequest)" class="fulfillment-picker">
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-3">Delivery method</p>
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-3">How would you like to receive your order?</p>
 
                             <div v-if="paymentOptionsLoading[selectedRequest.id]" class="fulfillment-picker-loading">
                                 <ArrowPathIcon class="pay-svg spin" />
@@ -735,12 +713,8 @@
                                             </div>
                                             <div v-if="selectedPaymentOptions?.pickup?.available && selectedPaymentOptions?.pickup?.pharmacy" class="fulfillment-option-meta">
                                                 <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">{{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away</span>
-                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours">
-                                                    · Open 24 hours
-                                                </span>
-                                                <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at">
-                                                    · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}
-                                                </span>
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours"> · Open 24 hours</span>
+                                                <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at"> · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}</span>
                                                 <span class="fulfillment-option-meta--muted"> · Pharmacy shown after payment</span>
                                             </div>
                                             <div v-else-if="selectedPaymentOptions?.pickup?.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
@@ -764,18 +738,12 @@
                                         <div class="fulfillment-option-body">
                                             <div class="fulfillment-option-head">
                                                 <span class="fulfillment-option-title">Delivery</span>
-                                                <span class="fulfillment-option-price">
-                                                    GHS {{ Number(selectedPaymentOptions?.delivery?.total ?? 0).toFixed(2) }}
-                                                </span>
+                                                <span class="fulfillment-option-price">GHS {{ Number(selectedPaymentOptions?.delivery?.total ?? 0).toFixed(2) }}</span>
                                             </div>
                                             <div class="fulfillment-option-meta">
                                                 <span>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</span>
-                                                <span v-if="selectedPaymentOptions?.delivery?.distance_km != null">
-                                                    · {{ selectedPaymentOptions?.delivery?.distance_km }} km
-                                                </span>
-                                                <span v-if="selectedPaymentOptions?.delivery?.eta_minutes">
-                                                    · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min
-                                                </span>
+                                                <span v-if="selectedPaymentOptions?.delivery?.distance_km != null"> · {{ selectedPaymentOptions?.delivery?.distance_km }} km</span>
+                                                <span v-if="selectedPaymentOptions?.delivery?.eta_minutes"> · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min</span>
                                             </div>
                                         </div>
                                     </div>
@@ -783,73 +751,77 @@
                             </div>
                         </div>
 
-                        <!-- Fee credit toggle: shown when the request fee can be applied or returned -->
-                        <div v-if="selectedPaymentOptions?.fee_applicable" class="fee-credit-picker">
-                            <div class="fee-credit-header">
-                                <span class="fee-credit-label">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</span>
-                                <span class="fee-credit-sub">How would you like to use it?</span>
+                        <!-- Payment section — only shown once a fulfillment method is chosen (or not required) -->
+                        <template v-if="canPayWithSelection(selectedRequest)">
+                            <!-- Fee credit toggle -->
+                            <div v-if="selectedPaymentOptions?.fee_applicable" class="fee-credit-picker">
+                                <div class="fee-credit-header">
+                                    <span class="fee-credit-label">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</span>
+                                    <span class="fee-credit-sub">How would you like to use it?</span>
+                                </div>
+                                <div class="fee-credit-options">
+                                    <button
+                                        type="button"
+                                        class="fee-credit-option"
+                                        :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] !== false }"
+                                        @click="setApplyFee(selectedRequest.id, true)"
+                                    >
+                                        <span class="fee-credit-option-title">Apply to this order</span>
+                                        <span class="fee-credit-option-sub">Pay less now</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="fee-credit-option"
+                                        :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] === false }"
+                                        @click="setApplyFee(selectedRequest.id, false)"
+                                    >
+                                        <span class="fee-credit-option-title">Return to wallet</span>
+                                        <span class="fee-credit-option-sub">Save for a future request</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="fee-credit-options">
-                                <button
-                                    type="button"
-                                    class="fee-credit-option"
-                                    :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] !== false }"
-                                    @click="setApplyFee(selectedRequest.id, true)"
-                                >
-                                    <span class="fee-credit-option-title">Apply to this order</span>
-                                    <span class="fee-credit-option-sub">Pay less now</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="fee-credit-option"
-                                    :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] === false }"
-                                    @click="setApplyFee(selectedRequest.id, false)"
-                                >
-                                    <span class="fee-credit-option-title">Return to wallet</span>
-                                    <span class="fee-credit-option-sub">Save for a future request</span>
-                                </button>
+
+                            <!-- Total -->
+                            <div v-if="selectedMethodTotal != null" class="payment-total-row">
+                                <span>Total</span>
+                                <span class="payment-total-amount">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
                             </div>
-                        </div>
 
-                        <!-- Live total row — shown whenever a total is computable -->
-                        <div v-if="selectedMethodTotal != null" class="payment-total-row">
-                            <span>Total</span>
-                            <span class="payment-total-amount">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
-                        </div>
+                            <!-- Pay buttons -->
+                            <div class="payment-method-grid">
+                                <button v-if="walletBalance > 5"
+                                    @click="payForRequest(selectedRequest.id, 'wallet')"
+                                    :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? '' : 'secondary-pay-btn']"
+                                    :disabled="payingRequest">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
+                                    <CurrencyDollarIcon v-else class="pay-svg" />
+                                    <span>
+                                        {{ payingRequest && payingMethod === 'wallet'
+                                            ? 'Processing wallet payment...'
+                                            : selectedMethodTotal != null
+                                                ? `Pay with Wallet · GHS ${selectedMethodTotal.toFixed(2)}`
+                                                : 'Pay with Wallet' }}
+                                    </span>
+                                </button>
+                                <button @click="payForRequest(selectedRequest.id, 'paystack')"
+                                    :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? 'secondary-pay-btn' : '']"
+                                    :disabled="payingRequest">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="pay-svg spin" />
+                                    <CreditCardIcon v-else class="pay-svg" />
+                                    <span>
+                                        {{ payingRequest && payingMethod === 'paystack'
+                                            ? 'Redirecting to Paystack...'
+                                            : paystackChargeTotal != null
+                                                ? `Pay Directly · GHS ${paystackChargeTotal.toFixed(2)}`
+                                                : 'Pay Directly' }}
+                                    </span>
+                                </button>
+                                <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-[11px] text-zinc-400 text-center -mt-1">
+                                    Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
+                                </p>
+                            </div>
+                        </template>
 
-                        <div class="payment-method-grid">
-                            <button v-if="walletBalance > 5"
-                                @click="payForRequest(selectedRequest.id, 'wallet')"
-                                :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? '' : 'secondary-pay-btn']"
-                                :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
-                                <CurrencyDollarIcon v-else class="pay-svg" />
-                                <span>
-                                    {{ payingRequest && payingMethod === 'wallet'
-                                        ? 'Processing wallet payment...'
-                                        : selectedMethodTotal != null
-                                            ? `Pay with Wallet · GHS ${selectedMethodTotal.toFixed(2)}`
-                                            : 'Pay with Wallet' }}
-                                </span>
-                            </button>
-                            <button @click="payForRequest(selectedRequest.id, 'paystack')"
-                                :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? 'secondary-pay-btn' : '']"
-                                :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'"
-                                    class="pay-svg spin" />
-                                <CreditCardIcon v-else class="pay-svg" />
-                                <span>
-                                    {{ payingRequest && payingMethod === 'paystack'
-                                        ? 'Redirecting to Paystack...'
-                                        : paystackChargeTotal != null
-                                            ? `Pay Directly · GHS ${paystackChargeTotal.toFixed(2)}`
-                                            : 'Pay Directly' }}
-                                </span>
-                            </button>
-                            <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-[11px] text-zinc-400 text-center -mt-1">
-                                Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
-                            </p>
-                        </div>
                         <div v-if="paymentShortfall.requestId === selectedRequest.id && paymentShortfall.amount > 0"
                             class="payment-shortfall">
                             <div class="payment-shortfall-head">
