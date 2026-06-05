@@ -45,7 +45,7 @@
           </a>
 
           <button
-            v-if="!userStore.isLoggedIn"
+            v-if="!userStore.isLoggedIn && route.path !== '/'"
             @click="showLoginModal = true"
             class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
           >
@@ -53,7 +53,7 @@
             Login
           </button>
 
-          <div v-else class="relative profile-menu-container">
+          <div v-else-if="userStore.isLoggedIn" class="relative profile-menu-container">
             <button
               @click.stop="showProfileMenu = !showProfileMenu"
               class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
@@ -107,7 +107,7 @@
 
         <div class="ml-auto flex items-center gap-2 lg:hidden">
           <button
-            v-if="!userStore.isLoggedIn"
+            v-if="!userStore.isLoggedIn && route.path !== '/'"
             @click="showLoginModal = true; showMobileMenu = false"
             class="inline-flex items-center gap-1.5 rounded-full border border-[#eadbfd] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
           >
@@ -116,7 +116,7 @@
           </button>
 
           <nuxt-link
-            v-else
+            v-else-if="userStore.isLoggedIn"
             to="/customer"
             class="inline-flex items-center gap-1.5 rounded-full border border-[#eadbfd] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-[#f7efff]"
           >
@@ -220,6 +220,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '~/stores/user'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import Login from '~/components/Login.vue'
@@ -227,6 +228,7 @@ import Login from '~/components/Login.vue'
 // TODO: remove once stores/ are .ts
 
 const userStore = useUserStore()
+const route = useRoute()
 const showLoginModal = ref(false)
 const showProfileMenu = ref(false)
 const showMobileMenu = ref(false)

@@ -1,14 +1,15 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="login-dialog-title" ref="dialogRef" tabindex="-1">
-    <!-- Backdrop -->
-    <div class="fixed inset-0 bg-[#1e1a22]/50 backdrop-blur-md" @click="closeModal"></div>
+  <div v-if="inline || isOpen" :class="!inline ? 'fixed inset-0 z-50 overflow-y-auto' : ''" :role="!inline ? 'dialog' : undefined" :aria-modal="!inline ? 'true' : undefined" :aria-labelledby="!inline ? 'login-dialog-title' : undefined" ref="dialogRef" :tabindex="!inline ? -1 : undefined">
+    <!-- Backdrop (modal only) -->
+    <div v-if="!inline" class="fixed inset-0 bg-[#1e1a22]/50 backdrop-blur-md" @click="closeModal"></div>
 
-    <div style="font-family: 'Manrope', sans-serif;" class="min-h-full flex items-center justify-center p-4 sm:p-6">
-      <!-- Modal Container -->
-      <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-[#fff7ff] border-none shadow-[0_24px_32px_rgba(30,26,34,0.06)]">
-        <!-- Modal Header -->
-        <div class="relative px-6 pt-6 pb-5 border-b border-[#f0e6fa]">
+    <div style="font-family: 'Manrope', sans-serif;" :class="!inline ? 'min-h-full flex items-center justify-center p-4 sm:p-6' : ''">
+      <!-- Card -->
+      <div :class="!inline ? 'relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-[#fff7ff] border-none shadow-[0_24px_32px_rgba(30,26,34,0.06)]' : 'w-full overflow-hidden rounded-[2rem] bg-[#fff7ff] border-none shadow-[0_24px_32px_rgba(30,26,34,0.06)]'">
+        <!-- Header -->
+        <div :class="inline ? 'relative px-6 pt-5 pb-4 border-b border-[#f0e6fa]' : 'relative px-6 pt-6 pb-5 border-b border-[#f0e6fa]'">
           <button
+            v-if="!inline"
             type="button"
             @click="closeModal"
             class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#f4ebf7] text-[#7d7484] transition hover:bg-[#ead6fd] hover:text-[#520094]"
@@ -18,15 +19,15 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div class="pr-10">
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#520094] mb-2">MedsGh</p>
-            <h3 id="login-dialog-title" class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
-            <p class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
+          <div :class="!inline ? 'pr-10' : ''">
+            <p v-if="!inline" class="text-xs font-bold uppercase tracking-[0.18em] text-[#520094] mb-2">MedsGh</p>
+            <h3 :id="!inline ? 'login-dialog-title' : undefined" class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
+            <p v-if="!inline" class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
           </div>
         </div>
 
-        <!-- Modal Body -->
-        <div class="bg-[#ffffff] p-6">
+        <!-- Body -->
+        <div :class="inline ? 'bg-[#ffffff] px-6 py-5' : 'bg-[#ffffff] p-6'">
 
           <div v-if="errorMessage" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
             <div class="flex">
@@ -69,19 +70,25 @@
               <!-- Always visible: password -->
               <div class="mb-3">
                 <label for="password" class="mb-1 block text-sm font-semibold text-[#4c4453]">Password</label>
-                <input v-model="password" type="password" id="password"
-                  :class="inputClass"
-                  placeholder="Enter your password" required minlength="6">
+                <div class="relative">
+                  <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password"
+                    :class="passwordInputClass"
+                    placeholder="Enter your password" required minlength="6">
+                  <button type="button" @click="showPassword = !showPassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                    <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
+                    <EyeIcon v-else class="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               <!-- Remember + forgot -->
-              <div class="mb-4 flex items-center justify-between gap-3 rounded-2xl border-none bg-[#f4ebf7] px-4 py-3 text-sm">
-                <div class="flex items-center">
+              <div class="mb-4 flex items-center justify-between gap-3 text-sm">
+                <div class="flex items-center gap-2">
                   <input id="remember-me" v-model="rememberMe" type="checkbox"
                     class="h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]">
-                  <label for="remember-me" class="ml-2 block text-sm text-[#4c4453]">
-                    Keep me logged in
-                  </label>
+                  <label for="remember-me" class="text-sm text-[#4c4453]">Keep me logged in</label>
                 </div>
                 <button type="button" @click="forgotPassword" class="text-sm font-medium text-[#520094] hover:text-[#6c24b3]">
                   Forgot password?
@@ -217,16 +224,32 @@
 
                 <div class="mb-4">
                   <label for="resetPassword" class="block text-sm font-medium text-[#4c4453] mb-1">New Password</label>
-                  <input v-model="password" type="password" id="resetPassword"
-                    :class="inputClass"
-                    placeholder="Enter new password (min. 6 characters)" required minlength="6">
+                  <div class="relative">
+                    <input v-model="password" :type="showPassword ? 'text' : 'password'" id="resetPassword"
+                      :class="passwordInputClass"
+                      placeholder="Enter new password (min. 6 characters)" required minlength="6">
+                    <button type="button" @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
+                      :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                      <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
+                      <EyeIcon v-else class="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div class="mb-4">
                   <label for="resetConfirmPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm New Password</label>
-                  <input v-model="confirmPassword" type="password" id="resetConfirmPassword"
-                    :class="inputClass"
-                    placeholder="Re-enter new password" required minlength="6">
+                  <div class="relative">
+                    <input v-model="confirmPassword" :type="showPassword ? 'text' : 'password'" id="resetConfirmPassword"
+                      :class="passwordInputClass"
+                      placeholder="Re-enter new password" required minlength="6">
+                    <button type="button" @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
+                      :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                      <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
+                      <EyeIcon v-else class="w-5 h-5" />
+                    </button>
+                  </div>
                   <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
                     Passwords do not match
                   </p>
@@ -321,14 +344,30 @@
 
               <div>
                 <label for="su-password" class="block text-sm font-medium text-[#4c4453] mb-1">Create a password <span class="text-red-500">*</span></label>
-                <input v-model="password" type="password" id="su-password" :class="inputClass"
-                  placeholder="Min. 6 characters" required minlength="6">
+                <div class="relative">
+                  <input v-model="password" :type="showPassword ? 'text' : 'password'" id="su-password" :class="passwordInputClass"
+                    placeholder="Min. 6 characters" required minlength="6">
+                  <button type="button" @click="showPassword = !showPassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                    <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
+                    <EyeIcon v-else class="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label for="su-confirm" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm password <span class="text-red-500">*</span></label>
-                <input v-model="confirmPassword" type="password" id="su-confirm" :class="inputClass"
-                  placeholder="Re-enter password" required minlength="6">
+                <div class="relative">
+                  <input v-model="confirmPassword" :type="showPassword ? 'text' : 'password'" id="su-confirm" :class="passwordInputClass"
+                    placeholder="Re-enter password" required minlength="6">
+                  <button type="button" @click="showPassword = !showPassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                    <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
+                    <EyeIcon v-else class="w-5 h-5" />
+                  </button>
+                </div>
                 <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-xs text-red-600">
                   Passwords do not match
                 </p>
@@ -371,6 +410,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
 import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useModalA11y } from '~/composables/useModalA11y';
@@ -412,7 +452,7 @@ interface PharmacyStoreShape {
   currentPharmacy: unknown;
 }
 
-const props = defineProps<{ isOpen?: boolean }>();
+const props = defineProps<{ isOpen?: boolean; inline?: boolean }>();
 
 const emit = defineEmits<{
   close: [];
@@ -428,8 +468,9 @@ const dialogRef = ref<HTMLElement | null>(null);
 useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'));
 
 const subtleCardClass = 'mb-4 rounded-2xl border-none bg-[#f4ebf7] p-4 text-sm text-[#4c4453]';
-const inputClass = 'w-full rounded-full border-none shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 transition-colors';
-const phoneInputClass = 'w-full rounded-r-full border-none shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 transition-colors';
+const inputClass = 'w-full rounded-full border border-[#ddd0eb] shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 focus:border-[#520094]/40 transition-colors';
+const passwordInputClass = inputClass + ' pr-10';
+const phoneInputClass = 'w-full rounded-r-full border border-l-0 border-[#ddd0eb] shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 focus:border-[#520094]/40 transition-colors';
 const secondaryButtonClass = 'rounded-full border-none bg-[#e9dfec] px-6 py-3 text-sm font-bold text-[#4c4453] hover:bg-[#e0d7e3] transition-all active:scale-95';
 const primaryButtonClass = 'rounded-xl bg-[#520094] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
 const fullPrimaryButtonClass = 'w-full rounded-xl bg-[#520094] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
@@ -454,6 +495,7 @@ const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
 const phoneNumberError = ref<string>('');
 const rememberMe = ref<boolean>(true);
+const showPassword = ref<boolean>(false);
 
 const registrationCompany = computed<string | null>(() => pharmacyStore.pharmacyData?.name ?? null);
 
@@ -600,6 +642,7 @@ const goToSignup = (): void => {
 };
 
 const goToLogin = (): void => {
+  showPassword.value = false;
   view.value = 'login';
   currentStep.value = 'signin';
   mode.value = 'login';
@@ -792,6 +835,7 @@ const resendRegisterOTP = async (): Promise<void> => {
 };
 
 const forgotPassword = (): void => {
+  showPassword.value = false;
   currentStep.value = 'reset';
   mode.value = 'login';
   otpSent.value = false;
@@ -848,6 +892,7 @@ const handleResetPassword = async (): Promise<void> => {
 };
 
 const backToSignIn = (): void => {
+  showPassword.value = false;
   currentStep.value = 'signin';
   mode.value = 'login';
   password.value = '';
@@ -894,7 +939,7 @@ const tryToRestorePhone = (): void => {
 };
 
 onMounted(() => {
-  if (props.isOpen) {
+  if (props.isOpen || props.inline) {
     tryToRestorePhone();
   }
 });

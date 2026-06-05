@@ -1,14 +1,13 @@
 <template>
     <div class="order-requests">
         <!-- ====== NEW REQUEST FORM ====== -->
-        <div v-if="isNewView" class="space-y-6 pb-28 lg:pb-0">
+        <div v-if="isNewView" class="space-y-6 pb-6">
 
             <!-- Page Header -->
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">New Request
                     </h2>
-                    <p class="text-sm font-medium text-zinc-600 mt-1">A pharmacist will source and price your medicines.</p>
                 </div>
                 <div class="flex flex-col items-end gap-2 flex-shrink-0 mt-1">
                     <button @click="openWalletTab" type="button"
@@ -20,11 +19,7 @@
                 </div>
             </div>
 
-            <!-- Main content: form + desktop sidebar -->
-            <div class="flex flex-col lg:flex-row gap-6 lg:items-start">
-                <!-- Left column: form sections -->
-                <div class="flex-1 min-w-0 space-y-4">
-                <div class="relative space-y-4">
+            <div class="relative space-y-4">
 
                     <!-- Add Medication (with inline triggers for prescription + notes) -->
                     <section class="bg-white rounded-2xl p-5">
@@ -33,22 +28,26 @@
                         </div>
                         <div class="flex flex-col divide-y divide-zinc-100">
                             <div v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3 py-4 first:pt-0">
-                                <label :for="`request-medicine-${index}`" class="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">
-                                    Medication {{ requestItems.length > 1 ? `#${index + 1}` : '' }}
-                                </label>
-                                <input v-model="item.product_name" type="text"
-                                    :id="`request-medicine-${index}`"
-                                    autocomplete="off"
-                                    autocapitalize="words"
-                                    inputmode="text"
-                                    placeholder="Medicine name, brand, or strength"
-                                    @input="debouncedSaveFormDraft()"
-                                    class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
+                                <div class="flex items-center gap-2">
+                                    <input v-model="item.product_name" type="text"
+                                        :id="`request-medicine-${index}`"
+                                        autocomplete="off"
+                                        autocapitalize="words"
+                                        inputmode="text"
+                                        placeholder="Medicine name, brand, or strength"
+                                        @input="debouncedSaveFormDraft()"
+                                        class="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
+                                    <button v-if="index === requestItems.length - 1"
+                                        @click="addItem" type="button"
+                                        class="flex items-center gap-1 h-[46px] px-3 rounded-xl bg-[#4F217A]/[0.07] text-[#4F217A] hover:bg-[#4F217A]/[0.14] transition-colors text-xs font-semibold flex-shrink-0 whitespace-nowrap">
+                                        <PlusIcon class="w-3.5 h-3.5" />
+                                        Add another
+                                    </button>
+                                </div>
 
                                 <!-- Unit + Qty with labels -->
                                 <div v-if="item.product_name.trim()" class="flex items-end gap-2">
                                     <div class="flex-1 flex flex-col gap-1">
-                                        <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-400">Unit</span>
                                         <select v-model="item.requested_unit"
                                             class="h-10 w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 text-sm font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 cursor-pointer">
                                             <option value="">Choose unit…</option>
@@ -56,8 +55,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="flex flex-col gap-1 flex-shrink-0">
-                                        <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-400">Qty</span>
+                                    <div class="flex-shrink-0">
                                         <div class="flex items-center h-10 bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden">
                                             <button type="button"
                                                 class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 transition-colors"
@@ -80,22 +78,29 @@
                         </div>
                         <!-- Prescription -->
                         <div class="mt-4 pt-4 border-t border-zinc-100">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Prescription</span>
-                                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Optional</span>
-                            </div>
                             <div class="flex items-center gap-2">
-                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Take a photo">
+                                <span class="text-[11px] font-semibold text-zinc-400 mr-1">Rx</span>
+                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Take a prescription photo">
                                     <CameraIcon class="w-4 h-4 flex-shrink-0" />
                                     Photo
                                     <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
-                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Upload file">
+                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Upload prescription">
                                     <ArrowUpTrayIcon class="w-4 h-4 flex-shrink-0" />
                                     Upload
                                     <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
-                                <span class="text-[11px] text-zinc-400 ml-1">Attach if you have one</span>
+                            </div>
+                            <input ref="prescriptionReplacePicker" type="file" accept="image/*" @change="onReplacePrescriptionFile" class="hidden" />
+                            <div v-if="prescriptionFiles.length" class="mt-3 flex flex-wrap gap-2">
+                                <div v-for="(preview, index) in prescriptionFiles" :key="preview.id"
+                                    class="relative w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 flex-shrink-0">
+                                    <img :src="preview.previewUrl" :alt="`Rx ${index + 1}`" class="w-full h-full object-cover" />
+                                    <button type="button" @click="removePrescriptionFile(index)"
+                                        class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center">
+                                        <XMarkIcon class="w-3 h-3" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -123,13 +128,8 @@
                         </div>
 
                         <!-- Action row -->
-                        <div class="mt-5 pt-4 border-t border-zinc-100 flex items-center gap-3">
-                            <button @click="addItem" type="button"
-                                class="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#4F217A]/[0.07] text-[#4F217A] hover:bg-[#4F217A]/[0.14] transition-colors text-sm font-semibold">
-                                <PlusIcon class="w-4 h-4 flex-shrink-0" />
-                                Add medication
-                            </button>
-                            <button v-if="!showNotesField" @click="openNotesField" type="button"
+                        <div v-if="!showNotesField" class="mt-4 pt-4 border-t border-zinc-100">
+                            <button @click="openNotesField" type="button"
                                 class="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 transition-colors text-sm font-semibold">
                                 <ChatBubbleLeftEllipsisIcon class="w-4 h-4 flex-shrink-0" />
                                 Add note
@@ -138,91 +138,27 @@
                     </section>
 
 
-                    <!-- Address & Location -->
-                    <section class="bg-white rounded-2xl p-5">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Your Address</h3>
-                            <button v-if="customerLat && !editingAddress" @click="editingAddress = true" type="button"
-                                class="text-xs font-semibold text-[#4F217A] hover:underline">
-                                Change
-                            </button>
+                    <!-- Address trigger -->
+                    <button @click="showAddressModal = true" type="button"
+                        class="w-full flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 border transition-colors text-left"
+                        :class="customerLat && deliveryAddress.trim() ? 'border-emerald-200 hover:border-emerald-300' : 'border-amber-200 hover:border-amber-300'">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                            :class="customerLat && deliveryAddress.trim() ? 'bg-emerald-500 text-white' : 'bg-amber-100 text-amber-600'">
+                            <MapPinIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-4 h-4" />
+                            <MapPinIcon v-else class="w-4 h-4" />
                         </div>
-
-                        <!-- GPS button: shown when no location OR editing -->
-                        <button v-if="showAddressSearch" @click="getLocation" :disabled="gettingLocation"
-                            class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-3 transition-all hover:bg-zinc-100 hover:border-zinc-300">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 bg-white border border-zinc-200 text-zinc-500">
-                                <ArrowPathIcon v-if="gettingLocation" class="w-5 h-5 animate-spin" />
-                                <MapPinIcon v-else class="w-5 h-5" />
-                            </div>
-                            <div class="flex-1 text-left min-w-0">
-                                <strong class="block text-sm font-bold text-zinc-900">Use my current location</strong>
-                                <span class="block text-[11px] font-semibold text-zinc-500 mt-0.5">{{ gettingLocation ? 'Getting location…' : 'Tap to detect via GPS' }}</span>
-                            </div>
-                        </button>
-
-                        <!-- Confirmed location row: shown when set and not editing -->
-                        <div v-if="customerLat && !editingAddress"
-                            class="flex items-center gap-3 bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 mb-3">
-                            <div class="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-sm flex-shrink-0">
-                                <MapPinIconSolid class="w-5 h-5" />
-                            </div>
-                            <div class="flex-1 text-left min-w-0">
-                                <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel }}</strong>
-                                <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{ locationSublabel }}</span>
-                            </div>
-                            <CheckCircleIconSolid class="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        <div class="flex-1 min-w-0">
+                            <template v-if="customerLat && deliveryAddress.trim()">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Delivery address</p>
+                                <p class="text-sm font-semibold text-zinc-900 truncate mt-0.5">{{ deliveryAddress }}</p>
+                            </template>
+                            <template v-else>
+                                <p class="text-sm font-semibold text-zinc-900">Set delivery address</p>
+                                <p class="text-[11px] font-medium text-amber-600 mt-0.5">Required to continue</p>
+                            </template>
                         </div>
-
-                        <div class="flex flex-col gap-2">
-                            <!-- Address search: shown only when no location or editing -->
-                            <div v-if="showAddressSearch" class="relative">
-                                <div
-                                    class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
-                                    <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
-                                    <input v-model="deliveryAddressSearch" type="text"
-                                        id="delivery-address-search"
-                                        placeholder="Type an address or landmark"
-                                        role="combobox"
-                                        aria-autocomplete="list"
-                                        aria-controls="delivery-address-suggestions"
-                                        :aria-expanded="deliveryAddressSuggestions.length > 0"
-                                        :aria-activedescendant="deliveryAddressActiveIndex >= 0 ? `delivery-address-option-${deliveryAddressActiveIndex}` : ''"
-                                        autocomplete="street-address"
-                                        inputmode="text"
-                                        @keydown="onDeliveryAddressKeydown"
-                                        class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
-                                    <ArrowPathIcon v-if="deliveryAutocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
-                                </div>
-                                <ul v-if="deliveryAddressSuggestions.length"
-                                    id="delivery-address-suggestions"
-                                    role="listbox"
-                                    aria-label="Address suggestions"
-                                    class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain list-none m-0 p-0">
-                                    <li v-for="(suggestion, index) in deliveryAddressSuggestions"
-                                        :key="`${suggestion.display_name}-${index}`"
-                                        :id="`delivery-address-option-${index}`"
-                                        role="option"
-                                        :aria-selected="deliveryAddressActiveIndex === index"
-                                        class="border-b border-zinc-100 last:border-b-0 cursor-pointer transition-colors"
-                                        :class="deliveryAddressActiveIndex === index ? 'bg-[#f7f1ff]' : 'hover:bg-zinc-50'"
-                                        @click="applyDeliveryAddressSuggestion(suggestion)"
-                                        @mouseenter="deliveryAddressActiveIndex = index">
-                                        <div class="px-4 py-3.5">
-                                            <p class="text-sm font-semibold text-zinc-900 truncate">{{ formatSuggestionPrimary(String(suggestion.display_name ?? '')) }}</p>
-                                            <p class="mt-0.5 text-[11px] font-medium text-zinc-400 truncate">{{ formatSuggestionSecondary(String(suggestion.display_name ?? '')) || suggestion.type || '' }}</p>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <textarea v-model="deliveryAddress" rows="2"
-                                placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
-                                autocomplete="street-address"
-                                inputmode="text"
-                                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
-                        </div>
-                    </section>
+                        <ChevronRightIcon class="w-4 h-4 text-zinc-300 flex-shrink-0" />
+                    </button>
 
                     <!-- Wallet gate overlay -->
                     <div v-if="!canSearchProducts"
@@ -239,101 +175,16 @@
                             Top Up Wallet
                         </button>
                     </div>
-                </div><!-- /wallet gate wrapper -->
-
-                    <!-- Privacy note -->
-
-                </div><!-- /left form column -->
-
-                <!-- Right sidebar (desktop only) -->
-                <div class="hidden lg:block w-72 flex-shrink-0 sticky top-6 space-y-4">
-                    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
-                        <h3 class="font-black text-zinc-900 text-base tracking-tight mb-4">Order Summary</h3>
-                        <div class="space-y-2.5 text-sm mb-5">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-zinc-500">Medications</span>
-                                <span class="font-semibold text-zinc-900">{{ validItems.length ? `${validItems.length}
-                                    item${validItems.length !== 1 ? 's' : ''}` : (prescriptionFiles.length ?
-                                    `${prescriptionFiles.length} Rx page${prescriptionFiles.length !== 1 ? 's' : ''}` :
-                                    '—') }}</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-zinc-500">Fulfillment</span>
-                                <span class="font-semibold text-zinc-900">Home Delivery</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
-                                <span class="text-zinc-500">Charge</span>
-                                <span class="font-black" :class="(firstRequestFree || isProfessional) ? 'text-emerald-600' : 'text-zinc-900'">
-                                    {{ isProfessional ? 'Free (Pro)' : firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
-                                </span>
-                            </div>
-                            <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
-                                <span class="text-zinc-500">Wallet Balance</span>
-                                <span class="font-black tabular-nums"
-                                    :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">GHS {{ walletBalance.toFixed(2) }}</span>
-                            </div>
-                        </div>
-                        <p class="text-[11px] text-zinc-500 leading-snug mb-3">Pickup or delivery options shown at next step.</p>
-                        <!-- Progress checklist -->
-                        <div class="flex flex-wrap gap-x-3 gap-y-1.5 mb-3">
-                            <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                                :class="(validItems.length > 0 || prescriptionFiles.length > 0) ? 'text-emerald-600' : 'text-zinc-400'">
-                                <CheckCircleIconSolid v-if="validItems.length > 0 || prescriptionFiles.length > 0" class="w-3.5 h-3.5 flex-shrink-0" />
-                                <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                                Medications
-                            </span>
-                            <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                                :class="(customerLat && deliveryAddress.trim()) ? 'text-emerald-600' : 'text-zinc-400'">
-                                <CheckCircleIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-3.5 h-3.5 flex-shrink-0" />
-                                <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                                Location & address
-                            </span>
-                        </div>
-                        <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                            class="w-full bg-purple-700 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
-                            <template v-else>Send Request ›</template>
-                        </button>
-                    </div>
-                </div><!-- /right sidebar -->
-
-            </div><!-- /main content row -->
-
-            <!-- Mobile submit bar -->
-            <div class="lg:hidden space-y-2">
-                <!-- Progress checklist (mobile) -->
-                <div class="flex flex-wrap gap-x-4 gap-y-1.5 px-1">
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                        :class="(validItems.length > 0 || prescriptionFiles.length > 0) ? 'text-emerald-600' : 'text-zinc-400'">
-                        <CheckCircleIconSolid v-if="validItems.length > 0 || prescriptionFiles.length > 0" class="w-3.5 h-3.5 flex-shrink-0" />
-                        <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                        Medications
-                    </span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                        :class="(customerLat && deliveryAddress.trim()) ? 'text-emerald-600' : 'text-zinc-400'">
-                        <CheckCircleIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-3.5 h-3.5 flex-shrink-0" />
-                        <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                        Location & address
-                    </span>
-                </div>
-                <div class="bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
-                        <p class="text-lg font-black leading-tight" :class="(firstRequestFree || isProfessional) ? 'text-emerald-600' : 'text-zinc-900'">
-                            {{ isProfessional ? 'Free (Pro)' : firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
-                        </p>
-                        <p class="text-[11px] font-semibold mt-0.5"
-                            :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">
-                            Balance: GHS {{ walletBalance.toFixed(2) }}
-                        </p>
-                    </div>
-                    <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                        class="bg-purple-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
-                        <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
-                        <template v-else>Send Request ›</template>
-                    </button>
-                </div>
             </div>
+
+            <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
+                class="w-full bg-[#4F217A] text-white py-3.5 rounded-2xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+                <template v-else>
+                    Send Request
+                    <span class="opacity-60 font-medium">· {{ isProfessional ? 'Free (Pro)' : firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}</span>
+                </template>
+            </button>
         </div>
 
         <!-- ====== REQUESTS LIST ====== -->
@@ -352,30 +203,6 @@
             </header>
 
             <div class="px-5 max-w-5xl mx-auto">
-                <!-- Active / Completed tabs -->
-                <div class="mb-5 flex justify-start">
-                    <div class="inline-flex gap-2 p-1 bg-white border border-zinc-200 rounded-lg shadow-sm">
-                        <button class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                            :class="requestListTab === 'active' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
-                            @click="requestListTab = 'active'">
-                            Active
-                            <span v-if="activeRequests.length"
-                                class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
-                                :class="requestListTab === 'active' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'">{{
-                                activeRequests.length }}</span>
-                        </button>
-                        <button class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                            :class="requestListTab === 'completed' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
-                            @click="requestListTab = 'completed'">
-                            Completed
-                            <span v-if="completedRequests.length"
-                                class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
-                                :class="requestListTab === 'completed' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'">{{
-                                completedRequests.length }}</span>
-                        </button>
-                    </div>
-                </div>
-
                 <div v-if="loadingRequests"
                     class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-zinc-50 rounded-xl">
                     <ArrowPathIcon class="w-8 h-8 text-zinc-400 animate-spin mb-3" />
@@ -396,70 +223,223 @@
                     </button>
                 </div>
 
-                <div v-else class="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden mb-6">
-                    <!-- Request List Items -->
-                    <div class="space-y-0 text-sm">
-                        <article v-for="req in filteredRequests" :key="req.id"
-                            class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
-                            @click="viewDetail(req)">
-                            <div class="flex items-center gap-4 min-w-0">
-                                <!-- Colored Icon Box based on status -->
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-                                    :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-purple-50 text-purple-600 border-purple-100'">
-                                    <component :is="req.status === 'completed' ? CheckCircleIcon : BeakerIcon" class="w-5 h-5" />
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 mb-0.5">
-                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{
-                                            req.request_number }}</h4>
-                                    </div>
-                                    <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
-                                        <span>{{ formatDate(req.created_at) }}</span>
-                                        <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
-                                        <span>{{ req.item_count || 0 }} item(s)</span>
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center ml-auto gap-3 sm:gap-6">
-                                <!-- Status Column (Middle) -->
-                                <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
-                                        :style="req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #f5eefb; color: #6c24b3; border-color: #dbb8ff;'">
-                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
-                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
-                                        {{ formatStatus(getRequestStatus(req)) }}
-                                    </span>
-                                </div>
+                <div v-else class="space-y-2 mb-6">
 
-                                <!-- Cost Column (Right) -->
-                                <div
-                                    class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
-                                    <template
-                                        v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
-                                        <strong
-                                            class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS
-                                            {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                    <!-- ── Processing ── -->
+                    <div class="rounded-xl overflow-hidden bg-white shadow-sm border"
+                        :class="requestListTab === 'processing' ? 'border-purple-200' : 'border-zinc-200'">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-3.5 transition-colors"
+                            :class="requestListTab === 'processing' ? 'bg-purple-50' : 'bg-white hover:bg-zinc-50'"
+                            @click="requestListTab = requestListTab === 'processing' ? '' : 'processing'">
+                            <div class="flex items-center gap-2.5">
+                                <BeakerIcon class="w-4 h-4 flex-shrink-0" :class="requestListTab === 'processing' ? 'text-[#4F217A]' : 'text-zinc-400'" />
+                                <span class="text-sm font-bold" :class="requestListTab === 'processing' ? 'text-[#4F217A]' : 'text-zinc-700'">Processing</span>
+                                <span v-if="processingRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black"
+                                    :class="requestListTab === 'processing' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-500'">
+                                    {{ processingRequests.length }}
+                                </span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200"
+                                :class="requestListTab === 'processing' ? 'rotate-180 text-[#4F217A]' : 'text-zinc-400'" />
+                        </button>
+                        <div v-if="requestListTab === 'processing'" class="border-t border-purple-100 divide-y divide-zinc-100">
+                            <p v-if="!processingRequests.length" class="py-6 text-center text-sm font-semibold text-zinc-400">
+                                No requests in progress
+                            </p>
+                            <article v-for="req in processingRequests" :key="req.id"
+                                class="flex items-stretch hover:bg-purple-50/30 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="w-1 flex-shrink-0 bg-[#4F217A]"></div>
+                                <div class="flex items-center gap-3 flex-1 min-w-0 px-4 py-4">
+                                    <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border bg-purple-50 text-[#4F217A] border-purple-100">
+                                        <BeakerIcon class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{ req.request_number }}</h4>
+                                        <p class="text-[11px] font-medium text-zinc-400 flex items-center gap-1 mt-0.5">
+                                            <span>{{ formatDate(req.created_at) }}</span>
+                                            <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                            <span>{{ getRequestCardSummary(req) }}</span>
+                                        </p>
+                                        <p class="text-xs font-semibold mt-1 truncate text-[#4F217A]">{{ getRequestSubtext(req.status) }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end justify-center gap-1.5 pr-4 py-4 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
                                     </template>
                                     <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
-
-                                    <!-- Mobile Badge Fallback -->
-                                    <span
-                                        class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
-                                        :style="req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #f5eefb; color: #6c24b3; border-color: #dbb8ff;'">
-                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
-                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
-                                        {{ formatStatus(getRequestStatus(req)) }}
-                                    </span>
+                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-[#4F217A] transition-colors" />
                                 </div>
-                            </div>
-                            <!-- Hover Chevron -->
-                            <div
-                                class="ml-2 hidden sm:flex w-5 h-5 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors flex-shrink-0">
-                                <ChevronRightIcon class="w-5 h-5" />
-                            </div>
-                        </article>
+                            </article>
+                        </div>
                     </div>
+
+                    <!-- ── Pay Now ── -->
+                    <div class="rounded-xl overflow-hidden bg-white shadow-sm border"
+                        :class="requestListTab === 'awaiting_payment' ? 'border-amber-200' : 'border-zinc-200'">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-3.5 transition-colors"
+                            :class="requestListTab === 'awaiting_payment' ? 'bg-amber-50' : 'bg-white hover:bg-zinc-50'"
+                            @click="requestListTab = requestListTab === 'awaiting_payment' ? '' : 'awaiting_payment'">
+                            <div class="flex items-center gap-2.5">
+                                <ExclamationCircleIcon class="w-4 h-4 flex-shrink-0" :class="requestListTab === 'awaiting_payment' ? 'text-amber-500' : 'text-zinc-400'" />
+                                <span class="text-sm font-bold" :class="requestListTab === 'awaiting_payment' ? 'text-amber-700' : 'text-zinc-700'">Pay Now</span>
+                                <span v-if="awaitingPaymentRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black"
+                                    :class="requestListTab === 'awaiting_payment' ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-500'">
+                                    {{ awaitingPaymentRequests.length }}
+                                </span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200"
+                                :class="requestListTab === 'awaiting_payment' ? 'rotate-180 text-amber-500' : 'text-zinc-400'" />
+                        </button>
+                        <div v-if="requestListTab === 'awaiting_payment'" class="border-t border-amber-100 divide-y divide-zinc-100">
+                            <p v-if="!awaitingPaymentRequests.length" class="py-6 text-center text-sm font-semibold text-zinc-400">
+                                Nothing to pay right now
+                            </p>
+                            <article v-for="req in awaitingPaymentRequests" :key="req.id"
+                                class="flex items-stretch hover:bg-amber-50/40 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="w-1 flex-shrink-0 bg-amber-400"></div>
+                                <div class="flex items-center gap-3 flex-1 min-w-0 px-4 py-4">
+                                    <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border bg-amber-50 text-amber-600 border-amber-100">
+                                        <ExclamationCircleIcon class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{ req.request_number }}</h4>
+                                        <p class="text-[11px] font-medium text-zinc-400 flex items-center gap-1 mt-0.5">
+                                            <span>{{ formatDate(req.created_at) }}</span>
+                                            <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                            <span>{{ getRequestCardSummary(req) }}</span>
+                                        </p>
+                                        <p class="text-xs font-semibold mt-1 truncate text-amber-600">{{ getRequestSubtext(req.status) }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end justify-center gap-1.5 pr-4 py-4 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                                    </template>
+                                    <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
+                                    <button @click.stop="viewDetail(req)"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-bold hover:bg-amber-600 transition-colors">
+                                        Pay Now <ChevronRightIcon class="w-3 h-3" />
+                                    </button>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <!-- ── En Route ── -->
+                    <div class="rounded-xl overflow-hidden bg-white shadow-sm border"
+                        :class="requestListTab === 'awaiting_fulfilment' ? 'border-blue-200' : 'border-zinc-200'">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-3.5 transition-colors"
+                            :class="requestListTab === 'awaiting_fulfilment' ? 'bg-blue-50' : 'bg-white hover:bg-zinc-50'"
+                            @click="requestListTab = requestListTab === 'awaiting_fulfilment' ? '' : 'awaiting_fulfilment'">
+                            <div class="flex items-center gap-2.5">
+                                <TruckIcon class="w-4 h-4 flex-shrink-0" :class="requestListTab === 'awaiting_fulfilment' ? 'text-blue-500' : 'text-zinc-400'" />
+                                <span class="text-sm font-bold" :class="requestListTab === 'awaiting_fulfilment' ? 'text-blue-700' : 'text-zinc-700'">En Route</span>
+                                <span v-if="awaitingFulfilmentRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black"
+                                    :class="requestListTab === 'awaiting_fulfilment' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-500'">
+                                    {{ awaitingFulfilmentRequests.length }}
+                                </span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200"
+                                :class="requestListTab === 'awaiting_fulfilment' ? 'rotate-180 text-blue-500' : 'text-zinc-400'" />
+                        </button>
+                        <div v-if="requestListTab === 'awaiting_fulfilment'" class="border-t border-blue-100 divide-y divide-zinc-100">
+                            <p v-if="!awaitingFulfilmentRequests.length" class="py-6 text-center text-sm font-semibold text-zinc-400">
+                                No orders en route
+                            </p>
+                            <article v-for="req in awaitingFulfilmentRequests" :key="req.id"
+                                class="flex items-stretch hover:bg-blue-50/30 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="w-1 flex-shrink-0 bg-blue-400"></div>
+                                <div class="flex items-center gap-3 flex-1 min-w-0 px-4 py-4">
+                                    <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border bg-blue-50 text-blue-600 border-blue-100">
+                                        <TruckIcon class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{ req.request_number }}</h4>
+                                        <p class="text-[11px] font-medium text-zinc-400 flex items-center gap-1 mt-0.5">
+                                            <span>{{ formatDate(req.created_at) }}</span>
+                                            <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                            <span>{{ getRequestCardSummary(req) }}</span>
+                                        </p>
+                                        <p class="text-xs font-semibold mt-1 truncate text-blue-600">{{ getRequestSubtext(req.status) }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end justify-center gap-1.5 pr-4 py-4 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                                    </template>
+                                    <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
+                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-blue-500 transition-colors" />
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <!-- ── Done ── -->
+                    <div class="rounded-xl overflow-hidden bg-white shadow-sm border"
+                        :class="requestListTab === 'complete' ? 'border-zinc-400' : 'border-zinc-200'">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-3.5 transition-colors"
+                            :class="requestListTab === 'complete' ? 'bg-zinc-100' : 'bg-white hover:bg-zinc-50'"
+                            @click="requestListTab = requestListTab === 'complete' ? '' : 'complete'">
+                            <div class="flex items-center gap-2.5">
+                                <CheckCircleIcon class="w-4 h-4 flex-shrink-0" :class="requestListTab === 'complete' ? 'text-zinc-600' : 'text-zinc-400'" />
+                                <span class="text-sm font-bold" :class="requestListTab === 'complete' ? 'text-zinc-800' : 'text-zinc-700'">Done</span>
+                                <span v-if="completedRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
+                                    {{ completedRequests.length }}
+                                </span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200"
+                                :class="requestListTab === 'complete' ? 'rotate-180 text-zinc-600' : 'text-zinc-400'" />
+                        </button>
+                        <div v-if="requestListTab === 'complete'" class="border-t border-zinc-200 divide-y divide-zinc-100">
+                            <p v-if="!completedRequests.length" class="py-6 text-center text-sm font-semibold text-zinc-400">
+                                No completed requests yet
+                            </p>
+                            <article v-for="req in completedRequests" :key="req.id"
+                                class="flex items-stretch hover:bg-zinc-50 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="w-1 flex-shrink-0"
+                                    :class="req.status === 'cancelled' || req.status === 'returned' || req.status === 'rejected' ? 'bg-red-300' : 'bg-emerald-400'"></div>
+                                <div class="flex items-center gap-3 flex-1 min-w-0 px-4 py-4">
+                                    <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border"
+                                        :class="req.status === 'cancelled' || req.status === 'returned' || req.status === 'rejected' ? 'bg-red-50 text-red-400 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'">
+                                        <CheckCircleIcon class="w-4 h-4" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{ req.request_number }}</h4>
+                                        <p class="text-[11px] font-medium text-zinc-400 flex items-center gap-1 mt-0.5">
+                                            <span>{{ formatDate(req.created_at) }}</span>
+                                            <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                                            <span>{{ getRequestCardSummary(req) }}</span>
+                                        </p>
+                                        <p class="text-xs font-semibold mt-1 truncate"
+                                            :class="req.status === 'cancelled' || req.status === 'returned' || req.status === 'rejected' ? 'text-red-400' : 'text-emerald-600'">
+                                            {{ getRequestSubtext(req.status) }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end justify-center gap-1.5 pr-4 py-4 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                                    </template>
+                                    <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
+                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-500 transition-colors" />
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
                 </div>
                 <!-- End of max-w-5xl container -->
             </div>
@@ -495,7 +475,6 @@
 
                     <!-- Items -->
                     <div v-if="selectedRequest.items?.length" class="detail-section">
-                        <span class="detail-label">Items</span>
                         <div v-for="(item, itemIdx) in selectedRequest.items" :key="item.id ?? itemIdx" class="detail-item">
                             <div>
                                 <strong>{{ item.product_name }}</strong>
@@ -721,10 +700,7 @@
                         class="payment-action">
                         <!-- Pickup vs delivery comparison (flag-gated) -->
                         <div v-if="requiresMethodSelection(selectedRequest)" class="fulfillment-picker">
-                            <div class="fulfillment-picker-header">
-                                <h4>How would you like to receive your order?</h4>
-                                <p>Compare pickup and delivery before paying.</p>
-                            </div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-3">Delivery method</p>
 
                             <div v-if="paymentOptionsLoading[selectedRequest.id]" class="fulfillment-picker-loading">
                                 <ArrowPathIcon class="pay-svg spin" />
@@ -842,7 +818,8 @@
                         </div>
 
                         <div class="payment-method-grid">
-                            <button @click="payForRequest(selectedRequest.id, 'wallet')"
+                            <button v-if="walletBalance > 5"
+                                @click="payForRequest(selectedRequest.id, 'wallet')"
                                 :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? '' : 'secondary-pay-btn']"
                                 :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
                                 <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
@@ -864,15 +841,15 @@
                                 <span>
                                     {{ payingRequest && payingMethod === 'paystack'
                                         ? 'Redirecting to Paystack...'
-                                        : selectedMethodTotal != null
-                                            ? `Pay with Paystack · GHS ${selectedMethodTotal.toFixed(2)}`
-                                            : 'Pay with Paystack' }}
+                                        : paystackChargeTotal != null
+                                            ? `Pay Directly · GHS ${paystackChargeTotal.toFixed(2)}`
+                                            : 'Pay Directly' }}
                                 </span>
                             </button>
+                            <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-[11px] text-zinc-400 text-center -mt-1">
+                                Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
+                            </p>
                         </div>
-                        <p class="payment-note">Choose wallet or Paystack. Direct Paystack payments are also recorded in
-                            your
-                            wallet history.</p>
                         <div v-if="paymentShortfall.requestId === selectedRequest.id && paymentShortfall.amount > 0"
                             class="payment-shortfall">
                             <div class="payment-shortfall-head">
@@ -899,8 +876,7 @@
                     </div>
                     <div v-else-if="isPaymentPendingRequest(selectedRequest)"
                         class="payment-action payment-action--pending">
-                        <p class="payment-note">Payment will appear here once item pricing is confirmed for this
-                            request.</p>
+                        <p class="payment-note">Pricing being confirmed — payment will appear here shortly.</p>
                     </div>
 
                     <div v-if="canCancelRequest(selectedRequest)" class="cancel-action">
@@ -910,7 +886,6 @@
                             <XMarkIcon v-else class="pay-svg" />
                             <span>{{ cancelingRequest ? 'Cancelling request...' : 'Cancel request' }}</span>
                         </button>
-                        <p class="payment-note">This only works while the request is still pending.</p>
                     </div>
 
                     <!-- Address / Notes -->
@@ -922,55 +897,85 @@
             </div>
         </div>
 
-        <!-- Priority Gate Modal -->
-        <div v-if="showPriorityModal" class="modal-overlay" @click.self="showPriorityModal = false">
-            <div class="modal-content priority-modal">
+
+        <!-- Address Modal -->
+        <div v-if="showAddressModal" class="modal-overlay" @click.self="showAddressModal = false">
+            <div class="modal-content" style="max-width: 480px">
                 <div class="modal-header">
                     <div>
-                        <span v-if="isProfessional" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — professional</span>
-                        <span v-else-if="firstRequestFree" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — first request</span>
-                        <span v-else class="text-xs font-bold text-zinc-500 uppercase tracking-wide">GHS {{ requestFee.toFixed(2) }} charge</span>
+                        <h3>{{ customerLat && deliveryAddress.trim() ? 'Update Address' : 'Delivery Address' }}</h3>
                     </div>
-                    <button @click="showPriorityModal = false" class="modal-close">
+                    <button @click="showAddressModal = false" class="modal-close">
                         <XMarkIcon class="close-svg" />
                     </button>
                 </div>
-
                 <div class="modal-body">
-                    <div class="priority-hero">
-                        <p v-if="isProfessional" class="priority-copy">
-                            You're a verified health professional — no fee will be charged for this request.
-                        </p>
-                        <p v-else-if="firstRequestFree" class="priority-copy">
-                            Your first request is free — no fee will be charged.
-                        </p>
-                        <p v-else class="priority-copy">
-                            A GHS {{ requestFee.toFixed(2) }} search fee is deducted from your wallet — it's credited back against your order if you proceed, or kept if you don't.
-                        </p>
+                    <!-- GPS button -->
+                    <button @click="getLocation" :disabled="gettingLocation" type="button"
+                        class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 bg-white border border-zinc-200 text-zinc-500">
+                            <ArrowPathIcon v-if="gettingLocation" class="w-5 h-5 animate-spin" />
+                            <MapPinIcon v-else class="w-5 h-5" />
+                        </div>
+                        <div class="flex-1 text-left min-w-0">
+                            <strong class="block text-sm font-bold text-zinc-900">Use my current location</strong>
+                            <span class="block text-[11px] font-semibold text-zinc-500 mt-0.5">{{ gettingLocation ? 'Getting location…' : 'Tap to detect via GPS' }}</span>
+                        </div>
+                        <CheckCircleIconSolid v-if="customerLat" class="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                    </button>
+
+                    <!-- Address search -->
+                    <div class="relative mb-3">
+                        <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
+                            <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
+                            <input v-model="deliveryAddressSearch" type="text"
+                                id="delivery-address-search"
+                                placeholder="Type an address or landmark"
+                                role="combobox"
+                                aria-autocomplete="list"
+                                aria-controls="delivery-address-suggestions-modal"
+                                :aria-expanded="deliveryAddressSuggestions.length > 0"
+                                :aria-activedescendant="deliveryAddressActiveIndex >= 0 ? `delivery-address-modal-option-${deliveryAddressActiveIndex}` : ''"
+                                autocomplete="street-address"
+                                inputmode="text"
+                                @keydown="onDeliveryAddressKeydown"
+                                class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
+                            <ArrowPathIcon v-if="deliveryAutocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
+                        </div>
+                        <ul v-if="deliveryAddressSuggestions.length"
+                            id="delivery-address-suggestions-modal"
+                            role="listbox"
+                            aria-label="Address suggestions"
+                            class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-52 overflow-y-auto overscroll-contain list-none m-0 p-0">
+                            <li v-for="(suggestion, idx) in deliveryAddressSuggestions"
+                                :key="`${suggestion.display_name}-${idx}`"
+                                :id="`delivery-address-modal-option-${idx}`"
+                                role="option"
+                                :aria-selected="deliveryAddressActiveIndex === idx"
+                                class="border-b border-zinc-100 last:border-b-0 cursor-pointer transition-colors"
+                                :class="deliveryAddressActiveIndex === idx ? 'bg-[#f7f1ff]' : 'hover:bg-zinc-50'"
+                                @click="applyDeliveryAddressSuggestion(suggestion)"
+                                @mouseenter="deliveryAddressActiveIndex = idx">
+                                <div class="px-4 py-3">
+                                    <p class="text-sm font-semibold text-zinc-900 truncate">{{ formatSuggestionPrimary(String(suggestion.display_name ?? '')) }}</p>
+                                    <p class="mt-0.5 text-[11px] font-medium text-zinc-400 truncate">{{ formatSuggestionSecondary(String(suggestion.display_name ?? '')) || suggestion.type || '' }}</p>
+                                </div>
+                            </li>
+                        </ul>
                     </div>
 
-                    <div v-if="submitShortfall > 0" class="priority-shortfall">
-                        <strong>GHS {{ submitShortfall.toFixed(2) }} short.</strong>
-                        <span>Top up your wallet to continue.</span>
-                    </div>
+                    <!-- Delivery address textarea -->
+                    <textarea v-model="deliveryAddress" rows="2"
+                        placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
+                        autocomplete="street-address"
+                        inputmode="text"
+                        class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none mb-4"></textarea>
 
-                    <div class="priority-actions">
-                        <button @click="showPriorityModal = false" class="nav-back priority-back">
-                            Not Yet
-                        </button>
-                        <button v-if="submitShortfall > 0" @click="openWalletTab" class="nav-next priority-topup">
-                            Top Up Wallet
-                        </button>
-                        <button v-if="submitShortfall <= 0" @click="confirmPriorityAndSubmit" :disabled="isSubmitting"
-                            class="nav-submit priority-submit">
-                            <template v-if="isSubmitting">
-                                <ArrowPathIcon class="nav-svg spin" /> Sending...
-                            </template>
-                            <template v-else>
-                             Send Request
-                            </template>
-                        </button>
-                    </div>
+                    <button @click="showAddressModal = false" type="button"
+                        :disabled="!customerLat || !deliveryAddress.trim()"
+                        class="w-full bg-[#4F217A] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        Confirm Address
+                    </button>
                 </div>
             </div>
         </div>
@@ -1072,6 +1077,7 @@ import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import { useApi, ApiError } from '~/composables/useApi'
+import { useOrderStatus } from '~/composables/useOrderStatus'
 import { formatCompactAddress } from '~/utils/addressFormat'
 import {
     PAYABLE_REQUEST_STATUSES as payableStatuses,
@@ -1081,11 +1087,11 @@ import {
 } from '~/utils/requestPayment'
 import {
     PlusCircleIcon, ClipboardDocumentListIcon as ClipDocList, CheckIcon, PlusIcon, XMarkIcon,
-    CameraIcon, ArrowUpTrayIcon, MapPinIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon,
+    CameraIcon, ArrowUpTrayIcon, MapPinIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon,
     PaperClipIcon, InformationCircleIcon, CubeIcon, CurrencyDollarIcon, TruckIcon, StarIcon,
     ChatBubbleLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon,
     MinusSmallIcon, PlusSmallIcon, CreditCardIcon,
-    ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon,
+    ExclamationTriangleIcon as ExcTriIcon, ExclamationCircleIcon, CheckCircleIcon,
     ClockIcon, WalletIcon, InboxIcon, BeakerIcon, ChatBubbleLeftEllipsisIcon,
     BuildingStorefrontIcon, PhoneIcon,
 } from '@heroicons/vue/24/outline'
@@ -1265,11 +1271,13 @@ const router = useRouter()
 const config = useRuntimeConfig()
 const apiBase = config.public['apiBase'] as string ?? ''
 const orderRequestsService = createOrderRequestsService(useApi())
+const { getRequestStage, getRequestSubtext } = useOrderStatus()
+const reqStage = (req: OrderRequest) => getRequestStage(req.status ?? '')
 
 const isNewView = computed<boolean>(() => props.defaultSubTab === 'new')
 const isListView = computed<boolean>(() => props.defaultSubTab === 'list')
 const isSubmitting = ref<boolean>(false)
-const loadingRequests = ref<boolean>(false)
+const loadingRequests = ref<boolean>(props.defaultSubTab === 'list')
 const gettingLocation = ref<boolean>(false)
 const payingRequest = ref<boolean>(false)
 const payingMethod = ref<string>('')
@@ -1278,6 +1286,7 @@ const toast = ref<{ text: string; type: string } | null>(null)
 const showSuccess = ref<boolean>(false)
 const showPaymentSuccessAnim = ref<boolean>(false)
 const showPriorityModal = ref<boolean>(false)
+const showAddressModal = ref<boolean>(false)
 const submittedNumber = ref<string>('')
 const requestFee = ref<number>(5)
 const requestRefundMinutes = ref<number>(30)
@@ -1603,7 +1612,7 @@ watch(selectedRequest, (req) => {
     if (req.id != null && paymentOptionsByRequest.value[req.id]) return
     if (req.id != null) void loadPaymentOptions(req.id)
 })
-const requestListTab = ref<string>('active')
+const requestListTab = ref<string>('processing')
 const respondingDecisionId = ref<number | string | null>(null)
 const decisionSelections = ref<Record<string | number, Record<string, string>>>({})
 const savingFeedback = ref<boolean>(false)
@@ -1684,11 +1693,19 @@ const isCompletedRequest = (request: OrderRequest): boolean => {
     return ['completed', 'delivered', 'picked_up', 'expired', 'cancelled', 'returned'].includes(status)
 }
 
-const activeRequests = computed<OrderRequest[]>(() => myRequests.value.filter(req => !isCompletedRequest(req)))
-const completedRequests = computed<OrderRequest[]>(() => myRequests.value.filter(req => isCompletedRequest(req)))
-const filteredRequests = computed<OrderRequest[]>(() => (
-    requestListTab.value === 'completed' ? completedRequests.value : activeRequests.value
-))
+const processingRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'processing'))
+const awaitingPaymentRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'awaiting_payment'))
+const awaitingFulfilmentRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'awaiting_fulfilment'))
+const completedRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'complete'))
+const filteredRequests = computed<OrderRequest[]>(() => {
+    const stageMap: Record<string, OrderRequest[]> = {
+        processing: processingRequests.value,
+        awaiting_payment: awaitingPaymentRequests.value,
+        awaiting_fulfilment: awaitingFulfilmentRequests.value,
+        complete: completedRequests.value,
+    }
+    return stageMap[requestListTab.value] ?? processingRequests.value
+})
 
 const buildLocationIssue = (message: string, instructions: string): LocationIssue => ({ message, instructions })
 
@@ -2390,8 +2407,7 @@ const submitRequest = async (): Promise<void> => {
 
 const openPriorityGate = (): void => {
     if (!canSubmit.value || isSubmitting.value) return
-    submitShortfall.value = 0
-    showPriorityModal.value = true
+    submitRequest()
 }
 
 const confirmPriorityAndSubmit = async (): Promise<void> => {
@@ -2577,6 +2593,14 @@ const selectedMethodTotal = computed<number | null>(() => {
         return total != null ? Number(total) : null
     }
     return null
+})
+
+// Total charged via Paystack = order total + Paystack processing fee (1.95% + GHS 0.50)
+const paystackChargeTotal = computed<number | null>(() => {
+    const base = selectedMethodTotal.value
+    if (base == null) return null
+    const fee = Math.round((base * 0.0195 + 0.50) * 100) / 100
+    return Math.round((base + fee) * 100) / 100
 })
 
 const formatPickupReason = (reason: string | undefined): string => {
@@ -3126,6 +3150,9 @@ onMounted(async () => {
     }
     if (isListView.value || props.initialRequestId) {
         await fetchMyRequests()
+        if (!props.initialRequestId && awaitingPaymentRequests.value.length > 0) {
+            requestListTab.value = 'awaiting_payment'
+        }
         await openRequestById(props.initialRequestId, { silent: true })
     }
     await verifyReturnedPaystackRequestPayment()
@@ -5749,7 +5776,7 @@ void isPaymentPendingRequest
 
 .payment-method-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 0.7rem;
 }
 

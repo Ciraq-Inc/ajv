@@ -210,6 +210,24 @@ const sections: SectionDefinition[] = [
         type: 'string',
         inputType: 'password',
         defaultValue: ''
+      },
+      {
+        key: 'paystack_fee_rate',
+        label: 'Paystack Fee Rate',
+        help: 'Percentage of transaction amount charged by Paystack (1.95% = 0.0195)',
+        type: 'number',
+        inputType: 'number',
+        step: '0.0001',
+        defaultValue: '0.0195'
+      },
+      {
+        key: 'paystack_fee_flat',
+        label: 'Paystack Flat Fee (GHS)',
+        help: 'Fixed fee Paystack adds to every transaction in GHS',
+        type: 'number',
+        inputType: 'number',
+        step: '0.01',
+        defaultValue: '0.50'
       }
     ]
   },

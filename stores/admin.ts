@@ -165,7 +165,7 @@ export const useAdminStore = defineStore('admin', {
         }
 
         if (data.success) {
-          const payload = data.data as { token: string; admin?: AdminProfile };
+          const payload = data.data as { token: string; refresh_token?: string | null; admin?: AdminProfile };
           this.token = payload.token;
           this.admin = payload.admin ?? null;
           this.isAuthenticated = true;
@@ -173,6 +173,7 @@ export const useAdminStore = defineStore('admin', {
           if (process.client) {
             localStorage.setItem('adminToken', payload.token);
             localStorage.setItem('adminUser', JSON.stringify(payload.admin));
+            if (payload.refresh_token) localStorage.setItem('adminRefreshToken', payload.refresh_token);
           }
 
           return { success: true as const, ...(data.message !== undefined ? { message: data.message } : {}) };
@@ -205,7 +206,7 @@ export const useAdminStore = defineStore('admin', {
         const data = await this._adminService().verifyMfaTotp(totpParams);
 
         if (data.success) {
-          const payload = data.data as { token: string; admin?: AdminProfile };
+          const payload = data.data as { token: string; refresh_token?: string | null; admin?: AdminProfile };
           this.token = payload.token;
           this.admin = payload.admin ?? null;
           this.isAuthenticated = true;
@@ -213,6 +214,7 @@ export const useAdminStore = defineStore('admin', {
           if (process.client) {
             localStorage.setItem('adminToken', payload.token);
             localStorage.setItem('adminUser', JSON.stringify(payload.admin));
+            if (payload.refresh_token) localStorage.setItem('adminRefreshToken', payload.refresh_token);
           }
 
           return { success: true as const, ...(data.message !== undefined ? { message: data.message } : {}) };
@@ -244,6 +246,7 @@ export const useAdminStore = defineStore('admin', {
       if (process.client) {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
+        localStorage.removeItem('adminRefreshToken');
       }
     },
 
@@ -289,8 +292,14 @@ export const useAdminStore = defineStore('admin', {
           return false;
         }
       } catch (error: unknown) {
-        console.error('Token verification error:', error);
-        return false;
+        const err = error as { status?: number } | null;
+        if (err && (err.status === 401 || err.status === 403)) {
+          return false;
+        }
+        // Transient error (network, 5xx) — keep the session rather than
+        // logging the user out due to a backend hiccup.
+        console.warn('Token verification: transient error, keeping session', error);
+        return true;
       }
     },
 
@@ -436,6 +445,7 @@ export const useAdminStore = defineStore('admin', {
           // Backend returns { success, token, user } flat — no nested data field.
           const payload = data as unknown as {
             token?: string;
+            refresh_token?: string | null;
             user?: AdminProfile | Record<string, unknown>;
           };
 
@@ -446,6 +456,7 @@ export const useAdminStore = defineStore('admin', {
           if (process.client) {
             localStorage.setItem('adminToken', payload.token ?? '');
             localStorage.setItem('adminUser', JSON.stringify(payload.user));
+            if (payload.refresh_token) localStorage.setItem('adminRefreshToken', payload.refresh_token);
           }
 
           return { success: true };

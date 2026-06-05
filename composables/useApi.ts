@@ -51,7 +51,13 @@ export interface ApiInstance {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Module-level refresh state (safe: SSR is disabled for this app)
+// ---------------------------------------------------------------------------
+
+let refreshPromise: Promise<string | null> | null = null
+
+// ---------------------------------------------------------------------------
+// Token helpers
 // ---------------------------------------------------------------------------
 
 /** Resolve the bearer token to inject, following the same priority as before. */
@@ -62,22 +68,15 @@ function resolveToken(endpoint: string): string | null {
   const companyDomain = window.location.pathname.match(/\/([^/]+)\/services/)?.[1]
   if (companyDomain) {
     const domainToken = localStorage.getItem(`company_${companyDomain}_token`)
-    if (domainToken) {
-      console.log('Checking company token for domain:', companyDomain, 'Found:', true)
-      return domainToken
-    }
-    console.log('Checking company token for domain:', companyDomain, 'Found:', false)
+    if (domainToken) return domainToken
   }
 
   // Company store token
   try {
     const companyStore = useCompanyStore()
-    if (companyStore?.companyAuthToken) {
-      console.log('Found token in company store:', true)
-      return companyStore.companyAuthToken
-    }
-  } catch (e) {
-    console.log('Company store not available:', e instanceof Error ? e.message : String(e))
+    if (companyStore?.companyAuthToken) return companyStore.companyAuthToken
+  } catch {
+    // store not available yet
   }
 
   // Endpoint-prefix-specific fallbacks
@@ -102,16 +101,152 @@ function resolveToken(endpoint: string): string | null {
   }
 
   // Generic fallback chain
-  const fallback =
+  return (
     localStorage.getItem('adminToken') ??
     localStorage.getItem('driver_token') ??
     localStorage.getItem('customerAuthToken') ??
     localStorage.getItem('token') ??
-    localStorage.getItem('companyAuthToken')
-
-  console.log('Checked fallback tokens, found:', !!fallback)
-  return fallback
+    localStorage.getItem('companyAuthToken') ??
+    null
+  )
 }
+
+function resolveRefreshToken(endpoint: string): string | null {
+  if (!process.client) return null
+
+  const companyDomain = window.location.pathname.match(/\/([^/]+)\/services/)?.[1]
+  if (companyDomain) {
+    return localStorage.getItem(`company_${companyDomain}_refresh_token`)
+  }
+
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+    return localStorage.getItem('adminRefreshToken')
+  }
+
+  if (
+    endpoint.startsWith('/api/auth/customer') ||
+    endpoint.startsWith('/api/order-requests/customer') ||
+    endpoint.startsWith('/api/wallet') ||
+    endpoint.startsWith('/api/customer') ||
+    endpoint.startsWith('/api/professionals/customer')
+  ) {
+    return localStorage.getItem('customerRefreshToken')
+  }
+
+  return localStorage.getItem('adminRefreshToken') ?? localStorage.getItem('customerRefreshToken') ?? null
+}
+
+function updateStoredTokens(endpoint: string, accessToken: string, refreshToken: string | null): void {
+  if (!process.client) return
+
+  const companyDomain = window.location.pathname.match(/\/([^/]+)\/services/)?.[1]
+  if (companyDomain) {
+    localStorage.setItem(`company_${companyDomain}_token`, accessToken)
+    if (refreshToken) localStorage.setItem(`company_${companyDomain}_refresh_token`, refreshToken)
+    return
+  }
+
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+    localStorage.setItem('adminToken', accessToken)
+    if (refreshToken) localStorage.setItem('adminRefreshToken', refreshToken)
+    return
+  }
+
+  localStorage.setItem('customerAuthToken', accessToken)
+  if (refreshToken) localStorage.setItem('customerRefreshToken', refreshToken)
+}
+
+function clearAuthForEndpoint(endpoint: string): void {
+  if (!process.client) return
+
+  const companyDomain = window.location.pathname.match(/\/([^/]+)\/services/)?.[1]
+  if (companyDomain) {
+    localStorage.removeItem(`company_${companyDomain}_token`)
+    localStorage.removeItem(`company_${companyDomain}_refresh_token`)
+    return
+  }
+
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('adminRefreshToken')
+    return
+  }
+
+  if (
+    endpoint.startsWith('/api/auth/customer') ||
+    endpoint.startsWith('/api/order-requests/customer') ||
+    endpoint.startsWith('/api/wallet') ||
+    endpoint.startsWith('/api/customer') ||
+    endpoint.startsWith('/api/professionals/customer')
+  ) {
+    localStorage.removeItem('customerAuthToken')
+    localStorage.removeItem('customerRefreshToken')
+    return
+  }
+
+  ;['adminToken', 'adminRefreshToken', 'customerAuthToken', 'customerRefreshToken'].forEach(k =>
+    localStorage.removeItem(k)
+  )
+}
+
+function getLoginUrl(): string {
+  if (!process.client) return '/'
+  const path = window.location.pathname
+
+  if (path.startsWith('/admin')) return '/admin/login'
+
+  const companyMatch = path.match(/^\/([^/]+)\/services/)
+  if (companyMatch) return `/${companyMatch[1]}/services/login`
+
+  const pharmacyMatch = path.match(/^\/([^/]+)/)
+  const pharmacySlug = pharmacyMatch?.[1]
+  if (pharmacySlug && !['customer', 'jobs', 'data', 'admin'].includes(pharmacySlug)) {
+    return `/${pharmacySlug}`
+  }
+
+  return '/'
+}
+
+// ---------------------------------------------------------------------------
+// Refresh-then-retry
+// ---------------------------------------------------------------------------
+
+async function tryRefresh(baseURL: string, endpoint: string): Promise<string | null> {
+  // Deduplicate concurrent 401s — all latch onto the same in-flight refresh.
+  if (refreshPromise) return refreshPromise
+
+  const rawRefreshToken = resolveRefreshToken(endpoint)
+  if (!rawRefreshToken) return null
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${baseURL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: rawRefreshToken }),
+      })
+      if (!response.ok) return null
+      const data = await response.json() as {
+        success: boolean
+        access_token?: string
+        refresh_token?: string
+      }
+      if (!data.success || !data.access_token) return null
+      updateStoredTokens(endpoint, data.access_token, data.refresh_token ?? null)
+      return data.access_token
+    } catch {
+      return null
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 /** Build query-string and return the final URL + stripped options. */
 function buildGetUrl(
@@ -141,47 +276,57 @@ export const useApi = (): ApiInstance => {
 
   /**
    * Make an authenticated API request and return the parsed JSON envelope.
+   * Pass `_isRetry = true` to skip the 401 refresh-and-retry path (prevents loops).
    */
   const apiRequest = async <T = unknown>(
     endpoint: string,
     options: RequestInit = {},
+    _isRetry = false,
   ): Promise<ApiEnvelope<T>> => {
-    try {
-      const token = resolveToken(endpoint)
-      console.log('Final token for request:', endpoint, '- Token present:', !!token)
+    const token = resolveToken(endpoint)
 
-      const isFormData =
-        typeof FormData !== 'undefined' && options.body instanceof FormData
+    const isFormData =
+      typeof FormData !== 'undefined' && options.body instanceof FormData
 
-      const headers: Record<string, string> = {
-        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-        ...(options.headers as Record<string, string> | undefined),
-      }
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-
-      const response = await fetch(`${baseURL}${endpoint}`, {
-        ...options,
-        headers,
-      })
-
-      const data = (await response.json()) as ApiEnvelope<T>
-
-      if (!response.ok) {
-        throw new ApiError(
-          (data as { message?: string }).message ?? `API request failed with status ${response.status}`,
-          response.status,
-          data,
-        )
-      }
-
-      return data
-    } catch (error) {
-      console.error('API Request Error:', error)
-      throw error
+    const headers: Record<string, string> = {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(options.headers as Record<string, string> | undefined),
     }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${baseURL}${endpoint}`, {
+      ...options,
+      headers,
+    })
+
+    // 401: attempt a silent token refresh, then retry once.
+    if (response.status === 401 && !_isRetry && !endpoint.startsWith('/api/auth/refresh')) {
+      const newToken = await tryRefresh(baseURL, endpoint)
+      if (newToken) {
+        return apiRequest<T>(endpoint, options, true)
+      }
+      // Refresh failed — clear stale credentials and take user to login.
+      clearAuthForEndpoint(endpoint)
+      if (process.client) {
+        window.location.href = getLoginUrl()
+      }
+      throw new ApiError('Session expired. Please log in again.', 401)
+    }
+
+    const data = (await response.json()) as ApiEnvelope<T>
+
+    if (!response.ok) {
+      throw new ApiError(
+        (data as { message?: string }).message ?? `API request failed with status ${response.status}`,
+        response.status,
+        data,
+      )
+    }
+
+    return data
   }
 
   // -------------------------------------------------------------------------

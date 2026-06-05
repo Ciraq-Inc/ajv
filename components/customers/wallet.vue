@@ -137,7 +137,7 @@
                 </div>
                 <div class="px-6 pb-6 space-y-4">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-sm font-semibold text-zinc-700">Amount (GHS)</label>
+                        <label class="text-sm font-semibold text-zinc-700">Amount to credit (GHS)</label>
                         <input v-model.number="topUpAmount" type="number" min="1" step="0.01" placeholder="50.00"
                             class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 text-zinc-900 font-semibold" />
                     </div>
@@ -148,6 +148,20 @@
                             {{ amt }}
                         </button>
                     </div>
+                    <div v-if="topUpAmount > 0" class="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 space-y-1.5 text-sm">
+                        <div class="flex justify-between text-zinc-600">
+                            <span>Amount to credit</span>
+                            <span class="font-semibold tabular-nums">GHS {{ topUpAmount.toFixed(2) }}</span>
+                        </div>
+                        <div class="flex justify-between text-zinc-500">
+                            <span>Paystack fee (1.95% + GH₵0.50)</span>
+                            <span class="tabular-nums">GHS {{ topUpFee.toFixed(2) }}</span>
+                        </div>
+                        <div class="flex justify-between font-black text-zinc-900 border-t border-zinc-200 pt-1.5">
+                            <span>Total to pay</span>
+                            <span class="tabular-nums">GHS {{ topUpTotal.toFixed(2) }}</span>
+                        </div>
+                    </div>
                     <div class="flex gap-3 pt-2">
                         <button @click="showTopUp = false"
                             class="flex-1 border border-zinc-200 bg-white text-zinc-700 py-3 rounded-xl text-sm font-semibold hover:bg-zinc-50 transition-colors">
@@ -156,7 +170,7 @@
                         <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0 || isPaying"
                             class="flex-1 inline-flex items-center justify-center gap-2 bg-[#4F217A] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <ArrowPathIcon v-if="isPaying" class="w-[18px] h-[18px] animate-spin" />
-                            <span>{{ isPaying ? 'Starting…' : `Pay GHS ${(topUpAmount || 0).toFixed(2)}` }}</span>
+                            <span>{{ isPaying ? 'Starting…' : `Pay GHS ${topUpTotal.toFixed(2)}` }}</span>
                         </button>
                     </div>
                 </div>
@@ -218,12 +232,22 @@ const route = useRoute()
 const router = useRouter()
 const walletService = createCustomerWalletService(useApi())
 
+const PAYSTACK_FEE_RATE = 0.0195
+const PAYSTACK_FEE_FLAT = 0.50
+
 const balance = ref<number>(0)
 const transactions = ref<WalletTransaction[]>([])
 const loading = ref<boolean>(false)
 const showTopUp = ref<boolean>(false)
 const topUpAmount = ref<number>(50)
 const isPaying = ref<boolean>(false)
+
+const topUpFee = computed<number>(() => {
+    const amt = topUpAmount.value || 0
+    if (amt <= 0) return 0
+    return Math.round((amt * PAYSTACK_FEE_RATE + PAYSTACK_FEE_FLAT) * 100) / 100
+})
+const topUpTotal = computed<number>(() => (topUpAmount.value || 0) + topUpFee.value)
 const toast = ref<{ text: string; type: string } | null>(null)
 let topUpRefreshTimer: ReturnType<typeof setInterval> | null = null
 let topUpRefreshTicks = 0
