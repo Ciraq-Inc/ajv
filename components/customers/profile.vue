@@ -230,7 +230,7 @@
                 'bg-amber-50 text-amber-700 border border-amber-200': profStatus === 'pending',
                 'bg-red-50 text-red-700 border border-red-200': profStatus === 'rejected',
               }"
-            >{{ profStatus }}</span>
+            >{{ profStatus === 'approved' ? 'Verified' : profStatus === 'pending' ? 'Under review' : profStatus === 'rejected' ? 'Not approved' : 'Not submitted' }}</span>
             <p v-if="profStatus === 'approved'" class="text-xs text-zinc-500 mt-1 capitalize">
               {{ profApplication?.profession_type }} · {{ profApplication?.license_number }}
             </p>

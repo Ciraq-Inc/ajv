@@ -236,7 +236,12 @@
               <p class="mt-2 text-sm text-white/80">Explore this offer in store.</p>
             </div>
 
-            <button type="button" class="shopfront-ad-cta">
+            <button
+              v-if="ad.url || ad.link || ad.action_url"
+              type="button"
+              class="shopfront-ad-cta"
+              @click="openAdLink(String(ad.url ?? ad.link ?? ad.action_url))"
+            >
               Read More
               <span aria-hidden="true">&rarr;</span>
             </button>
@@ -259,13 +264,19 @@
             <input v-model="searchQuery" ref="searchInput" type="text"
               placeholder="Search products..."
               class="w-full pl-12 px-4 py-3 md:py-4 border border-gray-200 rounded-lg shopfront-input bg-gray-50 text-gray-700 shadow-sm transition-all duration-200 text-lg" />
-            <button v-if="searchQuery" type="button" @click="clearSearch"
+            <button v-if="searchQuery && !searchLoading" type="button" @click="clearSearch"
               class="absolute right-4 top-3 md:top-4 text-gray-500 hover:text-gray-700 cursor-pointer p-1 rounded-full hover:bg-gray-100">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+            <div v-if="searchLoading" class="absolute right-4 top-3 md:top-4 p-1">
+              <svg class="animate-spin h-6 w-6 shopfront-text" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            </div>
           </div>
           <div class="mt-2 flex justify-end">
             <button type="button" @click="submitRequestSearch"
@@ -406,10 +417,12 @@
         <template v-else>
           <ProductsTable v-if="viewMode === 'table'" :products="displayProducts" :search-query="searchQuery"
             :hide-prices="pharmacyStore.pharmacyData?.hide_prices ?? false" class="hidden lg:flex"
+            :class="searchLoading ? 'opacity-50 pointer-events-none' : ''"
             @item-added-to-cart="onItemAddedToCart" />
 
           <ProductsGrid v-else :products="displayProducts" :search-query="searchQuery"
             :hide-prices="pharmacyStore.pharmacyData?.hide_prices ?? false"
+            :class="searchLoading ? 'opacity-50 pointer-events-none' : ''"
             @item-added-to-cart="onItemAddedToCart"
             @request-product="onRequestProduct" />
 
@@ -656,6 +669,7 @@ definePageMeta({
 
 // State Variables
 const searchQuery = ref<string>("");
+const searchLoading = ref<boolean>(false);
 const isLoadingMoreProducts = ref<boolean>(false);
 const viewMode = ref<string>("table");
 const cartSidebar = ref<{ toggleCart: () => void } | null>(null);
@@ -978,6 +992,10 @@ const handleLoginSuccess = async (): Promise<void> => {
   }
 };
 
+const openAdLink = (url: string): void => {
+  if (url) window.open(url, '_blank', 'noopener');
+};
+
 const onItemAddedToCart = (product: Record<string, unknown>): void => {
   if (cartToastTimer !== null) clearTimeout(cartToastTimer);
   cartToast.value = { show: true, name: String(product['brandName'] ?? product['name'] ?? 'Item') };
@@ -1015,8 +1033,13 @@ onUnmounted(() => {
 // Debounced search — re-fetch from page 1 on query change
 watch(searchQuery, (newQuery) => {
   if (searchDebounceTimer !== null) clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(() => {
-    void pharmacyStore.fetchProducts({ page: 1, limit: pharmacyStore.productPagination.pageSize, search: newQuery.trim() });
+  searchLoading.value = true;
+  searchDebounceTimer = setTimeout(async () => {
+    try {
+      await pharmacyStore.fetchProducts({ page: 1, limit: pharmacyStore.productPagination.pageSize, search: newQuery.trim() });
+    } finally {
+      searchLoading.value = false;
+    }
   }, 400);
 });
 
@@ -1159,7 +1182,8 @@ watch(
 }
 
 .shopfront-input:focus {
-  outline: none;
+  outline: 2px solid var(--shopfront-accent);
+  outline-offset: 2px;
   box-shadow: 0 0 0 2px var(--shopfront-accent);
   border-color: var(--shopfront-accent);
 }

@@ -1,79 +1,315 @@
 <template>
-  <div class="platform-settings-page">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Platform Settings</h1>
-        <p class="page-subtitle">Configure request flow, payment keys, delivery, SMS, and system behavior</p>
-      </div>
-      <div class="header-actions">
-        <button @click="fetchSettings" class="btn-secondary" :disabled="loading">
-          Refresh
-        </button>
-        <button @click="saveAll" class="btn-primary" :disabled="loading || !hasChanges">
-          {{ loading ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </div>
-    </div>
+  <div class="min-h-screen bg-gray-50">
 
-    <div class="settings-sections">
-      <div
-        v-for="section in sections"
-        :key="section.id"
-        class="setting-section"
-      >
-        <div class="section-header">
-          <div class="section-badge">{{ section.short }}</div>
-          <div>
-            <h3>{{ section.title }}</h3>
-            <p>{{ section.description }}</p>
-          </div>
+    <!-- Page Header -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-20">
+      <div class="max-w-screen-xl mx-auto px-6 py-4 flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 leading-tight">Platform Settings</h1>
+          <p class="text-sm text-gray-500 mt-0.5">Live configuration — changes affect the production platform within minutes</p>
         </div>
-        <div class="settings-grid">
-          <div
-            v-for="setting in section.settings"
-            :key="setting.key"
-            class="setting-item"
+        <div class="flex items-center gap-2 shrink-0 pt-0.5">
+          <!-- Refresh: demoted to icon-only -->
+          <button
+            @click="fetchSettings"
+            :disabled="loading"
+            aria-label="Refresh settings"
+            class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            <label>{{ setting.label }}</label>
+            <svg class="w-4 h-4" :class="{ 'animate-spin': loading && Object.keys(editedSettings).length > 0 }" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
 
-            <select
-              v-if="setting.type === 'boolean'"
-              v-model="editedSettings[setting.key]"
-              class="form-control"
-            >
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
+          <!-- Save button with change count badge -->
+          <button
+            @click="saveAll"
+            :disabled="loading || !hasChanges"
+            class="relative inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-h-[36px]"
+          >
+            <!-- Saving spinner -->
+            <svg v-if="loading" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            <span>{{ loading ? 'Saving…' : 'Save Changes' }}</span>
+            <!-- Change count pill -->
+            <span
+              v-if="!loading && changeCount > 0"
+              class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-white text-blue-700 text-xs font-bold leading-none"
+              aria-label="{{ changeCount }} pending changes"
+            >{{ changeCount }}</span>
+          </button>
 
-            <select
-              v-else-if="setting.type === 'select'"
-              v-model="editedSettings[setting.key]"
-              class="form-control"
-            >
-              <option v-for="opt in setting.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
-
-            <input
-              v-else
-              v-model="editedSettings[setting.key]"
-              :type="setting.inputType ?? 'text'"
-              class="form-control"
-              :step="setting.step || '1'"
-            />
-
-            <span class="setting-help">{{ setting.help }}</span>
-            <span class="setting-original" v-if="editedSettings[setting.key] !== originalSettings[setting.key]">
-              Was: {{ originalSettings[setting.key] }}
+          <!-- Inline save success indicator -->
+          <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 scale-90"
+            leave-active-class="transition-all duration-300 ease-in"
+            leave-to-class="opacity-0 scale-90"
+          >
+            <span v-if="saveSuccess" class="flex items-center gap-1 text-green-600 text-sm font-medium" aria-live="polite">
+              <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+              Saved
             </span>
-          </div>
+          </Transition>
         </div>
       </div>
     </div>
 
-    <div v-if="message" class="message-toast" :class="{ 'message-error': message.type === 'error' }">
-      {{ message.text }}
+    <!-- Unsaved changes banner -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="hasChanges && !loading"
+        class="bg-amber-50 border-b border-amber-200"
+        role="alert"
+        aria-live="polite"
+      >
+        <div class="max-w-screen-xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2 text-amber-800 text-sm">
+            <svg class="w-4 h-4 shrink-0 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <span><strong class="font-semibold">{{ changeCount }} unsaved {{ changeCount === 1 ? 'change' : 'changes' }}</strong> — these won't take effect until you save</span>
+          </div>
+          <button
+            @click="saveAll"
+            class="shrink-0 text-xs font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          >
+            Save now
+          </button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Main layout: sidebar nav + content -->
+    <div class="max-w-screen-xl mx-auto px-6 py-8">
+      <div class="lg:grid lg:grid-cols-[220px_1fr] lg:gap-8">
+
+        <!-- Sidebar nav (desktop only) -->
+        <aside class="hidden lg:block">
+          <nav class="sticky top-[120px] space-y-1" aria-label="Settings sections">
+            <a
+              v-for="section in sections"
+              :key="section.id"
+              :href="`#section-${section.id}`"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 group"
+            >
+              <span class="section-chip text-xs font-bold tracking-wide px-2 py-0.5 rounded-md"
+                :class="sectionChipClass(section.short)">
+                {{ section.short }}
+              </span>
+              <span class="truncate">{{ section.title }}</span>
+              <!-- Pending change dot for this section -->
+              <span
+                v-if="sectionChangeCount(section) > 0"
+                class="ml-auto w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                :title="`${sectionChangeCount(section)} pending change(s)`"
+                aria-hidden="true"
+              ></span>
+            </a>
+          </nav>
+        </aside>
+
+        <!-- Settings content area -->
+        <main class="space-y-6" role="main">
+
+          <!-- Skeleton loading state -->
+          <template v-if="loading && Object.keys(editedSettings).length === 0">
+            <div v-for="i in 4" :key="i" class="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
+              <div class="px-6 py-5 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-6 bg-gray-200 rounded-md"></div>
+                <div class="space-y-1.5">
+                  <div class="w-36 h-4 bg-gray-200 rounded"></div>
+                  <div class="w-64 h-3 bg-gray-100 rounded"></div>
+                </div>
+              </div>
+              <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div v-for="j in 3" :key="j" class="space-y-2">
+                  <div class="w-32 h-3 bg-gray-100 rounded"></div>
+                  <div class="w-full h-10 bg-gray-100 rounded-lg"></div>
+                  <div class="w-48 h-2.5 bg-gray-100 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Loaded: sections -->
+          <template v-else>
+            <section
+              v-for="section in sections"
+              :key="section.id"
+              :id="`section-${section.id}`"
+              class="bg-white rounded-xl border border-gray-200 overflow-hidden scroll-mt-32"
+            >
+              <!-- Section header -->
+              <div class="px-6 py-5 bg-gray-50 border-b border-gray-100 flex items-start gap-3">
+                <span
+                  class="mt-0.5 inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold tracking-widest uppercase"
+                  :class="sectionChipClass(section.short)"
+                >{{ section.short }}</span>
+                <div class="min-w-0">
+                  <h2 class="text-base font-semibold text-gray-900 leading-tight">{{ section.title }}</h2>
+                  <p class="mt-0.5 text-sm text-gray-500 leading-snug">{{ section.description }}</p>
+                </div>
+                <!-- Section change count badge -->
+                <span
+                  v-if="sectionChangeCount(section) > 0"
+                  class="ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold"
+                  aria-live="polite"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+                  {{ sectionChangeCount(section) }} changed
+                </span>
+              </div>
+
+              <!-- SMS section: grouped sub-providers -->
+              <template v-if="section.id === 'sms'">
+                <div class="p-6 space-y-6">
+                  <!-- Active provider stays first -->
+                  <div>
+                    <SettingField
+                      v-for="setting in smsProviderSetting"
+                      :key="setting.key"
+                      :setting="setting"
+                      :edited-settings="editedSettings"
+                      :original-settings="originalSettings"
+                      :reveal-map="revealMap"
+                      @revert="revertField"
+                      @toggle-reveal="toggleReveal"
+                      @update="(key, val) => { editedSettings[key] = val }"
+                    />
+                  </div>
+
+                  <!-- Nalo sub-group -->
+                  <div class="rounded-lg border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                      <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Nalo Solutions</span>
+                      <span
+                        v-if="editedSettings['sms_active_provider'] === 'nalo'"
+                        class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium"
+                      >Active</span>
+                      <span v-else class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-50 border border-gray-200 text-gray-400 text-xs">Fallback</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <SettingField
+                        v-for="setting in smsNaloSettings"
+                        :key="setting.key"
+                        :setting="setting"
+                        :edited-settings="editedSettings"
+                        :original-settings="originalSettings"
+                        :reveal-map="revealMap"
+                        @revert="revertField"
+                        @toggle-reveal="toggleReveal"
+                        @update="(key, val) => { editedSettings[key] = val }"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- MNotify sub-group -->
+                  <div class="rounded-lg border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                      <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">MNotify</span>
+                      <span
+                        v-if="editedSettings['sms_active_provider'] === 'mnotify'"
+                        class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium"
+                      >Active</span>
+                      <span v-else class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-50 border border-gray-200 text-gray-400 text-xs">Fallback</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <SettingField
+                        v-for="setting in smsMnotifySettings"
+                        :key="setting.key"
+                        :setting="setting"
+                        :edited-settings="editedSettings"
+                        :original-settings="originalSettings"
+                        :reveal-map="revealMap"
+                        @revert="revertField"
+                        @toggle-reveal="toggleReveal"
+                        @update="(key, val) => { editedSettings[key] = val }"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Twilio sub-group -->
+                  <div class="rounded-lg border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                      <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Twilio</span>
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-600 text-xs font-medium">International</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <SettingField
+                        v-for="setting in smsTwilioSettings"
+                        :key="setting.key"
+                        :setting="setting"
+                        :edited-settings="editedSettings"
+                        :original-settings="originalSettings"
+                        :reveal-map="revealMap"
+                        @revert="revertField"
+                        @toggle-reveal="toggleReveal"
+                        @update="(key, val) => { editedSettings[key] = val }"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- All other sections: regular grid -->
+              <template v-else>
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <SettingField
+                    v-for="setting in section.settings"
+                    :key="setting.key"
+                    :setting="setting"
+                    :edited-settings="editedSettings"
+                    :original-settings="originalSettings"
+                    :reveal-map="revealMap"
+                    @revert="revertField"
+                    @toggle-reveal="toggleReveal"
+                    @update="(key, val) => { editedSettings[key] = val }"
+                  />
+                </div>
+              </template>
+            </section>
+          </template>
+
+        </main>
+      </div>
     </div>
+
+    <!-- Toast notification -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-2"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-to-class="opacity-0 translate-y-2"
+    >
+      <div
+        v-if="message"
+        class="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold max-w-sm"
+        :class="message.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'"
+        role="status"
+        aria-live="polite"
+      >
+        <svg v-if="message.type === 'error'" class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <svg v-else class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+        {{ message.text }}
+      </div>
+    </Transition>
+
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -88,6 +324,18 @@ const loading = ref<boolean>(false)
 const message = ref<{ text: string; type: string } | null>(null)
 const originalSettings = reactive<Record<string, string>>({})
 const editedSettings = reactive<Record<string, string>>({})
+
+// UI-only state: which sensitive fields are revealed, and post-save success flash
+const revealMap = reactive<Record<string, boolean>>({})
+const saveSuccess = ref<boolean>(false)
+
+const toggleReveal = (key: string): void => {
+  revealMap[key] = !revealMap[key]
+}
+
+const revertField = (key: string): void => {
+  editedSettings[key] = originalSettings[key]
+}
 
 interface SettingOption {
   value: string;
@@ -392,6 +640,34 @@ const hasChanges = computed<boolean>(() =>
   allSettings.value.some((setting) => editedSettings[setting.key] !== originalSettings[setting.key])
 )
 
+// Derived: count of changed fields (UI only — never modifies business logic)
+const changeCount = computed<number>(() =>
+  allSettings.value.filter((s) => editedSettings[s.key] !== originalSettings[s.key]).length
+)
+
+// SMS sub-groups for grouped template rendering
+const smsSection = computed(() => sections.find((s) => s.id === 'sms')!)
+const smsProviderSetting = computed(() => smsSection.value.settings.filter((s) => s.key === 'sms_active_provider'))
+const smsNaloSettings = computed(() => smsSection.value.settings.filter((s) => s.key.startsWith('sms_nalo_')))
+const smsMnotifySettings = computed(() => smsSection.value.settings.filter((s) => s.key.startsWith('sms_mnotify_')))
+const smsTwilioSettings = computed(() => smsSection.value.settings.filter((s) => s.key.startsWith('twilio_')))
+
+// Per-section change count for sidebar dots
+const sectionChangeCount = (section: SectionDefinition): number =>
+  section.settings.filter((s) => editedSettings[s.key] !== originalSettings[s.key]).length
+
+// Section chip color by short code
+const sectionChipClass = (short: string): string => {
+  const map: Record<string, string> = {
+    OPS: 'bg-blue-50 text-blue-700',
+    PAY: 'bg-green-50 text-green-700',
+    LOG: 'bg-purple-50 text-purple-700',
+    SMS: 'bg-orange-50 text-orange-700',
+    SYS: 'bg-gray-100 text-gray-600',
+  }
+  return map[short] ?? 'bg-gray-100 text-gray-600'
+}
+
 const showMessage = (text: string, type: string = 'success'): void => {
   message.value = { text, type }
   setTimeout(() => {
@@ -452,6 +728,10 @@ const saveAll = async (): Promise<void> => {
     }
 
     showMessage(`${changedSettings.length} setting(s) saved`)
+
+    // Flash the inline save-success indicator
+    saveSuccess.value = true
+    setTimeout(() => { saveSuccess.value = false }, 2500)
   } catch (error) {
     showMessage(error instanceof Error ? error.message : 'Failed to save settings', 'error')
   } finally {
@@ -465,182 +745,40 @@ definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
 </script>
 
 <style scoped>
-.platform-settings-page {
-  max-width: 1080px;
-  margin: 0 auto;
+/* Smooth scroll for sidebar jump links */
+html {
+  scroll-behavior: smooth;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 0.25rem 0;
-}
-
-.page-subtitle {
-  color: #6b7280;
-  margin: 0;
-  font-size: 0.925rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.setting-section {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 1rem;
-  overflow: hidden;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 1rem 1.25rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.section-badge {
-  min-width: 44px;
-  height: 32px;
-  border-radius: 8px;
-  background: #e5edff;
-  color: #1d4ed8;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 1.05rem;
-  color: #111827;
-}
-
-.section-header p {
-  margin: 0.2rem 0 0;
-  color: #6b7280;
-  font-size: 0.85rem;
-}
-
-.settings-grid {
-  padding: 1rem 1.25rem 1.25rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-.setting-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.setting-item label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #111827;
-}
-
-.setting-help {
-  font-size: 0.75rem;
-  color: #6b7280;
-  line-height: 1.3;
-}
-
-.setting-original {
-  font-size: 0.72rem;
-  color: #d97706;
-}
-
+/* form-control compatibility shim — Tailwind classes handle most styling,
+   this ensures any external .form-control usage still gets a focus ring */
 .form-control {
-  padding: 0.625rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  display: block;
   width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #111827;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.btn-primary,
-.btn-secondary {
-  padding: 0.58rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
-}
-
-.btn-primary:disabled,
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #fff;
-  color: #374151;
-  border-color: #d1d5db;
-}
-
-.message-toast {
-  position: fixed;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  background: #16a34a;
-  color: #fff;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  z-index: 1200;
-}
-
-.message-toast.message-error {
-  background: #dc2626;
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .header-actions {
-    width: 100%;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    flex: 1;
+/* Reduced motion: strip all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 </style>

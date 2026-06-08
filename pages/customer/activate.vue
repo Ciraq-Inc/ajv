@@ -21,7 +21,17 @@
               placeholder="At least 8 characters"
               class="form-input"
               :disabled="status === 'submitting'"
+              @input="passwordTouched = true"
             />
+            <ul v-if="passwordTouched" class="mt-2 space-y-1">
+              <li class="flex items-center gap-1.5 text-xs" :class="password.length >= 8 ? 'text-green-600' : 'text-zinc-400'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path v-if="password.length >= 8" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  <circle v-else cx="12" cy="12" r="9" stroke-width="2" />
+                </svg>
+                At least 8 characters
+              </li>
+            </ul>
           </div>
           <div class="form-field">
             <label for="confirm">Confirm password</label>
@@ -45,8 +55,9 @@
 
       <template v-else-if="status === 'done'">
         <div class="activate-success">
-          <p>Your account is ready. You can now log in and track your order.</p>
-          <NuxtLink to="/customer" class="activate-btn">Go to my orders</NuxtLink>
+          <p class="activate-success-headline">Account activated</p>
+          <p>Your account is ready. Sign in to view your orders and track your medications.</p>
+          <NuxtLink to="/" class="activate-btn">Sign in to your account</NuxtLink>
         </div>
       </template>
 
@@ -72,6 +83,7 @@ const password = ref('')
 const confirm = ref('')
 const error = ref('')
 const status = ref<'idle' | 'submitting' | 'done' | 'invalid'>('idle')
+const passwordTouched = ref(false)
 
 onMounted(() => {
   const t = String(route.query.token ?? '')
@@ -174,10 +186,11 @@ const submit = async () => {
   border-radius: 0.5rem;
   padding: 0.6rem 0.75rem;
   font-size: 0.9rem;
-  outline: none;
 }
 
 .form-input:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
   border-color: #7c3aed;
   box-shadow: 0 0 0 2px rgba(124,58,237,.15);
 }
@@ -215,6 +228,13 @@ const submit = async () => {
 
 .activate-success {
   text-align: center;
+}
+
+.activate-success-headline {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 0.4rem;
 }
 
 .activate-success p {

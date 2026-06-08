@@ -62,6 +62,10 @@
               <BuildingOffice2Icon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Dispatch Companies</span>
             </NuxtLink>
+            <NuxtLink to="/admin/fulfillment/riders" class="nav-item nav-child-item" active-class="active">
+              <UserGroupIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
+              <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Ind. Riders</span>
+            </NuxtLink>
             <NuxtLink to="/admin/fulfillment/pharmacy-ledger" class="nav-item nav-child-item" active-class="active">
               <BanknotesIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Ledger</span>
@@ -385,6 +389,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/masterlist')) return 'Master Products'
   if (path.includes('/admin/fulfillment/requests')) return 'Order Requests'
   if (path.includes('/admin/fulfillment/deliveries')) return 'Deliveries'
+  if (path.includes('/admin/fulfillment/riders')) return 'Independent Riders'
   if (path.includes('/admin/fulfillment/dispatch-companies')) return 'Dispatch Companies'
   if (path.includes('/admin/fulfillment/pharmacy-ledger')) return 'Pharmacy Ledger'
   if (path.includes('/admin/fulfillment')) return 'Fulfillment'

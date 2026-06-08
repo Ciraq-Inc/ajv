@@ -19,6 +19,9 @@
         <button @click="goTo('requests')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'requests' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
           <component :is="activeNav === 'requests' ? DocumentSolid : DocumentOutline" class="w-6 h-6" />
           My Requests
+          <span v-if="pendingRequestsCount > 0" class="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+            {{ pendingRequestsCount > 9 ? '9+' : pendingRequestsCount }}
+          </span>
         </button>
         <button @click="goTo('wallet')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'wallet' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
           <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-6 h-6" />
@@ -57,7 +60,7 @@
     <main id="main-content" tabindex="-1" class="lg:ml-64 min-h-screen bg-gradient-to-br from-[#e8dff5] to-[#ddd5ef] pb-28 lg:pb-0">
       <!-- TopAppBar: hidden on concierge new-request and list views -->
       <header
-        v-if="activeNav !== 'new' && activeNav !== 'requests'"
+        v-if="activeNav !== 'new' && activeNav !== 'requests' && activeNav !== 'wallet' && activeNav !== 'orders'"
         class="sticky top-0 z-40 bg-[#f4f4f5]/92 backdrop-blur-md px-4 lg:px-8 flex justify-between items-center border-b border-zinc-200"
         :class="activeNav === 'new' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
       >
@@ -114,35 +117,44 @@
       </header>
 
       <!-- Slot Area -->
-      <div :class="activeNav === 'requests' ? '' : 'p-4 lg:p-8'">
+      <div :class="(activeNav === 'requests' || activeNav === 'wallet') ? '' : 'p-4 lg:p-8'">
         <slot />
       </div>
 
       <!-- Mobile Bottom Nav -->
-      <nav class="lg:hidden fixed bottom-3 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-md -translate-x-1/2 items-center justify-around rounded-xl border border-[#e8dff0] bg-white/92 px-2 py-2 shadow-[0_20px_45px_-25px_rgba(53,0,98,0.4)] backdrop-blur-md pb-safe">
-        <button @click="goTo('new')" :aria-label="'Home'" :aria-current="activeNav === 'new' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'new' ? 'text-[#4F217A]' : 'text-zinc-500'">
-          <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'new' ? 'bg-[#efdbff]' : ''">
-            <component :is="activeNav === 'new' ? HomeSolid : HomeOutline" class="w-6 h-6" />
+      <nav class="lg:hidden fixed bottom-3 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-md -translate-x-1/2 items-center justify-around rounded-2xl border border-white/50 bg-white/30 px-1 py-1.5 shadow-[0_8px_32px_-8px_rgba(53,0,98,0.22)] backdrop-blur-md pb-safe">
+        <button @click="goTo('new')" :aria-label="'Home'" :aria-current="activeNav === 'new' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'new' ? 'text-[#4F217A]' : 'text-zinc-400'">
+          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'new' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
+            <component :is="activeNav === 'new' ? HomeSolid : HomeOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'new' ? 'scale-110' : ''" />
           </div>
-          <span class="text-[10px] font-semibold">Home</span>
+          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'new' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Home</span>
         </button>
-        <button @click="goTo('requests')" :aria-label="'My requests'" :aria-current="activeNav === 'requests' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'requests' ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'requests' ? 'bg-[#efdbff]' : ''">
-             <component :is="activeNav === 'requests' ? DocumentSolid : DocumentOutline" class="w-6 h-6" />
-           </div>
-           <span class="text-[10px] font-semibold">Requests</span>
+        <button @click="goTo('requests')" :aria-label="'My requests'" :aria-current="activeNav === 'requests' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'requests' ? 'text-[#4F217A]' : 'text-zinc-400'">
+          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'requests' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
+            <component :is="activeNav === 'requests' ? DocumentSolid : DocumentOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'requests' ? 'scale-110' : ''" />
+            <span v-if="pendingRequestsCount > 0" class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 leading-none pointer-events-none ring-2 ring-white">
+              {{ pendingRequestsCount > 9 ? '9+' : pendingRequestsCount }}
+            </span>
+          </div>
+          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'requests' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Requests</span>
         </button>
-        <button @click="goTo('wallet')" :aria-label="'Wallet'" :aria-current="activeNav === 'wallet' ? 'page' : undefined" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="activeNav === 'wallet' ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="activeNav === 'wallet' ? 'bg-[#efdbff]' : ''">
-             <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-6 h-6" />
-           </div>
-           <span class="text-[10px] font-semibold">Wallet</span>
+        <button @click="goTo('wallet')" :aria-label="'Wallet'" :aria-current="activeNav === 'wallet' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'wallet' ? 'text-[#4F217A]' : 'text-zinc-400'">
+          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'wallet' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
+            <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'wallet' ? 'scale-110' : ''" />
+          </div>
+          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'wallet' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Wallet</span>
         </button>
-        <button @click="showMenu = true" :aria-label="'More'" class="flex flex-col items-center gap-1 p-2 min-h-[44px] min-w-[44px]" :class="['orders','profile','companies','stock'].includes(activeNav) ? 'text-[#4F217A]' : 'text-zinc-500'">
-           <div class="w-12 h-10 rounded-xl flex items-center justify-center" :class="['orders','profile','companies','stock'].includes(activeNav) ? 'bg-[#efdbff]' : ''">
-             <component :is="['orders','profile','companies','stock'].includes(activeNav) ? MoreSolid : MoreOutline" class="w-6 h-6" />
-           </div>
-           <span class="text-[10px] font-semibold">More</span>
+        <button @click="goTo('profile')" :aria-label="'Profile'" :aria-current="activeNav === 'profile' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'profile' ? 'text-[#4F217A]' : 'text-zinc-400'">
+          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'profile' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
+            <component :is="activeNav === 'profile' ? UserSolid : UserOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'profile' ? 'scale-110' : ''" />
+          </div>
+          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'profile' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Profile</span>
+        </button>
+        <button @click="toggleMenu()" :aria-label="'More options'" :aria-expanded="showMenu" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="isMoreActive ? 'text-[#4F217A]' : 'text-zinc-400'">
+          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="isMoreActive ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
+            <component :is="isMoreActive ? MoreSolid : MoreOutline" class="w-5 h-5 transition-transform duration-200" :class="isMoreActive ? 'scale-110' : ''" />
+          </div>
+          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="isMoreActive ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">More</span>
         </button>
       </nav>
     </main>
@@ -245,8 +257,9 @@ import {
 
 const userStore = useUserStore()
 const route = useRoute()
-const { isActiveRequestStatus } = useOrderStatus()
+const { isActiveRequestStatus, getRequestStage } = useOrderStatus()
 const notificationCount = ref(0)
+const pendingRequestsCount = ref(0)
 const showMenu = ref(false)
 const showLogoutConfirm = ref(false)
 const hasMounted = ref(false)
@@ -269,6 +282,7 @@ const displayUserFirstName = computed(() => hasMounted.value ? userFirstName.val
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
 const activeNav = computed(() => route.query.tab || 'new')
+const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock'].includes(activeNav.value))
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'new' && route.query.tab !== 'requests')
 const isProfessionalApproved = computed(() => userStore.masterCustomer?.professional_status === 'approved')
 const greetingLabel = computed(() => {
@@ -379,20 +393,26 @@ const loadNotificationCount = async () => {
       headers: { Authorization: `Bearer ${userStore.customerAuthToken}` }
     })
     const json = await response.json()
-    notificationCount.value = (json.data || []).filter((r) => isActiveRequestStatus(r.status)).length
+    const requests = json.data || []
+    notificationCount.value = requests.filter((r) => isActiveRequestStatus(r.status)).length
+    pendingRequestsCount.value = requests.filter((r) => getRequestStage(r.status) === 'awaiting_payment').length
   } catch (_) {}
 }
+
+let countInterval = null
 
 onMounted(() => {
   hasMounted.value = true
   updateViewportWidth()
   window.addEventListener('resize', updateViewportWidth)
   loadNotificationCount()
+  countInterval = setInterval(loadNotificationCount, 60_000)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateViewportWidth)
   if (toastTimer) clearTimeout(toastTimer)
+  if (countInterval) clearInterval(countInterval)
 })
 </script>
 

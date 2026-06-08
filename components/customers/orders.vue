@@ -1,261 +1,335 @@
 <template>
-  <div class="w-full">
-    <!-- Header -->
-    <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
-                <ClockIcon class="w-[18px] h-[18px]" />
-            </div>
-            <div>
-                <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Order History</h1>
-                <p class="text-xs text-zinc-500 font-medium mt-0.5">Your complete order and request fulfillment history</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 shadow-sm hidden sm:flex">
-            <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-500">Total</span>
-            <strong class="text-sm font-black text-zinc-900 tabular-nums">{{ mergedItems.length }}</strong>
-        </div>
-    </header>
+  <div class="w-full pb-12">
 
-    <!-- Status filter -->
-    <div class="px-5 mb-5 overflow-x-auto no-scrollbar">
-        <div class="inline-flex gap-2 p-1 bg-zinc-100 border border-zinc-200 rounded-lg">
-            <button
-                @click="selectedStatus = ''"
-                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                :class="selectedStatus === '' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
-            >
-                All
-            </button>
-            <button
-                @click="selectedStatus = 'active'"
-                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                :class="selectedStatus === 'active' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
-            >
-                Active
-            </button>
-            <button
-                @click="selectedStatus = 'in_transit'"
-                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                :class="selectedStatus === 'in_transit' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
-            >
-                In Transit
-            </button>
-            <button
-                @click="selectedStatus = 'completed'"
-                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                :class="selectedStatus === 'completed' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
-            >
-                Completed
-            </button>
-            <button
-                @click="selectedStatus = 'cancelled'"
-                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                :class="selectedStatus === 'cancelled' ? 'bg-white text-[#4F217A] font-bold shadow-sm ring-1 ring-zinc-200/50' : 'text-zinc-500 font-semibold hover:text-zinc-700'"
-            >
-                Cancelled
-            </button>
-        </div>
+    <!-- ── Header ── -->
+    <div class="flex items-center justify-between px-5 pt-4 pb-4">
+      <h1 class="text-xl font-black text-[#350062] tracking-tight">Your Orders</h1>
+      <span v-if="mergedItems.length > 0"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#4F217A]/[0.07] text-[#4F217A] text-[11px] font-black tabular-nums">
+        {{ mergedItems.length }}
+      </span>
     </div>
 
-    <!-- Loading -->
-    <div v-if="isLoading" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-zinc-50 rounded-xl">
-        <ArrowPathIcon class="w-7 h-7 text-zinc-400 animate-spin mb-3" />
-        <p class="text-sm font-medium text-zinc-500">Loading your history...</p>
+    <!-- ── Status filter chips ── -->
+    <div class="px-5 mb-4 overflow-x-auto no-scrollbar">
+      <div class="inline-flex gap-2">
+        <button @click="selectedStatus = ''"
+          class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors"
+          :class="selectedStatus === '' ? 'text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+          :style="selectedStatus === '' ? 'background: #4F217A;' : ''">
+          All
+        </button>
+        <button @click="selectedStatus = 'active'"
+          class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors"
+          :class="selectedStatus === 'active' ? 'text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+          :style="selectedStatus === 'active' ? 'background: #4F217A;' : ''">
+          Active
+        </button>
+        <button @click="selectedStatus = 'in_transit'"
+          class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors"
+          :class="selectedStatus === 'in_transit' ? 'text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+          :style="selectedStatus === 'in_transit' ? 'background: #4F217A;' : ''">
+          In Transit
+        </button>
+        <button @click="selectedStatus = 'completed'"
+          class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors"
+          :class="selectedStatus === 'completed' ? 'text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+          :style="selectedStatus === 'completed' ? 'background: #4F217A;' : ''">
+          Completed
+        </button>
+        <button @click="selectedStatus = 'cancelled'"
+          class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors"
+          :class="selectedStatus === 'cancelled' ? 'text-white' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'"
+          :style="selectedStatus === 'cancelled' ? 'background: #4F217A;' : ''">
+          Cancelled
+        </button>
+      </div>
     </div>
 
-    <!-- Error with retry -->
-    <div v-else-if="hasLoadError" class="flex flex-col items-center justify-center py-16 mx-5 border border-red-200 bg-red-50 rounded-xl">
-        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 ring-1 ring-red-100">
+    <!-- ── Skeleton loading ── -->
+    <div v-if="isLoading" class="px-5 space-y-3" aria-label="Fetching your orders…" aria-busy="true">
+      <div v-for="n in 4" :key="n"
+        class="flex items-center gap-4 rounded-xl border border-zinc-100 bg-white px-4 py-4">
+        <div class="h-10 w-10 rounded-full bg-zinc-200 animate-pulse shrink-0"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-3 rounded bg-zinc-200 animate-pulse" :style="{ width: n % 2 === 0 ? '50%' : '42%' }"></div>
+          <div class="h-2.5 rounded bg-zinc-200 animate-pulse" :style="{ width: n % 3 === 0 ? '30%' : '38%' }"></div>
+        </div>
+        <div class="shrink-0 space-y-1.5 flex flex-col items-end">
+          <div class="h-3 w-14 rounded bg-zinc-200 animate-pulse"></div>
+          <div class="h-4 w-12 rounded-full bg-zinc-200 animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Error + retry ── -->
+    <div v-else-if="hasLoadError" class="px-5">
+      <div class="rounded-2xl bg-white ring-1 ring-zinc-100 shadow-sm px-6 py-10 flex flex-col items-center text-center">
+        <div class="w-14 h-14 bg-[#4F217A]/[0.06] rounded-2xl flex items-center justify-center mb-4">
           <ExclamationCircleIcon class="w-6 h-6 text-red-500" />
         </div>
-        <p class="text-base font-bold text-zinc-900 mb-1 text-center">Couldn't load your history</p>
-        <p class="text-sm font-medium text-zinc-600 text-center mb-4 max-w-xs">Check your connection and try again.</p>
-        <button @click="loadOrders()" class="inline-flex items-center gap-2 bg-[#4F217A] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#3d1861] transition-colors">
-          <ArrowPathIcon class="w-[18px] h-[18px]" />
-          Retry
+        <p class="text-base font-bold text-zinc-800 mb-1">We couldn't load your orders</p>
+        <p class="text-sm text-zinc-400 mb-6 max-w-[22ch] leading-relaxed">Sorry about that — everything is still saved on our end.</p>
+        <button @click="loadOrders()"
+          class="px-5 py-2.5 text-white rounded-xl font-bold text-sm inline-flex items-center gap-2 transition-opacity active:opacity-80"
+          style="background: #4F217A;">
+          <ArrowPathIcon class="w-4 h-4" />
+          Try again
         </button>
+      </div>
     </div>
 
-    <!-- ─── Merged Timeline ─── -->
-    <div v-else>
-      <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-16 mx-5 border border-zinc-200 bg-white rounded-xl shadow-sm">
-        <div class="max-w-[48px] max-h-[48px] w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100 mx-auto">
-          <ClipboardDocumentListIcon class="w-6 h-6 text-zinc-300" />
+    <!-- ── List ── -->
+    <div v-else class="px-5 max-w-5xl mx-auto">
+
+      <!-- Empty -->
+      <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+        <div class="w-14 h-14 bg-[#4F217A]/[0.06] rounded-2xl flex items-center justify-center mb-4">
+          <ClipboardDocumentListIcon class="w-6 h-6 text-[#4F217A]/40" />
         </div>
-        <p class="text-base font-bold text-zinc-900 mb-1 text-center">No history yet</p>
-        <p class="text-sm font-medium text-zinc-500 text-center">Your orders and requests will appear here</p>
+        <p class="text-base font-bold text-zinc-800 mb-1">
+          {{ selectedStatus ? 'Nothing in this category' : 'No orders yet' }}
+        </p>
+        <p class="text-sm text-zinc-400 max-w-[22ch] leading-relaxed">
+          {{ selectedStatus ? 'Try a different filter above.' : 'Your pharmacy purchases and medication requests will appear here.' }}
+        </p>
       </div>
 
-      <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
-        <article v-for="item in filteredItems" :key="item._key"
-          class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
+      <!-- Rows grouped in one card -->
+      <div v-else class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-200 shadow-sm mb-4">
+        <article
+          v-for="item in filteredItems"
+          :key="item._key"
+          class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group border-b border-zinc-50 last:border-b-0"
           @click="item._type === 'store' ? viewOrder(item) : viewRequestOrder(item)"
         >
-          <div class="flex items-center gap-4 min-w-0">
-            <!-- Colored Icon Box based on status -->
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-              :class="item.status === 'completed' || item.status === 'delivered' || item.status === 'picked_up' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : (item.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : (item.status === 'processing' || item.status === 'shipped' || item.status === 'out_for_delivery' || item.status === 'ready_for_pickup' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100'))">
-              <component :is="item._type === 'store' ? ShoppingBagIcon : ArchiveBoxIcon" class="w-5 h-5" />
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2 mb-0.5">
-                <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight truncate">{{ item._displayId }}</h4>
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.08em] flex-shrink-0"
-                  :class="item._type === 'store' ? 'bg-zinc-100 text-zinc-500' : 'bg-[#f4e8fb] text-[#5e3a86]'">
-                  {{ item._type === 'store' ? 'Store' : 'Request' }}
-                </span>
-                <span v-if="item._meta" class="hidden sm:inline-flex items-center text-xs text-zinc-400 font-medium truncate w-32 sm:w-auto">
-                    &middot; {{ item._meta }}
-                </span>
-              </div>
-              <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
-                {{ item._date }}
-              </p>
+          <!-- Icon -->
+          <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            :class="
+              item.status === 'completed' || item.status === 'delivered' || item.status === 'picked_up'
+                ? 'bg-emerald-50 text-emerald-600'
+                : item.status === 'cancelled' || item.status === 'driver_unavailable'
+                  ? 'bg-red-50 text-red-400'
+                  : item.status === 'processing' || item.status === 'shipped' || item.status === 'out_for_delivery' || item.status === 'ready_for_pickup'
+                    ? 'bg-blue-50 text-blue-500'
+                    : 'bg-amber-50 text-amber-500'
+            ">
+            <component :is="item._type === 'store' ? ShoppingBagIcon : ArchiveBoxIcon" class="w-5 h-5" />
+          </div>
+
+          <!-- Text -->
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ item._displayId }}</p>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">{{ item._date }}</span>
+              <span v-if="item._meta" class="text-[10px] font-medium text-zinc-400">· {{ item._meta }}</span>
+              <span
+                class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
+                :class="item._type === 'store' ? 'bg-zinc-100 text-zinc-400' : 'text-white'"
+                :style="item._type === 'request' ? 'background: #4F217A;' : ''">
+                {{ item._type === 'store' ? 'Store' : 'Request' }}
+              </span>
             </div>
           </div>
-          <div class="text-right flex-shrink-0 flex items-center gap-4">
+
+          <!-- Right -->
+          <div class="flex items-center gap-2.5 flex-shrink-0">
             <div class="flex flex-col items-end gap-1.5">
               <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ item._amount }}</strong>
-              <div class="flex justify-end">
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.1em]"
-                  :class="item._type === 'store' ? orderStatusClass(item.status) : requestOrderStatusClass(item.status)">
-                  {{ item._type === 'store' ? formatStatus(item.status) : formatRequestStatus(item.status) }}
-                </span>
-              </div>
+              <span
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider"
+                :class="item._type === 'store' ? orderStatusClass(item.status) : requestOrderStatusClass(item.status)">
+                {{ item._type === 'store' ? formatStatus(item.status) : formatRequestStatus(item.status) }}
+              </span>
             </div>
-            
-            <button v-if="item._type === 'store' && item.status === 'pending'" @click.stop="confirmCancelOrder(item)"
-              class="w-10 h-10 hidden sm:flex items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 transition-colors flex-shrink-0"
-              :aria-label="`Cancel order ${item._displayId}`"
-              title="Cancel order">
-              <XMarkIcon class="w-[18px] h-[18px]" />
+            <button
+              v-if="item._type === 'store' && item.status === 'pending'"
+              @click.stop="confirmCancelOrder(item)"
+              class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition-colors flex-shrink-0"
+              :aria-label="`Cancel this order — ${item._displayId}`">
+              <XMarkIcon class="w-4 h-4" />
             </button>
-
-            <!-- Hover Chevron -->
-            <div class="ml-2 hidden sm:flex w-6 h-6 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-                </svg>
-            </div>
+            <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
           </div>
         </article>
       </div>
 
-      <!-- Load more — suppressed when a status filter is active because the
-           cursor is scoped to the unfiltered "all" backend query. -->
-      <div v-if="userStore.nextCursor && !selectedStatus" class="flex justify-center py-5 px-5">
+      <!-- Load more -->
+      <div v-if="userStore.nextCursor && !selectedStatus" class="flex justify-center py-2 mb-4">
         <button
           :disabled="isLoadingMore"
           @click="loadMoreOrders"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-zinc-200 bg-white text-sm font-bold text-zinc-700 hover:border-[#4F217A] hover:text-[#4F217A] disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm"
-        >
-          <ArrowPathIcon v-if="isLoadingMore" class="w-[18px] h-[18px] animate-spin" />
-          {{ isLoadingMore ? 'Loading...' : 'Load more' }}
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 hover:border-[#4F217A] hover:text-[#4F217A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm">
+          <ArrowPathIcon v-if="isLoadingMore" class="w-4 h-4 animate-spin" />
+          {{ isLoadingMore ? 'Loading…' : 'Show more orders' }}
         </button>
       </div>
     </div>
 
-    <!-- ─── Store Order Detail Modal ─── -->
-    <div v-if="selectedOrder" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="selectedOrder = null">
-      <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-          <h3 class="font-black text-zinc-900 tracking-tight">Order Details</h3>
-          <button @click="selectedOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
+    <!-- ── Store Order Detail Modal ── -->
+    <div
+      v-if="selectedOrder"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);"
+      @click.self="selectedOrder = null"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="w-full sm:max-w-lg bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-100 flex-shrink-0">
+          <div>
+            <h3 class="font-black text-zinc-900 tracking-tight">Your purchase</h3>
+            <p class="text-[11px] text-zinc-400 font-medium mt-0.5">Ref: {{ selectedOrder.order_id }}</p>
+          </div>
+          <button @click="selectedOrder = null"
+            class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-400 transition-colors">
             <XMarkIcon class="w-[18px] h-[18px]" />
           </button>
         </div>
-
-        <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Order ID</p><p class="font-semibold text-zinc-900 mt-0.5 truncate">{{ selectedOrder.order_id }}</p></div>
-            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Date</p><p class="font-semibold text-zinc-900 mt-0.5">{{ formatDate(selectedOrder.created_at) }}</p></div>
-            <div>
-              <p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Status</p>
-              <span class="inline-flex rounded-full mt-1 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]" :class="orderStatusClass(selectedOrder.status)">{{ formatStatus(selectedOrder.status) }}</span>
+        <div class="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-zinc-50 rounded-xl px-3.5 py-3">
+              <p class="text-[9px] font-black uppercase tracking-[0.12em] text-zinc-400 mb-1">Date placed</p>
+              <p class="text-[13px] font-bold text-zinc-900 leading-snug">{{ formatDate(selectedOrder.created_at) }}</p>
+            </div>
+            <div class="bg-zinc-50 rounded-xl px-3.5 py-3">
+              <p class="text-[9px] font-black uppercase tracking-[0.12em] text-zinc-400 mb-1">Status</p>
+              <span class="inline-flex rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]"
+                :class="orderStatusClass(selectedOrder.status)">
+                {{ formatStatus(selectedOrder.status) }}
+              </span>
             </div>
           </div>
-
-          <div class="border-t border-zinc-100 pt-4">
-            <h4 class="text-sm font-black text-zinc-800 mb-3">Order Items</h4>
-            <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
-              <div>
-                <p class="text-sm font-semibold text-zinc-900">{{ item.brand_name || item.product_name }}</p>
-                <p class="text-xs text-zinc-500">Qty: {{ item.qty }} · GHS {{ item.selling_price }}</p>
+          <div>
+            <h4 class="text-[11px] font-black uppercase tracking-[0.1em] text-zinc-400 mb-2.5">What you ordered</h4>
+            <div class="divide-y divide-zinc-50 rounded-xl border border-zinc-100 overflow-hidden bg-white">
+              <div v-for="(item, index) in selectedOrder.items" :key="index"
+                class="flex items-center justify-between px-4 py-3.5 gap-3">
+                <div class="min-w-0 flex-1">
+                  <p class="text-[13px] font-bold text-zinc-900 leading-snug truncate">{{ item.brand_name || item.product_name }}</p>
+                  <p class="text-[11px] text-zinc-400 font-medium mt-0.5">Qty {{ item.qty }} · GHS {{ item.selling_price }} each</p>
+                </div>
+                <p class="text-[13px] font-black text-zinc-900 flex-shrink-0 tabular-nums">GHS {{ formatAmount(item.line_total) }}</p>
               </div>
-              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total) }}</p>
             </div>
           </div>
-
-          <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
-            <div class="flex justify-between text-sm text-zinc-600"><span>Subtotal</span><span>GHS {{ formatAmount(selectedOrder.subtotal || selectedOrder.total_amount) }}</span></div>
-            <div class="flex justify-between text-sm text-zinc-600"><span>Tax</span><span>GHS {{ formatAmount(selectedOrder.tax_amount || 0) }}</span></div>
-            <div class="flex justify-between text-base font-black text-zinc-900 pt-2 border-t border-zinc-200"><span>Total</span><span>GHS {{ formatAmount(selectedOrder.total_amount) }}</span></div>
+          <div class="rounded-xl border border-zinc-100 overflow-hidden">
+            <div class="divide-y divide-zinc-50">
+              <div class="flex justify-between items-center px-4 py-3 text-sm text-zinc-500">
+                <span class="font-medium">Subtotal</span>
+                <span class="font-semibold tabular-nums">GHS {{ formatAmount(selectedOrder.subtotal || selectedOrder.total_amount) }}</span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-3 text-sm text-zinc-500">
+                <span class="font-medium">Tax</span>
+                <span class="font-semibold tabular-nums">GHS {{ formatAmount(selectedOrder.tax_amount || 0) }}</span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-3.5 bg-zinc-50">
+                <span class="text-[13px] font-black text-zinc-900">Total paid</span>
+                <span class="text-[15px] font-black text-zinc-900 tabular-nums">GHS {{ formatAmount(selectedOrder.total_amount) }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ─── Request Order Detail Modal ─── -->
-    <div v-if="selectedRequestOrder" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="selectedRequestOrder = null">
-      <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-          <h3 class="font-black text-zinc-900 tracking-tight">Request Order Details</h3>
-          <button @click="selectedRequestOrder = null" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors">
+    <!-- ── Request Order Detail Modal ── -->
+    <div
+      v-if="selectedRequestOrder"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);"
+      @click.self="selectedRequestOrder = null"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="w-full sm:max-w-lg bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-100 flex-shrink-0">
+          <div>
+            <h3 class="font-black text-zinc-900 tracking-tight">Medication request</h3>
+            <p class="text-[11px] text-zinc-400 font-medium mt-0.5">We sourced these for you · {{ selectedRequestOrder.request_number }}</p>
+          </div>
+          <button @click="selectedRequestOrder = null"
+            class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 text-zinc-400 transition-colors">
             <XMarkIcon class="w-[18px] h-[18px]" />
           </button>
         </div>
-
-        <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Request #</p><p class="font-semibold text-zinc-900 mt-0.5">{{ selectedRequestOrder.request_number }}</p></div>
-            <div><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Date</p><p class="font-semibold text-zinc-900 mt-0.5">{{ formatDate(selectedRequestOrder.updated_at || selectedRequestOrder.created_at) }}</p></div>
-            <div>
-              <p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Status</p>
-              <span class="inline-flex rounded-full mt-1 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em]" :class="requestOrderStatusClass(selectedRequestOrder.status)">{{ formatRequestStatus(selectedRequestOrder.status) }}</span>
+        <div class="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-zinc-50 rounded-xl px-3.5 py-3">
+              <p class="text-[9px] font-black uppercase tracking-[0.12em] text-zinc-400 mb-1">Last updated</p>
+              <p class="text-[13px] font-bold text-zinc-900 leading-snug">{{ formatDate(selectedRequestOrder.updated_at || selectedRequestOrder.created_at) }}</p>
             </div>
-            <div v-if="selectedRequestOrder.fulfillment_type"><p class="text-[10px] font-bold uppercase tracking-wide text-zinc-400">Fulfillment</p><p class="font-semibold text-zinc-900 mt-0.5 capitalize">{{ selectedRequestOrder.fulfillment_type }}</p></div>
+            <div class="bg-zinc-50 rounded-xl px-3.5 py-3">
+              <p class="text-[9px] font-black uppercase tracking-[0.12em] text-zinc-400 mb-1">Status</p>
+              <span class="inline-flex rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]"
+                :class="requestOrderStatusClass(selectedRequestOrder.status)">
+                {{ formatRequestStatus(selectedRequestOrder.status) }}
+              </span>
+            </div>
+            <div v-if="selectedRequestOrder.fulfillment_type" class="bg-zinc-50 rounded-xl px-3.5 py-3">
+              <p class="text-[9px] font-black uppercase tracking-[0.12em] text-zinc-400 mb-1">How you'll receive it</p>
+              <p class="text-[13px] font-bold text-zinc-900 capitalize leading-snug">{{ selectedRequestOrder.fulfillment_type }}</p>
+            </div>
           </div>
-
-          <div class="border-t border-zinc-100 pt-4">
-            <h4 class="text-sm font-black text-zinc-800 mb-3">Request Items</h4>
-            <div v-for="(item, index) in selectedRequestOrder.items || []" :key="index" class="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
-              <div>
-                <p class="text-sm font-semibold text-zinc-900">{{ item.product_name }}</p>
-                <p class="text-xs text-zinc-500">Qty: {{ item.quantity }} · GHS {{ formatAmount(item.marked_up_price || item.unit_price || 0) }}</p>
+          <div>
+            <h4 class="text-[11px] font-black uppercase tracking-[0.1em] text-zinc-400 mb-2.5">Medications we sourced for you</h4>
+            <div class="divide-y divide-zinc-50 rounded-xl border border-zinc-100 overflow-hidden bg-white">
+              <div v-for="(item, index) in selectedRequestOrder.items || []" :key="index"
+                class="flex items-center justify-between px-4 py-3.5 gap-3">
+                <div class="min-w-0 flex-1">
+                  <p class="text-[13px] font-bold text-zinc-900 leading-snug truncate">{{ item.product_name }}</p>
+                  <p class="text-[11px] text-zinc-400 font-medium mt-0.5">
+                    Qty {{ item.quantity }} · GHS {{ formatAmount(item.marked_up_price || item.unit_price || 0) }} each
+                  </p>
+                </div>
+                <p class="text-[13px] font-black text-zinc-900 flex-shrink-0 tabular-nums">
+                  GHS {{ formatAmount(item.line_total || (Number(item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}
+                </p>
               </div>
-              <p class="text-sm font-black text-zinc-900">GHS {{ formatAmount(item.line_total || (Number(item.marked_up_price || item.unit_price || 0) * (item.quantity || 0))) }}</p>
             </div>
           </div>
-
-          <div class="bg-zinc-50 rounded-xl p-4 space-y-2">
-            <div class="flex justify-between text-sm text-zinc-600"><span>Items total</span><span>GHS {{ formatAmount(selectedRequestOrder.items_total || 0) }}</span></div>
-            <div v-if="selectedRequestOrder.fulfillment_type === 'delivery' && selectedRequestOrder.delivery_fee" class="flex justify-between text-sm text-zinc-600"><span>Delivery fee</span><span>GHS {{ formatAmount(selectedRequestOrder.delivery_fee || 0) }}</span></div>
-            <div class="flex justify-between text-base font-black text-zinc-900 pt-2 border-t border-zinc-200"><span>Total</span><span>GHS {{ formatAmount(getRequestTotalAmount(selectedRequestOrder)) }}</span></div>
+          <div class="rounded-xl border border-zinc-100 overflow-hidden">
+            <div class="divide-y divide-zinc-50">
+              <div class="flex justify-between items-center px-4 py-3 text-sm text-zinc-500">
+                <span class="font-medium">Medications</span>
+                <span class="font-semibold tabular-nums">GHS {{ formatAmount(selectedRequestOrder.items_total || 0) }}</span>
+              </div>
+              <div v-if="selectedRequestOrder.fulfillment_type === 'delivery' && selectedRequestOrder.delivery_fee"
+                class="flex justify-between items-center px-4 py-3 text-sm text-zinc-500">
+                <span class="font-medium">Delivery fee</span>
+                <span class="font-semibold tabular-nums">GHS {{ formatAmount(selectedRequestOrder.delivery_fee || 0) }}</span>
+              </div>
+              <div class="flex justify-between items-center px-4 py-3.5 bg-zinc-50">
+                <span class="text-[13px] font-black text-zinc-900">Total</span>
+                <span class="text-[15px] font-black text-zinc-900 tabular-nums">GHS {{ formatAmount(getRequestTotalAmount(selectedRequestOrder)) }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Cancel confirmation -->
+    <!-- ── Cancel confirmation ── -->
     <ConfirmDialog
       :is-open="!!pendingCancelOrder"
       title="Cancel this order?"
-      :message="pendingCancelOrder ? `Order #${String(pendingCancelOrder.order_id).substring(0, 8)} will be cancelled. This can't be undone.` : ''"
-      confirm-text="Yes, cancel"
-      cancel-text="Keep order"
+      :message="pendingCancelOrder ? `Order #${String(pendingCancelOrder.order_id).substring(0, 8)} will be cancelled and can't be recovered. If you need these medications, you'll need to place a new order.` : ''"
+      confirm-text="Yes, cancel it"
+      cancel-text="Keep my order"
       variant="danger"
       @close="pendingCancelOrder = null"
       @confirm="performCancel"
     />
 
-    <!-- Toast -->
+    <!-- ── Toast ── -->
     <div v-if="toast"
-      class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold"
-      :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'">
-      <component :is="toast.type === 'error' ? ExclamationCircleIcon : CheckCircleIcon" class="w-[18px] h-[18px]" />
+      class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-[13px] font-bold whitespace-nowrap"
+      :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'"
+      role="status" aria-live="polite">
+      <component :is="toast.type === 'error' ? ExclamationCircleIcon : CheckCircleIcon" class="w-4 h-4 flex-shrink-0" />
       {{ toast.text }}
     </div>
+
   </div>
 </template>
 
@@ -273,6 +347,7 @@ import {
   ShoppingBagIcon,
   ArchiveBoxIcon,
   XMarkIcon,
+  ChevronRightIcon,
 } from '@heroicons/vue/24/outline'
 
 interface OrderItem {
@@ -634,4 +709,3 @@ onUnmounted(() => {
   if (toastTimer) clearTimeout(toastTimer);
 });
 </script>
-

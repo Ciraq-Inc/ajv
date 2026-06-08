@@ -174,7 +174,7 @@
               <span class="text-sm opacity-80 mr-2">Order ID:</span>
               <span class="font-mono font-medium">{{ formatOrderId(order.orderId) }}</span>
             </div>
-            <div class="text-sm opacity-80">
+            <div class="text-sm opacity-80" :title="order.createdAt">
               {{ formatOrderDate(order.createdAt) }}
             </div>
           </div>
@@ -259,6 +259,25 @@
       </div>
     </div>
 
+    <!-- Reorder Cart Replace Confirmation -->
+    <div v-if="reorderConfirmItems" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="fixed inset-0 bg-black/50" @click="reorderConfirmItems = null"></div>
+      <div class="relative z-10 bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full">
+        <h3 class="text-base font-bold text-gray-900 mb-2">Replace current cart?</h3>
+        <p class="text-sm text-gray-600 mb-5">This will replace your current cart with the items from this order. Continue?</p>
+        <div class="flex gap-3 justify-end">
+          <button @click="reorderConfirmItems = null"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+            Cancel
+          </button>
+          <button @click="doReorder(reorderConfirmItems)"
+            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Cancel Order Modal -->
     <CancelOrderModal v-if="showCancelModal" :is-open="showCancelModal" :order-id="orderToCancel"
       @close="showCancelModal = false" @cancellation-success="handleCancellationSuccess" />
@@ -274,6 +293,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useUserStore } from '~/stores/user'
+import { timeAgo } from '~/composables/useTimeAgo'
 import { usePharmacyStore } from '~/stores/pharmacy'
 import { useCartStore } from '~/stores/cart'
 import AlertBanner from '~/components/customers/AlertBanner.vue'
@@ -325,6 +345,7 @@ const dismissedExpiryBanner = ref<boolean>(false)
 const showLoginModal = ref<boolean>(false)
 const showCancelModal = ref<boolean>(false)
 const orderToCancel = ref<string>('')
+const reorderConfirmItems = ref<OrderItem[] | null>(null)
 const dateFilter = ref<{ startDate: string; endDate: string }>({
   startDate: '',
   endDate: '',
@@ -428,19 +449,7 @@ const formatOrderId = (orderId: string | undefined | null): string => {
 
 const formatOrderDate = (dateString: string | undefined | null): string => {
   if (!dateString) return 'Unknown date'
-
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleString('en-GB', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch (e) {
-    return dateString
-  }
+  return timeAgo(dateString) || dateString
 }
 
 const formatPrice = (price: number | string | undefined | null): string => {
@@ -505,23 +514,19 @@ const cancelOrder = (orderId: string): void => {
   showCancelModal.value = true
 }
 
-const handleCancellationSuccess = (orderId: string | undefined): void => {
+const handleCancellationSuccess = async (orderId: string | undefined): Promise<void> => {
+  // Optimistically update status, then re-fetch immediately.
   const orderIndex = orders.value.findIndex(order => order.orderId === orderId)
   if (orderIndex !== -1) {
     const order = orders.value[orderIndex]
     if (order) order.status = 'cancelled'
   }
-
-  setTimeout(() => {
-    void fetchOrders()
-  }, 1500)
+  showCancelModal.value = false
+  await fetchOrders()
 }
 
-const reorderItems = (items: OrderItem[] | undefined | null): void => {
-  if (!items || !items.length) return
-
+const doReorder = (items: OrderItem[]): void => {
   cartStore.clearCart()
-
   items.forEach(item => {
     cartStore.addToCart({
       id: item.id,
@@ -530,16 +535,25 @@ const reorderItems = (items: OrderItem[] | undefined | null): void => {
       quantity: item.quantity,
     })
   })
-
+  reorderConfirmItems.value = null
   if (pharmacyStore.pharmacySlug) {
     void router.push(`/${pharmacyStore.pharmacySlug}`)
   } else {
     void router.push('/')
   }
-
   setTimeout(() => {
     cartStore.toggleCart()
   }, 500)
+}
+
+const reorderItems = (items: OrderItem[] | undefined | null): void => {
+  if (!items || !items.length) return
+  if (cartStore.cartItemCount > 0) {
+    // Cart has items — show inline confirmation
+    reorderConfirmItems.value = items
+  } else {
+    doReorder(items)
+  }
 }
 </script>
 

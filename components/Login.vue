@@ -1,120 +1,216 @@
 <template>
-  <div v-if="inline || isOpen" :class="!inline ? 'fixed inset-0 z-50 overflow-y-auto' : ''" :role="!inline ? 'dialog' : undefined" :aria-modal="!inline ? 'true' : undefined" :aria-labelledby="!inline ? 'login-dialog-title' : undefined" ref="dialogRef" :tabindex="!inline ? -1 : undefined">
+  <div
+    v-if="inline || isOpen"
+    :class="!inline ? 'fixed inset-0 z-50 overflow-y-auto' : ''"
+    :role="!inline ? 'dialog' : undefined"
+    :aria-modal="!inline ? 'true' : undefined"
+    :aria-labelledby="!inline ? 'login-dialog-title' : undefined"
+    ref="dialogRef"
+    :tabindex="!inline ? -1 : undefined"
+  >
     <!-- Backdrop (modal only) -->
-    <div v-if="!inline" class="fixed inset-0 bg-[#1e1a22]/50 backdrop-blur-md" @click="closeModal"></div>
+    <div
+      v-if="!inline"
+      class="fixed inset-0 bg-[#1e1a22]/60 backdrop-blur-sm"
+      @click="closeModal"
+    ></div>
 
-    <div style="font-family: 'Manrope', sans-serif;" :class="!inline ? 'min-h-full flex items-center justify-center p-4 sm:p-6' : ''">
+    <div
+      style="font-family: 'Manrope', sans-serif;"
+      :class="!inline ? 'min-h-full flex items-center justify-center p-4 sm:p-6' : ''"
+    >
       <!-- Card -->
-      <div :class="!inline ? 'relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-[#fff7ff] border-none shadow-[0_24px_32px_rgba(30,26,34,0.06)]' : 'w-full overflow-hidden rounded-[2rem] bg-[#fff7ff] border-none shadow-[0_24px_32px_rgba(30,26,34,0.06)]'">
+      <div
+        :class="[
+          'w-full max-w-lg overflow-hidden rounded-3xl bg-[#fff7ff]',
+          !inline
+            ? 'relative z-10 shadow-[0_32px_64px_-8px_rgba(30,26,34,0.22),0_0_0_1px_rgba(82,0,148,0.06)]'
+            : 'shadow-[0_20px_48px_-8px_rgba(30,26,34,0.18),0_0_0_1px_rgba(82,0,148,0.08)]'
+        ]"
+      >
         <!-- Header -->
-        <div :class="inline ? 'relative px-6 pt-5 pb-4 border-b border-[#f0e6fa]' : 'relative px-6 pt-6 pb-5 border-b border-[#f0e6fa]'">
+        <div class="relative px-7 pt-6 pb-5 border-b border-[#ede4f6]">
+          <!-- Close button (modal only) -->
           <button
             v-if="!inline"
             type="button"
             @click="closeModal"
-            class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#f4ebf7] text-[#7d7484] transition hover:bg-[#ead6fd] hover:text-[#520094]"
+            class="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f2eaf9] text-[#7d7484] transition hover:bg-[#e5d2f6] hover:text-[#520094] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/50"
             aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+
           <div :class="!inline ? 'pr-10' : ''">
-            <p v-if="!inline" class="text-xs font-bold uppercase tracking-[0.18em] text-[#520094] mb-2">MedsGh</p>
-            <h3 :id="!inline ? 'login-dialog-title' : undefined" class="text-2xl font-semibold tracking-tight text-[#1e1a22]">{{ stepTitle }}</h3>
-            <p v-if="!inline" class="mt-1 text-sm text-[#4c4453]">{{ stepSubtitle }}</p>
+            <h3
+              :id="!inline ? 'login-dialog-title' : undefined"
+              class="text-[1.375rem] font-bold tracking-tight text-[#1e1a22] leading-tight"
+            >{{ stepTitle }}</h3>
+            <p class="mt-1 text-sm text-[#4c4453] leading-snug">{{ stepSubtitle }}</p>
+          </div>
+
+          <!-- Signup step indicator (step 2 only) -->
+          <div
+            v-if="view === 'signup' && signupOtpSent"
+            class="mt-4 flex items-center gap-2"
+            aria-label="Step 2 of 2"
+          >
+            <div class="h-1.5 w-8 rounded-full bg-[#520094]"></div>
+            <div class="h-1.5 w-8 rounded-full bg-[#520094]"></div>
+            <span class="ml-1 text-[11px] font-semibold text-[#520094] tracking-wide">Step 2 of 2</span>
+          </div>
+          <div
+            v-else-if="view === 'signup' && !signupOtpSent"
+            class="mt-4 flex items-center gap-2"
+            aria-label="Step 1 of 2"
+          >
+            <div class="h-1.5 w-8 rounded-full bg-[#520094]"></div>
+            <div class="h-1.5 w-8 rounded-full bg-[#e8def8]"></div>
+            <span class="ml-1 text-[11px] font-semibold text-[#7d7484] tracking-wide">Step 1 of 2</span>
           </div>
         </div>
 
         <!-- Body -->
-        <div :class="inline ? 'bg-[#ffffff] px-6 py-5' : 'bg-[#ffffff] p-6'">
+        <div class="bg-white px-7 py-6">
 
-          <div v-if="errorMessage" class="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clip-rule="evenodd" />
-                </svg>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm">{{ errorMessage }}</p>
-              </div>
-            </div>
+          <!-- Error banner — slim -->
+          <div
+            v-if="errorMessage"
+            class="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+            role="alert"
+          >
+            <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            <p class="text-sm text-red-700 leading-snug">{{ errorMessage }}</p>
           </div>
 
-          <!-- ── Sign in (unified single screen) ── -->
+          <!-- ══════════════════════════════════════════════════════════════ -->
+          <!-- Sign in (unified single screen)                               -->
+          <!-- ══════════════════════════════════════════════════════════════ -->
           <div v-if="view === 'login' && currentStep === 'signin'">
-            <form @submit.prevent="onSignInSubmit">
-              <!-- Always visible: phone -->
+            <form @submit.prevent="onSignInSubmit" novalidate>
+
+              <!-- Phone field -->
               <div class="mb-4">
-                <label for="phoneNumber" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
-                <div class="flex">
+                <label for="phoneNumber" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
+                <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
                   <select
                     v-model="selectedCountry"
-                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453] focus:outline-none focus:ring-2 focus:ring-[#520094]/20"
+                    class="flex-shrink-0 rounded-l-2xl border-0 bg-[#f5eeff] px-3 text-sm font-semibold text-[#520094] focus:outline-none cursor-pointer"
                     @change="onPhoneInput"
+                    aria-label="Country code"
                   >
                     <option value="GH">🇬🇭 +233</option>
                     <option value="US">🇺🇸 +1</option>
                     <option value="GB">🇬🇧 +44</option>
                   </select>
-                  <input v-model="phoneNumber" type="tel" id="phoneNumber"
-                    :class="phoneInputClass"
-                    placeholder="eg. 24 123 4567" required @input="onPhoneInput">
+                  <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
+                  <input
+                    v-model="phoneNumber"
+                    type="tel"
+                    id="phoneNumber"
+                    class="min-w-0 flex-1 rounded-r-2xl border-0 bg-transparent px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none"
+                    placeholder="24 123 4567"
+                    required
+                    autocomplete="tel-national"
+                    @input="onPhoneInput"
+                  >
                 </div>
-                <p v-if="phoneNumberError" class="mt-1 text-sm text-red-600">{{ phoneNumberError }}</p>
+                <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  {{ phoneNumberError }}
+                </p>
               </div>
 
-              <!-- Always visible: password -->
+              <!-- Password field -->
               <div class="mb-3">
-                <label for="password" class="mb-1 block text-sm font-semibold text-[#4c4453]">Password</label>
+                <label for="password" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Password</label>
                 <div class="relative">
-                  <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password"
-                    :class="passwordInputClass"
-                    placeholder="Enter your password" required minlength="6">
-                  <button type="button" @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
-                    :aria-label="showPassword ? 'Hide password' : 'Show password'">
-                    <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
-                    <EyeIcon v-else class="w-5 h-5" />
+                  <input
+                    v-model="password"
+                    :type="showPassword ? 'text' : 'password'"
+                    id="password"
+                    class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 pr-11 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                    placeholder="Enter your password"
+                    required
+                    minlength="6"
+                    autocomplete="current-password"
+                  >
+                  <button
+                    type="button"
+                    @click="showPassword = !showPassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#7d7484] hover:text-[#520094] hover:bg-[#f2eaf9] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                  >
+                    <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
+                    <EyeIcon v-else class="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
 
               <!-- Remember + forgot -->
-              <div class="mb-4 flex items-center justify-between gap-3 text-sm">
-                <div class="flex items-center gap-2">
-                  <input id="remember-me" v-model="rememberMe" type="checkbox"
-                    class="h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]">
-                  <label for="remember-me" class="text-sm text-[#4c4453]">Keep me logged in</label>
-                </div>
-                <button type="button" @click="forgotPassword" class="text-sm font-medium text-[#520094] hover:text-[#6c24b3]">
+              <div class="mb-5 flex items-center justify-between gap-3">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    id="remember-me"
+                    v-model="rememberMe"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
+                  >
+                  <span class="text-sm text-[#4c4453]">Keep me signed in</span>
+                </label>
+                <button
+                  type="button"
+                  @click="forgotPassword"
+                  class="text-sm font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
+                >
                   Forgot password?
                 </button>
               </div>
 
-              <!-- Reveal: verify (existing customer, no password) -->
+              <!-- Reveal: verify (existing customer, no password set) -->
               <Transition
-                enter-from-class="opacity-0 -translate-y-2"
-                enter-active-class="transition duration-200 ease-out"
-                leave-to-class="opacity-0 -translate-y-2"
+                enter-from-class="opacity-0 -translate-y-3"
+                enter-active-class="transition duration-250 ease-out"
+                leave-to-class="opacity-0 -translate-y-3"
                 leave-active-class="transition duration-150 ease-in"
               >
-                <div v-if="mode === 'verify'" class="mb-4 rounded-2xl bg-[#f7efff] border border-[#e9d6fb] p-4">
+                <div v-if="mode === 'verify'" class="mb-5 rounded-2xl bg-[#f7eeff] border border-[#e4d0f8] p-4">
                   <p class="text-sm font-semibold text-[#1e1a22]">Quick verification</p>
-                  <p class="mt-1 text-xs text-[#4c4453]">
-                    We sent a 6-digit code to <strong>{{ formattedPhoneNumber }}</strong> to confirm it's you.
+                  <p class="mt-1 text-xs text-[#4c4453] leading-relaxed">
+                    We sent a 6-digit code to <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong> to confirm it's you.
                   </p>
-                  <div class="mt-3">
-                    <label for="verifyOtp" class="sr-only">Verification code</label>
-                    <input v-model="otp" type="text" id="verifyOtp"
-                      :class="inputClass"
-                      placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+                  <div class="mt-4">
+                    <label class="block text-xs font-semibold text-[#4c4453] mb-2">Verification code</label>
+                    <!-- 6-box OTP input -->
+                    <div class="flex gap-2" role="group" aria-label="6-digit verification code">
+                      <input
+                        v-for="(_, idx) in otpDigits"
+                        :key="'verify-' + idx"
+                        :ref="el => { if (el) otpRefs[idx] = el as HTMLInputElement }"
+                        v-model="otpDigits[idx]"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="1"
+                        pattern="[0-9]"
+                        :aria-label="`Digit ${idx + 1}`"
+                        class="h-11 w-10 flex-1 rounded-xl border border-[#ddd0eb] bg-white text-center text-base font-bold text-[#1e1a22] shadow-[0_1px_3px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#520094] focus:ring-2 focus:ring-[#520094]/20 transition-shadow caret-transparent"
+                        @input="handleOtpInput($event, idx)"
+                        @keydown="handleOtpKeydown($event, idx)"
+                        @paste.prevent="handleOtpPaste($event)"
+                        autocomplete="one-time-code"
+                      >
+                    </div>
                   </div>
-                  <button type="button" @click="resendVerifyOTP" :disabled="isLoading"
-                    class="mt-2 text-xs font-medium text-[#520094] hover:text-[#6c24b3] disabled:opacity-50">
+                  <button
+                    type="button"
+                    @click="resendVerifyOTP"
+                    :disabled="isLoading"
+                    class="mt-3 text-xs font-semibold text-[#520094] hover:text-[#6c24b3] disabled:opacity-50 focus:outline-none focus-visible:underline"
+                  >
                     Resend code
                   </button>
                 </div>
@@ -122,184 +218,327 @@
 
               <!-- Reveal: register (new customer — auto-detected path) -->
               <Transition
-                enter-from-class="opacity-0 -translate-y-2"
-                enter-active-class="transition duration-200 ease-out"
-                leave-to-class="opacity-0 -translate-y-2"
+                enter-from-class="opacity-0 -translate-y-3"
+                enter-active-class="transition duration-250 ease-out"
+                leave-to-class="opacity-0 -translate-y-3"
                 leave-active-class="transition duration-150 ease-in"
               >
-                <div v-if="mode === 'register'" class="mb-4 rounded-2xl bg-[#f7efff] border border-[#e9d6fb] p-4 space-y-3">
+                <div v-if="mode === 'register'" class="mb-5 rounded-2xl bg-[#f7eeff] border border-[#e4d0f8] p-4 space-y-4">
                   <div>
                     <p class="text-sm font-semibold text-[#1e1a22]">Almost there</p>
-                    <p class="mt-1 text-xs text-[#4c4453]">
-                      A couple more details and we'll create your account for <strong>{{ formattedPhoneNumber }}</strong>.
+                    <p class="mt-1 text-xs text-[#4c4453] leading-relaxed">
+                      A couple more details and we'll create your account for <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong>.
                     </p>
-                    <div v-if="registrationCompany" class="mt-2 inline-flex items-center rounded-full border border-[#cec2d5] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#520094]">
-                      Linked at signup: {{ registrationCompany }}
+                    <div
+                      v-if="registrationCompany"
+                      class="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#ddd0eb] bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#520094]"
+                    >
+                      <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>
+                      {{ registrationCompany }}
                     </div>
                   </div>
+
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label for="fname" class="block text-sm font-medium text-[#4c4453] mb-1">First name</label>
+                      <label for="fname" class="block text-xs font-semibold text-[#4c4453] mb-1.5">First name</label>
                       <input v-model="firstName" type="text" id="fname"
-                        :class="inputClass" placeholder="John" required>
+                        class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                        placeholder="John" required autocomplete="given-name">
                     </div>
                     <div>
-                      <label for="lname" class="block text-sm font-medium text-[#4c4453] mb-1">Last name</label>
+                      <label for="lname" class="block text-xs font-semibold text-[#4c4453] mb-1.5">Last name</label>
                       <input v-model="lastName" type="text" id="lname"
-                        :class="inputClass" placeholder="Doe" required>
+                        class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                        placeholder="Doe" required autocomplete="family-name">
                     </div>
                   </div>
+
                   <div>
-                    <label for="email" class="block text-sm font-medium text-[#4c4453] mb-1">Email (optional)</label>
+                    <label for="email" class="block text-xs font-semibold text-[#4c4453] mb-1.5">Email <span class="font-normal text-[#7d7484]">(optional)</span></label>
                     <input v-model="email" type="email" id="email"
-                      :class="inputClass" placeholder="john@example.com">
+                      class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                      placeholder="john@example.com" autocomplete="email">
                   </div>
+
                   <div>
-                    <label for="regOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification code</label>
-                    <input v-model="otp" type="text" id="regOtp"
-                      :class="inputClass"
-                      placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
-                    <button type="button" @click="resendRegisterOTP" :disabled="isLoading"
-                      class="mt-1 text-xs font-medium text-[#520094] hover:text-[#6c24b3] disabled:opacity-50">
+                    <label class="block text-xs font-semibold text-[#4c4453] mb-2">Verification code</label>
+                    <div class="flex gap-2" role="group" aria-label="6-digit verification code">
+                      <input
+                        v-for="(_, idx) in otpDigits"
+                        :key="'register-' + idx"
+                        :ref="el => { if (el) otpRefs[idx] = el as HTMLInputElement }"
+                        v-model="otpDigits[idx]"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="1"
+                        pattern="[0-9]"
+                        :aria-label="`Digit ${idx + 1}`"
+                        class="h-11 w-10 flex-1 rounded-xl border border-[#ddd0eb] bg-white text-center text-base font-bold text-[#1e1a22] shadow-[0_1px_3px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#520094] focus:ring-2 focus:ring-[#520094]/20 transition-shadow caret-transparent"
+                        @input="handleOtpInput($event, idx)"
+                        @keydown="handleOtpKeydown($event, idx)"
+                        @paste.prevent="handleOtpPaste($event)"
+                        autocomplete="one-time-code"
+                      >
+                    </div>
+                    <button
+                      type="button"
+                      @click="resendRegisterOTP"
+                      :disabled="isLoading"
+                      class="mt-2 text-xs font-semibold text-[#520094] hover:text-[#6c24b3] disabled:opacity-50 focus:outline-none focus-visible:underline"
+                    >
                       Resend code
                     </button>
                   </div>
-                  <div class="flex items-start">
-                    <input id="ageVerification" v-model="isOver18" type="checkbox"
-                      class="mt-1 h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]" required>
-                    <label for="ageVerification" class="ml-2 block text-xs text-[#4c4453]">
+
+                  <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      id="ageVerification"
+                      v-model="isOver18"
+                      type="checkbox"
+                      class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
+                      required
+                    >
+                    <span class="text-xs text-[#4c4453] leading-relaxed">
                       I confirm I am 18 years or older <span class="text-red-500">*</span>
-                    </label>
-                  </div>
+                    </span>
+                  </label>
                 </div>
               </Transition>
 
-              <!-- Single primary button - label changes by mode -->
-              <button type="submit" :disabled="isLoading || !canSubmit" :class="fullPrimaryButtonClass">
-                <span v-if="isLoading" class="flex items-center justify-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <!-- Primary action button -->
+              <button
+                type="submit"
+                :disabled="isLoading || !canSubmit"
+                class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
+              >
+                <span v-if="isLoading" class="flex items-center justify-center gap-2">
+                  <!-- Spinner -->
+                  <svg class="animate-spin h-4 w-4 text-white/80" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   {{ submittingLabel }}
                 </span>
                 <span v-else>{{ submitLabel }}</span>
               </button>
 
-              <!-- Sign up link -->
-              <p class="mt-4 text-center text-sm text-[#7d7484]">
-                New here?
-                <button type="button" @click="goToSignup" class="font-semibold text-[#520094] hover:text-[#6029b4]">
+              <!-- Switch to signup -->
+              <p class="mt-5 text-center text-sm text-[#7d7484]">
+                New to MedsGh?
+                <button
+                  type="button"
+                  @click="goToSignup"
+                  class="font-bold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
+                >
                   Create an account
                 </button>
               </p>
             </form>
           </div>
 
-          <!-- ── Reset Password (separate flow) ── -->
+          <!-- ══════════════════════════════════════════════════════════════ -->
+          <!-- Reset password                                                -->
+          <!-- ══════════════════════════════════════════════════════════════ -->
           <div v-else-if="view === 'login' && currentStep === 'reset'">
-            <form @submit.prevent="handleResetPassword">
-              <div :class="subtleCardClass">
-                <p>Resetting password for: <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong></p>
-                <p class="text-xs mt-1 text-[#7d7484]">We'll send you a verification code</p>
+
+            <!-- Inline success panel (replaces alert()) -->
+            <Transition
+              enter-from-class="opacity-0 scale-95"
+              enter-active-class="transition duration-300 ease-out"
+            >
+              <div v-if="resetSuccess" class="text-center py-4">
+                <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 border-2 border-emerald-200">
+                  <svg class="h-7 w-7 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                </div>
+                <h4 class="text-base font-bold text-[#1e1a22]">Password updated</h4>
+                <p class="mt-1 text-sm text-[#4c4453]">You can now sign in with your new password.</p>
+                <button
+                  type="button"
+                  @click="goToLogin"
+                  class="mt-5 w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            </Transition>
+
+            <form v-if="!resetSuccess" @submit.prevent="handleResetPassword" novalidate>
+              <!-- Phone summary -->
+              <div class="mb-5 rounded-2xl bg-[#f5eeff] border border-[#e4d0f8] px-4 py-3 text-sm text-[#4c4453]">
+                Resetting password for <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong>
+                <p class="text-xs mt-0.5 text-[#7d7484]">We'll send a verification code to this number.</p>
               </div>
 
-              <div class="mb-4" v-if="!otpSent">
-                <button type="button" @click="sendResetOTP" :disabled="isLoading"
-                  :class="fullPrimaryButtonClass">
-                  <span v-if="isLoading">Sending Reset Code...</span>
-                  <span v-else>Send Reset Code</span>
+              <!-- Step 1: Send OTP -->
+              <div v-if="!otpSent" class="mb-4">
+                <button
+                  type="button"
+                  @click="sendResetOTP"
+                  :disabled="isLoading"
+                  class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
+                >
+                  <span v-if="isLoading" class="flex items-center justify-center gap-2">
+                    <svg class="animate-spin h-4 w-4 text-white/80" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending code…
+                  </span>
+                  <span v-else>Send reset code</span>
                 </button>
               </div>
 
-              <div v-if="otpSent">
-                <div class="mb-4">
-                  <label for="resetOtp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification Code</label>
-                  <input v-model="otp" type="text" id="resetOtp"
-                    :class="inputClass"
-                    placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+              <!-- Step 2: OTP + new password -->
+              <div v-if="otpSent" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-[#1e1a22] mb-2">Verification code</label>
+                  <div class="flex gap-2" role="group" aria-label="6-digit verification code">
+                    <input
+                      v-for="(_, idx) in otpDigits"
+                      :key="'reset-' + idx"
+                      :ref="el => { if (el) otpRefs[idx] = el as HTMLInputElement }"
+                      v-model="otpDigits[idx]"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="1"
+                      pattern="[0-9]"
+                      :aria-label="`Digit ${idx + 1}`"
+                      class="h-12 w-10 flex-1 rounded-xl border border-[#ddd0eb] bg-white text-center text-base font-bold text-[#1e1a22] shadow-[0_1px_3px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#520094] focus:ring-2 focus:ring-[#520094]/20 transition-shadow caret-transparent"
+                      @input="handleOtpInput($event, idx)"
+                      @keydown="handleOtpKeydown($event, idx)"
+                      @paste.prevent="handleOtpPaste($event)"
+                      autocomplete="one-time-code"
+                    >
+                  </div>
                 </div>
 
-                <div class="mb-4">
-                  <label for="resetPassword" class="block text-sm font-medium text-[#4c4453] mb-1">New Password</label>
+                <div>
+                  <label for="resetPassword" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">New password</label>
                   <div class="relative">
-                    <input v-model="password" :type="showPassword ? 'text' : 'password'" id="resetPassword"
-                      :class="passwordInputClass"
-                      placeholder="Enter new password (min. 6 characters)" required minlength="6">
-                    <button type="button" @click="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
-                      :aria-label="showPassword ? 'Hide password' : 'Show password'">
-                      <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
-                      <EyeIcon v-else class="w-5 h-5" />
+                    <input
+                      v-model="password"
+                      :type="showPassword ? 'text' : 'password'"
+                      id="resetPassword"
+                      class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 pr-11 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                      placeholder="Min. 6 characters"
+                      required
+                      minlength="6"
+                      autocomplete="new-password"
+                    >
+                    <button
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#7d7484] hover:text-[#520094] hover:bg-[#f2eaf9] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                    >
+                      <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
+                      <EyeIcon v-else class="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
 
-                <div class="mb-4">
-                  <label for="resetConfirmPassword" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm New Password</label>
+                <div>
+                  <label for="resetConfirmPassword" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Confirm new password</label>
                   <div class="relative">
-                    <input v-model="confirmPassword" :type="showPassword ? 'text' : 'password'" id="resetConfirmPassword"
-                      :class="passwordInputClass"
-                      placeholder="Re-enter new password" required minlength="6">
-                    <button type="button" @click="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
-                      :aria-label="showPassword ? 'Hide password' : 'Show password'">
-                      <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
-                      <EyeIcon v-else class="w-5 h-5" />
+                    <input
+                      v-model="confirmPassword"
+                      :type="showPassword ? 'text' : 'password'"
+                      id="resetConfirmPassword"
+                      class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 pr-11 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                      placeholder="Re-enter new password"
+                      required
+                      minlength="6"
+                      autocomplete="new-password"
+                    >
+                    <button
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#7d7484] hover:text-[#520094] hover:bg-[#f2eaf9] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                    >
+                      <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
+                      <EyeIcon v-else class="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
-                  <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-sm text-red-600">
-                    Passwords do not match
+                  <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    Passwords don't match
                   </p>
                 </div>
 
-                <div class="mt-6 flex justify-end space-x-3">
-                  <button type="button" @click="backToSignIn"
-                    :class="secondaryButtonClass">
+                <div class="flex gap-3 pt-1">
+                  <button
+                    type="button"
+                    @click="backToSignIn"
+                    class="flex-1 rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3.5 text-sm font-semibold text-[#4c4453] hover:bg-[#f5eeff] hover:border-[#c9aff0] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" :disabled="isLoading || !otp || password !== confirmPassword"
-                    :class="primaryButtonClass">
-                    <span v-if="isLoading">Resetting...</span>
-                    <span v-else>Reset Password</span>
+                  <button
+                    type="submit"
+                    :disabled="isLoading || !otp || password !== confirmPassword"
+                    class="flex-1 rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
+                  >
+                    <span v-if="isLoading" class="flex items-center justify-center gap-2">
+                      <svg class="animate-spin h-4 w-4 text-white/80" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Resetting…
+                    </span>
+                    <span v-else>Reset password</span>
                   </button>
                 </div>
               </div>
             </form>
           </div>
 
-          <!-- ── Sign up (explicit new-user path) ── -->
+          <!-- ══════════════════════════════════════════════════════════════ -->
+          <!-- Sign up (explicit new-user path)                              -->
+          <!-- ══════════════════════════════════════════════════════════════ -->
           <div v-else-if="view === 'signup'">
+
             <!-- Step 1: Phone + send OTP -->
             <div v-if="!signupOtpSent">
-              <div class="mb-4">
-                <label for="signupPhone" class="mb-1 block text-sm font-semibold text-[#4c4453]">Phone Number</label>
-                <div class="flex">
+              <div class="mb-5">
+                <label for="signupPhone" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
+                <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
                   <select
                     v-model="selectedCountry"
-                    class="inline-flex items-center rounded-l-xl border border-r-0 border-[#cec2d5] bg-[#f7f1ff] px-3 text-sm font-medium text-[#4c4453] focus:outline-none focus:ring-2 focus:ring-[#520094]/20"
+                    class="flex-shrink-0 rounded-l-2xl border-0 bg-[#f5eeff] px-3 text-sm font-semibold text-[#520094] focus:outline-none cursor-pointer"
+                    aria-label="Country code"
                   >
                     <option value="GH">🇬🇭 +233</option>
                     <option value="US">🇺🇸 +1</option>
                     <option value="GB">🇬🇧 +44</option>
                   </select>
-                  <input v-model="phoneNumber" type="tel" id="signupPhone"
-                    :class="phoneInputClass"
-                    placeholder="eg. 24 123 4567" @input="validatePhoneNumber">
+                  <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
+                  <input
+                    v-model="phoneNumber"
+                    type="tel"
+                    id="signupPhone"
+                    class="min-w-0 flex-1 rounded-r-2xl border-0 bg-transparent px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none"
+                    placeholder="24 123 4567"
+                    autocomplete="tel-national"
+                    @input="validatePhoneNumber"
+                  >
                 </div>
-                <p v-if="phoneNumberError" class="mt-1 text-sm text-red-600">{{ phoneNumberError }}</p>
+                <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  {{ phoneNumberError }}
+                </p>
               </div>
 
               <button
                 type="button"
                 :disabled="isLoading || !phoneNumber || !!phoneNumberError"
                 @click="sendSignupOTP"
-                :class="fullPrimaryButtonClass"
+                class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
               >
-                <span v-if="isLoading" class="flex items-center justify-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <span v-if="isLoading" class="flex items-center justify-center gap-2">
+                  <svg class="animate-spin h-4 w-4 text-white/80" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -310,93 +549,172 @@
             </div>
 
             <!-- Step 2: Details + submit -->
-            <form v-else @submit.prevent="submitSignup" class="space-y-3">
-              <div class="rounded-2xl bg-[#f7efff] border border-[#e9d6fb] px-4 py-3 text-xs text-[#4c4453]">
-                Verification code sent to <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong>.
-                <button type="button" @click="signupOtpSent = false; otp = ''" class="ml-1 font-medium text-[#520094] hover:text-[#6029b4]">Change number</button>
+            <form v-else @submit.prevent="submitSignup" class="space-y-4" novalidate>
+              <!-- Phone confirmation pill -->
+              <div class="flex items-center justify-between rounded-2xl bg-[#f5eeff] border border-[#e4d0f8] px-4 py-3">
+                <div class="flex items-center gap-2 text-xs text-[#4c4453]">
+                  <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  Code sent to <strong class="text-[#1e1a22] ml-0.5">{{ formattedPhoneNumber }}</strong>
+                </div>
+                <button
+                  type="button"
+                  @click="signupOtpSent = false; otp = ''; otpDigits.fill('')"
+                  class="text-xs font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
+                >
+                  Change
+                </button>
               </div>
 
+              <!-- Name row -->
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label for="su-fname" class="block text-sm font-medium text-[#4c4453] mb-1">First name <span class="text-red-500">*</span></label>
-                  <input v-model="firstName" type="text" id="su-fname" :class="inputClass" placeholder="John" required>
+                  <label for="su-fname" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">First name <span class="text-red-500">*</span></label>
+                  <input v-model="firstName" type="text" id="su-fname"
+                    class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                    placeholder="John" required autocomplete="given-name">
                 </div>
                 <div>
-                  <label for="su-lname" class="block text-sm font-medium text-[#4c4453] mb-1">Last name <span class="text-red-500">*</span></label>
-                  <input v-model="lastName" type="text" id="su-lname" :class="inputClass" placeholder="Doe" required>
+                  <label for="su-lname" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Last name <span class="text-red-500">*</span></label>
+                  <input v-model="lastName" type="text" id="su-lname"
+                    class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                    placeholder="Doe" required autocomplete="family-name">
                 </div>
               </div>
 
+              <!-- Email -->
               <div>
-                <label for="su-email" class="block text-sm font-medium text-[#4c4453] mb-1">Email <span class="text-[#7d7484] font-normal">(optional)</span></label>
-                <input v-model="email" type="email" id="su-email" :class="inputClass" placeholder="john@example.com">
+                <label for="su-email" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Email <span class="font-normal text-[#7d7484]">(optional)</span></label>
+                <input v-model="email" type="email" id="su-email"
+                  class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                  placeholder="john@example.com" autocomplete="email">
               </div>
 
+              <!-- OTP boxes -->
               <div>
-                <label for="su-otp" class="block text-sm font-medium text-[#4c4453] mb-1">Verification code <span class="text-red-500">*</span></label>
-                <input v-model="otp" type="text" id="su-otp" :class="inputClass"
-                  placeholder="6-digit code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
-                <button type="button" @click="sendSignupOTP" :disabled="isLoading"
-                  class="mt-1 text-xs font-medium text-[#520094] hover:text-[#6029b4] disabled:opacity-50">
+                <label class="block text-sm font-semibold text-[#1e1a22] mb-2">Verification code <span class="text-red-500">*</span></label>
+                <div class="flex gap-2" role="group" aria-label="6-digit verification code">
+                  <input
+                    v-for="(_, idx) in otpDigits"
+                    :key="'signup-' + idx"
+                    :ref="el => { if (el) otpRefs[idx] = el as HTMLInputElement }"
+                    v-model="otpDigits[idx]"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="1"
+                    pattern="[0-9]"
+                    :aria-label="`Digit ${idx + 1}`"
+                    class="h-12 w-10 flex-1 rounded-xl border border-[#ddd0eb] bg-white text-center text-base font-bold text-[#1e1a22] shadow-[0_1px_3px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#520094] focus:ring-2 focus:ring-[#520094]/20 transition-shadow caret-transparent"
+                    @input="handleOtpInput($event, idx)"
+                    @keydown="handleOtpKeydown($event, idx)"
+                    @paste.prevent="handleOtpPaste($event)"
+                    autocomplete="one-time-code"
+                  >
+                </div>
+                <button
+                  type="button"
+                  @click="sendSignupOTP"
+                  :disabled="isLoading"
+                  class="mt-2 text-xs font-semibold text-[#520094] hover:text-[#6c24b3] disabled:opacity-50 focus:outline-none focus-visible:underline"
+                >
                   Resend code
                 </button>
               </div>
 
+              <!-- Password -->
               <div>
-                <label for="su-password" class="block text-sm font-medium text-[#4c4453] mb-1">Create a password <span class="text-red-500">*</span></label>
+                <label for="su-password" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Create a password <span class="text-red-500">*</span></label>
                 <div class="relative">
-                  <input v-model="password" :type="showPassword ? 'text' : 'password'" id="su-password" :class="passwordInputClass"
-                    placeholder="Min. 6 characters" required minlength="6">
-                  <button type="button" @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
-                    :aria-label="showPassword ? 'Hide password' : 'Show password'">
-                    <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
-                    <EyeIcon v-else class="w-5 h-5" />
+                  <input
+                    v-model="password"
+                    :type="showPassword ? 'text' : 'password'"
+                    id="su-password"
+                    class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 pr-11 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                    placeholder="Min. 6 characters"
+                    required
+                    minlength="6"
+                    autocomplete="new-password"
+                  >
+                  <button
+                    type="button"
+                    @click="showPassword = !showPassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#7d7484] hover:text-[#520094] hover:bg-[#f2eaf9] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                  >
+                    <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
+                    <EyeIcon v-else class="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
 
+              <!-- Confirm password -->
               <div>
-                <label for="su-confirm" class="block text-sm font-medium text-[#4c4453] mb-1">Confirm password <span class="text-red-500">*</span></label>
+                <label for="su-confirm" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Confirm password <span class="text-red-500">*</span></label>
                 <div class="relative">
-                  <input v-model="confirmPassword" :type="showPassword ? 'text' : 'password'" id="su-confirm" :class="passwordInputClass"
-                    placeholder="Re-enter password" required minlength="6">
-                  <button type="button" @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#7d7484] hover:text-[#520094] transition-colors"
-                    :aria-label="showPassword ? 'Hide password' : 'Show password'">
-                    <EyeSlashIcon v-if="showPassword" class="w-5 h-5" />
-                    <EyeIcon v-else class="w-5 h-5" />
+                  <input
+                    v-model="confirmPassword"
+                    :type="showPassword ? 'text' : 'password'"
+                    id="su-confirm"
+                    class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 pr-11 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                    placeholder="Re-enter password"
+                    required
+                    minlength="6"
+                    autocomplete="new-password"
+                  >
+                  <button
+                    type="button"
+                    @click="showPassword = !showPassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#7d7484] hover:text-[#520094] hover:bg-[#f2eaf9] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                  >
+                    <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
+                    <EyeIcon v-else class="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
-                <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1 text-xs text-red-600">
-                  Passwords do not match
+                <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  Passwords don't match
                 </p>
               </div>
 
-              <div class="flex items-start">
-                <input id="su-age" v-model="isOver18" type="checkbox"
-                  class="mt-1 h-4 w-4 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]" required>
-                <label for="su-age" class="ml-2 block text-xs text-[#4c4453]">
+              <!-- Age checkbox -->
+              <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  id="su-age"
+                  v-model="isOver18"
+                  type="checkbox"
+                  class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
+                  required
+                >
+                <span class="text-xs text-[#4c4453] leading-relaxed">
                   I confirm I am 18 years or older <span class="text-red-500">*</span>
-                </label>
-              </div>
+                </span>
+              </label>
 
-              <button type="submit" :disabled="isLoading || !canSignupSubmit" :class="fullPrimaryButtonClass">
-                <span v-if="isLoading" class="flex items-center justify-center">
-                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <!-- Submit -->
+              <button
+                type="submit"
+                :disabled="isLoading || !canSignupSubmit"
+                class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
+              >
+                <span v-if="isLoading" class="flex items-center justify-center gap-2">
+                  <svg class="animate-spin h-4 w-4 text-white/80" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating account…
+                  Creating your account…
                 </span>
                 <span v-else>Create account</span>
               </button>
             </form>
 
-            <!-- Back to login link -->
-            <p class="mt-4 text-center text-sm text-[#7d7484]">
+            <!-- Switch to login -->
+            <p class="mt-5 text-center text-sm text-[#7d7484]">
               Already have an account?
-              <button type="button" @click="goToLogin" class="font-semibold text-[#520094] hover:text-[#6029b4]">
+              <button
+                type="button"
+                @click="goToLogin"
+                class="font-bold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
+              >
                 Sign in
               </button>
             </p>
@@ -409,7 +727,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
 import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
@@ -467,14 +785,6 @@ const customerAuthService = createCustomerAuthService(useApi());
 const dialogRef = ref<HTMLElement | null>(null);
 useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'));
 
-const subtleCardClass = 'mb-4 rounded-2xl border-none bg-[#f4ebf7] p-4 text-sm text-[#4c4453]';
-const inputClass = 'w-full rounded-full border border-[#ddd0eb] shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 focus:border-[#520094]/40 transition-colors';
-const passwordInputClass = inputClass + ' pr-10';
-const phoneInputClass = 'w-full rounded-r-full border border-l-0 border-[#ddd0eb] shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-[#ffffff] px-4 py-3 text-sm text-[#1e1a22] placeholder-[#7d7484] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 focus:border-[#520094]/40 transition-colors';
-const secondaryButtonClass = 'rounded-full border-none bg-[#e9dfec] px-6 py-3 text-sm font-bold text-[#4c4453] hover:bg-[#e0d7e3] transition-all active:scale-95';
-const primaryButtonClass = 'rounded-xl bg-[#520094] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
-const fullPrimaryButtonClass = 'w-full rounded-xl bg-[#520094] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-18px_rgba(111,53,203,0.85)] transition hover:bg-[#6029b4] disabled:opacity-50';
-
 // State
 const view = ref<LoginView>('login');
 const currentStep = ref<LoginStep>('signin');
@@ -496,6 +806,59 @@ const errorMessage = ref<string>('');
 const phoneNumberError = ref<string>('');
 const rememberMe = ref<boolean>(true);
 const showPassword = ref<boolean>(false);
+const resetSuccess = ref<boolean>(false);
+
+// OTP digit boxes — 6 individual single-char slots kept in sync with otp ref
+const otpDigits = ref<string[]>(['', '', '', '', '', '']);
+const otpRefs = ref<HTMLInputElement[]>([]);
+
+// Keep the `otp` string ref (used by all business logic) in sync with the digit array
+watch(otpDigits, (digits) => {
+  otp.value = digits.join('');
+}, { deep: true });
+
+const handleOtpInput = (event: Event, idx: number): void => {
+  const input = event.target as HTMLInputElement;
+  const val = input.value.replace(/\D/g, '').slice(-1);
+  otpDigits.value[idx] = val;
+  if (val && idx < 5) {
+    nextTick(() => otpRefs.value[idx + 1]?.focus());
+  }
+};
+
+const handleOtpKeydown = (event: KeyboardEvent, idx: number): void => {
+  if (event.key === 'Backspace') {
+    if (otpDigits.value[idx]) {
+      otpDigits.value[idx] = '';
+    } else if (idx > 0) {
+      otpDigits.value[idx - 1] = '';
+      nextTick(() => otpRefs.value[idx - 1]?.focus());
+    }
+    event.preventDefault();
+  } else if (event.key === 'ArrowLeft' && idx > 0) {
+    otpRefs.value[idx - 1]?.focus();
+  } else if (event.key === 'ArrowRight' && idx < 5) {
+    otpRefs.value[idx + 1]?.focus();
+  }
+};
+
+const handleOtpPaste = (event: ClipboardEvent): void => {
+  const pasted = (event.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
+  if (!pasted) return;
+  const digits = pasted.split('');
+  for (let i = 0; i < 6; i++) {
+    otpDigits.value[i] = digits[i] ?? '';
+  }
+  nextTick(() => {
+    const focusIdx = Math.min(pasted.length, 5);
+    otpRefs.value[focusIdx]?.focus();
+  });
+};
+
+const clearOtp = (): void => {
+  otpDigits.value = ['', '', '', '', '', ''];
+  otp.value = '';
+};
 
 const registrationCompany = computed<string | null>(() => pharmacyStore.pharmacyData?.name ?? null);
 
@@ -525,7 +888,7 @@ const stepSubtitle = computed<string>(() => {
       ? `Registering with ${registrationCompany.value}. Orders will be available there right after signup.`
       : "A couple more details and you're in.";
   }
-  return 'Welcome back. Enter your phone and password.';
+  return '';
 });
 
 const submitLabel = computed<string>(() => {
@@ -609,7 +972,7 @@ const onPhoneInput = (): void => {
   validatePhoneNumber();
   if (mode.value !== 'login') {
     mode.value = 'login';
-    otp.value = '';
+    clearOtp();
     otpSent.value = false;
     firstName.value = '';
     lastName.value = '';
@@ -626,7 +989,7 @@ const resetSharedFields = (): void => {
   selectedCountry.value = 'GH';
   password.value = '';
   confirmPassword.value = '';
-  otp.value = '';
+  clearOtp();
   firstName.value = '';
   lastName.value = '';
   email.value = '';
@@ -648,6 +1011,7 @@ const goToLogin = (): void => {
   mode.value = 'login';
   signupOtpSent.value = false;
   otpSent.value = false;
+  resetSuccess.value = false;
   resetSharedFields();
 };
 
@@ -663,7 +1027,7 @@ const sendSignupOTP = async (): Promise<void> => {
     }) as { success: boolean; message?: string };
     if (!data.success) throw new Error(data.message ?? 'Failed to send verification code');
     signupOtpSent.value = true;
-    otp.value = '';
+    clearOtp();
   } catch (err) {
     errorMessage.value = err instanceof Error ? err.message : 'Failed to send code. Please try again.';
   } finally {
@@ -839,10 +1203,11 @@ const forgotPassword = (): void => {
   currentStep.value = 'reset';
   mode.value = 'login';
   otpSent.value = false;
-  otp.value = '';
+  clearOtp();
   password.value = '';
   confirmPassword.value = '';
   errorMessage.value = '';
+  resetSuccess.value = false;
 };
 
 const sendResetOTP = async (): Promise<void> => {
@@ -876,13 +1241,9 @@ const handleResetPassword = async (): Promise<void> => {
     currentStep.value = 'signin';
     mode.value = 'login';
     confirmPassword.value = '';
-    otp.value = '';
+    clearOtp();
     otpSent.value = false;
-
-    const tempSuccess = 'Password reset successful! Please login with your new password.';
-    setTimeout(() => {
-      alert(tempSuccess);
-    }, 100);
+    resetSuccess.value = true;
   } catch (err) {
     console.error('Reset password error:', err);
     errorMessage.value = err instanceof Error ? err.message : 'Failed to reset password. Please try again.';
@@ -897,13 +1258,14 @@ const backToSignIn = (): void => {
   mode.value = 'login';
   password.value = '';
   confirmPassword.value = '';
-  otp.value = '';
+  clearOtp();
   firstName.value = '';
   lastName.value = '';
   gender.value = '';
   isOver18.value = false;
   otpSent.value = false;
   errorMessage.value = '';
+  resetSuccess.value = false;
 };
 
 const closeModal = (): void => {
@@ -916,7 +1278,7 @@ const closeModal = (): void => {
     phoneNumber.value = '';
     password.value = '';
     confirmPassword.value = '';
-    otp.value = '';
+    clearOtp();
     firstName.value = '';
     lastName.value = '';
     email.value = '';
@@ -925,6 +1287,7 @@ const closeModal = (): void => {
     otpSent.value = false;
     errorMessage.value = '';
     phoneNumberError.value = '';
+    resetSuccess.value = false;
   }, 300);
 };
 
@@ -947,6 +1310,15 @@ onMounted(() => {
 watch(() => props.isOpen, (newValue) => {
   if (newValue) {
     tryToRestorePhone();
+  }
+});
+
+// Scroll first OTP box into view when the verify panel activates.
+watch(mode, async (newMode) => {
+  if (newMode === 'verify' || newMode === 'register') {
+    await nextTick();
+    otpRefs.value[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    otpRefs.value[0]?.focus();
   }
 });
 </script>

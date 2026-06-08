@@ -1,189 +1,318 @@
 <template>
-    <div class="space-y-6 w-full">
-        <!-- Header -->
-        <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-4">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-500 flex items-center justify-center flex-shrink-0">
-                    <WalletIcon class="w-[18px] h-[18px]" />
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Wallet</h1>
-                    <p class="text-xs text-zinc-500 font-medium mt-0.5">Credits and transaction history</p>
-                </div>
-            </div>
-            <button @click="fetchTransactions" :disabled="loading"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors shadow-sm disabled:opacity-50">
-                <ArrowPathIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
-                Refresh
-            </button>
-        </header>
+    <div class="min-h-screen pb-32">
 
-        <div class="space-y-6">
-            <!-- Hero grid: balance card + stat cards -->
-            <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
-                <!-- Bright balance card -->
-                <section class="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-6 min-h-[160px] flex flex-col justify-between shadow-sm">
-                    <div class="flex items-start justify-between gap-3 relative z-10">
-                        <div>
-                            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-500">Available Balance</p>
-                            <div class="flex items-end gap-1.5 mt-1">
-                                <span class="text-lg font-semibold text-zinc-500 leading-none mb-0.5">GHS</span>
-                                <strong class="text-4xl font-black tracking-tight leading-none text-zinc-900 tabular-nums">{{ balance.toFixed(2) }}</strong>
-                            </div>
+        <div class="px-4 space-y-4 pt-4">
+
+            <!-- ─── Balance hero card ───────────────────────────────────── -->
+            <section
+                class="relative overflow-hidden rounded-3xl p-6 min-h-[172px] flex flex-col justify-between"
+                style="background: linear-gradient(135deg, #4F217A 0%, #6b2fa0 55%, #3d1861 100%);"
+            >
+                <!-- Decorative circles -->
+                <div class="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/[0.06] pointer-events-none"></div>
+                <div class="absolute -bottom-14 -left-6 w-52 h-52 rounded-full bg-white/[0.04] pointer-events-none"></div>
+                <div class="absolute top-1/2 right-8 -translate-y-1/2 w-24 h-24 rounded-full bg-white/[0.05] pointer-events-none"></div>
+
+                <!-- Balance label + amount -->
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                            <WalletIcon class="w-3.5 h-3.5 text-white" aria-hidden="true" />
                         </div>
-                        <button @click="showTopUp = true" class="inline-flex items-center gap-2 bg-[#4F217A] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#3d1861] transition-colors flex-shrink-0 shadow-sm">
-                            <CreditCardIcon class="w-4 h-4" />
-                            Top Up
-                        </button>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Available Balance</p>
                     </div>
-
-                    <!-- Decorative soft accents -->
-                    <div class="absolute -top-16 -right-10 w-48 h-48 rounded-full opacity-[0.03] bg-[#4F217A]"></div>
-                    <div class="absolute -bottom-16 -left-8 w-40 h-40 rounded-full opacity-[0.02] bg-[#4F217A]"></div>
-                </section>
-
-                <!-- Stat mini cards -->
-                <div class="flex lg:flex-col gap-3">
-                    <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-                            <ArrowDownIcon class="w-5 h-5" />
+                    <div class="flex items-end gap-2">
+                        <span class="text-lg font-semibold text-white/60 leading-none mb-1">GHS</span>
+                        <strong class="text-5xl font-black tracking-tighter leading-none text-white tabular-nums">{{ balance.toFixed(2) }}</strong>
+                    </div>
+                    <!-- Verification / confirmation states -->
+                    <div v-if="isVerifying" class="mt-2 flex items-center gap-2 text-white/80">
+                        <ArrowPathIcon class="w-3.5 h-3.5 animate-spin flex-shrink-0" aria-hidden="true" />
+                        <span class="text-[11px] font-semibold">Verifying top-up...</span>
+                    </div>
+                    <Transition
+                        enter-active-class="transition duration-300 ease-out"
+                        enter-from-class="opacity-0 translate-y-1"
+                        enter-to-class="opacity-100 translate-y-0"
+                        leave-active-class="transition duration-500 ease-in"
+                        leave-from-class="opacity-100"
+                        leave-to-class="opacity-0"
+                    >
+                        <div v-if="topUpConfirmed" class="mt-2 flex items-center gap-2 text-emerald-300">
+                            <CheckCircleIcon class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                            <span class="text-[11px] font-bold">Top-up confirmed</span>
                         </div>
-                        <div>
-                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Credited</p>
-                            <h3 class="text-base font-black text-zinc-900 leading-none mt-1 tabular-nums">GHS {{ creditTotal.toFixed(2) }}</h3>
-                            <p class="text-[10px] font-medium text-zinc-400 mt-1 tabular-nums">{{ creditTransactions.length }} {{ creditTransactions.length === 1 ? 'entry' : 'entries' }}</p>
-                        </div>
-                    </article>
-
-                    <article class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white shadow-sm px-5 py-4 flex-1 lg:flex-auto">
-                        <div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 border border-red-100 flex items-center justify-center flex-shrink-0">
-                            <ArrowUpIcon class="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">Debited</p>
-                            <h3 class="text-base font-black text-zinc-900 leading-none mt-1 tabular-nums">GHS {{ debitTotal.toFixed(2) }}</h3>
-                            <p class="text-[10px] font-medium text-zinc-400 mt-1 tabular-nums">{{ debitTransactions.length }} {{ debitTransactions.length === 1 ? 'entry' : 'entries' }}</p>
-                        </div>
-                    </article>
-                </div>
-            </div>
-
-            <!-- Transactions -->
-            <section class="rounded-xl border border-zinc-200 bg-white shadow-sm pt-5 overflow-hidden">
-                <div class="flex items-center justify-between gap-3 mb-4 px-5">
-                    <div class="flex items-center gap-3">
-                        <h3 class="font-black text-zinc-900 text-base tracking-tight">Recent Transactions</h3>
-                        <span class="inline-flex items-center rounded-full px-3 py-1 bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] font-black uppercase tracking-[0.12em]">{{ currentMonthLabel }}</span>
+                    </Transition>
+                    <div v-if="verifyTimedOut" class="mt-2 text-[11px] font-semibold text-amber-300 leading-snug max-w-[260px]">
+                        Payment verification is taking longer than usual — your balance will update shortly.
                     </div>
                 </div>
 
-                <!-- Loading -->
-                <div v-if="loading" class="flex flex-col items-center justify-center py-12 text-zinc-400 border-t border-zinc-200 bg-zinc-50">
-                    <ArrowPathIcon class="w-7 h-7 animate-spin mb-3" />
-                    <p class="text-sm font-medium text-zinc-500">Loading transactions...</p>
+                <!-- Top Up CTA -->
+                <div class="relative z-10 mt-5">
+                    <button
+                        @click="showTopUp = true"
+                        class="inline-flex items-center gap-2 bg-white text-[#4F217A] px-5 py-2.5 rounded-2xl text-sm font-black hover:bg-[#f0e8ff] active:scale-95 transition-all shadow-md"
+                    >
+                        <CreditCardIcon class="w-4 h-4" aria-hidden="true" />
+                        Top Up Wallet
+                    </button>
+                </div>
+            </section>
+
+            <!-- ─── Recent Transactions ─────────────────────────────────── -->
+            <section class="bg-white rounded-3xl border border-[#e4d9f5] shadow-sm overflow-hidden">
+
+                <!-- Section header -->
+                <div class="px-5 pt-5 pb-4 flex items-center justify-between border-b border-[#f0e8ff]">
+                    <h2 class="text-[15px] font-black text-[#1a0a2e] tracking-tight">Recent Transactions</h2>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 bg-[#f0e8ff] text-[#4F217A] text-[10px] font-black uppercase tracking-[0.14em]">
+                        {{ currentMonthLabel }}
+                    </span>
                 </div>
 
-                <!-- Empty -->
-                <div v-else-if="transactions.length === 0" class="flex flex-col items-center justify-center py-16 border-t border-zinc-200 bg-zinc-50">
-                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center border border-zinc-200 shadow-sm mb-4">
-                        <ClipboardDocumentListIcon class="w-6 h-6 text-zinc-300" />
+                <!-- Loading state -->
+                <div v-if="loading" class="flex flex-col items-center justify-center py-14 px-6">
+                    <div class="w-14 h-14 rounded-2xl bg-[#f0e8ff] flex items-center justify-center mb-4">
+                        <ArrowPathIcon class="w-6 h-6 text-[#4F217A] animate-spin" aria-hidden="true" />
                     </div>
-                    <p class="text-base font-bold text-zinc-900 mb-1 leading-tight">No transactions yet</p>
-                    <p class="text-sm font-medium text-zinc-500">Top up your wallet to start building transaction history.</p>
+                    <p class="text-sm font-bold text-[#1a0a2e]">Loading transactions</p>
+                    <p class="text-xs text-[#9b7ec0] mt-1">Fetching your history...</p>
                 </div>
 
-            <!-- Transaction list -->
-            <div v-else class="space-y-0 text-sm border-y border-zinc-200 bg-white">
-                <article v-for="tx in transactions" :key="tx.id ?? ''"
-                    class="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group gap-3 sm:gap-4"
-                >
-                    <div class="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+                <!-- Empty state -->
+                <div v-else-if="transactions.length === 0" class="flex flex-col items-center justify-center py-14 px-6 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-[#f0e8ff] flex items-center justify-center mb-4">
+                        <!-- Inline SVG wallet-with-coin illustration -->
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="9" width="26" height="18" rx="4" fill="#e4d9f5"/>
+                            <rect x="2" y="9" width="26" height="6" rx="2" fill="#c4a8e8"/>
+                            <circle cx="23" cy="20" r="4" fill="#4F217A"/>
+                            <path d="M23 18.5v3M21.5 20h3" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+                            <rect x="6" y="5" width="14" height="4" rx="2" fill="#c4a8e8"/>
+                        </svg>
+                    </div>
+                    <p class="text-base font-black text-[#1a0a2e] mb-1">No transactions yet</p>
+                    <p class="text-sm text-[#7c5fa0] leading-relaxed max-w-[220px]">Top up your wallet to start building your transaction history.</p>
+                    <button
+                        @click="showTopUp = true"
+                        class="mt-5 inline-flex items-center gap-2 bg-[#4F217A] text-white px-5 py-2.5 rounded-2xl text-sm font-bold hover:bg-[#3d1861] transition-colors"
+                    >
+                        <CreditCardIcon class="w-4 h-4" aria-hidden="true" />
+                        Top Up Now
+                    </button>
+                </div>
+
+                <!-- Transaction list -->
+                <ul v-else role="list" class="divide-y divide-[#f5f0fb]">
+                    <li
+                        v-for="tx in transactions"
+                        :key="tx.id ?? ''"
+                        class="flex items-start gap-3 px-5 py-4 hover:bg-[#faf8ff] active:bg-[#f5f0fb] transition-colors cursor-default"
+                    >
+                        <!-- Direction icon -->
                         <div
-                            class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border mt-0.5 sm:mt-0 transition-colors shadow-sm"
-                            :class="getTransactionDirection(tx) === 'credit' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-100 group-hover:bg-red-100'"
+                            class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                            :class="getTransactionDirection(tx) === 'credit'
+                                ? 'bg-emerald-50 border border-emerald-100'
+                                : 'bg-rose-50 border border-rose-100'"
                         >
-                            <component :is="getTransactionDirection(tx) === 'credit' ? ArrowDownIcon : ArrowUpIcon" class="w-5 h-5" />
+                            <component
+                                :is="getTransactionDirection(tx) === 'credit' ? ArrowDownIcon : ArrowUpIcon"
+                                class="w-3.5 h-3.5"
+                                :class="getTransactionDirection(tx) === 'credit' ? 'text-emerald-600' : 'text-rose-500'"
+                                aria-hidden="true"
+                            />
                         </div>
-                        <div class="min-w-0 flex-1">
-                            <h4 class="text-sm font-bold text-zinc-900 leading-tight mb-1" :title="formatTransactionDescription(tx)">{{ formatTransactionDescription(tx) }}</h4>
-                            <p class="text-[11px] font-medium text-zinc-500 flex items-center gap-1.5">
+
+                        <!-- Description + meta -->
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-[#1a0a2e] leading-snug truncate" :title="formatTransactionDescription(tx)">
+                                {{ formatTransactionDescription(tx) }}
+                            </p>
+                            <p class="text-[11px] text-[#9b7ec0] font-medium mt-0.5">
                                 {{ formatDate(tx.created_at) }}
                             </p>
+                            <!-- Reference / note chip -->
+                            <span
+                                v-if="getTransactionNote(tx)"
+                                class="inline-flex items-center mt-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-[#f5f0fb] text-[#7c5fa0] max-w-[180px] truncate"
+                                :title="getTransactionNote(tx)"
+                            >
+                                {{ getTransactionNote(tx) }}
+                            </span>
+                        </div>
+
+                        <!-- Amount + type pill -->
+                        <div class="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
+                            <strong
+                                class="text-[15px] font-black tabular-nums tracking-tight leading-none"
+                                :class="getTransactionDirection(tx) === 'credit' ? 'text-emerald-600' : 'text-rose-500'"
+                            >
+                                {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(String(tx.amount ?? 0)).toFixed(2) }}
+                            </strong>
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide"
+                                :class="getTransactionDirection(tx) === 'credit'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                    : 'bg-rose-50 text-rose-600 border border-rose-100'"
+                            >
+                                {{ getTransactionDirection(tx) === 'credit' ? 'Credit' : 'Debit' }}
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+
+            </section>
+        </div>
+
+        <!-- ─── Top Up bottom-sheet modal ──────────────────────────────── -->
+        <Transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div
+                v-if="showTopUp"
+                class="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 backdrop-blur-sm"
+                @click.self="showTopUp = false"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Top up wallet"
+            >
+                <Transition
+                    enter-active-class="transition duration-300 ease-out"
+                    enter-from-class="translate-y-full"
+                    enter-to-class="translate-y-0"
+                    leave-active-class="transition duration-200 ease-in"
+                    leave-from-class="translate-y-0"
+                    leave-to-class="translate-y-full"
+                >
+                    <div v-if="showTopUp" class="w-full max-w-lg bg-white rounded-t-3xl shadow-2xl overflow-hidden">
+
+                        <!-- Handle bar -->
+                        <div class="flex justify-center pt-3 pb-1">
+                            <div class="w-10 h-1 rounded-full bg-zinc-200"></div>
+                        </div>
+
+                        <!-- Modal header -->
+                        <div class="px-6 pt-3 pb-2 flex items-start justify-between">
+                            <div>
+                                <h3 class="text-lg font-black text-[#1a0a2e] tracking-tight">Top Up Wallet</h3>
+                                <p class="text-xs text-[#9b7ec0] mt-0.5 font-medium">Secured via Paystack</p>
+                            </div>
+                            <button
+                                @click="showTopUp = false"
+                                aria-label="Close top up modal"
+                                class="w-8 h-8 rounded-full bg-[#f5f0fb] flex items-center justify-center text-[#7c5fa0] hover:bg-[#e4d9f5] transition-colors"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="px-6 pb-8 space-y-4 mt-2">
+
+                            <!-- Amount input -->
+                            <div class="flex flex-col gap-1.5">
+                                <label for="topup-amount" class="text-sm font-bold text-[#1a0a2e]">Amount to credit (GHS)</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#9b7ec0]">GHS</span>
+                                    <input
+                                        id="topup-amount"
+                                        v-model.number="topUpAmount"
+                                        type="number"
+                                        min="1"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        autocomplete="off"
+                                        class="w-full rounded-2xl border border-[#e4d9f5] bg-[#faf8ff] pl-14 pr-4 py-3.5 text-xl font-black text-[#1a0a2e] tabular-nums focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/50 transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Quick-amount chips -->
+                            <div class="grid grid-cols-4 gap-2">
+                                <button
+                                    v-for="amt in [10, 20, 50, 100]"
+                                    :key="amt"
+                                    @click="topUpAmount = amt"
+                                    class="py-2.5 rounded-2xl border text-sm font-bold transition-all active:scale-95"
+                                    :class="topUpAmount === amt
+                                        ? 'bg-[#4F217A] text-white border-[#4F217A] shadow-sm'
+                                        : 'border-[#e4d9f5] bg-white text-[#4F217A] hover:bg-[#f0e8ff]'"
+                                >
+                                    {{ amt }}
+                                </button>
+                            </div>
+
+                            <!-- Fee breakdown -->
+                            <div v-if="topUpAmount > 0" class="rounded-2xl border border-[#e4d9f5] bg-[#faf8ff] px-4 py-3.5 space-y-2">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-[#7c5fa0] font-medium">Amount to credit</span>
+                                    <span class="font-bold text-[#1a0a2e] tabular-nums">GHS {{ topUpAmount.toFixed(2) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-[#9b7ec0] font-medium text-xs">Paystack fee (1.95% + GH₵0.50)</span>
+                                    <span class="text-[#9b7ec0] tabular-nums text-xs">GHS {{ topUpFee.toFixed(2) }}</span>
+                                </div>
+                                <div class="flex justify-between items-center pt-2 border-t border-[#e4d9f5]">
+                                    <span class="text-sm font-black text-[#1a0a2e]">Total to pay</span>
+                                    <span class="text-base font-black text-[#4F217A] tabular-nums">GHS {{ topUpTotal.toFixed(2) }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Action buttons -->
+                            <div class="flex gap-3 pt-1">
+                                <button
+                                    @click="showTopUp = false"
+                                    class="flex-1 border border-[#e4d9f5] bg-white text-[#7c5fa0] py-3.5 rounded-2xl text-sm font-bold hover:bg-[#f5f0fb] transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    @click="initiateTopUp"
+                                    :disabled="!topUpAmount || topUpAmount <= 0 || isPaying"
+                                    class="flex-1 inline-flex items-center justify-center gap-2 bg-[#4F217A] text-white py-3.5 rounded-2xl text-sm font-black hover:bg-[#3d1861] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm"
+                                >
+                                    <ArrowPathIcon v-if="isPaying" class="w-4 h-4 animate-spin" aria-hidden="true" />
+                                    <span>{{ isPaying ? 'Starting…' : `Pay GHS ${topUpTotal.toFixed(2)}` }}</span>
+                                </button>
+                            </div>
+
                         </div>
                     </div>
-                    <div class="flex flex-row-reverse sm:flex-col items-center sm:items-end justify-between sm:justify-center flex-shrink-0 pl-[52px] sm:pl-0 gap-2 sm:gap-1.5">
-                        <strong
-                            class="text-[15px] font-black tabular-nums tracking-tight"
-                            :class="getTransactionDirection(tx) === 'credit' ? 'text-[#1d9154]' : 'text-red-600'"
-                        >
-                            {{ getTransactionDirection(tx) === 'credit' ? '+' : '-' }}GHS {{ parseFloat(String(tx.amount ?? 0)).toFixed(2) }}
-                        </strong>
-                        <span v-if="getTransactionNote(tx)" class="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border bg-zinc-50 text-zinc-500 border-zinc-200 shadow-sm max-w-[150px] sm:max-w-xs truncate" :title="getTransactionNote(tx)">
-                            {{ getTransactionNote(tx) }}
-                        </span>
-                    </div>
-                </article>
+                </Transition>
             </div>
-        </section>
+        </Transition>
 
-        </div>
-
-        <!-- Top Up Modal -->
-        <div v-if="showTopUp" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm p-4" @click.self="showTopUp = false">
-            <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
-                <div class="px-6 pt-6 pb-2">
-                    <h3 class="font-black text-zinc-900 tracking-tight text-lg">Top Up Wallet</h3>
-                    <p class="text-sm text-zinc-500 mt-0.5">Add funds via Paystack</p>
-                </div>
-                <div class="px-6 pb-6 space-y-4">
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-sm font-semibold text-zinc-700">Amount to credit (GHS)</label>
-                        <input v-model.number="topUpAmount" type="number" min="1" step="0.01" placeholder="50.00"
-                            class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 text-zinc-900 font-semibold" />
-                    </div>
-                    <div class="flex gap-2">
-                        <button v-for="amt in [10, 20, 50, 100]" :key="amt" @click="topUpAmount = amt"
-                            class="flex-1 py-2 rounded-xl border text-sm font-semibold transition-colors"
-                            :class="topUpAmount === amt ? 'bg-[#4F217A] text-white border-[#4F217A]' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'">
-                            {{ amt }}
-                        </button>
-                    </div>
-                    <div v-if="topUpAmount > 0" class="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 space-y-1.5 text-sm">
-                        <div class="flex justify-between text-zinc-600">
-                            <span>Amount to credit</span>
-                            <span class="font-semibold tabular-nums">GHS {{ topUpAmount.toFixed(2) }}</span>
-                        </div>
-                        <div class="flex justify-between text-zinc-500">
-                            <span>Paystack fee (1.95% + GH₵0.50)</span>
-                            <span class="tabular-nums">GHS {{ topUpFee.toFixed(2) }}</span>
-                        </div>
-                        <div class="flex justify-between font-black text-zinc-900 border-t border-zinc-200 pt-1.5">
-                            <span>Total to pay</span>
-                            <span class="tabular-nums">GHS {{ topUpTotal.toFixed(2) }}</span>
-                        </div>
-                    </div>
-                    <div class="flex gap-3 pt-2">
-                        <button @click="showTopUp = false"
-                            class="flex-1 border border-zinc-200 bg-white text-zinc-700 py-3 rounded-xl text-sm font-semibold hover:bg-zinc-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button @click="initiateTopUp" :disabled="!topUpAmount || topUpAmount <= 0 || isPaying"
-                            class="flex-1 inline-flex items-center justify-center gap-2 bg-[#4F217A] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            <ArrowPathIcon v-if="isPaying" class="w-[18px] h-[18px] animate-spin" />
-                            <span>{{ isPaying ? 'Starting…' : `Pay GHS ${topUpTotal.toFixed(2)}` }}</span>
-                        </button>
-                    </div>
-                </div>
+        <!-- ─── Toast notification ──────────────────────────────────────── -->
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-2"
+        >
+            <div
+                v-if="toast"
+                class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-lg text-sm font-bold whitespace-nowrap max-w-[calc(100vw-2rem)]"
+                :class="toast.type === 'error' ? 'bg-rose-600 text-white' : 'bg-[#1a0a2e] text-white'"
+                role="alert"
+                aria-live="polite"
+            >
+                <component
+                    :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon"
+                    class="w-4 h-4 flex-shrink-0"
+                    aria-hidden="true"
+                />
+                {{ toast.text }}
             </div>
-        </div>
+        </Transition>
 
-        <!-- Toast -->
-        <div v-if="toast"
-            class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold"
-            :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'">
-            <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="w-4 h-4 flex-shrink-0" />
-            {{ toast.text }}
-        </div>
     </div>
 </template>
 
@@ -241,6 +370,10 @@ const loading = ref<boolean>(false)
 const showTopUp = ref<boolean>(false)
 const topUpAmount = ref<number>(50)
 const isPaying = ref<boolean>(false)
+const isVerifying = ref<boolean>(false)
+const topUpConfirmed = ref<boolean>(false)
+const verifyTimedOut = ref<boolean>(false)
+let topUpConfirmedTimer: ReturnType<typeof setTimeout> | null = null
 
 const topUpFee = computed<number>(() => {
     const amt = topUpAmount.value || 0
@@ -402,6 +535,7 @@ const stopTopUpRefreshPolling = (): void => {
         topUpRefreshTimer = null
     }
     topUpRefreshTicks = 0
+    isVerifying.value = false
 }
 
 const refreshWalletData = async (): Promise<void> => {
@@ -416,6 +550,7 @@ const startTopUpRefreshPolling = (): void => {
         await refreshWalletData()
         if (topUpRefreshTicks >= 6) {
             stopTopUpRefreshPolling()
+            verifyTimedOut.value = true
         }
     }, 5000)
 }
@@ -451,29 +586,35 @@ const formatDate = (d: string | undefined): string =>
         minute: '2-digit',
     }) : ''
 
-const showToast = (text: string, type = 'success'): void => {
+const showToast = (text: string, type = 'success', duration = 4000): void => {
     toast.value = { text, type }
-    setTimeout(() => { toast.value = null }, 4000)
+    setTimeout(() => { toast.value = null }, duration)
 }
 
 const verifyPayment = async (): Promise<void> => {
     const trxRef = route.query['trxref'] ?? route.query['reference']
     if (!trxRef) return
 
+    isVerifying.value = true
+    verifyTimedOut.value = false
     loading.value = true
     try {
         const res = await walletService.verifyTopUp(String(trxRef)) as WalletEnvelope
         if (res.success) {
             stopTopUpRefreshPolling()
-            showToast('Wallet topped up successfully!')
             const d = res.data as { balance?: number; balance_after?: number } | undefined
             balance.value = parseFloat(String(d?.balance ?? d?.balance_after ?? balance.value))
             void fetchTransactions()
             void router.replace({ query: { tab: 'wallet' } })
+            showToast('Wallet topped up successfully!', 'success', 8000)
+            topUpConfirmed.value = true
+            if (topUpConfirmedTimer) clearTimeout(topUpConfirmedTimer)
+            topUpConfirmedTimer = setTimeout(() => { topUpConfirmed.value = false }, 6000)
         }
     } catch (e) {
         showToast(e instanceof Error ? e.message : 'Payment verification failed', 'error')
     } finally {
+        isVerifying.value = false
         loading.value = false
     }
 }
@@ -505,8 +646,8 @@ watch(
 onUnmounted(() => {
     stopTopUpRefreshPolling()
     window.removeEventListener('focus', handleWindowFocus)
+    if (topUpConfirmedTimer) clearTimeout(topUpConfirmedTimer)
 })
 
 defineExpose({ fetchBalance, fetchTransactions })
 </script>
-
