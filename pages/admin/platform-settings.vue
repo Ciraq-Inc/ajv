@@ -616,6 +616,22 @@ const sections: SectionDefinition[] = [
       }
     ]
   },
+  {
+    id: 'notifications',
+    short: 'NTF',
+    title: 'Notifications',
+    description: 'Phone numbers that receive automated platform alerts',
+    settings: [
+      {
+        key: 'platform_admin_phone',
+        label: 'Platform Admin Phone',
+        help: 'Ghana number (e.g. 233556637717) that receives an SMS alert whenever a new request is submitted. Falls back to 233556637717 if left blank.',
+        type: 'string',
+        inputType: 'tel',
+        defaultValue: '233556637717'
+      }
+    ]
+  },
   // {
   //   id: 'system',
   //   short: 'SYS',
@@ -663,6 +679,7 @@ const sectionChipClass = (short: string): string => {
     PAY: 'bg-green-50 text-green-700',
     LOG: 'bg-purple-50 text-purple-700',
     SMS: 'bg-orange-50 text-orange-700',
+    NTF: 'bg-red-50 text-red-700',
     SYS: 'bg-gray-100 text-gray-600',
   }
   return map[short] ?? 'bg-gray-100 text-gray-600'

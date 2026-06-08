@@ -243,29 +243,23 @@
 
                 <div v-else class="space-y-2 mb-6">
 
-                    <!-- ── Needs Attention strip ── -->
+                    <!-- ── New today strip ── -->
                     <section v-if="showAttentionStrip" role="status" aria-live="polite"
-                        class="rounded-2xl bg-gradient-to-r from-[#F04E37]/[0.08] to-[#4F217A]/[0.06] ring-1 ring-[#F04E37]/20 px-4 py-3.5 flex flex-col gap-2.5">
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="relative flex h-2.5 w-2.5 flex-shrink-0">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F04E37] opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#F04E37]"></span>
-                                </span>
-                                <span class="text-[11px] font-black uppercase tracking-widest text-[#F04E37]">Needs attention</span>
-                            </div>
-                            <button type="button" @click="dismissAttentionStrip"
-                                class="w-6 h-6 flex items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-200/60 hover:text-zinc-600 transition-colors"
-                                aria-label="Dismiss">
-                                <XMarkIcon class="w-3.5 h-3.5" />
-                            </button>
+                        class="rounded-2xl bg-gradient-to-r from-[#4F217A]/[0.06] to-[#4F217A]/[0.03] ring-1 ring-[#4F217A]/[0.15] px-4 py-3.5 flex flex-col gap-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-2.5 w-2.5 flex-shrink-0">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4F217A] opacity-50"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#4F217A]"></span>
+                            </span>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-[#4F217A]">New</span>
                         </div>
                         <ul class="flex flex-col gap-1.5">
                             <li v-for="req in newItems.filter(r => reqStage(r) !== requestListTab)" :key="`attn-${req.id}`"
-                                @click="requestListTab = reqStage(req); markTabSeen(reqStage(req)); viewDetail(req)"
+                                @click="requestListTab = reqStage(req); viewDetail(req)"
                                 class="flex items-center justify-between gap-2 cursor-pointer rounded-xl px-3 py-2 bg-white/70 hover:bg-white/90 transition-colors">
                                 <div class="flex items-center gap-2 min-w-0">
                                     <ExclamationCircleIcon v-if="reqStage(req) === 'awaiting_payment'" class="w-3.5 h-3.5 text-[#F04E37] flex-shrink-0" />
+                                    <TruckIcon v-else-if="reqStage(req) === 'awaiting_fulfilment'" class="w-3.5 h-3.5 text-[#4F217A] flex-shrink-0" />
                                     <BeakerIcon v-else class="w-3.5 h-3.5 text-[#4F217A] flex-shrink-0" />
                                     <span class="text-xs font-bold text-zinc-900 truncate">#{{ req.request_number }}</span>
                                 </div>
@@ -273,12 +267,12 @@
                                     :class="reqStage(req) === 'awaiting_payment' ? 'bg-[#F04E37]/[0.10] text-[#F04E37]' : 'bg-[#4F217A]/[0.08] text-[#4F217A]'">
                                     {{ reqStage(req) === 'awaiting_payment'
                                         ? ((req.total_cost || req.estimated_total) ? `Pay GHS ${parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2)}` : 'Pay now')
-                                        : 'Being sourced' }}
+                                        : reqStage(req) === 'awaiting_fulfilment' ? 'On the way' : 'Being sourced' }}
                                 </span>
                             </li>
                         </ul>
                         <p v-if="newItems.filter(r => reqStage(r) !== requestListTab).length > 1" class="text-[10px] font-medium text-zinc-400 text-center">
-                            Tap a row to jump to that tab
+                            Tap a row to jump to that section
                         </p>
                     </section>
 
@@ -299,10 +293,9 @@
                                     class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-900 text-white">
                                     {{ awaitingPaymentRequests.length }}
                                 </span>
-                                <span v-if="tabHasNew.awaiting_payment && requestListTab !== 'awaiting_payment'"
-                                    class="relative flex h-2 w-2 flex-shrink-0" aria-label="New items">
-                                    <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-[#F04E37] opacity-60"></span>
-                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-[#F04E37]"></span>
+                                <span v-if="tabHasNew.awaiting_payment"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#F04E37]/[0.10] text-[#F04E37] text-[9px] font-black uppercase tracking-wider">
+                                    New
                                 </span>
                                 <span v-if="awaitingPaymentTotal" class="text-[11px] font-semibold text-zinc-400 ml-0.5">GHS {{ awaitingPaymentTotal }}</span>
                             </div>
@@ -357,10 +350,9 @@
                                     class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
                                     {{ processingRequests.length }}
                                 </span>
-                                <span v-if="tabHasNew.processing && requestListTab !== 'processing'"
-                                    class="relative flex h-2 w-2 flex-shrink-0" aria-label="New items">
-                                    <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-[#4F217A] opacity-50"></span>
-                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-[#4F217A]"></span>
+                                <span v-if="tabHasNew.processing"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
+                                    New
                                 </span>
                             </div>
                             <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
@@ -412,6 +404,10 @@
                                     class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
                                     {{ awaitingFulfilmentRequests.length }}
                                 </span>
+                                <span v-if="tabHasNew.awaiting_fulfilment"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
+                                    New
+                                </span>
                             </div>
                             <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
                                 :class="requestListTab === 'awaiting_fulfilment' ? 'rotate-180' : ''" />
@@ -428,6 +424,10 @@
                                     <div class="flex items-center gap-2">
                                         <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
                                         <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
+                                        <span v-if="newItemIds.has(req.id)"
+                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
+                                            New
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -579,12 +579,20 @@
 
                     <!-- Rider contact (shown when delivery is active and rider is assigned) -->
                     <div v-if="selectedRequest.rider_phone" class="rider-contact-card">
-                        <span class="detail-label">Your Rider</span>
-                        <p v-if="selectedRequest.rider_name" class="rider-name">{{ selectedRequest.rider_name }}</p>
-                        <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
-                            <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
-                            Message on WhatsApp
-                        </a>
+                        <div class="rider-contact-row">
+                            <div class="rider-contact-info">
+                                <span class="rider-contact-label">Your rider is on the way</span>
+                                <span v-if="selectedRequest.rider_name" class="rider-contact-name">{{ selectedRequest.rider_name }}</span>
+                            </div>
+                            <div class="rider-contact-actions">
+                                <a :href="`tel:${selectedRequest.rider_phone}`" class="rider-action-btn rider-action-btn--call" :aria-label="`Call ${selectedRequest.rider_name || 'rider'}`">
+                                    <PhoneIcon class="w-4 h-4" />
+                                </a>
+                                <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-action-btn rider-action-btn--wa" :aria-label="`WhatsApp ${selectedRequest.rider_name || 'rider'}`">
+                                    <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Pickup location (revealed after payment for pickup orders) -->
@@ -1757,37 +1765,8 @@ watch(requestListTab, (tab) => {
   if (process.client) sessionStorage.setItem(SESSION_TAB_KEY, tab)
 })
 
-// ─── Needs Attention tracking ─────────────────────────────────────────────
-interface SnapshotEntry { id: string; status: string; updatedAt: string }
-const ATTENTION_STAGES = new Set<string>(['awaiting_payment', 'processing'])
-const _snapshotKey = () => `medsgh_req_snapshot:${userStore.masterCustomer?.id ?? 'anon'}`
-const _seenKey = () => `medsgh_req_seen:${userStore.masterCustomer?.id ?? 'anon'}`
-const _readSnapshot = (): SnapshotEntry[] => {
-    if (!process.client) return []
-    try { return JSON.parse(localStorage.getItem(_snapshotKey()) ?? '[]') } catch { return [] }
-}
-const _writeSnapshot = (e: SnapshotEntry[]) => {
-    if (!process.client) return
-    try { localStorage.setItem(_snapshotKey(), JSON.stringify(e)) } catch {}
-}
-const _readSeen = (): Set<string> => {
-    if (!process.client) return new Set()
-    try { return new Set(JSON.parse(localStorage.getItem(_seenKey()) ?? '[]') as string[]) } catch { return new Set() }
-}
-const _writeSeen = (s: Set<string>) => {
-    if (!process.client) return
-    try { localStorage.setItem(_seenKey(), JSON.stringify([...s])) } catch {}
-}
-const seenItems = ref<Set<string>>(_readSeen())
-const attentionDismissed = ref(false)
-
-// Update snapshot on every poll; re-surface strip if genuinely new items arrive.
-watch(myRequests, (next) => {
-    // Evaluate against the OLD snapshot first, then write the new one.
-    // (Reading after writing would always find nothing new.)
-    if (newItems.value.some(r => reqStage(r) !== requestListTab.value)) attentionDismissed.value = false
-    _writeSnapshot(next.map(r => ({ id: String(r.id), status: r.status ?? '', updatedAt: r.updated_at ?? '' })))
-}, { deep: false })
+// ─── New today tracking ────────────────────────────────────────────────────
+// A request is "new" for the entire calendar day it was created.
 
 const respondingDecisionId = ref<number | string | null>(null)
 const decisionSelections = ref<Record<string | number, Record<string, string>>>({})
@@ -1814,13 +1793,6 @@ const goToRequestHistory = async (): Promise<void> => {
     await navigateTo({ path: '/customer', query: { tab: 'requests' } })
 }
 
-const markTabSeen = (stage: string) => {
-    const updated = new Set(seenItems.value)
-    myRequests.value.filter(r => reqStage(r) === stage).forEach(r => updated.add(`${r.id}:${stage}`))
-    seenItems.value = updated
-    _writeSeen(updated)
-}
-const dismissAttentionStrip = () => { attentionDismissed.value = true }
 
 const validItems = computed<RequestItem[]>(() => requestItems.value.filter(i => i.product_name.trim()))
 const hasPrescriptionFiles = computed<boolean>(() => prescriptionFiles.value.length > 0)
@@ -1882,23 +1854,17 @@ const awaitingPaymentRequests = computed<OrderRequest[]>(() => myRequests.value.
 const awaitingFulfilmentRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'awaiting_fulfilment'))
 const completedRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'complete'))
 const newItems = computed<OrderRequest[]>(() => {
-    const snap = new Map(_readSnapshot().map(e => [e.id, e]))
-    return myRequests.value.filter(req => {
-        const stage = reqStage(req)
-        if (!ATTENTION_STAGES.has(stage)) return false
-        const key = `${req.id}:${stage}`
-        if (seenItems.value.has(key)) return false
-        const prev = snap.get(String(req.id))
-        if (!prev) return true
-        return prev.status !== (req.status ?? '')
-    })
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    return myRequests.value.filter(req => !!req.created_at && new Date(req.created_at) >= todayStart)
 })
 const newItemIds = computed<Set<string | number>>(() => new Set(newItems.value.map(r => r.id)))
 const tabHasNew = computed(() => ({
     awaiting_payment: newItems.value.some(r => reqStage(r) === 'awaiting_payment'),
     processing: newItems.value.some(r => reqStage(r) === 'processing'),
+    awaiting_fulfilment: newItems.value.some(r => reqStage(r) === 'awaiting_fulfilment'),
 }))
-const showAttentionStrip = computed(() => !attentionDismissed.value && newItems.value.some(r => reqStage(r) !== requestListTab.value))
+const showAttentionStrip = computed(() => newItems.value.some(r => reqStage(r) !== requestListTab.value))
 const awaitingPaymentTotal = computed<string>(() => {
     const total = awaitingPaymentRequests.value.reduce((sum, r) => {
         const amount = parseFloat(String(r.total_cost ?? r.estimated_total ?? 0))
@@ -5762,32 +5728,54 @@ void isPaymentPendingRequest
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
     border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.rider-contact-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.rider-contact-info {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 1px;
+    min-width: 0;
 }
-.rider-name {
-    font-size: 0.9rem;
+.rider-contact-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #15803d;
+    text-transform: uppercase;
+}
+.rider-contact-name {
+    font-size: 0.88rem;
     font-weight: 600;
     color: #111;
-    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.rider-whatsapp-btn {
+.rider-contact-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.rider-action-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    background: #25D366;
-    color: white;
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     text-decoration: none;
-    align-self: flex-start;
-    margin-top: 0.25rem;
+    color: white;
+    flex-shrink: 0;
 }
+.rider-action-btn--call { background: #4F217A; }
+.rider-action-btn--wa   { background: #25D366; }
 
 .totals-box {
     background: #eef2ff;
