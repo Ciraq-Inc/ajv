@@ -24,12 +24,47 @@
       </nav>
     </div>
 
+    <!-- Search + date range filters -->
+    <div class="flex flex-wrap gap-2 items-center">
+      <div class="relative flex-1 min-w-[200px]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search by request number, name, or address…"
+          class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-400 transition"
+        />
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <input
+          v-model="dateFrom"
+          type="date"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-400 transition"
+        />
+        <span class="text-gray-400 text-sm select-none">–</span>
+        <input
+          v-model="dateTo"
+          type="date"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-400 transition"
+        />
+        <button
+          v-if="searchQuery || dateFrom || dateTo"
+          @click="searchQuery = ''; dateFrom = ''; dateTo = ''"
+          class="text-sm text-gray-400 hover:text-gray-600 transition whitespace-nowrap"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+
     <!-- Loading -->
     <div v-if="loading" class="py-12 text-center text-gray-500">Loading orders...</div>
 
     <!-- Empty -->
     <div v-else-if="filtered.length === 0" class="py-12 text-center text-gray-500 bg-gray-50 rounded-lg">
-      No orders in this category.
+      {{ searchQuery || dateFrom || dateTo ? 'No orders match your filters.' : 'No orders in this category.' }}
     </div>
 
     <!-- List -->
@@ -360,6 +395,9 @@ const pharmacyPhones = computed<string[]>(() => {
 const loading = ref<boolean>(true)
 const orders = ref<OrderRow[]>([])
 const activeTab = ref<string>('all')
+const searchQuery = ref<string>('')
+const dateFrom = ref<string>('')
+const dateTo = ref<string>('')
 
 const detailOpen = ref<boolean>(false)
 const detailOrder = ref<OrderRow | null>(null)
@@ -388,9 +426,35 @@ const tabs: Array<{ label: string; value: string }> = [
 ]
 
 const filtered = computed<OrderRow[]>(() => {
-  if (activeTab.value === 'all') return orders.value
-  const group = activeTab.value !== 'all' ? STATUS_GROUPS[activeTab.value] : undefined
-  return group ? orders.value.filter(o => group.has(o.status ?? '')) : orders.value
+  let result = orders.value
+
+  if (activeTab.value !== 'all') {
+    const group = STATUS_GROUPS[activeTab.value]
+    if (group) result = result.filter(o => group.has(o.status ?? ''))
+  }
+
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) {
+    result = result.filter(o =>
+      (o.request_number ?? '').toLowerCase().includes(q) ||
+      (o.customer_name ?? '').toLowerCase().includes(q) ||
+      (o.customer_address ?? '').toLowerCase().includes(q)
+    )
+  }
+
+  if (dateFrom.value) {
+    const from = new Date(dateFrom.value)
+    from.setHours(0, 0, 0, 0)
+    result = result.filter(o => !!o.created_at && new Date(o.created_at) >= from)
+  }
+
+  if (dateTo.value) {
+    const to = new Date(dateTo.value)
+    to.setHours(23, 59, 59, 999)
+    result = result.filter(o => !!o.created_at && new Date(o.created_at) <= to)
+  }
+
+  return result
 })
 
 const statusClass = (status: string | null | undefined): string => {
