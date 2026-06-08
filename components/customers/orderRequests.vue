@@ -1,54 +1,46 @@
 <template>
     <div class="order-requests">
         <!-- ====== NEW REQUEST FORM ====== -->
-        <div v-if="isNewView" class="space-y-6 pb-28 lg:pb-0">
+        <div v-if="isNewView" class="space-y-6 pb-6">
 
             <!-- Page Header -->
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">New Request
-                    </h2>
-                    <p class="text-sm font-medium text-zinc-600 mt-1">A pharmacist will source and price your medicines.</p>
-                </div>
-                <div class="flex flex-col items-end gap-2 flex-shrink-0 mt-1">
-                    <button @click="openWalletTab" type="button"
-                        class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors"
-                        :class="canSearchProducts ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'">
-                        <WalletIcon class="w-3.5 h-3.5" />
-                        GHS {{ walletBalance.toFixed(2) }}
-                    </button>
-                </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-[#4F217A]/50 mb-1">Medication Request</p>
+                <h2 class="text-[1.6rem] font-black text-[#350062] leading-tight">What do you need?</h2>
             </div>
 
-            <!-- Main content: form + desktop sidebar -->
-            <div class="flex flex-col lg:flex-row gap-6 lg:items-start">
-                <!-- Left column: form sections -->
-                <div class="flex-1 min-w-0 space-y-4">
-                <div class="relative space-y-4">
+            <div class="relative space-y-4">
 
                     <!-- Add Medication (with inline triggers for prescription + notes) -->
-                    <section class="bg-white rounded-2xl p-5">
-                        <div class="flex items-center gap-3 mb-4">
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Add Medication</h3>
+                    <section class="bg-white rounded-2xl shadow-[0_2px_20px_rgba(79,33,122,0.08)] ring-1 ring-[#4F217A]/[0.06]">
+                        <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-zinc-100">
+                            <div>
+                                <h3 class="font-bold text-zinc-900 text-sm leading-tight">Medications</h3>
+                                <p class="text-[11px] text-zinc-400 font-medium">Add everything you need</p>
+                            </div>
+                            <button @click="addItem" type="button"
+                                class="w-7 h-7 rounded-lg bg-[#4F217A]/[0.08] flex items-center justify-center flex-shrink-0 hover:bg-[#4F217A]/[0.16] transition-colors"
+                                aria-label="Add another medication">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-[#4F217A]" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            </button>
                         </div>
-                        <div class="flex flex-col divide-y divide-zinc-100">
-                            <div v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3 py-4 first:pt-0">
-                                <label :for="`request-medicine-${index}`" class="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">
-                                    Medication {{ requestItems.length > 1 ? `#${index + 1}` : '' }}
-                                </label>
-                                <input v-model="item.product_name" type="text"
-                                    :id="`request-medicine-${index}`"
-                                    autocomplete="off"
-                                    autocapitalize="words"
-                                    inputmode="text"
-                                    placeholder="Medicine name, brand, or strength"
-                                    @input="debouncedSaveFormDraft()"
-                                    class="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
+                        <div class="flex flex-col divide-y divide-zinc-100 px-5 pt-1">
+                            <div v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3 py-4 first:pt-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-[#4F217A]/[0.07] text-[#4F217A] text-[10px] font-black flex items-center justify-center flex-shrink-0 select-none">{{ index + 1 }}</span>
+                                    <input v-model="item.product_name" type="text"
+                                        :id="`request-medicine-${index}`"
+                                        autocomplete="off"
+                                        autocapitalize="words"
+                                        inputmode="text"
+                                        placeholder="Medicine name, brand, or strength"
+                                        @input="debouncedSaveFormDraft()"
+                                        class="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
+                                </div>
 
                                 <!-- Unit + Qty with labels -->
                                 <div v-if="item.product_name.trim()" class="flex items-end gap-2">
                                     <div class="flex-1 flex flex-col gap-1">
-                                        <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-400">Unit</span>
                                         <select v-model="item.requested_unit"
                                             class="h-10 w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 text-sm font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 cursor-pointer">
                                             <option value="">Choose unit…</option>
@@ -56,8 +48,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="flex flex-col gap-1 flex-shrink-0">
-                                        <span class="text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-400">Qty</span>
+                                    <div class="flex-shrink-0">
                                         <div class="flex items-center h-10 bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden">
                                             <button type="button"
                                                 class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 transition-colors"
@@ -78,28 +69,41 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Prescription -->
-                        <div class="mt-4 pt-4 border-t border-zinc-100">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Prescription</span>
-                                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Optional</span>
+                        <!-- Prescription + Notes footer -->
+                        <div class="px-5 pb-5 pt-4 border-t border-zinc-100 space-y-3">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Prescription</span>
+                                <span class="text-[9px] font-semibold text-zinc-300">optional</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Take a photo">
+                                <span class="sr-only">Rx</span>
+                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Take a prescription photo">
                                     <CameraIcon class="w-4 h-4 flex-shrink-0" />
                                     Photo
                                     <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
-                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Upload file">
+                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Upload prescription">
                                     <ArrowUpTrayIcon class="w-4 h-4 flex-shrink-0" />
                                     Upload
                                     <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
                                 </label>
-                                <span class="text-[11px] text-zinc-400 ml-1">Attach if you have one</span>
+                            </div>
+                            <p v-if="prescriptionFileError" class="mt-1.5 text-xs font-semibold text-red-600">{{ prescriptionFileError }}</p>
+                            <input ref="prescriptionReplacePicker" type="file" accept="image/*" @change="onReplacePrescriptionFile" class="hidden" />
+                            <div v-if="prescriptionFiles.length" class="mt-3 flex flex-wrap gap-2">
+                                <div v-for="(preview, index) in prescriptionFiles" :key="preview.id"
+                                    class="relative w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 flex-shrink-0">
+                                    <img :src="preview.previewUrl" :alt="`Rx ${index + 1}`" class="w-full h-full object-cover" />
+                                    <button type="button" @click="removePrescriptionFile(index)"
+                                        class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center">
+                                        <XMarkIcon class="w-3 h-3" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <div v-if="isUploading" class="mt-3 flex items-center gap-3">
+                        <div v-if="isUploading" class="flex items-center gap-3">
                             <div class="flex-1 h-1.5 bg-[#4F217A]/10 rounded-full overflow-hidden">
                                 <span class="block h-full bg-[#4F217A] transition-all duration-300"
                                     :style="{ width: `${uploadProgress}%` }"></span>
@@ -108,7 +112,7 @@
                         </div>
 
                         <!-- Notes -->
-                        <div v-if="showNotesField" class="mt-4 pt-4 border-t border-zinc-100 flex items-start gap-2">
+                        <div v-if="showNotesField" class="flex items-start gap-2">
                             <textarea v-model="customerNotes" rows="2"
                                 ref="notesTextarea"
                                 id="request-notes"
@@ -123,110 +127,47 @@
                         </div>
 
                         <!-- Action row -->
-                        <div class="mt-5 pt-4 border-t border-zinc-100 flex items-center gap-3">
-                            <button @click="addItem" type="button"
-                                class="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#4F217A]/[0.07] text-[#4F217A] hover:bg-[#4F217A]/[0.14] transition-colors text-sm font-semibold">
-                                <PlusIcon class="w-4 h-4 flex-shrink-0" />
-                                Add medication
-                            </button>
-                            <button v-if="!showNotesField" @click="openNotesField" type="button"
+                        <div v-if="!showNotesField">
+                            <button @click="openNotesField" type="button"
                                 class="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 transition-colors text-sm font-semibold">
                                 <ChatBubbleLeftEllipsisIcon class="w-4 h-4 flex-shrink-0" />
                                 Add note
                             </button>
                         </div>
+                        </div><!-- /footer -->
                     </section>
 
 
-                    <!-- Address & Location -->
-                    <section class="bg-white rounded-2xl p-5">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-black text-zinc-900 text-base tracking-tight">Your Address</h3>
-                            <button v-if="customerLat && !editingAddress" @click="editingAddress = true" type="button"
-                                class="text-xs font-semibold text-[#4F217A] hover:underline">
-                                Change
-                            </button>
+                    <!-- Address trigger -->
+                    <button @click="showAddressModal = true" type="button"
+                        class="w-full flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 border transition-colors text-left shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+                        :class="customerLat && deliveryAddress.trim() ? 'border-emerald-200 hover:border-emerald-300 hover:shadow-[0_2px_16px_rgba(16,185,129,0.12)]' : 'border-amber-200 hover:border-amber-300 hover:shadow-[0_2px_16px_rgba(245,158,11,0.12)]'">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                            :class="customerLat && deliveryAddress.trim() ? 'bg-emerald-500 text-white' : 'bg-amber-100 text-amber-600'">
+                            <MapPinIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-4 h-4" />
+                            <MapPinIcon v-else class="w-4 h-4" />
                         </div>
-
-                        <!-- GPS button: shown when no location OR editing -->
-                        <button v-if="showAddressSearch" @click="getLocation" :disabled="gettingLocation"
-                            class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-3 transition-all hover:bg-zinc-100 hover:border-zinc-300">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 bg-white border border-zinc-200 text-zinc-500">
-                                <ArrowPathIcon v-if="gettingLocation" class="w-5 h-5 animate-spin" />
-                                <MapPinIcon v-else class="w-5 h-5" />
-                            </div>
-                            <div class="flex-1 text-left min-w-0">
-                                <strong class="block text-sm font-bold text-zinc-900">Use my current location</strong>
-                                <span class="block text-[11px] font-semibold text-zinc-500 mt-0.5">{{ gettingLocation ? 'Getting location…' : 'Tap to detect via GPS' }}</span>
-                            </div>
-                        </button>
-
-                        <!-- Confirmed location row: shown when set and not editing -->
-                        <div v-if="customerLat && !editingAddress"
-                            class="flex items-center gap-3 bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 mb-3">
-                            <div class="w-10 h-10 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-sm flex-shrink-0">
-                                <MapPinIconSolid class="w-5 h-5" />
-                            </div>
-                            <div class="flex-1 text-left min-w-0">
-                                <strong class="block text-sm font-bold text-zinc-900 truncate">{{ locationLabel }}</strong>
-                                <span class="block text-[11px] font-semibold text-zinc-500 truncate mt-0.5">{{ locationSublabel }}</span>
-                            </div>
-                            <CheckCircleIconSolid class="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        <div class="flex-1 min-w-0">
+                            <template v-if="customerLat && deliveryAddress.trim()">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Delivery address</p>
+                                <p class="text-sm font-semibold text-zinc-900 truncate mt-0.5">{{ deliveryAddress }}</p>
+                            </template>
+                            <template v-else>
+                                <p class="text-sm font-semibold text-zinc-900">Set delivery address</p>
+                                <p class="text-[11px] font-medium text-amber-600 mt-0.5">Required to continue</p>
+                            </template>
                         </div>
-
-                        <div class="flex flex-col gap-2">
-                            <!-- Address search: shown only when no location or editing -->
-                            <div v-if="showAddressSearch" class="relative">
-                                <div
-                                    class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
-                                    <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
-                                    <input v-model="deliveryAddressSearch" type="text"
-                                        id="delivery-address-search"
-                                        placeholder="Type an address or landmark"
-                                        role="combobox"
-                                        aria-autocomplete="list"
-                                        aria-controls="delivery-address-suggestions"
-                                        :aria-expanded="deliveryAddressSuggestions.length > 0"
-                                        :aria-activedescendant="deliveryAddressActiveIndex >= 0 ? `delivery-address-option-${deliveryAddressActiveIndex}` : ''"
-                                        autocomplete="street-address"
-                                        inputmode="text"
-                                        @keydown="onDeliveryAddressKeydown"
-                                        class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
-                                    <ArrowPathIcon v-if="deliveryAutocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
-                                </div>
-                                <ul v-if="deliveryAddressSuggestions.length"
-                                    id="delivery-address-suggestions"
-                                    role="listbox"
-                                    aria-label="Address suggestions"
-                                    class="absolute left-0 right-0 top-[calc(100%+0.65rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-60 overflow-y-auto overscroll-contain list-none m-0 p-0">
-                                    <li v-for="(suggestion, index) in deliveryAddressSuggestions"
-                                        :key="`${suggestion.display_name}-${index}`"
-                                        :id="`delivery-address-option-${index}`"
-                                        role="option"
-                                        :aria-selected="deliveryAddressActiveIndex === index"
-                                        class="border-b border-zinc-100 last:border-b-0 cursor-pointer transition-colors"
-                                        :class="deliveryAddressActiveIndex === index ? 'bg-[#f7f1ff]' : 'hover:bg-zinc-50'"
-                                        @click="applyDeliveryAddressSuggestion(suggestion)"
-                                        @mouseenter="deliveryAddressActiveIndex = index">
-                                        <div class="px-4 py-3.5">
-                                            <p class="text-sm font-semibold text-zinc-900 truncate">{{ formatSuggestionPrimary(String(suggestion.display_name ?? '')) }}</p>
-                                            <p class="mt-0.5 text-[11px] font-medium text-zinc-400 truncate">{{ formatSuggestionSecondary(String(suggestion.display_name ?? '')) || suggestion.type || '' }}</p>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <textarea v-model="deliveryAddress" rows="2"
-                                placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
-                                autocomplete="street-address"
-                                inputmode="text"
-                                class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
-                        </div>
-                    </section>
+                        <ChevronRightIcon class="w-4 h-4 text-zinc-300 flex-shrink-0" />
+                    </button>
 
                     <!-- Wallet gate overlay -->
-                    <div v-if="!canSearchProducts"
+                    <div v-if="!canSearchProducts && !walletGateDismissed"
                         class="absolute inset-0 z-10 rounded-2xl bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 px-6 text-center">
+                        <button @click="walletGateDismissed = true" type="button"
+                            class="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors text-zinc-500 hover:text-zinc-700"
+                            aria-label="Dismiss">
+                            <XMarkIcon class="w-4 h-4" />
+                        </button>
                         <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
                             <WalletIcon class="w-6 h-6" />
                         </div>
@@ -238,228 +179,314 @@
                             class="bg-[#4F217A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors">
                             Top Up Wallet
                         </button>
-                    </div>
-                </div><!-- /wallet gate wrapper -->
-
-                    <!-- Privacy note -->
-
-                </div><!-- /left form column -->
-
-                <!-- Right sidebar (desktop only) -->
-                <div class="hidden lg:block w-72 flex-shrink-0 sticky top-6 space-y-4">
-                    <div class="rounded-xl border border-zinc-200 bg-white shadow-sm p-5">
-                        <h3 class="font-black text-zinc-900 text-base tracking-tight mb-4">Order Summary</h3>
-                        <div class="space-y-2.5 text-sm mb-5">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-zinc-500">Medications</span>
-                                <span class="font-semibold text-zinc-900">{{ validItems.length ? `${validItems.length}
-                                    item${validItems.length !== 1 ? 's' : ''}` : (prescriptionFiles.length ?
-                                    `${prescriptionFiles.length} Rx page${prescriptionFiles.length !== 1 ? 's' : ''}` :
-                                    '—') }}</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-zinc-500">Fulfillment</span>
-                                <span class="font-semibold text-zinc-900">Home Delivery</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
-                                <span class="text-zinc-500">Charge</span>
-                                <span class="font-black" :class="(firstRequestFree || isProfessional) ? 'text-emerald-600' : 'text-zinc-900'">
-                                    {{ isProfessional ? 'Free (Pro)' : firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
-                                </span>
-                            </div>
-                            <div class="flex items-center justify-between gap-3 border-t border-zinc-100 pt-2.5">
-                                <span class="text-zinc-500">Wallet Balance</span>
-                                <span class="font-black tabular-nums"
-                                    :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">GHS {{ walletBalance.toFixed(2) }}</span>
-                            </div>
-                        </div>
-                        <p class="text-[11px] text-zinc-500 leading-snug mb-3">Pickup or delivery options shown at next step.</p>
-                        <!-- Progress checklist -->
-                        <div class="flex flex-wrap gap-x-3 gap-y-1.5 mb-3">
-                            <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                                :class="(validItems.length > 0 || prescriptionFiles.length > 0) ? 'text-emerald-600' : 'text-zinc-400'">
-                                <CheckCircleIconSolid v-if="validItems.length > 0 || prescriptionFiles.length > 0" class="w-3.5 h-3.5 flex-shrink-0" />
-                                <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                                Medications
-                            </span>
-                            <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                                :class="(customerLat && deliveryAddress.trim()) ? 'text-emerald-600' : 'text-zinc-400'">
-                                <CheckCircleIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-3.5 h-3.5 flex-shrink-0" />
-                                <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                                Location & address
-                            </span>
-                        </div>
-                        <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                            class="w-full bg-purple-700 text-white py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
-                            <template v-else>Send Request ›</template>
+                        <button @click="walletGateDismissed = true" type="button"
+                            class="text-xs font-semibold text-zinc-400 hover:text-zinc-600 transition-colors underline-offset-2 hover:underline">
+                            Continue filling in my request
                         </button>
                     </div>
-                </div><!-- /right sidebar -->
-
-            </div><!-- /main content row -->
-
-            <!-- Mobile submit bar -->
-            <div class="lg:hidden space-y-2">
-                <!-- Progress checklist (mobile) -->
-                <div class="flex flex-wrap gap-x-4 gap-y-1.5 px-1">
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                        :class="(validItems.length > 0 || prescriptionFiles.length > 0) ? 'text-emerald-600' : 'text-zinc-400'">
-                        <CheckCircleIconSolid v-if="validItems.length > 0 || prescriptionFiles.length > 0" class="w-3.5 h-3.5 flex-shrink-0" />
-                        <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                        Medications
-                    </span>
-                    <span class="flex items-center gap-1.5 text-[11px] font-semibold"
-                        :class="(customerLat && deliveryAddress.trim()) ? 'text-emerald-600' : 'text-zinc-400'">
-                        <CheckCircleIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-3.5 h-3.5 flex-shrink-0" />
-                        <span v-else class="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 flex-shrink-0 inline-block"></span>
-                        Location & address
-                    </span>
-                </div>
-                <div class="bg-white rounded-2xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Charge</p>
-                        <p class="text-lg font-black leading-tight" :class="(firstRequestFree || isProfessional) ? 'text-emerald-600' : 'text-zinc-900'">
-                            {{ isProfessional ? 'Free (Pro)' : firstRequestFree ? 'Free' : `GHS ${requestFee.toFixed(2)}` }}
-                        </p>
-                        <p class="text-[11px] font-semibold mt-0.5"
-                            :class="canSearchProducts ? 'text-emerald-600' : 'text-amber-600'">
-                            Balance: GHS {{ walletBalance.toFixed(2) }}
-                        </p>
-                    </div>
-                    <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                        class="bg-purple-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
-                        <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
-                        <template v-else>Send Request ›</template>
-                    </button>
-                </div>
             </div>
+
+            <div class="flex items-center justify-between px-1">
+                <span class="text-[11px] font-semibold text-zinc-400">Wallet balance</span>
+                <button @click="openWalletTab" type="button"
+                    class="text-[11px] font-bold transition-colors"
+                    :class="canSearchProducts ? 'text-emerald-600 hover:text-emerald-700' : 'text-amber-500 hover:text-amber-600'">
+                    GHS {{ walletBalance.toFixed(2) }}
+                </button>
+            </div>
+            <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
+                class="w-full bg-[#4F217A] text-white py-4 rounded-2xl text-sm font-bold hover:bg-[#3d1861] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2.5 shadow-[0_8px_28px_rgba(79,33,122,0.35)]">
+                <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+                <template v-else>
+                    <span>Send Request</span>
+                    <span class="h-4 w-px bg-white/30"></span>
+                    <span class="opacity-70 font-medium text-xs">{{ isProfessional ? 'Free · Pro' : firstRequestFree ? 'Free · first request' : `GHS ${requestFee.toFixed(2)}` }}</span>
+                </template>
+            </button>
         </div>
 
         <!-- ====== REQUESTS LIST ====== -->
         <div v-if="isListView" class="w-full pb-12">
-            <header class="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 mb-6">
-                <div class="flex items-center gap-3">
-                    <button @click="goToNewRequest"
-                        class="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100/50 border border-zinc-200 hover:bg-zinc-100 transition-colors text-zinc-600 shadow-sm"
-                        type="button">
-                        <ChevronLeftIcon class="w-4 h-4" />
-                    </button>
-                    <div>
-                        <h1 class="text-lg font-bold text-zinc-900 tracking-tight">My Requests</h1>
-                    </div>
-                </div>
-            </header>
+
+            <div class="flex items-center gap-3 px-5 pt-2 pb-4">
+                <button @click="goToNewRequest"
+                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors text-zinc-600 flex-shrink-0"
+                    type="button" aria-label="Back">
+                    <ChevronLeftIcon class="w-4 h-4" />
+                </button>
+                <h1 class="text-xl font-black text-[#350062] tracking-tight">My Requests</h1>
+            </div>
 
             <div class="px-5 max-w-5xl mx-auto">
-                <!-- Active / Completed tabs -->
-                <div class="mb-5 flex justify-start">
-                    <div class="inline-flex gap-2 p-1 bg-white border border-zinc-200 rounded-lg shadow-sm">
-                        <button class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                            :class="requestListTab === 'active' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
-                            @click="requestListTab = 'active'">
-                            Active
-                            <span v-if="activeRequests.length"
-                                class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
-                                :class="requestListTab === 'active' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'">{{
-                                activeRequests.length }}</span>
-                        </button>
-                        <button class="inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all"
-                            :class="requestListTab === 'completed' ? 'bg-zinc-100 text-[#4F217A] font-bold ring-1 ring-zinc-200' : 'text-zinc-500 font-semibold hover:text-zinc-700 hover:bg-zinc-50'"
-                            @click="requestListTab = 'completed'">
-                            Completed
-                            <span v-if="completedRequests.length"
-                                class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black tabular-nums"
-                                :class="requestListTab === 'completed' ? 'bg-[#f3e8ff] text-[#7e22ce]' : 'bg-zinc-200 text-zinc-600'">{{
-                                completedRequests.length }}</span>
-                        </button>
+                <div v-if="loadingRequests" class="space-y-3 py-2" aria-busy="true" aria-label="Loading your requests">
+                    <div v-for="n in 4" :key="`req-sk-${n}`" class="flex items-center gap-4 rounded-xl border border-zinc-100 bg-white px-4 py-4">
+                        <div class="h-10 w-10 rounded-full bg-zinc-200 animate-pulse shrink-0"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="h-3 w-1/2 rounded bg-zinc-200 animate-pulse"></div>
+                            <div class="h-2.5 w-1/3 rounded bg-zinc-200 animate-pulse"></div>
+                        </div>
+                        <div class="h-3 w-14 rounded bg-zinc-200 animate-pulse shrink-0"></div>
                     </div>
                 </div>
 
-                <div v-if="loadingRequests"
-                    class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-zinc-50 rounded-xl">
-                    <ArrowPathIcon class="w-8 h-8 text-zinc-400 animate-spin mb-3" />
-                    <p class="text-sm font-medium text-zinc-500">Loading requests...</p>
-                </div>
-
-                <div v-else-if="myRequests.length === 0"
-                    class="flex flex-col items-center justify-center py-16 border border-zinc-200 bg-white rounded-xl shadow-sm">
-                    <div
-                        class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mb-4 ring-1 ring-zinc-100">
-                        <InboxIcon class="w-7 h-7 text-zinc-300" />
+                <div v-else-if="myRequests.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+                    <div class="w-14 h-14 bg-[#4F217A]/[0.06] rounded-2xl flex items-center justify-center mb-4">
+                        <InboxIcon class="w-6 h-6 text-[#4F217A]/40" />
                     </div>
-                    <p class="text-base font-bold text-zinc-900 mb-1">No requests yet</p>
-                    <p class="text-sm font-medium text-zinc-500 mb-6">Submit your first order request to get started</p>
+                    <p class="text-base font-bold text-zinc-800 mb-1">No requests yet</p>
+                    <p class="text-sm text-zinc-400 mb-6 max-w-[22ch]">Submit your first request and we'll source your medications.</p>
                     <button @click="goToNewRequest"
-                        class="px-5 py-2.5 bg-[#4F217A] text-white rounded-xl font-bold text-sm hover:bg-[#3d1861] transition-colors inline-flex items-center gap-2 shadow-sm">
-                        <PlusIcon class="w-4 h-4" /> Create request
+                        class="px-5 py-2.5 bg-[#4F217A] text-white rounded-xl font-bold text-sm hover:bg-[#3d1861] transition-colors inline-flex items-center gap-2 shadow-[0_4px_14px_rgba(79,33,122,0.3)]">
+                        <PlusIcon class="w-4 h-4" /> New request
                     </button>
                 </div>
 
-                <div v-else class="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden mb-6">
-                    <!-- Request List Items -->
-                    <div class="space-y-0 text-sm">
-                        <article v-for="req in filteredRequests" :key="req.id"
-                            class="flex items-center justify-between px-5 py-4 border-b last:border-b-0 border-zinc-100 hover:bg-zinc-50 transition-colors cursor-pointer group"
-                            @click="viewDetail(req)">
-                            <div class="flex items-center gap-4 min-w-0">
-                                <!-- Colored Icon Box based on status -->
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border"
-                                    :class="req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-purple-50 text-purple-600 border-purple-100'">
-                                    <component :is="req.status === 'completed' ? CheckCircleIcon : BeakerIcon" class="w-5 h-5" />
+                <div v-else class="space-y-2 mb-6">
+
+                    <!-- ── New today strip ── -->
+                    <section v-if="showAttentionStrip" role="status" aria-live="polite"
+                        class="rounded-2xl bg-gradient-to-r from-[#4F217A]/[0.06] to-[#4F217A]/[0.03] ring-1 ring-[#4F217A]/[0.15] px-4 py-3.5 flex flex-col gap-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-2.5 w-2.5 flex-shrink-0">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4F217A] opacity-50"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#4F217A]"></span>
+                            </span>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-[#4F217A]">New</span>
+                        </div>
+                        <ul class="flex flex-col gap-1.5">
+                            <li v-for="req in newItems.filter(r => reqStage(r) !== requestListTab)" :key="`attn-${req.id}`"
+                                @click="requestListTab = reqStage(req); viewDetail(req)"
+                                class="flex items-center justify-between gap-2 cursor-pointer rounded-xl px-3 py-2 bg-white/70 hover:bg-white/90 transition-colors">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <ExclamationCircleIcon v-if="reqStage(req) === 'awaiting_payment'" class="w-3.5 h-3.5 text-[#F04E37] flex-shrink-0" />
+                                    <TruckIcon v-else-if="reqStage(req) === 'awaiting_fulfilment'" class="w-3.5 h-3.5 text-[#4F217A] flex-shrink-0" />
+                                    <BeakerIcon v-else class="w-3.5 h-3.5 text-[#4F217A] flex-shrink-0" />
+                                    <span class="text-xs font-bold text-zinc-900 truncate">#{{ req.request_number }}</span>
                                 </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 mb-0.5">
-                                        <h4 class="text-sm font-bold text-zinc-900 uppercase tracking-tight">#{{
-                                            req.request_number }}</h4>
+                                <span class="text-[10px] font-semibold flex-shrink-0 px-2 py-0.5 rounded-full whitespace-nowrap"
+                                    :class="reqStage(req) === 'awaiting_payment' ? 'bg-[#F04E37]/[0.10] text-[#F04E37]' : 'bg-[#4F217A]/[0.08] text-[#4F217A]'">
+                                    {{ reqStage(req) === 'awaiting_payment'
+                                        ? ((req.total_cost || req.estimated_total) ? `Pay GHS ${parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2)}` : 'Pay now')
+                                        : reqStage(req) === 'awaiting_fulfilment' ? 'On the way' : 'Being sourced' }}
+                                </span>
+                            </li>
+                        </ul>
+                        <p v-if="newItems.filter(r => reqStage(r) !== requestListTab).length > 1" class="text-[10px] font-medium text-zinc-400 text-center">
+                            Tap a row to jump to that section
+                        </p>
+                    </section>
+
+                    <!-- ── Pay Now (first — urgency conveyed by position + weight, not color) ── -->
+                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-200 shadow-sm">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
+                            :class="requestListTab === 'awaiting_payment' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
+                            @click="requestListTab = requestListTab === 'awaiting_payment' ? '' : 'awaiting_payment'">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                                    :class="requestListTab === 'awaiting_payment' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
+                                    <ExclamationCircleIcon class="w-4 h-4" />
+                                </div>
+                                <span class="text-sm font-black"
+                                    :class="requestListTab === 'awaiting_payment' ? 'text-[#4F217A]' : 'text-zinc-900'">Pay Now</span>
+                                <span v-if="awaitingPaymentRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-900 text-white">
+                                    {{ awaitingPaymentRequests.length }}
+                                </span>
+                                <span v-if="tabHasNew.awaiting_payment"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#F04E37]/[0.10] text-[#F04E37] text-[9px] font-black uppercase tracking-wider">
+                                    New
+                                </span>
+                                <span v-if="awaitingPaymentTotal" class="text-[11px] font-semibold text-zinc-400 ml-0.5">GHS {{ awaitingPaymentTotal }}</span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
+                                :class="requestListTab === 'awaiting_payment' ? 'rotate-180' : ''" />
+                        </button>
+                        <div v-if="requestListTab === 'awaiting_payment'" class="border-t border-zinc-100 divide-y divide-zinc-50">
+                            <p v-if="!awaitingPaymentRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
+                                Nothing to pay right now
+                            </p>
+                            <article v-for="req in awaitingPaymentRequests" :key="req.id"
+                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
+                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
+                                        <span v-if="newItemIds.has(req.id)"
+                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#F04E37]/[0.10] text-[#F04E37] text-[9px] font-black uppercase tracking-wider">
+                                            New
+                                        </span>
                                     </div>
-                                    <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
-                                        <span>{{ formatDate(req.created_at) }}</span>
-                                        <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
-                                        <span>{{ req.item_count || 0 }} item(s)</span>
-                                    </p>
                                 </div>
-                            </div>
-                            <div class="flex items-center ml-auto gap-3 sm:gap-6">
-                                <!-- Status Column (Middle) -->
-                                <div class="hidden sm:flex items-center justify-end flex-shrink-0 min-w-[130px]">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm"
-                                        :style="req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #f5eefb; color: #6c24b3; border-color: #dbb8ff;'">
-                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
-                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1.5"></span>
-                                        {{ formatStatus(getRequestStatus(req)) }}
-                                    </span>
-                                </div>
-
-                                <!-- Cost Column (Right) -->
-                                <div
-                                    class="text-right flex flex-col items-end flex-shrink-0 min-w-[90px] sm:min-w-[100px]">
-                                    <template
-                                        v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
-                                        <strong
-                                            class="text-[15px] font-black text-zinc-900 tabular-nums tracking-tight">GHS
-                                            {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
                                     </template>
-                                    <span v-else class="text-sm font-semibold text-zinc-400 italic">To be priced</span>
-
-                                    <!-- Mobile Badge Fallback -->
-                                    <span
-                                        class="sm:hidden inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
-                                        :style="req.status === 'completed' ? 'background: #ecfdf5; color: #059669; border-color: #a7f3d0;' : 'background: #f5eefb; color: #6c24b3; border-color: #dbb8ff;'">
-                                        <span v-if="req.status === 'pending' || req.status === 'searching'"
-                                            class="w-1.5 h-1.5 rounded-full bg-current animate-pulse mr-1"></span>
-                                        {{ formatStatus(getRequestStatus(req)) }}
-                                    </span>
+                                    <button @click.stop="viewDetail(req)"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#4F217A] text-white text-[11px] font-bold hover:bg-[#3d1861] transition-colors">
+                                        Pay <ChevronRightIcon class="w-3 h-3" />
+                                    </button>
                                 </div>
-                            </div>
-                            <!-- Hover Chevron -->
-                            <div
-                                class="ml-2 hidden sm:flex w-5 h-5 items-center justify-center text-zinc-300 group-hover:text-[#4F217A] transition-colors flex-shrink-0">
-                                <ChevronRightIcon class="w-5 h-5" />
-                            </div>
-                        </article>
+                            </article>
+                        </div>
                     </div>
+
+                    <!-- ── Processing ── -->
+                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-100 shadow-sm">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
+                            :class="requestListTab === 'processing' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
+                            @click="requestListTab = requestListTab === 'processing' ? '' : 'processing'">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                                    :class="requestListTab === 'processing' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
+                                    <BeakerIcon class="w-4 h-4" />
+                                </div>
+                                <span class="text-sm font-bold"
+                                    :class="requestListTab === 'processing' ? 'text-[#4F217A]' : 'text-zinc-700'">Processing</span>
+                                <span v-if="processingRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
+                                    {{ processingRequests.length }}
+                                </span>
+                                <span v-if="tabHasNew.processing"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
+                                    New
+                                </span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
+                                :class="requestListTab === 'processing' ? 'rotate-180' : ''" />
+                        </button>
+                        <div v-if="requestListTab === 'processing'" class="border-t border-zinc-100 divide-y divide-zinc-50">
+                            <p v-if="!processingRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
+                                No requests in progress
+                            </p>
+                            <article v-for="req in processingRequests" :key="req.id"
+                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
+                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
+                                        <span v-if="newItemIds.has(req.id)"
+                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
+                                            New
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                                    </template>
+                                    <span v-else class="text-xs font-semibold text-zinc-400 italic">To be priced</span>
+                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <!-- ── En Route ── -->
+                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-100 shadow-sm">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
+                            :class="requestListTab === 'awaiting_fulfilment' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
+                            @click="requestListTab = requestListTab === 'awaiting_fulfilment' ? '' : 'awaiting_fulfilment'">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                                    :class="requestListTab === 'awaiting_fulfilment' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
+                                    <TruckIcon class="w-4 h-4" />
+                                </div>
+                                <span class="text-sm font-bold"
+                                    :class="requestListTab === 'awaiting_fulfilment' ? 'text-[#4F217A]' : 'text-zinc-700'">En Route</span>
+                                <span v-if="awaitingFulfilmentRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
+                                    {{ awaitingFulfilmentRequests.length }}
+                                </span>
+                                <span v-if="tabHasNew.awaiting_fulfilment"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
+                                    New
+                                </span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
+                                :class="requestListTab === 'awaiting_fulfilment' ? 'rotate-180' : ''" />
+                        </button>
+                        <div v-if="requestListTab === 'awaiting_fulfilment'" class="border-t border-zinc-100 divide-y divide-zinc-50">
+                            <p v-if="!awaitingFulfilmentRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
+                                No orders en route
+                            </p>
+                            <article v-for="req in awaitingFulfilmentRequests" :key="req.id"
+                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
+                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
+                                        <span v-if="newItemIds.has(req.id)"
+                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
+                                            New
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                                    </template>
+                                    <span v-else class="text-xs font-semibold text-zinc-400 italic">To be priced</span>
+                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                    <!-- ── Done ── -->
+                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-100 shadow-sm">
+                        <button type="button"
+                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
+                            :class="requestListTab === 'complete' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
+                            @click="requestListTab = requestListTab === 'complete' ? '' : 'complete'">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                                    :class="requestListTab === 'complete' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
+                                    <CheckCircleIcon class="w-4 h-4" />
+                                </div>
+                                <span class="text-sm font-bold"
+                                    :class="requestListTab === 'complete' ? 'text-[#4F217A]' : 'text-zinc-700'">Done</span>
+                                <span v-if="completedRequests.length"
+                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
+                                    {{ completedRequests.length }}
+                                </span>
+                            </div>
+                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
+                                :class="requestListTab === 'complete' ? 'rotate-180' : ''" />
+                        </button>
+                        <div v-if="requestListTab === 'complete'" class="border-t border-zinc-100 divide-y divide-zinc-50">
+                            <p v-if="!completedRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
+                                No completed requests yet
+                            </p>
+                            <article v-for="req in completedRequests" :key="req.id"
+                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
+                                @click="viewDetail(req)">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
+                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
+                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
+                                    </template>
+                                    <span v-else class="text-xs font-semibold text-zinc-400 italic">To be priced</span>
+                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
                 </div>
                 <!-- End of max-w-5xl container -->
             </div>
@@ -481,53 +508,91 @@
                 </div>
 
                 <div class="modal-body">
-                    <div v-if="selectedRequest.prescription_images?.length" class="detail-section">
-                        <span class="detail-label">Prescription Images</span>
-                        <div class="detail-prescription-grid">
-                            <a v-for="(imageUrl, imageIndex) in selectedRequest.prescription_images"
-                                :key="`prescription-${imageIndex}`" :href="imageUrl" target="_blank"
-                                rel="noopener noreferrer" class="detail-prescription-link">
-                                <img :src="imageUrl" :alt="`Prescription image ${imageIndex + 1}`"
-                                    class="detail-prescription-image" />
-                            </a>
-                        </div>
-                    </div>
-
                     <!-- Items -->
                     <div v-if="selectedRequest.items?.length" class="detail-section">
-                        <span class="detail-label">Items</span>
+                        <div class="detail-section-header">
+                            <span class="detail-section-label">Items</span>
+                            <button v-if="canEditRequest(selectedRequest)" @click="startEditing(selectedRequest)" class="edit-request-btn" type="button">
+                                <PencilIcon class="w-3 h-3" />
+                                Edit
+                            </button>
+                        </div>
                         <div v-for="(item, itemIdx) in selectedRequest.items" :key="item.id ?? itemIdx" class="detail-item">
                             <div>
                                 <strong>{{ item.product_name }}</strong>
                                 <span class="item-qty">Qty: {{ item.quantity }}</span>
-                                <div v-if="item.item_images?.length" class="detail-item-images">
-                                    <a v-for="(imageUrl, imageIndex) in item.item_images"
-                                        :key="`${item.id}-img-${imageIndex}`" :href="imageUrl" target="_blank"
-                                        rel="noopener noreferrer" class="detail-item-image-link">
-                                        <img :src="imageUrl" :alt="`${item.product_name} photo ${imageIndex + 1}`"
-                                            class="detail-item-image" />
-                                    </a>
-                                </div>
                             </div>
                             <div class="item-price-info">
                                 <span v-if="item.marked_up_price" class="item-price">GHS {{
                                     parseFloat(String(item.marked_up_price)).toFixed(2) }}</span>
                                 <span v-else class="price-pending">Price pending</span>
-                                <span class="status-badge sm" :class="item.item_status || 'pending'">{{ item.item_status
-                                    ||
-                                    'pending' }}</span>
+                                <span class="status-badge sm" :class="item.item_status || 'pending'">{{ item.item_status || 'pending' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fulfillment method — always visible once locked -->
+                    <div v-if="!requiresMethodSelection(selectedRequest) && !overrideMethodPickerFor[selectedRequest.id] && (selectedRequest.fulfillment_type === 'pickup' || selectedRequest.fulfillment_type === 'delivery')" class="fulfillment-locked-strip">
+                        <div class="fulfillment-locked-strip-icon" :class="selectedRequest.fulfillment_type === 'pickup' ? 'fulfillment-locked-strip-icon--pickup' : 'fulfillment-locked-strip-icon--delivery'">
+                            <BuildingStorefrontIcon v-if="selectedRequest.fulfillment_type === 'pickup'" class="w-4 h-4" />
+                            <TruckIcon v-else class="w-4 h-4" />
+                        </div>
+                        <span class="fulfillment-locked-strip-label">{{ selectedRequest.fulfillment_type === 'pickup' ? 'Pickup' : 'Delivery' }}</span>
+                        <CheckCircleIconSolid class="w-4 h-4 text-emerald-500 ml-auto flex-shrink-0" />
+                        <button v-if="canPayRequest(selectedRequest)" type="button" class="fulfillment-locked-strip-change" @click="startChangingMethod(selectedRequest.id)">Change</button>
+                    </div>
+
+                    <!-- Delivery progress strip (paid → out_for_delivery, delivery orders only) -->
+                    <div v-if="selectedRequest.fulfillment_type === 'delivery' && DELIVERY_PROGRESS_STATUSES.has(selectedRequest.status ?? '')"
+                        class="mx-1 mb-3 rounded-2xl bg-[#4F217A]/[0.04] ring-1 ring-[#4F217A]/10 px-4 py-3.5">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="relative flex h-2 w-2 flex-shrink-0">
+                                <span class="animate-pulse absolute inline-flex h-full w-full rounded-full opacity-60"
+                                    :class="selectedRequest.status === 'driver_unavailable' ? 'bg-[#F04E37]' : 'bg-[#4F217A]'"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2"
+                                    :class="selectedRequest.status === 'driver_unavailable' ? 'bg-[#F04E37]' : 'bg-[#4F217A]'"></span>
+                            </span>
+                            <span class="text-[13px] font-semibold leading-snug"
+                                :class="selectedRequest.status === 'driver_unavailable' ? 'text-[#F04E37]' : 'text-zinc-800'">
+                                {{ getRequestSubtext(selectedRequest.status) }}
+                            </span>
+                        </div>
+                        <div class="flex items-start gap-1.5">
+                            <div class="flex-1 flex flex-col gap-1">
+                                <div class="h-1 rounded-full bg-[#4F217A]"></div>
+                                <span class="text-[9px] font-semibold text-[#4F217A]">Preparing</span>
+                            </div>
+                            <div class="flex-1 flex flex-col gap-1">
+                                <div class="h-1 rounded-full transition-colors"
+                                    :class="deliveryStep >= 2 ? (selectedRequest.status === 'driver_unavailable' ? 'bg-[#F04E37]' : 'bg-[#4F217A]') : 'bg-zinc-200'"></div>
+                                <span class="text-[9px] font-semibold transition-colors"
+                                    :class="deliveryStep >= 2 ? (selectedRequest.status === 'driver_unavailable' ? 'text-[#F04E37]' : 'text-[#4F217A]') : 'text-zinc-400'">Finding rider</span>
+                            </div>
+                            <div class="flex-1 flex flex-col gap-1">
+                                <div class="h-1 rounded-full transition-colors"
+                                    :class="deliveryStep >= 3 ? 'bg-[#4F217A]' : 'bg-zinc-200'"></div>
+                                <span class="text-[9px] font-semibold transition-colors"
+                                    :class="deliveryStep >= 3 ? 'text-[#4F217A]' : 'text-zinc-400'">On the way</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Rider contact (shown when delivery is active and rider is assigned) -->
                     <div v-if="selectedRequest.rider_phone" class="rider-contact-card">
-                        <span class="detail-label">Your Rider</span>
-                        <p v-if="selectedRequest.rider_name" class="rider-name">{{ selectedRequest.rider_name }}</p>
-                        <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
-                            <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
-                            Message on WhatsApp
-                        </a>
+                        <div class="rider-contact-row">
+                            <div class="rider-contact-info">
+                                <span class="rider-contact-label">Your rider is on the way</span>
+                                <span v-if="selectedRequest.rider_name" class="rider-contact-name">{{ selectedRequest.rider_name }}</span>
+                            </div>
+                            <div class="rider-contact-actions">
+                                <a :href="`tel:${selectedRequest.rider_phone}`" class="rider-action-btn rider-action-btn--call" :aria-label="`Call ${selectedRequest.rider_name || 'rider'}`">
+                                    <PhoneIcon class="w-4 h-4" />
+                                </a>
+                                <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-action-btn rider-action-btn--wa" :aria-label="`WhatsApp ${selectedRequest.rider_name || 'rider'}`">
+                                    <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Pickup location (revealed after payment for pickup orders) -->
@@ -535,10 +600,24 @@
                         <span class="detail-label">Pickup Location</span>
                         <p class="rider-name">{{ selectedRequest.pharmacy.name }}</p>
                         <p v-if="selectedRequest.pharmacy.address" class="text-sm text-zinc-500 mt-0.5">{{ selectedRequest.pharmacy.address }}</p>
-                        <a v-if="selectedRequest.pharmacy.phone" :href="`tel:${selectedRequest.pharmacy.phone}`" class="rider-whatsapp-btn mt-2">
-                            <PhoneIcon class="w-4 h-4" />
-                            Call pharmacy
-                        </a>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <a v-if="selectedRequest.pharmacy.phone" :href="`tel:${selectedRequest.pharmacy.phone}`" class="rider-whatsapp-btn">
+                                <PhoneIcon class="w-4 h-4" />
+                                Call
+                            </a>
+                            <a v-if="selectedRequest.pharmacy.phone"
+                                :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.pharmacy.phone)}`"
+                                target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
+                                <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
+                                WhatsApp
+                            </a>
+                            <a v-if="pharmacyNavUrl(selectedRequest.pharmacy)"
+                                :href="pharmacyNavUrl(selectedRequest.pharmacy)"
+                                target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
+                                <MapPinIcon class="w-4 h-4" />
+                                Navigate
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Totals (hidden while pickup vs delivery is still being chosen — the
@@ -719,12 +798,9 @@
 
                     <div v-if="canPayRequest(selectedRequest) && !selectedRequest.pending_decisions?.length"
                         class="payment-action">
-                        <!-- Pickup vs delivery comparison (flag-gated) -->
-                        <div v-if="requiresMethodSelection(selectedRequest)" class="fulfillment-picker">
-                            <div class="fulfillment-picker-header">
-                                <h4>How would you like to receive your order?</h4>
-                                <p>Compare pickup and delivery before paying.</p>
-                            </div>
+                        <!-- Fulfillment picker — shown when no method is locked yet -->
+                        <div v-if="requiresMethodSelection(selectedRequest) || overrideMethodPickerFor[selectedRequest.id]" class="fulfillment-picker">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-3">How would you like to receive your order?</p>
 
                             <div v-if="paymentOptionsLoading[selectedRequest.id]" class="fulfillment-picker-loading">
                                 <ArrowPathIcon class="pay-svg spin" />
@@ -759,12 +835,8 @@
                                             </div>
                                             <div v-if="selectedPaymentOptions?.pickup?.available && selectedPaymentOptions?.pickup?.pharmacy" class="fulfillment-option-meta">
                                                 <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">{{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away</span>
-                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours">
-                                                    · Open 24 hours
-                                                </span>
-                                                <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at">
-                                                    · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}
-                                                </span>
+                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours"> · Open 24 hours</span>
+                                                <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at"> · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}</span>
                                                 <span class="fulfillment-option-meta--muted"> · Pharmacy shown after payment</span>
                                             </div>
                                             <div v-else-if="selectedPaymentOptions?.pickup?.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
@@ -788,18 +860,12 @@
                                         <div class="fulfillment-option-body">
                                             <div class="fulfillment-option-head">
                                                 <span class="fulfillment-option-title">Delivery</span>
-                                                <span class="fulfillment-option-price">
-                                                    GHS {{ Number(selectedPaymentOptions?.delivery?.total ?? 0).toFixed(2) }}
-                                                </span>
+                                                <span class="fulfillment-option-price">GHS {{ Number(selectedPaymentOptions?.delivery?.total ?? 0).toFixed(2) }}</span>
                                             </div>
                                             <div class="fulfillment-option-meta">
                                                 <span>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</span>
-                                                <span v-if="selectedPaymentOptions?.delivery?.distance_km != null">
-                                                    · {{ selectedPaymentOptions?.delivery?.distance_km }} km
-                                                </span>
-                                                <span v-if="selectedPaymentOptions?.delivery?.eta_minutes">
-                                                    · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min
-                                                </span>
+                                                <span v-if="selectedPaymentOptions?.delivery?.distance_km != null"> · {{ selectedPaymentOptions?.delivery?.distance_km }} km</span>
+                                                <span v-if="selectedPaymentOptions?.delivery?.eta_minutes"> · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min</span>
                                             </div>
                                         </div>
                                     </div>
@@ -807,72 +873,70 @@
                             </div>
                         </div>
 
-                        <!-- Fee credit toggle: shown when the request fee can be applied or returned -->
-                        <div v-if="selectedPaymentOptions?.fee_applicable" class="fee-credit-picker">
-                            <div class="fee-credit-header">
+                        <!-- Payment section — only shown once a fulfillment method is chosen (or not required) -->
+                        <template v-if="canPayWithSelection(selectedRequest)">
+                            <!-- Fee credit toggle -->
+                            <div v-if="selectedPaymentOptions?.fee_applicable" class="fee-credit-picker">
                                 <span class="fee-credit-label">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</span>
-                                <span class="fee-credit-sub">How would you like to use it?</span>
+                                <div class="fee-credit-toggle">
+                                    <button
+                                        type="button"
+                                        class="fee-credit-option"
+                                        :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] !== false }"
+                                        title="Pay less now"
+                                        @click="setApplyFee(selectedRequest.id, true)"
+                                    >Apply to order</button>
+                                    <button
+                                        type="button"
+                                        class="fee-credit-option"
+                                        :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] === false }"
+                                        title="Save for a future request"
+                                        @click="setApplyFee(selectedRequest.id, false)"
+                                    >Return to wallet</button>
+                                </div>
                             </div>
-                            <div class="fee-credit-options">
-                                <button
-                                    type="button"
-                                    class="fee-credit-option"
-                                    :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] !== false }"
-                                    @click="setApplyFee(selectedRequest.id, true)"
-                                >
-                                    <span class="fee-credit-option-title">Apply to this order</span>
-                                    <span class="fee-credit-option-sub">Pay less now</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="fee-credit-option"
-                                    :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] === false }"
-                                    @click="setApplyFee(selectedRequest.id, false)"
-                                >
-                                    <span class="fee-credit-option-title">Return to wallet</span>
-                                    <span class="fee-credit-option-sub">Save for a future request</span>
-                                </button>
+
+                            <!-- Total -->
+                            <div v-if="selectedMethodTotal != null" class="payment-total-row">
+                                <span>Total</span>
+                                <span class="payment-total-amount">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
                             </div>
-                        </div>
 
-                        <!-- Live total row — shown whenever a total is computable -->
-                        <div v-if="selectedMethodTotal != null" class="payment-total-row">
-                            <span>Total</span>
-                            <span class="payment-total-amount">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
-                        </div>
+                            <!-- Pay buttons -->
+                            <div class="payment-method-grid">
+                                <button v-if="walletBalance > 5"
+                                    @click="payForRequest(selectedRequest.id, 'wallet')"
+                                    :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? '' : 'secondary-pay-btn']"
+                                    :disabled="payingRequest">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
+                                    <CurrencyDollarIcon v-else class="pay-svg" />
+                                    <span>
+                                        {{ payingRequest && payingMethod === 'wallet'
+                                            ? 'Processing wallet payment...'
+                                            : selectedMethodTotal != null
+                                                ? `Pay with Wallet · GHS ${selectedMethodTotal.toFixed(2)}`
+                                                : 'Pay with Wallet' }}
+                                    </span>
+                                </button>
+                                <button @click="payForRequest(selectedRequest.id, 'paystack')"
+                                    :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? 'secondary-pay-btn' : '']"
+                                    :disabled="payingRequest">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="pay-svg spin" />
+                                    <CreditCardIcon v-else class="pay-svg" />
+                                    <span>
+                                        {{ payingRequest && payingMethod === 'paystack'
+                                            ? 'Redirecting to Paystack...'
+                                            : paystackChargeTotal != null
+                                                ? `Pay · GHS ${paystackChargeTotal.toFixed(2)}`
+                                                : 'Pay' }}
+                                    </span>
+                                </button>
+                                <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-[11px] text-zinc-400 text-center -mt-1">
+                                    Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
+                                </p>
+                            </div>
+                        </template>
 
-                        <div class="payment-method-grid">
-                            <button @click="payForRequest(selectedRequest.id, 'wallet')"
-                                :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? '' : 'secondary-pay-btn']"
-                                :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
-                                <CurrencyDollarIcon v-else class="pay-svg" />
-                                <span>
-                                    {{ payingRequest && payingMethod === 'wallet'
-                                        ? 'Processing wallet payment...'
-                                        : selectedMethodTotal != null
-                                            ? `Pay with Wallet · GHS ${selectedMethodTotal.toFixed(2)}`
-                                            : 'Pay with Wallet' }}
-                                </span>
-                            </button>
-                            <button @click="payForRequest(selectedRequest.id, 'paystack')"
-                                :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? 'secondary-pay-btn' : '']"
-                                :disabled="payingRequest || !canPayWithSelection(selectedRequest)">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'"
-                                    class="pay-svg spin" />
-                                <CreditCardIcon v-else class="pay-svg" />
-                                <span>
-                                    {{ payingRequest && payingMethod === 'paystack'
-                                        ? 'Redirecting to Paystack...'
-                                        : selectedMethodTotal != null
-                                            ? `Pay with Paystack · GHS ${selectedMethodTotal.toFixed(2)}`
-                                            : 'Pay with Paystack' }}
-                                </span>
-                            </button>
-                        </div>
-                        <p class="payment-note">Choose wallet or Paystack. Direct Paystack payments are also recorded in
-                            your
-                            wallet history.</p>
                         <div v-if="paymentShortfall.requestId === selectedRequest.id && paymentShortfall.amount > 0"
                             class="payment-shortfall">
                             <div class="payment-shortfall-head">
@@ -899,8 +963,7 @@
                     </div>
                     <div v-else-if="isPaymentPendingRequest(selectedRequest)"
                         class="payment-action payment-action--pending">
-                        <p class="payment-note">Payment will appear here once item pricing is confirmed for this
-                            request.</p>
+                        <p class="payment-note">Pricing being confirmed — payment will appear here shortly.</p>
                     </div>
 
                     <div v-if="canCancelRequest(selectedRequest)" class="cancel-action">
@@ -910,7 +973,6 @@
                             <XMarkIcon v-else class="pay-svg" />
                             <span>{{ cancelingRequest ? 'Cancelling request...' : 'Cancel request' }}</span>
                         </button>
-                        <p class="payment-note">This only works while the request is still pending.</p>
                     </div>
 
                     <!-- Address / Notes -->
@@ -922,55 +984,85 @@
             </div>
         </div>
 
-        <!-- Priority Gate Modal -->
-        <div v-if="showPriorityModal" class="modal-overlay" @click.self="showPriorityModal = false">
-            <div class="modal-content priority-modal">
+
+        <!-- Address Modal -->
+        <div v-if="showAddressModal" class="modal-overlay" @click.self="showAddressModal = false">
+            <div class="modal-content" style="max-width: 480px">
                 <div class="modal-header">
                     <div>
-                        <span v-if="isProfessional" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — professional</span>
-                        <span v-else-if="firstRequestFree" class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Free — first request</span>
-                        <span v-else class="text-xs font-bold text-zinc-500 uppercase tracking-wide">GHS {{ requestFee.toFixed(2) }} charge</span>
+                        <h3>{{ customerLat && deliveryAddress.trim() ? 'Update Address' : 'Delivery Address' }}</h3>
                     </div>
-                    <button @click="showPriorityModal = false" class="modal-close">
+                    <button @click="showAddressModal = false" class="modal-close">
                         <XMarkIcon class="close-svg" />
                     </button>
                 </div>
-
                 <div class="modal-body">
-                    <div class="priority-hero">
-                        <p v-if="isProfessional" class="priority-copy">
-                            You're a verified health professional — no fee will be charged for this request.
-                        </p>
-                        <p v-else-if="firstRequestFree" class="priority-copy">
-                            Your first request is free — no fee will be charged.
-                        </p>
-                        <p v-else class="priority-copy">
-                            A GHS {{ requestFee.toFixed(2) }} search fee is deducted from your wallet — it's credited back against your order if you proceed, or kept if you don't.
-                        </p>
+                    <!-- GPS button -->
+                    <button @click="getLocation" :disabled="gettingLocation" type="button"
+                        class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 bg-white border border-zinc-200 text-zinc-500">
+                            <ArrowPathIcon v-if="gettingLocation" class="w-5 h-5 animate-spin" />
+                            <MapPinIcon v-else class="w-5 h-5" />
+                        </div>
+                        <div class="flex-1 text-left min-w-0">
+                            <strong class="block text-sm font-bold text-zinc-900">Use my current location</strong>
+                            <span class="block text-[11px] font-semibold text-zinc-500 mt-0.5">{{ gettingLocation ? 'Getting location…' : 'Tap to detect via GPS' }}</span>
+                        </div>
+                        <CheckCircleIconSolid v-if="customerLat" class="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                    </button>
+
+                    <!-- Address search -->
+                    <div class="relative mb-3">
+                        <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
+                            <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
+                            <input v-model="deliveryAddressSearch" type="text"
+                                id="delivery-address-search"
+                                placeholder="Type an address or landmark"
+                                role="combobox"
+                                aria-autocomplete="list"
+                                aria-controls="delivery-address-suggestions-modal"
+                                :aria-expanded="deliveryAddressSuggestions.length > 0"
+                                :aria-activedescendant="deliveryAddressActiveIndex >= 0 ? `delivery-address-modal-option-${deliveryAddressActiveIndex}` : ''"
+                                autocomplete="street-address"
+                                inputmode="text"
+                                @keydown="onDeliveryAddressKeydown"
+                                class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
+                            <ArrowPathIcon v-if="deliveryAutocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
+                        </div>
+                        <ul v-if="deliveryAddressSuggestions.length"
+                            id="delivery-address-suggestions-modal"
+                            role="listbox"
+                            aria-label="Address suggestions"
+                            class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-52 overflow-y-auto overscroll-contain list-none m-0 p-0">
+                            <li v-for="(suggestion, idx) in deliveryAddressSuggestions"
+                                :key="`${suggestion.display_name}-${idx}`"
+                                :id="`delivery-address-modal-option-${idx}`"
+                                role="option"
+                                :aria-selected="deliveryAddressActiveIndex === idx"
+                                class="border-b border-zinc-100 last:border-b-0 cursor-pointer transition-colors"
+                                :class="deliveryAddressActiveIndex === idx ? 'bg-[#f7f1ff]' : 'hover:bg-zinc-50'"
+                                @click="applyDeliveryAddressSuggestion(suggestion)"
+                                @mouseenter="deliveryAddressActiveIndex = idx">
+                                <div class="px-4 py-3">
+                                    <p class="text-sm font-semibold text-zinc-900 truncate">{{ formatSuggestionPrimary(String(suggestion.display_name ?? '')) }}</p>
+                                    <p class="mt-0.5 text-[11px] font-medium text-zinc-400 truncate">{{ formatSuggestionSecondary(String(suggestion.display_name ?? '')) || suggestion.type || '' }}</p>
+                                </div>
+                            </li>
+                        </ul>
                     </div>
 
-                    <div v-if="submitShortfall > 0" class="priority-shortfall">
-                        <strong>GHS {{ submitShortfall.toFixed(2) }} short.</strong>
-                        <span>Top up your wallet to continue.</span>
-                    </div>
+                    <!-- Delivery address textarea -->
+                    <textarea v-model="deliveryAddress" rows="2"
+                        placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
+                        autocomplete="street-address"
+                        inputmode="text"
+                        class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none mb-4"></textarea>
 
-                    <div class="priority-actions">
-                        <button @click="showPriorityModal = false" class="nav-back priority-back">
-                            Not Yet
-                        </button>
-                        <button v-if="submitShortfall > 0" @click="openWalletTab" class="nav-next priority-topup">
-                            Top Up Wallet
-                        </button>
-                        <button v-if="submitShortfall <= 0" @click="confirmPriorityAndSubmit" :disabled="isSubmitting"
-                            class="nav-submit priority-submit">
-                            <template v-if="isSubmitting">
-                                <ArrowPathIcon class="nav-svg spin" /> Sending...
-                            </template>
-                            <template v-else>
-                             Send Request
-                            </template>
-                        </button>
-                    </div>
+                    <button @click="showAddressModal = false" type="button"
+                        :disabled="!customerLat || !deliveryAddress.trim()"
+                        class="w-full bg-[#4F217A] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        Confirm Address
+                    </button>
                 </div>
             </div>
         </div>
@@ -985,6 +1077,54 @@
                 <p>Your request has been submitted, we'll notify you once it has been processed.</p>
                 <p v-if="submittedNumber" class="success-num">Request #<strong>{{ submittedNumber }}</strong></p>
                 <button @click="goToRequestHistory" class="nav-submit" style="width:100%">View My Requests</button>
+            </div>
+        </div>
+
+        <!-- Edit request modal -->
+        <div v-if="editingRequest" class="modal-overlay" @click.self="editingRequest = null">
+            <div class="modal-content" style="max-width: 480px">
+                <div class="modal-header">
+                    <div>
+                        <h3>Edit Request</h3>
+                        <p class="modal-subtitle">{{ editingRequest.request_number }}</p>
+                    </div>
+                    <button @click="editingRequest = null" class="modal-close"><XMarkIcon class="close-svg" /></button>
+                </div>
+                <div class="modal-body">
+                    <div class="edit-items-list">
+                        <div v-for="(item, idx) in editItems" :key="idx" class="edit-item-row">
+                            <div class="edit-item-name-wrap">
+                                <span class="edit-item-index">{{ idx + 1 }}</span>
+                                <input v-model="item.product_name" type="text" placeholder="Medicine name or brand" autocomplete="off"
+                                    class="edit-item-input" />
+                            </div>
+                            <div class="edit-item-meta">
+                                <select v-model="item.requested_unit" class="edit-item-select">
+                                    <option value="">Unit</option>
+                                    <option v-for="opt in medicineUnitOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                </select>
+                                <div class="edit-item-qty">
+                                    <button type="button" @click="item.quantity = Math.max(1, item.quantity - 1)" class="qty-btn">−</button>
+                                    <span class="qty-val">{{ item.quantity }}</span>
+                                    <button type="button" @click="item.quantity++" class="qty-btn">+</button>
+                                </div>
+                                <button v-if="editItems.length > 1" type="button" @click="editItems.splice(idx, 1)" class="edit-item-remove">
+                                    <XMarkIcon class="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" @click="editItems.push({ product_name: '', requested_unit: '', quantity: 1 })" class="edit-add-item-btn">
+                        + Add another item
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button @click="editingRequest = null" class="modal-cancel-btn">Cancel</button>
+                    <button @click="saveEdit" :disabled="savingEdit" class="modal-confirm-btn">
+                        <ArrowPathIcon v-if="savingEdit" class="w-4 h-4 animate-spin" />
+                        <span>{{ savingEdit ? 'Saving…' : 'Save changes' }}</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1072,6 +1212,7 @@ import imageCompression from 'browser-image-compression'
 import { useUserStore } from '~/stores/user'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import { useApi, ApiError } from '~/composables/useApi'
+import { useOrderStatus } from '~/composables/useOrderStatus'
 import { formatCompactAddress } from '~/utils/addressFormat'
 import {
     PAYABLE_REQUEST_STATUSES as payableStatuses,
@@ -1081,13 +1222,13 @@ import {
 } from '~/utils/requestPayment'
 import {
     PlusCircleIcon, ClipboardDocumentListIcon as ClipDocList, CheckIcon, PlusIcon, XMarkIcon,
-    CameraIcon, ArrowUpTrayIcon, MapPinIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon,
+    CameraIcon, ArrowUpTrayIcon, MapPinIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon,
     PaperClipIcon, InformationCircleIcon, CubeIcon, CurrencyDollarIcon, TruckIcon, StarIcon,
     ChatBubbleLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon,
     MinusSmallIcon, PlusSmallIcon, CreditCardIcon,
-    ExclamationTriangleIcon as ExcTriIcon, CheckCircleIcon,
+    ExclamationTriangleIcon as ExcTriIcon, ExclamationCircleIcon, CheckCircleIcon,
     ClockIcon, WalletIcon, InboxIcon, BeakerIcon, ChatBubbleLeftEllipsisIcon,
-    BuildingStorefrontIcon, PhoneIcon,
+    BuildingStorefrontIcon, PhoneIcon, PencilIcon,
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
@@ -1190,6 +1331,7 @@ interface OrderRequest {
     estimated_total?: number | string;
     total_cost?: number | string;
     item_count?: number;
+    first_item_name?: string;
     items?: OrderRequestItem[];
     prescription_images?: string[];
     pending_decisions?: RequestDecision[];
@@ -1199,7 +1341,7 @@ interface OrderRequest {
     rider_name?: string;
     customer_address?: string;
     delivery_address?: string;
-    pharmacy?: { name?: string; address?: string; [key: string]: unknown };
+    pharmacy?: { name?: string; address?: string; latitude?: number | string | null; longitude?: number | string | null; [key: string]: unknown };
     [key: string]: unknown;
 }
 
@@ -1265,11 +1407,13 @@ const router = useRouter()
 const config = useRuntimeConfig()
 const apiBase = config.public['apiBase'] as string ?? ''
 const orderRequestsService = createOrderRequestsService(useApi())
+const { getRequestStage, getRequestSubtext } = useOrderStatus()
+const reqStage = (req: OrderRequest) => getRequestStage(req.status ?? '')
 
 const isNewView = computed<boolean>(() => props.defaultSubTab === 'new')
 const isListView = computed<boolean>(() => props.defaultSubTab === 'list')
 const isSubmitting = ref<boolean>(false)
-const loadingRequests = ref<boolean>(false)
+const loadingRequests = ref<boolean>(props.defaultSubTab === 'list')
 const gettingLocation = ref<boolean>(false)
 const payingRequest = ref<boolean>(false)
 const payingMethod = ref<string>('')
@@ -1278,6 +1422,7 @@ const toast = ref<{ text: string; type: string } | null>(null)
 const showSuccess = ref<boolean>(false)
 const showPaymentSuccessAnim = ref<boolean>(false)
 const showPriorityModal = ref<boolean>(false)
+const showAddressModal = ref<boolean>(false)
 const submittedNumber = ref<string>('')
 const requestFee = ref<number>(5)
 const requestRefundMinutes = ref<number>(30)
@@ -1286,6 +1431,7 @@ const isProfessional = ref<boolean>(false)
 const paymentOptionsByRequest = ref<Record<string | number, PaymentOptions>>({})
 const paymentOptionsLoading = ref<Record<string | number, boolean>>({})
 const selectedPaymentMethodByRequest = ref<Record<string | number, string>>({})
+const overrideMethodPickerFor = ref<Record<string | number, boolean>>({})
 const applyFeeByRequest = ref<Record<string | number, boolean>>({})
 // Convenience accessor — avoids repeated index lookups that vue-tsc cannot narrow through v-else-if guards
 const selectedPaymentOptions = computed<PaymentOptions | undefined>(
@@ -1295,6 +1441,7 @@ const setApplyFee = (requestId: string | number, value: boolean): void => {
     applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: value }
 }
 const walletBalance = ref<number>(0)
+const walletGateDismissed = ref<boolean>(false)
 const submitShortfall = ref<number>(0)
 const paymentShortfall = ref<{ requestId: string | number | null; amount: number }>({
     requestId: null,
@@ -1394,13 +1541,12 @@ const restoreFormDraft = (): void => {
             return
         }
 
-        // Only restore if the items are mostly empty (user hasn't started typing).
-        // Note: fulfillmentType defaults to 'delivery' on mount so it can't be used
-        // as a "has the user interacted" signal — relying on items + location only.
+        // Only restore if the user hasn't started typing.
+        // customerLat and deliveryAddress are excluded: loadSavedHomeLocation() populates
+        // them automatically from the user's profile before this function runs, so they
+        // are not reliable signals that the user has interacted with the form.
         const hasSignificantContent = requestItems.value.some(item => item.product_name.trim()) ||
-            customerLat.value ||
-            customerNotes.value.trim() ||
-            deliveryAddress.value.trim()
+            customerNotes.value.trim()
         if (hasSignificantContent) return
 
         // Restore items
@@ -1555,6 +1701,7 @@ const editingAddress = ref<boolean>(false)
 const showAddressSearch = computed<boolean>(() => !customerLat.value || editingAddress.value)
 const locationIssue = ref<LocationIssue | null>(null)
 const uploadProgress = ref<number>(0)
+const prescriptionFileError = ref<string>('')
 
 const openPrescriptionField = (): void => {
     showPrescriptionField.value = true
@@ -1588,6 +1735,12 @@ watch(prescriptionFiles, (files) => {
 watch(customerNotes, (val) => {
     if (String(val || '').trim().length > 0) showNotesField.value = true
 })
+
+// When the wallet balance updates (e.g. after topping up), reset the dismissed
+// gate so the user sees feedback about whether the top-up was enough.
+watch(walletBalance, () => {
+    walletGateDismissed.value = false
+})
 let deliveryAutocompleteTimer: ReturnType<typeof setTimeout> | null = null
 let deliveryAutocompleteSuspend = false
 
@@ -1603,7 +1756,18 @@ watch(selectedRequest, (req) => {
     if (req.id != null && paymentOptionsByRequest.value[req.id]) return
     if (req.id != null) void loadPaymentOptions(req.id)
 })
-const requestListTab = ref<string>('active')
+const SESSION_TAB_KEY = 'medsgh_request_list_tab'
+const requestListTab = ref<string>(
+  (process.client && sessionStorage.getItem(SESSION_TAB_KEY)) || 'processing'
+)
+// Persist user's tab choice within the session so auto-open doesn't override it.
+watch(requestListTab, (tab) => {
+  if (process.client) sessionStorage.setItem(SESSION_TAB_KEY, tab)
+})
+
+// ─── New today tracking ────────────────────────────────────────────────────
+// A request is "new" for the entire calendar day it was created.
+
 const respondingDecisionId = ref<number | string | null>(null)
 const decisionSelections = ref<Record<string | number, Record<string, string>>>({})
 const savingFeedback = ref<boolean>(false)
@@ -1628,6 +1792,7 @@ const goToRequestHistory = async (): Promise<void> => {
     showSuccess.value = false
     await navigateTo({ path: '/customer', query: { tab: 'requests' } })
 }
+
 
 const validItems = computed<RequestItem[]>(() => requestItems.value.filter(i => i.product_name.trim()))
 const hasPrescriptionFiles = computed<boolean>(() => prescriptionFiles.value.length > 0)
@@ -1684,11 +1849,38 @@ const isCompletedRequest = (request: OrderRequest): boolean => {
     return ['completed', 'delivered', 'picked_up', 'expired', 'cancelled', 'returned'].includes(status)
 }
 
-const activeRequests = computed<OrderRequest[]>(() => myRequests.value.filter(req => !isCompletedRequest(req)))
-const completedRequests = computed<OrderRequest[]>(() => myRequests.value.filter(req => isCompletedRequest(req)))
-const filteredRequests = computed<OrderRequest[]>(() => (
-    requestListTab.value === 'completed' ? completedRequests.value : activeRequests.value
-))
+const processingRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'processing'))
+const awaitingPaymentRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'awaiting_payment'))
+const awaitingFulfilmentRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'awaiting_fulfilment'))
+const completedRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'complete'))
+const newItems = computed<OrderRequest[]>(() => {
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    return myRequests.value.filter(req => !!req.created_at && new Date(req.created_at) >= todayStart)
+})
+const newItemIds = computed<Set<string | number>>(() => new Set(newItems.value.map(r => r.id)))
+const tabHasNew = computed(() => ({
+    awaiting_payment: newItems.value.some(r => reqStage(r) === 'awaiting_payment'),
+    processing: newItems.value.some(r => reqStage(r) === 'processing'),
+    awaiting_fulfilment: newItems.value.some(r => reqStage(r) === 'awaiting_fulfilment'),
+}))
+const showAttentionStrip = computed(() => newItems.value.some(r => reqStage(r) !== requestListTab.value))
+const awaitingPaymentTotal = computed<string>(() => {
+    const total = awaitingPaymentRequests.value.reduce((sum, r) => {
+        const amount = parseFloat(String(r.total_cost ?? r.estimated_total ?? 0))
+        return sum + (Number.isFinite(amount) ? amount : 0)
+    }, 0)
+    return total > 0 ? total.toFixed(2) : ''
+})
+const filteredRequests = computed<OrderRequest[]>(() => {
+    const stageMap: Record<string, OrderRequest[]> = {
+        processing: processingRequests.value,
+        awaiting_payment: awaitingPaymentRequests.value,
+        awaiting_fulfilment: awaitingFulfilmentRequests.value,
+        complete: completedRequests.value,
+    }
+    return stageMap[requestListTab.value] ?? processingRequests.value
+})
 
 const buildLocationIssue = (message: string, instructions: string): LocationIssue => ({ message, instructions })
 
@@ -1828,6 +2020,14 @@ const isFeedbackEligibleStatus = (status: string | undefined): boolean =>
 
 const canLeaveFeedback = (request: OrderRequest): boolean => isFeedbackEligibleStatus(request?.status)
 
+const DELIVERY_PROGRESS_STATUSES = new Set(['paid','verified','preparing','logistics_pending','driver_unavailable','driver_assigned','out_for_delivery'])
+const deliveryStep = computed((): 1 | 2 | 3 => {
+    const s = selectedRequest.value?.status ?? ''
+    if (s === 'driver_assigned' || s === 'out_for_delivery') return 3
+    if (s === 'logistics_pending' || s === 'driver_unavailable') return 2
+    return 1
+})
+
 const syncFeedbackForm = (): void => {
     const feedback = selectedRequest.value?.feedback ?? null
     feedbackForm.value = {
@@ -1945,8 +2145,27 @@ const revokePrescriptionPreview = (image: PrescriptionPreview | undefined | null
     }
 }
 
+const validatePrescriptionFile = (file: File): string | null => {
+    const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+    if (file.size > MAX_BYTES) return 'File is too large (max 10 MB).'
+    const isImage = file.type.startsWith('image/')
+    const isPdf = file.type === 'application/pdf'
+    if (!isImage && !isPdf) return 'Please upload an image or PDF.'
+    return null
+}
+
 const appendPrescriptionFiles = async (files: FileList | File[]): Promise<void> => {
-    const accepted = Array.from(files).slice(0, Math.max(0, 6 - prescriptionFiles.value.length))
+    const all = Array.from(files)
+    // Validate each file first
+    for (const file of all) {
+        const err = validatePrescriptionFile(file)
+        if (err) {
+            prescriptionFileError.value = err
+            return
+        }
+    }
+    prescriptionFileError.value = ''
+    const accepted = all.slice(0, Math.max(0, 6 - prescriptionFiles.value.length))
     if (!accepted.length) return
     const compressedFiles = await Promise.all(accepted.map(compressRequestImage))
     const nextFiles = compressedFiles.map(createPrescriptionPreview)
@@ -2175,6 +2394,13 @@ const fetchMyRequests = async ({ silent = false }: { silent?: boolean } = {}): P
         const nextRequests = (res.data ?? []) as OrderRequest[]
         myRequests.value = nextRequests
 
+        // Auto-open "Pay Now" tab on first load if the user hasn't chosen a tab
+        // themselves (sessionStorage persists their last choice within the session).
+        if (!sessionStorage.getItem(SESSION_TAB_KEY)) {
+            const hasPayable = nextRequests.some(r => getRequestStage(r.status ?? '') === 'awaiting_payment')
+            if (hasPayable) requestListTab.value = 'awaiting_payment'
+        }
+
         // Keep open modal status/details in sync when admin updates a request.
         if (selectedRequest.value?.id != null) {
             const refreshed = nextRequests.find(r => r.id === selectedRequest.value!.id)
@@ -2390,8 +2616,7 @@ const submitRequest = async (): Promise<void> => {
 
 const openPriorityGate = (): void => {
     if (!canSubmit.value || isSubmitting.value) return
-    submitShortfall.value = 0
-    showPriorityModal.value = true
+    submitRequest()
 }
 
 const confirmPriorityAndSubmit = async (): Promise<void> => {
@@ -2452,12 +2677,33 @@ const getStatusClasses = (status: string): string => {
 }
 const formatStatus = (s: string | undefined): string => getCustomerStatus(s ?? '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 const formatDate = (d: string | undefined): string => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''
+const requestAgeDays = (req: OrderRequest): number => {
+    if (!req.created_at) return 0
+    return Math.floor((Date.now() - new Date(req.created_at).getTime()) / 86400000)
+}
+const requestAgeLabel = (req: OrderRequest): string => {
+    const days = requestAgeDays(req)
+    if (days === 0) return 'Today'
+    if (days === 1) return 'Yesterday'
+    return `${days} days ago`
+}
 const riderWhatsAppNumber = (phone: string | undefined): string => {
     if (!phone) return ''
     const clean = String(phone).replace(/\D/g, '')
     if (clean.startsWith('233')) return clean
     if (clean.startsWith('0')) return '233' + clean.slice(1)
     return '233' + clean
+}
+const pharmacyNavUrl = (pharmacy: OrderRequest['pharmacy']): string => {
+    const lat = Number(pharmacy?.latitude)
+    const lng = Number(pharmacy?.longitude)
+    if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    }
+    if (pharmacy?.address) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(pharmacy.address)}`
+    }
+    return ''
 }
 const formatMoney = (v: number | string | null | undefined): string => Number(v ?? 0).toFixed(2)
 const getRequestTotal = (req: OrderRequest): number | null => {
@@ -2474,8 +2720,12 @@ const getRequestCardSummary = (req: OrderRequest): string => {
         return 'Prescription attached'
     }
 
-    const itemCount = Number(req?.item_count ?? 0)
-    return itemCount > 0 ? `${itemCount} item${itemCount !== 1 ? 's' : ''}` : '-'
+    const firstName = req?.first_item_name?.trim() || req?.items?.[0]?.product_name?.trim()
+    const itemCount = Number(req?.item_count ?? req?.items?.length ?? 0)
+
+    if (!firstName) return itemCount > 0 ? `${itemCount} item${itemCount !== 1 ? 's' : ''}` : '-'
+    const remaining = itemCount - 1
+    return remaining > 0 ? `${firstName} +${remaining} more` : firstName
 }
 const getRequestContentCount = (req: OrderRequest): string => {
     if (shouldShowPrescriptionPreview(req)) {
@@ -2495,7 +2745,46 @@ const getRequestStatus = (req: OrderRequest): string => {
     }
     return rawStatus
 }
-const canCancelRequest = (req: OrderRequest | null): boolean => !!req && req.status === 'pending'
+const canCancelRequest = (req: OrderRequest | null): boolean =>
+    !!req && ['pending', 'processing', 'sourcing'].includes(req.status ?? '')
+
+const canEditRequest = (req: OrderRequest | null): boolean =>
+    !!req && ['pending', 'processing'].includes(req.status ?? '')
+
+interface EditItem { product_name: string; requested_unit: string; quantity: number }
+const editingRequest = ref<OrderRequest | null>(null)
+const editItems = ref<EditItem[]>([])
+const savingEdit = ref<boolean>(false)
+
+const startEditing = (req: OrderRequest): void => {
+    editItems.value = (req.items ?? []).map(item => ({
+        product_name: String(item.product_name ?? ''),
+        requested_unit: String(item.requested_unit ?? ''),
+        quantity: Math.max(1, Number(item.quantity ?? 1))
+    }))
+    if (editItems.value.length === 0) editItems.value.push({ product_name: '', requested_unit: '', quantity: 1 })
+    editingRequest.value = req
+}
+
+const saveEdit = async (): Promise<void> => {
+    const req = editingRequest.value
+    if (!req || savingEdit.value) return
+    const items = editItems.value.filter(i => i.product_name.trim())
+    if (items.length === 0) { showToast('Add at least one item', 'error'); return }
+    savingEdit.value = true
+    try {
+        await apiCall('PUT', `/api/order-requests/customer/${String(req.id)}`, { items })
+        showToast('Request updated')
+        editingRequest.value = null
+        await fetchMyRequests({ silent: true })
+        if (selectedRequest.value?.id === req.id) await refreshSelectedRequest()
+    } catch (e) {
+        showToast(e instanceof Error ? e.message : 'Failed to update request', 'error')
+    } finally {
+        savingEdit.value = false
+    }
+}
+
 const clearRequestPaymentQuery = async (requestId: number | null = null): Promise<void> => {
     const nextQuery: Record<string, string | undefined> = { ...route.query as Record<string, string>, tab: 'requests' }
     delete nextQuery['reference']
@@ -2531,6 +2820,14 @@ const loadPaymentOptions = async (requestId: number | string): Promise<void> => 
     }
 }
 
+const startChangingMethod = (requestId: number | string) => {
+    const currentMethod = selectedRequest.value?.fulfillment_type
+    if (currentMethod) {
+        selectedPaymentMethodByRequest.value = { ...selectedPaymentMethodByRequest.value, [requestId]: currentMethod }
+    }
+    overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: true }
+}
+
 const choosePaymentMethod = (requestId: number | string, method: string): void => {
     if (!requestId || !['pickup', 'delivery'].includes(method)) return
     const opts = paymentOptionsByRequest.value[requestId]
@@ -2538,6 +2835,20 @@ const choosePaymentMethod = (requestId: number | string, method: string): void =
     selectedPaymentMethodByRequest.value = {
         ...selectedPaymentMethodByRequest.value,
         [requestId]: method
+    }
+    if (overrideMethodPickerFor.value[requestId]) {
+        overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: false }
+        const prevMethod = selectedRequest.value?.fulfillment_type
+        if (selectedRequest.value?.id === requestId) {
+            selectedRequest.value = { ...selectedRequest.value, fulfillment_type: method }
+        }
+        submitFulfillmentChoice(requestId, method).catch(err => {
+            showToast(err instanceof Error ? err.message : 'Could not update fulfillment choice', 'error')
+            if (selectedRequest.value?.id === requestId) {
+                selectedRequest.value = { ...selectedRequest.value, fulfillment_type: prevMethod ?? undefined }
+            }
+            overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: true }
+        })
     }
 }
 
@@ -2548,6 +2859,7 @@ const requiresMethodSelection = (request: OrderRequest | null): boolean => {
 
 const canPayWithSelection = (request: OrderRequest | null): boolean => {
     if (!request) return false
+    if (request.id != null && overrideMethodPickerFor.value[request.id]) return false
     if (!requiresMethodSelection(request)) return true
     return Boolean(request.id != null && selectedPaymentMethodByRequest.value[request.id])
 }
@@ -2577,6 +2889,14 @@ const selectedMethodTotal = computed<number | null>(() => {
         return total != null ? Number(total) : null
     }
     return null
+})
+
+// Total charged via Paystack = order total + Paystack processing fee (1.95% + GHS 0.50)
+const paystackChargeTotal = computed<number | null>(() => {
+    const base = selectedMethodTotal.value
+    if (base == null) return null
+    const fee = Math.round((base * 0.0195 + 0.50) * 100) / 100
+    return Math.round((base + fee) * 100) / 100
 })
 
 const formatPickupReason = (reason: string | undefined): string => {
@@ -3126,6 +3446,9 @@ onMounted(async () => {
     }
     if (isListView.value || props.initialRequestId) {
         await fetchMyRequests()
+        if (!props.initialRequestId && awaitingPaymentRequests.value.length > 0) {
+            requestListTab.value = 'awaiting_payment'
+        }
         await openRequestById(props.initialRequestId, { silent: true })
     }
     await verifyReturnedPaystackRequestPayment()
@@ -3180,6 +3503,15 @@ watchEffect(() => {
 })
 
 onUnmounted(() => {
+    // Flush any pending draft save immediately so a quick tab switch
+    // (before the 1-second debounce fires) doesn't lose entered medications.
+    if (isNewView.value) {
+        if (formDraftSaveTimer) {
+            clearTimeout(formDraftSaveTimer)
+            formDraftSaveTimer = null
+        }
+        saveFormDraft()
+    }
     if (pollTimer) clearInterval(pollTimer)
     if (deliveryAutocompleteTimer) clearTimeout(deliveryAutocompleteTimer)
     prescriptionFiles.value.forEach(revokePrescriptionPreview)
@@ -3884,8 +4216,13 @@ void isPaymentPendingRequest
     background: transparent;
     font-size: 0.95rem;
     color: #111827;
-    outline: none;
     font-weight: 600;
+}
+
+.item-input:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .item-input::placeholder {
@@ -4219,7 +4556,8 @@ void isPaymentPendingRequest
 }
 
 .qty-input:focus {
-    outline: none;
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
 }
 
 .qty-input::-webkit-outer-spin-button,
@@ -4582,7 +4920,8 @@ void isPaymentPendingRequest
 }
 
 .form-textarea:focus {
-    outline: none;
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
@@ -5283,7 +5622,12 @@ void isPaymentPendingRequest
 }
 
 .detail-section {
-    margin-bottom: 1.25rem;
+    background: #ffffff;
+    border: 1px solid #f0f0f1;
+    border-radius: 14px;
+    padding: 0.25rem 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .detail-prescription-grid {
@@ -5321,15 +5665,20 @@ void isPaymentPendingRequest
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.625rem 0.75rem;
-    background: #f9fafb;
-    border-radius: 8px;
-    margin-bottom: 0.375rem;
+    padding: 0.75rem 0;
+    background: transparent;
+    border-radius: 0;
+    border-bottom: 1px solid #f4f4f5;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
 }
 
 .detail-item strong {
-    font-size: 0.875rem;
-    color: #111827;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #18181b;
 }
 
 .item-qty {
@@ -5379,32 +5728,54 @@ void isPaymentPendingRequest
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
     border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.rider-contact-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.rider-contact-info {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 1px;
+    min-width: 0;
 }
-.rider-name {
-    font-size: 0.9rem;
+.rider-contact-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #15803d;
+    text-transform: uppercase;
+}
+.rider-contact-name {
+    font-size: 0.88rem;
     font-weight: 600;
     color: #111;
-    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.rider-whatsapp-btn {
+.rider-contact-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.rider-action-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    background: #25D366;
-    color: white;
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     text-decoration: none;
-    align-self: flex-start;
-    margin-top: 0.25rem;
+    color: white;
+    flex-shrink: 0;
 }
+.rider-action-btn--call { background: #4F217A; }
+.rider-action-btn--wa   { background: #25D366; }
 
 .totals-box {
     background: #eef2ff;
@@ -5749,7 +6120,7 @@ void isPaymentPendingRequest
 
 .payment-method-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 0.7rem;
 }
 
@@ -5774,12 +6145,71 @@ void isPaymentPendingRequest
     font-variant-numeric: tabular-nums;
 }
 
-.fulfillment-picker {
-    margin-bottom: 0.85rem;
-    padding: 0.85rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+.fulfillment-locked-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: #ffffff;
+    border: 1px solid #f0f0f1;
     border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.fulfillment-locked-strip-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.fulfillment-locked-strip-icon--pickup {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.fulfillment-locked-strip-icon--delivery {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.fulfillment-locked-strip-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #18181b;
+}
+
+.fulfillment-locked-strip-change {
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid #e4e4e7;
+    background: transparent;
+    color: #71717a;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.fulfillment-locked-strip-change:hover {
+    border-color: #4F217A;
+    color: #4F217A;
+    background: #faf5ff;
+}
+
+.fulfillment-picker {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #ffffff;
+    border: 1px solid #ede8f5;
+    border-radius: 16px;
+    box-shadow: 0 1px 4px rgba(79,33,122,0.06);
 }
 
 .fulfillment-picker-header h4 {
@@ -5805,56 +6235,68 @@ void isPaymentPendingRequest
 }
 
 .fulfillment-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem;
-    margin-top: 0.65rem;
-}
-
-@media (max-width: 480px) {
-    .fulfillment-options { grid-template-columns: 1fr; }
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-top: 0.75rem;
 }
 
 .fulfillment-option {
+    position: relative;
     display: block;
     text-align: left;
-    padding: 0.7rem 0.85rem;
-    border-radius: 10px;
-    border: 1.5px solid #e2e8f0;
+    padding: 1rem 3rem 1rem 1rem;
+    border-radius: 14px;
+    border: 1.5px solid #e4e4e7;
     background: #ffffff;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.fulfillment-option::after {
+    content: '';
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #d4d4d8;
+    background: #ffffff;
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
 
 .fulfillment-option-row {
     display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
+    align-items: center;
+    gap: 0.85rem;
 }
 
 .fulfillment-option-icon {
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .fulfillment-option-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
 }
 
 .fulfillment-option-icon--pickup {
-    background: #fef3c7;
-    color: #92400e;
+    background: #fff7ed;
+    color: #c2410c;
 }
 
 .fulfillment-option-icon--delivery {
-    background: #e0e7ff;
-    color: #4338ca;
+    background: #eff6ff;
+    color: #2563eb;
 }
 
 .fulfillment-option-body {
@@ -5863,16 +6305,24 @@ void isPaymentPendingRequest
 }
 
 .fulfillment-option:hover:not(:disabled) {
-    border-color: #cbd5e1;
+    border-color: #c4a3e8;
+    box-shadow: 0 2px 8px rgba(79,33,122,0.08);
 }
 
 .fulfillment-option--selected {
     border-color: #4F217A;
-    background: #f4e8fb;
+    background: #faf5ff;
+    box-shadow: 0 0 0 3px rgba(79,33,122,0.08);
+}
+
+.fulfillment-option--selected::after {
+    border-color: #4F217A;
+    background: #4F217A;
+    box-shadow: inset 0 0 0 4px #ffffff;
 }
 
 .fulfillment-option--disabled {
-    opacity: 0.6;
+    opacity: 0.45;
     cursor: not-allowed;
 }
 
@@ -5885,102 +6335,83 @@ void isPaymentPendingRequest
 
 .fulfillment-option-title {
     font-weight: 700;
-    font-size: 0.9rem;
-    color: #0f172a;
+    font-size: 0.9375rem;
+    color: #18181b;
 }
 
 .fulfillment-option-price {
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-weight: 800;
+    font-size: 0.9375rem;
     color: #4F217A;
+    font-variant-numeric: tabular-nums;
 }
 
 .fulfillment-option-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.15rem;
+    column-gap: 0.3rem;
     margin-top: 0.3rem;
-    font-size: 0.75rem;
-    color: #475569;
+    font-size: 0.775rem;
+    color: #71717a;
+    line-height: 1.5;
 }
 
 .fulfillment-option-meta--muted {
-    color: #94a3b8;
+    color: #a1a1aa;
     font-style: italic;
 }
 
 .fee-credit-picker {
-    margin-bottom: 0.75rem;
-    padding: 0.75rem 0.85rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-}
-
-.fee-credit-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.55rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
 }
 
 .fee-credit-label {
-    font-size: 0.875rem;
-    font-weight: 700;
+    font-size: 0.8125rem;
+    font-weight: 600;
     color: #0f172a;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.fee-credit-sub {
-    font-size: 0.72rem;
-    color: #64748b;
-}
-
-.fee-credit-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
+.fee-credit-toggle {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 .fee-credit-option {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    text-align: left;
-    padding: 0.6rem 0.75rem;
-    border-radius: 9px;
-    border: 1.5px solid #e2e8f0;
+    padding: 0 0.75rem;
+    height: 32px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
     background: #ffffff;
+    border: none;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    line-height: 1;
 }
 
-.fee-credit-option:hover {
-    border-color: #cbd5e1;
+.fee-credit-option:first-child {
+    border-right: 1.5px solid #e2e8f0;
 }
 
-.fee-credit-option--selected {
-    border-color: #4F217A;
-    background: #f4e8fb;
-}
-
-.fee-credit-option-title {
-    font-size: 0.825rem;
-    font-weight: 700;
+.fee-credit-option:hover:not(.fee-credit-option--selected) {
+    background: #f8fafc;
     color: #0f172a;
 }
 
-.fee-credit-option-sub {
-    font-size: 0.72rem;
-    color: #64748b;
-}
-
-.fee-credit-option--selected .fee-credit-option-title {
-    color: #4F217A;
-}
-
-@media (max-width: 480px) {
-    .fee-credit-options { grid-template-columns: 1fr; }
+.fee-credit-option--selected {
+    background: #4F217A;
+    color: #ffffff;
 }
 
 .pay-request-btn {
@@ -6155,34 +6586,130 @@ void isPaymentPendingRequest
     }
 }
 
+.detail-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+.detail-section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9ca3af;
+}
+.edit-request-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #4F217A;
+    background: #f5f0fb;
+    border: 1px solid #e4d9f5;
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.edit-request-btn:hover { background: #ebe3f7; }
+
+.edit-items-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.75rem; }
+.edit-item-row { display: flex; flex-direction: column; gap: 0.4rem; }
+.edit-item-name-wrap { display: flex; align-items: center; gap: 0.5rem; }
+.edit-item-index {
+    width: 1.25rem; height: 1.25rem; flex-shrink: 0;
+    border-radius: 50%; background: #f0e8ff; color: #4F217A;
+    font-size: 0.65rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+}
+.edit-item-input {
+    flex: 1; border: 1px solid #e4d9f5; border-radius: 10px;
+    padding: 0.55rem 0.75rem; font-size: 0.85rem; font-weight: 600;
+    color: #1a0a2e; background: #faf8ff;
+}
+.edit-item-input:focus { outline: 2px solid #4f46e5; outline-offset: 2px; border-color: #4F217A; box-shadow: 0 0 0 3px rgba(79,33,122,0.08); }
+.edit-item-meta { display: flex; align-items: center; gap: 0.5rem; padding-left: 1.75rem; }
+.edit-item-select {
+    flex: 1; border: 1px solid #e4d9f5; border-radius: 8px;
+    padding: 0.4rem 0.5rem; font-size: 0.78rem; font-weight: 600;
+    color: #4F217A; background: #faf8ff; cursor: pointer;
+}
+.edit-item-select:focus { outline: 2px solid #4f46e5; outline-offset: 2px; }
+.edit-item-qty {
+    display: flex; align-items: center; border: 1px solid #e4d9f5;
+    border-radius: 8px; overflow: hidden; background: #faf8ff;
+}
+.qty-btn {
+    width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 700; color: #4F217A; background: transparent; border: none;
+    cursor: pointer; transition: background 0.15s;
+}
+.qty-btn:hover { background: #f0e8ff; }
+.qty-val { width: 1.75rem; text-align: center; font-size: 0.8rem; font-weight: 800; color: #1a0a2e; }
+.edit-item-remove {
+    width: 1.75rem; height: 1.75rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; border: none; background: transparent;
+    color: #d1a8f0; cursor: pointer; transition: color 0.15s, background 0.15s;
+}
+.edit-item-remove:hover { color: #b91c1c; background: #fff1f2; }
+.edit-add-item-btn {
+    font-size: 0.78rem; font-weight: 700; color: #4F217A;
+    background: transparent; border: 1px dashed #c4a8e8;
+    border-radius: 8px; padding: 0.45rem 0.75rem;
+    width: 100%; cursor: pointer; transition: background 0.15s;
+}
+.edit-add-item-btn:hover { background: #f5f0fb; }
+
+.modal-subtitle { font-size: 0.75rem; color: #9b7ec0; font-weight: 500; margin-top: 0.1rem; }
+.modal-footer {
+    display: flex; gap: 0.75rem; padding: 1rem 1.25rem 1.25rem;
+    border-top: 1px solid #f0e8ff;
+}
+.modal-cancel-btn {
+    flex: 1; border: 1px solid #e4d9f5; background: white; color: #7c5fa0;
+    padding: 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+}
+.modal-cancel-btn:hover { background: #faf8ff; }
+.modal-confirm-btn {
+    flex: 1; background: #4F217A; color: white;
+    padding: 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 700;
+    border: none; cursor: pointer; display: inline-flex; align-items: center;
+    justify-content: center; gap: 0.4rem; transition: background 0.15s;
+}
+.modal-confirm-btn:hover:not(:disabled) { background: #3d1861; }
+.modal-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .cancel-action {
     margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
 }
 
 .cancel-request-btn {
-    width: 100%;
-    border: 1px solid #fca5a5;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    background: #fff1f2;
-    color: #b91c1c;
-    font-weight: 700;
-    font-size: 0.875rem;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    font-weight: 500;
+    font-size: 0.75rem;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: color 0.2s;
 }
 
 .cancel-request-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 16px rgba(185, 28, 28, 0.12);
+    color: #b91c1c;
 }
 
 .cancel-request-btn:disabled {
-    opacity: 0.7;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
@@ -7136,9 +7663,14 @@ void isPaymentPendingRequest
     font-weight: 700;
     color: #350062;
     padding: 0;
-    outline: none;
     -moz-appearance: textfield;
     appearance: textfield;
+}
+
+.med-qty-input:focus {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .med-qty-input::-webkit-outer-spin-button,
@@ -7431,34 +7963,47 @@ void isPaymentPendingRequest
 
 /* ── Detail Modal: purple header ── */
 .modal-header--concierge {
-    background: #350062;
+    background: linear-gradient(135deg, #3d0074 0%, #280052 100%);
     border-radius: 1rem 1rem 0 0;
-    padding: 1.1rem 1.25rem;
+    padding: 1.2rem 1.25rem;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
 }
 
 .modal-header--concierge h3 {
     color: #ffffff;
     margin: 0;
-    font-size: 1.05rem;
-    font-weight: 700;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
 }
 
 .modal-header--concierge .status-badge {
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255,255,255,0.9);
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(4px);
+    letter-spacing: 0.04em;
+    margin-top: 0.5rem;
 }
 
 .modal-header--concierge .modal-close {
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.7);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
 }
 
 .modal-header--concierge .modal-close:hover {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.18);
 }
 
 /* ── Mobile: detail modal as bottom-sheet ── */

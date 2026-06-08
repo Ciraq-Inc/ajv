@@ -36,6 +36,21 @@
 
     <template v-else>
       <div v-if="currentTab === 'home'" class="space-y-6">
+
+        <!-- Non-blocking data error banner -->
+        <div
+          v-if="hasDashboardError && !isDashboardLoading"
+          class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
+          role="alert"
+        >
+          <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+          <span class="text-amber-800 font-medium flex-1">Some data could not be loaded. Pull to refresh or wait a moment.</span>
+          <button
+            @click="startHomeStatsPolling"
+            class="text-xs font-bold text-amber-700 hover:text-amber-900 transition-colors flex-shrink-0"
+          >Retry</button>
+        </div>
+
         <section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#7b3faa] via-[#5c2490] to-[#381659] p-6 text-white shadow-xl">
           <!-- decorative blobs -->
           <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -110,8 +125,8 @@
                 <div class="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div class="min-w-0 flex-1 flex flex-col justify-center">
                     <div class="flex items-center gap-2 mb-1.5 overflow-hidden pr-2">
-                      <h4 class="truncate text-sm font-bold text-zinc-900 group-hover:text-[#4F217A] transition-colors" :title="request.request_number || 'REQ-' + shortId(String(request.id || ''))">
-                        {{ request.request_number || 'REQ-' + shortId(String(request.id || '')) }}
+                      <h4 class="truncate text-sm font-bold text-zinc-900 group-hover:text-[#4F217A] transition-colors" :title="getRequestHeadline(request)">
+                        {{ getRequestHeadline(request) }}
                       </h4>
                       <span
                         class="inline-flex px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] rounded-md shrink-0 whitespace-nowrap"
@@ -121,7 +136,9 @@
                       </span>
                     </div>
                     <p class="truncate text-[0.7rem] font-medium text-zinc-500 mt-0.5 flex items-center gap-1.5 flex-wrap leading-tight">
-                      <span>{{ formatDate(request.updated_at || request.created_at) }}</span>
+                      <span v-if="request.request_number" class="font-mono text-zinc-400">#{{ request.request_number }}</span>
+                      <span v-if="request.request_number" class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                      <span :title="request.updated_at || request.created_at">{{ formatDate(request.updated_at || request.created_at) }}</span>
                       <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
                       <span class="text-zinc-600 capitalize tabular-nums">{{ requestMeta(request) }}</span>
                     </p>
@@ -226,7 +243,7 @@
               v-for="company in verifiedPartners"
               :key="company.id ?? ''"
               class="flex items-center sm:items-start gap-4 rounded-xl border border-[#ede5ff] bg-gradient-to-br from-white to-[#faf6ff] px-5 py-4 text-left hover:border-[#c9a8f0] hover:shadow-[0_4px_16px_-4px_rgba(79,33,122,0.15)] transition-all group"
-              @click="goTab('companies')"
+              @click="goToPharmacy(company)"
             >
               <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
                 <BuildingStorefrontIcon class="w-5 h-5" />
@@ -282,6 +299,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { timeAgo } from '~/composables/useTimeAgo'
 import {
   WalletIcon,
   ChevronRightIcon,
@@ -309,6 +327,8 @@ interface RequestItem {
   request_number?: string;
   status?: string;
   item_count?: number;
+  first_item_name?: string;
+  request_type?: string;
   items?: Array<{ brand_name?: string; product_name?: string }>;
   fulfillment_type?: string;
   total_cost?: number | string;
@@ -350,11 +370,14 @@ const orderRequestsService = createOrderRequestsService(useApi())
 
 const isCheckingAuth = ref<boolean>(!userStore.authInitialized)
 const isDashboardLoading = ref<boolean>(true)
+const hasDashboardError = ref<boolean>(false)
 const walletBalance = useState<number>('walletBalance', () => 0)
 const recentRequests = ref<RequestItem[]>([])
 const ongoingOrders = ref<OrderItem[]>([])
 const activeRequestCount = ref<number>(0)
 const HOME_STATS_POLL_MS = 15000
+const MAX_CONSECUTIVE_ERRORS = 3
+let consecutivePollErrors = 0
 let homeStatsPollTimer: ReturnType<typeof setInterval> | null = null
 
 const currentTab = computed<string>(() => String(route.query['tab'] ?? 'new'))
@@ -375,18 +398,39 @@ const ongoingOrderItems = computed<OrderItem[]>(() => {
 
 const goTab = (tab: string): void => { void navigateTo({ path: '/customer', query: { tab } }) }
 
+const goToPharmacy = (company: CompanyItem): void => {
+  const slug = (company as Record<string, unknown>)['domain_name'] as string | undefined
+  if (slug) {
+    void navigateTo(`/${slug}`)
+  } else {
+    goTab('companies')
+  }
+}
+
 const isActiveRequestStatus: (status: string) => boolean = orderStatus.isActiveRequestStatus
 const isOngoingOrderStatus: (status: string) => boolean = orderStatus.isOngoingStoreStatus
 
-const formatDate = (value: string | undefined): string => (
-  value
-    ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-    : ''
-)
+const formatDate = (value: string | undefined): string => timeAgo(value)
 
 const formatMoney = (value: number | string | undefined): string => Number(value ?? 0).toFixed(2)
 const shortId = (id: string | undefined): string => (id ?? '').substring(0, 8).toUpperCase()
 const shortOrderId = (id: number | string | undefined): string => String(id ?? '').replace(/^#/, '').substring(0, 8)
+
+const getRequestHeadline = (request: RequestItem): string => {
+  const firstName = request.first_item_name?.trim()
+    ?? request.items?.[0]?.brand_name?.trim()
+    ?? request.items?.[0]?.product_name?.trim()
+  const itemCount = Number(request.item_count ?? request.items?.length ?? 0)
+  if (firstName) {
+    const remaining = itemCount - 1
+    return remaining > 0 ? `${firstName} +${remaining} more` : firstName
+  }
+  if (itemCount > 0) return `${itemCount} item${itemCount === 1 ? '' : 's'}`
+  const type = String(request.request_type ?? request.fulfillment_type ?? '').toLowerCase()
+  if (type.includes('prescription')) return 'Prescription request'
+  if (type.includes('otc') || type.includes('over')) return 'OTC request'
+  return 'Medication request'
+}
 
 const requestMeta = (request: RequestItem): string => {
   const itemCount = Number(request.item_count ?? request.items?.length ?? 0)
@@ -453,24 +497,27 @@ const getCompanyMeta = (company: CompanyItem): string => {
   return compact || 'Linked pharmacy'
 }
 
-const loadWalletBalance = async (): Promise<void> => {
+const loadWalletBalance = async (): Promise<boolean> => {
   try {
     const json = await walletService.getBalance()
     walletBalance.value = parseFloat(String((json.data as { balance?: number | string })?.balance ?? 0))
+    return true
   } catch {
-    walletBalance.value = 0
+    walletBalance.value = walletBalance.value // keep stale
+    return false
   }
 }
 
-const loadRequestActivity = async (): Promise<void> => {
+const loadRequestActivity = async (): Promise<boolean> => {
   try {
     const json = await orderRequestsService.listForCustomer()
     const requests = (json.data ?? []) as unknown as RequestItem[]
     recentRequests.value = requests.slice(0, 4)
     activeRequestCount.value = requests.filter((request) => isActiveRequestStatus(request.status ?? '')).length
+    return true
   } catch {
-    recentRequests.value = []
-    activeRequestCount.value = 0
+    // keep stale data
+    return false
   }
 }
 
@@ -501,12 +548,21 @@ const stopHomeStatsPolling = (): void => {
 const loadDashboard = async ({ silent = false }: { silent?: boolean } = {}): Promise<void> => {
   if (!silent) isDashboardLoading.value = true
   try {
-    await Promise.allSettled([
-      loadCompanies(),
+    const [, walletOk, requestsOk] = await Promise.all([
+      loadCompanies().catch(() => {}),
       loadWalletBalance(),
       loadRequestActivity(),
-      loadOrderActivity(),
+      loadOrderActivity().catch(() => {}),
     ])
+    // walletOk and requestsOk are booleans from the loaders
+    const criticalFailed = walletOk === false || requestsOk === false
+    if (criticalFailed) {
+      consecutivePollErrors += 1
+      hasDashboardError.value = true
+    } else {
+      consecutivePollErrors = 0
+      hasDashboardError.value = false
+    }
   } finally {
     if (!silent) isDashboardLoading.value = false
   }
@@ -514,9 +570,14 @@ const loadDashboard = async ({ silent = false }: { silent?: boolean } = {}): Pro
 
 const startHomeStatsPolling = async (): Promise<void> => {
   stopHomeStatsPolling()
+  consecutivePollErrors = 0
   await loadDashboard()
   homeStatsPollTimer = setInterval(() => {
     if (typeof document !== 'undefined' && document.hidden) return
+    if (consecutivePollErrors >= MAX_CONSECUTIVE_ERRORS) {
+      stopHomeStatsPolling()
+      return
+    }
     void loadDashboard({ silent: true })
   }, HOME_STATS_POLL_MS)
 }

@@ -105,6 +105,74 @@ const TERMINAL_REQUEST_STATUSES = new Set([
   'returned',
 ])
 
+export type RequestStage = 'processing' | 'awaiting_payment' | 'awaiting_fulfilment' | 'complete'
+
+const STAGE_MAP: Record<string, RequestStage> = {
+  draft: 'processing',
+  pending: 'processing',
+  searching: 'processing',
+  finding_pharmacist: 'processing',
+  composing: 'processing',
+  sourcing: 'processing',
+  confirming_with_pharm: 'processing',
+  processing: 'processing',
+  awaiting_input: 'awaiting_payment',
+  quote_available: 'awaiting_payment',
+  payment_pending: 'awaiting_payment',
+  awaiting_method_selection: 'awaiting_payment',
+  confirmed_in_pharm: 'awaiting_payment',
+  items_sourced: 'awaiting_payment',
+  confirmed: 'awaiting_payment',
+  paid: 'awaiting_fulfilment',
+  verified: 'awaiting_fulfilment',
+  preparing: 'awaiting_fulfilment',
+  ready_for_pickup: 'awaiting_fulfilment',
+  logistics_pending: 'awaiting_fulfilment',
+  driver_unavailable: 'awaiting_fulfilment',
+  driver_assigned: 'awaiting_fulfilment',
+  out_for_delivery: 'awaiting_fulfilment',
+  picked_up: 'complete',
+  delivered: 'complete',
+  completed: 'complete',
+  cancelled: 'complete',
+  returned: 'complete',
+  rejected: 'complete',
+  expired: 'complete',
+}
+
+const REQUEST_SUBTEXTS: Record<string, string> = {
+  draft: 'Submitted — waiting for a pharmacist',
+  pending: 'Submitted — waiting for a pharmacist',
+  searching: 'Finding your medications...',
+  finding_pharmacist: 'Finding your medications...',
+  composing: 'Pharmacist is sourcing your meds',
+  sourcing: 'Pharmacist is sourcing your meds',
+  confirming_with_pharm: 'Confirming with pharmacy...',
+  processing: 'Pharmacist is sourcing your meds',
+  awaiting_input: 'We need a decision from you',
+  quote_available: 'Ready to pay — tap to continue',
+  payment_pending: 'Ready to pay — tap to continue',
+  awaiting_method_selection: 'Ready to pay — tap to continue',
+  confirmed_in_pharm: 'Ready to pay — tap to continue',
+  items_sourced: 'Ready to pay — tap to continue',
+  confirmed: 'Ready to pay — tap to continue',
+  paid: 'Your order is being prepared',
+  verified: 'Your order is being prepared',
+  preparing: 'Your order is being prepared',
+  ready_for_pickup: 'Ready for collection',
+  logistics_pending: 'Assigning a rider...',
+  driver_unavailable: 'No rider available — our team is on it',
+  driver_assigned: 'Your rider is on the way',
+  out_for_delivery: 'Your rider is on the way',
+  picked_up: 'Completed',
+  delivered: 'Completed',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+  returned: 'Closed',
+  rejected: 'Closed',
+  expired: 'Closed',
+}
+
 const humanise = (status: string | null | undefined): string =>
   String(status ?? '')
     .replace(/_/g, ' ')
@@ -129,6 +197,12 @@ export const useOrderStatus = () => {
   const isActiveRequestStatus = (status: string | null | undefined): boolean =>
     !TERMINAL_REQUEST_STATUSES.has(status ?? '')
 
+  const getRequestStage = (status: string | null | undefined): RequestStage =>
+    STAGE_MAP[status ?? ''] ?? 'processing'
+
+  const getRequestSubtext = (status: string | null | undefined): string =>
+    REQUEST_SUBTEXTS[status ?? ''] ?? 'Processing your request'
+
   return {
     formatStoreStatus,
     formatRequestStatus,
@@ -136,5 +210,7 @@ export const useOrderStatus = () => {
     requestStatusBadgeClass,
     isOngoingStoreStatus,
     isActiveRequestStatus,
+    getRequestStage,
+    getRequestSubtext,
   }
 }

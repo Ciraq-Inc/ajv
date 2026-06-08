@@ -177,11 +177,17 @@ export const useCompanyStore = defineStore('company', {
           user?: CompanyUserProfile;
           company?: CompanyState['company'];
           token?: string;
+          refresh_token?: string | null;
         } | null;
         this.user = payload?.user ?? null;
         this.company = payload?.company ?? null;
         this.companyAuthToken = payload?.token ?? null;
 
+        if (process.client && payload?.refresh_token) {
+          const domain = this.getCompanyDomain();
+          const storageKey = domain ? `company_${domain}` : 'company';
+          localStorage.setItem(`${storageKey}_refresh_token`, payload.refresh_token);
+        }
         this.persistAuthData();
         this.authInitialized = true;
         this.phoneVerifying = null;
@@ -215,11 +221,17 @@ export const useCompanyStore = defineStore('company', {
           user?: CompanyUserProfile;
           company?: CompanyState['company'];
           token?: string;
+          refresh_token?: string | null;
         };
         this.user = payload.user ?? null;
         this.company = payload.company ?? null;
         this.companyAuthToken = payload.token ?? null;
 
+        if (process.client && payload.refresh_token) {
+          const domain = this.getCompanyDomain();
+          const storageKey = domain ? `company_${domain}` : 'company';
+          localStorage.setItem(`${storageKey}_refresh_token`, payload.refresh_token);
+        }
         this.persistAuthData();
         this.authInitialized = true;
         this.phoneVerifying = null;
@@ -252,13 +264,19 @@ export const useCompanyStore = defineStore('company', {
           user?: CompanyUserProfile;
           company?: CompanyState['company'] & { domain?: string; domain_name?: string };
           token?: string;
+          refresh_token?: string | null;
         };
         this.user = result.user ?? null;
         this.company = result.company ?? null;
         this.companyAuthToken = result.token ?? null;
         this.authInitialized = true;
 
-        this.persistAuthData(result.company?.domain ?? result.company?.domain_name ?? null);
+        const signupDomain = result.company?.domain ?? result.company?.domain_name ?? null;
+        if (process.client && result.refresh_token) {
+          const storageKey = signupDomain ? `company_${signupDomain}` : 'company';
+          localStorage.setItem(`${storageKey}_refresh_token`, result.refresh_token);
+        }
+        this.persistAuthData(signupDomain);
 
         return data.data;
       } catch (error: unknown) {
@@ -416,10 +434,15 @@ export const useCompanyStore = defineStore('company', {
         this.isLoading = false;
         return this.user;
       } catch (error: unknown) {
-        console.error('Error checking auth state:', error);
-        this.clearAuthState();
+        const err = error as { status?: number } | null;
+        if (err && (err.status === 401 || err.status === 403)) {
+          this.clearAuthState();
+          this.isLoading = false;
+          return null;
+        }
+        console.warn('Error checking company auth state (transient), keeping session:', error);
         this.isLoading = false;
-        return null;
+        return this.user;
       }
     },
 
@@ -438,6 +461,7 @@ export const useCompanyStore = defineStore('company', {
         localStorage.removeItem(`${storageKey}_user`);
         localStorage.removeItem(`${storageKey}_company`);
         localStorage.removeItem(`${storageKey}_token`);
+        localStorage.removeItem(`${storageKey}_refresh_token`);
       }
     },
 

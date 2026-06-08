@@ -24,12 +24,47 @@
       </nav>
     </div>
 
+    <!-- Search + date range filters -->
+    <div class="flex flex-wrap gap-2 items-center">
+      <div class="relative flex-1 min-w-[200px]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search by request number, name, or address…"
+          class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-400 transition"
+        />
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <input
+          v-model="dateFrom"
+          type="date"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-400 transition"
+        />
+        <span class="text-gray-400 text-sm select-none">–</span>
+        <input
+          v-model="dateTo"
+          type="date"
+          class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-400 transition"
+        />
+        <button
+          v-if="searchQuery || dateFrom || dateTo"
+          @click="searchQuery = ''; dateFrom = ''; dateTo = ''"
+          class="text-sm text-gray-400 hover:text-gray-600 transition whitespace-nowrap"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+
     <!-- Loading -->
     <div v-if="loading" class="py-12 text-center text-gray-500">Loading orders...</div>
 
     <!-- Empty -->
     <div v-else-if="filtered.length === 0" class="py-12 text-center text-gray-500 bg-gray-50 rounded-lg">
-      No orders in this category.
+      {{ searchQuery || dateFrom || dateTo ? 'No orders match your filters.' : 'No orders in this category.' }}
     </div>
 
     <!-- List -->
@@ -164,10 +199,133 @@
             </div>
           </div>
 
-          <!-- Footer total -->
-          <div v-if="!detailLoading && detailItems.length > 0" class="border-t border-gray-200 px-5 py-4 flex items-center justify-between">
-            <span class="text-sm text-gray-500">Your total</span>
-            <span class="text-base font-bold text-green-700">GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(String(i.line_total || 0)), 0)) }}</span>
+          <!-- Footer total + print -->
+          <div v-if="!detailLoading && detailItems.length > 0" class="border-t border-gray-200 px-5 py-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-500">Your total</span>
+              <span class="text-base font-bold text-green-700">GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(String(i.line_total || 0)), 0)) }}</span>
+            </div>
+            <button
+              @click="printReceipt"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print Receipt
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Print receipt — hidden in browser, shown only on print -->
+    <Teleport to="body">
+      <div v-if="detailOpen && !detailLoading && detailItems.length > 0" id="order-print-receipt">
+        <div class="receipt-page">
+          <!-- Header -->
+          <div class="receipt-header">
+            <p class="receipt-pharmacy-name">{{ pharmacyName }}</p>
+            <p v-for="(phone, idx) in pharmacyPhones" :key="idx" class="receipt-pharmacy-phone">
+              {{ idx === 0 ? 'Tel' : idx === 1 ? 'Tel 2' : 'WhatsApp' }}: {{ phone }}
+            </p>
+            <p class="receipt-title">ORDER RECEIPT</p>
+          </div>
+
+          <!-- Order meta -->
+          <div class="receipt-section">
+            <div class="receipt-row">
+              <span>Order</span>
+              <span>{{ detailOrder?.request_number }}</span>
+            </div>
+            <div class="receipt-row">
+              <span>Date</span>
+              <span>{{ formatDate(detailOrder?.created_at) }}</span>
+            </div>
+            <div class="receipt-row">
+              <span>Status</span>
+              <span>{{ detailOrder?.status?.replace(/_/g, ' ')?.toUpperCase() }}</span>
+            </div>
+          </div>
+
+          <!-- Customer -->
+          <div class="receipt-section">
+            <p class="receipt-section-label">CUSTOMER</p>
+            <div class="receipt-row">
+              <span>Name</span>
+              <span>{{ detailOrder?.customer_name || '—' }}</span>
+            </div>
+            <div v-if="detailOrder?.customer_phone" class="receipt-row">
+              <span>Phone</span>
+              <span>{{ detailOrder.customer_phone }}</span>
+            </div>
+            <div v-if="detailOrder?.customer_address" class="receipt-row receipt-row-wrap">
+              <span>Address</span>
+              <span>{{ detailOrder.customer_address }}</span>
+            </div>
+          </div>
+
+          <!-- Driver (if assigned) -->
+          <div v-if="detailOrder?.driver_name" class="receipt-section">
+            <p class="receipt-section-label">DRIVER</p>
+            <div class="receipt-row">
+              <span>Name</span>
+              <span>{{ detailOrder.driver_name }}</span>
+            </div>
+            <div v-if="detailOrder?.driver_phone" class="receipt-row">
+              <span>Phone</span>
+              <span>{{ detailOrder.driver_phone }}</span>
+            </div>
+          </div>
+
+          <!-- Items -->
+          <div class="receipt-section">
+            <p class="receipt-section-label">ITEMS</p>
+            <table class="receipt-items-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in detailItems" :key="item.id">
+                  <td>{{ item.resolved_name || item.product_name }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>{{ item.unit_price != null ? 'GH₵' + fmt(item.unit_price) : '—' }}</td>
+                  <td>{{ item.line_total != null ? 'GH₵' + fmt(item.line_total) : '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Delivery fee (delivery orders only) -->
+          <div v-if="detailOrder?.fulfillment_type === 'delivery'" class="receipt-subtotals">
+            <div class="receipt-row">
+              <span>Items subtotal</span>
+              <span>GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(String(i.line_total || 0)), 0)) }}</span>
+            </div>
+            <div class="receipt-row">
+              <span>Delivery fee</span>
+              <span>GH₵{{ fmt(detailOrder?.delivery_fee ?? 0) }}</span>
+            </div>
+          </div>
+
+          <!-- Total -->
+          <div class="receipt-total">
+            <span>TOTAL</span>
+            <span v-if="detailOrder?.fulfillment_type === 'delivery'">
+              GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(String(i.line_total || 0)), 0) + parseFloat(String(detailOrder?.delivery_fee ?? 0))) }}
+            </span>
+            <span v-else>GH₵{{ fmt(detailItems.reduce((s, i) => s + parseFloat(String(i.line_total || 0)), 0)) }}</span>
+          </div>
+
+          <!-- Footer -->
+          <div class="receipt-footer">
+            <p>Thank you for your service!</p>
+            <p>Powered by MedsGH</p>
           </div>
         </div>
       </div>
@@ -196,6 +354,8 @@ interface OrderRow {
   status?: string | null
   pharmacy_total?: number | string | null
   item_count?: number | null
+  fulfillment_type?: 'delivery' | 'pickup' | null
+  delivery_fee?: number | string | null
 }
 
 interface OrderItem {
@@ -223,11 +383,21 @@ interface OrdersResponse {
 // TODO: remove once stores/ are .ts
 const companyStore = useCompanyStore() as unknown as {
   makeAuthRequest: (url: string, options?: RequestInit) => Promise<OrderDetailResponse & OrdersResponse>
+  currentCompany?: { name?: string | null; tel1?: string | null; tel2?: string | null; whatsapp_number?: string | null } | null
 }
+
+const pharmacyName = computed<string>(() => companyStore.currentCompany?.name ?? 'Pharmacy')
+const pharmacyPhones = computed<string[]>(() => {
+  const c = companyStore.currentCompany
+  return [c?.tel1, c?.tel2, c?.whatsapp_number].filter((v): v is string => !!v)
+})
 
 const loading = ref<boolean>(true)
 const orders = ref<OrderRow[]>([])
 const activeTab = ref<string>('all')
+const searchQuery = ref<string>('')
+const dateFrom = ref<string>('')
+const dateTo = ref<string>('')
 
 const detailOpen = ref<boolean>(false)
 const detailOrder = ref<OrderRow | null>(null)
@@ -256,9 +426,35 @@ const tabs: Array<{ label: string; value: string }> = [
 ]
 
 const filtered = computed<OrderRow[]>(() => {
-  if (activeTab.value === 'all') return orders.value
-  const group = activeTab.value !== 'all' ? STATUS_GROUPS[activeTab.value] : undefined
-  return group ? orders.value.filter(o => group.has(o.status ?? '')) : orders.value
+  let result = orders.value
+
+  if (activeTab.value !== 'all') {
+    const group = STATUS_GROUPS[activeTab.value]
+    if (group) result = result.filter(o => group.has(o.status ?? ''))
+  }
+
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) {
+    result = result.filter(o =>
+      (o.request_number ?? '').toLowerCase().includes(q) ||
+      (o.customer_name ?? '').toLowerCase().includes(q) ||
+      (o.customer_address ?? '').toLowerCase().includes(q)
+    )
+  }
+
+  if (dateFrom.value) {
+    const from = new Date(dateFrom.value)
+    from.setHours(0, 0, 0, 0)
+    result = result.filter(o => !!o.created_at && new Date(o.created_at) >= from)
+  }
+
+  if (dateTo.value) {
+    const to = new Date(dateTo.value)
+    to.setHours(23, 59, 59, 999)
+    result = result.filter(o => !!o.created_at && new Date(o.created_at) <= to)
+  }
+
+  return result
 })
 
 const statusClass = (status: string | null | undefined): string => {
@@ -328,6 +524,10 @@ const closeDetail = (): void => {
   detailItems.value = []
 }
 
+const printReceipt = (): void => {
+  window.print()
+}
+
 const fetchOrders = async (): Promise<void> => {
   loading.value = true
   try {
@@ -342,3 +542,134 @@ const fetchOrders = async (): Promise<void> => {
 
 onMounted(() => { void fetchOrders() })
 </script>
+
+<style>
+/* Hide receipt in normal browser view */
+#order-print-receipt {
+  display: none;
+}
+
+/* On print: hide the entire app, show only the receipt */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #order-print-receipt,
+  #order-print-receipt * {
+    visibility: visible;
+  }
+  #order-print-receipt {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
+/* Receipt layout */
+.receipt-page {
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  color: #111;
+}
+.receipt-header {
+  text-align: center;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #555;
+  margin-bottom: 12px;
+}
+.receipt-pharmacy-name {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.receipt-pharmacy-phone {
+  font-size: 12px;
+  margin-top: 2px;
+}
+.receipt-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-top: 8px;
+}
+.receipt-section {
+  padding: 10px 0;
+  border-bottom: 1px dashed #bbb;
+}
+.receipt-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #555;
+  margin-bottom: 6px;
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.receipt-row-wrap {
+  align-items: flex-start;
+}
+.receipt-row-wrap span:last-child {
+  text-align: right;
+  max-width: 220px;
+}
+.receipt-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.receipt-items-table th {
+  text-align: left;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #555;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #bbb;
+}
+.receipt-items-table th:not(:first-child),
+.receipt-items-table td:not(:first-child) {
+  text-align: right;
+}
+.receipt-items-table td {
+  padding: 4px 0;
+  vertical-align: top;
+}
+.receipt-items-table td:first-child {
+  padding-right: 8px;
+}
+.receipt-subtotals {
+  padding: 8px 0 4px;
+  border-top: 1px dashed #bbb;
+}
+.receipt-subtotals .receipt-row {
+  font-size: 12px;
+  color: #444;
+}
+.receipt-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 0 8px;
+  border-top: 1px dashed #bbb;
+  border-bottom: 2px solid #111;
+  letter-spacing: 0.05em;
+}
+.receipt-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #666;
+  padding-top: 12px;
+  line-height: 1.6;
+}
+</style>

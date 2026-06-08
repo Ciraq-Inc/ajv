@@ -79,6 +79,7 @@ interface CustomerAuthPayload {
   companies?: LinkedCompany[];
   selected_company?: LinkedCompany | null;
   token?: string | null;
+  refresh_token?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,6 +145,9 @@ export const useUserStore = defineStore('user', {
       this.companies = payload?.companies ?? [];
       this.selectedCompany = payload?.selected_company ?? this.companies[0] ?? null;
       this.customerAuthToken = payload?.token ?? null;
+      if (process.client && payload?.refresh_token) {
+        localStorage.setItem('customerRefreshToken', payload.refresh_token);
+      }
       this.persistAuthData();
       this.authInitialized = true;
       this.phoneVerifying = null;
@@ -707,10 +711,15 @@ export const useUserStore = defineStore('user', {
             await this.getProfile();
             await this.loadUserStats();
           } catch (error: unknown) {
-            console.error('Stored customer session is no longer valid:', error);
-            this.clearAuthState();
-            this.isLoading = false;
-            return null;
+            const err = error as { status?: number } | null;
+            if (err && (err.status === 401 || err.status === 403)) {
+              this.clearAuthState();
+              this.isLoading = false;
+              return null;
+            }
+            // Transient error — keep the session rather than logging out
+            // due to a backend hiccup at startup.
+            console.warn('Customer session check: transient error, keeping session', error);
           }
         } else {
           this.clearAuthState();
@@ -718,10 +727,15 @@ export const useUserStore = defineStore('user', {
         this.isLoading = false;
         return this.masterCustomer;
       } catch (error: unknown) {
-        console.error('Error checking auth state:', error);
-        this.clearAuthState();
+        const err = error as { status?: number } | null;
+        if (err && (err.status === 401 || err.status === 403)) {
+          this.clearAuthState();
+          this.isLoading = false;
+          return null;
+        }
+        console.warn('Error checking auth state (transient), keeping session:', error);
         this.isLoading = false;
-        return null;
+        return this.masterCustomer;
       }
     },
 
@@ -740,6 +754,7 @@ export const useUserStore = defineStore('user', {
         localStorage.removeItem('selectedCompany');
         localStorage.removeItem('companies');
         localStorage.removeItem('customerAuthToken');
+        localStorage.removeItem('customerRefreshToken');
       }
     },
 

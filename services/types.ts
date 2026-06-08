@@ -83,6 +83,7 @@ export interface Company {
   name: string;
   domain_name: string;
   tel1?: string;
+  tel2?: string;
   uiid?: string;
   whatsapp_number?: string;
   sender_id?: string;
