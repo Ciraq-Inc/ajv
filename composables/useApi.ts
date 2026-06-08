@@ -111,6 +111,20 @@ function resolveToken(endpoint: string): string | null {
   )
 }
 
+// Decode the `type` claim from a JWT payload without verifying the signature.
+// Used to route refreshed tokens to the correct localStorage key when the
+// endpoint URL prefix alone isn't enough (e.g. /api/order-requests/admin).
+function getTokenType(accessToken: string): string | null {
+  try {
+    const part = accessToken.split('.')[1]
+    if (!part) return null
+    const payload = JSON.parse(atob(part)) as { type?: string }
+    return payload.type ?? null
+  } catch {
+    return null
+  }
+}
+
 function resolveRefreshToken(endpoint: string): string | null {
   if (!process.client) return null
 
@@ -133,7 +147,11 @@ function resolveRefreshToken(endpoint: string): string | null {
     return localStorage.getItem('customerRefreshToken')
   }
 
-  return localStorage.getItem('adminRefreshToken') ?? localStorage.getItem('customerRefreshToken') ?? null
+  // Unknown endpoint prefix: infer from which access token is currently stored.
+  // Admin token takes priority since customers can't reach admin endpoints.
+  const currentAdminToken = localStorage.getItem('adminToken')
+  if (currentAdminToken) return localStorage.getItem('adminRefreshToken')
+  return localStorage.getItem('customerRefreshToken') ?? null
 }
 
 function updateStoredTokens(endpoint: string, accessToken: string, refreshToken: string | null): void {
@@ -147,6 +165,18 @@ function updateStoredTokens(endpoint: string, accessToken: string, refreshToken:
   }
 
   if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+    localStorage.setItem('adminToken', accessToken)
+    if (refreshToken) localStorage.setItem('adminRefreshToken', refreshToken)
+    return
+  }
+
+  // For endpoints whose URL prefix doesn't indicate the audience (e.g.
+  // /api/order-requests/admin, /api/fulfillment/*), decode the refreshed
+  // token to determine where to store it. Without this, an admin token
+  // refreshed via a non-/api/admin/* URL is stored under customerAuthToken,
+  // invalidating the adminRefreshToken on the very next poll cycle.
+  const tokenType = getTokenType(accessToken)
+  if (tokenType === 'admin') {
     localStorage.setItem('adminToken', accessToken)
     if (refreshToken) localStorage.setItem('adminRefreshToken', refreshToken)
     return
@@ -184,6 +214,7 @@ function clearAuthForEndpoint(endpoint: string): void {
     return
   }
 
+  // Unknown prefix — clear everything so no stale credential remains.
   ;['adminToken', 'adminRefreshToken', 'customerAuthToken', 'customerRefreshToken'].forEach(k =>
     localStorage.removeItem(k)
   )

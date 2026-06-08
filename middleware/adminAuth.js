@@ -7,31 +7,17 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   const adminStore = useAdminStore();
 
-  // Try to restore session from localStorage
-  const sessionRestored = await adminStore.restoreSession();
+  // If not already authenticated in memory, try to restore from localStorage.
+  // restoreSession() already calls verifyToken() internally, so we do NOT call
+  // verifyToken() again afterwards — that would be a redundant backend hit on
+  // every navigation.
+  if (!adminStore.isAuthenticated) {
+    const sessionRestored = await adminStore.restoreSession();
 
-  // If no valid session, redirect to login
-  if (!sessionRestored && !adminStore.isAuthenticated) {
-    // Store the intended destination
-    if (process.client) {
-      localStorage.setItem('adminIntendedRoute', to.fullPath);
-    }
-    
-    return navigateTo('/admin/login');
-  }
-
-  // Check if token is still valid
-  if (adminStore.isAuthenticated) {
-    const isValid = await adminStore.verifyToken();
-    
-    if (!isValid) {
-      // Token expired or invalid, logout and redirect
-      adminStore.logout();
-      
+    if (!sessionRestored) {
       if (process.client) {
         localStorage.setItem('adminIntendedRoute', to.fullPath);
       }
-      
       return navigateTo('/admin/login');
     }
   }
@@ -39,9 +25,8 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   // Check role-based access if route requires specific role
   if (to.meta.requiredRole) {
     const hasRequiredRole = adminStore.hasRole(to.meta.requiredRole);
-    
+
     if (!hasRequiredRole) {
-      // Insufficient permissions
       console.warn(`Access denied. Required role: ${to.meta.requiredRole}`);
       return navigateTo('/admin/unauthorized');
     }
