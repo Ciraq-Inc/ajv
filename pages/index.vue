@@ -203,72 +203,6 @@
           </div>
         </section>
 
-        <!-- ── Testimonials ── -->
-        <section aria-label="Customer testimonials" style="background-color: var(--surface-tinted);" class="py-24">
-          <div class="container mx-auto px-8">
-
-            <div class="mb-12">
-              <span class="section-eyebrow">Testimonials</span>
-              <h2 class="section-heading mt-3">What patients are saying</h2>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-6">
-
-              <!-- Testimonial 1 -->
-              <figure class="testimonial-card">
-                <div class="flex gap-0.5 mb-5" aria-label="5 out of 5 stars">
-                  <StarIcon v-for="i in 5" :key="i" class="w-4 h-4 star-icon" aria-hidden="true" />
-                </div>
-                <blockquote class="text-base leading-relaxed mb-7 flex-1" style="color: var(--text-default);">
-                  "I couldn't find my father's chronic medication anywhere in Kumasi. MedsGh found it in 15 minutes and delivered it the same hour. Real lifesavers."
-                </blockquote>
-                <figcaption class="flex items-center gap-3">
-                  <div class="avatar" style="--avatar-bg: var(--avatar-a-bg); --avatar-fg: var(--avatar-a-fg);" aria-hidden="true">KA</div>
-                  <div>
-                    <div class="text-sm font-semibold" style="color: var(--text-default);">Kofi Adjei</div>
-                    <div class="text-xs" style="color: var(--text-muted);">Verified patient</div>
-                  </div>
-                </figcaption>
-              </figure>
-
-              <!-- Testimonial 2 -->
-              <figure class="testimonial-card">
-                <div class="flex gap-0.5 mb-5" aria-label="5 out of 5 stars">
-                  <StarIcon v-for="i in 5" :key="i" class="w-4 h-4 star-icon" aria-hidden="true" />
-                </div>
-                <blockquote class="text-base leading-relaxed mb-7 flex-1" style="color: var(--text-default);">
-                  "The integration with my telehealth appointment was seamless. My meds were on their way before I even hung up the call."
-                </blockquote>
-                <figcaption class="flex items-center gap-3">
-                  <div class="avatar" style="--avatar-bg: var(--avatar-b-bg); --avatar-fg: var(--avatar-b-fg);" aria-hidden="true">AM</div>
-                  <div>
-                    <div class="text-sm font-semibold" style="color: var(--text-default);">Ama Mensah</div>
-                    <div class="text-xs" style="color: var(--text-muted);">Verified patient</div>
-                  </div>
-                </figcaption>
-              </figure>
-
-              <!-- Testimonial 3 -->
-              <figure class="testimonial-card">
-                <div class="flex gap-0.5 mb-5" aria-label="5 out of 5 stars">
-                  <StarIcon v-for="i in 5" :key="i" class="w-4 h-4 star-icon" aria-hidden="true" />
-                </div>
-                <blockquote class="text-base leading-relaxed mb-7 flex-1" style="color: var(--text-default);">
-                  "As a busy professional I don't have time to hop between pharmacies. MedsGh makes medication management effortless and I always know it's genuine stock."
-                </blockquote>
-                <figcaption class="flex items-center gap-3">
-                  <div class="avatar" style="--avatar-bg: var(--avatar-c-bg); --avatar-fg: var(--avatar-c-fg);" aria-hidden="true">DO</div>
-                  <div>
-                    <div class="text-sm font-semibold" style="color: var(--text-default);">Dr. Owusu</div>
-                    <div class="text-xs" style="color: var(--text-muted);">Healthcare provider</div>
-                  </div>
-                </figcaption>
-              </figure>
-
-            </div>
-          </div>
-        </section>
-
         <!-- ── Pharmacy Partner Section (hidden, reserved for future launch) ── -->
         <template v-if="false">
           <section id="for-pharmacies" class="py-20" style="background-color: var(--surface-dark);">
@@ -418,21 +352,17 @@
 
               <div class="badge-item">
                 <ShieldCheckIcon class="w-6 h-6 badge-icon" />
-                <span class="badge-label">Pharmacy Council accredited</span>
+                <div class="flex flex-col">
+                  <span class="badge-label">Ghana Data Protection</span>
+                  <span class="badge-sublabel">Reg. No. 0004463</span>
+                </div>
               </div>
 
               <div class="badge-divider" aria-hidden="true"></div>
 
               <div class="badge-item">
-                <CreditCardIcon class="w-6 h-6 badge-icon" />
-                <span class="badge-label">PCI-DSS compliant</span>
-              </div>
-
-              <div class="badge-divider" aria-hidden="true"></div>
-
-              <div class="badge-item">
-                <HeartIcon class="w-6 h-6 badge-icon" />
-                <span class="badge-label">G-Health certified</span>
+                <BuildingStorefrontIcon class="w-6 h-6 badge-icon" />
+                <span class="badge-label">Pharmacy Council accredited pharmacies</span>
               </div>
 
             </div>
@@ -567,12 +497,9 @@ import {
   UserGroupIcon,
   ChevronDownIcon,
   ShieldCheckIcon,
-  CreditCardIcon,
-  HeartIcon,
   ShareIcon,
 } from '@heroicons/vue/24/outline'
 import {
-  StarIcon,
   CheckBadgeIcon,
 } from '@heroicons/vue/24/solid'
 
@@ -864,16 +791,6 @@ watch(
   /* Border */
   --border-subtle:        #e8def8;
 
-  /* Avatar palette */
-  --avatar-a-bg: #efdbff;
-  --avatar-a-fg: #520094;
-  --avatar-b-bg: #e8def8;
-  --avatar-b-fg: #625b71;
-  --avatar-c-bg: #ffdcbf;
-  --avatar-c-fg: #552e00;
-
-  /* Star rating */
-  --star-color:           #d97706;   /* amber-600, WCAG AA on white */
 }
 
 /* ─── Hero headline ─────────────────────────── */
@@ -990,49 +907,6 @@ watch(
   letter-spacing: -0.01em;
 }
 
-/* ─── Testimonials ──────────────────────────── */
-.testimonial-card {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--surface-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 1.25rem;
-  padding: 2rem 1.75rem;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.testimonial-card:hover {
-  box-shadow: 0 8px 24px rgba(82, 0, 148, 0.10);
-  transform: translateY(-2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .testimonial-card {
-    transition: none;
-  }
-  .testimonial-card:hover {
-    transform: none;
-  }
-}
-
-.star-icon {
-  color: var(--star-color);
-}
-
-.avatar {
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  border-radius: 50%;
-  background-color: var(--avatar-bg);
-  color: var(--avatar-fg);
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* ─── FAQ accordion ─────────────────────────── */
 .faq-item {
   background-color: var(--surface-card);
@@ -1106,6 +980,14 @@ details[open] .faq-chevron {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.badge-sublabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--accent-primary);
+  margin-top: 0.1rem;
 }
 
 .badge-divider {
