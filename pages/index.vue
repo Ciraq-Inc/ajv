@@ -49,7 +49,7 @@
 
               <!-- Loading state: skeleton while checkAuthState() resolves -->
               <div
-                v-if="userStore.isLoading"
+                v-if="authChecking"
                 aria-label="Loading sign-in form"
                 class="overflow-hidden rounded-[2rem] shadow-[0_24px_40px_rgba(10,40,35,0.10)] animate-pulse"
                 style="background-color: var(--surface-card);"
@@ -72,7 +72,7 @@
               </div>
 
               <!-- Data state: login card -->
-              <template v-else>
+              <template v-else-if="!authChecking">
                 <div class="mb-5 text-center lg:text-left animate-fade-up">
                   <span class="hero-eyebrow mb-3 inline-block">
                     Fast medication delivery &middot; Across Ghana
@@ -516,6 +516,7 @@ interface LoginPayload {
 
 const userStore = useUserStore()
 const route = useRoute()
+const authChecking = ref<boolean>(true)
 const heroOrderingImage = '/Gemini_Generated_Image_y204fby204fby204.png'
 const currentYear = new Date().getFullYear()
 
@@ -747,6 +748,7 @@ const redirectLoggedInUsers = async (): Promise<boolean> => {
 
 onMounted(async () => {
   await (userStore as unknown as { checkAuthState: () => Promise<void> }).checkAuthState()
+  authChecking.value = false
   await redirectLoggedInUsers()
 })
 
