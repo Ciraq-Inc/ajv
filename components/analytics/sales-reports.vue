@@ -63,7 +63,7 @@
           <span class="text-sm text-red-700">{{ dateRangeError }}</span>
         </div>
       </div>
-      
+
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <!-- Filters -->
         <div class="flex flex-col sm:flex-row gap-4 flex-1">
@@ -111,18 +111,53 @@
               ]"
             />
           </div>
-         
+
           <div class="flex items-end gap-2">
+            <!-- Search button — animated while loading -->
             <button
               @click="() => fetchData()"
-              class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
               :disabled="loading || !!dateRangeError"
+              :class="[
+                'relative overflow-hidden px-6 py-2 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 whitespace-nowrap transition-all duration-200',
+                loading
+                  ? 'bg-indigo-500 cursor-not-allowed search-btn-loading'
+                  : 'bg-indigo-600 hover:bg-indigo-700',
+                !!dateRangeError ? 'opacity-50 cursor-not-allowed' : ''
+              ]"
             >
-              <span class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <!-- Progress fill layer -->
+              <span
+                v-if="loading"
+                class="absolute inset-0 search-progress-fill"
+                aria-hidden="true"
+              ></span>
+              <span class="relative flex items-center gap-2">
+                <!-- Animated spinner while loading -->
+                <svg
+                  v-if="loading"
+                  class="animate-spin w-4 h-4 text-white flex-shrink-0"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <!-- Static search icon when idle -->
+                <svg
+                  v-else
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-5 h-5"
+                  aria-hidden="true"
+                >
                   <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                 </svg>
-                <span>Search</span>
+                <span>{{ loading ? 'Searching…' : 'Search' }}</span>
               </span>
             </button>
 
@@ -151,8 +186,8 @@
             @click="showColumnSelector = true"
             class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
             :disabled="loading || exportingRaw"
-            :title="filters.start_date || filters.end_date ? 
-              `Export raw data from ${filters.start_date || 'start'} to ${filters.end_date || 'end'}` : 
+            :title="filters.start_date || filters.end_date ?
+              `Export raw data from ${filters.start_date || 'start'} to ${filters.end_date || 'end'}` :
               'Export ALL raw transaction data'"
           >
             <span class="flex items-center gap-2">
@@ -160,7 +195,7 @@
               <ArrowDownTrayIcon v-else class="export-icon" />
               <span>{{ exportingRaw ? 'Exporting...' : 'Raw Data' }}</span>
             </span>
-          </button> 
+          </button>
           <button
             @click="refreshData"
             class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
@@ -172,72 +207,155 @@
             </span>
           </button>
           </div>
-          
+
         </div>
 
-     
+
       </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" v-if="summary">
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Total Companies</p>
-            <p class="text-2xl font-bold text-gray-900">
-              {{ summary?.total_companies || 0 }}
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <BuildingOfficeIcon class="stat-icon text-blue-600" />
-          </div>
+    <!-- Loading progress banner -->
+    <div
+      v-if="loading"
+      class="rounded-lg mb-6 overflow-hidden border border-indigo-200 bg-indigo-50"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading sales data"
+    >
+      <!-- Progress bar track -->
+      <div class="h-1 bg-indigo-100">
+        <div class="h-full bg-indigo-500 loading-progress-bar"></div>
+      </div>
+      <div class="px-5 py-4 flex items-start gap-3">
+        <svg
+          class="animate-spin mt-0.5 w-5 h-5 text-indigo-500 flex-shrink-0"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <div>
+          <p class="text-sm font-medium text-indigo-800">{{ loadingStatusMessage }}</p>
+          <p class="text-xs text-indigo-500 mt-0.5">
+            {{ loadingElapsed }}s elapsed
+            <span v-if="loadingElapsed >= 10"> — queries across 3.7M rows take time</span>
+          </p>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Total Companies Without Data</p>
-            <p class="text-2xl font-bold text-gray-900">
-              {{(summaryByCompany.length - summary?.total_companies) || 0 }}
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <BuildingOfficeIcon class="stat-icon text-blue-600" />
-          </div>
-        </div>
-      </div>
-      <!-- <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Unique Products</p>
-            <p class="text-2xl font-bold text-green-600">
-              {{ summary?.unique_products || 0 }}
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <ShoppingBagIcon class="stat-icon text-green-600" />
-          </div>
-        </div>
-      </div> -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Total Transactions</p>
-            <p class="text-2xl font-bold text-purple-600">
-              {{ summary?.total_transactions?.toLocaleString() || 0 }}
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-            <ChartBarIcon class="stat-icon text-purple-600" />
-          </div>
-        </div>
-      </div>
-   
     </div>
 
-    <!-- Company Breakdown Table -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6" v-if="summaryByCompany && summaryByCompany.length > 0">
+    <!-- Summary Cards — skeleton while loading, real cards when data arrives -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <!-- Skeleton cards -->
+      <template v-if="loading">
+        <div
+          v-for="i in 4"
+          :key="'skel-card-' + i"
+          class="bg-white rounded-lg shadow-md p-6 animate-pulse"
+          aria-hidden="true"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="h-3 bg-gray-200 rounded w-3/4 mb-3"></div>
+              <div class="h-7 bg-gray-200 rounded w-1/2"></div>
+            </div>
+            <div class="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0 ml-4"></div>
+          </div>
+        </div>
+      </template>
+      <!-- Real summary cards -->
+      <template v-else-if="summary">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Total Companies</p>
+              <p class="text-2xl font-bold text-gray-900">
+                {{ summary?.total_companies || 0 }}
+              </p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <BuildingOfficeIcon class="stat-icon text-blue-600" />
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Total Companies Without Data</p>
+              <p class="text-2xl font-bold text-gray-900">
+                {{(summaryByCompany.length - summary?.total_companies) || 0 }}
+              </p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <BuildingOfficeIcon class="stat-icon text-blue-600" />
+            </div>
+          </div>
+        </div>
+        <!-- <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Unique Products</p>
+              <p class="text-2xl font-bold text-green-600">
+                {{ summary?.unique_products || 0 }}
+              </p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <ShoppingBagIcon class="stat-icon text-green-600" />
+            </div>
+          </div>
+        </div> -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Total Transactions</p>
+              <p class="text-2xl font-bold text-purple-600">
+                {{ summary?.total_transactions?.toLocaleString() || 0 }}
+              </p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <ChartBarIcon class="stat-icon text-purple-600" />
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Company Breakdown Table — skeleton while loading, real table when data arrives -->
+
+    <!-- Skeleton table -->
+    <div v-if="loading" class="bg-white rounded-lg shadow-md overflow-hidden mb-6" aria-hidden="true">
+      <div class="px-6 py-4 border-b border-gray-200 animate-pulse">
+        <div class="h-4 bg-gray-200 rounded w-48 mb-2"></div>
+        <div class="h-3 bg-gray-200 rounded w-32"></div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th v-for="col in 6" :key="'th-' + col" class="px-6 py-3">
+                <div class="h-3 bg-gray-200 rounded animate-pulse"></div>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-100">
+            <tr v-for="row in 5" :key="'skel-row-' + row" class="animate-pulse">
+              <td class="px-6 py-4"><div class="h-3 bg-gray-200 rounded w-6"></div></td>
+              <td class="px-6 py-4"><div class="h-3 bg-gray-200 rounded w-36"></div></td>
+              <td class="px-6 py-4"><div class="h-3 bg-gray-200 rounded w-16"></div></td>
+              <td class="px-6 py-4"><div class="h-3 bg-gray-200 rounded w-16"></div></td>
+              <td class="px-6 py-4"><div class="h-3 bg-gray-200 rounded w-12"></div></td>
+              <td class="px-6 py-4"><div class="h-3 bg-gray-200 rounded w-12"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Real Company Breakdown Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6" v-else-if="summaryByCompany && summaryByCompany.length > 0">
       <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <div>
           <h3 class="text-lg font-semibold text-gray-800">Company Breakdown</h3>
@@ -345,6 +463,20 @@
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Empty state — shown before first search -->
+    <div
+      v-else-if="!loading && !summary && summaryByCompany.length === 0"
+      class="bg-white rounded-lg shadow-md p-12 mb-6 text-center"
+    >
+      <div class="flex justify-center mb-4">
+        <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center">
+          <ChartBarIcon class="w-8 h-8 text-indigo-400" aria-hidden="true" />
+        </div>
+      </div>
+      <h3 class="text-base font-semibold text-gray-800 mb-1">No data loaded yet</h3>
+      <p class="text-sm text-gray-500 max-w-sm mx-auto">Set a date range above and click <strong>Search</strong> to load sales analytics. Queries across short date ranges (under 3 months) return fastest.</p>
     </div>
 
     <!-- Sample Sales Items Modal -->
@@ -641,10 +773,25 @@
           <button
             @click="fetchPharmacyReports"
             :disabled="pharmacyLoading"
-            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            :class="[
+              'relative overflow-hidden px-6 py-2 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500',
+              pharmacyLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+            ]"
           >
-            <span v-if="pharmacyLoading">Loading...</span>
-            <span v-else>Load Data</span>
+            <span class="flex items-center gap-2">
+              <svg
+                v-if="pharmacyLoading"
+                class="animate-spin w-4 h-4 text-white flex-shrink-0"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span>{{ pharmacyLoading ? 'Loading…' : 'Load Data' }}</span>
+            </span>
           </button>
           <button
             @click="exportPharmacyToCSV"
@@ -688,9 +835,16 @@
           <h2 class="text-xl font-semibold text-gray-900">Pharmacy Activity Report</h2>
         </div>
 
-        <div v-if="pharmacyLoading" class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p class="mt-2 text-gray-600">Loading data...</p>
+        <!-- Pharmacy skeleton loader -->
+        <div v-if="pharmacyLoading" aria-label="Loading pharmacy data" role="status">
+          <div class="animate-pulse space-y-3">
+            <div class="flex gap-4 pb-3 border-b border-gray-100">
+              <div v-for="col in 7" :key="'ph-th-' + col" class="h-3 bg-gray-200 rounded flex-1"></div>
+            </div>
+            <div v-for="row in 6" :key="'ph-row-' + row" class="flex gap-4 py-2">
+              <div v-for="col in 7" :key="'ph-td-' + col" class="h-3 bg-gray-200 rounded flex-1"></div>
+            </div>
+          </div>
         </div>
 
         <div v-else-if="pharmacySummary && pharmacySummary.length > 0" class="overflow-x-auto">
@@ -771,10 +925,25 @@
         <button
           @click="fetchQuarterlyData(true)"
           :disabled="quarterlyLoading"
-          class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          :class="[
+            'relative overflow-hidden px-4 py-2 text-sm text-white rounded-lg transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500',
+            quarterlyLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+          ]"
         >
-          <span v-if="quarterlyLoading">Loading...</span>
-          <span v-else>Refresh</span>
+          <span class="flex items-center gap-2">
+            <svg
+              v-if="quarterlyLoading"
+              class="animate-spin w-4 h-4 text-white flex-shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span>{{ quarterlyLoading ? 'Loading…' : 'Refresh' }}</span>
+          </span>
         </button>
         <button
           @click="sendViaWhatsApp"
@@ -829,10 +998,34 @@
         </label>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="quarterlyLoading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p class="mt-2 text-gray-600">Loading quarterly data...</p>
+      <!-- Quarterly skeleton loader -->
+      <div v-if="quarterlyLoading" class="space-y-4" role="status" aria-label="Loading quarterly data">
+        <!-- Skeleton summary cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div
+            v-for="i in 4"
+            :key="'qskel-card-' + i"
+            class="bg-white rounded-lg shadow-md p-4 border-l-4 border-gray-200 animate-pulse"
+            aria-hidden="true"
+          >
+            <div class="h-3 bg-gray-200 rounded w-1/3 mb-3"></div>
+            <div class="h-3 bg-gray-200 rounded w-2/3 mb-4"></div>
+            <div class="h-6 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </div>
+        <!-- Skeleton table -->
+        <div class="bg-white rounded-lg shadow-md p-6 animate-pulse" aria-hidden="true">
+          <div class="h-4 bg-gray-200 rounded w-48 mb-2"></div>
+          <div class="h-3 bg-gray-200 rounded w-32 mb-6"></div>
+          <div class="space-y-3">
+            <div class="flex gap-3">
+              <div v-for="col in 6" :key="'qth-' + col" class="h-3 bg-gray-200 rounded flex-1"></div>
+            </div>
+            <div v-for="row in 5" :key="'qrow-' + row" class="flex gap-3">
+              <div v-for="col in 6" :key="'qtd-' + col" class="h-3 bg-gray-200 rounded flex-1"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Pharmacy Breakdown Table -->
@@ -914,9 +1107,16 @@
           <ExclamationTriangleIcon class="w-6 h-6 text-red-400" />
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <div class="mt-2 text-sm text-red-700">{{ error }}</div>
-          <button @click="() => { void fetchData() }" class="mt-2 text-sm text-red-600 hover:text-red-800">
+          <h3 class="text-sm font-medium text-red-800">Query failed</h3>
+          <div class="mt-2 text-sm text-red-700">
+            <template v-if="error.toLowerCase().includes('timeout') || error.includes('30000')">
+              Query timed out — try a shorter date range (under 3 months works best).
+            </template>
+            <template v-else>
+              {{ error }}
+            </template>
+          </div>
+          <button @click="() => { void fetchData() }" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">
             Try again
           </button>
         </div>
@@ -926,7 +1126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
@@ -1085,6 +1285,37 @@ const filters = ref<{ start_date: string; end_date: string; date_field: string }
   date_field: 'ddate',
 })
 
+// ── Elapsed-time timer for loading banner ─────────────────────────────────────
+const loadingElapsed = ref<number>(0)
+let _elapsedTimer: ReturnType<typeof setInterval> | null = null
+
+const startElapsedTimer = (): void => {
+  loadingElapsed.value = 0
+  if (_elapsedTimer !== null) clearInterval(_elapsedTimer)
+  _elapsedTimer = setInterval(() => {
+    loadingElapsed.value += 1
+  }, 1000)
+}
+
+const stopElapsedTimer = (): void => {
+  if (_elapsedTimer !== null) {
+    clearInterval(_elapsedTimer)
+    _elapsedTimer = null
+  }
+  loadingElapsed.value = 0
+}
+
+const loadingStatusMessage = computed<string>(() => {
+  if (loadingElapsed.value >= 20) return 'Almost there — large date ranges take longer…'
+  if (loadingElapsed.value >= 10) return 'Still working — this query covers a large dataset…'
+  return 'Fetching sales data…'
+})
+
+onUnmounted(() => {
+  stopElapsedTimer()
+})
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Debounced search
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 const debouncedSearch = (): void => {
@@ -1198,6 +1429,7 @@ const fetchData = async (forceRefresh = false): Promise<void> => {
 
   loading.value = true
   error.value = null
+  startElapsedTimer()
 
   try {
     await Promise.all([
@@ -1209,6 +1441,7 @@ const fetchData = async (forceRefresh = false): Promise<void> => {
     console.error('Error fetching sales items data:', err)
   } finally {
     loading.value = false
+    stopElapsedTimer()
   }
 }
 
@@ -1703,11 +1936,53 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Search button: subtle pulse on the background while loading */
+.search-btn-loading {
+  animation: btn-pulse 2s ease-in-out infinite;
+}
+
+@keyframes btn-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.85; }
+}
+
+/* Progress fill that sweeps across the button background */
+.search-progress-fill {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.6s linear infinite;
+}
+
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Loading progress bar — fills over 30 s to match backend timeout */
+.loading-progress-bar {
+  animation: progress-fill 30s linear forwards;
+  width: 0%;
+}
+
+@keyframes progress-fill {
+  0%   { width: 0%; }
+  80%  { width: 85%; }
+  100% { width: 92%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin,
+  .search-btn-loading,
+  .search-progress-fill,
+  .loading-progress-bar {
+    animation: none;
   }
-  to {
-    transform: rotate(360deg);
+  .loading-progress-bar {
+    width: 50%;
   }
 }
 </style>
