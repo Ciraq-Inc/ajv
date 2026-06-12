@@ -398,7 +398,7 @@
           <div>
             <h4 class="footer-heading">Legal</h4>
             <ul class="space-y-2.5 text-sm">
-              <li><a class="footer-link" href="#">Privacy policy</a></li>
+              <li><a class="footer-link" href="/privacy">Privacy policy</a></li>
               <li><a class="footer-link" href="#">Terms of service</a></li>
               <li><a class="footer-link" href="#">Cookie settings</a></li>
               <li><a class="footer-link" href="#">Accessibility</a></li>
