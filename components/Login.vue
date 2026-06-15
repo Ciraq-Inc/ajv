@@ -804,7 +804,7 @@ interface PharmacyStoreShape {
   currentPharmacy: unknown;
 }
 
-const props = defineProps<{ isOpen?: boolean; inline?: boolean }>();
+const props = defineProps<{ isOpen?: boolean; inline?: boolean; initialView?: 'login' | 'signup' }>();
 
 const emit = defineEmits<{
   close: [];
@@ -820,7 +820,7 @@ const dialogRef = ref<HTMLElement | null>(null);
 useModalA11y(dialogRef, () => props.isOpen ?? false, () => emit('close'));
 
 // State
-const view = ref<LoginView>('login');
+const view = ref<LoginView>(props.initialView ?? 'login');
 const currentStep = ref<LoginStep>('signin');
 const mode = ref<LoginMode>('login');
 const phoneNumber = ref<string>('');
