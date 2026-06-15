@@ -1,164 +1,110 @@
 <template>
-  <div class="insurance-payers-analytics p-6 bg-gray-50 min-h-screen">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">
-        Insurance Payers Analytics
-      </h1>
-      <p class="text-gray-600">
-        Comprehensive insurance payer insights across all companies
-      </p>
+  <div class="p-6 bg-gray-50 min-h-screen">
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900">Insurance Payers</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Comprehensive insurance payer insights across all companies</p>
     </div>
 
-    <!-- Filters and Controls -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <!-- Filters -->
-        <div class="flex flex-col sm:flex-row gap-4 flex-1">
-          <div class="relative flex-1">
-            <button
-              @click="refreshData"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left text-gray-600"
-              disabled
-            >
-              <span class="flex items-center gap-2">
-                <InformationCircleIcon class="w-5 h-5" />
-                <span>All insurance payer data across companies (no filters available)</span>
-              </span>
-            </button>
-          </div>
+    <!-- Toolbar -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 text-sm text-gray-500 flex-1">
+          <InformationCircleIcon class="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
+          <span>All insurance payer data across companies — no additional filters available</span>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
           <button
             @click="exportToJSON"
-            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+            class="h-9 px-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 transition-colors"
             :disabled="loading"
           >
-            <span class="flex items-center gap-2">
-              <ArrowDownTrayIcon class="export-icon" />
-              <span>JSON</span>
-            </span>
+            <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
+            JSON
           </button>
           <button
             @click="exportToCSV"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            class="h-9 px-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 transition-colors"
             :disabled="loading"
           >
-            <span class="flex items-center gap-2">
-              <ArrowDownTrayIcon class="export-icon" />
-              <span>CSV</span>
-            </span>
+            <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
+            CSV
           </button>
           <button
             @click="refreshData"
-            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+            class="h-9 w-9 border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 rounded-lg flex items-center justify-center disabled:opacity-50 transition-colors"
             :disabled="loading"
+            aria-label="Refresh"
           >
-            <span class="flex items-center gap-2">
-              <ArrowPathIcon class="refresh-icon" :class="{ 'animate-spin': loading }" />
-              <span>Refresh</span>
-            </span>
+            <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': loading }" />
           </button>
         </div>
       </div>
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" v-if="summaryData && summaryData.length > 0">
-      <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="grid grid-cols-2 gap-4 mb-6" v-if="summaryData && summaryData.length > 0">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Total Payers</p>
-            <p class="text-2xl font-bold text-gray-900">
-              {{ totalPayers.toLocaleString() }}
-            </p>
+            <p class="text-xs font-medium text-gray-500">Total Payers</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-1">{{ totalPayers.toLocaleString() }}</p>
           </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <BuildingOfficeIcon class="stat-icon text-blue-600" />
+          <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <BuildingOfficeIcon class="w-5 h-5 text-indigo-600" aria-hidden="true" />
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Total Clients</p>
-            <p class="text-2xl font-bold text-green-600">
-              {{ totalClients.toLocaleString() }}
-            </p>
+            <p class="text-xs font-medium text-gray-500">Total Clients</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-1">{{ totalClients.toLocaleString() }}</p>
           </div>
-          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <UserGroupIcon class="stat-icon text-green-600" />
+          <div class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <UserGroupIcon class="w-5 h-5 text-emerald-600" aria-hidden="true" />
           </div>
         </div>
       </div>
     </div>
 
     <!-- Company Breakdown Table -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6" v-if="summaryData && summaryData.length > 0">
-      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 class="text-lg font-semibold text-gray-800">Company Breakdown</h3>
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden mb-6" v-if="summaryData && summaryData.length > 0">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-sm font-semibold text-gray-900">Company Breakdown</h3>
         <button
           @click="showPayersModal = true"
-          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="h-9 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
         >
-          <span class="flex items-center gap-2">
-            <BuildingOfficeIcon class="w-5 h-5" />
-            <span>View Payer Details</span>
-          </span>
+          <BuildingOfficeIcon class="w-4 h-4" aria-hidden="true" />
+          View Payer Details
         </button>
       </div>
 
-      <!-- Company Table -->
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-gray-50">
+          <thead class="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Company
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Payers
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Clients
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Settled
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Unsettled
-              </th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Total Payers</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Total Clients</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Settled</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unsettled</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="company in summaryData" :key="company.company_id ?? ''" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span class="text-sm font-medium text-blue-700">
-                        {{ getCompanyInitials(company.company_name) }}
-                      </span>
-                    </div>
+          <tbody class="divide-y divide-gray-100">
+            <tr v-for="company in summaryData" :key="company.company_id ?? ''" class="hover:bg-gray-50 transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                    <span class="text-xs font-semibold text-indigo-700">{{ getCompanyInitials(company.company_name) }}</span>
                   </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">{{ company.company_name }}</div>
-                  </div>
+                  <span class="text-sm font-medium text-gray-900">{{ company.company_name }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                {{ company.total_payers?.toLocaleString() || 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                {{ company.total_clients?.toLocaleString() || 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                ${{ company.total_settled?.toLocaleString() || 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">
-                ${{ company.total_unsettled?.toLocaleString() || 0 }}
-              </td>
+              <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ Number(company.total_payers || 0).toLocaleString() }}</td>
+              <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ Number(company.total_clients || 0).toLocaleString() }}</td>
+              <td class="px-4 py-3 text-sm text-emerald-600 font-medium">{{ Number(company.total_settled || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
+              <td class="px-4 py-3 text-sm text-amber-600 font-medium">{{ Number(company.total_unsettled || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</td>
             </tr>
           </tbody>
         </table>
@@ -166,72 +112,50 @@
     </div>
 
     <!-- Sample Payers Records Modal -->
-    <div v-if="showPayersModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @click="showPayersModal = false">
-      <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white" @click.stop>
+    <div v-if="showPayersModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto z-50 flex items-start justify-center pt-16" @click="showPayersModal = false">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl mx-4 p-6 mb-8" @click.stop>
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Sample Insurance Payer Records</h3>
-          <button @click="showPayersModal = false" class="text-gray-500 hover:text-gray-700">
-            <span class="text-2xl">&times;</span>
+          <div>
+            <h3 class="text-base font-semibold text-gray-900">Sample Insurance Payer Records</h3>
+            <p class="text-xs text-gray-500 mt-0.5">{{ payers.length }} of {{ totalPayers }} total (up to 100 records)</p>
+          </div>
+          <button @click="showPayersModal = false" class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" aria-label="Close modal">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        <!-- Modal Content -->
-        <div class="mb-4">
-          <p class="text-sm text-gray-600">{{ payers.length }} of {{ totalPayers }} total payers (showing up to 100 records)</p>
-        </div>
-
-        <!-- Empty State -->
         <div v-if="!loading && payers.length === 0" class="text-center py-12">
-          <BuildingOfficeIcon class="w-12 h-12 mx-auto text-gray-400" />
-          <p class="mt-2 text-gray-600">No payers found</p>
+          <BuildingOfficeIcon class="w-10 h-10 mx-auto text-gray-300 mb-3" aria-hidden="true" />
+          <p class="text-sm text-gray-500">No payers found</p>
         </div>
 
-        <!-- Loading State -->
         <div v-if="loading" class="flex justify-center items-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div class="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
         </div>
 
-        <!-- Payers Table in Modal -->
-        <div v-if="!loading && payers.length > 0" class="overflow-x-auto max-h-96">
+        <div v-if="!loading && payers.length > 0" class="overflow-x-auto max-h-96 rounded-xl border border-gray-100">
           <table class="w-full">
-            <thead class="bg-gray-50">
+            <thead class="bg-gray-50 border-b border-gray-100 sticky top-0">
               <tr>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Provider
-                </th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Code
-                </th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Company
-                </th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Provider</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Code</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Created</th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="payer in payers" :key="payer.id ?? ''" class="hover:bg-gray-50">
-                <td class="px-4 py-3 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">{{ payer.provider || 'N/A' }}</div>
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                  {{ payer.masterPid || 'N/A' }}
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-medium">
-                  {{ payer.company_name || 'N/A' }}
-                </td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                  {{ formatDate(payer.created_at) }}
-                </td>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="payer in payers" :key="payer.id ?? ''" class="hover:bg-gray-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ payer.provider || 'N/A' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ payer.masterPid || 'N/A' }}</td>
+                <td class="px-4 py-3 text-sm font-medium text-gray-700">{{ payer.company_name || 'N/A' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ formatDate(payer.created_at) }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Modal Footer -->
-        <div class="flex justify-end mt-4 pt-4 border-t border-gray-200">
-          <button @click="showPayersModal = false" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+        <div class="flex justify-end mt-5 pt-4 border-t border-gray-100">
+          <button @click="showPayersModal = false" class="h-9 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
             Close
           </button>
         </div>
@@ -239,17 +163,13 @@
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mt-6">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <ExclamationTriangleIcon class="w-6 h-6 text-red-400" />
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <div class="mt-2 text-sm text-red-700">{{ error }}</div>
-          <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800">
-            Try again
-          </button>
+    <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4 mt-6">
+      <div class="flex gap-3">
+        <ExclamationTriangleIcon class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 class="text-sm font-medium text-red-800">Something went wrong</h3>
+          <div class="mt-1 text-sm text-red-700">{{ error }}</div>
+          <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">Try again</button>
         </div>
       </div>
     </div>
@@ -304,12 +224,12 @@ const payers = ref<Payer[]>([])
 // Computed properties for summary totals
 const totalPayers = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.total_payers ?? 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (Number(company.total_payers) || 0), 0)
 })
 
 const totalClients = computed<number>(() => {
   if (!summaryData.value || summaryData.value.length === 0) return 0
-  return summaryData.value.reduce((sum, company) => sum + (company.total_clients ?? 0), 0)
+  return summaryData.value.reduce((sum, company) => sum + (Number(company.total_clients) || 0), 0)
 })
 
 // Fetch summary data from the cross-tenant summary API
@@ -432,35 +352,3 @@ onMounted(() => {
   void fetchData()
 })
 </script>
-
-<style scoped>
-.insurance-payers-analytics {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-.export-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.refresh-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.stat-icon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-</style>

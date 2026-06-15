@@ -49,7 +49,7 @@
 
               <!-- Loading state: skeleton while checkAuthState() resolves -->
               <div
-                v-if="userStore.isLoading"
+                v-if="authChecking"
                 aria-label="Loading sign-in form"
                 class="overflow-hidden rounded-[2rem] shadow-[0_24px_40px_rgba(10,40,35,0.10)] animate-pulse"
                 style="background-color: var(--surface-card);"
@@ -72,19 +72,104 @@
               </div>
 
               <!-- Data state: login card -->
-              <template v-else>
+              <template v-else-if="!authChecking">
                 <div class="mb-5 text-center lg:text-left animate-fade-up">
-                  <span class="hero-eyebrow mb-3 inline-block">
-                    Fast medication delivery &middot; Across Ghana
-                  </span>
-                  <h1 class="text-[2rem] lg:text-[2.5rem] font-bold leading-tight mb-2 text-white lg:text-[var(--text-default)] hero-text-shadow">
+<h1 class="text-[2rem] lg:text-[2.5rem] font-bold leading-tight mb-2 text-white lg:text-[var(--text-default)] hero-text-shadow">
                     Order <span class="hero-accent">any medication</span> online.
                   </h1>
                   <p class="text-base leading-relaxed text-white/80 lg:text-[var(--text-muted)] hero-text-shadow">
                     From 210+ verified pharmacies across Ghana, delivered in about 45 minutes.
                   </p>
                 </div>
-                <Login inline @login-success="handleLoginSuccess" />
+                <!-- Tab switcher: Quick request (default) ↔ Sign in -->
+                <div class="flex gap-1 p-1 rounded-full w-full mb-4" style="background: rgba(255,255,255,0.92); border: 1px solid rgba(82,0,148,0.16); box-shadow: 0 1px 4px rgba(30,26,34,0.08);">
+                  <button
+                    type="button"
+                    @click="heroTab = 'guest'"
+                    :class="[
+                      'flex-1 rounded-full text-sm font-semibold py-2 px-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40',
+                      heroTab === 'guest' ? 'bg-[#520094] text-white shadow-sm' : 'text-[#1e1a22]/60 hover:text-[#520094]'
+                    ]"
+                  >Quick request</button>
+                  <button
+                    type="button"
+                    @click="heroTab = 'login'"
+                    :class="[
+                      'flex-1 rounded-full text-sm font-semibold py-2 px-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40',
+                      heroTab === 'login' ? 'bg-[#520094] text-white shadow-sm' : 'text-[#1e1a22]/60 hover:text-[#520094]'
+                    ]"
+                  >Sign in</button>
+                </div>
+
+                <!-- Login card -->
+                <Login v-if="heroTab === 'login'" inline @login-success="handleLoginSuccess" />
+
+                <!-- Guest quick-request card -->
+                <div v-else class="w-full overflow-hidden rounded-3xl bg-[#fff7ff] shadow-[0_20px_48px_-8px_rgba(30,26,34,0.18),0_0_0_1px_rgba(82,0,148,0.08)]">
+
+                  <!-- Success state -->
+                  <div v-if="heroGuestSuccess" class="px-7 py-8 text-center">
+                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                      <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p class="text-base font-semibold text-[#1e1a22]">Request sent!</p>
+                    <p class="mt-1.5 text-sm text-[#4c4453]">We'll SMS you at <strong>{{ heroPhone }}</strong> shortly.</p>
+                    <button
+                      type="button"
+                      @click="resetHeroGuestForm"
+                      class="mt-6 w-full rounded-2xl border border-[#ddd4e8] py-3 text-sm font-semibold text-[#520094] transition hover:bg-[#f2eaf9] focus:outline-none"
+                    >Send another</button>
+                  </div>
+
+                  <!-- Form — straight to fields, no header section -->
+                  <form v-else @submit.prevent="submitHeroGuestRequest" class="px-7 pt-6 pb-6 bg-white rounded-3xl space-y-4">
+                    <div v-if="heroGuestError" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                      {{ heroGuestError }}
+                    </div>
+                    <div>
+                      <label for="hero-medications" class="block text-sm font-medium text-[#4c4453] mb-1.5">What do you need?</label>
+                      <textarea
+                        id="hero-medications"
+                        v-model="heroMedication"
+                        rows="3"
+                        placeholder="e.g. Paracetamol 500mg, Amoxicillin capsules…"
+                        required
+                        :disabled="heroGuestLoading"
+                        class="w-full rounded-2xl border border-[#e8def8] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50 resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label for="hero-phone" class="block text-sm font-medium text-[#4c4453] mb-1.5">Your phone number</label>
+                      <input
+                        id="hero-phone"
+                        v-model="heroPhone"
+                        type="tel"
+                        placeholder="e.g. 0244 123 456"
+                        autocomplete="tel"
+                        required
+                        :disabled="heroGuestLoading"
+                        class="w-full rounded-2xl border border-[#e8def8] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      :disabled="heroGuestLoading || !heroMedication.trim() || !heroPhone.trim()"
+                      class="w-full rounded-2xl bg-[#520094] py-3 text-sm font-semibold text-white transition hover:bg-[#6c24b3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <svg v-if="heroGuestLoading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {{ heroGuestLoading ? 'Sending…' : 'Send my request' }}
+                    </button>
+                    <p class="text-center text-sm text-[#4c4453]">
+                      Have an account?
+                      <button type="button" @click="heroTab = 'login'" class="font-semibold text-[#520094] hover:underline focus:outline-none">Sign in</button>
+                    </p>
+                  </form>
+                </div>
               </template>
 
             </div>
@@ -200,72 +285,6 @@
               </article>
             </div>
 
-          </div>
-        </section>
-
-        <!-- ── Testimonials ── -->
-        <section aria-label="Customer testimonials" style="background-color: var(--surface-tinted);" class="py-24">
-          <div class="container mx-auto px-8">
-
-            <div class="mb-12">
-              <span class="section-eyebrow">Testimonials</span>
-              <h2 class="section-heading mt-3">What patients are saying</h2>
-            </div>
-
-            <div class="grid md:grid-cols-3 gap-6">
-
-              <!-- Testimonial 1 -->
-              <figure class="testimonial-card">
-                <div class="flex gap-0.5 mb-5" aria-label="5 out of 5 stars">
-                  <StarIcon v-for="i in 5" :key="i" class="w-4 h-4 star-icon" aria-hidden="true" />
-                </div>
-                <blockquote class="text-base leading-relaxed mb-7 flex-1" style="color: var(--text-default);">
-                  "I couldn't find my father's chronic medication anywhere in Kumasi. MedsGh found it in 15 minutes and delivered it the same hour. Real lifesavers."
-                </blockquote>
-                <figcaption class="flex items-center gap-3">
-                  <div class="avatar" style="--avatar-bg: var(--avatar-a-bg); --avatar-fg: var(--avatar-a-fg);" aria-hidden="true">KA</div>
-                  <div>
-                    <div class="text-sm font-semibold" style="color: var(--text-default);">Kofi Adjei</div>
-                    <div class="text-xs" style="color: var(--text-muted);">Verified patient</div>
-                  </div>
-                </figcaption>
-              </figure>
-
-              <!-- Testimonial 2 -->
-              <figure class="testimonial-card">
-                <div class="flex gap-0.5 mb-5" aria-label="5 out of 5 stars">
-                  <StarIcon v-for="i in 5" :key="i" class="w-4 h-4 star-icon" aria-hidden="true" />
-                </div>
-                <blockquote class="text-base leading-relaxed mb-7 flex-1" style="color: var(--text-default);">
-                  "The integration with my telehealth appointment was seamless. My meds were on their way before I even hung up the call."
-                </blockquote>
-                <figcaption class="flex items-center gap-3">
-                  <div class="avatar" style="--avatar-bg: var(--avatar-b-bg); --avatar-fg: var(--avatar-b-fg);" aria-hidden="true">AM</div>
-                  <div>
-                    <div class="text-sm font-semibold" style="color: var(--text-default);">Ama Mensah</div>
-                    <div class="text-xs" style="color: var(--text-muted);">Verified patient</div>
-                  </div>
-                </figcaption>
-              </figure>
-
-              <!-- Testimonial 3 -->
-              <figure class="testimonial-card">
-                <div class="flex gap-0.5 mb-5" aria-label="5 out of 5 stars">
-                  <StarIcon v-for="i in 5" :key="i" class="w-4 h-4 star-icon" aria-hidden="true" />
-                </div>
-                <blockquote class="text-base leading-relaxed mb-7 flex-1" style="color: var(--text-default);">
-                  "As a busy professional I don't have time to hop between pharmacies. MedsGh makes medication management effortless and I always know it's genuine stock."
-                </blockquote>
-                <figcaption class="flex items-center gap-3">
-                  <div class="avatar" style="--avatar-bg: var(--avatar-c-bg); --avatar-fg: var(--avatar-c-fg);" aria-hidden="true">DO</div>
-                  <div>
-                    <div class="text-sm font-semibold" style="color: var(--text-default);">Dr. Owusu</div>
-                    <div class="text-xs" style="color: var(--text-muted);">Healthcare provider</div>
-                  </div>
-                </figcaption>
-              </figure>
-
-            </div>
           </div>
         </section>
 
@@ -418,21 +437,17 @@
 
               <div class="badge-item">
                 <ShieldCheckIcon class="w-6 h-6 badge-icon" />
-                <span class="badge-label">Pharmacy Council accredited</span>
+                <div class="flex flex-col">
+                  <span class="badge-label">Ghana Data Protection</span>
+                  <span class="badge-sublabel">Reg. No. 0004463</span>
+                </div>
               </div>
 
               <div class="badge-divider" aria-hidden="true"></div>
 
               <div class="badge-item">
-                <CreditCardIcon class="w-6 h-6 badge-icon" />
-                <span class="badge-label">PCI-DSS compliant</span>
-              </div>
-
-              <div class="badge-divider" aria-hidden="true"></div>
-
-              <div class="badge-item">
-                <HeartIcon class="w-6 h-6 badge-icon" />
-                <span class="badge-label">G-Health certified</span>
+                <BuildingStorefrontIcon class="w-6 h-6 badge-icon" />
+                <span class="badge-label">Pharmacy Council accredited pharmacies</span>
               </div>
 
             </div>
@@ -468,7 +483,7 @@
           <div>
             <h4 class="footer-heading">Legal</h4>
             <ul class="space-y-2.5 text-sm">
-              <li><a class="footer-link" href="#">Privacy policy</a></li>
+              <li><a class="footer-link" href="/privacy">Privacy policy</a></li>
               <li><a class="footer-link" href="#">Terms of service</a></li>
               <li><a class="footer-link" href="#">Cookie settings</a></li>
               <li><a class="footer-link" href="#">Accessibility</a></li>
@@ -546,6 +561,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import Login from '~/components/Login.vue'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
+import { useApi } from '~/composables/useApi'
 import { useUserStore } from '~/stores/user'
 import {
   BeakerIcon,
@@ -567,12 +584,9 @@ import {
   UserGroupIcon,
   ChevronDownIcon,
   ShieldCheckIcon,
-  CreditCardIcon,
-  HeartIcon,
   ShareIcon,
 } from '@heroicons/vue/24/outline'
 import {
-  StarIcon,
   CheckBadgeIcon,
 } from '@heroicons/vue/24/solid'
 
@@ -589,10 +603,17 @@ interface LoginPayload {
 
 const userStore = useUserStore()
 const route = useRoute()
+const authChecking = ref<boolean>(true)
 const heroOrderingImage = '/Gemini_Generated_Image_y204fby204fby204.png'
 const currentYear = new Date().getFullYear()
 
 const showLoginModal = ref<boolean>(false)
+const heroTab = ref<'guest' | 'login'>('guest')
+const heroMedication = ref<string>('')
+const heroPhone = ref<string>('')
+const heroGuestLoading = ref<boolean>(false)
+const heroGuestError = ref<string>('')
+const heroGuestSuccess = ref<boolean>(false)
 const toast = ref<{ text: string; type: string } | null>(null)
 const homepageSearchTerm = ref<string>('')
 const homepageRequestedUnit = ref<string>('')
@@ -766,6 +787,35 @@ const clearHomepageSelectedItems = (): void => {
   syncHomepageDraftItems()
 }
 
+const resetHeroGuestForm = (): void => {
+  heroGuestSuccess.value = false
+  heroMedication.value = ''
+  heroPhone.value = ''
+  heroGuestError.value = ''
+}
+
+const submitHeroGuestRequest = async (): Promise<void> => {
+  heroGuestError.value = ''
+  heroGuestLoading.value = true
+  try {
+    const api = useApi()
+    const service = createOrderRequestsService(api)
+    const result = await service.submitAsGuest({
+      phone: heroPhone.value.trim(),
+      items: [{ product_name: heroMedication.value.trim(), quantity: 1 }],
+    })
+    if (!result.success) {
+      heroGuestError.value = result.message ?? 'Failed to place request. Please try again.'
+      return
+    }
+    heroGuestSuccess.value = true
+  } catch (err: unknown) {
+    heroGuestError.value = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.'
+  } finally {
+    heroGuestLoading.value = false
+  }
+}
+
 const openOrderFlow = (draftItems: DraftItem[] = []): void => {
   persistHomepageRequestDraft(draftItems)
   if (userStore.isLoggedIn) {
@@ -820,6 +870,7 @@ const redirectLoggedInUsers = async (): Promise<boolean> => {
 
 onMounted(async () => {
   await (userStore as unknown as { checkAuthState: () => Promise<void> }).checkAuthState()
+  authChecking.value = false
   await redirectLoggedInUsers()
 })
 
@@ -864,16 +915,6 @@ watch(
   /* Border */
   --border-subtle:        #e8def8;
 
-  /* Avatar palette */
-  --avatar-a-bg: #efdbff;
-  --avatar-a-fg: #520094;
-  --avatar-b-bg: #e8def8;
-  --avatar-b-fg: #625b71;
-  --avatar-c-bg: #ffdcbf;
-  --avatar-c-fg: #552e00;
-
-  /* Star rating */
-  --star-color:           #d97706;   /* amber-600, WCAG AA on white */
 }
 
 /* ─── Hero headline ─────────────────────────── */
@@ -990,49 +1031,6 @@ watch(
   letter-spacing: -0.01em;
 }
 
-/* ─── Testimonials ──────────────────────────── */
-.testimonial-card {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--surface-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 1.25rem;
-  padding: 2rem 1.75rem;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.testimonial-card:hover {
-  box-shadow: 0 8px 24px rgba(82, 0, 148, 0.10);
-  transform: translateY(-2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .testimonial-card {
-    transition: none;
-  }
-  .testimonial-card:hover {
-    transform: none;
-  }
-}
-
-.star-icon {
-  color: var(--star-color);
-}
-
-.avatar {
-  width: 2.75rem;
-  height: 2.75rem;
-  min-width: 2.75rem;
-  border-radius: 50%;
-  background-color: var(--avatar-bg);
-  color: var(--avatar-fg);
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* ─── FAQ accordion ─────────────────────────── */
 .faq-item {
   background-color: var(--surface-card);
@@ -1106,6 +1104,14 @@ details[open] .faq-chevron {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.badge-sublabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--accent-primary);
+  margin-top: 0.1rem;
 }
 
 .badge-divider {

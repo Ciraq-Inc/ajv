@@ -1,177 +1,134 @@
 <template>
-  <div class="purchase-items-analytics p-6 bg-gray-50 min-h-screen">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">
-        Purchase Items 
-      </h1>
-      <p class="text-gray-600">
-        Comprehensive purchase transaction insights across all companies
-      </p>
+  <div class="p-6 bg-gray-50 min-h-screen">
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900">Purchase Items</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Comprehensive purchase transaction insights across all companies</p>
     </div>
 
     <!-- Filters and Controls -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <!-- Filters -->
-        <div class="flex flex-col sm:flex-row gap-4 flex-1">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              v-model="filters.start_date"
-              type="date"
-              @change="fetchData"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              v-model="filters.end_date"
-              type="date"
-              @change="fetchData"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
+      <div class="flex flex-wrap items-end gap-3">
+        <!-- Filter inputs -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
+          <input
+            v-model="filters.start_date"
+            type="date"
+            @change="fetchData"
+            class="h-9 px-3 text-sm appearance-none bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">End Date</label>
+          <input
+            v-model="filters.end_date"
+            type="date"
+            @change="fetchData"
+            class="h-9 px-3 text-sm appearance-none bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-2">
-          <!-- <button
-            @click="exportToJSON"
-            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
-            :disabled="loading"
-          >
-            <span class="flex items-center gap-2">
-              <ArrowDownTrayIcon class="export-icon" />
-              <span>JSON</span>
-            </span>
-          </button> -->
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2 ml-auto">
           <button
             @click="exportToCSV"
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            :disabled="loading"
+            class="h-9 px-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+            :disabled="loading || exportingSummary || exportingRaw"
           >
-            <span class="flex items-center gap-2">
-              <ArrowDownTrayIcon class="export-icon" />
-              <span>Summary</span>
-            </span>
+            <svg v-if="exportingSummary" class="animate-spin w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <ArrowDownTrayIcon v-else class="w-4 h-4" />
+            {{ exportingSummary ? 'Exporting…' : 'Summary' }}
           </button>
           <button
             @click="exportRawDataCSV"
-            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
-            :disabled="loading"
+            class="h-9 px-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+            :disabled="loading || exportingSummary || exportingRaw"
             title="Export raw transaction data"
           >
-            <span class="flex items-center gap-2">
-              <ArrowDownTrayIcon class="export-icon" />
-              <span>Raw Data</span>
-            </span>
+            <svg v-if="exportingRaw" class="animate-spin w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <ArrowDownTrayIcon v-else class="w-4 h-4" />
+            {{ exportingRaw ? 'Exporting…' : 'Raw Data' }}
           </button>
           <button
             @click="refreshData"
-            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+            class="h-9 w-9 border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 rounded-lg flex items-center justify-center disabled:opacity-50 transition-colors"
             :disabled="loading"
+            aria-label="Refresh"
           >
-            <span class="flex items-center gap-2">
-              <ArrowPathIcon class="refresh-icon" :class="{ 'animate-spin': loading }" />
-              <span>Refresh</span>
-            </span>
+            <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': loading }" />
           </button>
         </div>
       </div>
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" v-if="summary">
-      <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" v-if="summary">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Total Companies</p>
-            <p class="text-2xl font-bold text-gray-900">
+            <p class="text-xs font-medium text-gray-500">Total Companies</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-1">
               {{ summary.total_companies?.toLocaleString() || 0 }}
             </p>
           </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <BuildingOfficeIcon class="stat-icon text-blue-600" />
+          <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <BuildingOfficeIcon class="w-5 h-5 text-indigo-600" aria-hidden="true" />
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Unique Products</p>
-            <p class="text-2xl font-bold text-green-600">
+            <p class="text-xs font-medium text-gray-500">Unique Products</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-1">
               {{ summary.unique_products?.toLocaleString() || 0 }}
             </p>
           </div>
-          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <ShoppingBagIcon class="stat-icon text-green-600" />
+          <div class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <ShoppingBagIcon class="w-5 h-5 text-emerald-600" aria-hidden="true" />
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Total Transactions</p>
-            <p class="text-2xl font-bold text-purple-600">
+            <p class="text-xs font-medium text-gray-500">Total Transactions</p>
+            <p class="text-2xl font-semibold text-gray-900 mt-1">
               {{ summary.total_transactions?.toLocaleString() || 0 }}
             </p>
           </div>
-          <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-            <ChartBarIcon class="stat-icon text-purple-600" />
+          <div class="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <ChartBarIcon class="w-5 h-5 text-violet-600" aria-hidden="true" />
           </div>
         </div>
       </div>
-    
     </div>
 
     <!-- Purchase Items List -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden" v-if="purchaseItems && purchaseItems.length > 0">
-      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 class="text-lg font-semibold text-gray-800">Sample Purchase Items (Up to 100)</h3>
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" v-if="purchaseItems && purchaseItems.length > 0">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-sm font-semibold text-gray-900">Sample Purchase Items</h3>
+        <span class="text-xs text-gray-500">Up to 100 records</span>
       </div>
 
-      <!-- Items Table -->
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-gray-50">
+          <thead class="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Company
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Unique Product
-              </th>
-             
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Unique Suppliers
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Trans. Count
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Quantity
-              </th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unique Products</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unique Suppliers</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Trans. Count</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Total Quantity</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="item in purchaseItems" :key="(item.id as PropertyKey | undefined) ?? ''" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {{ item.company_name }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {{ item.unique_products || 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                {{ item.unique_suppliers || 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                {{ item.transaction_count || 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                {{ item.total_quantity || 0 }}
-              </td>
-             
+          <tbody class="divide-y divide-gray-100">
+            <tr v-for="item in purchaseItems" :key="(item.id as PropertyKey | undefined) ?? ''" class="hover:bg-gray-50 transition-colors">
+              <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ item.company_name }}</td>
+              <td class="px-4 py-3 text-sm text-gray-700">{{ item.unique_products || 0 }}</td>
+              <td class="px-4 py-3 text-sm text-gray-700">{{ item.unique_suppliers || 0 }}</td>
+              <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ item.transaction_count || 0 }}</td>
+              <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ item.total_quantity || 0 }}</td>
             </tr>
           </tbody>
         </table>
@@ -179,17 +136,13 @@
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="bg-red-50 border border-red-200 rounded-md p-4 mt-6">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <ExclamationTriangleIcon class="w-6 h-6 text-red-400" />
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <div class="mt-2 text-sm text-red-700">{{ error }}</div>
-          <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800">
-            Try again
-          </button>
+    <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4 mt-6">
+      <div class="flex gap-3">
+        <ExclamationTriangleIcon class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 class="text-sm font-medium text-red-800">Something went wrong</h3>
+          <div class="mt-1 text-sm text-red-700">{{ error }}</div>
+          <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">Try again</button>
         </div>
       </div>
     </div>
@@ -224,6 +177,8 @@ const reportsService = createReportsExportService(useApi())
 // Reactive data
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
+const exportingSummary = ref<boolean>(false)
+const exportingRaw = ref<boolean>(false)
 
 // Analytics data
 const summary = ref<SummaryResponse | null>(null)
@@ -333,6 +288,7 @@ const exportToJSON = async (): Promise<void> => {
 }
 
 const exportToCSV = async (): Promise<void> => {
+  exportingSummary.value = true
   try {
     const blob = await reportsService.exportPurchaseItemsSummaryCsv({
       startDate: filters.value.start_date,
@@ -349,12 +305,14 @@ const exportToCSV = async (): Promise<void> => {
   } catch (err) {
     console.error('Export error:', err)
     alert('Export failed. Please try again.')
+  } finally {
+    exportingSummary.value = false
   }
 }
 
 const exportRawDataCSV = async (): Promise<void> => {
+  exportingRaw.value = true
   try {
-    loading.value = true
     const blob = await reportsService.exportPurchaseItemsRawCsv({
       startDate: filters.value.start_date,
       endDate: filters.value.end_date,
@@ -371,7 +329,7 @@ const exportRawDataCSV = async (): Promise<void> => {
     console.error('Raw data export error:', err)
     alert('Raw data export failed. Please try again.')
   } finally {
-    loading.value = false
+    exportingRaw.value = false
   }
 }
 
@@ -381,34 +339,3 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.purchase-items-analytics {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-.export-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.refresh-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.stat-icon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-</style>

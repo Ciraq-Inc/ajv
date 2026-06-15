@@ -19,7 +19,27 @@ export interface PharmacyLedgerParams {
   limit?: number;
 }
 
+export interface GuestSubmitParams {
+  phone: string;
+  items: Array<{ product_id?: number | string; product_name: string; quantity: number }>;
+  customer_address?: string;
+}
+
+export interface GuestSubmitResult {
+  request_id: number;
+  request_number: string;
+  is_new_customer: boolean;
+}
+
 export const createOrderRequestsService = (api: ApiInstance) => ({
+  /**
+   * Public — submit a request as a guest (phone only, no account required).
+   * POST /api/order-requests/guest
+   */
+  submitAsGuest({ phone, items, customer_address }: GuestSubmitParams): Promise<ApiEnvelope<GuestSubmitResult>> {
+    return api.post('/api/order-requests/guest', { phone, items, customer_address });
+  },
+
   /**
    * List the authenticated customer's order requests across companies.
    * GET /api/order-requests/customer

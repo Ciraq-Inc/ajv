@@ -365,10 +365,36 @@
             </Transition>
 
             <form v-if="!resetSuccess" @submit.prevent="handleResetPassword" novalidate>
-              <!-- Phone summary -->
-              <div class="mb-5 rounded-2xl bg-[#f5eeff] border border-[#e4d0f8] px-4 py-3 text-sm text-[#4c4453]">
-                Resetting password for <strong class="text-[#1e1a22]">{{ formattedPhoneNumber }}</strong>
-                <p class="text-xs mt-0.5 text-[#7d7484]">We'll send a verification code to this number.</p>
+              <!-- Phone input -->
+              <div class="mb-5">
+                <label for="resetPhone" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
+                <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
+                  <select
+                    v-model="selectedCountry"
+                    class="flex-shrink-0 rounded-l-2xl border-0 bg-[#f5eeff] px-3 text-sm font-semibold text-[#520094] focus:outline-none cursor-pointer"
+                    :disabled="otpSent"
+                    aria-label="Country code"
+                  >
+                    <option value="GH">🇬🇭 +233</option>
+                    <option value="US">🇺🇸 +1</option>
+                    <option value="GB">🇬🇧 +44</option>
+                  </select>
+                  <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
+                  <input
+                    v-model="phoneNumber"
+                    type="tel"
+                    id="resetPhone"
+                    class="min-w-0 flex-1 rounded-r-2xl border-0 bg-transparent px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none disabled:opacity-60"
+                    placeholder="24 123 4567"
+                    :disabled="otpSent"
+                    autocomplete="tel-national"
+                    @input="onPhoneInput"
+                  >
+                </div>
+                <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  {{ phoneNumberError }}
+                </p>
               </div>
 
               <!-- Step 1: Send OTP -->
@@ -412,6 +438,14 @@
                       autocomplete="one-time-code"
                     >
                   </div>
+                  <button
+                    type="button"
+                    @click="sendResetOTP"
+                    :disabled="isLoading"
+                    class="mt-3 text-xs font-semibold text-[#520094] hover:text-[#6c24b3] disabled:opacity-50 focus:outline-none focus-visible:underline"
+                  >
+                    Resend code
+                  </button>
                 </div>
 
                 <div>
@@ -1211,6 +1245,7 @@ const forgotPassword = (): void => {
 };
 
 const sendResetOTP = async (): Promise<void> => {
+  if (!validatePhoneNumber()) return;
   errorMessage.value = '';
   isLoading.value = true;
 
@@ -1238,11 +1273,8 @@ const handleResetPassword = async (): Promise<void> => {
     await userStore.resetPassword(phoneE164.value, otp.value, password.value);
 
     errorMessage.value = '';
-    currentStep.value = 'signin';
-    mode.value = 'login';
     confirmPassword.value = '';
     clearOtp();
-    otpSent.value = false;
     resetSuccess.value = true;
   } catch (err) {
     console.error('Reset password error:', err);
