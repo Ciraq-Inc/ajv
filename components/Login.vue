@@ -724,6 +724,20 @@
                 </span>
               </label>
 
+              <!-- SMS consent checkbox -->
+              <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  id="su-sms-consent"
+                  v-model="smsConsent"
+                  type="checkbox"
+                  class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
+                  required
+                >
+                <span class="text-xs text-[#4c4453] leading-relaxed">
+                  I agree to receive order updates and SMS notifications from MedsGH <span class="text-red-500">*</span>
+                </span>
+              </label>
+
               <!-- Submit -->
               <button
                 type="submit"
@@ -833,6 +847,7 @@ const lastName = ref<string>('');
 const email = ref<string>('');
 const gender = ref<string>('');
 const isOver18 = ref<boolean>(false);
+const smsConsent = ref<boolean>(false);
 const otpSent = ref<boolean>(false);
 const signupOtpSent = ref<boolean>(false);
 const isLoading = ref<boolean>(false);
@@ -957,7 +972,8 @@ const canSignupSubmit = computed<boolean>(() =>
   Boolean(firstName.value) && Boolean(lastName.value) &&
   otp.value.length === 6 &&
   password.value.length >= 6 && password.value === confirmPassword.value &&
-  isOver18.value
+  isOver18.value &&
+  smsConsent.value
 );
 
 const resolveCurrentPharmacyId = (): unknown => {
@@ -1012,6 +1028,7 @@ const onPhoneInput = (): void => {
     lastName.value = '';
     email.value = '';
     isOver18.value = false;
+    smsConsent.value = false;
     errorMessage.value = '';
   }
 };
@@ -1316,6 +1333,7 @@ const closeModal = (): void => {
     email.value = '';
     gender.value = '';
     isOver18.value = false;
+    smsConsent.value = false;
     otpSent.value = false;
     errorMessage.value = '';
     phoneNumberError.value = '';
