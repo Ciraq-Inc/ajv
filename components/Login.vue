@@ -565,9 +565,23 @@
                 </p>
               </div>
 
+              <!-- SMS consent checkbox -->
+              <label class="mb-4 flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  id="su-sms-consent"
+                  v-model="smsConsent"
+                  type="checkbox"
+                  class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
+                  required
+                >
+                <span class="text-xs text-[#4c4453] leading-relaxed">
+                  I agree to receive order updates and SMS notifications from MedsGH <span class="text-red-500">*</span>
+                </span>
+              </label>
+
               <button
                 type="button"
-                :disabled="isLoading || !phoneNumber || !!phoneNumberError"
+                :disabled="isLoading || !phoneNumber || !!phoneNumberError || !smsConsent"
                 @click="sendSignupOTP"
                 class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
               >
@@ -721,20 +735,6 @@
                 >
                 <span class="text-xs text-[#4c4453] leading-relaxed">
                   I confirm I am 18 years or older <span class="text-red-500">*</span>
-                </span>
-              </label>
-
-              <!-- SMS consent checkbox -->
-              <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                <input
-                  id="su-sms-consent"
-                  v-model="smsConsent"
-                  type="checkbox"
-                  class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
-                  required
-                >
-                <span class="text-xs text-[#4c4453] leading-relaxed">
-                  I agree to receive order updates and SMS notifications from MedsGH <span class="text-red-500">*</span>
                 </span>
               </label>
 
