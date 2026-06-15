@@ -115,7 +115,10 @@
                       </svg>
                     </div>
                     <p class="text-base font-semibold text-[#1e1a22]">Request sent!</p>
-                    <p class="mt-1.5 text-sm text-[#4c4453]">We'll SMS you at <strong>{{ heroPhone }}</strong> shortly.</p>
+                    <p class="mt-1.5 text-sm text-[#4c4453]">
+                      We'll SMS you at <strong>{{ heroPhone }}</strong>
+                      {{ heroIsNewCustomer ? 'with a link to set up your account.' : 'with your order details.' }}
+                    </p>
                     <button
                       type="button"
                       @click="resetHeroGuestForm"
@@ -614,6 +617,7 @@ const heroPhone = ref<string>('')
 const heroGuestLoading = ref<boolean>(false)
 const heroGuestError = ref<string>('')
 const heroGuestSuccess = ref<boolean>(false)
+const heroIsNewCustomer = ref<boolean>(true)
 const toast = ref<{ text: string; type: string } | null>(null)
 const homepageSearchTerm = ref<string>('')
 const homepageRequestedUnit = ref<string>('')
@@ -808,6 +812,7 @@ const submitHeroGuestRequest = async (): Promise<void> => {
       heroGuestError.value = result.message ?? 'Failed to place request. Please try again.'
       return
     }
+    heroIsNewCustomer.value = result.data?.is_new_customer !== false
     heroGuestSuccess.value = true
   } catch (err: unknown) {
     heroGuestError.value = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.'

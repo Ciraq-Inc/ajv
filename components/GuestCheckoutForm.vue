@@ -45,7 +45,8 @@
           </div>
           <p class="text-base font-semibold text-[#1e1a22]">Your request is on its way!</p>
           <p class="mt-2 text-sm text-[#4c4453]">
-            We've sent an SMS to <strong>{{ phone }}</strong> with a link to track your order and set up your account.
+            We've sent an SMS to <strong>{{ phone }}</strong>
+            {{ isNewCustomer ? 'with a link to track your order and set up your account.' : 'with your order confirmation.' }}
           </p>
           <button
             type="button"
@@ -141,6 +142,7 @@ const address = ref('');
 const isLoading = ref(false);
 const errorMessage = ref('');
 const succeeded = ref(false);
+const isNewCustomer = ref(true);
 
 // Reset form state whenever the modal opens
 watch(() => props.isOpen, (open) => {
@@ -149,6 +151,7 @@ watch(() => props.isOpen, (open) => {
     address.value = '';
     errorMessage.value = '';
     succeeded.value = false;
+    isNewCustomer.value = true;
     isLoading.value = false;
   }
 });
@@ -180,6 +183,7 @@ const submit = async () => {
       return;
     }
 
+    isNewCustomer.value = result.data?.is_new_customer !== false;
     succeeded.value = true;
     emit('guest-order-success', { requestNumber: result.data.request_number });
   } catch (err: unknown) {
