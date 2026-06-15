@@ -1,137 +1,120 @@
 <template>
-  <div class="companies-management p-6 bg-gray-50 min-h-screen">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">
-        Companies Management
-      </h1>
-      <p class="text-gray-600">
-        Manage pharmacies, hospitals, clinics and their subsidiaries
-      </p>
+  <div class="p-6 bg-gray-50 min-h-screen">
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900">Companies</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Manage pharmacies, hospitals, clinics and their subsidiaries</p>
     </div>
 
     <!-- Action Bar -->
-    <div class="bg-white rounded-lg p-6 mb-6 border border-gray-200">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <!-- Search -->
-        <div class="flex flex-col sm:flex-row gap-4 flex-1">
-          <div class="relative flex-1 max-w-md">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="relative flex-1 max-w-sm">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Search</label>
+          <div class="relative">
             <input
               v-model="searchQuery"
               type="text"
               placeholder="Search companies..."
-              class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              class="w-full h-9 pl-9 pr-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
               @input="debouncedSearch"
             />
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400" />
+              <MagnifyingGlassIcon class="w-4 h-4 text-gray-400" aria-hidden="true" />
             </div>
           </div>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="flex gap-2">
+        <div class="ml-auto">
           <button
             @click="refreshCompanies"
-            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 text-sm font-medium transition-colors duration-150"
+            class="h-9 w-9 border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 rounded-lg flex items-center justify-center disabled:opacity-50 transition-colors"
             :disabled="loading"
+            aria-label="Refresh companies"
           >
-            <span class="flex items-center gap-2">
-              <ArrowPathIcon class="refresh-icon" :class="{ 'animate-spin': loading }" />
-              <span>Refresh</span>
-            </span>
+            <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': loading }" />
           </button>
         </div>
       </div>
     </div>
 
     <!-- Companies Table -->
-    <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h2 class="text-xl font-bold text-gray-800">Companies</h2>
-        <span class="text-sm font-medium text-gray-600">
-          Total: <span class="font-bold text-gray-900">{{ companies.length }}</span>
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-sm font-semibold text-gray-900">Companies</h2>
+        <span class="text-xs text-gray-500">
+          {{ companies.length }} total
         </span>
       </div>
-      <div class="overflow-x-auto">
+
+      <!-- Loading State -->
+      <div v-if="loading" class="flex justify-center items-center py-16">
+        <div class="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+      </div>
+
+      <div v-else-if="companies.length === 0" class="text-center py-16">
+        <BuildingOfficeIcon class="w-10 h-10 mx-auto text-gray-300 mb-3" aria-hidden="true" />
+        <p class="text-sm font-medium text-gray-600 mb-1">No companies found</p>
+        <p class="text-xs text-gray-400">Try a different search term.</p>
+      </div>
+
+      <div v-else class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-gray-50">
+          <thead class="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                #
-              </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Company
-              </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Type
-              </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
-              </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Location
-              </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">#</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Type</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Contact</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">ID</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="divide-y divide-gray-100">
             <tr
               v-for="(company, index) in companies"
               :key="company.id"
-              class="hover:bg-gray-50 transition-colors duration-150"
+              class="hover:bg-gray-50 transition-colors"
             >
-              <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500">
-                {{ index + 1 }}
-              </td>
-              <td class="px-4 py-4" style="max-width: 200px;">
+              <td class="px-4 py-3 text-sm text-gray-500">{{ index + 1 }}</td>
+              <td class="px-4 py-3" style="max-width: 200px;">
                 <div class="text-sm font-medium text-gray-900 truncate">{{ company.name }}</div>
                 <div class="text-xs text-gray-400 truncate font-mono" :title="company.uiid">{{ company.uiid }}</div>
               </td>
-              <td class="px-4 py-4">
+              <td class="px-4 py-3">
                 <span
-                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                  class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full"
                   :class="getTypeClass(company.companytype)"
                 >
                   {{ getCompanyTypeName(company.companytype) }}
                 </span>
-                <div
-                  v-if="(company.maincompanyid ?? 0) > 0"
-                  class="text-xs text-gray-500 mt-1"
-                >
-                  Subsidiary
-                </div>
+                <div v-if="(company.maincompanyid ?? 0) > 0" class="text-xs text-gray-400 mt-0.5">Subsidiary</div>
               </td>
-              <td class="px-4 py-4 text-sm text-gray-500">
+              <td class="px-4 py-3 text-sm text-gray-500">
                 <div>{{ company.email || "N/A" }}</div>
                 <div>{{ company.tel1 || company.tel2 || "N/A" }}</div>
               </td>
-              <td class="px-4 py-4 text-sm text-gray-500">
+              <td class="px-4 py-3 text-sm text-gray-500">
                 <div>{{ company.location || "N/A" }}</div>
                 <div class="text-xs">{{ company.address1 || "" }}</div>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
-                {{ company.id }}
-              </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex items-center space-x-2">
+              <td class="px-4 py-3 text-sm font-mono text-gray-500">{{ company.id }}</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-1">
                   <button
                     @click="viewCompany(company)"
-                    class="text-blue-500 hover:text-blue-600 transition-colors duration-150 p-1 rounded"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                     title="View Details"
+                    aria-label="View company details"
                   >
-                    <EyeIcon class="w-5 h-5" />
+                    <EyeIcon class="w-4 h-4" />
                   </button>
                   <button
                     @click="editCompany(company)"
-                    class="text-green-500 hover:text-green-600 transition-colors duration-150 p-1 rounded"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                     title="Edit Contact Info"
+                    aria-label="Edit company contact info"
                   >
-                    <PencilIcon class="w-5 h-5" />
+                    <PencilIcon class="w-4 h-4" />
                   </button>
                 </div>
               </td>
@@ -139,31 +122,15 @@
           </tbody>
         </table>
       </div>
-      <div
-        v-if="companies.length === 0 && !loading"
-        class="px-6 py-4 text-center text-gray-500"
-      >
-        No companies found.
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
     </div>
 
     <!-- Error State -->
-    <div
-      v-if="error"
-      class="bg-red-50 border border-red-200 rounded-md p-4 mb-6"
-    >
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <ExclamationTriangleIcon class="w-6 h-6 text-red-400" />
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Error</h3>
-          <div class="mt-2 text-sm text-red-700">{{ error }}</div>
+    <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4 mt-6">
+      <div class="flex gap-3">
+        <ExclamationTriangleIcon class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 class="text-sm font-medium text-red-800">Something went wrong</h3>
+          <div class="mt-1 text-sm text-red-700">{{ error }}</div>
         </div>
       </div>
     </div>
@@ -171,460 +138,417 @@
     <!-- Create/Edit Company Modal -->
     <div
       v-if="showCreateModal || showEditModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto z-50 flex items-start justify-center pt-16"
       @click="closeModals"
     >
       <div
-        class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 rounded-lg bg-white border-gray-200"
+        class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 p-6 mb-8"
         @click.stop
       >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">
-            {{ showCreateModal ? "Add New Company" : showEditModal ? "Update Contact Information" : "Edit Company" }}
-          </h3>
+        <h3 class="text-base font-semibold text-gray-900 mb-5">
+          {{ showCreateModal ? "Add New Company" : showEditModal ? "Update Contact Information" : "Edit Company" }}
+        </h3>
 
-          <form
-            @submit.prevent="showCreateModal ? createCompany() : updateCompany()"
-            class="space-y-4"
-          >
-            <div v-if="showCreateModal" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form
+          @submit.prevent="showCreateModal ? createCompany() : updateCompany()"
+          class="space-y-4"
+        >
+          <div v-if="showCreateModal" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">UIID *</label>
+              <input
+                v-model="companyForm.uiid"
+                type="text"
+                required
+                :disabled="showEditModal"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 text-sm"
+                placeholder="Unique identifier"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+              <input
+                v-model="companyForm.name"
+                type="text"
+                required
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="Company name"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                v-model="companyForm.email"
+                type="email"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="company@email.com"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone 1</label>
+              <input
+                v-model="companyForm.tel1"
+                type="tel"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="0241234567"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone 2</label>
+              <input
+                v-model="companyForm.tel2"
+                type="tel"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="0201234567"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Company Type</label>
+              <select
+                v-model="companyForm.companytype"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+              >
+                <option value="0">Pharmacy</option>
+                <option value="1">Hospital</option>
+                <option value="2">Clinic</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Address 1</label>
+              <input
+                v-model="companyForm.address1"
+                type="text"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="Street address"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Address 2</label>
+              <input
+                v-model="companyForm.address2"
+                type="text"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="Additional address info"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <input
+                v-model="companyForm.location"
+                type="text"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="City, Region"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
+              <input
+                v-model="companyForm.ddate"
+                type="date"
+                class="w-full h-9 px-3 appearance-none bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Parent Company ID</label>
+              <input
+                v-model="companyForm.maincompanyid"
+                type="number"
+                min="0"
+                class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="0 for main company"
+              />
+            </div>
+          </div>
+
+          <!-- Edit Modal fields -->
+          <div v-if="showEditModal" class="space-y-4">
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
+              <InformationCircleIcon class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+              <p class="text-sm text-indigo-700">Update domain name, WhatsApp number, SMS sender ID, logo, and shop banner for this company.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">UIID *</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Domain Name</label>
                 <input
-                  v-model="companyForm.uiid"
+                  v-model="companyForm.domain_name"
                   type="text"
-                  required
-                  :disabled="showEditModal"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-sm"
-                  placeholder="Unique identifier"
+                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  placeholder="company-domain"
                 />
+                <p class="text-xs text-gray-400 mt-1">Unique domain identifier for the company</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label>
                 <input
-                  v-model="companyForm.name"
-                  type="text"
-                  required
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="Company name"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  v-model="companyForm.email"
-                  type="email"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="company@email.com"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Phone 1</label>
-                <input
-                  v-model="companyForm.tel1"
+                  v-model="companyForm.whatsapp_number"
                   type="tel"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="0241234567"
+                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  placeholder="+233501234567"
                 />
+                <p class="text-xs text-gray-400 mt-1">WhatsApp contact number with country code</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Phone 2</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">SMS Sender ID</label>
                 <input
-                  v-model="companyForm.tel2"
-                  type="tel"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="0201234567"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Company Type</label>
-                <select
-                  v-model="companyForm.companytype"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                >
-                  <option value="0">Pharmacy</option>
-                  <option value="1">Hospital</option>
-                  <option value="2">Clinic</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Address 1</label>
-                <input
-                  v-model="companyForm.address1"
+                  v-model="companyForm.sender_id"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="Street address"
+                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  placeholder="e.g., RigelOS"
+                  maxlength="11"
                 />
+                <p class="text-xs text-gray-400 mt-1">Custom SMS sender ID (max 11 chars). Leave empty to use default (RigelOS)</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Address 2</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
                 <input
-                  v-model="companyForm.address2"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="Additional address info"
+                  v-model="companyForm.logo"
+                  type="url"
+                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  placeholder="https://example.com/logo.png"
                 />
+                <p class="text-xs text-gray-400 mt-1">URL to company logo image</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Shop Banner URL</label>
                 <input
-                  v-model="companyForm.location"
-                  type="text"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="City, Region"
+                  v-model="companyForm.shop_banner"
+                  type="url"
+                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                  placeholder="https://example.com/banner.jpg"
                 />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
-                <input
-                  v-model="companyForm.ddate"
-                  type="date"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Parent Company ID</label>
-                <input
-                  v-model="companyForm.maincompanyid"
-                  type="number"
-                  min="0"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="0 for main company"
-                />
+                <p class="text-xs text-gray-400 mt-1">URL to shop banner/header image</p>
               </div>
             </div>
 
-            <!-- Edit Modal - Only Domain Name, WhatsApp Number, Logo, Shop Banner, and SMS Sender ID -->
-            <div v-if="showEditModal" class="space-y-4">
-              <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
-                <div class="flex">
-                  <div class="flex-shrink-0">
-                    <InformationCircleIcon class="w-6 h-6 text-blue-400" />
-                  </div>
-                  <div class="ml-3">
-                    <h3 class="text-sm font-medium text-blue-800">Update Company Contact & Branding Information</h3>
-                    <div class="mt-2 text-sm text-blue-700">
-                      You can update the domain name, WhatsApp number, SMS sender ID, logo, and shop banner for this company.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Domain Name</label>
-                  <input
-                    v-model="companyForm.domain_name"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="company-domain"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">Unique domain identifier for the company</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label>
-                  <input
-                    v-model="companyForm.whatsapp_number"
-                    type="tel"
-                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="+233501234567"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">WhatsApp contact number with country code</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">SMS Sender ID</label>
-                  <input
-                    v-model="companyForm.sender_id"
-                    type="text"
-                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="e.g., RigelOS"
-                    maxlength="11"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">Custom SMS sender ID (max 11 chars). Leave empty to use default (RigelOS)</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
-                  <input
-                    v-model="companyForm.logo"
-                    type="url"
-                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="https://example.com/logo.png"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">URL to company logo image</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Shop Banner URL</label>
-                  <input
-                    v-model="companyForm.shop_banner"
-                    type="url"
-                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="https://example.com/banner.jpg"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">URL to shop banner/header image</p>
-                </div>
-              </div>
-
-              <!-- Toggle More Section -->
-              <div class="border-t border-gray-200 pt-4">
-                <button
-                  @click="showMoreFields = !showMoreFields"
-                  type="button"
-                  class="flex items-center justify-between w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors duration-150"
-                >
-                  <span class="text-sm font-medium text-gray-700">More Fields (Optional)</span>
-                  <svg
-                    :class="{ 'rotate-180': showMoreFields }"
-                    class="w-5 h-5 text-gray-500 transition-transform duration-200"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                <div v-show="showMoreFields" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Alternate Company ID</label>
-                    <input
-                      v-model="companyForm.alternate_company_id"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="Alternative identifier"
-                    />
-                    <p class="text-xs text-gray-500 mt-1">Secondary company identifier</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                    <input
-                      v-model="companyForm.country"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="e.g., Ghana"
-                    />
-                    <p class="text-xs text-gray-500 mt-1">Country name</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Region</label>
-                    <input
-                      v-model="companyForm.region"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="e.g., Greater Accra"
-                    />
-                    <p class="text-xs text-gray-500 mt-1">Region or state</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <input
-                      v-model="companyForm.location_detail"
-                      type="text"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="e.g., Accra"
-                    />
-                    <p class="text-xs text-gray-500 mt-1">City or locality</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                    <input
-                      v-model="companyForm.latitude"
-                      type="number"
-                      step="any"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="e.g., 5.6037"
-                    />
-                    <p class="text-xs text-gray-500 mt-1">Geographic latitude coordinate</p>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                    <input
-                      v-model="companyForm.longitude"
-                      type="number"
-                      step="any"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="e.g., -0.1870"
-                    />
-                    <p class="text-xs text-gray-500 mt-1">Geographic longitude coordinate</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex justify-end space-x-3 pt-4">
+            <!-- Toggle More Section -->
+            <div class="border-t border-gray-100 pt-4">
               <button
+                @click="showMoreFields = !showMoreFields"
                 type="button"
-                @click="closeModals"
-                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm font-medium transition-colors duration-150"
+                class="flex items-center justify-between w-full px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium text-gray-700"
               >
-                Cancel
+                <span>More Fields (Optional)</span>
+                <svg
+                  :class="{ 'rotate-180': showMoreFields }"
+                  class="w-4 h-4 text-gray-500 transition-transform duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
-              <button
-                type="submit"
-                :disabled="modalLoading"
-                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm font-medium transition-colors duration-150"
-              >
-                {{ modalLoading ? "Updating..." : showCreateModal ? "Create Company" : showEditModal ? "Update Contact Info" : "Update Company" }}
-              </button>
+
+              <div v-show="showMoreFields" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Alternate Company ID</label>
+                  <input
+                    v-model="companyForm.alternate_company_id"
+                    type="text"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="Alternative identifier"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <input
+                    v-model="companyForm.country"
+                    type="text"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="e.g., Ghana"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Region</label>
+                  <input
+                    v-model="companyForm.region"
+                    type="text"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="e.g., Greater Accra"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    v-model="companyForm.location_detail"
+                    type="text"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="e.g., Accra"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                  <input
+                    v-model="companyForm.latitude"
+                    type="number"
+                    step="any"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="e.g., 5.6037"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                  <input
+                    v-model="companyForm.longitude"
+                    type="number"
+                    step="any"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="e.g., -0.1870"
+                  />
+                </div>
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              @click="closeModals"
+              class="h-9 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="modalLoading"
+              class="h-9 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium transition-colors"
+            >
+              {{ modalLoading ? "Saving..." : showCreateModal ? "Create Company" : showEditModal ? "Update Contact Info" : "Update Company" }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
     <!-- View Company Modal -->
     <div
       v-if="showViewModal"
-      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto z-50 flex items-start justify-center pt-16"
       @click="closeModals"
     >
       <div
-        class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 rounded-lg bg-white border-gray-200"
+        class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 p-6 mb-8"
         @click.stop
       >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">
-            Company Details
-          </h3>
+        <h3 class="text-base font-semibold text-gray-900 mb-5">Company Details</h3>
 
-          <div v-if="selectedCompany" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Company Name</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.name }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">UIID</label>
-                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedCompany.uiid }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Type</label>
-                <p class="mt-1 text-sm text-gray-900">{{ getCompanyTypeName(selectedCompany.companytype) }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Email</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.email || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Phone 1</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.tel1 || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Phone 2</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.tel2 || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Domain Name</label>
-                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedCompany.domain_name || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">WhatsApp Number</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.whatsapp_number || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">SMS Sender ID</label>
-                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedCompany.sender_id || "Default (RigelOS)" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Logo</label>
-                <div class="mt-1">
-                  <p v-if="selectedCompany.logo" class="text-sm text-gray-900">
-                    <a :href="selectedCompany.logo" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
-                      View Logo
-                    </a>
-                  </p>
-                  <p v-else class="text-sm text-gray-900">N/A</p>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Shop Banner</label>
-                <div class="mt-1">
-                  <p v-if="selectedCompany.shop_banner" class="text-sm text-gray-900">
-                    <a :href="selectedCompany.shop_banner" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
-                      View Banner
-                    </a>
-                  </p>
-                  <p v-else class="text-sm text-gray-900">N/A</p>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Address 1</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.address1 || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Address 2</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.address2 || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Location</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.location || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Alternate Company ID</label>
-                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedCompany.alternate_company_id || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Country</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.country || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Region</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.region || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Location Detail</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.location_detail || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Coordinates</label>
-                <p class="mt-1 text-sm text-gray-900">
-                  {{ selectedCompany.latitude && selectedCompany.longitude 
-                    ? `${selectedCompany.latitude}, ${selectedCompany.longitude}` 
-                    : "N/A" }}
-                </p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Registration Date</label>
-                <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedCompany.ddate) }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Parent Company ID</label>
-                <p class="mt-1 text-sm text-gray-900">{{ selectedCompany.maincompanyid || "N/A" }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Created</label>
-                <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedCompany.created_at) }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Updated</label>
-                <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedCompany.updated_at) }}</p>
-              </div>
+        <div v-if="selectedCompany" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Company Name</label>
+              <p class="text-sm text-gray-900">{{ selectedCompany.name }}</p>
             </div>
-
-            <!-- Subsidiaries Section -->
-            <div
-              v-if="selectedCompany.maincompanyid === 0"
-              class="mt-6 pt-4 border-t border-gray-200"
-            >
-              <h4 class="text-md font-medium text-gray-900 mb-2">
-                Subsidiaries
-              </h4>
-              <button
-                @click="viewSubsidiaries(selectedCompany)"
-                class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm font-medium transition-colors duration-150"
-              >
-                View Subsidiaries ({{ subsidiaryCount }})
-              </button>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">UIID</label>
+              <p class="text-sm text-gray-900 font-mono">{{ selectedCompany.uiid }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Type</label>
+              <p class="text-sm text-gray-900">{{ getCompanyTypeName(selectedCompany.companytype) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Email</label>
+              <p class="text-sm text-gray-900">{{ selectedCompany.email || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Phone 1</label>
+              <p class="text-sm text-gray-900">{{ selectedCompany.tel1 || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Phone 2</label>
+              <p class="text-sm text-gray-900">{{ selectedCompany.tel2 || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Domain Name</label>
+              <p class="text-sm text-gray-900 font-mono">{{ selectedCompany.domain_name || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">WhatsApp Number</label>
+              <p class="text-sm text-gray-900">{{ selectedCompany.whatsapp_number || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">SMS Sender ID</label>
+              <p class="text-sm text-gray-900 font-mono">{{ selectedCompany.sender_id || "Default (RigelOS)" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Logo</label>
+              <p v-if="selectedCompany.logo" class="text-sm">
+                <a :href="selectedCompany.logo" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">View Logo</a>
+              </p>
+              <p v-else class="text-sm text-gray-900">N/A</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Shop Banner</label>
+              <p v-if="selectedCompany.shop_banner" class="text-sm">
+                <a :href="selectedCompany.shop_banner" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">View Banner</a>
+              </p>
+              <p v-else class="text-sm text-gray-900">N/A</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Address</label>
+              <p class="text-sm text-gray-900">{{ [selectedCompany.address1, selectedCompany.address2].filter(Boolean).join(', ') || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Location</label>
+              <p class="text-sm text-gray-900">{{ selectedCompany.location || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Alternate Company ID</label>
+              <p class="text-sm text-gray-900 font-mono">{{ selectedCompany.alternate_company_id || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Country / Region</label>
+              <p class="text-sm text-gray-900">{{ [selectedCompany.country, selectedCompany.region].filter(Boolean).join(', ') || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Coordinates</label>
+              <p class="text-sm text-gray-900">
+                {{ selectedCompany.latitude && selectedCompany.longitude
+                  ? `${selectedCompany.latitude}, ${selectedCompany.longitude}`
+                  : "N/A" }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Registration Date</label>
+              <p class="text-sm text-gray-900">{{ formatDate(selectedCompany.ddate) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Parent Company ID</label>
+              <p class="text-sm text-gray-900">{{ selectedCompany.maincompanyid || "N/A" }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Created</label>
+              <p class="text-sm text-gray-900">{{ formatDate(selectedCompany.created_at) }}</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">Updated</label>
+              <p class="text-sm text-gray-900">{{ formatDate(selectedCompany.updated_at) }}</p>
             </div>
           </div>
 
-          <div class="flex justify-end pt-4">
+          <!-- Subsidiaries Section -->
+          <div
+            v-if="selectedCompany.maincompanyid === 0"
+            class="mt-4 pt-4 border-t border-gray-100"
+          >
+            <h4 class="text-sm font-medium text-gray-900 mb-3">Subsidiaries</h4>
             <button
-              @click="closeModals"
-              class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm font-medium transition-colors duration-150"
+              @click="viewSubsidiaries(selectedCompany)"
+              class="h-9 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors"
             >
-              Close
+              View Subsidiaries ({{ subsidiaryCount }})
             </button>
           </div>
+        </div>
+
+        <div class="flex justify-end pt-5 border-t border-gray-100 mt-5">
+          <button
+            @click="closeModals"
+            class="h-9 px-4 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -952,25 +876,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.companies-management {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  max-width: 1280px; /* max-w-7xl */
-  margin: 0 auto;
-}
-
-.refresh-icon {
-  width: 18px;
-  height: 18px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-</style>

@@ -74,17 +74,102 @@
               <!-- Data state: login card -->
               <template v-else-if="!authChecking">
                 <div class="mb-5 text-center lg:text-left animate-fade-up">
-                  <span class="hero-eyebrow mb-3 inline-block">
-                    Fast medication delivery &middot; Across Ghana
-                  </span>
-                  <h1 class="text-[2rem] lg:text-[2.5rem] font-bold leading-tight mb-2 text-white lg:text-[var(--text-default)] hero-text-shadow">
+<h1 class="text-[2rem] lg:text-[2.5rem] font-bold leading-tight mb-2 text-white lg:text-[var(--text-default)] hero-text-shadow">
                     Order <span class="hero-accent">any medication</span> online.
                   </h1>
                   <p class="text-base leading-relaxed text-white/80 lg:text-[var(--text-muted)] hero-text-shadow">
                     From 210+ verified pharmacies across Ghana, delivered in about 45 minutes.
                   </p>
                 </div>
-                <Login inline @login-success="handleLoginSuccess" />
+                <!-- Tab switcher: Quick request (default) ↔ Sign in -->
+                <div class="flex gap-1 p-1 rounded-full w-full mb-4" style="background: rgba(255,255,255,0.92); border: 1px solid rgba(82,0,148,0.16); box-shadow: 0 1px 4px rgba(30,26,34,0.08);">
+                  <button
+                    type="button"
+                    @click="heroTab = 'guest'"
+                    :class="[
+                      'flex-1 rounded-full text-sm font-semibold py-2 px-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40',
+                      heroTab === 'guest' ? 'bg-[#520094] text-white shadow-sm' : 'text-[#1e1a22]/60 hover:text-[#520094]'
+                    ]"
+                  >Quick request</button>
+                  <button
+                    type="button"
+                    @click="heroTab = 'login'"
+                    :class="[
+                      'flex-1 rounded-full text-sm font-semibold py-2 px-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40',
+                      heroTab === 'login' ? 'bg-[#520094] text-white shadow-sm' : 'text-[#1e1a22]/60 hover:text-[#520094]'
+                    ]"
+                  >Sign in</button>
+                </div>
+
+                <!-- Login card -->
+                <Login v-if="heroTab === 'login'" inline @login-success="handleLoginSuccess" />
+
+                <!-- Guest quick-request card -->
+                <div v-else class="w-full overflow-hidden rounded-3xl bg-[#fff7ff] shadow-[0_20px_48px_-8px_rgba(30,26,34,0.18),0_0_0_1px_rgba(82,0,148,0.08)]">
+
+                  <!-- Success state -->
+                  <div v-if="heroGuestSuccess" class="px-7 py-8 text-center">
+                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                      <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p class="text-base font-semibold text-[#1e1a22]">Request sent!</p>
+                    <p class="mt-1.5 text-sm text-[#4c4453]">We'll SMS you at <strong>{{ heroPhone }}</strong> shortly.</p>
+                    <button
+                      type="button"
+                      @click="resetHeroGuestForm"
+                      class="mt-6 w-full rounded-2xl border border-[#ddd4e8] py-3 text-sm font-semibold text-[#520094] transition hover:bg-[#f2eaf9] focus:outline-none"
+                    >Send another</button>
+                  </div>
+
+                  <!-- Form — straight to fields, no header section -->
+                  <form v-else @submit.prevent="submitHeroGuestRequest" class="px-7 pt-6 pb-6 bg-white rounded-3xl space-y-4">
+                    <div v-if="heroGuestError" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                      {{ heroGuestError }}
+                    </div>
+                    <div>
+                      <label for="hero-medications" class="block text-sm font-medium text-[#4c4453] mb-1.5">What do you need?</label>
+                      <textarea
+                        id="hero-medications"
+                        v-model="heroMedication"
+                        rows="3"
+                        placeholder="e.g. Paracetamol 500mg, Amoxicillin capsules…"
+                        required
+                        :disabled="heroGuestLoading"
+                        class="w-full rounded-2xl border border-[#e8def8] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50 resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label for="hero-phone" class="block text-sm font-medium text-[#4c4453] mb-1.5">Your phone number</label>
+                      <input
+                        id="hero-phone"
+                        v-model="heroPhone"
+                        type="tel"
+                        placeholder="e.g. 0244 123 456"
+                        autocomplete="tel"
+                        required
+                        :disabled="heroGuestLoading"
+                        class="w-full rounded-2xl border border-[#e8def8] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      :disabled="heroGuestLoading || !heroMedication.trim() || !heroPhone.trim()"
+                      class="w-full rounded-2xl bg-[#520094] py-3 text-sm font-semibold text-white transition hover:bg-[#6c24b3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <svg v-if="heroGuestLoading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {{ heroGuestLoading ? 'Sending…' : 'Send my request' }}
+                    </button>
+                    <p class="text-center text-sm text-[#4c4453]">
+                      Have an account?
+                      <button type="button" @click="heroTab = 'login'" class="font-semibold text-[#520094] hover:underline focus:outline-none">Sign in</button>
+                    </p>
+                  </form>
+                </div>
               </template>
 
             </div>
@@ -476,6 +561,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import Login from '~/components/Login.vue'
+import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
+import { useApi } from '~/composables/useApi'
 import { useUserStore } from '~/stores/user'
 import {
   BeakerIcon,
@@ -521,6 +608,12 @@ const heroOrderingImage = '/Gemini_Generated_Image_y204fby204fby204.png'
 const currentYear = new Date().getFullYear()
 
 const showLoginModal = ref<boolean>(false)
+const heroTab = ref<'guest' | 'login'>('guest')
+const heroMedication = ref<string>('')
+const heroPhone = ref<string>('')
+const heroGuestLoading = ref<boolean>(false)
+const heroGuestError = ref<string>('')
+const heroGuestSuccess = ref<boolean>(false)
 const toast = ref<{ text: string; type: string } | null>(null)
 const homepageSearchTerm = ref<string>('')
 const homepageRequestedUnit = ref<string>('')
@@ -692,6 +785,35 @@ const removeHomepageSelectedItem = (index: number): void => {
 const clearHomepageSelectedItems = (): void => {
   homepageSelectedItems.value = []
   syncHomepageDraftItems()
+}
+
+const resetHeroGuestForm = (): void => {
+  heroGuestSuccess.value = false
+  heroMedication.value = ''
+  heroPhone.value = ''
+  heroGuestError.value = ''
+}
+
+const submitHeroGuestRequest = async (): Promise<void> => {
+  heroGuestError.value = ''
+  heroGuestLoading.value = true
+  try {
+    const api = useApi()
+    const service = createOrderRequestsService(api)
+    const result = await service.submitAsGuest({
+      phone: heroPhone.value.trim(),
+      items: [{ product_name: heroMedication.value.trim(), quantity: 1 }],
+    })
+    if (!result.success) {
+      heroGuestError.value = result.message ?? 'Failed to place request. Please try again.'
+      return
+    }
+    heroGuestSuccess.value = true
+  } catch (err: unknown) {
+    heroGuestError.value = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.'
+  } finally {
+    heroGuestLoading.value = false
+  }
 }
 
 const openOrderFlow = (draftItems: DraftItem[] = []): void => {

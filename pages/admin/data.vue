@@ -1,9 +1,11 @@
 <template>
-  <div class="analytics-page flex gap-6">
+  <div class="flex gap-6 min-h-screen">
     <!-- Vertical Grouped Nav -->
-    <aside class="data-sidebar bg-gray-100 rounded-xl p-3 flex flex-col gap-4">
-      <div v-for="group in tabGroups" :key="group.label" class="flex flex-col gap-1">
-        <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-2 select-none leading-none mb-1">
+    <aside
+      class="w-52 flex-shrink-0 self-start sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto bg-gray-100 rounded-xl p-3 flex flex-col gap-4"
+    >
+      <div v-for="group in tabGroups" :key="group.label" class="flex flex-col gap-0.5">
+        <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 select-none leading-none mb-1.5">
           {{ group.label }}
         </span>
         <button
@@ -11,21 +13,21 @@
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="[
-            'py-2 px-3 text-xs font-medium rounded-md transition-all duration-150 whitespace-nowrap flex items-center gap-2 text-left',
+            'py-2 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap flex items-center gap-2 text-left w-full',
             activeTab === tab.id
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-500 hover:text-gray-800 hover:bg-white/60',
           ]"
         >
-          <component :is="tab.icon" class="w-4 h-4 flex-shrink-0" />
+          <component :is="tab.icon" class="w-3.5 h-3.5 flex-shrink-0" />
           {{ tab.short }}
         </button>
       </div>
     </aside>
 
     <!-- Tab Content -->
-    <div class="tab-content flex-1 min-w-0">
-      <div class="tab-panel">
+    <div class="flex-1 min-w-0">
+      <div>
         <!-- Entities -->
         <Companies v-if="activeTab === 'companies'" />
         <Customers v-if="activeTab === 'customers'" />
@@ -139,43 +141,3 @@ const tabGroups: TabGroup[] = [
 ];
 </script>
 
-<style scoped>
-.analytics-page {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-
-.data-sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  align-self: flex-start;
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-}
-
-.tab-content {
-  min-height: 600px;
-}
-
-@media (max-width: 768px) {
-  .analytics-page {
-    flex-direction: column;
-  }
-
-  .data-sidebar {
-    width: 100%;
-    position: static;
-    max-height: none;
-  }
-}
-
-.tab-panel {
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-</style>

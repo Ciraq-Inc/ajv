@@ -106,6 +106,12 @@
   <ClientOnly>
     <Login v-if="showLoginModal" :is-open="showLoginModal" @close="closeLoginModal"
       @login-success="handleLoginSuccess" />
+    <GuestCheckoutForm
+      :is-open="showGuestForm"
+      @close="closeGuestForm"
+      @show-login="switchToLogin"
+      @guest-order-success="handleGuestOrderSuccess"
+    />
   </ClientOnly>
 
 </template>
@@ -163,6 +169,7 @@ interface UserStoreShape {
 // Local state for the cart sidebar
 const isOpenSidebar = ref<boolean>(false);
 const showLoginModal = ref<boolean>(false);
+const showGuestForm = ref<boolean>(false);
 const isProcessingOrder = ref<boolean>(false);
 const errorMessage = ref<string>('');
 
@@ -262,14 +269,11 @@ Thank you!`;
 
 // Handle direct order
 const handleDirectOrder = (): void => {
-  errorMessage.value = ''; // Clear any previous errors
+  errorMessage.value = '';
 
-  // Check if user is logged in
   if (!userStore.isLoggedIn) {
-    // Show login modal if not logged in
-    showLoginModal.value = true;
+    showGuestForm.value = true;
   } else {
-    // User is already logged in, proceed with direct order
     void processDirectOrder();
   }
 };
@@ -328,16 +332,29 @@ const processDirectOrder = async (): Promise<void> => {
   }
 };
 
-// Close login modal
 const closeLoginModal = (): void => {
   showLoginModal.value = false;
 };
 
-// Handle successful login
 const handleLoginSuccess = (): void => {
-  console.log('User successfully logged in');
-  // Process the order after successful login
   void processDirectOrder();
+};
+
+const closeGuestForm = (): void => {
+  showGuestForm.value = false;
+};
+
+// "Already have an account? Sign in" link inside the guest form
+const switchToLogin = (): void => {
+  showGuestForm.value = false;
+  showLoginModal.value = true;
+};
+
+const handleGuestOrderSuccess = (payload: { requestNumber: string }): void => {
+  showGuestForm.value = false;
+  cartStore.clearCart();
+  toggleCart();
+  emit('order-success', { requestNumber: payload.requestNumber });
 };
 
 const formatPrice = (price: number | null | undefined): string => {

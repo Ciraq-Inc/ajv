@@ -1,16 +1,19 @@
-<template>
-  <div class="inventory-analytics">
+﻿<template>
+  <div class="p-6 bg-gray-50 min-h-screen">
     <!-- Header -->
-    <div class="header">
-      <h1>Products</h1>
-      <div class="actions">
-        <button @click="exportToCSV" class="btn-export" :disabled="loading">
-          <Icon v-if="!exporting" name="Download" size="16" />
+    <div class="mb-6 flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Products</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Inventory stock values and alerts across all companies</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="exportToCSV" class="h-9 px-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 transition-colors" :disabled="loading">
+          <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
           <span v-if="!exporting">Export CSV</span>
           <span v-else>Exporting...</span>
         </button>
-        <button @click="refreshData" class="btn-refresh" :disabled="loading">
-          <Icon v-if="!loading" name="RefreshCw" size="16" />
+        <button @click="refreshData" class="h-9 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 transition-colors" :disabled="loading">
+          <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': loading }" aria-hidden="true" />
           <span v-if="!loading">Load</span>
           <span v-else>Loading...</span>
         </button>
@@ -18,80 +21,87 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading && !stockValue" class="loading-container">
-      <div class="spinner"></div>
-      <p>Loading inventory data...</p>
+    <div v-if="loading && !stockValue" class="flex flex-col items-center justify-center py-24 gap-3">
+      <div class="animate-spin h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+      <p class="text-sm text-gray-500">Loading inventory data...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <p>❌ {{ error }}</p>
-      <button @click="refreshData" class="btn-retry">Try Again</button>
+    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4">
+      <div class="flex gap-3">
+        <ExclamationTriangleIcon class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+        <div>
+          <p class="text-sm font-medium text-red-800">Something went wrong</p>
+          <p class="text-sm text-red-700 mt-0.5">{{ error }}</p>
+          <button @click="refreshData" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">Try again</button>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
-    <div v-else class="content">
+    <div v-else>
       <!-- Tabs -->
-      <div class="tabs">
-        <button 
-          v-for="tab in tabs" 
+      <div class="flex gap-1 border-b border-gray-200 mb-6">
+        <button
+          v-for="tab in tabs"
           :key="tab.id"
           @click="activeTab = tab.id"
-          :class="{ active: activeTab === tab.id }"
-          class="tab-button"
+          class="px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors"
+          :class="activeTab === tab.id
+            ? 'border-indigo-600 text-indigo-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
         >
-          <Icon :name="tab.icon" size="16" class="tab-icon" />
           {{ tab.label }}
         </button>
       </div>
 
-      <!-- Tab Content -->
-      <div class="tab-content">
-        <!-- Companies Tab -->
-        <div v-if="activeTab === 'companies'" class="companies-view">
-          <div class="table-header">
-            <h2>Stock Value by Company</h2>
-            <input 
-              v-model="companySearch" 
-              type="text" 
+      <!-- Companies Tab -->
+      <div v-if="activeTab === 'companies'">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-4 flex items-center gap-3">
+          <div class="relative flex-1 max-w-xs">
+            <MagnifyingGlassIcon class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+            <input
+              v-model="companySearch"
+              type="text"
               placeholder="Search companies..."
-              class="search-input"
-            >
+              class="h-9 pl-9 pr-3 text-sm w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
           </div>
-          
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th>#</th>
-                  <th>Company</th>
-                  <th>Products</th>
-                  <th>Units</th>
-                  <th>Cost Value</th>
-                  <th>Selling Value</th>
-                  <th>Profit</th>
-                  <th>Alerts</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide w-10">#</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Products</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Units</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Cost Value</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Selling Value</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Profit</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Alerts</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr v-for="(company, index) in filteredCompanies" :key="String(company.company_id ?? index)">
-                  <td class="row-number">{{ index + 1 }}</td>
-                  <td class="company-name">{{ company.company_name }}</td>
-                  <td>{{ formatNumber(company.inventory?.total_products) }}</td>
-                  <td>{{ formatNumber(company.inventory?.total_units) }}</td>
-                  <td>GH₵ {{ formatNumber(company.valuation?.cost_value) }}</td>
-                  <td>GH₵ {{ formatNumber(company.valuation?.selling_value) }}</td>
-                  <td class="profit">GH₵ {{ formatNumber(company.valuation?.potential_profit) }}</td>
-
-                  <td>
-                    <div class="alert-badges">
-                      <span v-if="(company.stock_health?.out_of_stock ?? 0) > 0" class="badge critical">
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="(company, index) in filteredCompanies" :key="String(company.company_id ?? index)" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-4 py-3 text-xs text-gray-400 tabular-nums">{{ index + 1 }}</td>
+                  <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ company.company_name }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ formatNumber(company.inventory?.total_products) }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ formatNumber(company.inventory?.total_units) }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">GHâ‚µ {{ formatNumber(company.valuation?.cost_value) }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">GHâ‚µ {{ formatNumber(company.valuation?.selling_value) }}</td>
+                  <td class="px-4 py-3 text-sm font-semibold text-emerald-600">GHâ‚µ {{ formatNumber(company.valuation?.potential_profit) }}</td>
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap gap-1">
+                      <span v-if="(company.stock_health?.out_of_stock ?? 0) > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         {{ company.stock_health?.out_of_stock }} Out
                       </span>
-                      <span v-if="(company.stock_health?.low_stock ?? 0) > 0" class="badge warning">
+                      <span v-if="(company.stock_health?.low_stock ?? 0) > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
                         {{ company.stock_health?.low_stock }} Low
                       </span>
-                      <span v-if="(company.stock_health?.expiring_soon ?? 0) > 0" class="badge info">
+                      <span v-if="(company.stock_health?.expiring_soon ?? 0) > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                         {{ company.stock_health?.expiring_soon }} Exp
                       </span>
                     </div>
@@ -101,122 +111,122 @@
             </table>
           </div>
         </div>
+      </div>
 
-        <!-- Top Products Tab -->
-        <div v-if="activeTab === 'top-products'" class="top-products-view">
-          <div class="table-header">
-            <h2>Top Performing Products</h2>
-            <div class="filters">
-              <select v-model="topProductsMetric" @change="loadTopProducts" class="metric-select">
-                <option value="revenue">By Revenue</option>
-                <option value="quantity">By Quantity</option>
-                <option value="profit">By Profit</option>
-              </select>
-              <input 
-                v-model="topProductsLimit" 
-                type="number" 
-                min="5" 
-                max="50"
-                @change="loadTopProducts"
-                class="limit-input"
-              >
-            </div>
-          </div>
+      <!-- Top Products Tab -->
+      <div v-if="activeTab === 'top-products'">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-4 flex items-center gap-3">
+          <select v-model="topProductsMetric" @change="loadTopProducts" class="h-9 px-3 text-sm appearance-none bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="revenue">By Revenue</option>
+            <option value="quantity">By Quantity</option>
+            <option value="profit">By Profit</option>
+          </select>
+          <input
+            v-model="topProductsLimit"
+            type="number"
+            min="5"
+            max="50"
+            @change="loadTopProducts"
+            class="h-9 px-3 text-sm w-24 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
 
-          <div v-if="loadingTopProducts" class="loading-small">
-            <div class="spinner-small"></div>
-          </div>
+        <div v-if="loadingTopProducts" class="flex justify-center py-12">
+          <div class="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+        </div>
 
-          <div v-else class="table-container">
-            <table class="data-table">
-              <thead>
+        <div v-else class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th>Rank</th>
-                  <th>Product</th>
-                  <th>Quantity Sold</th>
-                  <th>Revenue</th>
-                  <th>Profit</th>
-                  <th>Margin %</th>
-                  <th>Companies</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Rank</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Product</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Qty Sold</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Revenue</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Profit</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Margin %</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Companies</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr v-for="product in topProducts" :key="String(product.product_id ?? product.rank ?? 0)">
-                  <td class="rank">
-                    <span class="rank-badge" :class="getRankClass(product.rank)">
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="product in topProducts" :key="String(product.product_id ?? product.rank ?? 0)" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold"
+                      :class="getRankClass(product.rank) === 'top' ? 'bg-amber-100 text-amber-700' : getRankClass(product.rank) === 'good' ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-600'">
                       #{{ product.rank }}
                     </span>
                   </td>
-                  <td class="product-name">
-                    <strong>{{ product.product_name }}</strong>
-                    <span v-if="product.strength" class="strength">{{ product.strength }}</span>
+                  <td class="px-4 py-3">
+                    <div class="text-sm font-medium text-gray-900">{{ product.product_name }}</div>
+                    <div v-if="product.strength" class="text-xs text-gray-500">{{ product.strength }}</div>
                   </td>
-                  <td>{{ formatNumber(product.performance?.total_quantity) }}</td>
-                  <td>GH₵ {{ formatNumber(product.performance?.total_revenue) }}</td>
-                  <td class="profit">GH₵ {{ formatNumber(product.performance?.total_profit) }}</td>
-                  <td>{{ product.performance?.profit_margin }}%</td>
-                  <td>{{ product.distribution?.company_count }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ formatNumber(product.performance?.total_quantity) }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-900 font-medium">GHâ‚µ {{ formatNumber(product.performance?.total_revenue) }}</td>
+                  <td class="px-4 py-3 text-sm text-emerald-600 font-medium">GHâ‚µ {{ formatNumber(product.performance?.total_profit) }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ product.performance?.profit_margin }}%</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ product.distribution?.company_count }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
+      </div>
 
-        <!-- Alerts Tab -->
-        <div v-if="activeTab === 'alerts'" class="alerts-view">
-          <div class="table-header">
-            <h2>Inventory Alerts</h2>
-            <div class="filters">
-              <select v-model="alertFilter" @change="loadAlerts" class="alert-filter">
-                <option value="">All Alerts</option>
-                <option value="out_of_stock">Out of Stock</option>
-                <option value="low_stock">Low Stock</option>
-                <option value="expired">Expired</option>
-                <option value="expiring_soon">Expiring Soon</option>
-              </select>
-            </div>
-          </div>
+      <!-- Alerts Tab -->
+      <div v-if="activeTab === 'alerts'">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-4">
+          <select v-model="alertFilter" @change="loadAlerts" class="h-9 px-3 text-sm appearance-none bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="">All Alerts</option>
+            <option value="out_of_stock">Out of Stock</option>
+            <option value="low_stock">Low Stock</option>
+            <option value="expired">Expired</option>
+            <option value="expiring_soon">Expiring Soon</option>
+          </select>
+        </div>
 
-          <div v-if="loadingAlerts" class="loading-small">
-            <div class="spinner-small"></div>
-          </div>
+        <div v-if="loadingAlerts" class="flex justify-center py-12">
+          <div class="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+        </div>
 
-          <div v-else class="table-container">
-            <table class="data-table">
-              <thead>
+        <div v-else class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th>Severity</th>
-                  <th>Product</th>
-                  <th>Company</th>
-                  <th>Current Stock</th>
-                  <th>Reorder Level</th>
-                  <th>Expiry Date</th>
-                  <th>Days to Expiry</th>
-                  <th>Alert Type</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Severity</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Product</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Current Stock</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Reorder Level</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Expiry Date</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Days Left</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Alert Type</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr v-for="alert in alertsList" :key="`${alert.product_id ?? ''}-${alert.company?.id ?? ''}`">
-                  <td>
-                    <span class="severity-badge" :class="alert.alert?.severity">
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="alert in alertsList" :key="`${alert.product_id ?? ''}-${alert.company?.id ?? ''}`" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                      :class="alert.alert?.severity === 'critical' ? 'bg-red-100 text-red-700' : alert.alert?.severity === 'high' ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'">
                       {{ alert.alert?.severity }}
                     </span>
                   </td>
-                  <td class="product-name">
-                    <strong>{{ alert.product?.name }}</strong>
-                    <span v-if="alert.product?.strength" class="strength">{{ alert.product?.strength }}</span>
+                  <td class="px-4 py-3">
+                    <div class="text-sm font-medium text-gray-900">{{ alert.product?.name }}</div>
+                    <div v-if="alert.product?.strength" class="text-xs text-gray-500">{{ alert.product?.strength }}</div>
                   </td>
-                  <td>{{ alert.company?.name }}</td>
-                  <td :class="{ 'text-danger': alert.stock?.current === 0 }">
-                    {{ alert.stock?.current }}
-                  </td>
-                  <td>{{ alert.stock?.reorder_level }}</td>
-                  <td>{{ formatDate(alert.expiry?.date) }}</td>
-                  <td :class="getExpiryClass(alert.expiry?.days_remaining)">
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ alert.company?.name }}</td>
+                  <td class="px-4 py-3 text-sm" :class="alert.stock?.current === 0 ? 'text-red-600 font-semibold' : 'text-gray-900'">{{ alert.stock?.current }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ alert.stock?.reorder_level }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ formatDate(alert.expiry?.date) }}</td>
+                  <td class="px-4 py-3 text-sm"
+                    :class="getExpiryClass(alert.expiry?.days_remaining) === 'expired' ? 'text-red-600 font-semibold' : getExpiryClass(alert.expiry?.days_remaining) === 'critical' ? 'text-orange-600' : getExpiryClass(alert.expiry?.days_remaining) === 'warning' ? 'text-amber-600' : 'text-gray-700'">
                     {{ alert.expiry?.days_remaining || 'N/A' }}
                   </td>
-                  <td>
-                    <span class="alert-type-badge" :class="(alert.alert?.type ?? '').toLowerCase()">
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                      :class="(alert.alert?.type ?? '').toLowerCase() === 'out_of_stock' ? 'bg-red-100 text-red-700' : (alert.alert?.type ?? '').toLowerCase() === 'low_stock' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
                       {{ formatAlertType(alert.alert?.type) }}
                     </span>
                   </td>
@@ -225,115 +235,116 @@
             </table>
           </div>
         </div>
+      </div>
 
-        <!-- Multi-Tenant Products Tab -->
-        <div v-if="activeTab === 'multi-tenant-products'" class="multi-tenant-products-view">
-          <ProductsTable 
-            title="All Products Across Companies"
-            :showTitle="true"
-            :showCompanyFilter="true"
-            :showPharmacySearch="true"
-            :autoload="false"
-            :pageSize="50"
-          />
+      <!-- Multi-Tenant Products Tab -->
+      <div v-if="activeTab === 'multi-tenant-products'">
+        <ProductsTable
+          title="All Products Across Companies"
+          :showTitle="true"
+          :showCompanyFilter="true"
+          :showPharmacySearch="true"
+          :autoload="false"
+          :pageSize="50"
+        />
+      </div>
+
+      <!-- Products Search Tab -->
+      <div v-if="activeTab === 'products'">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-4 flex flex-wrap items-center gap-3">
+          <div class="relative flex-1 min-w-[200px] max-w-xs">
+            <MagnifyingGlassIcon class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+            <input
+              v-model="productSearch"
+              @input="searchProducts"
+              type="text"
+              placeholder="Search products..."
+              class="h-9 pl-9 pr-3 text-sm w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+            <input type="checkbox" v-model="showOnlyLowStock" @change="searchProducts" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            Low Stock Only
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+            <input type="checkbox" v-model="showOnlyExpiring" @change="searchProducts" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            Expiring Soon Only
+          </label>
         </div>
 
-        <!-- Products Search Tab -->
-        <div v-if="activeTab === 'products'" class="products-view">
-          <div class="table-header">
-            <h2>Product Details</h2>
-            <div class="filters">
-              <input 
-                v-model="productSearch" 
-                @input="searchProducts"
-                type="text" 
-                placeholder="Search products..."
-                class="search-input"
-              >
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="showOnlyLowStock" @change="searchProducts">
-                Low Stock Only
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="showOnlyExpiring" @change="searchProducts">
-                Expiring Soon Only
-              </label>
-            </div>
-          </div>
+        <div v-if="loadingProducts" class="flex justify-center py-12">
+          <div class="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+        </div>
 
-          <div v-if="loadingProducts" class="loading-small">
-            <div class="spinner-small"></div>
-          </div>
-
-          <div v-else class="table-container">
-            <table class="data-table">
-              <thead>
+        <div v-else class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th>Product</th>
-                  <th>Company</th>
-                  <th>Quantity</th>
-                  <th>Status</th>
-                  <th>Cost Price</th>
-                  <th>Selling Price</th>
-                  <th>Total Value</th>
-                  <th>Location</th>
-                  <th>Expiry</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Product</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Qty</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Cost</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Selling</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Total Value</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Location</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Expiry</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr v-for="product in productsList" :key="`${product.product_id ?? ''}-${product.company?.id ?? ''}`">
-                  <td class="product-name">
-                    <strong>{{ product.product?.brand_name }}</strong>
-                    <span v-if="product.product?.strength" class="strength">
-                      {{ product.product?.strength }}
-                    </span>
-                    <span class="unit">{{ product.product?.unit }}</span>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="product in productsList" :key="`${product.product_id ?? ''}-${product.company?.id ?? ''}`" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-4 py-3">
+                    <div class="text-sm font-medium text-gray-900">{{ product.product?.brand_name }}</div>
+                    <div class="flex gap-1 mt-0.5">
+                      <span v-if="product.product?.strength" class="text-xs text-gray-500">{{ product.product?.strength }}</span>
+                      <span class="text-xs text-gray-400">{{ product.product?.unit }}</span>
+                    </div>
                   </td>
-                  <td>{{ product.company?.name }}</td>
-                  <td>{{ product.stock?.quantity }}</td>
-                  <td>
-                    <span class="status-badge" :class="(product.stock?.status ?? '').toLowerCase()">
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ product.company?.name }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-900">{{ product.stock?.quantity }}</td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                      :class="(product.stock?.status ?? '').toLowerCase() === 'out_of_stock' ? 'bg-red-100 text-red-700' : (product.stock?.status ?? '').toLowerCase() === 'low_stock' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
                       {{ formatStatus(product.stock?.status ?? '') }}
                     </span>
                   </td>
-                  <td>GH₵ {{ (product.pricing?.cost_price ?? 0).toFixed(2) }}</td>
-                  <td>GH₵ {{ (product.pricing?.selling_price ?? 0).toFixed(2) }}</td>
-                  <td>GH₵ {{ formatNumber(product.pricing?.total_value) }}</td>
-                  <td>{{ product.stock?.shelf_location || 'N/A' }}</td>
-                  <td>
-                    <div class="expiry-info">
-                      <div>{{ formatDate(product.expiry?.expiry_date) }}</div>
-                      <div class="days-to-expiry" :class="getExpiryClass(product.expiry?.days_to_expiry)">
-                        {{ product.expiry?.days_to_expiry }} days
-                      </div>
+                  <td class="px-4 py-3 text-sm text-gray-700">GHâ‚µ {{ (product.pricing?.cost_price ?? 0).toFixed(2) }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">GHâ‚µ {{ (product.pricing?.selling_price ?? 0).toFixed(2) }}</td>
+                  <td class="px-4 py-3 text-sm font-medium text-gray-900">GHâ‚µ {{ formatNumber(product.pricing?.total_value) }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-500">{{ product.stock?.shelf_location || 'N/A' }}</td>
+                  <td class="px-4 py-3">
+                    <div class="text-sm text-gray-700">{{ formatDate(product.expiry?.expiry_date) }}</div>
+                    <div class="text-xs mt-0.5"
+                      :class="getExpiryClass(product.expiry?.days_to_expiry) === 'expired' ? 'text-red-600 font-medium' : getExpiryClass(product.expiry?.days_to_expiry) === 'critical' ? 'text-orange-600' : getExpiryClass(product.expiry?.days_to_expiry) === 'warning' ? 'text-amber-600' : 'text-gray-400'">
+                      {{ product.expiry?.days_to_expiry }} days
                     </div>
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
 
-            <!-- Pagination -->
-            <div v-if="productsPagination.total > 0" class="pagination">
-              <button 
-                @click="previousPage" 
-                :disabled="productsPagination.offset === 0"
-                class="btn-page"
-              >
-                ← Previous
-              </button>
-              <span class="page-info">
-                Showing {{ productsPagination.offset + 1 }} - 
-                {{ Math.min(productsPagination.offset + productsPagination.limit, productsPagination.total) }}
-                of {{ productsPagination.total }}
-              </span>
-              <button 
-                @click="nextPage" 
-                :disabled="!productsPagination.has_more"
-                class="btn-page"
-              >
-                Next →
-              </button>
-            </div>
+          <!-- Pagination -->
+          <div v-if="productsPagination.total > 0" class="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <button
+              @click="previousPage"
+              :disabled="productsPagination.offset === 0"
+              class="h-8 px-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
+            >
+              â† Previous
+            </button>
+            <span class="text-xs text-gray-500">
+              Showing {{ productsPagination.offset + 1 }}â€“{{ Math.min(productsPagination.offset + productsPagination.limit, productsPagination.total) }}
+              of {{ productsPagination.total }}
+            </span>
+            <button
+              @click="nextPage"
+              :disabled="!productsPagination.has_more"
+              class="h-8 px-3 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
+            >
+              Next â†’
+            </button>
           </div>
         </div>
       </div>
@@ -346,6 +357,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import ProductsTable from './ProductsTable.vue'
+import { ArrowDownTrayIcon, ArrowPathIcon, ExclamationTriangleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 
 interface StockHealth {
   out_of_stock?: number;
@@ -746,620 +758,4 @@ onMounted(() => {
   // Data loading is triggered manually or by tab selection
 })
 </script>
-
-<style scoped>
-.inventory-analytics {
-  padding: 24px;
-  max-width: 1600px;
-  margin: 0 auto;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0;
-}
-
-.actions {
-  display: flex;
-  gap: 12px;
-}
-
-.btn-export,
-.btn-refresh,
-.btn-retry {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-export {
-  background: #10b981;
-  color: white;
-}
-
-.btn-export:hover:not(:disabled) {
-  background: #059669;
-}
-
-.btn-refresh {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-refresh:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.btn-export:disabled,
-.btn-refresh:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Loading States */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px;
-  color: #666;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.loading-small {
-  display: flex;
-  justify-content: center;
-  padding: 40px;
-}
-
-.spinner-small {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Error State */
-.error-container {
-  text-align: center;
-  padding: 60px;
-  color: #dc2626;
-}
-
-.btn-retry {
-  margin-top: 16px;
-  background: #dc2626;
-  color: white;
-}
-
-/* Metrics Grid */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.metric-card {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  display: flex;
-  gap: 16px;
-  transition: transform 0.2s;
-  border: 1px solid #e5e7eb;
-}
-
-.metric-card:hover {
-  transform: translateY(-2px);
-}
-
-.metric-card .icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-}
-
-.metric-card .details h3 {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 8px 0;
-  font-weight: 500;
-}
-
-.metric-card .value-large {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 4px 0;
-}
-
-.metric-card .subtext {
-  font-size: 13px;
-  color: #9ca3af;
-  margin: 0;
-}
-
-.metric-card.alerts.critical {
-  border-left: 4px solid #dc2626;
-}
-
-/* Alert Summary */
-.alert-summary {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-}
-
-.alert-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.alert-item:hover {
-  transform: scale(1.05);
-}
-
-.alert-item.critical {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.alert-item.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.alert-item.danger {
-  background: #fecaca;
-  color: #7f1d1d;
-}
-
-.alert-item.info {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.alert-item .count {
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.alert-item .label {
-  font-size: 12px;
-  font-weight: 500;
-  margin-top: 4px;
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.tab-button {
-  padding: 12px 24px;
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: -2px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tab-button:hover {
-  color: #3b82f6;
-}
-
-.tab-button.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
-}
-
-/* Tables */
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.table-header h2 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0;
-}
-
-.filters {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.search-input {
-  padding: 8px 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  min-width: 200px;
-}
-
-.metric-select,
-.alert-filter {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.limit-input {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  width: 80px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: #4b5563;
-  cursor: pointer;
-}
-
-.table-container {
-  background: white;
-  border-radius: 12px;
-  overflow-x: auto;
-  border: 1px solid #e5e7eb;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead {
-  background: #f9fafb;
-}
-
-.data-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
-  white-space: nowrap;
-}
-
-.data-table td {
-  padding: 12px 16px;
-  font-size: 14px;
-  color: #1f2937;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.data-table tbody tr:hover {
-  background: #f9fafb;
-}
-
-.company-name,
-.product-name {
-  font-weight: 600;
-}
-
-.product-name {
-  min-width: 200px;
-}
-
-.product-name .strength {
-  display: block;
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 400;
-}
-
-.product-name .unit {
-  display: inline-block;
-  margin-left: 6px;
-  font-size: 11px;
-  color: #9ca3af;
-  font-weight: 400;
-}
-
-.profit {
-  color: #059669;
-  font-weight: 600;
-}
-
-.text-danger {
-  color: #dc2626;
-  font-weight: 600;
-}
-
-/* Badges */
-.margin-badge,
-.rank-badge,
-.status-badge,
-.severity-badge,
-.alert-type-badge,
-.badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.margin-badge.high {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.margin-badge.medium {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.margin-badge.low {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.rank-badge.top {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.rank-badge.good {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.status-badge.normal {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-badge.low_stock {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.status-badge.out_of_stock {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.status-badge.expiring_soon {
-  background: #fef3c7;
-  color: #78350f;
-}
-
-.severity-badge.critical {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.severity-badge.high {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.severity-badge.medium {
-  background: #fef3c7;
-  color: #78350f;
-}
-
-.severity-badge.low {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.alert-type-badge.out_of_stock {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.alert-type-badge.low_stock {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.alert-type-badge.expired {
-  background: #fecaca;
-  color: #7f1d1d;
-}
-
-.alert-type-badge.expiring_soon {
-  background: #fef3c7;
-  color: #78350f;
-}
-
-.badge.critical {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.badge.warning {
-  background: #fed7aa;
-  color: #92400e;
-}
-
-.badge.info {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.alert-badges {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-/* Expiry Info */
-.expiry-info .days-to-expiry {
-  font-size: 12px;
-  margin-top: 2px;
-}
-
-.expiry-info .days-to-expiry.expired {
-  color: #7f1d1d;
-  font-weight: 600;
-}
-
-.expiry-info .days-to-expiry.critical {
-  color: #991b1b;
-  font-weight: 600;
-}
-
-.expiry-info .days-to-expiry.warning {
-  color: #92400e;
-  font-weight: 600;
-}
-
-.expiry-info .days-to-expiry.normal {
-  color: #065f46;
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.btn-page {
-  padding: 8px 16px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-page:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.btn-page:disabled {
-  background: #d1d5db;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: 14px;
-  color: #6b7280;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .inventory-analytics {
-    padding: 16px;
-  }
-
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .metrics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .alert-summary {
-    flex-direction: column;
-  }
-
-  .table-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .filters {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .search-input {
-    width: 100%;
-  }
-}
-
-/* Multi-Tenant Products View */
-.multi-tenant-products-view {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
+

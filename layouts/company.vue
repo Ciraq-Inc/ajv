@@ -160,6 +160,7 @@ import {
   TruckIcon,
   BanknotesIcon,
   ClockIcon,
+  CodeBracketIcon,
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -312,6 +313,11 @@ const allNavigationSections = computed(() => [
         path: servicePath('store-hours'),
         label: 'Store Hours',
         icon: ClockIcon,
+      },
+      {
+        path: servicePath('developers'),
+        label: 'Developers',
+        icon: CodeBracketIcon,
       },
     ],
   },
