@@ -81,8 +81,16 @@
                     From 210+ verified pharmacies across Ghana, delivered in about 45 minutes.
                   </p>
                 </div>
-                <!-- Tab switcher: Quick request (default) ↔ Sign in -->
+                <!-- Tab switcher: Create account (default) ↔ Quick request -->
                 <div class="flex gap-1 p-1 rounded-full w-full mb-4" style="background: rgba(255,255,255,0.92); border: 1px solid rgba(82,0,148,0.16); box-shadow: 0 1px 4px rgba(30,26,34,0.08);">
+                  <button
+                    type="button"
+                    @click="heroTab = 'signup'; heroLoginInitialView = 'signup'"
+                    :class="[
+                      'flex-1 rounded-full text-sm font-semibold py-2 px-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40',
+                      heroTab === 'signup' ? 'bg-[#520094] text-white shadow-sm' : 'text-[#1e1a22]/60 hover:text-[#520094]'
+                    ]"
+                  >Create account</button>
                   <button
                     type="button"
                     @click="heroTab = 'guest'"
@@ -91,18 +99,10 @@
                       heroTab === 'guest' ? 'bg-[#520094] text-white shadow-sm' : 'text-[#1e1a22]/60 hover:text-[#520094]'
                     ]"
                   >Quick request</button>
-                  <button
-                    type="button"
-                    @click="heroTab = 'login'"
-                    :class="[
-                      'flex-1 rounded-full text-sm font-semibold py-2 px-4 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40',
-                      heroTab === 'login' ? 'bg-[#520094] text-white shadow-sm' : 'text-[#1e1a22]/60 hover:text-[#520094]'
-                    ]"
-                  >Sign in</button>
                 </div>
 
-                <!-- Login card -->
-                <Login v-if="heroTab === 'login'" inline @login-success="handleLoginSuccess" />
+                <!-- Create account / sign in card (Login handles both views internally) -->
+                <Login v-if="heroTab === 'signup'" :key="heroLoginInitialView" :initial-view="heroLoginInitialView" inline @login-success="handleLoginSuccess" />
 
                 <!-- Guest quick-request card -->
                 <div v-else class="w-full overflow-hidden rounded-3xl bg-[#fff7ff] shadow-[0_20px_48px_-8px_rgba(30,26,34,0.18),0_0_0_1px_rgba(82,0,148,0.08)]">
@@ -115,12 +115,33 @@
                       </svg>
                     </div>
                     <p class="text-base font-semibold text-[#1e1a22]">Request sent!</p>
-                    <p class="mt-1.5 text-sm text-[#4c4453]">We'll SMS you at <strong>{{ heroPhone }}</strong> shortly.</p>
+                    <p class="mt-1.5 text-sm text-[#4c4453]">
+                      We'll SMS you at <strong>{{ heroPhone }}</strong>
+                      {{ heroIsNewCustomer ? 'with a link to set up your account.' : 'with your order details.' }}
+                    </p>
                     <button
                       type="button"
                       @click="resetHeroGuestForm"
                       class="mt-6 w-full rounded-2xl border border-[#ddd4e8] py-3 text-sm font-semibold text-[#520094] transition hover:bg-[#f2eaf9] focus:outline-none"
                     >Send another</button>
+                    <!-- Post-success account nudge -->
+                    <div class="mt-3 pt-3 border-t border-[#ede4f6] text-center">
+                      <template v-if="heroIsNewCustomer">
+                        <p class="text-xs text-[#7d7484] mb-1.5">Your account is ready — set a password to track orders</p>
+                        <button
+                          type="button"
+                          @click="heroLoginInitialView = 'signup'; heroTab = 'signup'; resetHeroGuestForm()"
+                          class="text-sm font-semibold text-[#520094] hover:underline focus:outline-none"
+                        >Create your account →</button>
+                      </template>
+                      <template v-else>
+                        <button
+                          type="button"
+                          @click="heroLoginInitialView = 'login'; heroTab = 'signup'; resetHeroGuestForm()"
+                          class="text-sm font-semibold text-[#520094] hover:underline focus:outline-none"
+                        >Sign in to track your order →</button>
+                      </template>
+                    </div>
                   </div>
 
                   <!-- Form — straight to fields, no header section -->
@@ -166,7 +187,7 @@
                     </button>
                     <p class="text-center text-sm text-[#4c4453]">
                       Have an account?
-                      <button type="button" @click="heroTab = 'login'" class="font-semibold text-[#520094] hover:underline focus:outline-none">Sign in</button>
+                      <button type="button" @click="heroLoginInitialView = 'login'; heroTab = 'signup'" class="font-semibold text-[#520094] hover:underline focus:outline-none">Sign in</button>
                     </p>
                   </form>
                 </div>
@@ -608,12 +629,14 @@ const heroOrderingImage = '/Gemini_Generated_Image_y204fby204fby204.png'
 const currentYear = new Date().getFullYear()
 
 const showLoginModal = ref<boolean>(false)
-const heroTab = ref<'guest' | 'login'>('guest')
+const heroTab = ref<'signup' | 'guest'>('signup')
+const heroLoginInitialView = ref<'login' | 'signup'>('signup')
 const heroMedication = ref<string>('')
 const heroPhone = ref<string>('')
 const heroGuestLoading = ref<boolean>(false)
 const heroGuestError = ref<string>('')
 const heroGuestSuccess = ref<boolean>(false)
+const heroIsNewCustomer = ref<boolean>(true)
 const toast = ref<{ text: string; type: string } | null>(null)
 const homepageSearchTerm = ref<string>('')
 const homepageRequestedUnit = ref<string>('')
@@ -808,6 +831,7 @@ const submitHeroGuestRequest = async (): Promise<void> => {
       heroGuestError.value = result.message ?? 'Failed to place request. Please try again.'
       return
     }
+    heroIsNewCustomer.value = result.data?.is_new_customer !== false
     heroGuestSuccess.value = true
   } catch (err: unknown) {
     heroGuestError.value = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.'
