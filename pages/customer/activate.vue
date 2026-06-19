@@ -72,11 +72,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '~/composables/useApi'
+import { useUserStore } from '~/stores/user'
 
 const route = useRoute()
+const router = useRouter()
 const api = useApi()
+const userStore = useUserStore()
 
 const token = ref<string>('')
 const password = ref('')
@@ -107,11 +110,14 @@ const submit = async () => {
 
   status.value = 'submitting'
   try {
-    await api.post('/api/order-requests/customer/activate', {
+    const res = await api.post('/api/order-requests/customer/activate', {
       token: token.value,
       password: password.value
     })
-    status.value = 'done'
+    if (res?.data) {
+      userStore.applyCustomerAuthPayload(res.data)
+    }
+    await router.push('/customer')
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Activation failed. The link may have expired.'
     if (error.value.toLowerCase().includes('invalid') || error.value.toLowerCase().includes('expired')) {
