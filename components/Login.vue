@@ -1163,9 +1163,7 @@ const submitLogin = async (): Promise<void> => {
     }
 
     if (result.status === 'new_customer') {
-      await sendNewCustomerOTP();
-      otpSent.value = true;
-      mode.value = 'register';
+      errorMessage.value = `No account found for ${formattedPhoneNumber.value}. Check the number, or create a new account below.`;
       return;
     }
 
