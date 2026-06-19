@@ -334,7 +334,8 @@ export const useApi = (): ApiInstance => {
     })
 
     // 401: attempt a silent token refresh, then retry once.
-    if (response.status === 401 && !_isRetry && !endpoint.startsWith('/api/auth/refresh')) {
+    // Exclude auth endpoints — a 401 there means wrong credentials, not session expiry.
+    if (response.status === 401 && !_isRetry && !endpoint.startsWith('/api/auth/')) {
       const newToken = await tryRefresh(baseURL, endpoint)
       if (newToken) {
         return apiRequest<T>(endpoint, options, true)
