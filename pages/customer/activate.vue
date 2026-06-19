@@ -76,7 +76,7 @@ import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
 
 const route = useRoute()
-const { call: apiCall } = useApi()
+const api = useApi()
 
 const token = ref<string>('')
 const password = ref('')
@@ -107,7 +107,7 @@ const submit = async () => {
 
   status.value = 'submitting'
   try {
-    await apiCall('POST', '/api/order-requests/customer/activate', {
+    await api.post('/api/order-requests/customer/activate', {
       token: token.value,
       password: password.value
     })
