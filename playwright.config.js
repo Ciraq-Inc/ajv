@@ -5,6 +5,7 @@ export default defineConfig({
   testMatch: [
     '**/sales-reports-mobile.test.js',
     '**/professional-feature.test.js',
+    '**/order-requests.test.js',
   ],
   globalSetup: './tests/global-setup.js',
   timeout: 45000,

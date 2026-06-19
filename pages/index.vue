@@ -174,6 +174,96 @@
                         class="w-full rounded-2xl border border-[#e8def8] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50"
                       />
                     </div>
+                    <!-- Location picker: GPS first, search-as-you-type fallback -->
+                    <div>
+                      <label class="block text-sm font-medium text-[#4c4453] mb-1.5">
+                        Delivery location <span class="text-[#9c94a8] font-normal text-xs">(optional)</span>
+                      </label>
+
+                      <!-- Confirmed location pill -->
+                      <div
+                        v-if="heroSelectedLocation"
+                        class="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border border-[#520094]/30 bg-[#f2eaf9]"
+                      >
+                        <MapPinIcon class="w-4 h-4 text-[#520094] shrink-0" />
+                        <span class="flex-1 truncate text-sm text-[#1e1a22]">{{ heroSelectedLocation.label }}</span>
+                        <button
+                          type="button"
+                          @click="clearHeroLocation"
+                          class="shrink-0 text-[#7d7484] hover:text-[#520094] focus:outline-none"
+                          aria-label="Clear location"
+                        >
+                          <XMarkIcon class="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <!-- Unconfirmed: GPS button + divider + search input -->
+                      <template v-else>
+                        <!-- GPS button -->
+                        <button
+                          type="button"
+                          @click="detectHeroLocation"
+                          :disabled="heroGuestLoading || heroGpsLoading"
+                          class="w-full flex items-center justify-center gap-2 rounded-2xl border border-[#e8def8] bg-white px-4 py-2.5 text-sm font-medium text-[#520094] transition hover:border-[#520094]/40 hover:bg-[#f2eaf9] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/30 disabled:opacity-50"
+                        >
+                          <svg v-if="heroGpsLoading" class="animate-spin h-4 w-4 text-[#520094]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <MapPinIcon v-else class="w-4 h-4" aria-hidden="true" />
+                          {{ heroGpsLoading ? 'Detecting location…' : 'Use my location' }}
+                        </button>
+
+                        <!-- GPS error -->
+                        <p v-if="heroGpsError" class="mt-1.5 text-xs text-red-500">{{ heroGpsError }}</p>
+
+                        <!-- Divider -->
+                        <div class="relative flex items-center my-2.5">
+                          <div class="flex-1 border-t border-[#e8def8]"></div>
+                          <span class="mx-3 text-xs text-[#9c94a8]">or type address</span>
+                          <div class="flex-1 border-t border-[#e8def8]"></div>
+                        </div>
+
+                        <!-- Search input + dropdown -->
+                        <div class="relative">
+                          <input
+                            id="hero-address"
+                            v-model="heroAddressQuery"
+                            type="text"
+                            placeholder="Search: East Legon, Achimota…"
+                            autocomplete="off"
+                            :disabled="heroGuestLoading"
+                            @input="onHeroAddressInput"
+                            @blur="closeHeroAddressDropdown"
+                            @focus="heroAddressDropdownOpen = heroAddressSuggestions.length > 0"
+                            class="w-full rounded-2xl border border-[#e8def8] bg-white px-4 py-3 pr-10 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50"
+                          />
+                          <div v-if="heroAddressLoading" class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2" aria-hidden="true">
+                            <svg class="animate-spin h-4 w-4 text-[#520094]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                          <ul
+                            v-if="heroAddressDropdownOpen && heroAddressSuggestions.length"
+                            role="listbox"
+                            aria-label="Address suggestions"
+                            class="absolute z-20 mt-1 w-full rounded-2xl border border-[#e8def8] bg-white shadow-lg overflow-hidden"
+                          >
+                            <li
+                              v-for="s in heroAddressSuggestions"
+                              :key="s.display_name"
+                              role="option"
+                              @mousedown.prevent="selectHeroLocation(s)"
+                              class="flex items-start gap-2.5 px-4 py-2.5 text-sm text-[#1e1a22] hover:bg-[#f2eaf9] cursor-pointer"
+                            >
+                              <MapPinIcon class="w-4 h-4 mt-0.5 text-[#9c94a8] shrink-0" aria-hidden="true" />
+                              <span class="leading-snug">{{ s.display_name }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </template>
+                    </div>
                     <button
                       type="submit"
                       :disabled="heroGuestLoading || !heroMedication.trim() || !heroPhone.trim()"
@@ -637,6 +727,90 @@ const heroGuestLoading = ref<boolean>(false)
 const heroGuestError = ref<string>('')
 const heroGuestSuccess = ref<boolean>(false)
 const heroIsNewCustomer = ref<boolean>(true)
+
+// Location picker state
+interface SelectedLocation { label: string; lat: number; lng: number }
+const heroSelectedLocation = ref<SelectedLocation | null>(null)
+const heroAddressQuery = ref<string>('')
+const heroAddressSuggestions = ref<Array<{ display_name: string; lat: number; lng: number }>>([])
+const heroAddressLoading = ref<boolean>(false)
+const heroAddressDropdownOpen = ref<boolean>(false)
+const heroGpsLoading = ref<boolean>(false)
+const heroGpsError = ref<string>('')
+let heroAddressTimer: ReturnType<typeof setTimeout> | null = null
+
+const clearHeroLocation = (): void => {
+  heroSelectedLocation.value = null
+  heroAddressQuery.value = ''
+  heroAddressSuggestions.value = []
+  heroAddressDropdownOpen.value = false
+  heroGpsError.value = ''
+}
+
+const detectHeroLocation = (): void => {
+  if (!process.client || !navigator.geolocation) {
+    heroGpsError.value = 'Location access is not available in this browser.'
+    return
+  }
+  heroGpsLoading.value = true
+  heroGpsError.value = ''
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude
+      const lng = pos.coords.longitude
+      try {
+        const svc = createOrderRequestsService(useApi())
+        const res = await svc.reverseGeocode(lat, lng)
+        const label = (res.data as { display_name?: string } | null)?.display_name ?? 'Detected location'
+        heroSelectedLocation.value = { label, lat, lng }
+      } catch {
+        heroSelectedLocation.value = { label: 'Detected location', lat, lng }
+      }
+      heroGpsLoading.value = false
+    },
+    (err) => {
+      heroGpsLoading.value = false
+      heroGpsError.value = err.code === 1
+        ? 'Location permission denied. Please type your address below.'
+        : 'Could not get your location. Please type your address below.'
+    },
+    { timeout: 10000, enableHighAccuracy: true }
+  )
+}
+
+const onHeroAddressInput = (): void => {
+  if (heroAddressTimer) clearTimeout(heroAddressTimer)
+  const q = heroAddressQuery.value.trim()
+  if (q.length < 3) {
+    heroAddressSuggestions.value = []
+    heroAddressDropdownOpen.value = false
+    return
+  }
+  heroAddressLoading.value = true
+  heroAddressTimer = setTimeout(async () => {
+    try {
+      const svc = createOrderRequestsService(useApi())
+      const res = await svc.geocodeAddress(q)
+      heroAddressSuggestions.value = Array.isArray(res.data) ? res.data : []
+      heroAddressDropdownOpen.value = heroAddressSuggestions.value.length > 0
+    } catch {
+      heroAddressSuggestions.value = []
+    } finally {
+      heroAddressLoading.value = false
+    }
+  }, 400)
+}
+
+const selectHeroLocation = (s: { display_name: string; lat: number; lng: number }): void => {
+  heroSelectedLocation.value = { label: s.display_name, lat: s.lat, lng: s.lng }
+  heroAddressQuery.value = ''
+  heroAddressSuggestions.value = []
+  heroAddressDropdownOpen.value = false
+}
+
+const closeHeroAddressDropdown = (): void => {
+  setTimeout(() => { heroAddressDropdownOpen.value = false }, 150)
+}
 const toast = ref<{ text: string; type: string } | null>(null)
 const homepageSearchTerm = ref<string>('')
 const homepageRequestedUnit = ref<string>('')
@@ -815,6 +989,7 @@ const resetHeroGuestForm = (): void => {
   heroMedication.value = ''
   heroPhone.value = ''
   heroGuestError.value = ''
+  clearHeroLocation()
 }
 
 const submitHeroGuestRequest = async (): Promise<void> => {
@@ -823,9 +998,18 @@ const submitHeroGuestRequest = async (): Promise<void> => {
   try {
     const api = useApi()
     const service = createOrderRequestsService(api)
+    const parsedItems = heroMedication.value
+      .split(/[\n,]+/)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(name => ({ product_name: name, quantity: 1 }))
+
     const result = await service.submitAsGuest({
       phone: heroPhone.value.trim(),
-      items: [{ product_name: heroMedication.value.trim(), quantity: 1 }],
+      items: parsedItems,
+      customer_address: heroSelectedLocation.value?.label || undefined,
+      customer_latitude: heroSelectedLocation.value?.lat ?? undefined,
+      customer_longitude: heroSelectedLocation.value?.lng ?? undefined,
     })
     if (!result.success) {
       heroGuestError.value = result.message ?? 'Failed to place request. Please try again.'
