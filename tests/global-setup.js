@@ -8,8 +8,8 @@ export default async function globalSetup() {
 
   await page.goto(`${BASE_URL}/admin/login`);
   await page.waitForLoadState('domcontentloaded');
-  await page.fill('input[placeholder="Enter your username"]', 'kissinger');
-  await page.fill('input[placeholder="Enter your password"]', 'kissinger');
+  await page.fill('input[placeholder="Enter your username"]', 'medsgh_super');
+  await page.fill('input[placeholder="Enter your password"]', 'MedsGH@super2026!');
   await page.click('button:has-text("Sign In")');
   await page.waitForFunction(
     () => !window.location.pathname.includes('/admin/login'),

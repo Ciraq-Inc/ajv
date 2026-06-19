@@ -23,6 +23,20 @@ export interface GuestSubmitParams {
   phone: string;
   items: Array<{ product_id?: number | string; product_name: string; quantity: number }>;
   customer_address?: string;
+  customer_latitude?: number | null;
+  customer_longitude?: number | null;
+}
+
+export interface GeoSuggestion {
+  display_name: string;
+  lat: number;
+  lng: number;
+  type?: string;
+}
+
+export interface ReverseGeoResult {
+  display_name: string;
+  address?: Record<string, string>;
 }
 
 export interface GuestSubmitResult {
@@ -36,8 +50,16 @@ export const createOrderRequestsService = (api: ApiInstance) => ({
    * Public — submit a request as a guest (phone only, no account required).
    * POST /api/order-requests/guest
    */
-  submitAsGuest({ phone, items, customer_address }: GuestSubmitParams): Promise<ApiEnvelope<GuestSubmitResult>> {
-    return api.post('/api/order-requests/guest', { phone, items, customer_address });
+  submitAsGuest({ phone, items, customer_address, customer_latitude, customer_longitude }: GuestSubmitParams): Promise<ApiEnvelope<GuestSubmitResult>> {
+    return api.post('/api/order-requests/guest', { phone, items, customer_address, customer_latitude, customer_longitude });
+  },
+
+  geocodeAddress(address: string): Promise<ApiEnvelope<GeoSuggestion[]>> {
+    return api.get(`/api/order-requests/geocode-address?address=${encodeURIComponent(address)}`);
+  },
+
+  reverseGeocode(lat: number, lng: number): Promise<ApiEnvelope<ReverseGeoResult>> {
+    return api.get(`/api/order-requests/reverse-geocode?lat=${lat}&lng=${lng}`);
   },
 
   /**
