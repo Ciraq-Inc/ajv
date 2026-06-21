@@ -25,9 +25,45 @@
             <p class="text-xs text-gray-500">{{ pharmacyStore.pharmacyData.location }}</p>
           </div>
 
-          <!-- Error message area (if any) -->
-          <div v-if="errorMessage" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded">
-            {{ errorMessage }}
+          <!-- Not-registered error: empathetic, action-oriented -->
+          <div
+            v-if="cartError?.type === 'not_registered'"
+            class="rounded-2xl bg-purple-50 border border-purple-100 p-4"
+            role="alert"
+          >
+            <div class="flex items-start gap-3">
+              <span class="mt-0.5 shrink-0 text-[#520094]" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </span>
+              <div>
+                <p class="text-sm font-semibold text-[#520094] leading-snug">
+                  You're not registered at {{ cartError.pharmacyName }} yet
+                </p>
+                <p class="mt-1 text-sm text-[#4c4453] leading-relaxed">
+                  Direct ordering is only available to customers already in {{ cartError.pharmacyName }}'s records. Send your order via WhatsApp for now — the pharmacy can add you using your phone number.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generic order error -->
+          <div
+            v-else-if="cartError?.type === 'generic'"
+            class="rounded-2xl bg-red-50 border border-red-100 p-4"
+            role="alert"
+          >
+            <div class="flex items-start gap-3">
+              <span class="mt-0.5 shrink-0 text-red-500" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </span>
+              <p class="text-sm text-red-700 leading-relaxed">{{ cartError.message }}</p>
+            </div>
           </div>
 
           <!-- Cart items -->
@@ -64,39 +100,77 @@
       <!-- Sticky footer with total and checkout -->
       <div v-if="items.length > 0" class="border-t border-gray-200 p-4 sm:p-5 bg-white">
         <div class="flex justify-between items-center mb-4">
-          <button @click="toggleCart" class="text-blue-600 hover:text-blue-800 transition-colors flex items-center">
+          <button
+            @click="toggleCart"
+            class="text-[#520094] hover:text-[#3d006e] transition-colors flex items-center text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40 rounded"
+          >
             <i class="ri-arrow-left-line mr-1"></i>Continue Shopping
           </button>
           <div v-if="!pharmacyStore.pharmacyData?.hide_prices" class="flex items-center">
-            <span class="font-semibold mr-2">Total:</span>
-            <span class="font-bold">GHS{{ formatPrice(cartTotal) }}</span>
+            <span class="text-sm font-semibold text-gray-500 mr-1.5">Total:</span>
+            <span class="text-base font-bold text-gray-900">GHS {{ formatPrice(cartTotal) }}</span>
           </div>
         </div>
+
         <div class="space-y-3">
-          <button @click="sendWhatsAppMessage"
-            class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-            :disabled="isProcessingOrder">
-            <i class="ri-whatsapp-line text-xl mr-2"></i>Send Order via WhatsApp
+          <!-- WhatsApp — always available, always first -->
+          <button
+            @click="sendWhatsAppMessage"
+            class="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 active:bg-green-800 transition-colors flex items-center justify-center gap-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600/50"
+            :disabled="isProcessingOrder"
+          >
+            <i class="ri-whatsapp-line text-lg" aria-hidden="true"></i>
+            Send Order via WhatsApp
           </button>
-          <button @click="handleDirectOrder"
-            class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-            :disabled="isProcessingOrder">
-            <span v-if="isProcessingOrder" class="flex items-center justify-center">
-              <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
-                viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                </path>
-              </svg>
-              Processing...
-            </span>
-            <span v-else class="flex items-center justify-center">
-              <span>
-                <i class="ri-wallet-line text-xl mr-2"></i>Order Directly &nbsp;(Free Trial)
+
+          <!-- Order Directly — three context-aware states -->
+
+          <!-- State 1: Not logged in — sign-in nudge -->
+          <template v-if="!userStore.isLoggedIn">
+            <div class="rounded-xl border border-[#e8def8] bg-[#faf6ff] p-4">
+              <p class="text-sm font-semibold text-[#1e1a22] mb-0.5">Want faster checkout?</p>
+              <p class="text-sm text-[#4c4453] leading-relaxed mb-3">
+                Sign in to place your order directly — no need to wait for a WhatsApp reply.
+              </p>
+              <button
+                @click="handleDirectOrder"
+                class="w-full border border-[#520094] text-[#520094] bg-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#f2eaf9] active:bg-[#e8d8f7] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+              >
+                Sign in to Order Directly
+              </button>
+            </div>
+          </template>
+
+          <!-- State 2: Logged in but not registered at this pharmacy -->
+          <template v-else-if="cartError?.type === 'not_registered'">
+            <div class="rounded-xl border border-[#e8def8] bg-[#faf6ff] p-4">
+              <p class="text-sm font-semibold text-[#1e1a22] mb-0.5">Your WhatsApp order works fine</p>
+              <p class="text-sm text-[#4c4453] leading-relaxed">
+                To unlock direct ordering, ask {{ cartError.pharmacyName }} to add your phone number to their records — it links automatically.
+              </p>
+            </div>
+          </template>
+
+          <!-- State 3: Logged in and eligible — standard button -->
+          <template v-else>
+            <button
+              @click="handleDirectOrder"
+              class="w-full bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors flex items-center justify-center gap-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/50"
+              :disabled="isProcessingOrder"
+            >
+              <span v-if="isProcessingOrder" class="flex items-center gap-2">
+                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Placing your order...
               </span>
-            </span>
-          </button>
+              <span v-else class="flex items-center gap-2">
+                <i class="ri-wallet-line text-lg" aria-hidden="true"></i>
+                Order Directly (Free Trial)
+              </span>
+            </button>
+          </template>
         </div>
       </div>
     </div>
@@ -106,19 +180,12 @@
   <ClientOnly>
     <Login v-if="showLoginModal" :is-open="showLoginModal" @close="closeLoginModal"
       @login-success="handleLoginSuccess" />
-    <GuestCheckoutForm
-      :is-open="showGuestForm"
-      @close="closeGuestForm"
-      @show-login="switchToLogin"
-      @guest-order-success="handleGuestOrderSuccess"
-    />
   </ClientOnly>
 
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
 import { useCartStore } from "~/stores/cart";
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useUserStore } from "~/stores/user";
@@ -166,19 +233,32 @@ interface UserStoreShape {
   processDirectOrder: (items: CartItem[], pharmacy: unknown) => Promise<OrderResult>;
 }
 
+// Custom error type — useApi throws ApiError with body on HTTP errors (e.g. 403),
+// while the store's !data.success path sets errorCode on a plain Error.
+// Check both paths.
+interface OrderError extends Error {
+  errorCode?: string;
+  status?: number;
+  body?: { error_code?: string; [key: string]: unknown };
+}
+
+type CartError =
+  | { type: 'not_registered'; pharmacyName: string }
+  | { type: 'generic'; message: string }
+  | null;
+
 // Local state for the cart sidebar
 const isOpenSidebar = ref<boolean>(false);
 const showLoginModal = ref<boolean>(false);
-const showGuestForm = ref<boolean>(false);
 const isProcessingOrder = ref<boolean>(false);
-const errorMessage = ref<string>('');
+const cartError = ref<CartError>(null);
 
 // Store references
 const cartStore = useCartStore() as unknown as CartStoreShape;
 const pharmacyStore = usePharmacyStore() as unknown as PharmacyStoreShape;
 const userStore = useUserStore() as unknown as UserStoreShape;
 
-// Get reactive store state (use the typed CartStoreShape directly to avoid cast errors)
+// Get reactive store state
 const items = computed<CartItem[]>(() => cartStore.items)
 const cartTotal = computed<number>(() => cartStore.cartTotal)
 const { removeFromCart, updateQuantity } = cartStore;
@@ -193,6 +273,7 @@ const emit = defineEmits<{
 const toggleCart = (): void => {
   isOpenSidebar.value = !isOpenSidebar.value;
   if (!isOpenSidebar.value) {
+    cartError.value = null;
     emit('close');
   }
 };
@@ -269,31 +350,25 @@ Thank you!`;
 
 // Handle direct order
 const handleDirectOrder = (): void => {
-  errorMessage.value = '';
+  cartError.value = null;
 
   if (!userStore.isLoggedIn) {
-    showGuestForm.value = true;
+    showLoginModal.value = true;
   } else {
     void processDirectOrder();
   }
 };
 
-// Custom error type for order errors that carry an errorCode
-interface OrderError extends Error {
-  errorCode?: string;
-}
-
 // Process the direct order after successful login
 const processDirectOrder = async (): Promise<void> => {
   if (!pharmacyStore.currentPharmacy) {
-    errorMessage.value = 'Pharmacy information is missing. Please try again.';
+    cartError.value = { type: 'generic', message: 'Pharmacy information is missing. Please try again.' };
     return;
   }
 
   try {
-    // Show loading state
     isProcessingOrder.value = true;
-    errorMessage.value = '';
+    cartError.value = null;
 
     // Calculate order summary from cart items before clearing
     const cartItems = items.value as CartItem[];
@@ -322,10 +397,17 @@ const processDirectOrder = async (): Promise<void> => {
   } catch (err) {
     console.error('Failed to process order:', err);
     const orderErr = err as OrderError;
-    if (orderErr.errorCode === 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY') {
-      errorMessage.value = orderErr.message;
+    const errCode = orderErr.body?.error_code ?? orderErr.errorCode;
+    if (errCode === 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY') {
+      cartError.value = {
+        type: 'not_registered',
+        pharmacyName: pharmacyStore.pharmacyData?.name ?? 'this pharmacy',
+      };
     } else {
-      errorMessage.value = orderErr.message ?? 'Failed to process your order. Please try again.';
+      cartError.value = {
+        type: 'generic',
+        message: orderErr.message ?? 'We couldn\'t place your order. Please try again.',
+      };
     }
   } finally {
     isProcessingOrder.value = false;
@@ -338,23 +420,6 @@ const closeLoginModal = (): void => {
 
 const handleLoginSuccess = (): void => {
   void processDirectOrder();
-};
-
-const closeGuestForm = (): void => {
-  showGuestForm.value = false;
-};
-
-// "Already have an account? Sign in" link inside the guest form
-const switchToLogin = (): void => {
-  showGuestForm.value = false;
-  showLoginModal.value = true;
-};
-
-const handleGuestOrderSuccess = (payload: { requestNumber: string }): void => {
-  showGuestForm.value = false;
-  cartStore.clearCart();
-  toggleCart();
-  emit('order-success', { requestNumber: payload.requestNumber });
 };
 
 const formatPrice = (price: number | null | undefined): string => {

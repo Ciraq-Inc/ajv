@@ -2,16 +2,13 @@
 <template>
   <div>
     <!-- Skeleton loading -->
-    <div v-if="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      <div v-for="n in 8" :key="n" class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-        <div class="bg-gray-200 h-32 sm:h-36 w-full animate-pulse"></div>
-        <div class="p-3 space-y-2 animate-pulse">
-          <div class="bg-gray-200 rounded h-4 w-3/4"></div>
-          <div class="bg-gray-200 rounded h-3 w-1/2"></div>
-          <div class="flex gap-2 mt-3">
-            <div class="bg-gray-200 rounded h-7 w-20"></div>
-            <div class="bg-gray-200 rounded h-7 flex-1"></div>
-          </div>
+    <div v-if="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+      <div v-for="n in 8" :key="n" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+        <div class="bg-gray-100 h-36 sm:h-44 w-full skeleton-shimmer"></div>
+        <div class="p-3 space-y-2.5">
+          <div class="bg-gray-100 rounded-lg h-4 w-3/4 skeleton-shimmer"></div>
+          <div class="bg-gray-100 rounded-lg h-3 w-1/3 skeleton-shimmer"></div>
+          <div class="mt-3 bg-gray-100 rounded-xl h-8 w-full skeleton-shimmer"></div>
         </div>
       </div>
     </div>
@@ -39,21 +36,21 @@
     </div>
 
     <!-- Products grid -->
-    <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
       <div
         v-for="product in sortedProducts"
         :key="product.id"
-        class="group bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 transition-all duration-200 overflow-hidden flex flex-col"
+        class="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col product-card"
         :class="{ 'opacity-60': product.stockQty <= 0 }"
       >
-        <!-- Image -->
-        <div class="relative overflow-hidden bg-gray-50 cursor-zoom-in" @click="openLightbox(product)">
+        <!-- Image area — taller, with zoom on hover -->
+        <div class="relative overflow-hidden bg-gray-50 cursor-zoom-in flex-shrink-0" @click="openLightbox(product)">
           <img
             :src="getImageURL(product)"
             :alt="product.brandName"
             loading="lazy"
             @error="handleImageError"
-            class="w-full h-32 sm:h-36 object-cover transition-transform duration-300 group-hover:scale-105"
+            class="w-full h-36 sm:h-44 object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <!-- Low stock badge -->
           <div
@@ -65,16 +62,16 @@
           <!-- Out of stock overlay -->
           <div
             v-if="product.stockQty <= 0"
-            class="absolute inset-0 bg-white/60 flex items-center justify-center"
+            class="absolute inset-0 bg-white/65 flex items-center justify-center"
           >
-            <span class="bg-white text-gray-500 text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm border border-gray-200">
+            <span class="bg-white text-gray-500 text-[10px] font-semibold px-3 py-1 rounded-full shadow-sm border border-gray-200">
               Out of stock
             </span>
           </div>
           <!-- Zoom hint -->
-          <div class="absolute inset-0 flex items-end justify-end p-2 pointer-events-none">
-            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 rounded-lg p-1 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="absolute bottom-2 right-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div class="bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -82,47 +79,71 @@
         </div>
 
         <!-- Content -->
-        <div class="p-2.5 sm:p-3 flex flex-col flex-1 gap-1.5">
-          <h3 class="text-xs sm:text-sm font-semibold text-gray-800 line-clamp-2 leading-snug">
+        <div class="p-3 flex flex-col flex-1 gap-2">
+          <!-- Product name — two lines max -->
+          <h3 class="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug">
             {{ product.brandName }}
           </h3>
-          <div v-if="!props.hidePrices" class="text-sm font-bold text-gray-900">
-            GHS {{ formatPrice(product.sellingPrice) }}
-            <span class="text-gray-500 text-xs font-normal ml-0.5">/ {{ product.unit || 'unit' }}</span>
-          </div>
-          <div v-else class="text-gray-500 text-xs italic">Price on request</div>
 
-          <!-- Qty + Add button -->
-          <div class="mt-auto pt-1 flex items-center gap-1.5">
-            <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-              <button
-                @click.stop="decreaseQuantity(product)"
-                :disabled="product.quantity <= 1"
-                class="px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors select-none leading-none"
-                aria-label="Decrease quantity"
-              >−</button>
-              <span class="px-1.5 py-1 text-xs font-semibold text-gray-700 min-w-[1.75rem] text-center select-none">{{ product.quantity || 1 }}</span>
-              <button
-                @click.stop="increaseQuantity(product)"
-                class="px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-100 transition-colors select-none leading-none"
-                aria-label="Increase quantity"
-              >+</button>
-            </div>
+          <!-- Price row -->
+          <div class="flex items-baseline gap-1">
+            <template v-if="!props.hidePrices">
+              <span class="text-base font-bold text-gray-900">GHS {{ formatPrice(product.sellingPrice) }}</span>
+              <span class="text-gray-400 text-xs">/ {{ product.unit || 'unit' }}</span>
+            </template>
+            <span v-else class="text-gray-400 text-xs italic">To be priced</span>
+          </div>
+
+          <!-- Spacer pushes controls to card bottom -->
+          <div class="flex-1"></div>
+
+          <!-- Qty stepper -->
+          <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden self-start">
             <button
-              @click.stop="handleAddToCart(product)"
-              :disabled="product.stockQty <= 0 || !isProductActive(product)"
-              :class="[
-                'flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 leading-none',
-                product.stockQty <= 0 || !isProductActive(product)
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : product.justAdded
-                    ? 'add-btn text-white scale-95 shadow-sm'
-                    : 'add-btn text-white shadow-sm'
-              ]"
+              @click.stop="decreaseQuantity(product)"
+              :disabled="product.quantity <= 1"
+              class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors select-none"
+              aria-label="Decrease quantity"
             >
-              {{ product.justAdded ? '✓ Added' : 'Add' }}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4" />
+              </svg>
+            </button>
+            <span class="px-2 text-sm font-semibold text-gray-700 min-w-[2rem] text-center select-none">{{ product.quantity || 1 }}</span>
+            <button
+              @click.stop="increaseQuantity(product)"
+              class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors select-none"
+              aria-label="Increase quantity"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+              </svg>
             </button>
           </div>
+
+          <!-- Add to cart — full width -->
+          <button
+            @click.stop="handleAddToCart(product)"
+            :disabled="product.stockQty <= 0 || !isProductActive(product)"
+            :class="[
+              'w-full py-2 text-sm font-semibold rounded-xl transition-all duration-200 leading-none',
+              product.stockQty <= 0 || !isProductActive(product)
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : product.justAdded
+                  ? 'add-btn text-white shadow-sm'
+                  : 'add-btn text-white shadow-sm hover:-translate-y-px'
+            ]"
+          >
+            <span class="flex items-center justify-center gap-1.5">
+              <svg v-if="product.justAdded" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {{ product.justAdded ? 'Added' : 'Add to cart' }}
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -374,16 +395,52 @@ const handleAddToCart = (product: ProductItem): void => {
 </script>
 
 <style scoped>
-.add-btn {
-  background-color: var(--shopfront-accent, #16a34a);
+/* ── Product card hover lift ─────────────────────────────────── */
+.product-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
-.add-btn:hover {
-  filter: brightness(0.9);
-}
-.add-btn:active {
-  filter: brightness(0.82);
+.product-card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .product-card:hover { transform: none; }
+}
+
+/* ── Add to cart button ──────────────────────────────────────── */
+.add-btn {
+  background-color: var(--shopfront-accent, #4f46e5);
+}
+.add-btn:hover {
+  filter: brightness(0.92);
+}
+.add-btn:active {
+  filter: brightness(0.84);
+  transform: translateY(0) !important;
+}
+
+/* ── Skeleton shimmer ────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    #f1f5f9 0%,
+    #e8edf3 40%,
+    #f1f5f9 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; background-color: #f1f5f9; }
+}
+
+/* ── Lightbox transition ─────────────────────────────────────── */
 .lightbox-fade-enter-active,
 .lightbox-fade-leave-active {
   transition: opacity 0.18s ease;

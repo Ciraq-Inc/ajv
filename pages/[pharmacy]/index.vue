@@ -100,118 +100,106 @@
       </button>
     </div>
 
-    <div v-else class="space-y-6">
-      <!-- Pharmacy Header with enhanced design -->
-      <div ref="pharmacyHeaderRef" class="">
-        <div
-          class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-xl">
-          <div class="shopfront-hero h-20 md:h-28 flex items-end p-4 md:p-6 relative" :style="heroStyle">
-            <!-- Pharmacy logo with enhanced styling -->
-            <div class="bg-white rounded-full p-2 md:p-3 shadow-lg -mb-8 md:-mb-12 border-4 border-white">
-              <div v-if="pharmacyStore.pharmacyData?.logo">
-                <img :src="pharmacyStore.pharmacyData.logo" :alt="pharmacyStore.pharmacyData?.name + ' logo'"
-                  class="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover" />
-              </div>
-              <div v-else class="rounded-full p-2 shopfront-accent-soft">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 md:h-12 md:w-12 shopfront-text" fill="none"
-                  viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
+    <div v-else class="space-y-5">
+      <!-- Pharmacy Header -->
+      <div ref="pharmacyHeaderRef">
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+          <!-- Hero banner — taller, more immersive -->
+          <div class="shopfront-hero h-48 md:h-64 relative" :style="heroStyle">
+            <!-- Bottom gradient scrim so logo/text sit on a readable surface -->
+            <div class="absolute inset-0 shopfront-hero-scrim"></div>
+
+            <!-- Logo — bottom-left, overlapping the scrim -->
+            <div class="absolute left-5 bottom-0 translate-y-1/2 z-10">
+              <div class="shopfront-logo-ring">
+                <img
+                  v-if="pharmacyStore.pharmacyData?.logo"
+                  :src="pharmacyStore.pharmacyData.logo"
+                  :alt="(pharmacyStore.pharmacyData?.name ?? '') + ' logo'"
+                  class="w-full h-full rounded-full object-cover"
+                />
+                <div v-else class="w-full h-full rounded-full shopfront-accent-soft flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 md:h-10 md:w-10 shopfront-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
               </div>
             </div>
 
-            <!-- Decorative shape -->
-            <div class="absolute right-0 bottom-0">
-              <svg width="120" height="60" viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg"
-                class="opacity-20">
-                <path d="M120 0v60H0C0 26.9 26.9 0 60 0s60 0 60 0z" fill="white" />
-              </svg>
+            <!-- Contact actions — top-right on the hero -->
+            <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+              <a
+                v-if="pharmacyStore.pharmacyData?.phone"
+                :href="`tel:${pharmacyStore.pharmacyData.phone}`"
+                class="shopfront-hero-btn"
+                aria-label="Call pharmacy"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <span class="hidden sm:inline">Call</span>
+              </a>
+              <a
+                v-if="pharmacyStore.pharmacyData?.phone"
+                :href="whatsappLink"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="shopfront-hero-btn shopfront-hero-btn--wa"
+                aria-label="WhatsApp pharmacy"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span class="hidden sm:inline">WhatsApp</span>
+              </a>
+              <button
+                v-if="!userStore.isLoggedIn"
+                @click="openLoginModal"
+                class="shopfront-hero-btn"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span class="hidden sm:inline">Login</span>
+              </button>
             </div>
           </div>
 
-          <!-- Pharmacy info section with improved spacing and layout -->
-          <div class="p-4 pt-10 md:p-6 md:pt-16">
-            <div class="flex flex-col md:flex-row md:justify-between md:items-center">
-              <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+          <!-- Pharmacy meta — below the banner, offset for logo -->
+          <div class="px-5 pt-10 pb-5 md:px-6 md:pt-12 md:pb-6">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+              <div class="min-w-0">
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
                   {{ pharmacyStore.pharmacyData?.name || "Welcome" }}
                 </h1>
-
-                <div class="flex items-center mt-2 text-sm md:text-base text-gray-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 md:h-5 md:w-5 mr-2 shopfront-text" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                <div class="flex items-center mt-1.5 text-sm text-gray-500 gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 shopfront-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <p class="truncate">
-                    {{ pharmacyStore.pharmacyData?.location }}
-                  </p>
+                  <span class="truncate">{{ pharmacyStore.pharmacyData?.location }}</span>
                 </div>
-
-                <p class="mt-3 text-gray-700 max-w-2xl line-clamp-2 md:line-clamp-none">
+                <p class="mt-3 text-gray-600 text-sm leading-relaxed max-w-xl line-clamp-2 md:line-clamp-none">
                   {{
                     pharmacyStore.pharmacyData?.description ||
-                    "Browse our available products and place your order online. Fast delivery within the area."
+                    "Browse medications and health products, then place your order for fast local delivery."
                   }}
                 </p>
               </div>
 
-              <!-- Cart and contact buttons with improved styling -->
-              <div
-                class="flex flex-wrap items-center justify-between md:justify-end gap-4 w-full md:w-auto mt-4 md:mt-0">
-                <!-- Cart button with animation -->
-                <button @click="toggleCart" class="flex items-center relative group">
-                  <div
-                    class="bg-green-50 text-green-800 p-2 rounded-lg flex items-center transition-all duration-200 group-hover:bg-green-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span v-if="!pharmacyStore.pharmacyData?.hide_prices" class="font-medium">GHS{{ formatCartTotal
-                      }}</span>
-
-                    <span v-if="cartStore.cartItemCount > 0"
-                      class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {{ cartStore.cartItemCount }}
-                    </span>
-                  </div>
-                </button>
-
-                <!-- Contact buttons with improved styling -->
-                <div class="flex gap-3">
-                  <a v-if="pharmacyStore.pharmacyData?.phone" :href="`tel:${pharmacyStore.pharmacyData.phone}`"
-                    class="shopfront-primary text-white px-4 py-2 rounded-lg flex items-center transition-colors duration-200 text-sm md:text-base shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    Call
-                  </a>
-                  <a v-if="pharmacyStore.pharmacyData?.phone" :href="whatsappLink" target="_blank"
-                    class="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white px-4 py-2 rounded-lg flex items-center transition-colors duration-200 text-sm md:text-base shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    WhatsApp
-                  </a>
-                  <button @click="openLoginModal" v-if="!userStore.isLoggedIn"
-                    class="shopfront-primary text-white px-3 py-3 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Login
-                  </button>
+              <!-- Cart summary button -->
+              <button @click="toggleCart" class="flex items-center gap-2.5 relative flex-shrink-0 group self-start sm:self-auto">
+                <div class="shopfront-cart-pill">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span v-if="!pharmacyStore.pharmacyData?.hide_prices" class="font-semibold text-sm">GHS {{ formatCartTotal }}</span>
+                  <span
+                    v-if="cartStore.cartItemCount > 0"
+                    class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none"
+                  >{{ cartStore.cartItemCount }}</span>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -249,122 +237,104 @@
         </article>
       </section>
 
-      <!-- Search Bar -->
-      <div class="bg-opacity-80 backdrop-blur-md py-3 mt-3 sticky top-0 z-40">
-        <div
-          class="bg-white rounded-xl shadow-lg p-3 border border-gray-100 transition-all duration-300 hover:shadow-xl">
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shopfront-text" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      <!-- Search + category chips -->
+      <div class="sticky top-0 z-40 py-3 bg-gray-50/90 backdrop-blur-md -mx-4 px-4 sm:-mx-0 sm:px-0 sm:rounded-none">
+        <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+          <!-- Search row -->
+          <div class="relative px-4 pt-3.5 pb-2">
+            <div class="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none top-3.5 bottom-auto h-11">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <input v-model="searchQuery" ref="searchInput" type="text"
-              placeholder="Search products..."
-              class="w-full pl-12 px-4 py-3 md:py-4 border border-gray-200 rounded-lg shopfront-input bg-gray-50 text-gray-700 shadow-sm transition-all duration-200 text-lg" />
-            <button v-if="searchQuery && !searchLoading" type="button" @click="clearSearch"
-              class="absolute right-4 top-3 md:top-4 text-gray-500 hover:text-gray-700 cursor-pointer p-1 rounded-full hover:bg-gray-100">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
+            <input
+              v-model="searchQuery"
+              ref="searchInput"
+              type="search"
+              placeholder="Search medications, vitamins, supplements…"
+              class="w-full pl-11 pr-10 py-2.5 border border-gray-200 rounded-xl shopfront-input bg-gray-50 text-gray-800 placeholder-gray-400 text-base transition-all duration-200"
+              aria-label="Search products"
+            />
+            <button
+              v-if="searchQuery && !searchLoading"
+              type="button"
+              @click="clearSearch"
+              class="absolute right-8 top-1/2 -translate-y-1/2 mt-1.5 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Clear search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div v-if="searchLoading" class="absolute right-4 top-3 md:top-4 p-1">
-              <svg class="animate-spin h-6 w-6 shopfront-text" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <div v-if="searchLoading" class="absolute right-8 top-1/2 -translate-y-1/2 mt-1.5">
+              <svg class="animate-spin h-4 w-4 shopfront-text" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
             </div>
           </div>
-          <div class="mt-2 flex justify-end">
-            <button type="button" @click="submitRequestSearch"
-              class="text-sm shopfront-text font-medium hover:underline inline-flex items-center gap-1">
-              Can't find what you need? Request it
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+
+          <!-- Category chips — horizontal scroll -->
+          <div class="px-4 pb-3 flex items-center gap-2 overflow-x-auto shopfront-chip-scroll">
+            <button
+              v-for="cat in ['Vitamins', 'Pain Relief', 'Skin Care', 'Baby & Child', 'Antibiotics', 'Cough & Cold', 'Diabetes', 'Blood Pressure']"
+              :key="cat"
+              type="button"
+              @click="searchQuery = cat"
+              :class="[
+                'shopfront-chip flex-shrink-0',
+                searchQuery === cat ? 'shopfront-chip--active' : ''
+              ]"
+            >{{ cat }}</button>
+            <button
+              type="button"
+              @click="submitRequestSearch"
+              class="shopfront-chip shopfront-chip--request flex-shrink-0 flex items-center gap-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
+              Request item
             </button>
           </div>
         </div>
       </div>
 
-      <!-- User Info Section with improved styling -->
-      <div v-if="userStore.isLoggedIn && userStore.currentUser"
-        class="bg-white rounded-xl shadow-lg p-5 mb-6 border border-gray-100 transition-all duration-300 hover:shadow-xl animate-fadeIn">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="flex items-center">
-            <div class="shopfront-avatar-bg rounded-full p-3 mr-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 shopfront-text" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm shopfront-text font-medium">Welcome back</p>
-              <h3 class="text-xl font-semibold text-gray-900">
-                {{ userStore.currentUser.lname || "Customer" }}
-              </h3>
-              <p class="text-sm text-gray-600 mt-1">
-                <span class="inline-flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-500" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  {{
-                    userStore.currentUser.phone || "Phone number not available"
-                  }}
-                </span>
-              </p>
-            </div>
+      <!-- User welcome strip — condensed single-line banner -->
+      <div
+        v-if="userStore.isLoggedIn && userStore.currentUser"
+        class="flex items-center justify-between gap-3 px-4 py-2.5 bg-white rounded-xl border border-gray-100 shadow-sm animate-fadeIn"
+      >
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-full shopfront-accent-soft flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shopfront-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
           </div>
-
-          <div class="flex gap-3 sm:flex-shrink-0">
-            <!-- Order History Nav -->
-            <button @click="navigateToCustomerAccount"
-              class="flex-1 sm:flex-none px-4 py-2 text-sm shopfront-btn-soft rounded-lg transition-colors duration-200 font-medium shadow-sm">
-              <span class="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-                My Account
-              </span>
-            </button>
-
-            <!-- Logout Button -->
-            <button @click="handleLogout"
-              class="flex-1 sm:flex-none px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 active:bg-red-300 transition-colors duration-200 font-medium shadow-sm">
-              <span class="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
-              </span>
-            </button>
-          </div>
+          <span class="text-sm text-gray-600 truncate">
+            Welcome back, <strong class="text-gray-900 font-semibold">{{ userStore.currentUser.lname || "there" }}</strong>
+          </span>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button
+            @click="navigateToCustomerAccount"
+            class="text-xs font-semibold shopfront-text hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded px-1 py-0.5"
+            style="--tw-ring-color: var(--shopfront-accent)"
+          >My Account</button>
+          <span class="text-gray-200 select-none" aria-hidden="true">|</span>
+          <button
+            @click="handleLogout"
+            class="text-xs font-semibold text-gray-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-red-400 rounded px-1 py-0.5 transition-colors"
+          >Logout</button>
         </div>
       </div>
 
 
       <!-- Products Section -->
       <div class="animate-fadeIn">
-        <!-- View Toggle and Title with improved styling -->
+        <!-- View Toggle and Title -->
         <div class="mb-4 lg:mb-6 flex justify-between items-center">
-          <h2 class="text-xl font-bold text-gray-800 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 shopfront-text" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            Products
-          </h2>
+          <h2 class="text-lg font-bold text-gray-800">Products</h2>
           <div class="lg:flex bg-gray-100 p-1 rounded-lg hidden shadow-inner">
             <button @click="viewMode = 'grid'" :class="[
               'p-2 rounded-md transition-colors duration-200',
@@ -1064,130 +1034,185 @@ watch(
 </script>
 
 <style scoped>
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-/* Sticky header slide down */
-.sticky-header-enter-active,
-.sticky-header-leave-active {
-  transition: transform 0.22s ease, opacity 0.22s ease;
-}
-.sticky-header-enter-from,
-.sticky-header-leave-to {
-  transform: translateY(-100%);
-  opacity: 0;
-}
-
-/* Cart toast pop up */
-.cart-toast-enter-active,
-.cart-toast-leave-active {
-  transition: transform 0.18s ease, opacity 0.18s ease;
-}
-.cart-toast-enter-from,
-.cart-toast-leave-to {
-  transform: translateY(6px);
-  opacity: 0;
-}
-
-.animate-slideIn {
-  animation: slideIn 0.3s ease-out forwards;
-}
-
+/* ── Design tokens ─────────────────────────────────────────── */
 .storefront-shell {
   --shopfront-accent: #4f46e5;
   --shopfront-accent-soft: rgba(79, 70, 229, 0.1);
 }
 
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-fadeIn  { animation: fadeIn 0.35s ease-out forwards; }
+.animate-slideIn { animation: slideIn 0.3s ease-out forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn, .animate-slideIn { animation: none; }
+}
+
+/* ── Sticky header transition ──────────────────────────────── */
+.sticky-header-enter-active,
+.sticky-header-leave-active { transition: transform 0.22s ease, opacity 0.22s ease; }
+.sticky-header-enter-from,
+.sticky-header-leave-to     { transform: translateY(-100%); opacity: 0; }
+
+/* ── Cart toast transition ─────────────────────────────────── */
+.cart-toast-enter-active,
+.cart-toast-leave-active { transition: transform 0.18s ease, opacity 0.18s ease; }
+.cart-toast-enter-from,
+.cart-toast-leave-to     { transform: translateY(6px); opacity: 0; }
+
+/* ── Hero banner ────────────────────────────────────────────── */
 .shopfront-hero {
   position: relative;
+  background-size: cover;
+  background-position: center;
 }
 
-.shopfront-hero::after {
-  content: "";
+/* Subtle darkening scrim so text/elements on top stay legible */
+.shopfront-hero-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.24));
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0.18) 0%,
+    rgba(15, 23, 42, 0.52) 100%
+  );
 }
 
-.shopfront-hero > * {
+/* ── Pharmacy logo ring ─────────────────────────────────────── */
+.shopfront-logo-ring {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  border: 4px solid white;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  background: white;
+}
+
+@media (min-width: 768px) {
+  .shopfront-logo-ring {
+    width: 88px;
+    height: 88px;
+  }
+}
+
+/* ── Hero action buttons ────────────────────────────────────── */
+.shopfront-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.88);
+  color: #0f172a;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: background 0.15s ease, transform 0.15s ease;
+  min-height: 36px;
+  cursor: pointer;
+}
+.shopfront-hero-btn:hover { background: rgba(255, 255, 255, 0.98); transform: translateY(-1px); }
+.shopfront-hero-btn:active { transform: translateY(0); }
+.shopfront-hero-btn--wa {
+  background: rgba(22, 163, 74, 0.88);
+  color: white;
+  border-color: rgba(22, 163, 74, 0.6);
+}
+.shopfront-hero-btn--wa:hover { background: rgba(22, 163, 74, 0.98); }
+
+/* ── Cart pill ──────────────────────────────────────────────── */
+.shopfront-cart-pill {
   position: relative;
-  z-index: 1;
-}
-
-.shopfront-primary {
-  background: var(--shopfront-accent);
-}
-
-.shopfront-primary:hover {
-  filter: brightness(0.95);
-}
-
-.shopfront-primary:active {
-  filter: brightness(0.9);
-}
-
-.shopfront-accent-soft {
-  background: var(--shopfront-accent-soft);
-}
-
-.shopfront-text {
-  color: var(--shopfront-accent);
-}
-
-.shopfront-spinner {
-  border-color: var(--shopfront-accent);
-}
-
-.shopfront-btn-soft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
   background: var(--shopfront-accent-soft);
   color: var(--shopfront-accent);
+  border: 1.5px solid color-mix(in srgb, var(--shopfront-accent) 20%, transparent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: filter 0.15s ease, transform 0.15s ease;
+  min-height: 44px;
 }
+.shopfront-cart-pill:hover  { filter: brightness(0.95); transform: translateY(-1px); }
+.shopfront-cart-pill:active { filter: brightness(0.9);  transform: translateY(0); }
 
-.shopfront-btn-soft:hover {
-  filter: brightness(0.95);
-}
-
-.shopfront-btn-soft:active {
-  filter: brightness(0.9);
-}
-
-.shopfront-avatar-bg {
-  background: var(--shopfront-accent-soft);
-}
-
+/* ── Search input focus ring ────────────────────────────────── */
 .shopfront-input:focus {
   outline: 2px solid var(--shopfront-accent);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 2px var(--shopfront-accent);
+  outline-offset: 0;
   border-color: var(--shopfront-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shopfront-accent) 15%, transparent);
 }
 
+/* ── Category chip scroll ───────────────────────────────────── */
+.shopfront-chip-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.shopfront-chip-scroll::-webkit-scrollbar { display: none; }
+
+/* ── Category chips ─────────────────────────────────────────── */
+.shopfront-chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  min-height: 32px;
+  white-space: nowrap;
+}
+.shopfront-chip:hover {
+  background: color-mix(in srgb, var(--shopfront-accent) 8%, #f8fafc);
+  color: var(--shopfront-accent);
+  border-color: color-mix(in srgb, var(--shopfront-accent) 30%, transparent);
+}
+.shopfront-chip--active {
+  background: color-mix(in srgb, var(--shopfront-accent) 12%, #f8fafc);
+  color: var(--shopfront-accent);
+  border-color: color-mix(in srgb, var(--shopfront-accent) 40%, transparent);
+}
+.shopfront-chip--request {
+  background: #f8fafc;
+  color: #64748b;
+  border-style: dashed;
+}
+.shopfront-chip--request:hover {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #94a3b8;
+  border-style: dashed;
+}
+
+/* ── Semantic token aliases ─────────────────────────────────── */
+.shopfront-primary         { background: var(--shopfront-accent); }
+.shopfront-primary:hover   { filter: brightness(0.95); }
+.shopfront-primary:active  { filter: brightness(0.9); }
+.shopfront-accent-soft     { background: var(--shopfront-accent-soft); }
+.shopfront-text            { color: var(--shopfront-accent); }
+.shopfront-spinner         { border-color: var(--shopfront-accent); }
+.shopfront-btn-soft        { background: var(--shopfront-accent-soft); color: var(--shopfront-accent); }
+.shopfront-btn-soft:hover  { filter: brightness(0.95); }
+.shopfront-btn-soft:active { filter: brightness(0.9); }
+.shopfront-avatar-bg       { background: var(--shopfront-accent-soft); }
+
+/* ── Ad cards ───────────────────────────────────────────────── */
 .shopfront-ad-card {
   display: flex;
   flex-direction: row;
@@ -1198,11 +1223,7 @@ watch(
   border: 1px solid rgba(15, 23, 42, 0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
-
-.shopfront-ad-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-}
+.shopfront-ad-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18); }
 
 .shopfront-ad-top {
   flex: 1 1 58%;
@@ -1213,7 +1234,6 @@ watch(
     color-mix(in srgb, var(--shopfront-accent) 8%, #f0f4f8)
   );
 }
-
 .shopfront-ad-chip {
   display: inline-flex;
   align-items: center;
@@ -1226,7 +1246,6 @@ watch(
   background: rgba(255, 255, 255, 0.96);
   color: #0f172a;
 }
-
 .shopfront-ad-body {
   display: -webkit-box;
   line-clamp: 3;
@@ -1234,7 +1253,6 @@ watch(
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 .shopfront-ad-media {
   position: relative;
   flex: 1 1 42%;
@@ -1242,7 +1260,6 @@ watch(
   overflow: hidden;
   background: linear-gradient(135deg, #0f172a, #334155);
 }
-
 .shopfront-ad-fallback {
   display: flex;
   height: 100%;
@@ -1253,7 +1270,6 @@ watch(
   padding: 1.5rem;
   text-align: center;
 }
-
 .shopfront-ad-cta {
   position: absolute;
   left: 0.9rem;
@@ -1270,7 +1286,6 @@ watch(
   font-weight: 700;
   backdrop-filter: blur(6px);
 }
-
 .shopfront-ad-cta span {
   display: inline-flex;
   align-items: center;
@@ -1281,54 +1296,24 @@ watch(
   background: var(--shopfront-accent-soft);
 }
 
-/* Smooth transitions */
-.container,
-button,
-.rounded-xl,
-input {
-  transition: all 0.2s ease-in-out;
-}
+/* ── Scrollbar (overflow panels) ───────────────────────────── */
+.overflow-y-auto::-webkit-scrollbar       { width: 6px; }
+.overflow-y-auto::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+.overflow-y-auto::-webkit-scrollbar-thumb { background: var(--shopfront-accent-soft); border-radius: 10px; }
+.overflow-y-auto::-webkit-scrollbar-thumb:hover { background: var(--shopfront-accent); }
 
-/* Dropdown scrollbar styling */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 8px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: var(--shopfront-accent-soft);
-  border-radius: 10px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: var(--shopfront-accent);
-}
-
-/* Improved touch targets for mobile */
+/* ── Mobile minimum touch targets ──────────────────────────── */
 @media (max-width: 640px) {
-  button {
-    min-height: 44px;
-  }
+  button     { min-height: 44px; }
+  input[type="text"],
+  input[type="search"] { min-height: 44px; }
 
-  input[type="text"] {
-    min-height: 44px;
-  }
+  .shopfront-hero        { height: 11rem; }
+  .shopfront-chip        { min-height: 36px; }
+  .shopfront-hero-btn    { min-height: 40px; }
 
-  .shopfront-ad-card {
-    flex-direction: column;
-  }
-
-  .shopfront-ad-top {
-    padding: 1rem;
-  }
-
-  .shopfront-ad-media {
-    /* margin: 0 0.6rem 0.6rem; */
-    min-height: 200px;
-  }
+  .shopfront-ad-card     { flex-direction: column; }
+  .shopfront-ad-top      { padding: 1rem; }
+  .shopfront-ad-media    { min-height: 200px; }
 }
 </style>
