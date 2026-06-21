@@ -92,6 +92,7 @@ function resolveToken(endpoint: string): string | null {
   } else if (
     endpoint.startsWith('/api/auth/customer') ||
     endpoint.startsWith('/api/order-requests/customer') ||
+    endpoint.startsWith('/api/orders') ||
     endpoint.startsWith('/api/wallet') ||
     endpoint.startsWith('/api/customer') ||
     endpoint.startsWith('/api/professionals/customer')
@@ -140,6 +141,7 @@ function resolveRefreshToken(endpoint: string): string | null {
   if (
     endpoint.startsWith('/api/auth/customer') ||
     endpoint.startsWith('/api/order-requests/customer') ||
+    endpoint.startsWith('/api/orders') ||
     endpoint.startsWith('/api/wallet') ||
     endpoint.startsWith('/api/customer') ||
     endpoint.startsWith('/api/professionals/customer')
@@ -205,6 +207,7 @@ function clearAuthForEndpoint(endpoint: string): void {
   if (
     endpoint.startsWith('/api/auth/customer') ||
     endpoint.startsWith('/api/order-requests/customer') ||
+    endpoint.startsWith('/api/orders') ||
     endpoint.startsWith('/api/wallet') ||
     endpoint.startsWith('/api/customer') ||
     endpoint.startsWith('/api/professionals/customer')
