@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useApi } from '~/composables/useApi'
 import { createApplicationsService } from '~/services/jobs/applicationsService'
 import type { JobApplication } from '~/services/types'
 

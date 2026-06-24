@@ -5,6 +5,7 @@
 // portal — not just the order-requests page.
 
 import { ref, computed, watch } from 'vue'
+import { useApi } from '~/composables/useApi'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import type { OrderRequest } from '~/services/types'
 

@@ -352,24 +352,24 @@
             <div class="form-grid">
               <div class="form-group">
                 <label>Last Name</label>
-                <input v-model="editUserForm.lname" type="text" class="form-input" placeholder="Last name" disabled />
+                <input v-model="editUserForm.lname" type="text" class="form-input" placeholder="Last name" />
               </div>
               <div class="form-group">
                 <label>First Name</label>
-                <input v-model="editUserForm.sname" type="text" class="form-input" placeholder="First name" disabled />
+                <input v-model="editUserForm.sname" type="text" class="form-input" placeholder="First name" />
               </div>
             </div>
             <div class="form-group">
               <label>Middle Name</label>
-              <input v-model="editUserForm.mname" type="text" class="form-input" placeholder="Middle name (optional)" disabled />
+              <input v-model="editUserForm.mname" type="text" class="form-input" placeholder="Middle name (optional)" />
             </div>
             <div class="form-group">
               <label>Email</label>
-              <input v-model="editUserForm.email" type="email" class="form-input" placeholder="email@example.com" disabled />
+              <input v-model="editUserForm.email" type="email" class="form-input" placeholder="email@example.com" />
             </div>
             <div class="form-group">
               <label>Phone</label>
-              <input v-model="editUserForm.tel" type="text" class="form-input" placeholder="e.g. 0244123456" disabled />
+              <input v-model="editUserForm.tel" type="text" class="form-input" placeholder="e.g. 0244123456" />
             </div>
             <div class="form-group">
               <label>Role</label>
@@ -385,7 +385,7 @@
             </div>
             <div class="form-group">
               <label class="checkbox-label">
-                <input type="checkbox" v-model="editUserForm.isactive" disabled />
+                <input type="checkbox" v-model="editUserForm.isactive" />
                 <span>Active</span>
               </label>
             </div>

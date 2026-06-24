@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useApi } from '~/composables/useApi'
 import { createCampaignService } from '~/services/sms/campaignService'
 import type { CampaignFilters, CampaignRecipientFilters, CampaignLogFilters, TestSmsData, ReuseCampaignData, ResendCampaignData } from '~/services/sms/campaignService'
 import type { SmsCampaign, SmsCampaignStats, SmsCampaignRecipient, SmsCampaignLog } from '~/services/types'
