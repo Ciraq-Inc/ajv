@@ -1,11 +1,13 @@
 import { ref, computed } from 'vue'
 import { createBillingService } from '~/services/sms/billingService'
-import type { BillingTransactionFilters, BillingIssueFilters, AuditLogFilters, TopUpCreditsData, TopUpMoneyData, ResolveIssueData } from '~/services/sms/billingService'
+import type { BillingTransactionFilters, BillingIssueFilters, AuditLogFilters, TopUpCreditsData, TopUpMoneyData, ResolveIssueData, AdminPurchaseCreditsData, AdminPurchaseCreditsResult } from '~/services/sms/billingService'
 import type { SmsBalance, SmsTransaction, BillingHealth, BillingIssue, AuditLogEntry } from '~/services/types'
 
 export const useSMSBilling = () => {
   const service = createBillingService(useApi())
 
+  const smsRate = ref<number | null>(null)
+  const purchasingCredits = ref(false)
   const balance = ref<SmsBalance | null>(null)
   const transactions = ref<SmsTransaction[]>([])
   const billingHealth = ref<BillingHealth[]>([])
@@ -197,6 +199,30 @@ export const useSMSBilling = () => {
     }
   }
 
+  const adminGetRate = async (): Promise<void> => {
+    try {
+      const response = await service.adminGetRate()
+      smsRate.value = response.data?.rate ?? null
+    } catch (err) {
+      console.error('Error fetching SMS rate:', err)
+    }
+  }
+
+  const adminPurchaseCredits = async (data: AdminPurchaseCreditsData): Promise<AdminPurchaseCreditsResult> => {
+    purchasingCredits.value = true
+    error.value = null
+    try {
+      const response = await service.adminPurchaseCredits(data)
+      return response.data as AdminPurchaseCreditsResult
+    } catch (err) {
+      const e = err as Error
+      error.value = e.message
+      throw err
+    } finally {
+      purchasingCredits.value = false
+    }
+  }
+
   const fetchAuditLog = async (filters: AuditLogFilters = {}): Promise<{ data: AuditLogEntry[] }> => {
     loading.value = true
     error.value = null
@@ -278,6 +304,8 @@ export const useSMSBilling = () => {
     auditLog,
     loading,
     error,
+    smsRate,
+    purchasingCredits,
 
     // Company Actions
     fetchBalance,
@@ -286,6 +314,8 @@ export const useSMSBilling = () => {
     // Admin Actions
     topUpCredits,
     topUpMoney,
+    adminGetRate,
+    adminPurchaseCredits,
     fetchBillingHealth,
     runReconciliation,
     fetchBillingIssues,

@@ -50,6 +50,18 @@ export interface TopUpMoneyData {
   description?: string;
 }
 
+export interface AdminPurchaseCreditsData {
+  company_id: number | string;
+  sms_count: number;
+}
+
+export interface AdminPurchaseCreditsResult {
+  sms_credits_added: number;
+  money_deducted: number;
+  sms_balance: number;
+  money_balance: number;
+}
+
 export interface ResolveIssueData {
   resolution?: string;
   [key: string]: unknown;
@@ -86,6 +98,16 @@ export const createBillingService = (api: ApiInstance) => ({
   /** Top up money balance for a company. POST /api/sms-credits/admin/topup-money */
   topUpMoney(data: TopUpMoneyData): Promise<ApiEnvelope<unknown>> {
     return api.post('/api/sms-credits/admin/topup-money', data);
+  },
+
+  /** Purchase SMS credits from money balance for a company. POST /api/sms-credits/admin/purchase */
+  adminPurchaseCredits(data: AdminPurchaseCreditsData): Promise<ApiEnvelope<AdminPurchaseCreditsResult>> {
+    return api.post<AdminPurchaseCreditsResult>('/api/sms-credits/admin/purchase', data);
+  },
+
+  /** Get current SMS rate (admin). GET /api/sms-credits/admin/rate */
+  adminGetRate(): Promise<ApiEnvelope<{ rate: number }>> {
+    return api.get<{ rate: number }>('/api/sms-credits/admin/rate');
   },
 
   /** Get billing health for all companies. GET /api/admin/billing/health */

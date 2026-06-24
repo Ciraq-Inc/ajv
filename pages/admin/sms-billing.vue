@@ -28,6 +28,15 @@
       </button> -->
 
       <button
+        @click="showBuyCreditsModal = true"
+        class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg hover:from-green-600 hover:to-green-700 transition-all text-left"
+      >
+        <Icon name="ShoppingCart" class="h-8 w-8 mb-2" />
+        <h3 class="text-lg font-semibold mb-1">Buy SMS Credits</h3>
+        <p class="text-sm text-green-100">Convert money balance to SMS credits</p>
+      </button>
+
+      <button
         @click="fetchBillingHealth()"
         :disabled="loading"
         class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all text-left disabled:opacity-50"
@@ -437,6 +446,134 @@
         </div>
       </div>
     </teleport>
+
+    <!-- Buy SMS Credits Modal -->
+    <teleport to="body">
+      <div v-if="showBuyCreditsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Buy SMS Credits</h3>
+            <button @click="closeBuyCreditsModal" class="text-gray-500 hover:text-gray-700">
+              <Icon name="X" class="h-6 w-6" />
+            </button>
+          </div>
+
+          <form @submit.prevent="handleBuyCredits" class="space-y-4">
+            <!-- Company Search -->
+            <div class="relative z-50">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Search & Select Company *
+              </label>
+
+              <div v-if="!buyCreditsForm.company_id" class="relative">
+                <input
+                  v-model="buyCreditsCompanySearch"
+                  type="text"
+                  placeholder="Search for a company..."
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  :disabled="buyingCredits"
+                />
+                <Icon v-if="buyCreditsSearchLoading" name="Loader2" class="absolute right-3 top-2.5 h-5 w-5 animate-spin text-gray-400" />
+              </div>
+
+              <div v-else class="relative">
+                <div class="flex items-center justify-between w-full px-3 py-2 border border-green-300 rounded-lg bg-green-50">
+                  <span class="text-gray-900 font-medium">{{ buyCreditsSelectedCompany?.name ?? '' }}</span>
+                  <button type="button" @click="clearBuyCreditsCompany" class="text-gray-500 hover:text-gray-700 ml-2">
+                    <Icon name="X" class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="!buyCreditsForm.company_id && buyCreditsCompanySearch && buyCreditsSearchResults.length > 0" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                <div
+                  v-for="company in buyCreditsSearchResults"
+                  :key="company.id"
+                  @click="selectBuyCreditsCompany(company)"
+                  class="px-4 py-3 hover:bg-green-50 cursor-pointer border-b last:border-b-0 transition-colors"
+                >
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="font-medium text-gray-900">{{ company.name }}</p>
+                      <p class="text-sm text-gray-500">{{ company.location || 'Location not provided' }}</p>
+                    </div>
+                    <span class="text-sm font-medium text-green-600">{{ company.id }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="!buyCreditsForm.company_id && buyCreditsCompanySearch && !buyCreditsSearchLoading && buyCreditsSearchResults.length === 0" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+                <p class="text-sm text-gray-500 text-center">No companies found matching "{{ buyCreditsCompanySearch }}"</p>
+              </div>
+            </div>
+
+            <!-- SMS Count -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                SMS Credits to Buy *
+              </label>
+              <input
+                v-model.number="buyCreditsForm.sms_count"
+                type="number"
+                min="1"
+                max="100000"
+                required
+                placeholder="e.g., 500"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                :disabled="buyingCredits"
+              />
+              <p class="text-xs text-gray-500 mt-1">Enter number of SMS credits to purchase (1–100,000)</p>
+            </div>
+
+            <!-- Cost Preview -->
+            <div v-if="buyCreditsForm.company_id && buyCreditsForm.sms_count && smsRate !== null" class="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div class="text-sm text-green-800 space-y-1">
+                <p class="font-medium mb-1">Purchase Preview:</p>
+                <p>Company: {{ buyCreditsSelectedCompany?.name ?? '' }}</p>
+                <p>SMS Credits: {{ formatNumber(buyCreditsForm.sms_count) }}</p>
+                <p>Rate: GHS {{ smsRate }} per SMS</p>
+                <p class="font-semibold">Estimated Cost: GHS {{ buyCreditsEstimatedCost.toFixed(2) }}</p>
+                <p>Current Money Balance: GHS {{ buyCreditsSelectedMoneyBalance.toFixed(2) }}</p>
+              </div>
+            </div>
+
+            <!-- Insufficient Funds Warning -->
+            <div v-if="buyCreditsInsufficientFunds" class="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p class="text-sm text-red-800 font-medium">Insufficient money balance</p>
+              <p class="text-xs text-red-700 mt-1">
+                Required: GHS {{ buyCreditsEstimatedCost.toFixed(2) }} — Available: GHS {{ buyCreditsSelectedMoneyBalance.toFixed(2) }}
+              </p>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="buyCreditsError" class="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p class="text-sm text-red-800">{{ buyCreditsError }}</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3 pt-4">
+              <button
+                type="button"
+                @click="closeBuyCreditsModal"
+                class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                :disabled="buyingCredits"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="!canSubmitBuyCredits || buyingCredits || buyCreditsInsufficientFunds"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Icon v-if="buyingCredits" name="Loader2" class="animate-spin h-4 w-4" />
+                <Icon v-else name="ShoppingCart" class="h-4 w-4" />
+                {{ buyingCredits ? 'Purchasing...' : 'Buy Credits' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -481,6 +618,9 @@ const {
   fetchBillingIssues,
   resolveIssue: resolveIssueAction,
   topUpMoney,
+  adminGetRate,
+  adminPurchaseCredits,
+  smsRate,
   activeIssuesCount,
   companiesWithIssues,
   overallHealthStatus
@@ -492,12 +632,26 @@ const showTopUpModal = ref<boolean>(false)
 const toppingUp = ref<boolean>(false)
 const topUpError = ref<string>('')
 
-// Company search state
+// Company search state (Top Up Money modal)
 const companySearch = ref<string>('')
 const companySearchResults = ref<CompanySearchResult[]>([])
 const companySearchLoading = ref<boolean>(false)
 const selectedCompany = ref<CompanySearchResult | null>(null)
 let companySearchTimeout: ReturnType<typeof setTimeout> | null = null
+
+// Buy SMS Credits modal state
+const showBuyCreditsModal = ref<boolean>(false)
+const buyingCredits = ref<boolean>(false)
+const buyCreditsError = ref<string>('')
+const buyCreditsCompanySearch = ref<string>('')
+const buyCreditsSearchResults = ref<CompanySearchResult[]>([])
+const buyCreditsSearchLoading = ref<boolean>(false)
+const buyCreditsSelectedCompany = ref<CompanySearchResult | null>(null)
+let buyCreditsSearchTimeout: ReturnType<typeof setTimeout> | null = null
+const buyCreditsForm = ref<{ company_id: string | number; sms_count: number | null }>({
+  company_id: '',
+  sms_count: null
+})
 
 const topUpForm = ref<{
   company_id: string | number;
@@ -526,11 +680,38 @@ const canSubmitTopUp = computed<boolean>(() =>
   !toppingUp.value
 )
 
+const canSubmitBuyCredits = computed<boolean>(() =>
+  !!buyCreditsForm.value.company_id &&
+  buyCreditsForm.value.sms_count !== null &&
+  buyCreditsForm.value.sms_count >= 1 &&
+  buyCreditsForm.value.sms_count <= 100000 &&
+  !buyingCredits.value
+)
+
+const buyCreditsEstimatedCost = computed<number>(() => {
+  if (!smsRate.value || !buyCreditsForm.value.sms_count) return 0
+  return parseFloat((buyCreditsForm.value.sms_count * smsRate.value).toFixed(2))
+})
+
+const buyCreditsSelectedMoneyBalance = computed<number>(() => {
+  // eslint-disable-next-line eqeqeq
+  const company = billingHealthRows.value.find(c => c.company_id == buyCreditsForm.value.company_id)
+  return parseFloat(String(company?.money_balance ?? 0))
+})
+
+const buyCreditsInsufficientFunds = computed<boolean>(() =>
+  !!buyCreditsForm.value.company_id &&
+  buyCreditsForm.value.sms_count !== null &&
+  smsRate.value !== null &&
+  buyCreditsEstimatedCost.value > buyCreditsSelectedMoneyBalance.value
+)
+
 // Load data on mount
 onMounted(async () => {
   await Promise.all([
     fetchBillingHealth(),
-    fetchBillingIssues()
+    fetchBillingIssues(),
+    adminGetRate()
   ])
 })
 
@@ -676,6 +857,96 @@ const clearCompanySelection = (): void => {
   selectedCompany.value = null
   companySearch.value = ''
   companySearchResults.value = []
+}
+
+// Buy SMS Credits modal functions
+const closeBuyCreditsModal = (): void => {
+  showBuyCreditsModal.value = false
+  buyCreditsForm.value = { company_id: '', sms_count: null }
+  buyCreditsError.value = ''
+  buyCreditsCompanySearch.value = ''
+  buyCreditsSearchResults.value = []
+  buyCreditsSelectedCompany.value = null
+}
+
+const searchBuyCreditsCompanies = async (query: string): Promise<void> => {
+  if (!query || query.trim().length === 0) {
+    buyCreditsSearchResults.value = []
+    buyCreditsSearchLoading.value = false
+    return
+  }
+
+  buyCreditsSearchLoading.value = true
+
+  try {
+    const { get } = useApi()
+    const response = await get(`/api/companies/search?q=${encodeURIComponent(query.trim())}`) as { data?: unknown[] } | unknown[]
+    const rows = (Array.isArray(response) ? response : (response as { data?: unknown[] }).data ?? []) as Record<string, unknown>[]
+    buyCreditsSearchResults.value = rows.slice(0, 10).map(company => ({
+      id: company['id'] as number | string,
+      name: String(company['name'] ?? ''),
+      location: String(company['location'] ?? ''),
+      sms_balance: Number(company['sms_balance'] ?? 0)
+    }))
+  } catch (error) {
+    console.error('Error searching companies:', error)
+    buyCreditsSearchResults.value = []
+  } finally {
+    buyCreditsSearchLoading.value = false
+  }
+}
+
+const debouncedBuyCreditsSearch = (query: string): void => {
+  if (buyCreditsSearchTimeout !== null) clearTimeout(buyCreditsSearchTimeout)
+  if (!query || query.trim().length === 0) {
+    buyCreditsSearchResults.value = []
+    return
+  }
+  buyCreditsSearchLoading.value = true
+  buyCreditsSearchTimeout = setTimeout(() => {
+    void searchBuyCreditsCompanies(query)
+  }, 300)
+}
+
+watch(buyCreditsCompanySearch, (val) => debouncedBuyCreditsSearch(val))
+
+const selectBuyCreditsCompany = (company: CompanySearchResult): void => {
+  buyCreditsForm.value.company_id = company.id
+  buyCreditsSelectedCompany.value = company
+  buyCreditsCompanySearch.value = ''
+  buyCreditsSearchResults.value = []
+}
+
+const clearBuyCreditsCompany = (): void => {
+  buyCreditsForm.value.company_id = ''
+  buyCreditsSelectedCompany.value = null
+  buyCreditsCompanySearch.value = ''
+  buyCreditsSearchResults.value = []
+}
+
+const handleBuyCredits = async (): Promise<void> => {
+  if (!canSubmitBuyCredits.value) return
+
+  buyingCredits.value = true
+  buyCreditsError.value = ''
+
+  try {
+    await adminPurchaseCredits({
+      company_id: buyCreditsForm.value.company_id,
+      sms_count: buyCreditsForm.value.sms_count ?? 0
+    })
+
+    await fetchBillingHealth()
+
+    const count = buyCreditsForm.value.sms_count
+    const name = buyCreditsSelectedCompany.value?.name ?? ''
+    closeBuyCreditsModal()
+    alert(`Successfully purchased ${formatNumber(count)} SMS credits for ${name}`)
+  } catch (err) {
+    buyCreditsError.value = err instanceof Error ? err.message : 'Failed to purchase credits. Please try again.'
+  } finally {
+    buyingCredits.value = false
+  }
 }
 
 const handleTopUp = async (): Promise<void> => {

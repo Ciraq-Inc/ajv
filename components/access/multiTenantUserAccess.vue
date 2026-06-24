@@ -190,13 +190,22 @@
               </div>
             </td>
             <td>
-              <button 
-                @click="viewUserDetails(user)" 
-                class="btn-icon"
-                title="View Details"
-              >
-                <EyeIcon />
-              </button>
+              <div class="actions-cell">
+                <button
+                  @click="viewUserDetails(user)"
+                  class="btn-icon"
+                  title="View Details"
+                >
+                  <EyeIcon class="action-icon" />
+                </button>
+                <button
+                  @click="openEditUser(user)"
+                  class="btn-icon edit"
+                  title="Edit User"
+                >
+                  <PencilIcon class="action-icon" />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -321,10 +330,73 @@
           </div>
 
           <div class="form-actions">
-            <button @click="viewingUser = null" class="btn-secondary">
-              Close
+            <button @click="viewingUser = null" class="btn-secondary">Close</button>
+            <button @click="openEditUser(viewingUser); viewingUser = null" class="btn-primary">
+              <PencilIcon class="btn-icon-sm" style="display:inline;margin-right:6px" />
+              Edit
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div v-if="editingUser" class="modal-overlay" @click.self="editingUser = null">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Edit User</h2>
+          <button @click="editingUser = null" class="close-btn"><XMarkIcon /></button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="saveEditUser">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Last Name</label>
+                <input v-model="editUserForm.lname" type="text" class="form-input" placeholder="Last name" disabled />
+              </div>
+              <div class="form-group">
+                <label>First Name</label>
+                <input v-model="editUserForm.sname" type="text" class="form-input" placeholder="First name" disabled />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Middle Name</label>
+              <input v-model="editUserForm.mname" type="text" class="form-input" placeholder="Middle name (optional)" disabled />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input v-model="editUserForm.email" type="email" class="form-input" placeholder="email@example.com" disabled />
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input v-model="editUserForm.tel" type="text" class="form-input" placeholder="e.g. 0244123456" disabled />
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <select v-model="editUserForm.userrole" class="form-select">
+                <option value="staff">Staff</option>
+                <option value="cashier">Cashier</option>
+                <option value="pharmacist">Pharmacist</option>
+                <option value="assistant">Assistant</option>
+                <option value="manager">Manager</option>
+                <option value="owner">Owner</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="editUserForm.isactive" disabled />
+                <span>Active</span>
+              </label>
+            </div>
+            <div v-if="editUserError" class="edit-error">{{ editUserError }}</div>
+            <div class="form-actions">
+              <button type="button" @click="editingUser = null" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary" :disabled="savingUser">
+                {{ savingUser ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -343,6 +415,7 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   EyeIcon,
+  PencilIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   XMarkIcon,
@@ -352,7 +425,7 @@ import {
 import { useAdminStore } from '~/stores/admin'
 
 interface TenantUser {
-  id: number;
+  id: string;
   lname?: string;
   sname?: string;
   mname?: string;
@@ -401,13 +474,17 @@ const companies = ref<CompanyRef[]>([])
 const stats = ref<UserStats>({})
 const loading = ref<boolean>(true)
 const error = ref<string | null>(null)
-const updating = ref<number | null>(null)
+const updating = ref<string | null>(null)
 const searchQuery = ref<string>('')
 const filterCompany = ref<string>('')
 const filterAccess = ref<string>('')
 const filterActive = ref<string>('')
-const selectedUsers = ref<number[]>([])
+const selectedUsers = ref<string[]>([])
 const viewingUser = ref<TenantUser | null>(null)
+const editingUser = ref<TenantUser | null>(null)
+const savingUser = ref<boolean>(false)
+const editUserError = ref<string>('')
+const editUserForm = ref({ lname: '', sname: '', mname: '', email: '', tel: '', userrole: 'staff', isactive: true })
 const currentPage = ref<number>(1)
 const perPage = 50
 
@@ -592,6 +669,43 @@ const bulkDisableAccess = async (): Promise<void> => {
 
 const viewUserDetails = (user: TenantUser): void => {
   viewingUser.value = user
+}
+
+const openEditUser = (user: TenantUser | null): void => {
+  if (!user) return
+  editingUser.value = user
+  editUserForm.value = {
+    lname: user.lname ?? '',
+    sname: user.sname ?? '',
+    mname: user.mname ?? '',
+    email: user.email ?? '',
+    tel: user.tel ?? '',
+    userrole: user.userrole ?? 'staff',
+    isactive: Boolean(user.isactive),
+  }
+  editUserError.value = ''
+}
+
+const saveEditUser = async (): Promise<void> => {
+  if (!editingUser.value) return
+  savingUser.value = true
+  editUserError.value = ''
+  try {
+    const response = await adminStore.makeAuthRequest(
+      `/api/admin/users/${editingUser.value.id}`,
+      { method: 'PUT', body: JSON.stringify({ company_id: editingUser.value.company_id, ...editUserForm.value }) }
+    )
+    if (response.success) {
+      Object.assign(editingUser.value, editUserForm.value)
+      editingUser.value = null
+    } else {
+      editUserError.value = response.message ?? 'Failed to update user'
+    }
+  } catch (err) {
+    editUserError.value = err instanceof Error ? err.message : 'Failed to update user'
+  } finally {
+    savingUser.value = false
+  }
 }
 
 const exportUsers = (): void => {
@@ -1039,12 +1153,11 @@ input:disabled + .slider {
 
 .btn-icon {
   background: transparent;
-  font-size: 18px;
-  padding: 8px;
+  padding: 6px;
   border-radius: 6px;
   transition: all 0.2s;
-  width: 20px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1056,13 +1169,114 @@ input:disabled + .slider {
   background: #f1f5f9;
 }
 
-.btn-icon svg {
-  width: 18px;
-  height: 18px;
+.btn-icon.edit:hover {
+  background: #ede9fe;
+  color: #6366f1;
 }
 
-.btn-icon:hover {
-  background: #f1f5f9;
+.action-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.edit-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: 6px;
+}
+
+/* Edit User Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-grid .form-group {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-input,
+.form-select {
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1e293b;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.form-input:disabled,
+.form-select:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+.checkbox-label input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.checkbox-label:has(input:disabled) {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #6366f1;
+  cursor: pointer;
 }
 
 .btn-retry {
