@@ -332,5 +332,16 @@ watch(
 </script>
 
 <style scoped>
-/* Custom styles if needed */
+/* cs-btn is scoped to .company-layout in rigelis.css, but <teleport to="body">
+   renders outside that tree so --ls-accent is undefined. Define it here with a fallback. */
+.cs-btn {
+  background-color: var(--ls-accent, #6366f1);
+  color: #fff;
+}
+.cs-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.cs-btn:active:not(:disabled) {
+  filter: brightness(0.92);
+}
 </style>
