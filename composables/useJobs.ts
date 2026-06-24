@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useApi } from '~/composables/useApi'
 import { createJobsService } from '~/services/jobs/jobsService'
 import type { Job } from '~/services/types'
 import type { JobListParams } from '~/services/jobs/jobsService'

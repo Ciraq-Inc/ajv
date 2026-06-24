@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useApi } from '~/composables/useApi'
 import { createCreditsService } from '~/services/sms/creditsService'
 import type { TransactionFilters, StatisticsFilters, CompanyOverviewFilters } from '~/services/sms/creditsService'
 import type { SmsBalance, SmsOverview, SmsTransaction, SmsStatistics, SmsCompanyOverview } from '~/services/types'
