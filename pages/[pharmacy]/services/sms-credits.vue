@@ -459,10 +459,7 @@ const loadStatistics = async (): Promise<void> => {
 
 onMounted(async () => {
   try {
-    console.log('SMS Credits page mounted')
-    console.log('Loading state:', loading.value)
     await refreshData()
-    console.log('SMS Credits data loaded successfully')
   } catch (err) {
     console.error('Failed to load SMS credits page:', err)
     showMessage(err instanceof Error ? err.message : 'Failed to load SMS credits. Please refresh the page.', 'error')
