@@ -46,19 +46,24 @@ export const useSMSBilling = () => {
       let fetchedTransactions: SmsTransaction[] = response.data || []
 
       if (filters.money_only) {
-        fetchedTransactions = fetchedTransactions.filter((t) =>
-          t.transaction_type === 'money_deduction' ||
-          t.transaction_type === 'money_topup' ||
-          t.transaction_type === 'money_refund' ||
-          t.transaction_type === 'topup' ||
-          t.transaction_type === 'deduction' ||
-          t.transaction_type === 'refund'
-        )
+        fetchedTransactions = fetchedTransactions.filter((t) => {
+          const type = t.transaction_type
+          if (type === 'money_deduction' || type === 'money_topup' || type === 'money_refund' ||
+              type === 'deduction' || type === 'refund') return true
+          // Legacy 'topup': exclude if sms_count > 0 (SMS credit purchase, not a money top-up)
+          if (type === 'topup') {
+            const smsCount = (t as SmsTransaction & { sms_count?: number }).sms_count ?? 0
+            return smsCount === 0
+          }
+          return false
+        })
       } else if (filters.sms_only) {
         fetchedTransactions = fetchedTransactions.filter((t) =>
           t.transaction_type === 'sms_deduction' ||
           t.transaction_type === 'sms_topup' ||
-          t.transaction_type === 'sms_refund'
+          t.transaction_type === 'sms_refund' ||
+          // Legacy 'topup' with sms_count > 0 are SMS credit purchases
+          (t.transaction_type === 'topup' && ((t as SmsTransaction & { sms_count?: number }).sms_count ?? 0) > 0)
         )
       }
 
