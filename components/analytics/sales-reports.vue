@@ -733,15 +733,16 @@
         <button
           @click="sendViaWhatsApp"
           :disabled="!canSendWhatsApp"
+          :title="whatsappButtonTitle"
           class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2 whitespace-nowrap"
-          title="Send quarterly report request via WhatsApp"
         >
           <ChatBubbleLeftIcon class="w-4 h-4" />
           <span>WhatsApp</span>
         </button>
         <button
           @click="exportQuarterlyToCSV"
-          :disabled="!quarterlyData || quarterlyLoading"
+          :disabled="quarterlyLoading || !canExportQuarterly"
+          :title="exportButtonTitle"
           class="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2 whitespace-nowrap"
         >
           <DocumentArrowDownIcon class="w-4 h-4" />
@@ -752,6 +753,16 @@
       <!-- Error Message -->
       <div v-if="quarterlyError" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
         {{ quarterlyError }}
+      </div>
+
+      <!-- Selection hint -->
+      <div
+        v-if="quarterlyActionHint"
+        class="flex items-start gap-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-lg mb-4"
+        role="status"
+      >
+        <ExclamationTriangleIcon class="w-4 h-4 flex-shrink-0 text-amber-500 mt-0.5" />
+        <span>{{ quarterlyActionHint }}</span>
       </div>
 
       <!-- Quarterly Summary Cards with Selection -->
@@ -765,8 +776,7 @@
           <div class="flex items-start gap-2">
             <input
               type="checkbox"
-              :v-model="selectedQuarters[`q${quarter}`]"
-              @change="selectedQuarters[`q${quarter}`] = !selectedQuarters[`q${quarter}`]"
+              v-model="selectedQuarters[`q${quarter}`]"
               class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 flex-shrink-0"
             />
             <div class="flex-1 min-w-0">
@@ -1536,7 +1546,7 @@ const quarterlyFilters = ref<{ year: string; date_field: string; pharmacy_search
 })
 
 // Selected quarters and pharmacies for sending
-const selectedQuarters = ref<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean; [key: string]: boolean }>({ q1: false, q2: true, q3: true, q4: true })
+const selectedQuarters = ref<{ q1: boolean; q2: boolean; q3: boolean; q4: boolean; [key: string]: boolean }>({ q1: true, q2: true, q3: true, q4: true })
 const selectedPharmacies = ref<Record<string | number, boolean>>({})
 
 // Get quarter name
@@ -1602,7 +1612,13 @@ const fetchQuarterlyData = async (forceRefresh = false): Promise<void> => {
     if (data.success) {
       const envelope = data as unknown as { summary: unknown; pharmacies?: QuarterlyPharmacy[]; message?: string }
       quarterlyData.value = envelope.summary as Record<string, { transactions?: number; [key: string]: unknown } | undefined> | null
-      quarterlyPharmacies.value = envelope.pharmacies ?? []
+      const pharmacies = envelope.pharmacies ?? []
+      quarterlyPharmacies.value = pharmacies
+      const allSelected: Record<string, boolean> = {}
+      for (const p of pharmacies) {
+        allSelected[String(p.company_id ?? '')] = true
+      }
+      selectedPharmacies.value = allSelected
     } else {
       throw new Error(data.message ?? 'Failed to fetch quarterly data')
     }
@@ -1631,11 +1647,48 @@ const getSelectedPharmaciesText = (): string => {
   return pharmacies.map(p => `${p.company_name ?? ''} (${p.alternate_company_id ?? p.company_id})`).join(', ')
 }
 
+const quarterlyHasSelectedQuarters = computed<boolean>(() =>
+  Object.values(selectedQuarters.value).some(v => v)
+)
+const quarterlyHasSelectedPharmacies = computed<boolean>(() =>
+  Object.values(selectedPharmacies.value).some(v => v)
+)
+
 // Check if WhatsApp button should be enabled
-const canSendWhatsApp = computed<boolean>(() => {
-  const hasSelectedQuarters = Object.values(selectedQuarters.value).some(v => v)
-  const hasSelectedPharmacies = Object.values(selectedPharmacies.value).some(v => v)
-  return !!(quarterlyData.value && quarterlyPharmacies.value.length > 0 && hasSelectedQuarters && hasSelectedPharmacies)
+const canSendWhatsApp = computed<boolean>(() =>
+  !!(quarterlyData.value && quarterlyPharmacies.value.length > 0 && quarterlyHasSelectedQuarters.value && quarterlyHasSelectedPharmacies.value)
+)
+const canExportQuarterly = computed<boolean>(() =>
+  !!(quarterlyData.value && quarterlyHasSelectedQuarters.value && quarterlyHasSelectedPharmacies.value)
+)
+
+const quarterlyActionHint = computed<string | null>(() => {
+  if (!quarterlyData.value || quarterlyLoading.value) return null
+  const noQ = !quarterlyHasSelectedQuarters.value
+  const noPh = !quarterlyHasSelectedPharmacies.value
+  if (noQ && noPh) return 'Tick at least one quarter above and select at least one pharmacy in the table below to export or share.'
+  if (noQ) return 'Tick at least one quarter above to include in the export or share.'
+  if (noPh) return 'Select at least one pharmacy in the table below to export or share.'
+  return null
+})
+
+const exportButtonTitle = computed<string>(() => {
+  if (quarterlyLoading.value) return 'Loading…'
+  if (!quarterlyData.value) return 'Click Refresh to load data first'
+  if (!quarterlyHasSelectedQuarters.value && !quarterlyHasSelectedPharmacies.value) return 'Select quarters and pharmacies first'
+  if (!quarterlyHasSelectedQuarters.value) return 'Select at least one quarter first'
+  if (!quarterlyHasSelectedPharmacies.value) return 'Select at least one pharmacy first'
+  const count = Object.values(selectedPharmacies.value).filter(Boolean).length
+  return `Export ${count} ${count === 1 ? 'pharmacy' : 'pharmacies'} · ${getSelectedQuartersText()}`
+})
+
+const whatsappButtonTitle = computed<string>(() => {
+  if (!quarterlyData.value) return 'Click Refresh to load data first'
+  if (!quarterlyHasSelectedQuarters.value && !quarterlyHasSelectedPharmacies.value) return 'Select quarters and pharmacies first'
+  if (!quarterlyHasSelectedQuarters.value) return 'Select at least one quarter first'
+  if (!quarterlyHasSelectedPharmacies.value) return 'Select at least one pharmacy first'
+  const count = Object.values(selectedPharmacies.value).filter(Boolean).length
+  return `Share ${count} ${count === 1 ? 'pharmacy' : 'pharmacies'} · ${getSelectedQuartersText()}`
 })
 
 // Send via WhatsApp
@@ -1654,10 +1707,16 @@ const sendViaWhatsApp = (): void => {
 
 // Export quarterly to CSV
 const exportQuarterlyToCSV = (): void => {
-  const selectedPharmacyList = quarterlyPharmacies.value.filter(p => p.company_id !== undefined && selectedPharmacies.value[p.company_id])
+  const selectedPharmacyList = quarterlyPharmacies.value.filter(p => p.company_id !== undefined && selectedPharmacies.value[String(p.company_id ?? '')])
   if (selectedPharmacyList.length === 0) return
 
-  let csv = 'Pharmacy Name,Alternate ID,Q1 Transactions,Q1 Dates,Q2 Transactions,Q2 Dates,Q3 Transactions,Q3 Dates,Q4 Transactions,Q4 Dates,Total Transactions\n'
+  const headerParts = ['Pharmacy Name', 'Alternate ID']
+  if (selectedQuarters.value.q1) headerParts.push('Q1 Transactions', 'Q1 Dates')
+  if (selectedQuarters.value.q2) headerParts.push('Q2 Transactions', 'Q2 Dates')
+  if (selectedQuarters.value.q3) headerParts.push('Q3 Transactions', 'Q3 Dates')
+  if (selectedQuarters.value.q4) headerParts.push('Q4 Transactions', 'Q4 Dates')
+  headerParts.push('Total Transactions')
+  let csv = headerParts.join(',') + '\n'
 
   selectedPharmacyList.forEach(pharmacy => {
     let total = 0
