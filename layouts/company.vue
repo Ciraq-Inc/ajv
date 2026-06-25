@@ -149,7 +149,6 @@ import {
   ChevronRightIcon,
   ArrowLeftOnRectangleIcon,
   ChatBubbleLeftIcon,
-  BoltIcon,
   CreditCardIcon,
   ArrowPathIcon,
   UserGroupIcon,
@@ -256,7 +255,7 @@ const allNavigationSections = computed(() => [
       },
       {
         path: servicePath('wallet'),
-        label: 'Wallet',
+        label: 'Earnings',
         icon: BanknotesIcon,
       },
     ],
@@ -270,18 +269,18 @@ const allNavigationSections = computed(() => [
         icon: ChatBubbleLeftIcon,
       },
       {
-        path: servicePath('sms-credits'),
-        label: 'SMS Credits',
-        icon: BoltIcon,
+        path: servicePath('sms-history'),
+        label: 'History',
+        icon: ClockIcon,
       },
     ],
   },
   {
-    title: 'Billing',
+    title: 'Wallet',
     items: [
       {
         path: servicePath('sms-billing'),
-        label: 'Billing',
+        label: 'Wallet',
         icon: CreditCardIcon,
       },
     ],
