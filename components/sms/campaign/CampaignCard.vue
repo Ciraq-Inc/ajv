@@ -116,7 +116,7 @@
         <!-- Dropdown Menu -->
         <div
           v-if="showMenu"
-          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+          class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
           @mouseleave="showMenu = false"
         >
           <button
