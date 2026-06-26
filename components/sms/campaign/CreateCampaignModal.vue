@@ -204,6 +204,18 @@
             </div>
           </div>
 
+          <!-- Inline notifications -->
+          <div v-if="formError || formSuccess" class="px-6 pt-4">
+            <div v-if="formError" class="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <ExclamationTriangleIcon class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p class="text-sm text-red-700">{{ formError }}</p>
+            </div>
+            <div v-if="formSuccess" class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircleIcon class="h-5 w-5 text-green-600 flex-shrink-0" />
+              <p class="text-sm text-green-700">{{ formSuccess }}</p>
+            </div>
+          </div>
+
           <!-- Footer -->
           <div class="border-t border-gray-200 px-6 py-4 bg-gray-50">
             <div class="flex items-center justify-between">
@@ -264,6 +276,7 @@ import {
   ArrowPathIcon,
   PaperAirplaneIcon,
   ExclamationTriangleIcon,
+  CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
@@ -294,6 +307,8 @@ const { createCampaign, startCampaign, loading: creating } = useSMSCampaigns()
 const { balance, fetchBalance } = useSMSBilling()
 
 const currentStep = ref(1)
+const formError = ref<string | null>(null)
+const formSuccess = ref<string | null>(null)
 const campaign = ref({ name: '', message: '' })
 const recipients = ref<Recipients>({
   type: 'all',
@@ -317,8 +332,8 @@ const messageParts = computed<number>(() => messageValidation.value.messageInfo?
 const filteredCount = computed<number>(() => selectedCustomers.value.length)
 const customCount = computed<number>(() => {
   if (!customIds.value) return 0
-  const ids = customIds.value.split(',').map((id) => id.trim()).filter((id) => id.length > 0)
-  return [...new Set(ids)].length
+  const lines = customIds.value.split('\n').map((line) => line.trim()).filter((line) => line.length > 0)
+  return [...new Set(lines)].length
 })
 
 const totalRecipients = computed<number>(() => {
@@ -342,6 +357,8 @@ watch(
 
 const resetForm = (): void => {
   currentStep.value = 1
+  formError.value = null
+  formSuccess.value = null
   campaign.value = { name: '', message: '' }
   selectedType.value = 'all'
   selectedCustomers.value = []
@@ -416,11 +433,13 @@ const hasSufficientBalance = (): boolean => {
 }
 
 const saveDraft = async (): Promise<void> => {
-  try {
-    if (!campaign.value.name?.trim()) { alert('Please enter a campaign name'); return }
-    if (!campaign.value.message?.trim()) { alert('Please enter a campaign message'); return }
-    if (getTotalRecipients() === 0) { alert('Please select at least one recipient'); return }
+  formError.value = null
+  formSuccess.value = null
+  if (!campaign.value.name?.trim()) { formError.value = 'Please enter a campaign name'; return }
+  if (!campaign.value.message?.trim()) { formError.value = 'Please enter a campaign message'; return }
+  if (getTotalRecipients() === 0) { formError.value = 'Please select at least one recipient'; return }
 
+  try {
     updateRecipients()
     await createCampaign({
       name: campaign.value.name,
@@ -430,45 +449,46 @@ const saveDraft = async (): Promise<void> => {
       customer_ids: recipients.value.customer_ids,
       status: 'draft',
     })
-    alert('Campaign saved as draft! You can find it in your campaigns list.')
     emit('created')
     close()
   } catch (error: unknown) {
-    alert('Failed to save draft: ' + (error instanceof Error ? error.message : String(error)))
+    formError.value = 'Failed to save draft: ' + (error instanceof Error ? error.message : String(error))
   }
 }
 
 const sendCampaign = async (): Promise<void> => {
-  if (!campaign.value.name?.trim()) { alert('Please enter a campaign name'); return }
-  if (!campaign.value.message?.trim()) { alert('Please enter a campaign message'); return }
-  if (getTotalRecipients() === 0) { alert('Please select at least one recipient'); return }
+  formError.value = null
+  formSuccess.value = null
+  if (!campaign.value.name?.trim()) { formError.value = 'Please enter a campaign name'; return }
+  if (!campaign.value.message?.trim()) { formError.value = 'Please enter a campaign message'; return }
+  if (getTotalRecipients() === 0) { formError.value = 'Please select at least one recipient'; return }
 
   const smsBalance = (balance.value as { sms_balance?: number } | null)?.sms_balance ?? 0
   if (!hasSufficientBalance()) {
-    alert(`Insufficient balance. You need ${getTotalCost() - smsBalance} more credits to send this campaign.`)
+    formError.value = `Insufficient balance. You need ${getTotalCost() - smsBalance} more credits to send this campaign.`
     return
   }
 
   try {
     updateRecipients()
-    const response = await createCampaign({
+    const newCampaign = await createCampaign({
       name: campaign.value.name,
       message: campaign.value.message,
       recipient_type: recipients.value.type,
       filters: recipients.value.filters,
       customer_ids: recipients.value.customer_ids,
-    }) as { data?: { id: number }; campaign?: { id: number } }
+    }) as { id: number }
 
-    const newCampaignId = response.data?.id ?? response.campaign?.id
+    const newCampaignId = newCampaign.id
     if (!newCampaignId) throw new Error('Campaign created but ID not returned')
 
     await startCampaign(newCampaignId)
-    alert('Campaign sent successfully! SMS messages are being delivered.')
+    formSuccess.value = 'Campaign sent! SMS messages are being delivered.'
     emit('created')
-    close()
+    setTimeout(close, 1500)
   } catch (error: unknown) {
     console.error('Campaign send error:', error)
-    alert('Failed to send campaign: ' + (error instanceof Error ? error.message : String(error)))
+    formError.value = 'Failed to send campaign: ' + (error instanceof Error ? error.message : String(error))
   }
 }
 

@@ -131,6 +131,18 @@
             </div>
           </div>
 
+          <!-- Inline notifications -->
+          <div v-if="(formError || formSuccess) && !loading && !loadError" class="px-6 pt-4">
+            <div v-if="formError" class="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <ExclamationTriangleIcon class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <p class="text-sm text-red-700">{{ formError }}</p>
+            </div>
+            <div v-if="formSuccess" class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircleIcon class="h-5 w-5 text-green-600 flex-shrink-0" />
+              <p class="text-sm text-green-700">{{ formSuccess }}</p>
+            </div>
+          </div>
+
           <!-- Footer -->
           <div v-if="!loading && !loadError" class="border-t border-gray-200 px-6 py-4 bg-gray-50">
             <div class="flex items-center justify-between">
@@ -177,6 +189,7 @@ import {
   ArrowPathIcon,
   PaperAirplaneIcon,
   ExclamationTriangleIcon,
+  CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import { useSMSBilling } from '~/composables/useSMSBilling'
@@ -222,6 +235,8 @@ const { balance, fetchBalance } = useSMSBilling()
 const loading = ref(false)
 const saving = ref(false)
 const loadError = ref<string | null>(null)
+const formError = ref<string | null>(null)
+const formSuccess = ref<string | null>(null)
 const campaignData = ref<CampaignRecord | null>(null)
 
 const campaign = ref({ name: '', message: '' })
@@ -261,6 +276,8 @@ watch(
   () => props.isOpen,
   (isOpen) => {
     if (isOpen && props.campaignId) {
+      formError.value = null
+      formSuccess.value = null
       loadCampaign()
       fetchBalance()
     }
@@ -272,11 +289,7 @@ const loadCampaign = async (): Promise<void> => {
     loading.value = true
     loadError.value = null
 
-    const response = await fetchCampaign(props.campaignId ?? '') as {
-      data?: CampaignRecord
-      campaign?: CampaignRecord
-    }
-    campaignData.value = response.data ?? response.campaign ?? null
+    campaignData.value = await fetchCampaign(props.campaignId ?? '') as CampaignRecord
 
     if (campaignData.value) {
       campaign.value.name = String(campaignData.value.name ?? '')
@@ -333,7 +346,9 @@ const getSmsBalance = (): number =>
 const hasSufficientBalance = (): boolean => getSmsBalance() >= getTotalCost()
 
 const saveChanges = async (): Promise<void> => {
-  if (!canSave()) { alert('Please fill in all required fields'); return }
+  formError.value = null
+  formSuccess.value = null
+  if (!canSave()) { formError.value = 'Please fill in all required fields'; return }
   saving.value = true
   try {
     updateRecipients()
@@ -344,21 +359,22 @@ const saveChanges = async (): Promise<void> => {
       filters: recipients.value.filters,
       customer_ids: recipients.value.customer_ids,
     })
-    alert('Campaign updated successfully!')
     emit('updated')
     close()
   } catch (error: unknown) {
     console.error('Error updating campaign:', error)
-    alert('Failed to update campaign: ' + (error instanceof Error ? error.message : String(error)))
+    formError.value = 'Failed to update campaign: ' + (error instanceof Error ? error.message : String(error))
   } finally {
     saving.value = false
   }
 }
 
 const saveAndSend = async (): Promise<void> => {
-  if (!canSave()) { alert('Please fill in all required fields'); return }
+  formError.value = null
+  formSuccess.value = null
+  if (!canSave()) { formError.value = 'Please fill in all required fields'; return }
   if (!hasSufficientBalance()) {
-    alert(`Insufficient balance. You need ${getTotalCost() - getSmsBalance()} more credits.`)
+    formError.value = `Insufficient balance. You need ${getTotalCost() - getSmsBalance()} more credits.`
     return
   }
   saving.value = true
@@ -372,12 +388,12 @@ const saveAndSend = async (): Promise<void> => {
       customer_ids: recipients.value.customer_ids,
     })
     await startCampaign(props.campaignId ?? '')
-    alert('Campaign updated and started! SMS messages are being sent.')
+    formSuccess.value = 'Campaign updated and started! SMS messages are being sent.'
     emit('updated')
-    close()
+    setTimeout(close, 1500)
   } catch (error: unknown) {
     console.error('Error updating and sending campaign:', error)
-    alert('Failed to update and send campaign: ' + (error instanceof Error ? error.message : String(error)))
+    formError.value = 'Failed to update and send campaign: ' + (error instanceof Error ? error.message : String(error))
   } finally {
     saving.value = false
   }

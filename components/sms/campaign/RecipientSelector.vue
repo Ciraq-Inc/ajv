@@ -208,6 +208,10 @@
             Choose File
           </button>
 
+          <div v-if="fileMessage" :class="['mt-3 text-xs px-3 py-2 rounded-lg', fileMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700']">
+            {{ fileMessage.text }}
+          </div>
+
           <p class="text-xs text-gray-500 mt-3">
             Or enter manually below
           </p>
@@ -341,6 +345,7 @@ const companyStore = useCompanyStore()
 
 const localSelectedCustomers = ref<Customer[]>([...(props.selectedCustomers ?? [])])
 const localCustomIds = ref(props.customIds ?? '')
+const fileMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const customerSearchQuery = ref('')
 const allCustomers = ref<Customer[]>([])
 const isLoadingCustomers = ref(false)
@@ -521,7 +526,7 @@ const handleFileUpload = (event: Event): void => {
         .filter((r): r is Recipient => r !== null)
 
       if (extracted.length === 0) {
-        alert(`No valid recipients found in ${file.name}`)
+        fileMessage.value = { type: 'error', text: `No valid recipients found in ${file.name}` }
         return
       }
 
@@ -535,16 +540,16 @@ const handleFileUpload = (event: Event): void => {
       emit('update:customIds', localCustomIds.value)
       emit('update')
 
-      alert(`Successfully imported ${uniqueRecipients.length} recipient${uniqueRecipients.length !== 1 ? 's' : ''} from ${file.name}`)
+      fileMessage.value = { type: 'success', text: `Imported ${uniqueRecipients.length} recipient${uniqueRecipients.length !== 1 ? 's' : ''} from ${file.name}` }
     } catch (error: unknown) {
-      alert(`Error parsing file: ${error instanceof Error ? error.message : String(error)}`)
+      fileMessage.value = { type: 'error', text: `Error parsing file: ${error instanceof Error ? error.message : String(error)}` }
     } finally {
       target.value = ''
     }
   }
 
   reader.onerror = () => {
-    alert('Error reading file')
+    fileMessage.value = { type: 'error', text: 'Error reading file' }
     target.value = ''
   }
   reader.readAsText(file)

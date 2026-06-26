@@ -16,17 +16,17 @@
             @click.stop
           >
             <!-- Icon -->
-            <div 
-              v-if="type" 
+            <div
+              v-if="type"
               :class="[
                 'mx-auto flex h-12 w-12 items-center justify-center rounded-full mb-4',
                 iconBgClass
               ]"
             >
-              <Icon 
-                :name="iconName" 
-                :class="['h-6 w-6', iconColorClass]"
-              />
+              <ExclamationTriangleIcon v-if="type === 'warning'" :class="['h-6 w-6', iconColorClass]" />
+              <ExclamationCircleIcon v-else-if="type === 'danger' || type === 'error'" :class="['h-6 w-6', iconColorClass]" />
+              <InformationCircleIcon v-else-if="type === 'info'" :class="['h-6 w-6', iconColorClass]" />
+              <CheckCircleIcon v-else-if="type === 'success'" :class="['h-6 w-6', iconColorClass]" />
             </div>
 
             <!-- Title -->
@@ -67,11 +67,11 @@
                 :disabled="isRetrying ?? false"
               >
                 <span v-if="isRetrying" class="flex items-center justify-center">
-                  <Icon name="Loader2" class="h-4 w-4 animate-spin mr-2" />
+                  <ArrowPathIcon class="h-4 w-4 animate-spin mr-2" />
                   Retrying...
                 </span>
                 <span v-else class="flex items-center justify-center">
-                  <Icon name="RotateCw" class="h-4 w-4 mr-2" />
+                  <ArrowPathIcon class="h-4 w-4 mr-2" />
                   Retry
                 </span>
               </button>
@@ -96,7 +96,7 @@
                 :disabled="loading ?? false"
               >
                 <span v-if="loading" class="flex items-center justify-center">
-                  <Icon name="Loader2" class="h-4 w-4 animate-spin mr-2" />
+                  <ArrowPathIcon class="h-4 w-4 animate-spin mr-2" />
                   {{ loadingText }}
                 </span>
                 <span v-else>{{ confirmText }}</span>
@@ -111,10 +111,17 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import {
+  ExclamationTriangleIcon,
+  ExclamationCircleIcon,
+  InformationCircleIcon,
+  CheckCircleIcon,
+  ArrowPathIcon,
+} from '@heroicons/vue/24/outline'
 
 type DialogType = 'warning' | 'danger' | 'info' | 'success' | 'error'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   isOpen: boolean
   title: string
   message: string
@@ -128,7 +135,12 @@ const props = defineProps<{
   error?: string | null
   canRetry?: boolean
   isRetrying?: boolean
-}>()
+}>(), {
+  showCancel: true,
+  confirmText: 'Confirm',
+  cancelText: 'Cancel',
+  loadingText: 'Processing...',
+})
 
 const emit = defineEmits<{
   confirm: []
@@ -136,17 +148,6 @@ const emit = defineEmits<{
   close: []
   retry: []
 }>()
-
-const iconName = computed<string>(() => {
-  const icons: Record<DialogType, string> = {
-    warning: 'AlertTriangle',
-    danger: 'AlertCircle',
-    error: 'AlertCircle',
-    info: 'Info',
-    success: 'CheckCircle',
-  }
-  return icons[props.type ?? 'warning'] ?? 'AlertTriangle'
-})
 
 const iconBgClass = computed<string>(() => {
   const classes: Record<DialogType, string> = {

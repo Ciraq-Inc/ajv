@@ -435,8 +435,7 @@ const loadCampaignDetails = async (): Promise<void> => {
 
     if (!campaign.value) {
       try {
-        const response = await fetchCampaign(props.campaignId) as { data?: CampaignDetail; campaign?: CampaignDetail }
-        campaign.value = response?.data ?? response?.campaign ?? null
+        campaign.value = await fetchCampaign(props.campaignId) as CampaignDetail
       } catch (fetchErr) {
         console.error('Error fetching campaign:', fetchErr)
         campaign.value = null

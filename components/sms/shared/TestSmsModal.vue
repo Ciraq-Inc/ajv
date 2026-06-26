@@ -25,7 +25,7 @@
                 type="button"
                 class="text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <Icon name="X" class="h-5 w-5" />
+                <XMarkIcon class="h-5 w-5" />
               </button>
             </div>
 
@@ -37,10 +37,8 @@
                 result.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
               ]"
             >
-              <Icon 
-                :name="result.success ? 'CheckCircle' : 'AlertCircle'" 
-                class="h-5 w-5 flex-shrink-0 mt-0.5"
-              />
+              <CheckCircleIcon v-if="result.success" class="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <ExclamationCircleIcon v-else class="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div class="flex-1">
                 <p class="font-medium">
                   {{ result.success ? 'Success!' : 'Error' }}
@@ -139,11 +137,11 @@
                   :disabled="loading"
                 >
                   <span v-if="loading" class="flex items-center justify-center">
-                    <Icon name="Loader2" class="h-4 w-4 animate-spin mr-2" />
+                    <ArrowPathIcon class="h-4 w-4 animate-spin mr-2" />
                     Sending...
                   </span>
                   <span v-else class="flex items-center justify-center">
-                    <Icon name="Send" class="h-4 w-4 mr-2" />
+                    <PaperAirplaneIcon class="h-4 w-4 mr-2" />
                     Send Test SMS
                   </span>
                 </button>
@@ -158,6 +156,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import {
+  XMarkIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  ArrowPathIcon,
+  PaperAirplaneIcon,
+} from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
 import type { TestSmsData } from '~/services/sms/campaignService'
 
