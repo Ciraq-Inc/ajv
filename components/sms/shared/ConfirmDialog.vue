@@ -62,7 +62,7 @@
                 type="button"
                 :class="[
                   'flex-1 px-4 py-2 rounded-lg transition-colors font-medium',
-                  'cs-btn text-white'
+                  'bg-purple-600 text-white hover:bg-purple-700'
                 ]"
                 :disabled="isRetrying ?? false"
               >
@@ -176,7 +176,7 @@ const confirmButtonClass = computed<string>(() => {
     warning: 'bg-yellow-600 text-white hover:bg-yellow-700',
     danger: 'bg-red-600 text-white hover:bg-red-700',
     error: 'bg-red-600 text-white hover:bg-red-700',
-    info: 'cs-btn text-white',
+    info: 'bg-purple-600 text-white hover:bg-purple-700',
     success: 'bg-green-600 text-white hover:bg-green-700',
   }
   return classes[props.type ?? 'warning'] ?? 'bg-yellow-600 text-white hover:bg-yellow-700'
