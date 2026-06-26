@@ -174,11 +174,18 @@
                       'cs-btn'
                     ]"></div>
                     <div class="flex-1">
-                      <p class="text-sm text-gray-900">{{ log.message }}</p>
+                      <p class="text-sm text-gray-900">{{ humanizeLogMessage(log.message) }}</p>
                       <p class="text-xs text-gray-500 mt-1">{{ formatDate(log.created_at) }}</p>
-                      <p v-if="log.metadata" class="text-xs text-gray-600 mt-1 font-mono bg-gray-50 p-1 rounded">
-                        {{ JSON.stringify(log.metadata, null, 2) }}
-                      </p>
+                      <div v-if="formatTimelineChips(log.metadata).length > 0" class="flex flex-wrap gap-1.5 mt-2">
+                        <span
+                          v-for="chip in formatTimelineChips(log.metadata)"
+                          :key="chip.label"
+                          class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs"
+                        >
+                          <span class="text-gray-400">{{ chip.label }}</span>
+                          <span class="text-gray-700 font-medium">{{ chip.value }}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -235,10 +242,17 @@
                           {{ log.created_at ? formatDate(log.created_at) : '-' }}
                         </td>
                         <td class="px-4 py-2 text-gray-600 text-xs">
-                          <div v-if="log.metadata" class="font-mono bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
-                            {{ JSON.stringify(log.metadata, null, 2) }}
+                          <div v-if="formatMessageLogDetails(log.metadata).length > 0" class="space-y-1">
+                            <div
+                              v-for="item in formatMessageLogDetails(log.metadata)"
+                              :key="item.label"
+                              class="flex items-center gap-1"
+                            >
+                              <span class="text-gray-400">{{ item.label }}:</span>
+                              <span class="text-gray-700 font-medium">{{ item.value }}</span>
+                            </div>
                           </div>
-                          <span v-else class="text-gray-500">-</span>
+                          <span v-else class="text-gray-500">—</span>
                         </td>
                       </tr>
                     </tbody>
@@ -504,6 +518,89 @@ const getStatusClass = (status: string): string => {
     failed: 'bg-red-100 text-red-800',
   }
   return classes[status] ?? 'bg-gray-100 text-gray-800'
+}
+
+// ── Human-readable rendering helpers ──────────────────────────────────────────
+
+/** Warm up the raw log message text that arrives from the backend. */
+const humanizeLogMessage = (message: string): string =>
+  message
+    // "1 recipients" / "N recipients" → "1 contact" / "N contacts"
+    .replace(/(\d+)\s+recipients?/gi, (_, n) =>
+      `${n} ${Number(n) === 1 ? 'contact' : 'contacts'}`,
+    )
+    // "(Est. cost: 0.05)" → "· approx. 0.05 credits"
+    .replace(/\(\s*Est\.\s*cost:\s*([\d.]+)\s*\)/gi, (_, c) => `· approx. ${c} credits`)
+    // bare "Est. cost: 0.05" without parens
+    .replace(/Est\.\s*cost:\s*([\d.]+)/gi, (_, c) => `Approx. ${c} credits`)
+
+type Chip = { label: string; value: string }
+
+/** Parse campaign-level log metadata into labelled chips. Returns [] for unknown shapes. */
+const formatTimelineChips = (metadata: unknown): Chip[] => {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return []
+  const m = metadata as Record<string, unknown>
+  const chips: Chip[] = []
+
+  const providerLabels: Record<string, string> = {
+    auto: 'Automatic', nalo: 'Nalo', mnotify: 'MNotify', twilio: 'Twilio',
+  }
+  if (m.sms_provider != null)
+    chips.push({ label: 'Provider', value: providerLabels[String(m.sms_provider)] ?? String(m.sms_provider) })
+
+  const recipientTypeLabels: Record<string, string> = {
+    custom: 'Custom list', all: 'All customers',
+    registered: 'Registered customers', segment: 'Segment',
+  }
+  if (m.recipient_type != null)
+    chips.push({ label: 'List type', value: recipientTypeLabels[String(m.recipient_type)] ?? String(m.recipient_type) })
+
+  if (m.estimated_credits != null) {
+    const n = Number(m.estimated_credits)
+    chips.push({ label: 'Est. credits', value: `${n} ${n === 1 ? 'credit' : 'credits'}` })
+  }
+
+  if (m.estimated_cost != null && m.estimated_credits == null)
+    chips.push({ label: 'Est. cost', value: `${Number(m.estimated_cost).toFixed(2)} credits` })
+
+  if (m.actual_credits != null) {
+    const n = Number(m.actual_credits)
+    chips.push({ label: 'Credits used', value: `${n} ${n === 1 ? 'credit' : 'credits'}` })
+  }
+
+  if (m.actual_cost != null)
+    chips.push({ label: 'Actual cost', value: `GHS ${Number(m.actual_cost).toFixed(2)}` })
+
+  return chips
+}
+
+/** Parse recipient-level log metadata into key-value rows. Returns [] for unknown shapes. */
+const formatMessageLogDetails = (metadata: unknown): Chip[] => {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return []
+  const m = metadata as Record<string, unknown>
+  const items: Chip[] = []
+
+  const providerLabels: Record<string, string> = {
+    nalo: 'Nalo', mnotify: 'MNotify', twilio: 'Twilio', auto: 'Automatic',
+  }
+  if (m.provider != null)
+    items.push({ label: 'Via', value: providerLabels[String(m.provider)] ?? String(m.provider) })
+
+  const billingLabels: Record<string, string> = {
+    charge_before_send: 'Charged upfront',
+    charge_after_send: 'Charged on delivery',
+    postpaid: 'Postpaid',
+  }
+  if (m.billing_model != null)
+    items.push({ label: 'Billing', value: billingLabels[String(m.billing_model)] ?? String(m.billing_model) })
+
+  if (m.transaction_id != null)
+    items.push({ label: 'Txn', value: `#${m.transaction_id}` })
+
+  if (m.messageId != null)
+    items.push({ label: 'Msg ID', value: String(m.messageId) })
+
+  return items
 }
 
 const close = (): void => emit('close')
