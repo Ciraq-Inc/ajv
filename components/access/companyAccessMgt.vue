@@ -34,15 +34,16 @@
           >
             No companies found
           </div>
-          <div 
-            v-for="company in filteredCompanies" 
+          <div
+            v-for="company in filteredCompanies"
             :key="company.id"
             @click="selectCompany(company)"
             class="dropdown-item"
             :class="{ 'selected': selectedCompany === company.id }"
           >
             <CheckCircleIcon v-if="selectedCompany === company.id" class="icon-sm check-icon" />
-            {{ company.name }}
+            <span class="dropdown-item-name">{{ company.name }}</span>
+            <span v-if="company.location" class="dropdown-item-location">{{ company.location }}</span>
           </div>
         </div>
       </div>
@@ -344,6 +345,7 @@ import { PlusIcon, TrashIcon, DocumentDuplicateIcon, CheckIcon, CheckCircleIcon,
 interface Company {
   id: number;
   name: string;
+  location?: string;
 }
 
 interface ApiKey {
@@ -423,7 +425,8 @@ const filteredCompanies = computed<Company[]>(() => {
   }
   const searchLower = companySearch.value.toLowerCase()
   return companies.value.filter(company =>
-    company.name.toLowerCase().includes(searchLower)
+    company.name.toLowerCase().includes(searchLower) ||
+    (company.location ?? '').toLowerCase().includes(searchLower)
   )
 })
 
@@ -765,6 +768,17 @@ onBeforeUnmount(() => {
 
 .dropdown-item.no-results:hover {
   background: white;
+}
+
+.dropdown-item-name {
+  display: block;
+}
+
+.dropdown-item-location {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 1px;
 }
 
 .check-icon {
