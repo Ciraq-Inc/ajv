@@ -119,15 +119,15 @@
               <td>
                 <div class="api-key-cell">
                   <div class="api-key-display">
-                    {{ maskApiKey(key.api_key) }}
+                    {{ revealedKeys[key.id] || '••••••••••••••••••••' }}
                   </div>
-                  <button 
-                    @click="copyToClipboard(key.api_key)" 
+                  <button
+                    @click="copyApiKey(key.id)"
                     class="copy-btn"
-                    title="Copy API Key"
-                    v-if="key.api_key"
+                    :title="revealedKeys[key.id] ? 'Copy key' : 'Reveal & copy'"
                   >
-                    <DocumentDuplicateIcon class="icon-sm" />
+                    <CheckIcon v-if="copiedKeyId === key.id" class="icon-sm" />
+                    <DocumentDuplicateIcon v-else class="icon-sm" />
                   </button>
                 </div>
               </td>
@@ -339,7 +339,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAdminStore } from '~/stores/admin'
-import { PlusIcon, TrashIcon, DocumentDuplicateIcon, CheckCircleIcon, ClockIcon, KeyIcon, ExclamationTriangleIcon, XMarkIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, TrashIcon, DocumentDuplicateIcon, CheckIcon, CheckCircleIcon, ClockIcon, KeyIcon, ExclamationTriangleIcon, XMarkIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 
 interface Company {
   id: number;
@@ -393,6 +393,8 @@ const apiKeys = ref<ApiKey[]>([])
 const stats = ref<ApiKeyStats>({})
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
+const revealedKeys = ref<Record<number, string>>({})
+const copiedKeyId = ref<number | null>(null)
 const generating = ref<boolean>(false)
 const deleting = ref<boolean>(false)
 const showGenerateModal = ref<boolean>(false)
@@ -557,10 +559,6 @@ const resetForm = (): void => {
   }
 }
 
-const maskApiKey = (key: string | undefined): string => {
-  if (!key) return ''
-  return `${key.substring(0, 8)}...${key.substring(key.length - 4)}`
-}
 
 const copyToClipboard = async (text: string): Promise<void> => {
   try {
@@ -568,6 +566,26 @@ const copyToClipboard = async (text: string): Promise<void> => {
     alert('API key copied to clipboard!')
   } catch (err) {
     console.error('Failed to copy:', err)
+    alert('Failed to copy to clipboard')
+  }
+}
+
+const copyApiKey = async (keyId: number): Promise<void> => {
+  try {
+    let plaintext = revealedKeys.value[keyId]
+    if (!plaintext) {
+      const res = await adminStore.makeAuthRequest(
+        `/api/companies/${selectedCompany.value}/api-keys/${keyId}/reveal`
+      )
+      if (!res.success) { alert(res.message || 'Failed to retrieve key'); return }
+      plaintext = (res.data as any).api_key
+      revealedKeys.value = { ...revealedKeys.value, [keyId]: plaintext }
+    }
+    await navigator.clipboard.writeText(plaintext)
+    copiedKeyId.value = keyId
+    setTimeout(() => { copiedKeyId.value = null }, 2000)
+  } catch (err) {
+    console.error('Failed to copy API key:', err)
     alert('Failed to copy to clipboard')
   }
 }
