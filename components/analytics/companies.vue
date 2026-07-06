@@ -87,7 +87,8 @@
                 >
                   {{ getCompanyTypeName(company.companytype) }}
                 </span>
-                <div v-if="(company.maincompanyid ?? 0) > 0" class="text-xs text-gray-400 mt-0.5">Subsidiary</div>
+                <!-- Subsidiary label hidden for now -->
+                <div v-if="false && (company.maincompanyid ?? 0) > 0" class="text-xs text-gray-400 mt-0.5">Subsidiary</div>
               </td>
               <td class="px-4 py-3 text-sm text-gray-500">
                 <div>{{ company.email || "N/A" }}</div>
@@ -211,6 +212,7 @@
                 <option value="0">Pharmacy</option>
                 <option value="1">Hospital</option>
                 <option value="2">Clinic</option>
+                <option value="3">Wholesaler</option>
               </select>
             </div>
             <div>
@@ -287,6 +289,18 @@
                   placeholder="+233501234567"
                 />
                 <p class="text-xs text-gray-400 mt-1">WhatsApp contact number with country code</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Company Type</label>
+                <select
+                  v-model="companyForm.companytype"
+                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                >
+                  <option :value="0">Pharmacy</option>
+                  <option :value="1">Hospital</option>
+                  <option :value="2">Clinic</option>
+                  <option :value="3">Wholesaler</option>
+                </select>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">SMS Sender ID</label>
@@ -691,6 +705,7 @@ const getCompanyTypeName = (type: number | undefined): string => {
     0: "Pharmacy",
     1: "Hospital",
     2: "Clinic",
+    3: "Wholesaler",
   };
   return (type !== undefined ? types[type] : undefined) ?? "Unknown";
 };
@@ -701,6 +716,7 @@ const getTypeClass = (type: number | undefined): string => {
     0: "bg-blue-100 text-blue-800",
     1: "bg-red-100 text-red-800",
     2: "bg-purple-100 text-purple-800",
+    3: "bg-amber-100 text-amber-800",
   };
   return (type !== undefined ? classes[type] : undefined) ?? "bg-gray-100 text-gray-800";
 };
@@ -746,11 +762,12 @@ const createCompany = async (): Promise<void> => {
 // Edit company
 const editCompany = (company: CompanyRow): void => {
   selectedCompany.value = company;
-  // Only populate domain_name, whatsapp_number, sender_id, logo, and shop_banner for editing
+  // Only populate domain_name, whatsapp_number, companytype, sender_id, logo, and shop_banner for editing
   companyForm.value = {
     ...BLANK_FORM,
     domain_name: company.domain_name ?? "",
     whatsapp_number: company.whatsapp_number ?? "",
+    companytype: company.companytype ?? 0,
     sender_id: company.sender_id ?? "",
     logo: company.logo ?? "",
     shop_banner: company.shop_banner ?? "",
@@ -776,6 +793,7 @@ const updateCompany = async (): Promise<void> => {
     const updateData = {
       domain_name: companyForm.value.domain_name,
       whatsapp_number: companyForm.value.whatsapp_number,
+      companytype: companyForm.value.companytype,
       sender_id: companyForm.value.sender_id,
       logo: companyForm.value.logo,
       shop_banner: companyForm.value.shop_banner,

@@ -82,7 +82,7 @@ export const phoneUtils = {
   /**
    * Return digits-only with country code for wa.me links.
    * e.g. '+233241234567' → '233241234567'
-   * @param {string} phone
+   * @param {string | null | undefined} phone
    * @param {string} countryCode
    * @returns {string}
    */

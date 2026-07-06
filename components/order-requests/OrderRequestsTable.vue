@@ -124,7 +124,7 @@
 <script setup lang="ts">
 import { EyeIcon } from '@heroicons/vue/24/outline'
 
-interface RichOrderRequest {
+interface OrderRequestRow {
   id: number
   request_number?: string
   customer_name?: string | null
@@ -133,7 +133,6 @@ interface RichOrderRequest {
   created_at: string
   updated_at?: string
   expires_at?: string | null
-  items?: unknown[]
   fulfillment_type?: string | null
   computed_cost?: number | null
   item_count?: number
@@ -143,22 +142,22 @@ interface RichOrderRequest {
 
 defineProps<{
   loading: boolean
-  filteredRequests: RichOrderRequest[]
+  filteredRequests: OrderRequestRow[]
   sortKey: string
   sortDir: string
   statusFilter: string
   openingRequestId: number | null
   formatStatus: (status: string | null | undefined) => string
   formatDateTime: (d: string | null | undefined) => string
-  formatRequestItemsLabel: (req: RichOrderRequest | null | undefined) => string | number
+  formatRequestItemsLabel: (req: OrderRequestRow | null | undefined) => string | number
   getCustomerWhatsAppUrl: (phone: string | null | undefined) => string
-  getNextStageLabel: (req: RichOrderRequest | null | undefined) => string | null
-  getRequestComposedCost: (req: RichOrderRequest | null | undefined) => number | null
-  rowUrgencyStyle: (req: RichOrderRequest) => string
+  getNextStageLabel: (req: OrderRequestRow | null | undefined) => string | null
+  getRequestComposedCost: (req: OrderRequestRow | null | undefined) => number | null
+  rowUrgencyStyle: (req: OrderRequestRow) => string
 }>()
 
 defineEmits<{
   'toggle-sort': [key: string]
-  'process-request': [req: RichOrderRequest]
+  'process-request': [req: OrderRequestRow]
 }>()
 </script>
