@@ -708,6 +708,16 @@
                           </div>
                         </div>
 
+                        <!-- Pharmacy search filter -->
+                        <div v-if="pharmacyCoverage?.data?.pharmacies?.length" class="coverage-pharmacy-search">
+                          <input
+                            v-model="coveragePharmacySearch"
+                            type="text"
+                            class="w-full h-8 px-3 bg-white border border-gray-200 rounded-lg text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 transition-all"
+                            placeholder="Search pharmacies by name or location..."
+                          />
+                        </div>
+
                         <!-- Resolve prompt -->
                         <div v-if="!allItemsResolved" class="coverage-resolve-prompt">
                           <div class="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
@@ -740,10 +750,17 @@
                           </div>
                         </div>
 
+                        <!-- No search matches -->
+                        <div v-else-if="pharmacyCoverage?.data?.pharmacies && filteredCoveragePharmacies.length === 0" class="coverage-empty">
+                          <div class="flex flex-col items-center justify-center py-10 gap-2 text-gray-500">
+                            <span class="text-xs font-semibold">No pharmacies match "{{ coveragePharmacySearch }}".</span>
+                          </div>
+                        </div>
+
                         <!-- Pharmacy cards -->
                         <div v-else-if="pharmacyCoverage?.data?.pharmacies" class="coverage-pharmacy-list">
                           <div
-                            v-for="(pharmacy, pIdx) in pharmacyCoverage.data.pharmacies"
+                            v-for="(pharmacy, pIdx) in filteredCoveragePharmacies"
                             :key="`coverage-pharm-${pharmacy.pharmacy_id}`"
                             class="coverage-pharmacy-card"
                           >
@@ -1080,8 +1097,18 @@
                   </div>
                 </template>
 
+                <!-- Toggle to reveal the rest of the nearby pharmacies -->
+                <button
+                  v-if="composedPharmacyQueue.length > 0 && (fullMatchQueue.length > 0 || partialMatchQueue.length > 0)"
+                  type="button"
+                  class="outreach-show-more-btn"
+                  @click="showAllOutreachPharmacies = !showAllOutreachPharmacies"
+                >
+                  {{ showAllOutreachPharmacies ? 'Hide other pharmacies' : `Show ${fullMatchQueue.length + partialMatchQueue.length} other nearby pharmacies` }}
+                </button>
+
                 <!-- Full coverage pharmacies -->
-                <template v-if="fullMatchQueue.length > 0">
+                <template v-if="fullMatchQueue.length > 0 && (showAllOutreachPharmacies || composedPharmacyQueue.length === 0)">
                   <div class="outreach-section-head" :class="{ 'outreach-section-head--spaced': composedPharmacyQueue.length > 0 }">
                     <span class="outreach-section-label outreach-section-label--full">Full coverage</span>
                     <span class="outreach-section-note">These pharmacies have all items in stock</span>
@@ -1133,7 +1160,7 @@
                 </template>
 
                 <!-- Partial coverage pharmacies -->
-                <template v-if="partialMatchQueue.length > 0">
+                <template v-if="partialMatchQueue.length > 0 && (showAllOutreachPharmacies || composedPharmacyQueue.length === 0)">
                   <div class="outreach-section-head" :class="{ 'outreach-section-head--spaced': fullMatchQueue.length > 0 }">
                     <span class="outreach-section-label outreach-section-label--partial">Partial coverage</span>
                     <span class="outreach-section-note">These pharmacies have some but not all items</span>
@@ -2039,6 +2066,7 @@
                     step="1"
                     class="form-control response-qty-input"
                     placeholder="Qty"
+                    disabled
                   />
                 </div>
                 <div class="response-field-group">
@@ -2687,6 +2715,7 @@ const fulfillmentProcessLoading = ref(false)
 const allocationSummary = ref<AllocationSummary | null>(null)
 const pharmacyQueue = ref<PharmacyQueueEntry[]>([])
 const pharmacySearchQuery = ref('')
+const showAllOutreachPharmacies = ref(false)
 const nextRecommendedPharmacy = ref<NextRecommendedPharmacy | null>(null)
 const logisticsAssessment = ref<LogisticsAssessment | null>(null)
 const pharmacyLedgerMap = ref<Record<number, LedgerEntry>>({}) // keyed by pharmacy_id
@@ -2705,6 +2734,16 @@ const pharmacyCoverage = ref<PharmacyCoverageData | null>(null)
 const coverageLoading = ref(false)
 const coverageSortMode = ref<'availability' | 'distance'>('availability')
 const coverageShowAll = ref<Record<string, boolean>>({})
+const coveragePharmacySearch = ref('')
+const filteredCoveragePharmacies = computed(() => {
+  const list = pharmacyCoverage.value?.data?.pharmacies || []
+  const q = coveragePharmacySearch.value.toLowerCase().trim()
+  if (!q) return list
+  return list.filter((p) =>
+    String(p.pharmacy_name || '').toLowerCase().includes(q) ||
+    String(p.location || '').toLowerCase().includes(q)
+  )
+})
 const coverageItemOverride = ref<{ itemId: number | null; query: string }>({ itemId: null, query: '' })
 const masterSearchResults = ref<ProductSearchResult[]>([])
 const masterSearchLoading = ref(false)
@@ -2725,7 +2764,6 @@ const submitCreateCustomerRequest = async () => {
   if (!validItems.length) { ccError.value = 'Add at least one item'; return }
   ccSubmitting.value = true
   try {
-    const { call: apiCall } = useApi()
     await apiCall('POST', '/api/order-requests/admin/create-customer-request', {
       phone: ccForm.value.phone.trim(),
       fname: ccForm.value.fname.trim() || undefined,
@@ -4179,6 +4217,7 @@ const viewRequest = async (req: { id: number | string }) => {
     fulfillmentPlans.value = []
     allocationSummary.value = null
     pharmacyQueue.value = []
+    showAllOutreachPharmacies.value = false
     nextRecommendedPharmacy.value = null
     logisticsAssessment.value = null
     activePrescriptionImageIndex.value = 0
@@ -5919,6 +5958,7 @@ const saveAdminNewItem = async () => {
     fulfillmentPlans.value = []
     allocationSummary.value = null
     pharmacyQueue.value = []
+    showAllOutreachPharmacies.value = false
     nextRecommendedPharmacy.value = null
     logisticsAssessment.value = null
 
