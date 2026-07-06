@@ -5071,10 +5071,19 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
     )
     if (activeAlloc) existingAllocsByItemId.set(item.id, activeAlloc)
   }
-  // In split mode, only show items still needing sourcing
-  const sourceItems = sourcingMode.value === 'split'
-    ? allItems.filter(i => Number(i.sourced_quantity || 0) < Number(i.requested_quantity || i.quantity || 1))
-    : allItems
+  // Never offer an item that's already been matched (during composing or a
+  // prior response) to a *different* pharmacy — otherwise confirming this
+  // pharmacy's response can silently reassign and re-price an item that was
+  // deliberately split off to another pharmacy. Also, in split mode, only
+  // show items still needing sourcing.
+  const sourceItems = allItems.filter((item) => {
+    if (sourcingMode.value === 'split' && Number(item.sourced_quantity || 0) >= Number(item.requested_quantity || item.quantity || 1)) {
+      return false
+    }
+    const assignedPharmacyId = Number(item.source_pharmacy_id || 0)
+    const isAssignedElsewhere = assignedPharmacyId > 0 && assignedPharmacyId !== Number(freshPharm.pharmacy_id || 0)
+    return !isAssignedElsewhere || existingAllocsByItemId.has(item.id)
+  })
   const items = sourceItems.map((item) => {
     const existingAlloc = existingAllocsByItemId.get(item.id)
     const coverageItem = (freshPharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
