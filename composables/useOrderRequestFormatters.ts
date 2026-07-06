@@ -205,6 +205,42 @@ export const getItemSubstituteDetails = (
   }
 }
 
+interface LineTotalItem {
+  quantity?: number | string | null
+  requested_quantity?: number | string | null
+  unit_price?: number | string | null
+  marked_up_price?: number | string | null
+  line_total?: number | string | null
+  [key: string]: unknown
+}
+
+export const getItemQuantity = (item: LineTotalItem | null | undefined): number => {
+  const quantity = Number(item?.quantity ?? item?.requested_quantity ?? 1)
+  return Number.isFinite(quantity) ? quantity : 1
+}
+
+export const getItemUnitPrice = (item: LineTotalItem | null | undefined): number => {
+  const price = Number(item?.marked_up_price ?? item?.unit_price ?? 0)
+  return Number.isFinite(price) ? price : 0
+}
+
+// The single "what does this line cost right now" rule: prefer a live
+// unitPrice × quantity recompute whenever a positive price is on record (so
+// a quantity edit is reflected immediately, even before line_total is
+// re-persisted), and only fall back to the stored line_total when the item
+// genuinely has no price yet. Replaces ~6 independent copies of this same
+// decision across the admin fulfillment page, several of which had the
+// preference backwards (trusting a stale stored value).
+export const getItemLineTotal = (item: LineTotalItem | null | undefined): number => {
+  const quantity = getItemQuantity(item)
+  const unitPrice = getItemUnitPrice(item)
+  if (unitPrice > 0 && quantity > 0) {
+    return Number((unitPrice * quantity).toFixed(2))
+  }
+  const stored = Number(item?.line_total ?? 0)
+  return Number.isFinite(stored) && stored > 0 ? stored : 0
+}
+
 export const formatWaitingTime = (d: string | Date | null | undefined): string | null => {
   if (!d) return null
   const ms = Date.now() - new Date(d).getTime()
@@ -243,4 +279,7 @@ export const useOrderRequestFormatters = () => ({
   getLatestSubstituteAllocation,
   getItemSubstituteDetails,
   formatWaitingTime,
+  getItemQuantity,
+  getItemUnitPrice,
+  getItemLineTotal,
 })

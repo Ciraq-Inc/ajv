@@ -3296,6 +3296,18 @@
   font-size: 0.72rem;
 }
 
+.request-item-qty-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.request-item-qty-input {
+  width: 3.5rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.72rem;
+}
+
 .item-composer-pane {
   display: grid;
   gap: 0.9rem;

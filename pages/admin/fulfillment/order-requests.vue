@@ -482,7 +482,18 @@
                                 </template>
                               </div>
                               <div class="request-item-row-meta">
-                                <span>Qty {{ getRequestedQuantity(item) }}</span>
+                                <span v-if="isComposeLocked">Qty {{ getRequestedQuantity(item) }}</span>
+                                <label v-else class="request-item-qty-edit" @click.stop>
+                                  Qty
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    class="form-control form-control-sm request-item-qty-input"
+                                    :value="getRequestedQuantity(item)"
+                                    @change="updateItemQuantity(item, ($event.target as HTMLInputElement).value)"
+                                  />
+                                </label>
                                 <span v-if="item.requested_unit">{{ item.requested_unit }}</span>
                               </div>
                               <div v-if="(item as any).search_term_override" class="text-[9px] text-gray-400 mt-0.5">{{ item.product_name }}</div>
@@ -2910,13 +2921,7 @@ const getRequestComposedCost = (req: RichOrderRequest | null | undefined) => {
   const items = Array.isArray(req?.items) ? req.items : []
   const sourcedItems = items.filter((item) => isSavedSelectionItem(item))
   if (!sourcedItems.length) return null
-  return sourcedItems.reduce((sum: number, item: RequestItem) => {
-    const lineTotal = Number(item?.line_total || 0)
-    if (Number.isFinite(lineTotal) && lineTotal > 0) return sum + lineTotal
-    const qty = Number(item?.quantity || 1)
-    const price = Number(item?.marked_up_price || item?.unit_price || 0)
-    return sum + (qty * price)
-  }, 0)
+  return sourcedItems.reduce((sum: number, item: RequestItem) => sum + getItemLineTotal(item), 0)
 }
 
 const filteredRequests = computed(() => {
@@ -3009,16 +3014,10 @@ const persistedSelectionItems = computed(() => {
 })
 
 const savedSelectionsTotal = computed(() => persistedSelectionItems.value.reduce((sum: number, item: RequestItem) => {
-  const lineTotal = Number(item?.line_total || 0)
-  if (Number.isFinite(lineTotal) && lineTotal > 0) {
-    return sum + lineTotal
-  }
-
-  const quantity = Number(getRequestedQuantity(item) || 0)
-  const unitPrice = Number(item?.marked_up_price || item?.unit_price || 0)
-  if (!Number.isFinite(quantity) || quantity <= 0) return sum
-  if (!Number.isFinite(unitPrice) || unitPrice <= 0) return sum
-  return sum + (quantity * unitPrice)
+  const quantity = getRequestedQuantity(item)
+  const unitPrice = getItemUnitPrice(item)
+  if (unitPrice > 0) return sum + (quantity * unitPrice)
+  return sum + getItemLineTotal(item)
 }, 0))
 
 const selectedAlternativePharmacy = computed(() => {
@@ -3495,7 +3494,7 @@ const buildComposedPharmacySummary = (request: RichOrderRequest | null | undefin
     const summary = getPersistedItemSourceSummary(item)
     const phone = String(item?.pharmacy_phone || '').trim()
     const distanceValue = item?.source_distance_km == null ? null : Number(item.source_distance_km)
-    const priceValue = Number(item?.marked_up_price || item?.unit_price || 0)
+    const priceValue = getItemUnitPrice(item)
 
     if (pharmacyId <= 0 && !summary?.name) continue
 
@@ -3512,8 +3511,8 @@ const buildComposedPharmacySummary = (request: RichOrderRequest | null | undefin
     }
 
     const group = grouped.get(groupKey)
-    const quantity = Number(getRequestedQuantity(item) || 0)
-    const lineTotal = Number(item?.line_total || (priceValue > 0 ? priceValue * quantity : 0))
+    const quantity = getRequestedQuantity(item)
+    const lineTotal = priceValue > 0 ? priceValue * quantity : getItemLineTotal(item)
     group.items.push({
       id: item.id,
       productName: summary?.productName || item?.source_product_name || item?.product_name || 'Item',
@@ -3741,14 +3740,12 @@ const buildFallbackPaymentSnapshotFromRequest = (request: RichOrderRequest | nul
   const selectedItems = items
     .filter((item: RequestItem) => {
       const unavailable = ['not_available', 'unavailable'].includes(String(item?.item_status || item?.sourcing_status || '').toLowerCase())
-      const unitPrice = Number(item?.marked_up_price || item?.unit_price || 0)
-      const lineTotal = Number(item?.line_total || 0)
-      return !unavailable && (unitPrice > 0 || lineTotal > 0)
+      return !unavailable && getItemLineTotal(item) > 0
     })
     .map((item: RequestItem) => {
-      const quantity = Number(item?.quantity || item?.requested_quantity || 1) || 1
-      const unitPrice = Number(item?.marked_up_price || item?.unit_price || 0)
-      const lineTotal = Number(item?.line_total || (unitPrice * quantity) || 0)
+      const quantity = getItemQuantity(item)
+      const unitPrice = getItemUnitPrice(item)
+      const lineTotal = getItemLineTotal(item)
       return {
         item_id: Number(item?.id || 0),
         product_name: item?.product_name || 'Item',
@@ -3827,13 +3824,13 @@ const paidSnapshotExcludedItems = computed(() => {
 const paymentModeItems = computed(() => {
   if (paidSnapshotItems.value.length) return paidSnapshotItems.value
   return (selectedRequest.value?.items || [])
-    .filter((i: RequestItem) => Number(i?.marked_up_price || i?.unit_price || 0) > 0 || Number(i?.line_total || 0) > 0)
+    .filter((i: RequestItem) => getItemLineTotal(i) > 0)
     .map((i: RequestItem): PaymentSnapshotItem => ({
       item_id: i.id,
       product_name: i.product_name || 'Item',
-      quantity: Number(i.quantity || i.requested_quantity || 1),
-      unit_price: Number(i.marked_up_price || i.unit_price || 0),
-      line_total: Number(i.line_total || (Number(i.marked_up_price || i.unit_price || 0) * Number(i.quantity || i.requested_quantity || 1))),
+      quantity: getItemQuantity(i),
+      unit_price: getItemUnitPrice(i),
+      line_total: getItemLineTotal(i),
       pharmacy_name: i.pharmacy_name ?? null,
     }))
 })
@@ -4562,6 +4559,11 @@ const selectCoverageMatch = async (pharmacy: PharmacyQueueEntry, coveredItem: Co
     await apiCall('PUT', `/api/order-requests/admin/items/${itemId}`, {
       source_pharmacy_id: pharmacy.pharmacy_id,
       source_product_id: match.matched_product_id || null,
+      // Persist the actual matched product's name — otherwise the item keeps
+      // showing the customer's free-text request forever, even once it's
+      // been matched and fully allocated to a specific pharmacy product.
+      product_name: match.matched_product_name || undefined,
+      resolution_status: 'resolved',
       unit_price: match.price || null,
       source_distance_km: pharmacy.distance_km ?? null,
     })
@@ -4572,7 +4574,8 @@ const selectCoverageMatch = async (pharmacy: PharmacyQueueEntry, coveredItem: Co
         localItem.source_pharmacy_id = pharmacy.pharmacy_id
         localItem.pharmacy_name = pharmacy.pharmacy_name || null
         localItem.unit_price = match.price ?? null
-        localItem.resolution_status = 'resolved';
+        localItem.resolution_status = 'resolved'
+        if (match.matched_product_name) localItem.product_name = match.matched_product_name;
         (localItem as Record<string, unknown>).source_product_id = match.matched_product_id || null;
         (localItem as Record<string, unknown>).source_product_name = match.matched_product_name || null
       }
@@ -4609,6 +4612,32 @@ const saveSearchOverride = async (coveredItem: CoverageItem) => {
     await fetchPharmacyCoverage()
   } catch (e) {
     showMessage(errMsg(e) || 'Failed to save search override', 'error')
+  }
+}
+
+const updateItemQuantity = async (item: RequestItem, rawValue: string) => {
+  if (!item?.id) return
+  const parsed = Math.floor(Number(rawValue))
+  const previousQuantity = getRequestedQuantity(item)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    showMessage('Quantity must be a positive number', 'error')
+    return
+  }
+  if (parsed === previousQuantity) return
+  try {
+    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
+      quantity: parsed,
+      requested_quantity: parsed
+    })
+    if (selectedRequest.value?.items) {
+      const local = selectedRequest.value.items.find(i => i.id === item.id)
+      if (local) {
+        local.quantity = parsed
+        local.requested_quantity = parsed
+      }
+    }
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to update quantity', 'error')
   }
 }
 
@@ -5125,7 +5154,11 @@ const submitResponseModal = async () => {
         allocation_type: item.allocation_type || 'exact',
         substitute_name: item.allocation_type === 'substitute' ? (item.substitute_name || null) : null,
         substitute_note: item.allocation_type === 'substitute' ? (item.substitute_note || null) : null,
-        unit_price: item.unit_price !== null && item.unit_price !== '' ? Number(item.unit_price) : undefined
+        unit_price: item.unit_price !== null && item.unit_price !== '' ? Number(item.unit_price) : undefined,
+        // Persist the matched pharmacy product's real name, same reason as
+        // selectCoverageMatch — otherwise the item keeps showing the
+        // customer's free-text request forever.
+        product_name: item.allocation_type !== 'substitute' ? (item.matched_stock_name || undefined) : undefined
       }
       await apiCall('POST', `/api/order-requests/admin/items/${item.item_id}/allocations`, payload)
     }

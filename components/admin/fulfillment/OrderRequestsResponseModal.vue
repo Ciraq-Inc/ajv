@@ -63,6 +63,8 @@
                   min="1"
                   v-bind="item.requested_quantity != null ? { max: item.requested_quantity } : {}"
                   step="1"
+                  disabled
+                  title="Quantity is set to the requested amount and can't be edited here"
                   class="form-control response-qty-input"
                   placeholder="Qty"
                 />

@@ -238,13 +238,7 @@ const getRequestComposedCost = (req: OrderRequest): number | null => {
   const items: RequestItem[] = Array.isArray(req?.items) ? req.items : []
   const sourcedItems = items.filter((item) => isSavedSelectionItem(item))
   if (!sourcedItems.length) return null
-  return sourcedItems.reduce((sum, item) => {
-    const lineTotal = Number(item?.line_total ?? 0)
-    if (Number.isFinite(lineTotal) && lineTotal > 0) return sum + lineTotal
-    const qty = Number(item?.quantity ?? 1)
-    const price = Number(item?.marked_up_price ?? item?.unit_price ?? 0)
-    return sum + (qty * price)
-  }, 0)
+  return sourcedItems.reduce((sum, item) => sum + getItemLineTotal(item), 0)
 }
 
 const getNextStageLabel = (req: OrderRequest): string | null => {
