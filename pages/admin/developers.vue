@@ -518,6 +518,12 @@ const docGroups = computed(() => [
       { method: 'GET', path: '/api/v1/companies/:id', description: 'Get a single pharmacy by ID.',
         response: '{ "success": true, "data": { "id": 5, "name": "Clifton Pharmacy", "email": "...", "address1": "...", "latitude": 5.6, "longitude": -0.18, ... } }' },
     ]},
+  { scope: 'coverage', name: 'Pharmacy Coverage', description: 'Partner/sync-facing multi-product search across pharmacies of a given company type — not under /api/v1, but uses the same company API key (x-api-key) auth as /api/sync/*. Distance defaults to the calling company\'s own location when lat/lng are omitted. Mirrors the admin pharmacy-coverage matrix\'s covered/uncovered/coverage_score shape, but the caller supplies the item list directly instead of it coming from a stored order request.',
+    endpoints: [
+      { method: 'POST', path: '/api/order-requests/coverage/by-type', description: 'Find companies of a type carrying matching products. company_type: 0=Pharmacy, 1=Hospital, 2=Clinic, 3=Wholesaler. lat/lng default to the caller\'s own coords; radius_km defaults to 10; sort is availability (default, most items covered first) or distance. Each item needs product_name and/or search_term_override; id/item_id is echoed back in the response to correlate — defaults to array index if omitted.',
+        body: '{\n  "company_type": 0,\n  "radius_km": 15,\n  "sort": "availability",\n  "items": [\n    { "id": "p1", "product_name": "Paracetamol 500mg" },\n    { "id": "p2", "product_name": "Rose Water", "search_term_override": null }\n  ]\n}',
+        response: '{\n  "success": true,\n  "data": {\n    "company_type": 0,\n    "total_items": 2,\n    "pharmacies": [\n      {\n        "pharmacy_id": 5,\n        "pharmacy_name": "Clifton Pharmacy",\n        "phone": "+233...",\n        "location": "...",\n        "latitude": 5.6,\n        "longitude": -0.18,\n        "distance_km": 1.2,\n        "covered": [\n          {\n            "item_id": "p1",\n            "product_name": "Paracetamol 500mg",\n            "search_term_override": null,\n            "top_matches": [\n              { "matched_product_id": "...", "matched_product_name": "Paracetamol 500mg", "price": 1.5, "stock": 49, "unit": "Tablet", "strength": "500mg" }\n            ]\n          }\n        ],\n        "uncovered": [\n          { "item_id": "p2", "product_name": "Rose Water", "search_term_override": null }\n        ],\n        "coverage_score": 1,\n        "total_items": 2\n      }\n    ]\n  }\n}' },
+    ]},
 ])
 
 const buildCurl = (ep: any) => {
