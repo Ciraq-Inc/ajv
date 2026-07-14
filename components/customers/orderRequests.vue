@@ -67,6 +67,14 @@
                                         <XMarkIcon class="w-4 h-4" />
                                     </button>
                                 </div>
+
+                                <label v-if="item.product_name.trim()"
+                                    class="flex items-center gap-2 pl-1 cursor-pointer select-none w-fit">
+                                    <input type="checkbox" v-model="item.prefer_clearance_only"
+                                        @change="debouncedSaveFormDraft()"
+                                        class="w-4 h-4 rounded accent-amber-600 cursor-pointer" />
+                                    <span class="text-[11px] font-bold text-amber-700">Clearance/discounted stock only</span>
+                                </label>
                             </div>
                         </div>
                         <!-- Prescription + Notes footer -->
@@ -1240,6 +1248,7 @@ interface RequestItem {
     requested_unit: string;
     quantity: number;
     imageFiles: PrescriptionPreview[];
+    prefer_clearance_only: boolean;
 }
 
 interface PrescriptionPreview {
@@ -1464,7 +1473,8 @@ const newItem = (): RequestItem => ({
     product_name: '',
     requested_unit: '',
     quantity: 1,
-    imageFiles: []
+    imageFiles: [],
+    prefer_clearance_only: false
 })
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
@@ -1500,7 +1510,8 @@ const saveFormDraft = (): void => {
             items: requestItems.value.map(item => ({
                 product_name: item.product_name,
                 requested_unit: item.requested_unit ?? '',
-                quantity: item.quantity
+                quantity: item.quantity,
+                prefer_clearance_only: item.prefer_clearance_only
             })),
             customerLat: customerLat.value,
             customerLng: customerLng.value,
@@ -1556,7 +1567,8 @@ const restoreFormDraft = (): void => {
                 ...newItem(),
                 product_name: String(item['product_name'] ?? ''),
                 requested_unit: String(item['requested_unit'] ?? ''),
-                quantity: Math.max(1, Number(item['quantity'] ?? 1))
+                quantity: Math.max(1, Number(item['quantity'] ?? 1)),
+                prefer_clearance_only: Boolean(item['prefer_clearance_only'])
             }))
         }
 
@@ -2129,10 +2141,11 @@ const compressRequestImage = async (file: File): Promise<File> => {
     }
 }
 
-const buildItemPayload = (item: RequestItem): { product_name: string; requested_unit: string | null; quantity: number } => ({
+const buildItemPayload = (item: RequestItem): { product_name: string; requested_unit: string | null; quantity: number; prefer_clearance_only: boolean } => ({
     product_name: item.product_name.trim(),
     requested_unit: String(item.requested_unit ?? '').trim().toLowerCase() || null,
-    quantity: item.quantity || 1
+    quantity: item.quantity || 1,
+    prefer_clearance_only: item.prefer_clearance_only
 })
 
 const resetPickerInput = (pickerRef: { value?: HTMLInputElement | null } | null): void => {
