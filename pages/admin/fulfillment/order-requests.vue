@@ -444,6 +444,8 @@
                             <template v-else>
                               <div class="flex items-center gap-2 min-w-0">
                                 <strong class="truncate">{{ (item as any).search_term_override || item.product_name }}</strong>
+                                <span v-if="item.prefer_clearance_only" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700"
+                                  title="Customer asked for clearance-priced stock only">Wants clearance</span>
                                 <template v-if="item.master_product_id || item.resolution_status === 'resolved'">
                                   <button
                                     type="button"
@@ -525,6 +527,11 @@
                         <div class="pane-quick-add-head">
                           <div class="w-1.5 h-1.5 rounded-full bg-[#4F217A] shrink-0"></div>
                           <span>Add to request</span>
+                          <label class="ml-auto flex items-center gap-1.5 cursor-pointer select-none"
+                            title="Only show clearance-priced stock in search results">
+                            <input type="checkbox" v-model="composeClearanceOnly" class="w-3.5 h-3.5 rounded accent-amber-600 cursor-pointer" />
+                            <span class="text-[10px] font-bold text-amber-700">Clearance stock only</span>
+                          </label>
                         </div>
                         <div v-if="isComposeLocked" class="pane-quick-add-lock">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 text-gray-400 shrink-0">
@@ -544,7 +551,7 @@
                               autocomplete="off"
                               @input="onAdminQuickAddInput(($event.target as HTMLInputElement).value)"
                               @keyup.enter.prevent="saveAdminNewItem"
-                              @focus="adminNewItemDropdownOpen = true"
+                              @focus="openAdminNewItemDropdown"
                               @blur="closeAdminNewItemDropdown"
                             />
                             <button v-if="adminNewItem.product_search" @click="resetAdminNewItemSearch" type="button"
@@ -561,7 +568,10 @@
                                 class="w-full text-left px-3 py-2 hover:bg-[#4F217A]/5 border-b last:border-0 border-gray-100 transition-colors cursor-pointer"
                                 @mousedown.prevent="selectAdminQuickAddProduct(pp)"
                               >
-                                <span class="text-xs font-bold text-gray-900 block truncate">{{ pp.product_description || pp.brand_name }}</span>
+                                <span class="text-xs font-bold text-gray-900 flex items-center gap-1.5 truncate">
+                                  {{ pp.product_description || pp.brand_name }}
+                                  <span v-if="pp.is_clearance" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Clearance</span>
+                                </span>
                                 <span class="text-[10px] text-gray-500">
                                   {{ pp.pharmacy_name }}
                                   <template v-if="(pp.price ?? 0) > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
@@ -920,7 +930,10 @@
                                       class="coverage-sub-search-result"
                                       @click="selectCoverageSubstitute(pharmacy, ui, sp)"
                                     >
-                                      <span class="text-xs font-bold text-gray-900 block truncate">{{ sp.product_description || sp.brand_name }}</span>
+                                      <span class="text-xs font-bold text-gray-900 flex items-center gap-1.5 truncate">
+                                        {{ sp.product_description || sp.brand_name }}
+                                        <span v-if="sp.is_clearance" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Clearance</span>
+                                      </span>
                                       <span class="text-[10px] text-gray-500">
                                         GH₵{{ Number(sp.price || 0).toFixed(2) }} · {{ sp.available_quantity || 0 }} in stock
                                         <template v-if="sp.distance_km !== null"> · {{ Number(sp.distance_km).toFixed(2) }} km</template>
@@ -1946,7 +1959,10 @@
                                 class="product-search-result"
                                 @mousedown.prevent="selectAlternativeProduct(result)"
                               >
-                                <span class="product-search-name">{{ getProductSearchLabel(result) }}</span>
+                                <span class="product-search-name">
+                                  {{ getProductSearchLabel(result) }}
+                                  <span v-if="result.is_clearance" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 ml-1">Clearance</span>
+                                </span>
                                 <span v-if="getProductResultMeta(result)" class="product-search-meta">
                                   {{ getProductResultMeta(result) }}
                                 </span>
@@ -2412,6 +2428,8 @@ interface RequestItem {
   selection_dirty?: boolean
   showSourcingDropdown?: boolean
   productSearchDebounceHandle?: ReturnType<typeof setTimeout> | null
+  prefer_clearance_only?: boolean
+  clearanceOnlySearch?: boolean
   [key: string]: unknown
 }
 
@@ -2627,6 +2645,8 @@ interface ProductSearchResult {
   company_id?: number | null
   pharmacy_name?: string | null
   uniqid?: number | null
+  is_clearance?: boolean
+  clearance_expiry_date?: string | null
   [key: string]: unknown
 }
 
@@ -2788,6 +2808,9 @@ const resolveSearchMode = ref('free') // 'free' | 'pharmacy' | 'master'
 const pharmResolveResults = ref<ProductSearchResult[]>([])
 const pharmResolveLoading = ref(false)
 let pharmResolveDebounce: ReturnType<typeof setTimeout> | null = null
+// Workspace-level filter: when true, all "add/resolve/alternative" sourcing
+// searches for the request being composed only return clearance-priced stock.
+const composeClearanceOnly = ref(false)
 
 // --- Coverage substitute search state ---
 const coverageSubSearch = ref<{ pharmacyId: number | null; companyId?: number | null; itemId: number | null; query: string; results: ProductSearchResult[]; loading: boolean }>({ pharmacyId: null, itemId: null, query: '', results: [], loading: false })
@@ -4101,13 +4124,29 @@ const resetAdminNewItem = () => {
   Object.assign(adminNewItem, createAdminNewItemDraft())
 }
 
+let adminNewItemBlurTimeout: ReturnType<typeof setTimeout> | null = null
+
+const cancelAdminNewItemBlurClose = () => {
+  if (adminNewItemBlurTimeout) {
+    clearTimeout(adminNewItemBlurTimeout)
+    adminNewItemBlurTimeout = null
+  }
+}
+
+const openAdminNewItemDropdown = () => {
+  cancelAdminNewItemBlurClose()
+  adminNewItemDropdownOpen.value = true
+}
+
 const onAdminQuickAddInput = (query: string) => {
+  cancelAdminNewItemBlurClose()
   adminNewItemSelection.value = null
   onPharmResolveInput(query)
   adminNewItemDropdownOpen.value = true
 }
 
 const selectAdminQuickAddProduct = (pp: ProductSearchResult) => {
+  cancelAdminNewItemBlurClose()
   adminNewItemSelection.value = pp
   adminNewItem.product_search = pp.product_description || pp.brand_name || pp.product_name || ''
   if (pp.unit && !adminNewItem.requested_unit) adminNewItem.requested_unit = pp.unit
@@ -4116,6 +4155,7 @@ const selectAdminQuickAddProduct = (pp: ProductSearchResult) => {
 }
 
 const resetAdminNewItemSearch = () => {
+  cancelAdminNewItemBlurClose()
   adminNewItemSelection.value = null
   adminNewItemDropdownOpen.value = false
   pharmResolveResults.value = []
@@ -4123,7 +4163,8 @@ const resetAdminNewItemSearch = () => {
 }
 
 const closeAdminNewItemDropdown = () => {
-  setTimeout(() => { adminNewItemDropdownOpen.value = false }, 150)
+  cancelAdminNewItemBlurClose()
+  adminNewItemBlurTimeout = setTimeout(() => { adminNewItemDropdownOpen.value = false }, 150)
 }
 
 const clearAdminSelectedProduct = () => {
@@ -4498,6 +4539,7 @@ const searchPharmacyProductsForResolve = async (query: string, companyId: number
     params.append('lng', String(coords.lng))
   }
   if (companyId) params.append('company_id', String(companyId))
+  if (composeClearanceOnly.value) params.append('clearanceOnly', 'true')
   const res = await apiCall('GET', `/api/order-requests/admin/pharmacy-products/search?${params.toString()}`)
   const pdata = (res?.data ?? {}) as { products?: ProductSearchResult[] }
   return Array.isArray(pdata.products) ? pdata.products : []
@@ -5748,7 +5790,7 @@ const getProductResultMeta = (result: ProductSearchResult | null | undefined) =>
   return parts.join(' • ')
 }
 
-const fetchProductSearchResults = async (query: string | null | undefined, options: { requestedUnit?: string; pharmacySearch?: string } = {}) => {
+const fetchProductSearchResults = async (query: string | null | undefined, options: { requestedUnit?: string; pharmacySearch?: string; clearanceOnly?: boolean } = {}) => {
   const trimmedQuery = String(query || '').trim()
   if (trimmedQuery.length < 2) return []
 
@@ -5765,6 +5807,10 @@ const fetchProductSearchResults = async (query: string | null | undefined, optio
   const pharmacySearch = String(options?.pharmacySearch || '').trim()
   if (pharmacySearch) {
     params.append('pharmacySearch', pharmacySearch)
+  }
+
+  if (options?.clearanceOnly) {
+    params.append('clearanceOnly', 'true')
   }
 
   if (coords.hasCoords) {
@@ -5788,7 +5834,8 @@ const searchAdminProducts = async (item: RequestItem) => {
   item.product_search_loading = true
   try {
     item.productSearchResults = await fetchProductSearchResults(query, {
-      requestedUnit: item?.requested_unit || ''
+      requestedUnit: item?.requested_unit || '',
+      clearanceOnly: Boolean(item.clearanceOnlySearch)
     })
   } catch (e) {
     item.productSearchResults = []
@@ -5878,7 +5925,8 @@ const searchAlternativeProducts = async () => {
   alternativeModal.value.product_search_loading = true
   try {
     alternativeModal.value.productSearchResults = await fetchProductSearchResults(query, {
-      requestedUnit: alternativeModal.value.item?.requested_unit || ''
+      requestedUnit: alternativeModal.value.item?.requested_unit || '',
+      clearanceOnly: composeClearanceOnly.value
     })
   } catch (e) {
     alternativeModal.value.productSearchResults = []
