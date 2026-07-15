@@ -593,7 +593,7 @@ const sections: SectionDefinition[] = [
       {
         key: 'termii_api_key',
         label: 'Termii API Key',
-        help: 'API key from the Termii dashboard — used for international (non-Ghana) numbers',
+        help: 'API key from the Termii dashboard — used for international (non-Ghana) numbers, OTP/security messages only. Order, delivery, and campaign SMS to international numbers are blocked to control cost.',
         type: 'string',
         inputType: 'password',
         defaultValue: ''
