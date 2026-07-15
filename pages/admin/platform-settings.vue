@@ -238,15 +238,15 @@
                     </div>
                   </div>
 
-                  <!-- Twilio sub-group -->
+                  <!-- Termii sub-group -->
                   <div class="rounded-lg border border-gray-100 overflow-hidden">
                     <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                      <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Twilio</span>
+                      <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Termii</span>
                       <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-600 text-xs font-medium">International</span>
                     </div>
                     <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <SettingField
-                        v-for="setting in smsTwilioSettings"
+                        v-for="setting in smsTermiiSettings"
                         :key="setting.key"
                         :setting="setting"
                         :edited-settings="editedSettings"
@@ -591,28 +591,28 @@ const sections: SectionDefinition[] = [
         defaultValue: 'MedsGh'
       },
       {
-        key: 'twilio_account_sid',
-        label: 'Twilio Account SID',
-        help: 'Account SID from the Twilio console — used for international (non-Ghana) numbers',
-        type: 'string',
-        inputType: 'text',
-        defaultValue: ''
-      },
-      {
-        key: 'twilio_auth_token',
-        label: 'Twilio Auth Token',
-        help: 'Auth token from the Twilio console',
+        key: 'termii_api_key',
+        label: 'Termii API Key',
+        help: 'API key from the Termii dashboard — used for international (non-Ghana) numbers',
         type: 'string',
         inputType: 'password',
         defaultValue: ''
       },
       {
-        key: 'twilio_from_number',
-        label: 'Twilio From Number',
-        help: 'E.164 sender number for Twilio (e.g. +12015550123)',
+        key: 'termii_sender_id',
+        label: 'Termii Sender ID',
+        help: 'Termii registered sender ID (3-11 alphanumeric chars)',
         type: 'string',
         inputType: 'text',
-        defaultValue: ''
+        defaultValue: 'MedsGh'
+      },
+      {
+        key: 'termii_channel',
+        label: 'Termii Channel',
+        help: 'Must match the channel each destination country is approved for on the Termii dashboard (e.g. UK is DND-only, Ghana is generic-only)',
+        type: 'select',
+        options: [{ value: 'dnd', label: 'DND' }, { value: 'generic', label: 'Generic' }],
+        defaultValue: 'dnd'
       }
     ]
   },
@@ -666,7 +666,7 @@ const smsSection = computed(() => sections.find((s) => s.id === 'sms')!)
 const smsProviderSetting = computed(() => smsSection.value.settings.filter((s) => s.key === 'sms_active_provider'))
 const smsNaloSettings = computed(() => smsSection.value.settings.filter((s) => s.key.startsWith('sms_nalo_')))
 const smsMnotifySettings = computed(() => smsSection.value.settings.filter((s) => s.key.startsWith('sms_mnotify_')))
-const smsTwilioSettings = computed(() => smsSection.value.settings.filter((s) => s.key.startsWith('twilio_')))
+const smsTermiiSettings = computed(() => smsSection.value.settings.filter((s) => s.key.startsWith('termii_')))
 
 // Per-section change count for sidebar dots
 const sectionChangeCount = (section: SectionDefinition): number =>
