@@ -551,7 +551,7 @@
                               autocomplete="off"
                               @input="onAdminQuickAddInput(($event.target as HTMLInputElement).value)"
                               @keyup.enter.prevent="saveAdminNewItem"
-                              @focus="adminNewItemDropdownOpen = true"
+                              @focus="openAdminNewItemDropdown"
                               @blur="closeAdminNewItemDropdown"
                             />
                             <button v-if="adminNewItem.product_search" @click="resetAdminNewItemSearch" type="button"
@@ -4124,13 +4124,29 @@ const resetAdminNewItem = () => {
   Object.assign(adminNewItem, createAdminNewItemDraft())
 }
 
+let adminNewItemBlurTimeout: ReturnType<typeof setTimeout> | null = null
+
+const cancelAdminNewItemBlurClose = () => {
+  if (adminNewItemBlurTimeout) {
+    clearTimeout(adminNewItemBlurTimeout)
+    adminNewItemBlurTimeout = null
+  }
+}
+
+const openAdminNewItemDropdown = () => {
+  cancelAdminNewItemBlurClose()
+  adminNewItemDropdownOpen.value = true
+}
+
 const onAdminQuickAddInput = (query: string) => {
+  cancelAdminNewItemBlurClose()
   adminNewItemSelection.value = null
   onPharmResolveInput(query)
   adminNewItemDropdownOpen.value = true
 }
 
 const selectAdminQuickAddProduct = (pp: ProductSearchResult) => {
+  cancelAdminNewItemBlurClose()
   adminNewItemSelection.value = pp
   adminNewItem.product_search = pp.product_description || pp.brand_name || pp.product_name || ''
   if (pp.unit && !adminNewItem.requested_unit) adminNewItem.requested_unit = pp.unit
@@ -4139,6 +4155,7 @@ const selectAdminQuickAddProduct = (pp: ProductSearchResult) => {
 }
 
 const resetAdminNewItemSearch = () => {
+  cancelAdminNewItemBlurClose()
   adminNewItemSelection.value = null
   adminNewItemDropdownOpen.value = false
   pharmResolveResults.value = []
@@ -4146,7 +4163,8 @@ const resetAdminNewItemSearch = () => {
 }
 
 const closeAdminNewItemDropdown = () => {
-  setTimeout(() => { adminNewItemDropdownOpen.value = false }, 150)
+  cancelAdminNewItemBlurClose()
+  adminNewItemBlurTimeout = setTimeout(() => { adminNewItemDropdownOpen.value = false }, 150)
 }
 
 const clearAdminSelectedProduct = () => {

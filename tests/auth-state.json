@@ -1,0 +1,43 @@
+{
+  "cookies": [
+    {
+      "name": "_ga",
+      "value": "GA1.1.529212451.1781865129",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1816425128.558322,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "_ga_HWD9X2F2E9",
+      "value": "GS2.1.s1781865128$o1$g0$t1781865128$j60$l0$h0",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1816425128.571864,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:4000",
+      "localStorage": [
+        {
+          "name": "adminUser",
+          "value": "{\"id\":13,\"username\":\"medsgh_super\",\"role\":\"super_admin\"}"
+        },
+        {
+          "name": "adminToken",
+          "value": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjA0YzNiOGQyMmMyZThmMWQifQ.eyJpZCI6MTMsInVzZXJuYW1lIjoibWVkc2doX3N1cGVyIiwicm9sZSI6InN1cGVyX2FkbWluIiwidHlwZSI6ImFkbWluIiwidHYiOjAsImp0aSI6ImU4MGM2MTFjLTdhM2MtNDcxOS1iZWJiLTNkYjI1YzZiMjgzNiIsImlhdCI6MTc4MTg2NTEyOCwiZXhwIjoxNzgxODkzOTI4fQ.Ed36Qw7PVEeKO1awoEAUqSskbZldSpEhzZIvC9y2PjxPKxezpHAgitaKVxVP_VRw9KTdXAACkEevUJXtVhDJF6Jn5UzBFIEOs3zJnIde3c8-wZQabmzK49SA9lZxFCnxUjz4p6Z09s0ilft0Mtv4dNXQpmveHavG0A31i-KQGgTlyDs2PZSYaet_W7zXmu7slPS3xTkm8Z5g-J_KLnn9KU1LMkdiO-IQPzC2S6UHqNPs-UfRASBRVERmgcy78DitL_S3nzz7817YSZvbJfUAOoJTeMuZ4SCLggClld2aK0_0OUkGpuDZc0oZLuJNSNIIz6o2X6LhCj78VXRtfB0f5A"
+        },
+        {
+          "name": "adminRefreshToken",
+          "value": "e6axUc_sUY96SmVvYfybTaRFCNUmdmqExhI14QMPQfA"
+        }
+      ]
+    }
+  ]
+}
