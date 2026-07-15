@@ -68,6 +68,7 @@
                                     </button>
                                 </div>
 
+                                <!-- Clearance/discounted stock only — still in dev, hidden until ready
                                 <label v-if="item.product_name.trim()"
                                     class="flex items-center gap-2 pl-1 cursor-pointer select-none w-fit">
                                     <input type="checkbox" v-model="item.prefer_clearance_only"
@@ -75,6 +76,7 @@
                                         class="w-4 h-4 rounded accent-amber-600 cursor-pointer" />
                                     <span class="text-[11px] font-bold text-amber-700">Clearance/discounted stock only</span>
                                 </label>
+                                -->
                             </div>
                         </div>
                         <!-- Prescription + Notes footer -->
