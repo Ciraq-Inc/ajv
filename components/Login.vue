@@ -104,7 +104,8 @@
                     aria-label="Country code"
                   >
                     <option value="GH">🇬🇭 +233</option>
-                    <option value="US">🇺🇸 +1</option>
+                    <!-- US disabled — Termii not activated for +1 on this account -->
+                    <!-- <option value="US">🇺🇸 +1</option> -->
                     <option value="GB">🇬🇧 +44</option>
                   </select>
                   <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
@@ -376,7 +377,8 @@
                     aria-label="Country code"
                   >
                     <option value="GH">🇬🇭 +233</option>
-                    <option value="US">🇺🇸 +1</option>
+                    <!-- US disabled — Termii not activated for +1 on this account -->
+                    <!-- <option value="US">🇺🇸 +1</option> -->
                     <option value="GB">🇬🇧 +44</option>
                   </select>
                   <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
@@ -545,7 +547,8 @@
                     aria-label="Country code"
                   >
                     <option value="GH">🇬🇭 +233</option>
-                    <option value="US">🇺🇸 +1</option>
+                    <!-- US disabled — Termii not activated for +1 on this account -->
+                    <!-- <option value="US">🇺🇸 +1</option> -->
                     <option value="GB">🇬🇧 +44</option>
                   </select>
                   <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
