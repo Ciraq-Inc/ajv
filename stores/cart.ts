@@ -145,7 +145,7 @@ export const useCartStore = defineStore('cart', {
         return;
       }
 
-      const existingItem = this.items.find((item) => item.id === drug.id);
+      const existingItem = this.items.find((item) => String(item.id) === String(drug.id));
       if (existingItem) {
         existingItem.quantity = drug.quantity || 1;
       } else {
@@ -157,7 +157,7 @@ export const useCartStore = defineStore('cart', {
     },
 
     removeFromCart(drugId: number | string): void {
-      const index = this.items.findIndex((item) => item.id === drugId);
+      const index = this.items.findIndex((item) => String(item.id) === String(drugId));
       if (index !== -1) {
         this.items.splice(index, 1);
         this.saveCartToStorage();
@@ -165,7 +165,7 @@ export const useCartStore = defineStore('cart', {
     },
 
     updateQuantity(drugId: number | string, newQuantity: number): void {
-      const item = this.items.find((item) => item.id === drugId);
+      const item = this.items.find((item) => String(item.id) === String(drugId));
       if (item) {
         item.quantity = newQuantity > 0 ? newQuantity : 1;
         this.saveCartToStorage();
