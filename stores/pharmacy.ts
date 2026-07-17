@@ -14,7 +14,7 @@
 import { defineStore } from 'pinia';
 import { otpService } from '~/utils/otpService';
 import { createPharmacyService } from '~/services/pharmacy/pharmacyService';
-import type { Company, Product } from '~/services/types';
+import type { Company, Product, ProductClassification } from '~/services/types';
 
 // ---------------------------------------------------------------------------
 // Domain types (local to pharmacy store)
@@ -110,6 +110,8 @@ export interface PharmacyState {
   productPagination: ProductPagination;
   /** Cursor returned by the last paginated products fetch. Null when no further pages. */
   nextCursor: string | null;
+  /** Drug classifications actually carried by this pharmacy's stocked products. */
+  classifications: ProductClassification[];
 }
 
 // ---------------------------------------------------------------------------
@@ -215,6 +217,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
       totalPages: 0,
     },
     nextCursor: null,
+    classifications: [],
   }),
 
   actions: {
@@ -319,6 +322,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
         }
 
         await this.fetchProducts();
+        void this.fetchClassifications();
       } catch (error: unknown) {
         console.error('Error fetching pharmacy data:', error);
         this.error = error instanceof Error ? error.message : String(error);
@@ -341,11 +345,13 @@ export const usePharmacyStore = defineStore('pharmacy', {
       limit = 50,
       search = '',
       cursor,
+      classificationId,
     }: {
       page?: number;
       limit?: number;
       search?: string;
       cursor?: string;
+      classificationId?: number | string;
     } = {}): Promise<PharmacyProduct[]> {
       if (!this.currentPharmacy) return [];
 
@@ -358,6 +364,7 @@ export const usePharmacyStore = defineStore('pharmacy', {
             limit,
             search,
             ...(cursor !== undefined ? { cursor } : {}),
+            ...(classificationId !== undefined ? { classificationId } : {}),
           });
         } catch (httpErr: unknown) {
           const err = httpErr as { status?: number } | null;
@@ -400,6 +407,25 @@ export const usePharmacyStore = defineStore('pharmacy', {
         console.error('Error fetching products:', error);
         this.products = [];
         throw error;
+      }
+    },
+
+    /**
+     * Distinct drug classifications actually carried by this pharmacy's
+     * stocked products, resolved server-side via each product's
+     * master_products link — replaces the old static category list.
+     */
+    async fetchClassifications(): Promise<ProductClassification[]> {
+      if (!this.currentPharmacy) return [];
+
+      try {
+        const data = await this._pharmacyService().listClassifications(this.currentPharmacy);
+        this.classifications = data.success && Array.isArray(data.data) ? data.data : [];
+        return this.classifications;
+      } catch (error: unknown) {
+        console.error('Error fetching classifications:', error);
+        this.classifications = [];
+        return [];
       }
     },
 

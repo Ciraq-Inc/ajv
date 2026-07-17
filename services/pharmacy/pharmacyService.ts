@@ -6,7 +6,7 @@
 // These endpoints are public (no auth required); `useApi` will simply
 // omit the Authorization header when no token is present.
 
-import type { ApiInstance, ApiEnvelope, Company, Product } from '../types';
+import type { ApiInstance, ApiEnvelope, Company, Product, ProductClassification } from '../types';
 
 export interface ListProductsParams {
   companyId?: number | string;
@@ -15,6 +15,8 @@ export interface ListProductsParams {
   search?: string;
   /** Opaque cursor token for cursor-based pagination. Mutually exclusive with page. */
   cursor?: string;
+  /** Filter to products carrying this master-catalog classification id. */
+  classificationId?: number | string;
 }
 
 export interface SaveProductPayload {
@@ -42,11 +44,24 @@ export const createPharmacyService = (api: ApiInstance) => ({
    * Fetch products for a pharmacy with paging + optional search.
    * GET /api/products?company_id=&page=&limit=&search=
    */
-  listProducts({ companyId, page = 1, limit = 50, search = '', cursor }: ListProductsParams = {}): Promise<ApiEnvelope<Product[]>> {
+  listProducts({ companyId, page = 1, limit = 50, search = '', cursor, classificationId }: ListProductsParams = {}): Promise<ApiEnvelope<Product[]>> {
     const params: Record<string, string | number> = { company_id: companyId ?? '', page, limit };
     if (search) params['search'] = search;
     if (cursor !== undefined && cursor !== null) params['cursor'] = cursor;
+    if (classificationId !== undefined && classificationId !== null && classificationId !== '') {
+      params['classification_id'] = classificationId;
+    }
     return api.get('/api/products', { params });
+  },
+
+  /**
+   * Distinct drug classifications carried by this pharmacy's stocked
+   * products (resolved server-side via each product's master_products
+   * link) — powers the storefront's classification chip bar.
+   * GET /api/products/classifications?company_id=
+   */
+  listClassifications(companyId: number | string): Promise<ApiEnvelope<ProductClassification[]>> {
+    return api.get('/api/products/classifications', { params: { company_id: companyId } });
   },
 
   /**

@@ -116,6 +116,13 @@ export interface Product {
   company_id: number;
 }
 
+/** A drug classification carried by a company's stocked products (master_products link). */
+export interface ProductClassification {
+  id: number;
+  name: string;
+  product_count: number;
+}
+
 // ---------------------------------------------------------------------------
 // Orders
 // ---------------------------------------------------------------------------
