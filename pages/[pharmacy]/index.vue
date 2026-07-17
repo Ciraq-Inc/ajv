@@ -274,18 +274,20 @@
             </div>
           </div>
 
-          <!-- Category chips — horizontal scroll -->
+          <!-- Classification chips — horizontal scroll. Sourced from this
+               pharmacy's actual stocked products (via master_products
+               link), not a static list. -->
           <div class="px-4 pb-3 flex items-center gap-2 overflow-x-auto shopfront-chip-scroll">
             <button
-              v-for="cat in ['Vitamins', 'Pain Relief', 'Skin Care', 'Baby & Child', 'Antibiotics', 'Cough & Cold', 'Diabetes', 'Blood Pressure']"
-              :key="cat"
+              v-for="cls in pharmacyStore.classifications"
+              :key="cls.id"
               type="button"
-              @click="searchQuery = cat"
+              @click="toggleClassification(cls.id)"
               :class="[
                 'shopfront-chip flex-shrink-0',
-                searchQuery === cat ? 'shopfront-chip--active' : ''
+                selectedClassificationId === cls.id ? 'shopfront-chip--active' : ''
               ]"
-            >{{ cat }}</button>
+            >{{ cls.name }}</button>
             <button
               type="button"
               @click="submitRequestSearch"
@@ -639,6 +641,7 @@ definePageMeta({
 
 // State Variables
 const searchQuery = ref<string>("");
+const selectedClassificationId = ref<number | string | null>(null);
 const searchLoading = ref<boolean>(false);
 const isLoadingMoreProducts = ref<boolean>(false);
 const viewMode = ref<string>("table");
@@ -812,7 +815,12 @@ let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 const changePage = (page: number): void => {
   const { totalPages } = pharmacyStore.productPagination;
   if (page < 1 || page > totalPages) return;
-  void pharmacyStore.fetchProducts({ page, limit: pharmacyStore.productPagination.pageSize, search: searchQuery.value.trim() });
+  void pharmacyStore.fetchProducts({
+    page,
+    limit: pharmacyStore.productPagination.pageSize,
+    search: searchQuery.value.trim(),
+    ...(selectedClassificationId.value !== null ? { classificationId: selectedClassificationId.value } : {}),
+  });
 };
 
 const loadMoreProducts = async (): Promise<void> => {
@@ -822,12 +830,18 @@ const loadMoreProducts = async (): Promise<void> => {
     await pharmacyStore.fetchProducts({
       cursor: pharmacyStore.nextCursor,
       search: searchQuery.value.trim(),
+      ...(selectedClassificationId.value !== null ? { classificationId: selectedClassificationId.value } : {}),
     });
   } catch (err) {
     console.error('Failed to load more products:', err);
   } finally {
     isLoadingMoreProducts.value = false;
   }
+};
+
+// Toggle a classification chip — clicking the active chip clears the filter.
+const toggleClassification = (id: number | string): void => {
+  selectedClassificationId.value = selectedClassificationId.value === id ? null : id;
 };
 
 interface RequestDraftItem {
@@ -1006,11 +1020,26 @@ watch(searchQuery, (newQuery) => {
   searchLoading.value = true;
   searchDebounceTimer = setTimeout(async () => {
     try {
-      await pharmacyStore.fetchProducts({ page: 1, limit: pharmacyStore.productPagination.pageSize, search: newQuery.trim() });
+      await pharmacyStore.fetchProducts({
+        page: 1,
+        limit: pharmacyStore.productPagination.pageSize,
+        search: newQuery.trim(),
+        ...(selectedClassificationId.value !== null ? { classificationId: selectedClassificationId.value } : {}),
+      });
     } finally {
       searchLoading.value = false;
     }
   }, 400);
+});
+
+// Classification chip toggled — re-fetch from page 1, combined with any active search text
+watch(selectedClassificationId, (newId) => {
+  void pharmacyStore.fetchProducts({
+    page: 1,
+    limit: pharmacyStore.productPagination.pageSize,
+    search: searchQuery.value.trim(),
+    ...(newId !== null ? { classificationId: newId } : {}),
+  });
 });
 
 // Watch for route changes
