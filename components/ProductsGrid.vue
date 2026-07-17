@@ -43,18 +43,18 @@
         class="group bg-white rounded-3xl shadow-md overflow-hidden flex flex-col product-card"
         :class="{ 'opacity-60': product.stockQty <= 0 }"
       >
-        <!-- Image area — tinted shelf plate, with zoom on hover -->
+        <!-- Image area — white when a photo is shown, tinted shelf plate otherwise -->
         <div
           class="relative overflow-hidden card-media-tile flex-shrink-0 h-36 sm:h-44 p-3"
-          :class="product.productImageUrl ? 'cursor-zoom-in' : ''"
-          @click="product.productImageUrl && openLightbox(product)"
+          :class="hasImage(product) ? 'cursor-zoom-in' : 'card-media-tile--accent'"
+          @click="hasImage(product) && openLightbox(product)"
         >
           <img
-            v-if="product.productImageUrl"
+            v-if="hasImage(product)"
             :src="product.productImageUrl"
             :alt="product.brandName"
             loading="lazy"
-            @error="handleImageError"
+            @error="handleCardImageError(product)"
             class="w-full h-full object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
           />
           <!-- Low stock ribbon -->
@@ -178,7 +178,7 @@
                 :src="lightboxProduct.productImageUrl"
                 :alt="lightboxProduct.brandName"
                 class="max-h-full max-w-full object-contain"
-                @error="handleImageError"
+                @error="handleLightboxImageError"
               />
             </div>
             <div class="p-4">
@@ -229,6 +229,7 @@ interface PharmacyProduct {
 interface ProductItem extends PharmacyProduct {
   quantity: number;
   justAdded: boolean;
+  imageFailed: boolean;
 }
 
 // TODO: remove once stores/ are .ts
@@ -276,7 +277,14 @@ const pharmacySlug = computed<string | string[]>(() => route.params['pharmacy'] 
 const isProductActive = (product: PharmacyProduct): boolean =>
   !(product.isActive === false || product.isActive === 0 || product.isActive === '0');
 
-const handleImageError = (event: Event): void => {
+const hasImage = (product: ProductItem): boolean =>
+  Boolean(product.productImageUrl) && !product.imageFailed;
+
+const handleCardImageError = (product: ProductItem): void => {
+  product.imageFailed = true;
+};
+
+const handleLightboxImageError = (event: Event): void => {
   const target = event.target as HTMLImageElement;
   target.style.display = 'none';
   target.onerror = null;
@@ -296,7 +304,7 @@ const initializeProductItems = (): void => {
   if (Array.isArray(sourceProducts)) {
     productItems.value = sourceProducts
       .filter(isProductActive)
-      .map((product): ProductItem => ({ ...product, quantity: 1, justAdded: false }));
+      .map((product): ProductItem => ({ ...product, quantity: 1, justAdded: false, imageFailed: false }));
   }
 };
 
@@ -414,6 +422,9 @@ const handleAddToCart = (product: ProductItem): void => {
 
 /* ── Shelf-tile media plate ──────────────────────────────────── */
 .card-media-tile {
+  background: #ffffff;
+}
+.card-media-tile--accent {
   background: linear-gradient(
     160deg,
     var(--shopfront-accent-soft, rgba(79, 70, 229, 0.08)),
