@@ -519,7 +519,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from "vue-router";
 import { usePharmacyStore } from "~/stores/pharmacy";
 import { useCartStore } from "~/stores/cart";
@@ -644,7 +644,7 @@ const searchQuery = ref<string>("");
 const selectedClassificationId = ref<number | string | null>(null);
 const searchLoading = ref<boolean>(false);
 const isLoadingMoreProducts = ref<boolean>(false);
-const viewMode = ref<string>("table");
+const viewMode = ref<string>("grid");
 const cartSidebar = ref<{ toggleCart: () => void } | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
 const showLoginModal = ref<boolean>(false);
@@ -801,10 +801,6 @@ const openCart = (): void => {
   if (cartSidebar.value) {
     cartSidebar.value.toggleCart();
   }
-};
-
-const updateViewMode = (): void => {
-  viewMode.value = window.innerWidth < 768 ? "grid" : "table";
 };
 
 const clearSearch = (): void => {
@@ -991,12 +987,6 @@ const onRequestProduct = (name: string | null | undefined): void => {
   submitRequestSearch();
 };
 
-// Lifecycle hooks
-onMounted(() => {
-  updateViewMode();
-  window.addEventListener("resize", updateViewMode);
-});
-
 watch(pharmacyHeaderRef, (el) => {
   headerObserver?.disconnect();
   if (!el) return;
@@ -1008,7 +998,6 @@ watch(pharmacyHeaderRef, (el) => {
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", updateViewMode);
   if (searchDebounceTimer !== null) clearTimeout(searchDebounceTimer);
   if (cartToastTimer !== null) clearTimeout(cartToastTimer);
   headerObserver?.disconnect();

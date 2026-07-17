@@ -3,12 +3,12 @@
   <div>
     <!-- Skeleton loading -->
     <div v-if="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-      <div v-for="n in 8" :key="n" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+      <div v-for="n in 8" :key="n" class="bg-white rounded-3xl overflow-hidden shadow-md">
         <div class="bg-gray-100 h-36 sm:h-44 w-full skeleton-shimmer"></div>
         <div class="p-3 space-y-2.5">
           <div class="bg-gray-100 rounded-lg h-4 w-3/4 skeleton-shimmer"></div>
           <div class="bg-gray-100 rounded-lg h-3 w-1/3 skeleton-shimmer"></div>
-          <div class="mt-3 bg-gray-100 rounded-xl h-8 w-full skeleton-shimmer"></div>
+          <div class="mt-3 bg-gray-100 rounded-full h-9 w-full skeleton-shimmer"></div>
         </div>
       </div>
     </div>
@@ -40,24 +40,29 @@
       <div
         v-for="product in sortedProducts"
         :key="product.id"
-        class="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col product-card"
+        class="group bg-white rounded-3xl shadow-md overflow-hidden flex flex-col product-card"
         :class="{ 'opacity-60': product.stockQty <= 0 }"
       >
-        <!-- Image area — taller, with zoom on hover -->
-        <div class="relative overflow-hidden bg-gray-50 cursor-zoom-in flex-shrink-0" @click="openLightbox(product)">
+        <!-- Image area — tinted shelf plate, with zoom on hover -->
+        <div
+          class="relative overflow-hidden card-media-tile flex-shrink-0 h-36 sm:h-44 p-3"
+          :class="product.productImageUrl ? 'cursor-zoom-in' : ''"
+          @click="product.productImageUrl && openLightbox(product)"
+        >
           <img
-            :src="getImageURL(product)"
+            v-if="product.productImageUrl"
+            :src="product.productImageUrl"
             :alt="product.brandName"
             loading="lazy"
             @error="handleImageError"
-            class="w-full h-36 sm:h-44 object-cover transition-transform duration-300 group-hover:scale-105"
+            class="w-full h-full object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
           />
-          <!-- Low stock badge -->
+          <!-- Low stock ribbon -->
           <div
             v-if="product.stockQty > 0 && product.stockQty <= 5"
-            class="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm"
+            class="stock-ribbon"
           >
-            Only {{ product.stockQty }} left
+            {{ product.stockQty }} left
           </div>
           <!-- Out of stock overlay -->
           <div
@@ -86,10 +91,10 @@
           </h3>
 
           <!-- Price row -->
-          <div class="flex items-baseline gap-1">
+          <div class="flex items-baseline gap-1.5">
             <template v-if="!props.hidePrices">
-              <span class="text-base font-bold text-gray-900">GHS {{ formatPrice(product.sellingPrice) }}</span>
-              <span class="text-gray-400 text-xs">/ {{ product.unit || 'unit' }}</span>
+              <span class="text-lg font-extrabold text-gray-900 tracking-tight">GHS {{ formatPrice(product.sellingPrice) }}</span>
+              <span class="text-gray-400 text-xs font-medium">/ {{ product.unit || 'unit' }}</span>
             </template>
             <span v-else class="text-gray-400 text-xs italic">To be priced</span>
           </div>
@@ -97,53 +102,54 @@
           <!-- Spacer pushes controls to card bottom -->
           <div class="flex-1"></div>
 
-          <!-- Qty stepper -->
-          <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden self-start">
-            <button
-              @click.stop="decreaseQuantity(product)"
-              :disabled="product.quantity <= 1"
-              class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-colors select-none"
-              aria-label="Decrease quantity"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4" />
-              </svg>
-            </button>
-            <span class="px-2 text-sm font-semibold text-gray-700 min-w-[2rem] text-center select-none">{{ product.quantity || 1 }}</span>
-            <button
-              @click.stop="increaseQuantity(product)"
-              class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors select-none"
-              aria-label="Increase quantity"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-          </div>
+          <!-- Qty stepper + Add to cart, side by side -->
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 bg-gray-50 rounded-full p-1 flex-shrink-0">
+              <button
+                @click.stop="decreaseQuantity(product)"
+                :disabled="product.quantity <= 1"
+                class="w-7 h-7 flex items-center justify-center rounded-full bg-white text-gray-500 shadow-sm hover:text-gray-700 disabled:opacity-30 transition-colors select-none"
+                aria-label="Decrease quantity"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4" />
+                </svg>
+              </button>
+              <span class="w-6 text-center text-sm font-semibold text-gray-700 select-none">{{ product.quantity || 1 }}</span>
+              <button
+                @click.stop="increaseQuantity(product)"
+                class="w-7 h-7 flex items-center justify-center rounded-full bg-white text-gray-500 shadow-sm hover:text-gray-700 transition-colors select-none"
+                aria-label="Increase quantity"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
 
-          <!-- Add to cart — full width -->
-          <button
-            @click.stop="handleAddToCart(product)"
-            :disabled="product.stockQty <= 0 || !isProductActive(product)"
-            :class="[
-              'w-full py-2 text-sm font-semibold rounded-xl transition-all duration-200 leading-none',
-              product.stockQty <= 0 || !isProductActive(product)
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : product.justAdded
-                  ? 'add-btn text-white shadow-sm'
-                  : 'add-btn text-white shadow-sm hover:-translate-y-px'
-            ]"
-          >
-            <span class="flex items-center justify-center gap-1.5">
-              <svg v-if="product.justAdded" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <!-- Add to cart -->
+            <button
+              @click.stop="handleAddToCart(product)"
+              :disabled="product.stockQty <= 0 || !isProductActive(product)"
+              :class="[
+                'flex-1 h-9 flex items-center justify-center gap-1.5 text-sm font-semibold rounded-full transition-all duration-200',
+                product.stockQty <= 0 || !isProductActive(product)
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : product.justAdded
+                    ? 'add-btn text-white shadow-sm'
+                    : 'add-btn text-white shadow-sm hover:-translate-y-px'
+              ]"
+              :aria-label="product.justAdded ? 'Added to cart' : 'Add to cart'"
+            >
+              <svg v-if="product.justAdded" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
               </svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              {{ product.justAdded ? 'Added' : 'Add to cart' }}
-            </span>
-          </button>
+              <span class="hidden sm:inline truncate">{{ product.justAdded ? 'Added' : 'Add' }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -168,7 +174,8 @@
             </button>
             <div class="bg-gray-50 h-56 flex items-center justify-center p-4">
               <img
-                :src="getImageURL(lightboxProduct)"
+                v-if="lightboxProduct.productImageUrl"
+                :src="lightboxProduct.productImageUrl"
                 :alt="lightboxProduct.brandName"
                 class="max-h-full max-w-full object-contain"
                 @error="handleImageError"
@@ -269,12 +276,9 @@ const pharmacySlug = computed<string | string[]>(() => route.params['pharmacy'] 
 const isProductActive = (product: PharmacyProduct): boolean =>
   !(product.isActive === false || product.isActive === 0 || product.isActive === '0');
 
-const getImageURL = (product: PharmacyProduct): string =>
-  product.productImageUrl ?? '/placeholder-med.svg';
-
 const handleImageError = (event: Event): void => {
   const target = event.target as HTMLImageElement;
-  target.src = '/placeholder-med.svg';
+  target.style.display = 'none';
   target.onerror = null;
 };
 
@@ -408,16 +412,51 @@ const handleAddToCart = (product: ProductItem): void => {
   .product-card:hover { transform: none; }
 }
 
+/* ── Shelf-tile media plate ──────────────────────────────────── */
+.card-media-tile {
+  background: linear-gradient(
+    160deg,
+    var(--shopfront-accent-soft, rgba(79, 70, 229, 0.08)),
+    color-mix(in srgb, var(--shopfront-accent, #4f46e5) 14%, #ffffff)
+  );
+}
+
+/* ── Low stock ribbon ─────────────────────────────────────────── */
+.stock-ribbon {
+  position: absolute;
+  top: 10px;
+  left: -6px;
+  background: #f59e0b;
+  color: #422006;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px 3px 14px;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.stock-ribbon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 100%;
+  border-width: 5px 6px 0 0;
+  border-style: solid;
+  border-color: #92400e transparent transparent transparent;
+}
+
 /* ── Add to cart button ──────────────────────────────────────── */
 .add-btn {
   background-color: var(--shopfront-accent, #4f46e5);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--shopfront-accent, #4f46e5) 25%, transparent);
 }
 .add-btn:hover {
-  filter: brightness(0.92);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--shopfront-accent, #4f46e5) 40%, transparent);
 }
 .add-btn:active {
-  filter: brightness(0.84);
+  filter: brightness(0.9);
   transform: translateY(0) !important;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--shopfront-accent, #4f46e5) 25%, transparent);
 }
 
 /* ── Skeleton shimmer ────────────────────────────────────────── */
