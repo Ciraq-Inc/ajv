@@ -17,6 +17,8 @@ export interface ListProductsParams {
   cursor?: string;
   /** Filter to products carrying this master-catalog classification id. */
   classificationId?: number | string;
+  /** Offset-mode-only sort override. Ignored by the backend when `cursor` is present. */
+  sort?: 'images_first';
 }
 
 export interface SaveProductPayload {
@@ -44,13 +46,14 @@ export const createPharmacyService = (api: ApiInstance) => ({
    * Fetch products for a pharmacy with paging + optional search.
    * GET /api/products?company_id=&page=&limit=&search=
    */
-  listProducts({ companyId, page = 1, limit = 50, search = '', cursor, classificationId }: ListProductsParams = {}): Promise<ApiEnvelope<Product[]>> {
+  listProducts({ companyId, page = 1, limit = 50, search = '', cursor, classificationId, sort }: ListProductsParams = {}): Promise<ApiEnvelope<Product[]>> {
     const params: Record<string, string | number> = { company_id: companyId ?? '', page, limit };
     if (search) params['search'] = search;
     if (cursor !== undefined && cursor !== null) params['cursor'] = cursor;
     if (classificationId !== undefined && classificationId !== null && classificationId !== '') {
       params['classification_id'] = classificationId;
     }
+    if (sort) params['sort'] = sort;
     return api.get('/api/products', { params });
   },
 

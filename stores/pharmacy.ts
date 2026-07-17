@@ -365,6 +365,9 @@ export const usePharmacyStore = defineStore('pharmacy', {
             search,
             ...(cursor !== undefined ? { cursor } : {}),
             ...(classificationId !== undefined ? { classificationId } : {}),
+            // Offset mode only — cursor pagination is currently unreachable
+            // from the UI and the backend ignores `sort` on that branch.
+            ...(cursor === undefined ? { sort: 'images_first' as const } : {}),
           });
         } catch (httpErr: unknown) {
           const err = httpErr as { status?: number } | null;
