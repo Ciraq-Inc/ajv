@@ -274,30 +274,72 @@
             </div>
           </div>
 
-          <!-- Classification chips — horizontal scroll. Sourced from this
-               pharmacy's actual stocked products (via master_products
+          <!-- Classification filter — inline expanding panel. Sourced from
+               this pharmacy's actual stocked products (via master_products
                link), not a static list. -->
-          <div class="px-4 pb-3 flex items-center gap-2 overflow-x-auto shopfront-chip-scroll">
-            <button
-              v-for="cls in pharmacyStore.classifications"
-              :key="cls.id"
-              type="button"
-              @click="toggleClassification(cls.id)"
-              :class="[
-                'shopfront-chip flex-shrink-0',
-                selectedClassificationId === cls.id ? 'shopfront-chip--active' : ''
-              ]"
-            >{{ cls.name }}</button>
+          <div class="px-4 pb-3">
             <button
               type="button"
-              @click="submitRequestSearch"
-              class="shopfront-chip shopfront-chip--request flex-shrink-0 flex items-center gap-1"
+              @click="isCategoryPanelOpen = !isCategoryPanelOpen"
+              class="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 hover:border-gray-300 transition-colors"
+              :aria-expanded="isCategoryPanelOpen"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              <span class="text-sm text-gray-600 truncate">
+                Classification:
+                <strong class="text-gray-900 font-semibold">{{ selectedClassificationName }}</strong>
+              </span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 flex-shrink-0 transition-transform duration-200"
+                :class="{ 'rotate-180': isCategoryPanelOpen }"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 9l6 6 6-6" />
               </svg>
-              Request item
             </button>
+
+            <div class="category-panel" :class="{ 'category-panel--open': isCategoryPanelOpen }">
+              <div class="category-panel-inner border border-gray-200 rounded-xl bg-white p-3 mt-2">
+                <div class="relative">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    v-model="categorySearchQuery"
+                    type="search"
+                    placeholder="Search categories…"
+                    class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 text-sm shopfront-input"
+                    aria-label="Search categories"
+                  />
+                </div>
+
+                <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-0.5">
+                  <button
+                    v-for="cls in filteredClassifications"
+                    :key="cls.id"
+                    type="button"
+                    @click="toggleClassification(cls.id)"
+                    :class="[
+                      'category-pill',
+                      selectedClassificationId === cls.id ? 'category-pill--active' : ''
+                    ]"
+                  >{{ cls.name }}</button>
+                  <p v-if="!filteredClassifications.length" class="col-span-full text-center text-xs text-gray-400 py-4">
+                    No categories match "{{ categorySearchQuery }}"
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  @click="submitRequestSearch"
+                  class="mt-3 w-full shopfront-chip shopfront-chip--request flex items-center justify-center gap-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Request item
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -642,6 +684,8 @@ definePageMeta({
 // State Variables
 const searchQuery = ref<string>("");
 const selectedClassificationId = ref<number | string | null>(null);
+const isCategoryPanelOpen = ref<boolean>(false);
+const categorySearchQuery = ref<string>("");
 const searchLoading = ref<boolean>(false);
 const isLoadingMoreProducts = ref<boolean>(false);
 const viewMode = ref<string>("grid");
@@ -839,6 +883,21 @@ const loadMoreProducts = async (): Promise<void> => {
 const toggleClassification = (id: number | string): void => {
   selectedClassificationId.value = selectedClassificationId.value === id ? null : id;
 };
+
+const filteredClassifications = computed(() => {
+  const query = categorySearchQuery.value.trim().toLowerCase();
+  if (!query) return pharmacyStore.classifications;
+  return pharmacyStore.classifications.filter((cls: { name: string }) =>
+    cls.name.toLowerCase().includes(query)
+  );
+});
+
+const selectedClassificationName = computed<string>(() => {
+  const match = pharmacyStore.classifications.find(
+    (cls: { id: number | string }) => cls.id === selectedClassificationId.value
+  );
+  return match ? match.name : "All";
+});
 
 interface RequestDraftItem {
   product_name: string
@@ -1216,6 +1275,38 @@ watch(
   color: #334155;
   border-color: #94a3b8;
   border-style: dashed;
+}
+
+/* ── Category filter — inline expanding panel ─────────────────── */
+.category-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.22s ease;
+}
+.category-panel--open {
+  max-height: 420px;
+}
+.category-pill {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+  background: #f8fafc;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+.category-pill:hover {
+  background: color-mix(in srgb, var(--shopfront-accent) 8%, #f8fafc);
+  color: var(--shopfront-accent);
+  border-color: color-mix(in srgb, var(--shopfront-accent) 30%, transparent);
+}
+.category-pill--active {
+  background: color-mix(in srgb, var(--shopfront-accent) 12%, #f8fafc);
+  color: var(--shopfront-accent);
+  border-color: color-mix(in srgb, var(--shopfront-accent) 40%, transparent);
 }
 
 /* ── Semantic token aliases ─────────────────────────────────── */

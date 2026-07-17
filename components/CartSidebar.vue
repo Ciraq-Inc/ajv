@@ -80,16 +80,16 @@
 
             <div class="flex items-center justify-between w-full sm:w-auto">
               <div class="flex items-center border rounded overflow-hidden">
-                <button @click="updateQuantity(Number(item.id), item.quantity - 1)" :disabled="item.quantity <= 1"
+                <button @click="updateQuantity(item.id, item.quantity - 1)" :disabled="item.quantity <= 1"
                   class="px-3 py-1 bg-gray-100 disabled:opacity-50">
                   -
                 </button>
                 <span class="px-3 py-1 border-x">{{ item.quantity }}</span>
-                <button @click="updateQuantity(Number(item.id), item.quantity + 1)" class="px-3 py-1 bg-gray-100">
+                <button @click="updateQuantity(item.id, item.quantity + 1)" class="px-3 py-1 bg-gray-100">
                   +
                 </button>
               </div>
-              <button @click="removeFromCart(Number(item.id))" class="ml-4 text-red-500 hover:text-red-700 p-1">
+              <button @click="removeFromCart(item.id)" class="ml-4 text-red-500 hover:text-red-700 p-1">
                 <i class="ri-delete-bin-line text-lg"></i>
               </button>
             </div>
@@ -216,8 +216,8 @@ interface OrderResult {
 interface CartStoreShape {
   items: CartItem[];
   cartTotal: number;
-  removeFromCart: (id: number) => void;
-  updateQuantity: (id: number, qty: number) => void;
+  removeFromCart: (id: number | string) => void;
+  updateQuantity: (id: number | string, qty: number) => void;
   clearCart: () => void;
 }
 
