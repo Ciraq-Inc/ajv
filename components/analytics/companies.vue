@@ -373,13 +373,6 @@
                    disabled until its parent is chosen, and the chevrons /
                    helper text make the dependency explicit. -->
               <div class="mt-4 border border-gray-200 rounded-xl bg-gray-50/60 p-4">
-                <div class="flex items-center gap-1.5 mb-3">
-                  <MapPinIcon class="w-4 h-4 text-indigo-500" aria-hidden="true" />
-                  <span class="text-sm font-medium text-gray-700">Administrative Location</span>
-                </div>
-                <p class="text-xs text-gray-500 mb-3">
-                  Each field narrows down the next — district options depend on the selected region, and sub-district options depend on the selected district.
-                </p>
                 <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto_1fr] gap-x-2 gap-y-3 items-start">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">1. Region</label>
@@ -614,7 +607,7 @@ import { ref, computed, onMounted } from "vue";
 import { useAdminStore } from "~/stores/admin";
 import { createCompaniesAnalyticsService } from "~/services/analytics/companiesAnalyticsService";
 import type { Company } from "~/services/types";
-import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon, ChevronRightIcon, MapPinIcon } from "@heroicons/vue/24/outline";
+import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon, ChevronRightIcon } from "@heroicons/vue/24/outline";
 import { GHANA_REGIONS, GHANA_DISTRICTS_BY_REGION, GHANA_SUBDISTRICTS_BY_DISTRICT } from "~/utils/constants/ghanaLocations";
 
 /** Extended company shape — all fields from the admin list endpoint. */
