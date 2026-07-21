@@ -53,7 +53,9 @@
     <div v-else-if="!loading && products.length === 0" class="empty-state">
       <Icon name="Package" size="48" class="empty-icon" />
       <p>No products found</p>
-      <p class="empty-subtext">Try adjusting your search criteria</p>
+      <p class="empty-subtext">
+        {{ clearanceOnly ? 'No clearance items are currently live across pharmacies.' : 'Try adjusting your search criteria' }}
+      </p>
     </div>
 
     <!-- Products Table -->
@@ -67,6 +69,8 @@
             <th>WhatsApp</th>
             <th>Unit</th>
             <th>Price (GHS)</th>
+            <th v-if="clearanceOnly">Clearance Qty</th>
+            <th v-if="clearanceOnly">Expiry Date</th>
             <th>Last Updated</th>
           </tr>
         </thead>
@@ -96,6 +100,14 @@
             </td>
             <td>
               <span class="price">{{ formatPrice(product.price as number | string | null | undefined) }}</span>
+            </td>
+            <td v-if="clearanceOnly">
+              <span class="qty">{{ product.available_quantity ?? 'N/A' }}</span>
+            </td>
+            <td v-if="clearanceOnly">
+              <span class="expiry-badge" :class="expiryUrgencyClass(product.clearance_expiry_date as string | undefined)">
+                {{ formatExpiryDate(product.clearance_expiry_date as string | undefined) }}
+              </span>
             </td>
             <td>
               <span class="date">{{ formatDate(product.date_updated as string | undefined) }}</span>
@@ -178,6 +190,8 @@ const props = defineProps<{
   autoload?: boolean;
   showPharmacySearch?: boolean;
   apiEndpoint?: string;
+  /** Restrict to products currently marked down for clearance (qty > 0 in clearance_sales), across all companies. */
+  clearanceOnly?: boolean;
 }>()
 
 // Emits
@@ -207,6 +221,9 @@ const emptyPagination = (): Pagination => ({
 const pagination = ref<Pagination>(emptyPagination())
 
 const hasSearchCriteria = computed<boolean>(() => {
+  // Clearance browsing has no meaningful "empty query" state — an admin should
+  // be able to page through every live clearance item without typing anything.
+  if (props.clearanceOnly) return true
   return Boolean(
     String(searchInput.value ?? '').trim() ||
     String(pharmacySearchInput.value ?? '').trim() ||
@@ -260,6 +277,10 @@ const loadProducts = async (): Promise<void> => {
 
     if (selectedCompany.value) {
       params['companyId'] = String(selectedCompany.value)
+    }
+
+    if (props.clearanceOnly) {
+      params['clearanceOnly'] = 'true'
     }
 
     const queryString = new URLSearchParams(params).toString()
@@ -353,6 +374,26 @@ const formatDate = (dateString: string | undefined): string => {
 const formatNumber = (num: number | null | undefined): string => {
   if (num === null || num === undefined) return '0'
   return num.toLocaleString('en-US')
+}
+
+const formatExpiryDate = (dateString: string | undefined): string => {
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+// Mirrors the urgency tiers used on the pharmacy-side clearance page (rOS)
+// so "near expiry" reads consistently across the platform.
+const expiryUrgencyClass = (dateString: string | undefined): string => {
+  if (!dateString) return ''
+  const daysUntilExpiry = Math.ceil((new Date(dateString).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  if (daysUntilExpiry < 30) return 'expiry-critical'
+  if (daysUntilExpiry < 60) return 'expiry-warning'
+  if (daysUntilExpiry < 90) return 'expiry-caution'
+  return 'expiry-safe'
 }
 
 // Expose methods for parent components
@@ -670,6 +711,40 @@ watch(() => props.initialCompanyId, (newVal) => {
 .date {
   color: #6b7280;
   font-size: 13px;
+}
+
+.qty {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.expiry-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.expiry-badge.expiry-critical {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.expiry-badge.expiry-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.expiry-badge.expiry-caution {
+  background: rgba(251, 191, 36, 0.1);
+  color: #b45309;
+}
+
+.expiry-badge.expiry-safe {
+  background: rgba(34, 197, 94, 0.1);
+  color: #059669;
 }
 
 /* Pagination */

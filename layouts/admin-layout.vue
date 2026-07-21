@@ -90,6 +90,11 @@
             <CubeIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Master Products</span>
           </NuxtLink>
+
+          <NuxtLink to="/admin/clearance-sale" class="nav-item" active-class="active">
+            <ArchiveBoxIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Clearance Products</span>
+          </NuxtLink>
         </div>
 
         <div class="nav-section">
@@ -332,6 +337,7 @@ import {
   UsersIcon,
   TagIcon,
   CodeBracketSquareIcon,
+  ArchiveBoxIcon,
 } from '@heroicons/vue/24/outline'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
@@ -387,6 +393,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/sms-billing')) return 'SMS Billing'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
   if (path.includes('/admin/masterlist')) return 'Master Products'
+  if (path.includes('/admin/clearance-sale')) return 'Clearance Products'
   if (path.includes('/admin/fulfillment/requests')) return 'Order Requests'
   if (path.includes('/admin/fulfillment/deliveries')) return 'Deliveries'
   if (path.includes('/admin/fulfillment/riders')) return 'Independent Riders'
