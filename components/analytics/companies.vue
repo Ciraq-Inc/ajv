@@ -392,6 +392,24 @@
                   />
                 </div>
                 <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">District</label>
+                  <input
+                    v-model="companyForm.district"
+                    type="text"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="e.g., Ayawaso West"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Sub-district</label>
+                  <input
+                    v-model="companyForm.sub_district"
+                    type="text"
+                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    placeholder="e.g., Dzorwulu"
+                  />
+                </div>
+                <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
                   <input
                     v-model="companyForm.latitude"
@@ -516,6 +534,10 @@
               <p class="text-sm text-gray-900">{{ [selectedCompany.country, selectedCompany.region].filter(Boolean).join(', ') || "N/A" }}</p>
             </div>
             <div>
+              <label class="block text-xs font-medium text-gray-500 mb-0.5">District / Sub-district</label>
+              <p class="text-sm text-gray-900">{{ [selectedCompany.district, selectedCompany.sub_district].filter(Boolean).join(', ') || "N/A" }}</p>
+            </div>
+            <div>
               <label class="block text-xs font-medium text-gray-500 mb-0.5">Coordinates</label>
               <p class="text-sm text-gray-900">
                 {{ selectedCompany.latitude && selectedCompany.longitude
@@ -591,6 +613,8 @@ interface CompanyRow extends Company {
   country?: string;
   region?: string;
   location_detail?: string;
+  district?: string;
+  sub_district?: string;
   latitude?: number | string;
   longitude?: number | string;
   created_at?: string;
@@ -619,6 +643,8 @@ interface CompanyFormState {
   country: string;
   region: string;
   location_detail: string;
+  district: string;
+  sub_district: string;
   latitude: string;
   longitude: string;
 }
@@ -644,6 +670,8 @@ const BLANK_FORM: CompanyFormState = {
   country: "",
   region: "",
   location_detail: "",
+  district: "",
+  sub_district: "",
   latitude: "",
   longitude: "",
 }
@@ -762,7 +790,6 @@ const createCompany = async (): Promise<void> => {
 // Edit company
 const editCompany = (company: CompanyRow): void => {
   selectedCompany.value = company;
-  // Only populate domain_name, whatsapp_number, companytype, sender_id, logo, and shop_banner for editing
   companyForm.value = {
     ...BLANK_FORM,
     domain_name: company.domain_name ?? "",
@@ -775,6 +802,8 @@ const editCompany = (company: CompanyRow): void => {
     country: company.country ?? "",
     region: company.region ?? "",
     location_detail: company.location_detail ?? "",
+    district: company.district ?? "",
+    sub_district: company.sub_district ?? "",
     latitude: String(company.latitude ?? ""),
     longitude: String(company.longitude ?? ""),
   };
@@ -801,6 +830,8 @@ const updateCompany = async (): Promise<void> => {
       country: companyForm.value.country,
       region: companyForm.value.region,
       location_detail: companyForm.value.location_detail,
+      district: companyForm.value.district,
+      sub_district: companyForm.value.sub_district,
       latitude: companyForm.value.latitude ? parseFloat(companyForm.value.latitude) : null,
       longitude: companyForm.value.longitude ? parseFloat(companyForm.value.longitude) : null,
     };
