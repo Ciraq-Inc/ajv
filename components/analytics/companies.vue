@@ -264,11 +264,6 @@
 
           <!-- Edit Modal fields -->
           <div v-if="showEditModal" class="space-y-4">
-            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
-              <InformationCircleIcon class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
-              <p class="text-sm text-indigo-700">Update domain name, WhatsApp number, SMS sender ID, logo, and shop banner for this company.</p>
-            </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Domain Name</label>
@@ -312,26 +307,6 @@
                   maxlength="11"
                 />
                 <p class="text-xs text-gray-400 mt-1">Custom SMS sender ID (max 11 chars). Leave empty to use default (RigelOS)</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
-                <input
-                  v-model="companyForm.logo"
-                  type="url"
-                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                  placeholder="https://example.com/logo.png"
-                />
-                <p class="text-xs text-gray-400 mt-1">URL to company logo image</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Shop Banner URL</label>
-                <input
-                  v-model="companyForm.shop_banner"
-                  type="url"
-                  class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                  placeholder="https://example.com/banner.jpg"
-                />
-                <p class="text-xs text-gray-400 mt-1">URL to shop banner/header image</p>
               </div>
             </div>
 
@@ -607,7 +582,7 @@ import { ref, computed, onMounted } from "vue";
 import { useAdminStore } from "~/stores/admin";
 import { createCompaniesAnalyticsService } from "~/services/analytics/companiesAnalyticsService";
 import type { Company } from "~/services/types";
-import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon, ChevronRightIcon } from "@heroicons/vue/24/outline";
+import { MagnifyingGlassIcon, ArrowPathIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon, ChevronRightIcon } from "@heroicons/vue/24/outline";
 import { GHANA_REGIONS, GHANA_DISTRICTS_BY_REGION, GHANA_SUBDISTRICTS_BY_DISTRICT } from "~/utils/constants/ghanaLocations";
 
 /** Extended company shape — all fields from the admin list endpoint. */
