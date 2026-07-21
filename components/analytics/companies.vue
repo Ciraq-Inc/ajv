@@ -335,26 +335,11 @@
               </div>
             </div>
 
-            <!-- Toggle More Section -->
+            <!-- Additional Details -->
             <div class="border-t border-gray-100 pt-4">
-              <button
-                @click="showMoreFields = !showMoreFields"
-                type="button"
-                class="flex items-center justify-between w-full px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium text-gray-700"
-              >
-                <span>More Fields (Optional)</span>
-                <svg
-                  :class="{ 'rotate-180': showMoreFields }"
-                  class="w-4 h-4 text-gray-500 transition-transform duration-200"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+              <h4 class="text-sm font-medium text-gray-700 mb-3">Additional Details</h4>
 
-              <div v-show="showMoreFields" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Alternate Company ID</label>
                   <input
@@ -374,15 +359,6 @@
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Region</label>
-                  <input
-                    v-model="companyForm.region"
-                    type="text"
-                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                    placeholder="e.g., Greater Accra"
-                  />
-                </div>
-                <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
                   <input
                     v-model="companyForm.location_detail"
@@ -391,24 +367,66 @@
                     placeholder="e.g., Accra"
                   />
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">District</label>
-                  <input
-                    v-model="companyForm.district"
-                    type="text"
-                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                    placeholder="e.g., Ayawaso West"
-                  />
+              </div>
+
+              <!-- Region -> District -> Sub-district cascade. Each field is
+                   disabled until its parent is chosen, and the chevrons /
+                   helper text make the dependency explicit. -->
+              <div class="mt-4 border border-gray-200 rounded-xl bg-gray-50/60 p-4">
+                <div class="flex items-center gap-1.5 mb-3">
+                  <MapPinIcon class="w-4 h-4 text-indigo-500" aria-hidden="true" />
+                  <span class="text-sm font-medium text-gray-700">Administrative Location</span>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Sub-district</label>
-                  <input
-                    v-model="companyForm.sub_district"
-                    type="text"
-                    class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                    placeholder="e.g., Dzorwulu"
-                  />
+                <p class="text-xs text-gray-500 mb-3">
+                  Each field narrows down the next — district options depend on the selected region, and sub-district options depend on the selected district.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto_1fr] gap-x-2 gap-y-3 items-start">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">1. Region</label>
+                    <select
+                      v-model="companyForm.region"
+                      class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      @change="onRegionChange"
+                    >
+                      <option value="">Select region</option>
+                      <option v-for="r in regionOptions" :key="r" :value="r">{{ r }}</option>
+                    </select>
+                  </div>
+                  <div class="hidden md:flex items-center justify-center pt-7">
+                    <ChevronRightIcon class="w-4 h-4 text-gray-300" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">2. District</label>
+                    <select
+                      v-model="companyForm.district"
+                      :disabled="!companyForm.region"
+                      class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
+                      @change="onDistrictChange"
+                    >
+                      <option value="">Select district</option>
+                      <option v-for="d in districtOptions" :key="d" :value="d">{{ d }}</option>
+                    </select>
+                    <p v-if="!companyForm.region" class="text-xs text-gray-400 mt-1">Select a region first</p>
+                  </div>
+                  <div class="hidden md:flex items-center justify-center pt-7">
+                    <ChevronRightIcon class="w-4 h-4 text-gray-300" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">3. Sub-district</label>
+                    <select
+                      v-model="companyForm.sub_district"
+                      :disabled="!companyForm.district"
+                      class="w-full h-9 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
+                    >
+                      <option value="">Select sub-district</option>
+                      <option v-for="sd in subDistrictOptions" :key="sd" :value="sd">{{ sd }}</option>
+                    </select>
+                    <p v-if="!companyForm.district" class="text-xs text-gray-400 mt-1">Select a district first</p>
+                  </div>
                 </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
                   <input
@@ -592,11 +610,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useAdminStore } from "~/stores/admin";
 import { createCompaniesAnalyticsService } from "~/services/analytics/companiesAnalyticsService";
 import type { Company } from "~/services/types";
-import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon } from "@heroicons/vue/24/outline";
+import { MagnifyingGlassIcon, ArrowPathIcon, InformationCircleIcon, EyeIcon, PencilIcon, ExclamationTriangleIcon, ChevronRightIcon, MapPinIcon } from "@heroicons/vue/24/outline";
+import { GHANA_REGIONS, GHANA_DISTRICTS_BY_REGION, GHANA_SUBDISTRICTS_BY_DISTRICT } from "~/utils/constants/ghanaLocations";
 
 /** Extended company shape — all fields from the admin list endpoint. */
 interface CompanyRow extends Company {
@@ -691,11 +710,50 @@ const subsidiaryCount = ref<number>(0);
 const showCreateModal = ref<boolean>(false);
 const showEditModal = ref<boolean>(false);
 const showViewModal = ref<boolean>(false);
-const showMoreFields = ref<boolean>(false);
 const selectedCompany = ref<CompanyRow | null>(null);
 
 // Company form
 const companyForm = ref<CompanyFormState>({ ...BLANK_FORM });
+
+// Region -> District -> Sub-district cascading dropdown options.
+// Legacy free-text values (saved before this field became a dropdown) are
+// appended to the options list so editing an existing company never blanks
+// out a value that doesn't match the canonical dataset.
+const regionOptions = computed<string[]>(() => {
+  const current = companyForm.value.region;
+  return current && !GHANA_REGIONS.includes(current) ? [...GHANA_REGIONS, current] : GHANA_REGIONS;
+});
+
+const districtOptions = computed<string[]>(() => {
+  const base = GHANA_DISTRICTS_BY_REGION[companyForm.value.region] ?? [];
+  const current = companyForm.value.district;
+  return current && !base.includes(current) ? [...base, current] : base;
+});
+
+const subDistrictOptions = computed<string[]>(() => {
+  const base = GHANA_SUBDISTRICTS_BY_DISTRICT[companyForm.value.district] ?? [];
+  const current = companyForm.value.sub_district;
+  return current && !base.includes(current) ? [...base, current] : base;
+});
+
+// @change (not watch()) so these only fire on genuine user interaction —
+// a watch() also fires when editCompany()/resetForm() bulk-assign the whole
+// form object, which would wipe legacy district/sub_district values that
+// don't match the new dataset before the user ever touched the dropdown.
+const onRegionChange = (): void => {
+  const validDistricts = GHANA_DISTRICTS_BY_REGION[companyForm.value.region] ?? [];
+  if (companyForm.value.district && !validDistricts.includes(companyForm.value.district)) {
+    companyForm.value.district = "";
+    companyForm.value.sub_district = "";
+  }
+};
+
+const onDistrictChange = (): void => {
+  const validSubDistricts = GHANA_SUBDISTRICTS_BY_DISTRICT[companyForm.value.district] ?? [];
+  if (companyForm.value.sub_district && !validSubDistricts.includes(companyForm.value.sub_district)) {
+    companyForm.value.sub_district = "";
+  }
+};
 
 // Debounced search
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -807,7 +865,6 @@ const editCompany = (company: CompanyRow): void => {
     latitude: String(company.latitude ?? ""),
     longitude: String(company.longitude ?? ""),
   };
-  showMoreFields.value = false;
   showEditModal.value = true;
 };
 
@@ -908,7 +965,6 @@ const closeModals = (): void => {
   showCreateModal.value = false;
   showEditModal.value = false;
   showViewModal.value = false;
-  showMoreFields.value = false;
   selectedCompany.value = null;
   companyForm.value = { ...BLANK_FORM };
 };
