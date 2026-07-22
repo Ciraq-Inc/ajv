@@ -148,12 +148,6 @@
           </div>
           <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'wallet' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Wallet</span>
         </button>
-        <button @click="goTo('profile')" :aria-label="'Profile'" :aria-current="activeNav === 'profile' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'profile' ? 'text-[#4F217A]' : 'text-zinc-400'">
-          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'profile' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
-            <component :is="activeNav === 'profile' ? UserSolid : UserOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'profile' ? 'scale-110' : ''" />
-          </div>
-          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'profile' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Profile</span>
-        </button>
         <button @click="goTo('clearance')" :aria-label="'Clearance deals'" :aria-current="activeNav === 'clearance' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'clearance' ? 'text-[#4F217A]' : 'text-zinc-400'">
           <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'clearance' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
             <component :is="activeNav === 'clearance' ? TagSolid : TagOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'clearance' ? 'scale-110' : ''" />
@@ -294,7 +288,7 @@ const displayUserFirstName = computed(() => hasMounted.value ? userFirstName.val
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
 const activeNav = computed(() => route.query.tab || 'new')
-const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock'].includes(activeNav.value))
+const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock', 'profile'].includes(activeNav.value))
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'new' && route.query.tab !== 'requests')
 const isProfessionalApproved = computed(() => userStore.masterCustomer?.professional_status === 'approved')
 const greetingLabel = computed(() => {
