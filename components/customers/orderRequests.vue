@@ -68,7 +68,6 @@
                                     </button>
                                 </div>
 
-                                <!-- Clearance/discounted stock only — still in dev, hidden until ready
                                 <label v-if="item.product_name.trim()"
                                     class="flex items-center gap-2 pl-1 cursor-pointer select-none w-fit">
                                     <input type="checkbox" v-model="item.prefer_clearance_only"
@@ -76,7 +75,6 @@
                                         class="w-4 h-4 rounded accent-amber-600 cursor-pointer" />
                                     <span class="text-[11px] font-bold text-amber-700">Clearance/discounted stock only</span>
                                 </label>
-                                -->
                             </div>
                         </div>
                         <!-- Prescription + Notes footer -->
@@ -1604,6 +1602,7 @@ interface NormalizedDraftItem {
     product_name: string;
     requested_unit: string;
     quantity: number;
+    prefer_clearance_only: boolean;
 }
 
 const normalizeHomepageDraftItem = (item: unknown): NormalizedDraftItem | null => {
@@ -1615,7 +1614,8 @@ const normalizeHomepageDraftItem = (item: unknown): NormalizedDraftItem | null =
     return {
         product_name: productName,
         requested_unit: String(srcObj?.['requested_unit'] ?? '').trim().toLowerCase(),
-        quantity: Math.max(1, Number(srcObj?.['quantity'] ?? 1))
+        quantity: Math.max(1, Number(srcObj?.['quantity'] ?? 1)),
+        prefer_clearance_only: Boolean(srcObj?.['prefer_clearance_only'])
     }
 }
 
@@ -1672,7 +1672,8 @@ const applyHomepageRequestDraft = (draftItems: NormalizedDraftItem[] | null = []
             ...newItem(),
             product_name: item.product_name,
             requested_unit: item.requested_unit ?? '',
-            quantity: item.quantity
+            quantity: item.quantity,
+            prefer_clearance_only: item.prefer_clearance_only
         }))
 
     if (!preparedItems.length) return
