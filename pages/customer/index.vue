@@ -216,6 +216,21 @@
           </aside>
         </div>
 
+        <button
+          type="button"
+          class="w-full flex items-center gap-4 rounded-2xl border border-[#ede5ff] bg-gradient-to-br from-white to-[#faf6ff] px-5 py-4 text-left hover:border-[#c9a8f0] hover:shadow-[0_4px_16px_-4px_rgba(79,33,122,0.15)] transition-all group"
+          @click="goTab('clearance')"
+        >
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
+            <TagIcon class="w-5 h-5" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <h4 class="text-sm font-bold text-slate-800 group-hover:text-[#4F217A] transition-colors">Browse Clearance Deals</h4>
+            <p class="text-[0.7rem] font-bold text-[#7a5fa0] group-hover:text-[#4F217A] transition-colors mt-0.5">Near-expiry stock marked down across all pharmacies</p>
+          </div>
+          <ChevronRightIcon class="hidden sm:block w-4 h-4 text-zinc-400 group-hover:text-[#4F217A] transition-colors shrink-0" />
+        </button>
+
         <section class="section-wrap space-y-4 pt-4 border-t border-[#ede5ff]">
           <div class="flex items-center justify-between pb-2 border-b border-[#e5d5f5]">
             <div class="flex items-center gap-2">
@@ -292,6 +307,10 @@
       <div v-if="currentTab === 'stock' && isProfessionalApproved" class="page-view">
         <ProfessionalStock />
       </div>
+
+      <div v-if="currentTab === 'clearance'" class="page-view">
+        <ClearanceDeals />
+      </div>
     </template>
   </div>
 </template>
@@ -308,6 +327,7 @@ import {
   BuildingStorefrontIcon,
   TruckIcon,
   BeakerIcon,
+  TagIcon,
 } from '@heroicons/vue/24/outline'
 import { CheckBadgeIcon as CheckBadgeIconSolid } from '@heroicons/vue/24/solid'
 import LinkedCompanies from '~/components/customers/linkedCompanies.vue'
@@ -316,6 +336,7 @@ import OrderRequests from '~/components/customers/orderRequests.vue'
 import Profile from '~/components/customers/profile.vue'
 import Wallet from '~/components/customers/wallet.vue'
 import ProfessionalStock from '~/components/customers/professionalStock.vue'
+import ClearanceDeals from '~/components/customers/clearanceDeals.vue'
 import { useUserStore } from '~/stores/user'
 import { getCompactAddressLines } from '~/utils/addressFormat'
 import { useOrderStatus } from '~/composables/useOrderStatus'

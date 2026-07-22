@@ -528,9 +528,9 @@
                           <div class="w-1.5 h-1.5 rounded-full bg-[#4F217A] shrink-0"></div>
                           <span>Add to request</span>
                           <label class="ml-auto flex items-center gap-1.5 cursor-pointer select-none"
-                            title="Only show clearance-priced stock in search results">
+                            title="Only show clearance-priced stock when searching for a new item to add">
                             <input type="checkbox" v-model="composeClearanceOnly" class="w-3.5 h-3.5 rounded accent-amber-600 cursor-pointer" />
-                            <span class="text-[10px] font-bold text-amber-700">Clearance stock only</span>
+                            <span class="text-[10px] font-bold text-amber-700">Search clearance stock only</span>
                           </label>
                         </div>
                         <div v-if="isComposeLocked" class="pane-quick-add-lock">
@@ -833,7 +833,12 @@
                                 >
                                   <span class="coverage-match-badge coverage-match-badge--fuzzy">{{ mIdx + 1 }}</span>
                                   <span class="text-[10px] text-gray-700 font-medium truncate flex-1">{{ match.matched_product_name }}</span>
-                                  <span v-if="match.price" class="text-[10px] font-bold text-gray-900 shrink-0">GHS {{ Number(match.price).toFixed(2) }}</span>
+                                  <span v-if="match.is_clearance" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Clearance</span>
+                                  <template v-if="match.is_clearance && match.original_price">
+                                    <span class="text-[10px] text-gray-400 line-through shrink-0">GHS {{ Number(match.original_price).toFixed(2) }}</span>
+                                    <span class="text-[10px] font-bold text-amber-700 shrink-0">GHS {{ Number(match.clearance_price ?? match.price).toFixed(2) }}</span>
+                                  </template>
+                                  <span v-else-if="match.price" class="text-[10px] font-bold text-gray-900 shrink-0">GHS {{ Number(match.price).toFixed(2) }}</span>
                                   <span class="text-[9px] font-bold px-1 py-0.5 rounded shrink-0" :class="Number(match.stock || 0) > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ match.stock ?? 0 }} left</span>
                                   <button
                                     type="button"
@@ -2466,6 +2471,9 @@ interface TopMatch {
   stock?: number | null
   unit?: string | null
   strength?: string | null
+  is_clearance?: boolean
+  original_price?: number | null
+  clearance_price?: number | null
 }
 
 interface UncoveredItem {
@@ -5989,7 +5997,8 @@ const saveAdminNewItem = async () => {
       quantity,
       requested_quantity: quantity,
       source_type: 'admin',
-      notes: null
+      notes: null,
+      prefer_clearance_only: Boolean(composeClearanceOnly.value)
     })
 
     adminNewItemSelection.value = null

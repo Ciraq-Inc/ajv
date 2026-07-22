@@ -147,7 +147,34 @@
           <p class="text-gray-600">No billing health data available</p>
         </div>
 
-        <div v-else class="overflow-x-auto">
+        <div v-else>
+          <!-- Status legend -->
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <span
+              title="Ledger and balance agree. Enough credit for normal sending."
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 cursor-default"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+              OK
+            </span>
+            <span
+              title="Balance is correct, but under 100 credits — nudge the pharmacy to top up."
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 cursor-default"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+              Low balance
+            </span>
+            <span
+              title="The credit ledger can't account for the stored balance. Needs reconciliation, not a top-up."
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 cursor-default"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+              Mismatch
+            </span>
+            <span class="text-xs text-gray-400">Hover a status for its meaning</span>
+          </div>
+
+          <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="bg-gray-50">
               <tr>
@@ -156,8 +183,16 @@
 
                 <th class="text-right py-3 px-3 text-xs font-medium text-gray-600 uppercase">Money (GH₵)</th>
 
+                <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase">
+                  Issues
+                  <span class="block text-[10px] normal-case font-normal text-gray-400 mt-0.5">why, not just that</span>
+                </th>
                 <th class="text-center py-3 px-3 text-xs font-medium text-gray-600 uppercase">Status</th>
-                <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase">Last Activity</th>
+                <th class="text-left py-3 px-3 text-xs font-medium text-gray-600 uppercase">
+                  Last Activity
+                  <span class="block text-[10px] normal-case font-normal text-gray-400 mt-0.5">real usage, not row edits</span>
+                </th>
+                <th class="text-center py-3 px-3 text-xs font-medium text-gray-600 uppercase">Action</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">
@@ -173,7 +208,7 @@
                   </div>
                 </td>
                 <td class="py-3 px-3 text-right">
-                  <span :class="health.sms_balance < 100 ? 'text-orange-600 font-semibold' : 'text-gray-900'">
+                  <span :class="isLowBalance(health) ? 'text-orange-600 font-semibold' : 'text-gray-900'">
                     {{ formatNumber(health.sms_balance) }}
                   </span>
                 </td>
@@ -212,30 +247,53 @@
                     {{ formatNumber(health.calculated_balance || 0) }}
                   </span>
                 </td> -->
+                <td class="py-3 px-3 text-gray-600">
+                  <span v-if="getRowIssueText(health)" :class="getRowLevel(health) === 'crit' ? 'text-red-700 font-medium' : 'text-gray-600'">
+                    {{ getRowIssueText(health) }}
+                  </span>
+                  <span v-else class="text-gray-300">—</span>
+                </td>
                 <td class="py-3 px-3 text-center">
                   <span
                     :class="[
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                      health.balance_status === 'OK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold',
+                      getRowLevel(health) === 'crit' ? 'bg-red-100 text-red-800' :
+                        getRowLevel(health) === 'warn' ? 'bg-amber-100 text-amber-800' :
+                        'bg-green-100 text-green-800'
                     ]"
                   >
-                    {{ health.balance_status || 'UNKNOWN' }}
+                    <span
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="getRowLevel(health) === 'crit' ? 'bg-red-600' : getRowLevel(health) === 'warn' ? 'bg-amber-600' : 'bg-green-600'"
+                    ></span>
+                    {{ getRowStatusLabel(health) }}
                   </span>
                 </td>
                 <td class="py-3 px-3 text-gray-600 whitespace-nowrap">
                   {{ health.last_activity ? formatDate(health.last_activity, 'short') : 'N/A' }}
                 </td>
-                <!-- <td class="py-3 px-3 text-center">
+                <td class="py-3 px-3 text-center">
                   <button
+                    v-if="getRowLevel(health) === 'crit'"
                     @click="reconcileCompany(health.company_id)"
-                    class="text-blue-600 hover:text-blue-800 font-medium"
+                    :disabled="reconciling"
+                    class="text-xs font-semibold px-2.5 py-1 rounded border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50"
                   >
                     Reconcile
                   </button>
-                </td> -->
+                  <button
+                    v-else-if="getRowLevel(health) === 'warn'"
+                    @click="openTopUpFor(health)"
+                    class="text-xs font-semibold px-2.5 py-1 rounded border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
+                  >
+                    Top up
+                  </button>
+                  <span v-else class="text-gray-300">—</span>
+                </td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -714,6 +772,62 @@ onMounted(async () => {
     adminGetRate()
   ])
 })
+
+// Unified status: a single field that always agrees with its own color,
+// instead of a raw balance_status pill next to a separately-thresholded
+// balance color that could contradict each other.
+const isMismatch = (h: BillingHealthRow): boolean =>
+  h.balance_status === 'MISMATCH' ||
+  Number(h.unbilled_sent_count ?? 0) > 0 ||
+  Number(h.billed_failed_count ?? 0) > 0
+
+const isLowBalance = (h: BillingHealthRow): boolean =>
+  Number(h.sms_balance ?? 0) < 100
+
+const getRowLevel = (h: BillingHealthRow): 'crit' | 'warn' | 'ok' => {
+  if (isMismatch(h)) return 'crit'
+  if (isLowBalance(h)) return 'warn'
+  return 'ok'
+}
+
+const getRowStatusLabel = (h: BillingHealthRow): string => {
+  const level = getRowLevel(h)
+  if (level === 'crit') return 'Mismatch'
+  if (level === 'warn') return 'Low balance'
+  return 'OK'
+}
+
+// States *why* a row is flagged, using the same fields an admin would
+// otherwise have to go find in the API/DB directly.
+const getRowIssueText = (h: BillingHealthRow): string | null => {
+  const unbilled = Number(h.unbilled_sent_count ?? 0)
+  const billedFailed = Number(h.billed_failed_count ?? 0)
+
+  if (unbilled > 0) return `${formatNumber(unbilled)} sent, not billed`
+  if (billedFailed > 0) return `${formatNumber(billedFailed)} billed but failed`
+
+  if (h.balance_status === 'MISMATCH') {
+    const calculated = Number(h.calculated_balance ?? 0)
+    const actual = Number(h.sms_balance ?? 0)
+    const gap = Math.abs(actual - calculated)
+    return `Ledger implies ${formatNumber(calculated)}; actual is ${formatNumber(actual)} — ${formatNumber(gap)} credit gap`
+  }
+
+  if (isLowBalance(h)) return 'Below 100-credit floor'
+
+  return null
+}
+
+// Open the existing Top Up modal pre-selected for a given company, so a
+// "Low balance" row has a real next step instead of a dead-end label.
+const openTopUpFor = (health: BillingHealthRow): void => {
+  selectedCompany.value = {
+    id: health.company_id,
+    name: health.company_name ?? health.name ?? `Company ${health.company_id}`
+  }
+  topUpForm.value.company_id = health.company_id
+  showTopUpModal.value = true
+}
 
 // Reconcile specific company
 const reconcileCompany = async (companyId: number | string): Promise<void> => {
