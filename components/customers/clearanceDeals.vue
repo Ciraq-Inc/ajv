@@ -93,7 +93,6 @@
           <h3 class="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug">
             {{ product.brand_name || product.product_description || 'Clearance item' }}
           </h3>
-          <p v-if="product.company_name" class="text-[11px] font-medium text-zinc-400 truncate">{{ product.company_name }}</p>
           <p v-if="product.expiry_date" class="text-[11px] font-semibold" :class="expiryClass(product.expiry_date)">
             Expires {{ formatExpiry(product.expiry_date) }}
           </p>
