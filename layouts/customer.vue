@@ -121,7 +121,7 @@
       </header>
 
       <!-- Slot Area -->
-      <div :class="(activeNav === 'requests' || activeNav === 'wallet') ? '' : 'p-4 lg:p-8'">
+      <div :class="(activeNav === 'requests' || activeNav === 'wallet') ? '' : (activeNav === 'clearance' ? 'p-4 lg:px-8 lg:pb-8 lg:pt-0' : 'p-4 lg:p-8')">
         <slot />
       </div>
 

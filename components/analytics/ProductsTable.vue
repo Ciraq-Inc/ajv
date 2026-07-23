@@ -68,6 +68,7 @@
             <th>Location</th>
             <th>WhatsApp</th>
             <th>Unit</th>
+            <th v-if="clearanceOnly">Original Price (GHS)</th>
             <th>Price (GHS)</th>
             <th v-if="clearanceOnly">Clearance Qty</th>
             <th v-if="clearanceOnly">Expiry Date</th>
@@ -97,6 +98,9 @@
             </td>
             <td>
               <span class="unit-badge">{{ product.unit || 'N/A' }}</span>
+            </td>
+            <td v-if="clearanceOnly">
+              <span class="original-price">{{ formatPrice(product.original_price as number | string | null | undefined) }}</span>
             </td>
             <td>
               <span class="price">{{ formatPrice(product.price as number | string | null | undefined) }}</span>
@@ -706,6 +710,12 @@ watch(() => props.initialCompanyId, (newVal) => {
 .price {
   font-weight: 600;
   color: #059669;
+}
+
+.original-price {
+  color: #9ca3af;
+  text-decoration: line-through;
+  font-size: 13px;
 }
 
 .date {
