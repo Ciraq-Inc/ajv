@@ -450,7 +450,7 @@
                       <EnvelopeIcon class="w-[18px] h-[18px]" />
                       Apply to partner
                     </a>
-                    <a href="tel:+233556637717" class="partner-cta-secondary">
+                    <a href="tel:+233599368632" class="partner-cta-secondary">
                       <PhoneIcon class="w-[18px] h-[18px]" />
                       Call us
                     </a>
@@ -613,7 +613,7 @@
                 <EnvelopeIcon class="w-5 h-5" />
               </a>
               <a
-                href="tel:+233556637717"
+                href="tel:+233599368632"
                 aria-label="Call us"
                 class="social-btn"
               >
