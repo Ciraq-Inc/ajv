@@ -1076,7 +1076,25 @@ const redirectLoggedInUsers = async (): Promise<boolean> => {
   return true
 }
 
+const captureClearanceDraftParam = (): void => {
+  if (!process.client) return
+  const draftParam = route.query['clearance_draft']
+  if (!draftParam) return
+  try {
+    const decoded = JSON.parse(String(draftParam)) as { items?: unknown[] } | null
+    if (Array.isArray(decoded?.items) && decoded.items.length) {
+      sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({
+        items: decoded.items,
+        source: 'ros-clearance-marketplace',
+      }))
+    }
+  } catch {
+    // Malformed draft param — ignore, no request draft is applied.
+  }
+}
+
 onMounted(async () => {
+  captureClearanceDraftParam()
   await (userStore as unknown as { checkAuthState: () => Promise<void> }).checkAuthState()
   authChecking.value = false
   await redirectLoggedInUsers()
