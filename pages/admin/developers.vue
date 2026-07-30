@@ -196,7 +196,8 @@
         <div class="console-request">
           <div class="form-group">
             <label>API Key (paste plaintext)</label>
-            <input v-model="console_.apiKey" class="form-control font-mono" placeholder="Paste key value…" />
+            <input v-model="console_.apiKey" class="form-control font-mono" placeholder="Paste key value…" :disabled="selectedEndpointNoAuth" />
+            <p v-if="selectedEndpointNoAuth" class="field-hint">This endpoint is public — no API key needed.</p>
           </div>
           <div class="form-group">
             <label>Endpoint</label>
@@ -213,7 +214,7 @@
             <label>Body (JSON)</label>
             <textarea v-model="console_.body" class="form-control font-mono" rows="7" placeholder='{ }' />
           </div>
-          <button @click="sendRequest" class="btn-primary w-full" :disabled="console_.loading || !console_.apiKey || !console_.endpointKey">
+          <button @click="sendRequest" class="btn-primary w-full" :disabled="console_.loading || (!console_.apiKey && !selectedEndpointNoAuth) || !console_.endpointKey">
             <Icon v-if="console_.loading" name="Loader2" size="15" class="animate-spin" />
             {{ console_.loading ? 'Sending…' : 'Send Request' }}
           </button>
@@ -562,6 +563,12 @@ const docGroups = computed(() => [
         body: '{ "status": "resolved" }',
         response: '{ "success": true, "data": { "id": 88, "status": "resolved", "resolved_at": "2026-07-15T10:00:00.000Z" } }' },
     ]},
+  { scope: 'guest_tickets', name: 'Guest Support Tickets (Public)', description: 'Unauthenticated ticket intake for POS terminals that are entirely down and can\'t present their company API key — no x-api-key header, no JWT. The pharmacy is identified by its public domain_name instead (normalized before lookup — case/whitespace don\'t matter). requester_phone is mandatory (unlike the authenticated endpoint\'s phone-or-email rule) since a dead POS needs a guaranteed callback channel; notify_sms is always on. Rate-limited per IP+domain (5/min) and per IP (15/min) since there\'s no key to throttle on. Every ticket created this way is stamped source: "guest" so support agents can triage it separately — see it via GET /api/v1/tickets/manage or GET /api/admin/tickets with ?source=guest. There is no public GET/status endpoint — reads still require the authenticated/admin surfaces, to avoid letting anyone enumerate ticket IDs.',
+    endpoints: [
+      { method: 'POST', path: '/api/guest-tickets', noAuth: true, description: 'Lodge a ticket without any API key. 404 "Pharmacy not found" if company_domain doesn\'t match an active pharmacy (same message whether it\'s unknown or deactivated — neither is distinguishable to a caller). 429 if the per-domain or per-IP rate limit is exceeded.',
+        body: '{\n  "company_domain": "clifton",\n  "subject": "POS is down",\n  "description": "Terminal wont boot at all, please help.",\n  "requester_name": "Ama Owusu",\n  "requester_phone": "0501234567"\n}',
+        response: '{\n  "success": true,\n  "data": {\n    "id": 101,\n    "company_id": 5,\n    "external_ref": null,\n    "source": "guest",\n    "subject": "POS is down",\n    "description": "Terminal wont boot at all, please help.",\n    "category": "other",\n    "priority": "normal",\n    "status": "open",\n    "requester_name": "Ama Owusu",\n    "requester_phone": "+233501234567",\n    "requester_email": null,\n    "notify_sms": true,\n    "resolved_at": null,\n    "closed_at": null,\n    "created_at": "2026-07-30T09:10:31.000Z",\n    "updated_at": "2026-07-30T09:10:31.000Z",\n    "messages": [\n      { "id": 1, "author_type": "requester", "body": "Terminal wont boot at all, please help.", "created_at": "2026-07-30T09:10:31.000Z" }\n    ]\n  }\n}' },
+    ]},
   { scope: 'coverage', name: 'Pharmacy Coverage', description: 'Partner/sync-facing multi-product search across pharmacies of a given company type — not under /api/v1, but uses the same company API key (x-api-key) auth as /api/sync/*. Distance defaults to the calling company\'s own location when lat/lng are omitted. Mirrors the admin pharmacy-coverage matrix\'s covered/uncovered/coverage_score shape, but the caller supplies the item list directly instead of it coming from a stored order request.',
     endpoints: [
       { method: 'POST', path: '/api/order-requests/coverage/by-type', description: 'Find companies of a type carrying matching products. company_type: 0=Pharmacy, 1=Hospital, 2=Clinic, 3=Wholesaler. lat/lng default to the caller\'s own coords; radius_km defaults to 10; sort is availability (default, most items covered first) or distance. Each item needs product_name and/or search_term_override; id/item_id is echoed back in the response to correlate — defaults to array index if omitted.',
@@ -588,7 +595,8 @@ const docGroups = computed(() => [
 const buildCurl = (ep: any) => {
   const url = `${apiBase.value}${ep.path}`
   const bodyPart = ep.body ? ` \\\n  -d '${ep.body.replace(/\n/g, '\n  ')}'` : ''
-  return `curl -X ${ep.method} "${url}" \\\n  -H "x-api-key: <your-api-key>" \\\n  -H "Content-Type: application/json"${bodyPart}`
+  const authHeader = ep.noAuth ? '' : ` \\\n  -H "x-api-key: <your-api-key>"`
+  return `curl -X ${ep.method} "${url}"${authHeader} \\\n  -H "Content-Type: application/json"${bodyPart}`
 }
 
 // Console
@@ -602,12 +610,19 @@ const onEndpointSelect = () => {
   console_.value.body = ep?.body || ''
 }
 
+const selectedEndpointNoAuth = computed(() => {
+  const [method, path] = (console_.value.endpointKey || '').split('::')
+  return !!docGroups.value.flatMap(g => g.endpoints).find(e => e.method === method && e.path === path)?.noAuth
+})
+
 const sendRequest = async () => {
   console_.value.loading = true; console_.value.response = ''
   const start = Date.now()
   try {
     const url = `${apiBase.value}${console_.value.path.replace(/:(\w+)/g, '1')}`
-    const opts: RequestInit = { method: console_.value.method, headers: { 'x-api-key': console_.value.apiKey, 'Content-Type': 'application/json' } }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (!selectedEndpointNoAuth.value) headers['x-api-key'] = console_.value.apiKey
+    const opts: RequestInit = { method: console_.value.method, headers }
     if (['POST', 'PUT'].includes(console_.value.method) && console_.value.body) opts.body = console_.value.body
     const resp = await fetch(url, opts)
     console_.value.responseStatus = resp.status
