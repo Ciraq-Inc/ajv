@@ -450,7 +450,7 @@
                       <EnvelopeIcon class="w-[18px] h-[18px]" />
                       Apply to partner
                     </a>
-                    <a href="tel:+233556637717" class="partner-cta-secondary">
+                    <a href="tel:+233599368632" class="partner-cta-secondary">
                       <PhoneIcon class="w-[18px] h-[18px]" />
                       Call us
                     </a>
@@ -613,7 +613,7 @@
                 <EnvelopeIcon class="w-5 h-5" />
               </a>
               <a
-                href="tel:+233556637717"
+                href="tel:+233599368632"
                 aria-label="Call us"
                 class="social-btn"
               >
@@ -1076,7 +1076,25 @@ const redirectLoggedInUsers = async (): Promise<boolean> => {
   return true
 }
 
+const captureClearanceDraftParam = (): void => {
+  if (!process.client) return
+  const draftParam = route.query['clearance_draft']
+  if (!draftParam) return
+  try {
+    const decoded = JSON.parse(String(draftParam)) as { items?: unknown[] } | null
+    if (Array.isArray(decoded?.items) && decoded.items.length) {
+      sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({
+        items: decoded.items,
+        source: 'ros-clearance-marketplace',
+      }))
+    }
+  } catch {
+    // Malformed draft param — ignore, no request draft is applied.
+  }
+}
+
 onMounted(async () => {
+  captureClearanceDraftParam()
   await (userStore as unknown as { checkAuthState: () => Promise<void> }).checkAuthState()
   authChecking.value = false
   await redirectLoggedInUsers()

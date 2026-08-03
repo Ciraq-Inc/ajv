@@ -349,7 +349,7 @@
               <EnvelopeIcon class="w-5 h-5" />
             </a>
             <a
-              href="tel:+233556637717"
+              href="tel:+233599368632"
               aria-label="Call us"
               class="social-btn"
             >

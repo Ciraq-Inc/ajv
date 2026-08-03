@@ -625,10 +625,10 @@ const sections: SectionDefinition[] = [
       {
         key: 'platform_admin_phone',
         label: 'Platform Admin Phone',
-        help: 'Ghana number (e.g. 233556637717) that receives an SMS alert whenever a new request is submitted. Falls back to 233556637717 if left blank.',
+        help: 'Ghana number (e.g. 233599368632) that receives an SMS alert whenever a new request is submitted. Falls back to 233599368632 if left blank.',
         type: 'string',
         inputType: 'tel',
-        defaultValue: '233556637717'
+        defaultValue: '233599368632'
       }
     ]
   },
