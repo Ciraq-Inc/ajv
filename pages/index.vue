@@ -149,7 +149,51 @@
                     <div v-if="heroGuestError" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                       {{ heroGuestError }}
                     </div>
-                    <div>
+                    <!-- Pre-filled products (arrived from the Clearance Marketplace) -->
+                    <div v-if="heroDraftItems.length">
+                      <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-sm font-medium text-[#4c4453]">What you're requesting</label>
+                        <span class="inline-flex items-center gap-1 rounded-full bg-[#f2eaf9] px-2.5 py-0.5 text-[0.7rem] font-semibold text-[#520094]">
+                          <TagIcon class="w-3 h-3" /> Clearance pricing
+                        </span>
+                      </div>
+                      <ul class="space-y-2">
+                        <li
+                          v-for="(item, index) in heroDraftItems"
+                          :key="`${item.product_name}-${index}`"
+                          class="flex items-center gap-2 rounded-2xl border border-[#e8def8] bg-white px-3.5 py-2.5"
+                        >
+                          <span class="flex-1 min-w-0 truncate text-sm text-[#1e1a22]">{{ item.product_name }}</span>
+                          <div class="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              @click="decreaseHeroDraftItemQty(index)"
+                              :disabled="heroGuestLoading || item.quantity <= 1"
+                              class="flex h-6 w-6 items-center justify-center rounded-full border border-[#e8def8] text-[#520094] disabled:opacity-40 focus:outline-none"
+                            >−</button>
+                            <span class="w-5 text-center text-sm text-[#1e1a22]">{{ item.quantity }}</span>
+                            <button
+                              type="button"
+                              @click="increaseHeroDraftItemQty(index)"
+                              :disabled="heroGuestLoading"
+                              class="flex h-6 w-6 items-center justify-center rounded-full border border-[#e8def8] text-[#520094] disabled:opacity-40 focus:outline-none"
+                            >+</button>
+                          </div>
+                          <button
+                            type="button"
+                            @click="removeHeroDraftItem(index)"
+                            :disabled="heroGuestLoading"
+                            class="shrink-0 text-[#9c94a8] hover:text-red-500 disabled:opacity-40 focus:outline-none"
+                            aria-label="Remove item"
+                          >
+                            <XMarkIcon class="w-4 h-4" />
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <!-- Freeform request -->
+                    <div v-else>
                       <label for="hero-medications" class="block text-sm font-medium text-[#4c4453] mb-1.5">What do you need?</label>
                       <textarea
                         id="hero-medications"
@@ -266,7 +310,7 @@
                     </div>
                     <button
                       type="submit"
-                      :disabled="heroGuestLoading || !heroMedication.trim() || !heroPhone.trim()"
+                      :disabled="heroGuestLoading || !heroPhone.trim() || (heroDraftItems.length === 0 && !heroMedication.trim())"
                       class="w-full rounded-2xl bg-[#520094] py-3 text-sm font-semibold text-white transition hover:bg-[#6c24b3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       <svg v-if="heroGuestLoading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -696,6 +740,7 @@ import {
   ChevronDownIcon,
   ShieldCheckIcon,
   ShareIcon,
+  TagIcon,
 } from '@heroicons/vue/24/outline'
 import {
   CheckBadgeIcon,
@@ -727,6 +772,48 @@ const heroGuestLoading = ref<boolean>(false)
 const heroGuestError = ref<string>('')
 const heroGuestSuccess = ref<boolean>(false)
 const heroIsNewCustomer = ref<boolean>(true)
+
+// Pre-filled items when the guest arrives from the Clearance Marketplace (rOS) —
+// shown as a product list instead of the freeform textarea.
+interface HeroDraftItem {
+  product_name: string;
+  requested_unit: string;
+  quantity: number;
+  prefer_clearance_only: boolean;
+}
+const heroDraftItems = ref<HeroDraftItem[]>([])
+
+const normalizeHeroDraftItem = (item: unknown): HeroDraftItem | null => {
+  const src = item as Record<string, unknown> | string | null | undefined
+  const productName = String(
+    typeof src === 'string' ? src : (src as Record<string, unknown> | null)?.['product_name'] ?? ''
+  ).trim()
+  if (!productName) return null
+
+  const srcObj = typeof src === 'string' ? null : src as Record<string, unknown> | null
+  return {
+    product_name: productName,
+    requested_unit: String(srcObj?.['requested_unit'] ?? '').trim().toLowerCase(),
+    quantity: Math.max(1, Number(srcObj?.['quantity'] ?? 1)),
+    prefer_clearance_only: Boolean(srcObj?.['prefer_clearance_only']),
+  }
+}
+
+const removeHeroDraftItem = (index: number): void => {
+  heroDraftItems.value = heroDraftItems.value.filter((_, i) => i !== index)
+}
+
+const increaseHeroDraftItemQty = (index: number): void => {
+  heroDraftItems.value = heroDraftItems.value.map((entry, i) => (
+    i === index ? { ...entry, quantity: entry.quantity + 1 } : entry
+  ))
+}
+
+const decreaseHeroDraftItemQty = (index: number): void => {
+  heroDraftItems.value = heroDraftItems.value.map((entry, i) => (
+    i === index ? { ...entry, quantity: Math.max(1, entry.quantity - 1) } : entry
+  ))
+}
 
 // Location picker state
 interface SelectedLocation { label: string; lat: number; lng: number }
@@ -998,11 +1085,13 @@ const submitHeroGuestRequest = async (): Promise<void> => {
   try {
     const api = useApi()
     const service = createOrderRequestsService(api)
-    const parsedItems = heroMedication.value
-      .split(/[\n,]+/)
-      .map(s => s.trim())
-      .filter(Boolean)
-      .map(name => ({ product_name: name, quantity: 1 }))
+    const parsedItems = heroDraftItems.value.length
+      ? heroDraftItems.value.map(({ product_name, requested_unit, quantity, prefer_clearance_only }) => ({ product_name, requested_unit, quantity, prefer_clearance_only }))
+      : heroMedication.value
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(name => ({ product_name: name, quantity: 1 }))
 
     const result = await service.submitAsGuest({
       phone: heroPhone.value.trim(),
@@ -1017,6 +1106,10 @@ const submitHeroGuestRequest = async (): Promise<void> => {
     }
     heroIsNewCustomer.value = result.data?.is_new_customer !== false
     heroGuestSuccess.value = true
+    if (heroDraftItems.value.length) {
+      if (process.client) sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY)
+      heroDraftItems.value = []
+    }
   } catch (err: unknown) {
     heroGuestError.value = (err as { message?: string })?.message ?? 'Something went wrong. Please try again.'
   } finally {
@@ -1082,11 +1175,19 @@ const captureClearanceDraftParam = (): void => {
   if (!draftParam) return
   try {
     const decoded = JSON.parse(String(draftParam)) as { items?: unknown[] } | null
-    if (Array.isArray(decoded?.items) && decoded.items.length) {
+    const normalizedItems = Array.isArray(decoded?.items)
+      ? decoded.items.map(normalizeHeroDraftItem).filter((x): x is HeroDraftItem => x !== null)
+      : []
+    if (normalizedItems.length) {
       sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({
-        items: decoded.items,
+        items: decoded!.items,
         source: 'ros-clearance-marketplace',
       }))
+      // Show the guest quick-request card with the selected items instead of the
+      // blank "what do you need?" box — this is a logged-out user's fast path in
+      // from the Clearance Marketplace, so skip straight to it.
+      heroDraftItems.value = normalizedItems
+      heroTab.value = 'guest'
     }
   } catch {
     // Malformed draft param — ignore, no request draft is applied.
