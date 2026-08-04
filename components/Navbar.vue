@@ -31,7 +31,7 @@
             class="inline-flex items-center gap-2 rounded-full bg-[#f7efff] px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-[#f0e2ff]"
           >
             <i class="ri-phone-line text-sm"></i>
-            (+233) 556-637-717
+            (+233) 599-368-632
           </a>
 
           <a

@@ -21,7 +21,7 @@ export interface PharmacyLedgerParams {
 
 export interface GuestSubmitParams {
   phone: string;
-  items: Array<{ product_id?: number | string; product_name: string; quantity: number }>;
+  items: Array<{ product_id?: number | string; product_name: string; requested_unit?: string; quantity: number; prefer_clearance_only?: boolean }>;
   customer_address?: string;
   customer_latitude?: number | null;
   customer_longitude?: number | null;
