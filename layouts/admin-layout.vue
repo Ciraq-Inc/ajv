@@ -137,7 +137,10 @@
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Billing</span>
           </NuxtLink>
 
-         
+          <NuxtLink to="/admin/sms-usage" class="nav-item" active-class="active">
+            <PresentationChartLineIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Usage</span>
+          </NuxtLink>
         </div>
 
         <div class="nav-section">
@@ -318,6 +321,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChartBarIcon,
+  PresentationChartLineIcon,
   KeyIcon,
   UserGroupIcon,
   UserCircleIcon,
@@ -391,6 +395,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/useraccess')) return 'User Access'
   if (path.includes('/admin/sms-campaigns')) return 'SMS Campaigns'
   if (path.includes('/admin/sms-billing')) return 'SMS Billing'
+  if (path.includes('/admin/sms-usage')) return 'SMS Usage'
   if (path.includes('/admin/sms-settings')) return 'SMS Settings'
   if (path.includes('/admin/masterlist')) return 'Master Products'
   if (path.includes('/admin/clearance-sale')) return 'Clearance Products'

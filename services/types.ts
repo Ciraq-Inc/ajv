@@ -378,6 +378,25 @@ export interface SmsTransaction {
   [key: string]: unknown;
 }
 
+export interface SmsUsageSummaryRow {
+  company_id: number;
+  company_name: string;
+  message_count: number;
+  total_cost: number;
+  avg_cost_per_message: number;
+  last_activity_at: string;
+}
+
+export interface SmsUsageSummary {
+  summary: {
+    companies_with_activity: number;
+    total_messages: number;
+    total_cost: number;
+  };
+  data: SmsUsageSummaryRow[];
+  filters?: Record<string, unknown>;
+}
+
 export interface SmsStatistics {
   total_sent: number;
   total_failed: number;
