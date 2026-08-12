@@ -760,7 +760,7 @@ interface LoginPayload {
 const userStore = useUserStore()
 const route = useRoute()
 const authChecking = ref<boolean>(true)
-const heroOrderingImage = '/Gemini_Generated_Image_y204fby204fby204.png'
+const heroOrderingImage = '/hero_image.jpg'
 const currentYear = new Date().getFullYear()
 
 const showLoginModal = ref<boolean>(false)
