@@ -13,10 +13,31 @@
         @click="updateCursorPosition"
         @keyup="updateCursorPosition"
         rows="6"
-        placeholder="Type your message here... Use variables like [name], [phone], [customer_code]"
+        placeholder="Type your message here... Use variables like [name], [fname], [lname], or [phone]"
         class="w-full px-4 py-3 border border-gray-300 rounded-lg cs-input resize-none"
         :class="{ 'border-red-500': hasInvalidVariables }"
       ></textarea>
+
+      <!-- Variable buttons -->
+      <div v-if="showVariablePicker" class="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
+          <span class="text-sm font-medium text-gray-700">Insert variable:</span>
+          <span class="text-xs text-gray-500">Click a token to add it at your cursor</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="variable in availableVariables"
+            :key="variable.key"
+            type="button"
+            :title="variable.description"
+            @mousedown.prevent
+            @click="insertVariable(variable.key)"
+            class="rounded-md border border-purple-200 bg-white px-3 py-1.5 font-mono text-sm cs-text transition-colors hover:border-purple-400 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-300"
+          >
+            {{ variable.key }}
+          </button>
+        </div>
+      </div>
 
       <!-- Error message for invalid variables -->
       <div v-if="hasInvalidVariables" class="mt-2 text-sm text-red-600 flex items-start gap-2">
@@ -41,36 +62,6 @@
           </span>
         </div>
         
-        <button
-          v-if="showVariablePicker"
-          @click="isVariablePickerOpen = !isVariablePickerOpen"
-          class="cs-text font-medium flex items-center gap-1"
-        >
-          <Icon name="Code" class="h-4 w-4" />
-          Insert Variable
-        </button>
-      </div>
-    </div>
-
-    <!-- Variable Picker Dropdown -->
-    <div v-if="isVariablePickerOpen && showVariablePicker" class="mb-4">
-      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 class="text-sm font-semibold text-gray-900 mb-3">Available Variables</h4>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-          <button
-            v-for="variable in availableVariables"
-            :key="variable.key"
-            @click="insertVariable(variable.key)"
-            class="text-left px-3 py-2 bg-white border border-gray-200 rounded hover:bg-purple-50 hover:border-purple-300 transition-colors group"
-          >
-            <div class="font-mono text-sm cs-text">
-              {{ variable.key }}
-            </div>
-            <div class="text-xs text-gray-600 mt-0.5">
-              {{ variable.description }}
-            </div>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -170,7 +161,6 @@ const emit = defineEmits<{
 }>()
 
 const localMessage = ref(props.modelValue ?? '')
-const isVariablePickerOpen = ref(false)
 const useCustomPreviewData = ref(false)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const cursorPosition = ref(0)
@@ -231,7 +221,6 @@ const insertVariable = (variableKey: string): void => {
   })
 
   handleInput()
-  isVariablePickerOpen.value = false
 }
 
 watch(

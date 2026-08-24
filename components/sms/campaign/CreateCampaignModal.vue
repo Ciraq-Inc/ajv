@@ -111,6 +111,7 @@
                 <!-- Message Composer -->
                 <MessageComposer
                   v-model="campaign.message"
+                  show-variable-picker
                   @validation="handleMessageValidation"
                 />
               </div>
