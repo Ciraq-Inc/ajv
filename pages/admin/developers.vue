@@ -148,7 +148,7 @@
       <div class="panel-header">
         <div>
           <h2>API Reference</h2>
-          <p>Base URL: <code>{{ apiBase }}/api/v1</code> — all requests require <code>x-api-key</code> header.</p>
+          <p>Base URL: <code>{{ apiBase }}/api/v1</code> — all requests require <code>x-api-key</code> header, except the <strong>OAuth</strong> group below, which lives under <code>{{ apiBase }}/api/oauth</code> and uses its own auth per endpoint (see each entry).</p>
         </div>
       </div>
       <div class="doc-groups">
@@ -473,6 +473,29 @@ const docGroups = computed(() => [
         body: '{ "phone": "+233201234567", "password": "securepass123" }',
         response: '{ "success": true, "data": { "master_customer": {...}, "token": "<JWT>" } }' },
     ]},
+  { scope: 'oauth', name: 'OAuth — Sign in with MedsGH', description: 'Authorization Code + PKCE flow for third-party partner apps (not necessarily onboarded pharmacy companies — see the "Company Auth" / "Customer Auth" groups above for that). A MedsGH customer logs in and consents on a MedsGH-hosted page; the partner app gets a scoped access token and never sees the customer\'s password. Distinct trust boundary from every other group on this page: lives under /api/oauth (not /api/v1), and does not use x-api-key at all — auth is per-endpoint (client_id/client_secret + PKCE at /token, Bearer access token at /userinfo and /orders). Register a partner client via POST /api/admin/oauth-clients (JWT admin auth, super_admin role — no UI for this yet, use the API directly or ask engineering). Full reference: api-docs/oauth.yaml. Partner-facing walkthrough: docs/oauth-partner-integration-guide.md. Design rationale: docs/architecture/0002-oauth-client-trust-boundary.md.',
+    endpoints: [
+      { method: 'GET', path: '/api/oauth/authorize', noAuth: true, description: 'Not called directly by the partner\'s backend — redirect the user\'s browser here (well, to the ajv page that wraps it: /oauth/authorize on the ajv origin). code_challenge/code_challenge_method=S256 (PKCE) are required for every client, confidential or public. scope is space-separated; "identity" is granted implicitly even if omitted, "orders:read" must be requested explicitly and must be in the client\'s allowed_scopes.',
+        curlOverride: '# Redirect the browser — not a server-to-server call:\nhttps://<ajv-origin>/oauth/authorize\n  ?client_id=YOUR_CLIENT_ID\n  &redirect_uri=https%3A%2F%2Fyourapp.com%2Fcallback\n  &scope=identity%20orders%3Aread\n  &state=<csrf-token-you-generate>\n  &code_challenge=<base64url(sha256(code_verifier))>\n  &code_challenge_method=S256',
+        response: '{ "success": true, "data": { "client_name": "...", "requested_scopes": [{ "scope": "identity", "label": "..." }], "authenticated": false, "skip_consent": false } }' },
+      { method: 'POST', path: '/api/oauth/token', noAuth: true, description: 'No x-api-key — exchange an authorization code (single-use, 60s TTL) for tokens, or rotate a refresh token. Client auth is client_id/client_secret in the body (omit client_secret for public/PKCE-only clients), not HTTP Basic. Accepts JSON or form-urlencoded — testable below as JSON.',
+        body: '{\n  "grant_type": "authorization_code",\n  "client_id": "YOUR_CLIENT_ID",\n  "client_secret": "YOUR_CLIENT_SECRET",\n  "code": "<code>",\n  "redirect_uri": "https://yourapp.com/callback",\n  "code_verifier": "<the verifier behind your code_challenge>"\n}',
+        curlOverride: 'curl -X POST "{{apiBase}}/api/oauth/token" \\\n  -H "Content-Type: application/x-www-form-urlencoded" \\\n  -d "grant_type=authorization_code" \\\n  -d "client_id=YOUR_CLIENT_ID" \\\n  -d "client_secret=YOUR_CLIENT_SECRET" \\\n  -d "code=<code>" \\\n  -d "redirect_uri=https://yourapp.com/callback" \\\n  -d "code_verifier=<the verifier behind your code_challenge>"',
+        response: '{\n  "access_token": "eyJ...",\n  "token_type": "Bearer",\n  "expires_in": 900,\n  "scope": "identity orders:read",\n  "refresh_token": "opaque-string",\n  "id_token": "eyJ..."\n}' },
+      { method: 'GET', path: '/api/oauth/userinfo', description: 'Requires the "identity" scope. Authorization: Bearer <access_token> header — not testable from the Test Console below (it only sends x-api-key).',
+        curlOverride: 'curl "{{apiBase}}/api/oauth/userinfo" \\\n  -H "Authorization: Bearer <access_token>"',
+        response: '{ "sub": "1042", "name": "Ama Owusu", "phone": "+233201234567", "verified": true }' },
+      { method: 'GET', path: '/api/oauth/orders', description: 'Requires the "orders:read" scope. Read-only — there is no create/modify path through this integration. Aggregates across every pharmacy the customer has a MedsGH account with; each item carries company_id for the detail lookup below.',
+        curlOverride: 'curl "{{apiBase}}/api/oauth/orders?limit=20" \\\n  -H "Authorization: Bearer <access_token>"',
+        response: '{ "success": true, "count": 2, "data": [ { "order_id": "...", "status": "processing", "total_amount": "45.00", "company_id": 5, "company_name": "Clifton Pharmacy", "order_date": "..." } ] }' },
+      { method: 'GET', path: '/api/oauth/orders/:orderId', description: 'Requires the "orders:read" scope. Pass ?company_id= from the list response to skip a multi-pharmacy search; omit it and every linked company is tried in turn.',
+        curlOverride: 'curl "{{apiBase}}/api/oauth/orders/4821?company_id=5" \\\n  -H "Authorization: Bearer <access_token>"',
+        response: '{ "success": true, "data": { "order_id": "4821", "status": "processing", "total_amount": "45.00", "items": [...] } }' },
+      { method: 'POST', path: '/api/oauth/revoke', noAuth: true, description: 'No x-api-key — RFC 7009 revoke of a refresh or access token (e.g. when a user disconnects your app from your own UI). Always responds 200, whether or not the token was found.',
+        body: '{\n  "client_id": "YOUR_CLIENT_ID",\n  "client_secret": "YOUR_CLIENT_SECRET",\n  "token": "<access_or_refresh_token>"\n}',
+        curlOverride: 'curl -X POST "{{apiBase}}/api/oauth/revoke" \\\n  -H "Content-Type: application/x-www-form-urlencoded" \\\n  -d "client_id=YOUR_CLIENT_ID" \\\n  -d "client_secret=YOUR_CLIENT_SECRET" \\\n  -d "token=<access_or_refresh_token>"',
+        response: '{ "success": true }' },
+    ]},
   { scope: 'sms', name: 'SMS', description: 'Send SMS through rigel\'s multi-provider gateway (Nalo, MNotify, Twilio). Platform keys must include company_id in the request body.',
     endpoints: [
       { method: 'POST', path: '/api/v1/sms/send', description: 'Send single SMS. Platform keys require company_id.',
@@ -603,6 +626,10 @@ const docGroups = computed(() => [
 ])
 
 const buildCurl = (ep: any) => {
+  // Some groups (OAuth) don't fit the x-api-key-on-/api/v1 shape every
+  // other group shares — those endpoints supply their own curl/redirect
+  // example instead of the generic builder below.
+  if (ep.curlOverride) return String(ep.curlOverride).replace(/\{\{apiBase\}\}/g, apiBase.value)
   const url = `${apiBase.value}${ep.path}`
   const bodyPart = ep.body ? ` \\\n  -d '${ep.body.replace(/\n/g, '\n  ')}'` : ''
   const authHeader = ep.noAuth ? '' : ` \\\n  -H "x-api-key: <your-api-key>"`
