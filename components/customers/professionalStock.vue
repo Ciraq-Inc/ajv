@@ -7,7 +7,7 @@
       </div>
       <div>
         <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Browse Pharmacy Stock</h1>
-        <p class="text-xs text-zinc-500 font-medium mt-0.5">Search available products near you — no request needed</p>
+        <p class="text-xs text-zinc-500 font-medium mt-0.5">Search a product and add it straight to a request</p>
       </div>
     </header>
 
@@ -44,32 +44,46 @@
       </div>
 
       <!-- Empty state (after a search with no results) -->
-      <div v-else-if="searched && results.length === 0" class="text-center py-12">
+      <div v-else-if="searched && candidates.length === 0" class="text-center py-12">
         <p class="text-sm font-semibold text-zinc-500">No matching products found nearby.</p>
         <p class="text-xs text-zinc-400 mt-1">Try a different name or check back later.</p>
       </div>
 
       <!-- Results -->
-      <div v-else-if="results.length > 0" class="space-y-3">
+      <div v-else-if="candidates.length > 0" class="space-y-3">
         <div
-          v-for="(item, i) in results"
-          :key="i"
+          v-for="candidate in candidates"
+          :key="`${candidate.pharmacy_id}-${candidate.product_name}`"
           class="bg-white rounded-xl border border-zinc-200 shadow-sm px-5 py-4"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold text-zinc-900 truncate">{{ item.product_name ?? item.name }}</p>
-              <p class="text-xs text-zinc-500 mt-0.5 truncate">{{ item.company_name ?? item.pharmacy_name }}</p>
+              <p class="text-sm font-bold text-zinc-900 truncate">{{ candidate.product_name }}</p>
+              <p class="text-xs text-zinc-500 mt-0.5 truncate">
+                {{ formatLastSync(candidate) }}
+                <span v-if="candidate.distance_km != null"> · {{ Number(candidate.distance_km).toFixed(1) }} km</span>
+              </p>
             </div>
             <div class="text-right flex-shrink-0">
-              <p class="text-sm font-black text-zinc-900">
-                GHS {{ Number(item.selling_price ?? item.price ?? 0).toFixed(2) }}
-              </p>
-              <p v-if="item.available_quantity != null" class="text-[10px] font-semibold mt-0.5"
-                :class="Number(item.available_quantity) > 0 ? 'text-emerald-600' : 'text-red-500'">
-                {{ Number(item.available_quantity) > 0 ? `${item.available_quantity} in stock` : 'Out of stock' }}
+              <p class="text-sm font-black text-zinc-900">GHS {{ Number(candidate.unit_price ?? 0).toFixed(2) }}</p>
+              <p class="text-[10px] font-semibold mt-0.5"
+                :class="Number(candidate.available_quantity) > 0 ? 'text-emerald-600' : 'text-red-500'">
+                {{ Number(candidate.available_quantity) > 0 ? `${candidate.available_quantity} in stock` : 'Out of stock' }}
               </p>
             </div>
+          </div>
+          <div class="mt-3 flex justify-end">
+            <button
+              type="button"
+              :disabled="Number(candidate.available_quantity) <= 0 || isSelected(candidate)"
+              @click="addToRequest(candidate)"
+              class="text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="isSelected(candidate)
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-[#4F217A] border-[#4F217A] text-white hover:bg-[#3d1a61]'"
+            >
+              {{ isSelected(candidate) ? 'Added' : 'Add to request' }}
+            </button>
           </div>
         </div>
       </div>
@@ -80,13 +94,28 @@
         <p class="text-sm font-semibold text-zinc-400">Type a medication name to search nearby pharmacies.</p>
       </div>
     </div>
+
+    <!-- Selected items bar -->
+    <div v-if="selectedItems.length > 0"
+      class="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-5 py-3 flex items-center justify-between gap-4 z-20">
+      <p class="text-sm font-semibold text-zinc-700">
+        {{ selectedItems.length }} item{{ selectedItems.length === 1 ? '' : 's' }} selected
+      </p>
+      <button
+        type="button"
+        @click="continueToRequest"
+        class="text-sm font-bold px-4 py-2 rounded-xl bg-[#4F217A] text-white hover:bg-[#3d1a61] transition-colors"
+      >
+        Continue to request
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useUserStore } from '~/stores/user';
-import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService';
+import { createOrderRequestsService, type ProductCandidate } from '~/services/orderRequests/orderRequestsService';
 import { useApi } from '~/composables/useApi';
 import {
   BeakerIcon,
@@ -95,14 +124,34 @@ import {
   MapPinIcon,
 } from '@heroicons/vue/24/outline';
 
+const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft';
+
 const userStore = useUserStore();
 const stockService = createOrderRequestsService(useApi());
 
 const query = ref('');
-const results = ref<Record<string, unknown>[]>([]);
+const candidates = ref<ProductCandidate[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const searched = ref(false);
+
+interface SelectedRequestItem {
+  product_id: number | null;
+  product_name: string;
+  requested_unit: string;
+  quantity: number;
+  source_pharmacy_id: number;
+  unit_price: number;
+}
+
+// `product_id` is frequently null (fuzzy stock-sync matches aren't always
+// resolved to a catalog row) so it can't be used for identity — two
+// different unmatched products from the same pharmacy would both have
+// product_id === null and look identical. Key on pharmacy + name instead.
+const candidateKey = (pharmacyId: number, productName: string): string =>
+  `${pharmacyId}::${productName}`;
+
+const selectedItems = ref<SelectedRequestItem[]>([]);
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -121,21 +170,60 @@ const lng = computed(() => {
   return mc?.longitude as number | null | undefined;
 });
 
+const formatLastSync = (candidate: ProductCandidate): string => {
+  const days = candidate.days_since_last_sync;
+  if (days != null) {
+    if (days <= 0) return 'Synced today';
+    if (days === 1) return 'Synced 1 day ago';
+    return `Synced ${days} days ago`;
+  }
+  if (candidate.last_product_sync_at) {
+    const date = new Date(candidate.last_product_sync_at);
+    if (!Number.isNaN(date.getTime())) {
+      return `Synced ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    }
+  }
+  return 'Sync date unknown';
+};
+
+const isSelected = (candidate: ProductCandidate): boolean =>
+  selectedItems.value.some(
+    (i) => candidateKey(i.source_pharmacy_id, i.product_name) === candidateKey(candidate.pharmacy_id, candidate.product_name)
+  );
+
+const addToRequest = (candidate: ProductCandidate): void => {
+  if (isSelected(candidate)) return;
+  selectedItems.value.push({
+    product_id: candidate.product_id,
+    product_name: candidate.product_name,
+    requested_unit: String(candidate.unit ?? '').trim().toLowerCase(),
+    quantity: 1,
+    source_pharmacy_id: candidate.pharmacy_id,
+    unit_price: Number(candidate.unit_price ?? 0),
+  });
+};
+
+const continueToRequest = (): void => {
+  if (!selectedItems.value.length || !process.client) return;
+  sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({ items: selectedItems.value }));
+  void navigateTo('/customer?tab=new');
+};
+
 const searchProducts = async (q: string) => {
   if (!q.trim() || !hasLocation.value) {
-    results.value = [];
+    candidates.value = [];
     searched.value = false;
     return;
   }
   loading.value = true;
   error.value = null;
   try {
-    const res = await stockService.searchProducts({ q: q.trim(), lat: lat.value, lng: lng.value }) as { data?: unknown[] };
-    results.value = (res.data ?? []) as Record<string, unknown>[];
+    const res = await stockService.searchProducts({ q: q.trim(), lat: lat.value, lng: lng.value });
+    candidates.value = res.data?.candidates ?? [];
     searched.value = true;
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Search failed. Please try again.';
-    results.value = [];
+    candidates.value = [];
   } finally {
     loading.value = false;
   }
@@ -144,7 +232,7 @@ const searchProducts = async (q: string) => {
 watch(query, (val) => {
   if (debounceTimer) clearTimeout(debounceTimer);
   if (!val.trim()) {
-    results.value = [];
+    candidates.value = [];
     searched.value = false;
     return;
   }

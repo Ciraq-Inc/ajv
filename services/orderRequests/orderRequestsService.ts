@@ -101,18 +101,46 @@ export const createOrderRequestsService = (api: ApiInstance) => ({
     return api.get(`/api/order-requests/admin/pharmacy-ledger${qs ? `?${qs}` : ''}`);
   },
 
-  searchProducts({ q, lat, lng }: SearchProductsParams = {}): Promise<ApiEnvelope<unknown[]>> {
+  searchProducts({ q, lat, lng, quantity }: SearchProductsParams = {}): Promise<ApiEnvelope<ProductSearchResult>> {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (lat != null) params.set('lat', String(lat));
     if (lng != null) params.set('lng', String(lng));
+    if (quantity != null) params.set('quantity', String(quantity));
     const qs = params.toString();
     return api.get(`/api/order-requests/customer/search-products${qs ? `?${qs}` : ''}`);
   },
 });
 
 export interface SearchProductsParams {
-  q?: string;
-  lat?: number | string | null;
-  lng?: number | string | null;
+  q?: string | undefined;
+  lat?: number | string | null | undefined;
+  lng?: number | string | null | undefined;
+  quantity?: number | undefined;
+}
+
+export interface ProductCandidate {
+  pharmacy_id: number;
+  pharmacy_name?: string | null;
+  product_id: number;
+  product_name: string;
+  product_description?: string | null;
+  strength?: string | null;
+  unit?: string | null;
+  distance_km?: number | null;
+  unit_price: number;
+  available_quantity: number;
+  is_clearance?: boolean;
+  match_type?: string;
+  match_confidence?: number;
+  last_product_sync_at?: string | null;
+  days_since_last_sync?: number | null;
+}
+
+export interface ProductSearchResult {
+  request_id?: number | null;
+  radius_km?: number;
+  selected_candidate?: ProductCandidate | null;
+  candidates: ProductCandidate[];
+  nearby_pharmacy_count?: number;
 }

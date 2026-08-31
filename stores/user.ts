@@ -326,6 +326,26 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    async redeemSessionHandoff(token: string): Promise<unknown> {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const data = await this._customerAuthService().redeemHandoff({ token });
+        if (!data.success) throw new Error(data.message ?? 'Handoff failed');
+        this.applyCustomerAuthPayload(data.data as CustomerAuthPayload);
+
+        await this.loadUserStats();
+
+        return data.data;
+      } catch (error: unknown) {
+        console.error('Error redeeming session handoff:', error);
+        this.error = error instanceof Error ? error.message : 'Handoff failed';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async getMyCompanies(): Promise<LinkedCompany[]> {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
