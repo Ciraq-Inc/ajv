@@ -605,9 +605,25 @@ const startHomeStatsPolling = async (): Promise<void> => {
 
 onMounted(async () => {
   try {
+    const handoffToken = route.query['handoff']
+    if (typeof handoffToken === 'string' && handoffToken) {
+      try {
+        await userStore.redeemSessionHandoff(handoffToken)
+      } catch {
+        // Expired / already used / invalid — fall through to the normal
+        // auth check below, which will bounce to login if still unauthed.
+      }
+      // Strip the spent token from the URL either way so it doesn't
+      // linger in history/referrers; keep requestId if one was present.
+      await navigateTo(
+        { path: '/customer', query: requestIdFromQuery.value ? { requestId: requestIdFromQuery.value } : {} },
+        { replace: true }
+      )
+    }
+
     if (!userStore.authInitialized) await (userStore as unknown as { checkAuthState: () => Promise<void> }).checkAuthState()
     if (!userStore.customerAuthToken) {
-      await navigateTo('/')
+      await navigateTo({ path: '/', query: requestIdFromQuery.value ? { requestId: requestIdFromQuery.value } : {} })
       return
     }
     isCheckingAuth.value = false

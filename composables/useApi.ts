@@ -95,7 +95,8 @@ function resolveToken(endpoint: string): string | null {
     endpoint.startsWith('/api/orders') ||
     endpoint.startsWith('/api/wallet') ||
     endpoint.startsWith('/api/customer') ||
-    endpoint.startsWith('/api/professionals/customer')
+    endpoint.startsWith('/api/professionals/customer') ||
+    endpoint.startsWith('/api/oauth')
   ) {
     const t = localStorage.getItem('customerAuthToken')
     if (t) return t
@@ -144,7 +145,8 @@ function resolveRefreshToken(endpoint: string): string | null {
     endpoint.startsWith('/api/orders') ||
     endpoint.startsWith('/api/wallet') ||
     endpoint.startsWith('/api/customer') ||
-    endpoint.startsWith('/api/professionals/customer')
+    endpoint.startsWith('/api/professionals/customer') ||
+    endpoint.startsWith('/api/oauth')
   ) {
     return localStorage.getItem('customerRefreshToken')
   }
@@ -210,7 +212,8 @@ function clearAuthForEndpoint(endpoint: string): void {
     endpoint.startsWith('/api/orders') ||
     endpoint.startsWith('/api/wallet') ||
     endpoint.startsWith('/api/customer') ||
-    endpoint.startsWith('/api/professionals/customer')
+    endpoint.startsWith('/api/professionals/customer') ||
+    endpoint.startsWith('/api/oauth')
   ) {
     localStorage.removeItem('customerAuthToken')
     localStorage.removeItem('customerRefreshToken')

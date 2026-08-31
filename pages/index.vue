@@ -1146,6 +1146,11 @@ const scrollToHowItWorks = (): void => {
 
 const handleLoginSuccess = async (payload: LoginPayload | { destination: string; action: string } = {}): Promise<void> => {
   showLoginModal.value = false
+  const requestId = route.query['requestId']
+  if (requestId) {
+    await navigateTo({ path: '/customer', query: { requestId } })
+    return
+  }
   if (payload.destination === 'new' || hasHomepageRequestDraft()) {
     await navigateTo('/customer?tab=new')
     return
@@ -1161,6 +1166,11 @@ const handleLoggedOutNotice = async (flag: unknown): Promise<void> => {
 
 const redirectLoggedInUsers = async (): Promise<boolean> => {
   if (!userStore.isLoggedIn) return false
+  const requestId = route.query['requestId']
+  if (requestId) {
+    await navigateTo({ path: '/customer', query: { requestId } }, { replace: true })
+    return true
+  }
   if (hasHomepageRequestDraft()) {
     await navigateTo('/customer?tab=new', { replace: true })
     return true

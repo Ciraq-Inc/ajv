@@ -1249,6 +1249,9 @@ interface RequestItem {
     quantity: number;
     imageFiles: PrescriptionPreview[];
     prefer_clearance_only: boolean;
+    product_id?: number | null;
+    source_pharmacy_id?: number | null;
+    unit_price?: number | null;
 }
 
 interface PrescriptionPreview {
@@ -1474,7 +1477,10 @@ const newItem = (): RequestItem => ({
     requested_unit: '',
     quantity: 1,
     imageFiles: [],
-    prefer_clearance_only: false
+    prefer_clearance_only: false,
+    product_id: null,
+    source_pharmacy_id: null,
+    unit_price: null
 })
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft'
@@ -1603,6 +1609,9 @@ interface NormalizedDraftItem {
     requested_unit: string;
     quantity: number;
     prefer_clearance_only: boolean;
+    product_id?: number | null;
+    source_pharmacy_id?: number | null;
+    unit_price?: number | null;
 }
 
 const normalizeHomepageDraftItem = (item: unknown): NormalizedDraftItem | null => {
@@ -1611,11 +1620,18 @@ const normalizeHomepageDraftItem = (item: unknown): NormalizedDraftItem | null =
     if (!productName) return null
 
     const srcObj = typeof src === 'string' ? null : src as Record<string, unknown> | null
+    const productId = Number(srcObj?.['product_id'] ?? 0) || null
+    const sourcePharmacyId = Number(srcObj?.['source_pharmacy_id'] ?? 0) || null
+    const unitPrice = srcObj?.['unit_price'] == null ? null : Number(srcObj['unit_price'])
+
     return {
         product_name: productName,
         requested_unit: String(srcObj?.['requested_unit'] ?? '').trim().toLowerCase(),
         quantity: Math.max(1, Number(srcObj?.['quantity'] ?? 1)),
-        prefer_clearance_only: Boolean(srcObj?.['prefer_clearance_only'])
+        prefer_clearance_only: Boolean(srcObj?.['prefer_clearance_only']),
+        product_id: productId,
+        source_pharmacy_id: sourcePharmacyId,
+        unit_price: unitPrice != null && unitPrice > 0 ? unitPrice : null
     }
 }
 
@@ -1673,7 +1689,10 @@ const applyHomepageRequestDraft = (draftItems: NormalizedDraftItem[] | null = []
             product_name: item.product_name,
             requested_unit: item.requested_unit ?? '',
             quantity: item.quantity,
-            prefer_clearance_only: item.prefer_clearance_only
+            prefer_clearance_only: item.prefer_clearance_only,
+            product_id: item.product_id ?? null,
+            source_pharmacy_id: item.source_pharmacy_id ?? null,
+            unit_price: item.unit_price ?? null
         }))
 
     if (!preparedItems.length) return
@@ -2144,11 +2163,24 @@ const compressRequestImage = async (file: File): Promise<File> => {
     }
 }
 
-const buildItemPayload = (item: RequestItem): { product_name: string; requested_unit: string | null; quantity: number; prefer_clearance_only: boolean } => ({
+const buildItemPayload = (item: RequestItem): {
+    product_name: string;
+    requested_unit: string | null;
+    quantity: number;
+    prefer_clearance_only: boolean;
+    product_id?: number;
+    source_pharmacy_id?: number;
+    unit_price?: number;
+} => ({
     product_name: item.product_name.trim(),
     requested_unit: String(item.requested_unit ?? '').trim().toLowerCase() || null,
     quantity: item.quantity || 1,
-    prefer_clearance_only: item.prefer_clearance_only
+    prefer_clearance_only: item.prefer_clearance_only,
+    ...(item.product_id ? { product_id: item.product_id } : {}),
+    ...(item.source_pharmacy_id && item.unit_price ? {
+        source_pharmacy_id: item.source_pharmacy_id,
+        unit_price: item.unit_price
+    } : {})
 })
 
 const resetPickerInput = (pickerRef: { value?: HTMLInputElement | null } | null): void => {

@@ -132,6 +132,16 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
+   * Redeem a one-shot cross-app session handoff token (minted by another
+   * first-party surface, e.g. rOS PartnerMarketplace) for a normal session.
+   * Public endpoint — the token itself is the credential.
+   * POST /api/auth/customer/handoff/redeem
+   */
+  redeemHandoff({ token }: { token: string }): Promise<ApiEnvelope<AuthPayload>> {
+    return api.post('/api/auth/customer/handoff/redeem', { token });
+  },
+
+  /**
    * Fetch the linked companies for the authenticated master customer.
    * GET /api/auth/customer/my-companies
    */
@@ -229,12 +239,34 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
     return api.get('/api/auth/customer/reverse-geocode', { params });
   },
 
-  applyForProfessional(payload: ProfessionalApplicationPayload): Promise<ApiEnvelope<{ status: string }>> {
+  applyForProfessional(payload: ProfessionalApplicationPayload): Promise<ApiEnvelope<{ status: string; verification?: VerificationOptions }>> {
     return api.post('/api/professionals/customer/apply', payload);
   },
 
   getMyProfessionalApplication(): Promise<ApiEnvelope<ProfessionalProfile | null>> {
     return api.get('/api/professionals/customer/application');
+  },
+
+  /**
+   * Send an SMS-OTP to the phone PSGH has on file for the applicant's
+   * submitted PSGH ID (not the applicant's own account phone).
+   * POST /api/professionals/customer/verify/send-otp
+   */
+  sendProfessionalVerificationOtp(): Promise<ApiEnvelope<SendVerificationOtpResult>> {
+    return api.post('/api/professionals/customer/verify/send-otp', {});
+  },
+
+  /**
+   * Confirm the SMS-OTP. On success with a strong name match the
+   * application is auto-approved server-side; otherwise it's left
+   * pending with the phone-verified fact recorded for the reviewer.
+   * POST /api/professionals/customer/verify/confirm-otp
+   */
+  confirmProfessionalVerificationOtp({ challengeId, code }: ConfirmVerificationOtpParams): Promise<ApiEnvelope<ConfirmVerificationOtpResult>> {
+    return api.post('/api/professionals/customer/verify/confirm-otp', {
+      challenge_id: challengeId,
+      code,
+    });
   },
 });
 
@@ -242,6 +274,27 @@ export interface ProfessionalApplicationPayload {
   profession_type: 'doctor' | 'pharmacist' | 'nurse' | 'other';
   license_number: string;
   license_body?: string | null;
+}
+
+export interface VerificationOptions {
+  available: boolean;
+  phone_hint?: string | null;
+}
+
+export interface ConfirmVerificationOtpParams {
+  challengeId: string;
+  code: string;
+}
+
+export interface SendVerificationOtpResult {
+  challenge_id: string;
+  phone_hint: string | null;
+  expires_at: string;
+}
+
+export interface ConfirmVerificationOtpResult {
+  auto_approved: boolean;
+  message: string;
 }
 
 export interface ProfessionalProfile {
@@ -253,4 +306,6 @@ export interface ProfessionalProfile {
   rejection_reason?: string | null;
   submitted_at?: string | null;
   reviewed_at?: string | null;
+  verification_method?: 'manual' | 'auto_sms' | null;
+  verification?: VerificationOptions;
 }

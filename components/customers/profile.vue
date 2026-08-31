@@ -248,6 +248,46 @@
           Your professional status is active. Fee waivers and Browse Stock are enabled on your account.
         </div>
 
+        <!-- SMS verification step: offered when the submitted PSGH ID matched our registry -->
+        <div v-if="profStatus === 'pending' && verificationOptions?.available" class="px-6 py-4 border-b border-zinc-100 bg-indigo-50/40">
+          <p class="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+            <DevicePhoneMobileIcon class="w-4 h-4 text-[#4F217A]" />
+            Skip the wait — verify instantly by SMS
+          </p>
+          <p class="text-xs text-zinc-500 mt-1">
+            Your PSGH ID matches our records. We can text a code to the phone number PSGH has on file for that ID to confirm it's you.
+          </p>
+
+          <div v-if="otpConfirmedMessage" class="mt-3 text-xs font-semibold px-3 py-2 rounded-lg" :class="otpAutoApproved ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'">
+            {{ otpConfirmedMessage }}
+          </div>
+
+          <template v-else>
+            <div v-if="otpError" class="mt-3 text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg font-semibold">
+              {{ otpError }}
+            </div>
+
+            <button v-if="!otpChallengeId" type="button" :disabled="otpSending" @click="sendVerificationOtp"
+              class="mt-3 inline-flex items-center gap-2 bg-white border border-[#4F217A]/30 text-[#4F217A] py-2 px-4 rounded-xl text-xs font-bold hover:bg-[#4F217A]/5 transition-colors disabled:opacity-60">
+              <ArrowPathIcon v-if="otpSending" class="w-3.5 h-3.5 animate-spin" />
+              {{ otpSending ? 'Sending code...' : 'Send verification code' }}
+            </button>
+
+            <div v-else class="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+              <p class="text-[11px] font-semibold text-zinc-500">Code sent to {{ otpPhoneHint }}.</p>
+              <div class="flex items-center gap-2">
+                <input v-model="otpCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code"
+                  class="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-900 w-32 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
+                <button type="button" :disabled="otpConfirming || otpCode.trim().length !== 6" @click="confirmVerificationOtp"
+                  class="inline-flex items-center gap-2 bg-[#4F217A] text-white py-2 px-4 rounded-xl text-xs font-bold hover:bg-[#3d1861] transition-colors disabled:opacity-60">
+                  <ArrowPathIcon v-if="otpConfirming" class="w-3.5 h-3.5 animate-spin" />
+                  {{ otpConfirming ? 'Confirming...' : 'Confirm' }}
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+
         <!-- Application form (none or rejected state) -->
         <form v-if="showProfForm && !profLoading" @submit.prevent="submitProfessionalApplication" class="p-6 space-y-4">
           <p v-if="profStatus === 'rejected'" class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-3 py-2 rounded-lg">
@@ -274,9 +314,16 @@
               </select>
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-semibold text-zinc-700">License / Registration Number <span class="text-red-500">*</span></label>
-              <input v-model="profForm.license_number" type="text" placeholder="e.g. MDC-2024-12345" required
+              <label class="text-sm font-semibold text-zinc-700">
+                {{ profForm.profession_type === 'pharmacist' ? 'PSGH ID' : 'License / Registration Number' }}
+                <span class="text-red-500">*</span>
+              </label>
+              <input v-model="profForm.license_number" type="text"
+                :placeholder="profForm.profession_type === 'pharmacist' ? 'e.g. 4775 (your PSGH membership ID)' : 'e.g. MDC-2024-12345'" required
                 class="rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
+              <p v-if="profForm.profession_type === 'pharmacist'" class="text-[11px] text-zinc-400 font-medium">
+                Matching this against the PSGH register lets us verify you instantly by SMS instead of waiting on manual review.
+              </p>
             </div>
             <div class="flex flex-col gap-1.5 sm:col-span-2">
               <label class="text-sm font-semibold text-zinc-700">Issuing Authority <span class="text-zinc-400 font-medium">(optional)</span></label>
@@ -326,7 +373,7 @@ import {
   XCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService'
-import type { ProfessionalProfile } from '~/services/customerAuth/customerAuthService'
+import type { ProfessionalProfile, VerificationOptions } from '~/services/customerAuth/customerAuthService'
 import { useApi } from '~/composables/useApi'
 import phoneUtils from '~/utils/phone'
 
@@ -576,6 +623,28 @@ const profForm = reactive({
 const profStatus = computed(() => profApplication.value?.status ?? null);
 const showProfForm = computed(() => profStatus.value === null || profStatus.value === 'rejected');
 
+// SMS verification state
+const verificationOptions = ref<VerificationOptions | null>(null);
+const otpSending = ref(false);
+const otpConfirming = ref(false);
+const otpChallengeId = ref<string | null>(null);
+const otpPhoneHint = ref<string | null>(null);
+const otpCode = ref('');
+const otpError = ref<string | null>(null);
+const otpConfirmedMessage = ref<string | null>(null);
+const otpAutoApproved = ref(false);
+
+const resetOtpState = () => {
+  otpSending.value = false;
+  otpConfirming.value = false;
+  otpChallengeId.value = null;
+  otpPhoneHint.value = null;
+  otpCode.value = '';
+  otpError.value = null;
+  otpConfirmedMessage.value = null;
+  otpAutoApproved.value = false;
+};
+
 const loadProfessionalApplication = async () => {
   profLoading.value = true;
   try {
@@ -585,9 +654,13 @@ const loadProfessionalApplication = async () => {
       profForm.profession_type = (profApplication.value.profession_type ?? '') as typeof profForm.profession_type;
       profForm.license_number = profApplication.value.license_number ?? '';
       profForm.license_body = profApplication.value.license_body ?? '';
+      verificationOptions.value = profApplication.value.verification ?? null;
+    } else {
+      verificationOptions.value = null;
     }
   } catch {
     profApplication.value = null;
+    verificationOptions.value = null;
   } finally {
     profLoading.value = false;
   }
@@ -601,6 +674,7 @@ const submitProfessionalApplication = async () => {
   profSubmitting.value = true;
   profError.value = null;
   profSuccess.value = false;
+  resetOtpState();
   try {
     await profService.applyForProfessional({
       profession_type: profForm.profession_type,
@@ -613,6 +687,41 @@ const submitProfessionalApplication = async () => {
     profError.value = e instanceof Error ? e.message : 'Submission failed. Please try again.';
   } finally {
     profSubmitting.value = false;
+  }
+};
+
+const sendVerificationOtp = async () => {
+  otpSending.value = true;
+  otpError.value = null;
+  try {
+    const res = await profService.sendProfessionalVerificationOtp() as { data?: { challenge_id: string; phone_hint: string | null } };
+    otpChallengeId.value = res.data?.challenge_id ?? null;
+    otpPhoneHint.value = res.data?.phone_hint ?? null;
+  } catch (e: unknown) {
+    otpError.value = e instanceof Error ? e.message : 'Could not send the verification code. Please try again.';
+  } finally {
+    otpSending.value = false;
+  }
+};
+
+const confirmVerificationOtp = async () => {
+  if (!otpChallengeId.value || otpCode.value.trim().length !== 6) return;
+  otpConfirming.value = true;
+  otpError.value = null;
+  try {
+    const res = await profService.confirmProfessionalVerificationOtp({
+      challengeId: otpChallengeId.value,
+      code: otpCode.value.trim(),
+    }) as { data?: { auto_approved: boolean; message: string } };
+    otpConfirmedMessage.value = res.data?.message ?? 'Verification complete.';
+    otpAutoApproved.value = !!res.data?.auto_approved;
+    if (otpAutoApproved.value) {
+      await loadProfessionalApplication();
+    }
+  } catch (e: unknown) {
+    otpError.value = e instanceof Error ? e.message : 'Invalid or expired code. Please try again.';
+  } finally {
+    otpConfirming.value = false;
   }
 };
 
