@@ -182,6 +182,487 @@ export interface PharmacyLedgerEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+export type AccountType = 'cash' | 'bank' | 'mobile_money' | 'pos' | 'petty_cash' | 'loan';
+export type MoneyInSource = 'sales' | 'credit_payment' | 'cheque' | 'manual';
+export type MoneyOutSource = 'expense' | 'withdrawal' | 'supplier_payment' | 'transfer' | 'charges';
+export type LoanMovementSource = 'loan_received' | 'loan_repayment';
+export type LedgerSource = MoneyInSource | MoneyOutSource | LoanMovementSource | 'reversal';
+export type LedgerDirection = 'in' | 'out';
+
+export interface AccountSummary {
+  id: string;
+  name: string;
+  type: AccountType;
+  branch: string;
+  status: 'active' | 'inactive';
+  openingBalance: number;
+  currentBalance: number;
+  moneyIn: number;
+  moneyOut: number;
+  lastMovementAt: string;
+  pendingReview: number;
+  description: string;
+  metadata?: Record<string, string>;
+}
+
+export interface LedgerEntry {
+  id: string;
+  accountId: string;
+  date: string;
+  reference: string;
+  /** Business-facing ledger label; legacy API responses may only provide description. */
+  recipient: string;
+  /** @deprecated Use recipient for new ledger workflows. */
+  description: string;
+  source: LedgerSource;
+  direction: LedgerDirection;
+  method: string;
+  moneyIn: number;
+  moneyOut: number;
+  runningBalance: number;
+  enteredBy: string;
+  status: 'posted' | 'pending' | 'reversed';
+  sourceLinks?: AccountSourceLink[];
+  paymentAllocations?: PaymentAllocation[];
+  metadata?: Record<string, string>;
+  paymentContext?: PayablePaymentContext | null;
+}
+
+export interface PaymentAllocation {
+  methodId: string;
+  methodKey: string;
+  methodName: string;
+  /** Optional: mixed credits record the selected methods without forcing a split. */
+  amount?: number;
+}
+
+export interface PayableLedgerEntry {
+  id: string;
+  accountId: string;
+  accountName: string;
+  accountType: string;
+  paymentMethod?: string;
+  batchId?: string;
+  date: string;
+  reference: string;
+  description: string;
+  invoiceId: string;
+  supplierInvoiceNo: string;
+  supplierName: string;
+  payableId: string;
+  payableSource: 'store' | 'warehouse' | '';
+  amount: number;
+  invoiceAmount: number;
+  paidAmount: number;
+  balanceBefore: number;
+  balance: number;
+  runningBalance: number;
+  status: 'posted' | 'pending' | 'reversed';
+  paymentActionStatus: 'pending' | 'leased' | 'acknowledged' | 'corroborated' | 'failed' | 'cancelled' | '';
+  paymentConfirmationStatus: 'unconfirmed' | 'acknowledged' | 'corroborated' | 'needs_reconciliation' | '';
+  payableBalancePesewas: number;
+  enteredBy: string;
+  paymentContext?: PayablePaymentContext | null;
+}
+
+export interface PayableLedgerPagination {
+  limit: number;
+  offset: number;
+  total: number;
+  hasNext: boolean;
+}
+
+export interface PayableLedgerPage {
+  items: PayableLedgerEntry[];
+  pagination: PayableLedgerPagination;
+  summary: { totalPaid: number };
+}
+
+export interface CreateAccountPayload {
+  name: string;
+  type: AccountType;
+  branch: string;
+  openingBalance: number;
+  metadata?: Record<string, string>;
+}
+
+export interface MoneyInPayload {
+  accountId: string | number;
+  source: MoneyInSource;
+  amount: number;
+  recipient?: string;
+  /** @deprecated Use recipient for new ledger workflows. */
+  description?: string;
+  reference?: string;
+  metadata?: Record<string, string>;
+  sourceLinks?: AccountSourceLink[];
+  paymentAllocations?: PaymentAllocation[];
+  postingKey?: string;
+}
+
+export interface MoneyOutPayload {
+  accountId: string | number;
+  source: MoneyOutSource;
+  amount: number;
+  recipient?: string;
+  /** @deprecated Use recipient for new ledger workflows. */
+  description?: string;
+  reference?: string;
+  metadata?: Record<string, string>;
+  paymentContext?: PayablePaymentContextInput;
+  payableId?: string;
+  postingKey?: string;
+}
+
+export type PayablePaymentMethod = 'cash' | 'mobile_money' | 'pos' | 'credit_payment' | 'cheque' | 'other' | (string & {});
+
+export interface PaymentMethodSubtype {
+  id: string;
+  methodId: string;
+  name: string;
+  description: string;
+  field1: string;
+  field2: string;
+  field3: string;
+  allowField1: boolean;
+  allowField2: boolean;
+  allowField3: boolean;
+  isActive: boolean;
+}
+
+export interface PaymentDetailField {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface PayablePaymentContext {
+  methodId: string;
+  methodKey: string;
+  methodName: string;
+  subtypeId: string;
+  subtypeName: string;
+  fields: PaymentDetailField[];
+}
+
+export interface PayablePaymentContextInput {
+  methodId?: string;
+  methodKey: string;
+  methodName?: string;
+  subtypeId?: string;
+  subtypeName?: string;
+  details?: Record<string, string>;
+}
+
+export interface PayableMethodPaymentPayload {
+  payableId: string | number;
+  paymentMethod: PayablePaymentMethod;
+  paymentContext?: PayablePaymentContextInput;
+  amount: number;
+  description?: string;
+  reference?: string;
+  /** Browser-minted UUID for the payment intent; resent unchanged on retries. */
+  idempotencyKey?: string;
+}
+
+export interface CreditGuideMethod {
+  id: string;
+  name: string;
+  description: string;
+  value: string;
+  methodKey: string;
+  hasSubtypes: boolean;
+  isActive: boolean;
+  isSystem: boolean;
+  subtypes: Array<{
+    id: string;
+    methodId: string;
+    name: string;
+    description: string;
+    field1: string;
+    field2: string;
+    field3: string;
+    allowField1: boolean;
+    allowField2: boolean;
+    allowField3: boolean;
+    isActive: boolean;
+  }>;
+  method: string;
+  amount: number;
+  entries: number;
+  lastSyncedAt: string;
+}
+
+export interface PayablePaymentBatchPayload {
+  payableIds: Array<string | number>;
+  accountId: string | number;
+  amount: number;
+  allocations: Array<{
+    payableId: string | number;
+    amount: number;
+  }>;
+  paymentMethod?: PayablePaymentMethod;
+  paymentContext?: PayablePaymentContextInput;
+  reference?: string;
+  description?: string;
+  idempotencyKey?: string;
+}
+
+export interface PayablePaymentBatchResult {
+  batchId: string;
+  supplierId: string;
+  supplierName: string;
+  accountId: string;
+  paymentMethod: string;
+  paymentContext?: PayablePaymentContext | null;
+  totalAmount: number;
+  invoiceCount: number;
+  reference: string;
+  description: string;
+  status: string;
+  idempotentReplay?: boolean;
+  payments?: unknown[];
+}
+
+export interface PaymentMethodSummary {
+  id: string;
+  name: string;
+  description: string;
+  value: string;
+  methodKey: string;
+  hasSubtypes: boolean;
+  isActive: boolean;
+  isSystem: boolean;
+  lastSyncedAt?: string | null;
+  subtypes: PaymentMethodSubtype[];
+}
+
+export interface CreditGuide {
+  fromDate: string;
+  toDate: string;
+  totalAmount: number;
+  lastSyncedAt: string;
+  paymentMethodsConfigured?: boolean;
+  /** Settled customer-credit repayments from RigelOS for the selected dates. */
+  settledCreditPayments?: {
+    amount: number;
+    entries: number;
+    lastSyncedAt: string;
+  };
+  methods: CreditGuideMethod[];
+}
+
+export interface LoanMovementPayload {
+  loanAccountId: string | number;
+  amount: number;
+  recipient?: string;
+  /** @deprecated Use recipient for new ledger workflows. */
+  description?: string;
+  reference?: string;
+  /** Browser-minted id for the loan movement; resent unchanged on retries. */
+  postingKey?: string;
+}
+
+export interface TransferPayload {
+  sourceAccountId: string | number;
+  destinationAccountId: string | number;
+  amount: number;
+  recipient?: string;
+  /** @deprecated Use recipient for new ledger workflows. */
+  description?: string;
+  reference?: string;
+  postingKey?: string;
+}
+
+export type ChequeStatus = 'received' | 'deposited' | 'cleared' | 'bounced' | 'cancelled';
+
+export interface AccountCheque {
+  id: string;
+  accountId: string;
+  ledgerEntryId: string;
+  chequeNumber: string;
+  drawerName: string;
+  bankName: string;
+  amount: number;
+  receivedDate: string;
+  expectedClearanceDate: string;
+  status: ChequeStatus;
+  clearedDate: string;
+  bouncedDate: string;
+  reference: string;
+}
+
+export interface ReceiveChequePayload {
+  accountId: string | number;
+  amount: number;
+  chequeNumber: string;
+  recipient?: string;
+  drawerName?: string;
+  bankName?: string;
+  receivedDate?: string;
+  expectedClearanceDate?: string;
+  reference?: string;
+  metadata?: Record<string, string>;
+  sourceLinks?: AccountSourceLink[];
+  postingKey?: string;
+}
+
+export interface PayableSummary {
+  id: string;
+  source: 'store' | 'warehouse';
+  invoiceId: string;
+  orderId: string;
+  supplierId: string;
+  supplierName: string;
+  supplierInvoiceNo: string;
+  invoiceAmountPesewas: number;
+  amountPaidPesewas: number;
+  balancePesewas: number;
+  lastConfirmedPaidPesewas: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  invoiceDate?: string | null;
+  syncStatus: 'current' | 'needs_reconciliation';
+  paymentConfirmationStatus: 'unconfirmed' | 'acknowledged' | 'corroborated' | 'needs_reconciliation';
+  paymentActionStatus?: 'pending' | 'leased' | 'acknowledged' | 'corroborated' | 'failed' | 'cancelled' | '';
+  paymentActionAmountPesewas?: number;
+  paymentActionCreatedAt?: string | null;
+  lifecycle: 'to_pay' | 'awaiting' | 'settled' | 'attention';
+  reconciliationReason: string;
+  recordedBy: string;
+  sourceUpdatedAt?: string | null;
+  lastSnapshotAt?: string | null;
+  dueDate?: string | null;
+}
+
+export interface PayableSupplierOption {
+  supplierId: string;
+  supplierName: string;
+  invoiceCount: number;
+  openInvoiceCount: number;
+  outstandingPesewas: number;
+}
+
+export interface PayablePagination {
+  limit: number;
+  offset: number;
+  total: number;
+  hasNext: boolean;
+}
+
+export interface PayableCounts {
+  toPay: number;
+  awaiting: number;
+  settled: number;
+  attention: number;
+}
+
+export interface PayableSummaryTotals {
+  outstandingPesewas: number;
+  awaitingPesewas: number;
+  awaitingCount: number;
+  pendingActionPesewas?: number;
+  overduePesewas: number;
+  dueThisWeekPesewas: number;
+}
+
+export interface PayablesPage {
+  items: PayableSummary[];
+  pagination: PayablePagination;
+  counts: PayableCounts;
+  summary: PayableSummaryTotals;
+}
+
+export interface PayablePaymentDetailField {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface PayablePaymentEntry {
+  id: string;
+  payableId: string;
+  supplierName: string | null;
+  supplierInvoiceNo: string | null;
+  dueDate: string | null;
+  paymentMethod: string;
+  paymentMethodName: string;
+  amount: number;
+  amountPesewas: number;
+  postedAt: string;
+  enteredBy: string | null;
+  reference: string | null;
+  fields: PayablePaymentDetailField[];
+  details: Record<string, string>;
+}
+
+export interface PayablePaymentsPage {
+  payments: PayablePaymentEntry[];
+}
+
+export interface CreditCandidate {
+  id: string;
+  label: string;
+  amount: number;
+  sourceAmount?: number;
+  alreadyPosted?: number;
+  availableAmount?: number;
+  reference: string;
+  description: string;
+  context?: string;
+  secondary?: string;
+  paymentMethod?: string;
+  cashierId?: string;
+  cashierName?: string;
+  shiftId?: string;
+  shiftName?: string;
+  branchId?: string;
+  branchName?: string;
+  chequeNumber?: string;
+  bankName?: string;
+  drawerName?: string;
+  paymentBreakdown?: Array<{ method: string; amount: number }>;
+  saleIds?: string[];
+  sourceKeys?: string[];
+  sourceLinks?: AccountSourceLink[];
+  metadata?: Record<string, string>;
+}
+
+export interface AccountSourceLink {
+  sourceType: 'sale_payment' | 'credit_payment';
+  sourceKey: string;
+  sourceId?: string;
+  amount: number;
+}
+
+export interface CreditCandidateFilters {
+  branchId?: string;
+  cashierId?: string;
+  shiftId?: string;
+  paymentMethod?: string;
+  groupBy?: 'total' | 'cashier' | 'shift' | 'cheque';
+}
+
+export interface CreditCandidateResponse {
+  source: 'sales' | 'credit_payment' | 'cheque';
+  date: string;
+  groupBy?: 'total' | 'cashier' | 'shift' | 'cheque';
+  filters?: CreditCandidateFilters;
+  summary: {
+    totalAmount: number;
+    totalEntries: number;
+    sourceAmount?: number;
+    alreadyPosted?: number;
+    availableAmount?: number;
+    totalAllocations?: number;
+  };
+  candidates: CreditCandidate[];
+}
+
+// ---------------------------------------------------------------------------
 // Wallet
 // ---------------------------------------------------------------------------
 
