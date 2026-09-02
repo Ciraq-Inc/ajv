@@ -50,7 +50,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       charset: "utf-8",
-      viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+      viewport: "width=device-width, initial-scale=1",
       htmlAttrs: {
         lang: "en",
       },
@@ -61,6 +61,7 @@ export default defineNuxtConfig({
 
   modules: [
     "@nuxtjs/tailwindcss",
+    "shadcn-nuxt",
     "@nuxt/fonts",
     "@pinia/nuxt",
     "nuxt-vuefire",
@@ -82,6 +83,11 @@ export default defineNuxtConfig({
       })
     },
   ],
+
+  shadcn: {
+    prefix: 'Ui',
+    componentDir: './components/ui',
+  },
 
   fonts: {
     families: [
