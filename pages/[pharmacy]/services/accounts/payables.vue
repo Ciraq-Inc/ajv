@@ -13,15 +13,15 @@
             </p>
           </div>
           <div ref="syncBellRef" class="flex items-center gap-2 self-start" @keydown.esc="syncPanelOpen = false">
+            <button v-if="showSyncBadge" type="button" class="inline-flex h-10 items-center gap-2 rounded-lg border px-3.5 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" :class="pendingSyncNeedsActionCount ? 'border-rose-600 bg-rose-600 text-white shadow-sm shadow-rose-600/30 hover:bg-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'" title="Open payments waiting for RigelOS sync" @click="goToPendingPayments">
+              <ExclamationTriangleIcon v-if="pendingSyncNeedsActionCount" class="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span v-else class="sync-wait h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+              <span>{{ pendingSyncNeedsActionCount ? `${pendingSyncNeedsActionCount} payment${pendingSyncNeedsActionCount === 1 ? '' : 's'} awaiting RigelOS sync` : `${pendingSyncCount} confirming in RigelOS` }}</span>
+            </button>
             <div class="relative">
-              <button type="button" class="inline-flex h-10 items-center gap-2 rounded-lg border pl-2.5 pr-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" :class="{ 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900': syncQueueState === 'idle', 'border-slate-950 bg-slate-950 text-white hover:bg-slate-800': syncQueueState === 'action', 'border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50': syncQueueState === 'confirming' }" :aria-label="pendingSyncCount ? `${pendingSyncCount} payment${pendingSyncCount === 1 ? '' : 's'} awaiting a RigelOS update` : 'Payment sync status'" :aria-expanded="syncPanelOpen" aria-controls="payable-sync-panel" @click="toggleSyncPanel">
-                <CheckCircleIcon v-if="syncQueueState === 'idle'" class="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                <ArrowDownTrayIcon v-else class="h-4 w-4" :class="syncQueueState === 'action' ? 'text-amber-400' : 'text-emerald-600'" aria-hidden="true" />
-                <span>{{ syncQueueState === 'idle' ? 'Synced' : `${pendingSyncCount} queued` }}</span>
-                <span v-if="syncQueueState !== 'idle'" class="flex items-center gap-1" aria-hidden="true">
-                  <span v-for="(segment, index) in syncMeterSegments" :key="index" class="h-3.5 w-1 rounded-full" :class="segment === 'confirmed' ? 'bg-emerald-400' : 'sync-wait bg-amber-400'" />
-                  <span v-if="syncMeterOverflow" class="text-[11px] font-semibold tabular-nums" :class="syncQueueState === 'action' ? 'text-amber-300' : 'text-emerald-600'">+{{ syncMeterOverflow }}</span>
-                </span>
+              <button type="button" class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" :class="syncQueueState === 'action' ? 'text-slate-700' : ''" :aria-label="pendingSyncCount ? `${pendingSyncCount} payment${pendingSyncCount === 1 ? '' : 's'} awaiting a RigelOS update` : 'Payment sync status'" :aria-expanded="syncPanelOpen" aria-controls="payable-sync-panel" @click="toggleSyncPanel">
+                <BellIcon class="h-5 w-5" aria-hidden="true" />
+                <span v-if="pendingSyncCount" class="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1 text-[10px] font-bold leading-none text-white shadow-sm" :class="syncQueueState === 'action' ? 'bg-rose-600' : 'bg-emerald-500'">{{ pendingSyncCount > 99 ? '99+' : pendingSyncCount }}</span>
               </button>
               <Transition name="sync-pop">
                 <div v-if="syncPanelOpen" id="payable-sync-panel" class="absolute right-0 top-full z-30 mt-2 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-lg shadow-slate-950/10" role="region" aria-label="RigelOS payment sync status">
@@ -76,26 +76,6 @@
             <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-slate-950" aria-hidden="true" />
           </button>
         </nav>
-        <Transition name="banner">
-          <div v-if="showSyncBanner" class="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between" :class="pendingSyncNeedsActionCount ? 'border-l-[3px] border-l-amber-500' : 'border-l-[3px] border-l-emerald-500'" role="status" aria-live="polite">
-            <div class="flex min-w-0 items-center gap-3">
-              <span class="flex shrink-0 items-center gap-1" aria-hidden="true">
-                <span v-for="(segment, index) in syncMeterSegments" :key="index" class="h-4 w-1 rounded-full" :class="segment === 'confirmed' ? 'bg-emerald-500' : 'sync-wait bg-amber-400'" />
-                <span v-if="syncMeterOverflow" class="ml-0.5 text-[11px] font-semibold tabular-nums text-slate-400">+{{ syncMeterOverflow }}</span>
-              </span>
-              <div class="min-w-0">
-                <p class="text-sm font-semibold leading-5 text-slate-950">{{ pendingSyncNeedsActionCount ? `${pendingSyncNeedsActionCount} payment${pendingSyncNeedsActionCount === 1 ? '' : 's'} waiting on RigelOS` : `${pendingSyncCount} payment${pendingSyncCount === 1 ? '' : 's'} confirming in RigelOS` }}</p>
-                <p class="mt-0.5 text-xs leading-5 text-slate-500">{{ pendingSyncNeedsActionCount ? `Run Sync Inventory in RigelOS to apply ${formatMoney(pendingSyncTotalPesewas / 100)} to these invoices.` : `The next invoice sync confirms ${formatMoney(pendingSyncTotalPesewas / 100)} in recorded payments.` }}</p>
-              </div>
-            </div>
-            <div class="flex shrink-0 items-center gap-1.5 sm:pl-4">
-              <button type="button" class="inline-flex min-h-8 items-center justify-center rounded-lg bg-slate-950 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" @click="goToPendingPayments">Review queue</button>
-              <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" aria-label="Dismiss sync notification" @click="syncBannerDismissed = true">
-                <XMarkIcon class="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        </Transition>
       </header>
 
       <section class="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -799,7 +779,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ArrowDownTrayIcon, ArrowPathIcon, BanknotesIcon, BuildingOffice2Icon, CheckCircleIcon, CheckIcon, DocumentTextIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, BanknotesIcon, BellIcon, BuildingOffice2Icon, CheckCircleIcon, CheckIcon, DocumentTextIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, QuestionMarkCircleIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import type { PayableLedgerEntry, PayablePaymentContextInput, PayablePaymentMethod, PayableSummary, PaymentMethodSubtype, PaymentMethodSummary } from '~/services/types'
 import { useAccountsWorkbench } from '~/composables/useAccountsWorkbench'
 import { payableAmount, payableLifecycle, type PayableTab } from '~/utils/payables'
@@ -832,8 +812,6 @@ const currentPage = ref(1)
 const isRefreshing = ref(false)
 const syncPanelOpen = ref(false)
 const syncBellRef = ref<HTMLElement | null>(null)
-const syncBannerDismissed = ref(false)
-let lastSyncCount = 0
 const handleSyncClickOutside = (event: PointerEvent) => {
   if (syncPanelOpen.value && syncBellRef.value && !syncBellRef.value.contains(event.target as Node)) syncPanelOpen.value = false
 }
@@ -915,25 +893,14 @@ const pendingSyncCount = computed(() => pendingPayableCount.value)
 const pendingSyncTotalPesewas = computed(() => pendingPayableTotalPesewas.value)
 const pendingSyncItems = computed(() => pendingPayables.value)
 const pendingSyncNeedsActionCount = computed(() => pendingSyncItems.value.filter((payable) => ['pending', 'leased'].includes(payable.paymentActionStatus || '')).length)
-const pendingSyncConfirmedCount = computed(() => Math.max(0, pendingSyncCount.value - pendingSyncNeedsActionCount.value))
 const syncQueueState = computed<'idle' | 'action' | 'confirming'>(() => {
   if (!pendingSyncCount.value) return 'idle'
   return pendingSyncNeedsActionCount.value ? 'action' : 'confirming'
 })
-const syncMeterSegments = computed(() => {
-  const total = Math.min(pendingSyncCount.value, 5)
-  return Array.from({ length: total }, (_, index) => (index < pendingSyncConfirmedCount.value ? 'confirmed' : 'waiting'))
-})
-const syncMeterOverflow = computed(() => Math.max(0, pendingSyncCount.value - 5))
-const showSyncBanner = computed(() => pendingSyncCount.value > 0 && !syncBannerDismissed.value)
-watch(pendingSyncCount, (count) => {
-  if (count === 0) syncBannerDismissed.value = false
-  else if (count > lastSyncCount) syncBannerDismissed.value = false
-  lastSyncCount = count
-})
+const showSyncBadge = computed(() => pendingSyncCount.value > 0)
 const tabs = computed(() => [
   { value: 'to_pay' as const, label: 'To pay', count: toPay.value },
-  { value: 'awaiting' as const, label: 'Payment sync pending', count: payableCounts.value.awaiting },
+  { value: 'awaiting' as const, label: 'Awaiting sync', count: payableCounts.value.awaiting },
   { value: 'settled' as const, label: 'Settled', count: payableCounts.value.settled },
   { value: 'ledger' as const, label: 'Ledger', count: payableLedgerPagination.value.total },
   { value: 'reports' as const, label: 'Reports', count: null as number | null },
@@ -1177,7 +1144,7 @@ const goToPendingPayments = () => {
   attentionOnly.value = false
   setActiveTab('awaiting')
 }
-const statusLabel = (payable: PayableSummary) => ({ attention: 'Needs attention', to_pay: 'Ready to pay', awaiting: 'Payment sync pending', settled: 'Settled' }[lifecycle(payable)])
+const statusLabel = (payable: PayableSummary) => ({ attention: 'Needs attention', to_pay: 'Ready to pay', awaiting: 'Awaiting sync', settled: 'Settled' }[lifecycle(payable)])
 const detailOverdue = computed(() => {
   const payable = selectedPayable.value
   if (!payable || !payable.dueDate || lifecycle(payable) !== 'to_pay') return false
@@ -1638,21 +1605,9 @@ onBeforeUnmount(() => {
   }
 }
 
-.banner-enter-active,
-.banner-leave-active {
-  transition: opacity 200ms ease, transform 200ms ease;
-}
-.banner-enter-from,
-.banner-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .sync-pop-enter-active,
-  .sync-pop-leave-active,
-  .banner-enter-active,
-  .banner-leave-active {
+  .sync-pop-leave-active {
     transition-duration: 1ms;
   }
 
