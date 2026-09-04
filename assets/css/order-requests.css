@@ -6218,6 +6218,7 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
 
 /* ==============================
    Create-customer modal
@@ -6360,5 +6361,4 @@
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid #f3f4f6;
-}
 }

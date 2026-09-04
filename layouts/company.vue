@@ -8,23 +8,31 @@
     <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed, 'sidebar-open': mobileMenuOpen }">
       <!-- Logo/Header -->
       <div class="sidebar-header">
-        <div class="flex items-center gap-3" :class="{ 'justify-center': sidebarCollapsed }">
+        <div class="company-brand">
           <div class="company-logo">
-            <img src="/brand/rig-mark.svg" alt="Rigel" class="w-8 h-8" />
+            <img src="/brand/rig-mark.svg" alt="Rigel" class="logo-icon" />
           </div>
           <div v-if="!sidebarCollapsed" class="company-info">
-            <p class="text-xs font-bold tracking-widest uppercase" style="color: rgba(255,255,255,0.55);">Services Portal</p>
+            <span class="logo-text">Rigel Portal</span>
           </div>
         </div>
-      </div>
 
-      <!-- Toggle Button (Always Visible) -->
-      <div class="toggle-btn-container">
         <button @click="toggleSidebar" class="toggle-btn"
           :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
           <ChevronRightIcon v-if="sidebarCollapsed" class="h-5 w-5" />
           <ChevronLeftIcon v-else class="h-5 w-5" />
         </button>
+      </div>
+
+      <!-- Company user identity -->
+      <div v-if="!sidebarCollapsed" class="admin-info">
+        <div class="admin-avatar">
+          {{ companyUserInitials }}
+        </div>
+        <div class="admin-details">
+          <div class="admin-name">{{ companyUserName }}</div>
+          <div class="admin-role">{{ companyUserRole }}</div>
+        </div>
       </div>
 
       <!-- Navigation -->
@@ -45,74 +53,25 @@
         </div>
       </nav>
 
-      <!-- Sidebar Footer (User Info) -->
+      <!-- Sidebar Footer -->
       <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">
-            <UserIcon class="h-5 w-5" style="color: rgba(255,255,255,0.8);" />
-          </div>
-          <div v-if="!sidebarCollapsed" class="user-details">
-            <p class="user-name">{{ userName }}</p>
-            <p class="user-role">{{ userRole }}</p>
-          </div>
-        </div>
-        <button v-if="!sidebarCollapsed" @click="handleLogout" class="logout-btn" :disabled="isLoggingOut">
+        <button @click="logoutConfirmOpen = true" class="logout-btn" :disabled="isLoggingOut">
           <ArrowPathIcon v-if="isLoggingOut" class="h-4 w-4 animate-spin" />
           <ArrowLeftOnRectangleIcon v-else class="h-4 w-4" />
-          Logout
+          <span :class="sidebarCollapsed ? 'sr-only' : 'nav-label'">Logout</span>
         </button>
       </div>
     </aside>
 
     <!-- Main Content -->
     <div class="main-content">
-      <!-- Top Bar -->
-      <header class="top-bar">
-        <div class="flex items-center gap-4">
-          <!-- Mobile Menu Toggle -->
-          <button @click="toggleMobileMenu" class="mobile-menu-btn">
-            <Bars3Icon class="h-6 w-6" />
-          </button>
-          <!-- <h1 class="page-title">{{ pageTitle }}</h1> -->
-        </div>
-
-        <div class="flex items-center gap-4">
-          <!-- Notifications -->
-          <button class="icon-btn" title="Notifications">
-            <BellIcon class="h-5 w-5" />
-          </button>
-
-          <!-- Settings -->
-          <button class="icon-btn" title="Settings">
-            <Cog6ToothIcon class="h-5 w-5" />
-          </button>
-
-          <!-- User Menu -->
-          <div class="user-menu">
-            <button @click="toggleUserMenu" class="user-menu-btn">
-              <div class="user-menu-avatar">{{ userName.charAt(0).toUpperCase() }}</div>
-              <span class="user-menu-text">{{ userName }}</span>
-              <ChevronDownIcon class="h-4 w-4 user-menu-chevron" />
-            </button>
-
-            <div v-if="showUserMenu" class="user-menu-dropdown">
-              <NuxtLink to="/profile" class="menu-item">
-                <UserIcon class="h-4 w-4" />
-                Profile
-              </NuxtLink>
-              <NuxtLink to="/settings" class="menu-item">
-                <Cog6ToothIcon class="h-4 w-4" />
-                Settings
-              </NuxtLink>
-              <hr class="my-2 border-[#ede0f7]" />
-              <button @click="handleLogout" class="menu-item text-red-600">
-                <ArrowLeftOnRectangleIcon class="h-4 w-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <button
+        @click="toggleMobileMenu"
+        class="floating-menu-btn"
+        aria-label="Open navigation menu"
+      >
+        <Bars3Icon class="h-5 w-5" />
+      </button>
 
       <!-- Hours-not-confirmed nudge -->
       <div v-if="showHoursNudge" class="hours-nudge">
@@ -131,6 +90,21 @@
         <slot />
       </main>
     </div>
+
+    <UiDialog v-model:open="logoutConfirmOpen">
+      <UiDialogContent class="rounded-2xl border-slate-200 sm:max-w-[420px]">
+        <UiDialogHeader>
+          <UiDialogTitle class="text-base font-semibold text-slate-950">Sign out?</UiDialogTitle>
+          <UiDialogDescription class="text-sm leading-6 text-slate-600">You will need to sign in again to access this pharmacy workspace.</UiDialogDescription>
+        </UiDialogHeader>
+        <UiDialogFooter class="gap-2 sm:justify-end">
+          <button type="button" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700" @click="logoutConfirmOpen = false">Cancel</button>
+          <button type="button" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50" :disabled="isLoggingOut" @click="handleLogout">
+            {{ isLoggingOut ? 'Signing out...' : 'Sign out' }}
+          </button>
+        </UiDialogFooter>
+      </UiDialogContent>
+    </UiDialog>
   </div>
 </template>
 
@@ -140,11 +114,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import { useApi } from '~/composables/useApi'
 import {
-  UserIcon,
-  BellIcon,
-  Cog6ToothIcon,
   SwatchIcon,
-  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowLeftOnRectangleIcon,
@@ -160,6 +130,7 @@ import {
   BanknotesIcon,
   ClockIcon,
   CodeBracketIcon,
+  WalletIcon,
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
@@ -167,7 +138,7 @@ const route = useRoute()
 const companyStore = useCompanyStore()
 
 const THEME_PRESETS = {
-  indigo:  { sidebar: '#1e1b4b', activeBg: 'rgba(99,102,241,0.18)',  activeBorder: '#818cf8', accent: '#6366f1', soft: '#eef2ff', softBorder: '#c7d2fe', avatarGrad: 'linear-gradient(135deg,#4338ca,#312e81)' },
+  indigo:  { sidebar: '#2A1130', sidebarGradient: 'linear-gradient(180deg, #2A1130 0%, #1A0B20 100%)', activeBg: '#5A2468', activeBorder: '#C073A7', accent: '#5A2468', soft: '#faf5fb', softBorder: '#e8d5eb', avatarGrad: 'linear-gradient(135deg,#C073A7,#5A2468)' },
   teal:    { sidebar: '#042f2e', activeBg: 'rgba(20,184,166,0.18)',   activeBorder: '#2dd4bf', accent: '#0d9488', soft: '#f0fdfa', softBorder: '#99f6e4', avatarGrad: 'linear-gradient(135deg,#0f766e,#042f2e)' },
   rose:    { sidebar: '#4c0519', activeBg: 'rgba(244,63,94,0.18)',    activeBorder: '#fb7185', accent: '#e11d48', soft: '#fff1f2', softBorder: '#fecdd3', avatarGrad: 'linear-gradient(135deg,#be123c,#4c0519)' },
   emerald: { sidebar: '#022c22', activeBg: 'rgba(52,211,153,0.18)',   activeBorder: '#34d399', accent: '#059669', soft: '#ecfdf5', softBorder: '#a7f3d0', avatarGrad: 'linear-gradient(135deg,#047857,#022c22)' },
@@ -187,6 +158,7 @@ const themeVars = computed(() => {
 
   return {
     '--ls-sidebar':        t.sidebar,
+    '--ls-sidebar-gradient': t.sidebarGradient || t.sidebar,
     '--ls-active-bg':      t.activeBg,
     '--ls-active-border':  t.activeBorder,
     '--ls-accent':         t.accent,
@@ -197,9 +169,9 @@ const themeVars = computed(() => {
 })
 
 const sidebarCollapsed = ref(false)
-const showUserMenu = ref(false)
 const isLoggingOut = ref(false)
 const mobileMenuOpen = ref(false)
+const logoutConfirmOpen = ref(false)
 
 // Get company domain from route
 const companyDomain = computed(() => {
@@ -207,8 +179,6 @@ const companyDomain = computed(() => {
   return pathMatch ? pathMatch[1] : 'company'
 })
 
-// User info
-const userName = computed(() => companyStore.userName || 'User')
 const userRole = computed(() => {
   const role = companyStore.userRole || 'user'
   return role.charAt(0).toUpperCase() + role.slice(1)
@@ -221,10 +191,17 @@ const normalizedRole = computed(() =>
     .replace(/-/g, '_')
 )
 const companyName = computed(() => companyStore.currentCompany?.name || 'Company')
-
-// Page title from route meta or default
-const pageTitle = computed(() => {
-  return route.meta.title || route.name || 'Dashboard'
+const companyUserName = computed(() => companyStore.userName || 'User')
+const companyUserRole = computed(() =>
+  String(companyStore.userRole || 'staff')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+)
+const companyUserInitials = computed(() => {
+  const parts = companyUserName.value.split(/\s+/).filter(Boolean)
+  return (parts.length > 1
+    ? `${parts[0]?.charAt(0)}${parts[parts.length - 1]?.charAt(0)}`
+    : parts[0]?.slice(0, 2) || 'U').toUpperCase()
 })
 
 // Navigation items
@@ -282,6 +259,16 @@ const allNavigationSections = computed(() => [
         path: servicePath('sms-billing'),
         label: 'Wallet',
         icon: CreditCardIcon,
+      },
+    ],
+  },
+  {
+    title: 'Accounts',
+    items: [
+      {
+        path: servicePath('accounts'),
+        label: 'Accounts',
+        icon: WalletIcon,
       },
     ],
   },
@@ -358,11 +345,6 @@ const toggleSidebar = () => {
   }
 }
 
-// Toggle user menu
-const toggleUserMenu = () => {
-  showUserMenu.value = !showUserMenu.value
-}
-
 // Toggle mobile menu
 const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value
@@ -378,6 +360,7 @@ const handleLogout = async () => {
   isLoggingOut.value = true
   try {
     await companyStore.logout()
+    logoutConfirmOpen.value = false
     router.push(`/${companyDomain.value}/services/login`)
   } catch (error) {
     console.error('Logout error:', error)
@@ -398,14 +381,6 @@ onMounted(async () => {
   // Fetch store settings to apply the correct theme preset
   await companyStore.fetchTheme()
 
-  // Close user menu when clicking outside
-  if (typeof window !== 'undefined') {
-    window.addEventListener('click', (e) => {
-      if (!e.target.closest('.user-menu')) {
-        showUserMenu.value = false
-      }
-    })
-  }
 })
 
 // Watch for mobile menu changes to handle body scroll
@@ -457,102 +432,123 @@ watch(() => route.path, refreshHoursStatus)
 <style scoped>
 .company-layout {
   display: flex;
-  height: 100vh;
-  background: var(--bg, #f4f4f5);
+  min-height: 100vh;
+  background: #F9FAFB;
 }
 
 /* Sidebar */
 .sidebar {
-  width: 280px;
-  background: var(--ls-sidebar, #1e1b4b);
-  border-right: 1px solid rgba(255,255,255,0.06);
+  width: 256px;
+  background: var(--ls-sidebar-gradient, var(--ls-sidebar, #2A1130));
+  color: white;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: all 0.2s ease;
+  z-index: 1000;
 }
 
 .sidebar-collapsed {
-  width: 80px;
+  width: 70px;
 }
 
 .sidebar-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-collapsed .sidebar-header {
-  flex-direction: column;
-  padding: 1rem;
+  padding: 16px;
 }
 
-.toggle-btn-container {
-  display: flex;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+.admin-info {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-collapsed .toggle-btn-container {
-  padding: 0.5rem;
-}
-
-.company-logo {
-  min-width: 40px;
-  height: 40px;
-  background: transparent;
-  border-radius: 8px;
+.admin-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  background: var(--ls-avatar-grad, linear-gradient(135deg, #C073A7 0%, #5A2468 100%));
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.company-info h2 {
-  font-size: 1.125rem;
+  font-size: 20px;
   font-weight: 700;
-  color: white;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 12px;
 }
 
-.company-info p {
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.55);
-  margin: 0;
+.admin-details {
+  text-align: left;
+}
+
+.admin-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.admin-role {
+  font-size: 12px;
+  color: #9CA3AF;
+  text-transform: capitalize;
+}
+
+.company-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.company-logo {
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .toggle-btn {
-  padding: 0.5rem;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
   border: none;
-  background: transparent;
-  color: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: all 0.15s ease;
 }
 
 .toggle-btn:hover {
-  background: rgba(255,255,255,0.08);
-  color: white;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Navigation */
 .sidebar-nav {
   flex: 1;
-  padding: 1rem;
   overflow-y: auto;
+  padding: 16px 0;
 }
 
 .nav-section {
-  margin-bottom: 1rem;
+  margin-bottom: 24px;
 }
 
 .nav-section:last-child {
@@ -560,55 +556,58 @@ watch(() => route.path, refreshHoursStatus)
 }
 
 .nav-section-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
-  margin: 0 0 0.5rem 0.75rem;
+  color: #64748B;
+  padding: 0 16px 8px;
+  letter-spacing: 0.5px;
+  margin: 0;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  color: rgba(255,255,255,0.6);
+  padding: 8px 16px;
+  color: #CBD5E1;
   text-decoration: none;
-  transition: all 0.2s;
-  margin-bottom: 0.5rem;
+  transition: all 0.15s ease;
   position: relative;
-  border-left: 3px solid transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 2px 8px;
 }
 
 .sidebar-collapsed .nav-item {
   justify-content: center;
-  padding: 0.75rem;
-  border-left: none;
+  padding: 8px 0;
 }
 
 .nav-item:hover {
-  background: rgba(255,255,255,0.07);
+  background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
 .nav-item.router-link-active {
-  background: var(--ls-active-bg);
+  background: var(--ls-active-bg, rgba(255, 255, 255, 0.14));
   color: white;
-  font-weight: 600;
-  border-left-color: var(--ls-active-border);
-  padding-left: calc(1rem - 3px);
+  border-left: 2px solid var(--ls-active-border, rgba(255, 255, 255, 0.6));
 }
 
 .nav-icon {
+  font-size: 18px;
+  min-width: 20px;
   width: 20px;
   height: 20px;
-  min-width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-label {
-  font-size: 0.875rem;
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -616,84 +615,38 @@ watch(() => route.path, refreshHoursStatus)
 
 .nav-badge {
   margin-left: auto;
-  background: #ef4444;
+  background: #EF4444;
   color: white;
-  font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 12px;
+  font-size: 11px;
   font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
 }
 
 /* Sidebar Footer */
 .sidebar-footer {
-  padding: 1rem;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.sidebar-collapsed .user-info {
-  justify-content: center;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255,255,255,0.8);
-}
-
-.user-details {
-  flex: 1;
-  overflow: hidden;
-}
-
-.user-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: white;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-role {
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.55);
-  margin: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px;
 }
 
 .logout-btn {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 0;
   background: transparent;
-  color: rgba(255,255,255,0.7);
-  font-size: 0.875rem;
+  border: none;
+  color: #EF4444;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
 }
 
 .logout-btn:hover {
-  background: rgba(220,38,38,0.15);
-  border-color: rgba(248,113,113,0.4);
-  color: #f87171;
+  color: #DC2626;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .logout-btn:disabled {
@@ -704,125 +657,45 @@ watch(() => route.path, refreshHoursStatus)
 /* Main Content */
 .main-content {
   flex: 1;
+  margin-left: 256px;
+  transition: margin-left 0.2s ease;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-/* Top Bar */
-.top-bar {
-  background: white;
-  border-bottom: 1px solid var(--ls-soft-border);
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-.icon-btn {
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #6b7280;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.icon-btn:hover {
-  background: var(--ls-soft);
-  color: var(--ls-accent);
-}
-
-/* User Menu */
-.user-menu {
+  min-height: 100vh;
+  min-width: 0;
   position: relative;
 }
 
-.user-menu-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem 0.375rem 0.375rem;
-  border-radius: 8px;
-  border: 1px solid var(--ls-soft-border);
-  background: white;
-  color: #374151;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.user-menu-btn:hover {
-  background: var(--ls-soft);
-  border-color: var(--ls-soft-border);
-}
-
-.user-menu-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--ls-avatar-grad);
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.user-menu-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 0.5rem);
-  min-width: 200px;
-  background: white;
-  border: 1px solid var(--ls-soft-border);
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-  padding: 0.5rem;
-  z-index: 50;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  color: #374151;
-  text-decoration: none;
-  font-size: 0.875rem;
-  transition: background 0.2s;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-}
-
-.menu-item:hover {
-  background: var(--ls-soft);
+.sidebar-collapsed ~ .main-content {
+  margin-left: 70px;
 }
 
 /* Page Content */
 .page-content {
   flex: 1;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 2rem;
   background: var(--ls-soft, #f8fafc);
   min-height: 100%;
+}
+
+.floating-menu-btn {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 120;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #3f3f46;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(10px);
 }
 
 /* Hours-not-confirmed nudge */
@@ -897,33 +770,14 @@ watch(() => route.path, refreshHoursStatus)
   z-index: 39;
 }
 
-/* Mobile Menu Button */
-.mobile-menu-btn {
-  display: none;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #374151;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.mobile-menu-btn:hover {
-  background: var(--ls-soft);
-  color: var(--ls-accent);
-}
-
 /* Responsive */
 @media (max-width: 1024px) {
   .mobile-overlay {
     display: block;
   }
 
-  .mobile-menu-btn {
+  .floating-menu-btn {
     display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .sidebar {
@@ -931,10 +785,10 @@ watch(() => route.path, refreshHoursStatus)
     left: 0;
     top: 0;
     height: 100vh;
-    z-index: 40;
+    z-index: 1000;
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    width: 280px;
+    transition: transform 0.2s ease;
+    width: 256px;
   }
 
   .sidebar.sidebar-open {
@@ -942,8 +796,8 @@ watch(() => route.path, refreshHoursStatus)
   }
 
   .sidebar.sidebar-collapsed {
-    width: 280px;
-    background: var(--ls-sidebar, #1e1b4b);
+    width: 256px;
+    background: var(--ls-sidebar-gradient, var(--ls-sidebar, #2A1130));
   }
 
   .main-content {
@@ -951,50 +805,40 @@ watch(() => route.path, refreshHoursStatus)
     width: 100%;
   }
 
-  .top-bar {
-    padding: 1rem;
-  }
-
   .page-content {
-    padding: 1rem;
+    padding: 4.5rem 1rem 1rem;
   }
 
-  .user-menu-text,
-  .user-menu-chevron {
-    display: none;
-  }
-
-  .user-menu-btn {
-    padding: 0.5rem;
-    border: none;
-  }
-
-  .page-title {
-    font-size: 1.25rem;
-  }
-
-  /* Hide desktop toggle in mobile view */
-  .toggle-btn-container {
+  .toggle-btn {
     display: none;
   }
 }
 
 @media (max-width: 640px) {
-  .top-bar {
-    padding: 0.75rem;
-  }
-
   .page-content {
-    padding: 0.75rem;
-  }
-
-  .icon-btn span {
-    display: none;
+    padding: 4.25rem 0.75rem 0.75rem;
   }
 
   .sidebar {
     width: 85vw;
     max-width: 320px;
   }
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 </style>
