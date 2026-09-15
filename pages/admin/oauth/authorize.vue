@@ -35,7 +35,7 @@ import { createSsoConsentService, type SsoAuthorizeParams } from '~/services/sso
 // after a successful login. By the time this component mounts, the admin
 // session is guaranteed valid — so this page only has one job: validate
 // params, finalize, redirect.
-definePageMeta({ layout: false, middleware: 'adminAuth' })
+definePageMeta({ layout: false, middleware: ['admin-auth'] })
 
 const route = useRoute()
 const ssoConsentService = createSsoConsentService(useApi())
