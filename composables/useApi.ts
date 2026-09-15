@@ -86,7 +86,7 @@ function resolveToken(endpoint: string): string | null {
   } else if (endpoint.startsWith('/api/dispatch')) {
     const t = localStorage.getItem('dispatch_token')
     if (t) return t
-  } else if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+  } else if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')) {
     const t = localStorage.getItem('adminToken')
     if (t) return t
   } else if (
@@ -135,7 +135,7 @@ function resolveRefreshToken(endpoint: string): string | null {
     return localStorage.getItem(`company_${companyDomain}_refresh_token`)
   }
 
-  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')) {
     return localStorage.getItem('adminRefreshToken')
   }
 
@@ -168,7 +168,7 @@ function updateStoredTokens(endpoint: string, accessToken: string, refreshToken:
     return
   }
 
-  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')) {
     localStorage.setItem('adminToken', accessToken)
     if (refreshToken) localStorage.setItem('adminRefreshToken', refreshToken)
     return
@@ -200,7 +200,7 @@ function clearAuthForEndpoint(endpoint: string): void {
     return
   }
 
-  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin')) {
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')) {
     localStorage.removeItem('adminToken')
     localStorage.removeItem('adminRefreshToken')
     return
