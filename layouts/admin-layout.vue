@@ -155,6 +155,17 @@
             <CodeBracketSquareIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Developer API</span>
           </NuxtLink>
+
+          <!-- External: rigelsupport. /api/auth/sso-start there completes
+               "Continue with MedsGH" silently if this admin session is
+               already valid — see rigel-medsgh's src/services/ssoService.js
+               and rigelsupport's app/api/auth/sso-start/route.ts. Plain <a>,
+               not NuxtLink: this leaves the ajv origin entirely. -->
+          <a :href="supportTicketsUrl" target="_blank" rel="noopener" class="nav-item">
+            <LifebuoyIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Support Tickets</span>
+            <ArrowTopRightOnSquareIcon v-if="!isSidebarCollapsed" class="nav-external-icon" aria-hidden="true" />
+          </a>
         </div>
 
         <div class="nav-section">
@@ -342,7 +353,15 @@ import {
   TagIcon,
   CodeBracketSquareIcon,
   ArchiveBoxIcon,
+  LifebuoyIcon,
+  ArrowTopRightOnSquareIcon,
 } from '@heroicons/vue/24/outline'
+
+// rigelsupport is a single fixed deployment regardless of which ajv
+// environment (staging/production) is currently loaded — its own
+// AJV_ORIGIN config (server-side, not here) decides which ajv it bounces
+// back to for the SSO check.
+const supportTicketsUrl = 'https://support.rigelos.com/api/auth/sso-start'
 import { useAdminStore } from '~/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
 import { useAttentionQueue } from '~/composables/useAttentionQueue'
@@ -691,6 +710,14 @@ onUnmounted(() => {
   color: white;
   border-left: 2px solid #C073A7;
   /* magenta accent */
+}
+
+.nav-external-icon {
+  width: 13px;
+  height: 13px;
+  margin-left: auto;
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
 .nav-child-item {
