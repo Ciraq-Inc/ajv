@@ -2978,6 +2978,23 @@ const selectedMethodTotal = computed<number | null>(() => {
     }
     return null
 })
+// Total charged via Paystack = order total + Paystack processing fee (1.95% + GHS 0.50)
+const paystackChargeTotal = computed<number | null>(() => {
+    const base = selectedMethodTotal.value
+    if (base == null) return null
+    const fee = Math.round((base * 0.0195 + 0.50) * 100) / 100
+    return Math.round((base + fee) * 100) / 100
+})
+
+const formatPickupReason = (reason: string | undefined): string => {
+    switch (reason) {
+        case 'multi_pharmacy': return 'Pickup is only available when one pharmacy fulfills the whole order'
+        case 'closed': return 'The pharmacy is currently closed'
+        case 'outside_buffer': return 'The pharmacy is closing too soon for pickup'
+        case 'no_pharmacy': return 'No pharmacy is yet sourced'
+        default: return 'Pickup is not available right now'
+    }
+}
 
 // Items base for a provider-rate total: options subtotal, else request items_total.
 const deliveryItemsBase = (req: OrderRequest | null, opts?: PaymentOptions): number => {
