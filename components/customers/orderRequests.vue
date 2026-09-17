@@ -854,7 +854,8 @@
                                     </div>
                                 </button>
 
-                                <!-- Delivery card -->
+                                <!-- Delivery card + expandable provider rate sheet -->
+                                <div class="fulfillment-option-wrap">
                                 <button
                                     type="button"
                                     class="fulfillment-option"
@@ -868,16 +869,35 @@
                                         <div class="fulfillment-option-body">
                                             <div class="fulfillment-option-head">
                                                 <span class="fulfillment-option-title">Delivery</span>
-                                                <span class="fulfillment-option-price">GHS {{ Number(selectedPaymentOptions?.delivery?.total ?? 0).toFixed(2) }}</span>
+                                                <span class="fulfillment-option-price">GHS {{ Number(deliveryDisplayTotal(selectedRequest) ?? 0).toFixed(2) }}</span>
                                             </div>
                                             <div class="fulfillment-option-meta">
-                                                <span>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</span>
+                                                <span v-if="selectedDeliveryRate(selectedRequest)">via {{ selectedDeliveryRate(selectedRequest)?.provider_name }} · GHS {{ Number(selectedDeliveryRate(selectedRequest)?.amount ?? 0).toFixed(2) }}</span>
+                                                <span v-else>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</span>
                                                 <span v-if="selectedPaymentOptions?.delivery?.distance_km != null"> · {{ selectedPaymentOptions?.delivery?.distance_km }} km</span>
-                                                <span v-if="selectedPaymentOptions?.delivery?.eta_minutes"> · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min</span>
+                                                <span v-if="selectedDeliveryRate(selectedRequest)?.eta_minutes"> · ~{{ selectedDeliveryRate(selectedRequest)?.eta_minutes }} min</span>
+                                                <span v-else-if="selectedPaymentOptions?.delivery?.eta_minutes"> · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min</span>
                                             </div>
                                         </div>
                                     </div>
                                 </button>
+                                <!-- Rate sheet: always visible when provider rates exist — tap a rate to pick it (also selects Delivery) -->
+                                <div v-if="(selectedPaymentOptions?.delivery?.provider_rates?.length ?? 0) > 0" class="provider-rate-sheet">
+                                    <p class="provider-rate-sheet-title">Choose delivery speed</p>
+                                    <button
+                                        v-for="rate in selectedPaymentOptions?.delivery?.provider_rates"
+                                        :key="`${rate.provider_code}:${rate.service_level}`"
+                                        type="button"
+                                        class="provider-rate-option"
+                                        :class="{ 'provider-rate-option--selected': selectedRateByRequest[selectedRequest.id] === `${rate.provider_code}:${rate.service_level}` }"
+                                        @click="chooseDeliveryRate(selectedRequest.id, rate)"
+                                    >
+                                        <span class="provider-rate-name">{{ rate.provider_name }}{{ rate.service_level && rate.service_level !== 'standard' ? ` · ${rate.service_level}` : '' }}</span>
+                                        <span class="provider-rate-price">GHS {{ Number(rate.amount ?? 0).toFixed(2) }}</span>
+                                        <span v-if="rate.eta_minutes" class="provider-rate-meta">~{{ rate.eta_minutes }} min</span>
+                                    </button>
+                                </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1382,6 +1402,17 @@ interface PaymentOptions {
         fee?: number | string | null;
         distance_km?: number | null;
         eta_minutes?: number | null;
+        provider_rates?: Array<{
+            provider_code?: string;
+            provider_name?: string;
+            service_level?: string;
+            amount?: number | string | null;
+            currency?: string;
+            eta_minutes?: number | null;
+            quoted_at?: string;
+            valid_until?: string;
+            [key: string]: unknown;
+        }>;
         [key: string]: unknown;
     };
     [key: string]: unknown;
@@ -1411,7 +1442,7 @@ interface ApiError extends Error {
 const props = defineProps<{
     defaultSubTab?: string;
     initialRequestId?: string | number | null;
-}>()
+}>();
 
 const userStore = useUserStore() as unknown as UserStoreShape
 const route = useRoute()
@@ -1445,6 +1476,8 @@ const paymentOptionsLoading = ref<Record<string | number, boolean>>({})
 const selectedPaymentMethodByRequest = ref<Record<string | number, string>>({})
 const overrideMethodPickerFor = ref<Record<string | number, boolean>>({})
 const applyFeeByRequest = ref<Record<string | number, boolean>>({})
+// Provider rate selection (booking step 3): key `${provider_code}:${service_level}` per request.
+const selectedRateByRequest = ref<Record<string | number, string>>({})
 // Convenience accessor — avoids repeated index lookups that vue-tsc cannot narrow through v-else-if guards
 const selectedPaymentOptions = computed<PaymentOptions | undefined>(
     () => selectedRequest.value != null ? paymentOptionsByRequest.value[selectedRequest.value.id] : undefined
@@ -2933,34 +2966,72 @@ const selectedMethodTotal = computed<number | null>(() => {
         return total != null ? Number(total) : null
     }
     if (method === 'delivery') {
+        const rate = selectedDeliveryRate(req)
+        if (rate) {
+            // Rate replaces the own-rider stored fee: items + provider amount.
+            const itemsBase = Number(deliveryItemsBase(req, opts))
+            const total = itemsBase + Number(rate.amount ?? 0) - (applyFee ? Number(opts.request_fee ?? 0) : 0)
+            return Number(Math.max(0, total).toFixed(2))
+        }
         const total = applyFee ? opts.delivery?.total_fee_applied : opts.delivery?.total
         return total != null ? Number(total) : null
     }
     return null
 })
 
-// Total charged via Paystack = order total + Paystack processing fee (1.95% + GHS 0.50)
-const paystackChargeTotal = computed<number | null>(() => {
-    const base = selectedMethodTotal.value
-    if (base == null) return null
-    const fee = Math.round((base * 0.0195 + 0.50) * 100) / 100
-    return Math.round((base + fee) * 100) / 100
-})
-
-const formatPickupReason = (reason: string | undefined): string => {
-    switch (reason) {
-        case 'multi_pharmacy': return 'Pickup is only available when one pharmacy fulfills the whole order'
-        case 'closed': return 'The pharmacy is currently closed'
-        case 'outside_buffer': return 'The pharmacy is closing too soon for pickup'
-        case 'no_pharmacy': return 'No pharmacy is yet sourced'
-        default: return 'Pickup is not available right now'
-    }
+// Items base for a provider-rate total: options subtotal, else request items_total.
+const deliveryItemsBase = (req: OrderRequest | null, opts?: PaymentOptions): number => {
+    if (!req) return 0
+    const fromOpts = Number((opts as unknown as { subtotal?: number | string } | undefined)?.subtotal)
+    if (Number.isFinite(fromOpts) && fromOpts > 0) return fromOpts
+    return Number(req.items_total ?? 0)
 }
 
+// Currently selected provider rate for a request (null = own-rider stored fee).
+const selectedDeliveryRate = (req: OrderRequest | null) => {
+    if (!req || req.id == null) return null
+    const key = selectedRateByRequest.value[req.id]
+    if (!key) return null
+    const rates = req.id != null ? paymentOptionsByRequest.value[req.id]?.delivery?.provider_rates : undefined
+    return (rates ?? []).find((r) => `${r.provider_code}:${r.service_level ?? 'standard'}` === key) ?? null
+}
+
+// Delivery card headline: rate-aware total when a provider rate is picked.
+const deliveryDisplayTotal = (req: OrderRequest | null): number | null => {
+    if (!req || req.id == null) return null
+    const opts = paymentOptionsByRequest.value[req.id]
+    if (!opts) return null
+    const applyFee = applyFeeByRequest.value[req.id] !== false
+    const rate = selectedDeliveryRate(req)
+    if (rate) {
+        const total = deliveryItemsBase(req, opts) + Number(rate.amount ?? 0) - (applyFee ? Number(opts.request_fee ?? 0) : 0)
+        return Number(Math.max(0, total).toFixed(2))
+    }
+    const total = applyFee ? opts.delivery?.total_fee_applied : opts.delivery?.total
+    return total != null ? Number(total) : null
+}
+
+const chooseDeliveryRate = (requestId: number | string, rate: { provider_code?: string; service_level?: string }): void => {
+    if (!requestId) return
+    selectedRateByRequest.value = {
+        ...selectedRateByRequest.value,
+        [requestId]: `${rate.provider_code}:${rate.service_level ?? 'standard'}`
+    }
+    // Picking a rate IS picking Delivery — select the method so totals + pay follow.
+    if (selectedPaymentMethodByRequest.value[requestId] !== 'delivery') {
+        choosePaymentMethod(requestId, 'delivery')
+    }
+}
 const submitFulfillmentChoice = async (requestId: number | string, method: string): Promise<{ data?: unknown; message?: string }> => {
-    const res = await apiCall('PUT', `/api/order-requests/customer/${String(requestId)}/fulfillment`, {
-        fulfillment_type: method
-    })
+    const body: Record<string, unknown> = { fulfillment_type: method }
+    if (method === 'delivery') {
+        const rate = selectedRequest.value?.id === requestId ? selectedDeliveryRate(selectedRequest.value) : null
+        if (rate) {
+            body.provider_code = rate.provider_code
+            body.service_level = rate.service_level ?? 'standard'
+        }
+    }
+    const res = await apiCall('PUT', `/api/order-requests/customer/${String(requestId)}/fulfillment`, body)
     if (selectedRequest.value?.id === requestId) {
         selectedRequest.value = {
             ...selectedRequest.value,
@@ -6367,6 +6438,69 @@ void isPaymentPendingRequest
     border-color: #4F217A;
     background: #4F217A;
     box-shadow: inset 0 0 0 4px #ffffff;
+}
+
+/* Provider rate sheet (booking step 3): expands under Delivery once tapped. */
+.fulfillment-option-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.provider-rate-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0 0.25rem;
+    padding: 0.75rem;
+    border: 1px dashed #c4a3e8;
+    border-radius: 12px;
+    background: #faf5ff;
+}
+.provider-rate-sheet-title {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #4F217A;
+}
+.provider-rate-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+}
+.provider-rate-option:hover {
+    border-color: #c4a3e8;
+}
+.provider-rate-option--selected {
+    border-color: #4F217A;
+    background: #f5eefd;
+    box-shadow: 0 0 0 3px rgba(79,33,122,0.08);
+}
+.provider-rate-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #18181b;
+}
+.provider-rate-price {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #4F217A;
+    white-space: nowrap;
+}
+.provider-rate-meta {
+    font-size: 0.75rem;
+    color: #71717a;
+    white-space: nowrap;
 }
 
 .fulfillment-option--disabled {

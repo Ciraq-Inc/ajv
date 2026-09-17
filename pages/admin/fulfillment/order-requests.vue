@@ -685,6 +685,31 @@
 
                       <div class="workspace-composer-divider"></div>
 
+                      <!-- Parcel Panel (provider booking step 1) -->
+                      <div class="parcel-panel">
+                        <div class="parcel-panel-head">
+                          <div class="flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></div>
+                            <span class="text-xs font-bold text-gray-700">Parcel for delivery quote</span>
+                            <span v-if="parcelSaved" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Saved</span>
+                          </div>
+                          <span class="text-[10px] text-gray-400">Weigh once, quote everywhere — customer never sees this.</span>
+                        </div>
+                        <div class="parcel-grid">
+                          <label class="parcel-field"><span>Weight (kg)</span><input v-model="parcelForm.weight" type="number" min="0" max="500" step="0.1" placeholder="0.5" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Length (cm)</span><input v-model="parcelForm.length" type="number" min="0" max="300" step="0.5" placeholder="20" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Width (cm)</span><input v-model="parcelForm.width" type="number" min="0" max="300" step="0.5" placeholder="15" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Height (cm)</span><input v-model="parcelForm.height" type="number" min="0" max="300" step="0.5" placeholder="10" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Value (GHS)</span><input v-model="parcelForm.value" type="number" min="0" max="1000000" step="0.01" placeholder="Items total" class="parcel-input" /></label>
+                          <label class="parcel-check"><input v-model="parcelForm.fragile" type="checkbox" class="w-3.5 h-3.5 rounded accent-amber-600" /><span>Fragile</span></label>
+                          <label class="parcel-check"><input v-model="parcelForm.coldChain" type="checkbox" class="w-3.5 h-3.5 rounded accent-sky-600" /><span>Cold chain</span></label>
+                        </div>
+                        <div class="parcel-actions">
+                          <button type="button" class="text-[10px] bg-[#4F217A] hover:bg-[#4F217A]/85 text-white px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50" :disabled="parcelSaving || !selectedRequest" @click="saveParcel">{{ parcelSaving ? 'Saving…' : 'Save parcel' }}</button>
+                          <span v-if="parcelError" class="text-[10px] text-red-600 font-semibold">{{ parcelError }}</span>
+                        </div>
+                      </div>
+
                       <!-- Coverage Matrix Panel -->
                       <div class="coverage-matrix-panel">
                         <div class="coverage-matrix-head">
@@ -1513,6 +1538,11 @@
                   <strong>{{ formatCurrency(paymentModeTotal) }}</strong>
                 </div>
               </div>
+              <div v-if="selectedRequest?.delivery_provider_code || selectedRequest?.parcel_weight_kg" class="provider-readonly-strip">
+                <span v-if="selectedRequest?.delivery_provider_code" class="provider-readonly-chip">Customer picked: {{ selectedRequest.delivery_provider_code }}{{ selectedRequest.delivery_service_level ? ` · ${selectedRequest.delivery_service_level}` : '' }}{{ selectedRequest.delivery_quote_amount ? ` · GHS ${Number(selectedRequest.delivery_quote_amount).toFixed(2)}` : '' }}</span>
+                <span v-else class="provider-readonly-chip provider-readonly-chip--muted">Own-rider delivery (no provider picked)</span>
+                <span v-if="selectedRequest?.parcel_weight_kg" class="provider-readonly-chip provider-readonly-chip--parcel">Parcel: {{ selectedRequest.parcel_weight_kg }} kg{{ selectedRequest.parcel_length_cm ? ` · ${selectedRequest.parcel_length_cm}×${selectedRequest.parcel_width_cm}×${selectedRequest.parcel_height_cm} cm` : '' }}{{ selectedRequest.parcel_value_ghs ? ` · GHS ${Number(selectedRequest.parcel_value_ghs).toFixed(2)}` : '' }}{{ selectedRequest.parcel_fragile ? ' · fragile' : '' }}{{ selectedRequest.parcel_cold_chain ? ' · cold chain' : '' }}</span>
+              </div>
             </section>
 
             <!-- Fulfillment plan -->
@@ -1620,6 +1650,14 @@
                       class="btn btn-sm btn-outline"
                       @click="openForceAssign(d)"
                     >Force Assign Rider</button>
+                    <button
+                      v-if="isDev && d.delivery_status === 'open' && !d.provider_reference"
+                      class="btn btn-sm"
+                      style="background:#4F217A;color:#fff;border:none;"
+                      :disabled="bookingProviderId === d.id"
+                      @click="bookProviderFor(d)"
+                    >{{ bookingProviderId === d.id ? 'Booking…' : 'Book provider (dev)' }}</button>
+                    <span v-if="d.provider_reference" style="font-size:0.72rem;color:#047857;font-weight:700;">Booked: {{ d.provider_reference }}</span>
                   </div>
                 </div>
               </div>
@@ -1724,6 +1762,14 @@
                       class="btn btn-sm btn-outline"
                       @click="openForceAssign(d)"
                     >Force Assign Rider</button>
+                    <button
+                      v-if="isDev && d.delivery_status === 'open' && !d.provider_reference"
+                      class="btn btn-sm"
+                      style="background:#4F217A;color:#fff;border:none;"
+                      :disabled="bookingProviderId === d.id"
+                      @click="bookProviderFor(d)"
+                    >{{ bookingProviderId === d.id ? 'Booking…' : 'Book provider (dev)' }}</button>
+                    <span v-if="d.provider_reference" style="font-size:0.72rem;color:#047857;font-weight:700;">Booked: {{ d.provider_reference }}</span>
                   </div>
                 </div>
               </div>
@@ -2608,6 +2654,18 @@ interface RichOrderRequest {
   feedback?: RequestFeedback | null
   admin_notes?: string | null
   sourcing_radius_km?: number | null
+  parcel_weight_kg?: number | string | null
+  parcel_length_cm?: number | string | null
+  parcel_width_cm?: number | string | null
+  parcel_height_cm?: number | string | null
+  parcel_value_ghs?: number | string | null
+  parcel_fragile?: boolean | number | null
+  parcel_cold_chain?: boolean | number | null
+  delivery_provider_code?: string | null
+  delivery_service_level?: string | null
+  delivery_quote_amount?: number | string | null
+  delivery_quote_reference?: string | null
+  delivery_quote_expires_at?: string | null
   [key: string]: unknown
 }
 
@@ -2621,6 +2679,8 @@ interface OrderStats {
 
 interface Delivery {
   id?: number; status?: string; delivery_status?: string
+  provider_id?: number | null; provider_reference?: string | null; provider_status?: string | null
+  quote_reference?: string | null; idempotency_key?: string | null; service_level?: string | null
   pharmacy_name?: string | null; pharmacy_whatsapp_number?: string | null
   pharmacy_domain?: string | null; pickup_pharmacy_id?: number | null
   net_delivery_fee?: number | null; delivery_fee?: number | null
@@ -2754,6 +2814,65 @@ const message = ref<{ text: string; type: string } | null>(null)
 const requestDeliveries = ref<Delivery[]>([])
 const loadingDeliveries = ref(false)
 const forceAssignModal = ref<{ delivery: Delivery; driverId: string | number } | null>(null)
+// Parcel form (provider booking step 1): admin captures once in compose.
+const parcelForm = ref<{ weight: string; length: string; width: string; height: string; value: string; fragile: boolean; coldChain: boolean }>({ weight: '', length: '', width: '', height: '', value: '', fragile: false, coldChain: false })
+const parcelSaving = ref(false)
+const parcelSaved = ref(false)
+const parcelError = ref('')
+const hydrateParcelForm = (req: RichOrderRequest | null) => {
+  parcelSaved.value = false
+  parcelError.value = ''
+  if (!req) return
+  const num = (v: unknown): string => (v === null || v === undefined || v === '' ? '' : String(v))
+  parcelForm.value = {
+    weight: num(req.parcel_weight_kg),
+    length: num(req.parcel_length_cm),
+    width: num(req.parcel_width_cm),
+    height: num(req.parcel_height_cm),
+    value: num(req.parcel_value_ghs),
+    fragile: Boolean(req.parcel_fragile),
+    coldChain: Boolean(req.parcel_cold_chain),
+  }
+  if (req.parcel_weight_kg != null || req.parcel_value_ghs != null) parcelSaved.value = true
+}
+const saveParcel = async () => {
+  const req = selectedRequest.value
+  if (!req) return
+  parcelSaving.value = true
+  parcelError.value = ''
+  try {
+    const body: Record<string, unknown> = {}
+    const toNum = (v: string): number | null => {
+      const t = String(v ?? '').trim()
+      if (!t) return null
+      const n = Number(t)
+      return Number.isFinite(n) && n >= 0 ? n : null
+    }
+    const w = toNum(parcelForm.value.weight)
+    const l = toNum(parcelForm.value.length)
+    const wi = toNum(parcelForm.value.width)
+    const h = toNum(parcelForm.value.height)
+    const v = toNum(parcelForm.value.value)
+    if (w !== null) body.parcel_weight_kg = w
+    if (l !== null) body.parcel_length_cm = l
+    if (wi !== null) body.parcel_width_cm = wi
+    if (h !== null) body.parcel_height_cm = h
+    if (v !== null) body.parcel_value_ghs = v
+    body.parcel_fragile = parcelForm.value.fragile
+    body.parcel_cold_chain = parcelForm.value.coldChain
+    await apiCall('PUT', `/api/order-requests/admin/${req.id}/parcel`, body)
+    selectedRequest.value = { ...req, ...body }
+    parcelSaved.value = true
+    showMessage('Parcel saved — quotes will use these measurements', 'success')
+  } catch (e) {
+    parcelError.value = errMsg(e) || 'Could not save parcel'
+  } finally {
+    parcelSaving.value = false
+  }
+}
+// DEV-ONLY provider booking (booking step 5): stripped from prod builds via import.meta.env.DEV.
+const isDev = (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV === true
+const bookingProviderId = ref<number | null>(null)
 const assignPharmacyModal = ref<{ delivery: Delivery } | null>(null)
 const assigningPharmacy = ref(false)
 
@@ -4261,6 +4380,7 @@ const viewRequest = async (req: { id: number | string }) => {
     selectedRequest.value = reqData
     selectedStatus.value = reqData.status || ''
     adminNotes.value = (reqData.admin_notes as string | undefined) || ''
+    hydrateParcelForm(reqData as unknown as RichOrderRequest)
     nearbyPharmacies.value = (reqData.nearby_pharmacies || []) as PharmacyQueueEntry[]
     candidatePlans.value = []
     fulfillmentPlans.value = []
@@ -4383,6 +4503,20 @@ const openForceAssign = (delivery: Delivery) => {
 
 const closeForceAssign = () => {
   forceAssignModal.value = null
+}
+
+const bookProviderFor = async (delivery: Delivery) => {
+  if (!delivery?.id || bookingProviderId.value) return
+  bookingProviderId.value = delivery.id
+  try {
+    await apiCall('POST', `/api/deliveries/${delivery.id}/book-provider`)
+    showMessage('Provider booking accepted', 'success')
+    fetchRequestDeliveries(selectedRequest.value?.id)
+  } catch (e) {
+    showMessage(errMsg(e) || 'Provider booking failed', 'error')
+  } finally {
+    bookingProviderId.value = null
+  }
 }
 
 const submitForceAssign = async () => {
@@ -5364,6 +5498,7 @@ const loadFulfillment = async (options: { silent?: boolean; refreshLists?: boole
       selectedRequest.value = { ...fullRequest, status: d.status || fullRequest.status }
       selectedStatus.value = selectedRequest.value.status || ''
       adminNotes.value = (selectedRequest.value.admin_notes as string | undefined) || ''
+      hydrateParcelForm(selectedRequest.value)
       nearbyPharmacies.value = d.nearby_pharmacies || []
       candidatePlans.value = d.candidate_plans || []
       fulfillmentPlans.value = d.fulfillment_plans || []
@@ -6009,6 +6144,7 @@ const saveAdminNewItem = async () => {
     selectedRequest.value = detailData
     selectedStatus.value = detailData.status || ''
     adminNotes.value = (detailData.admin_notes as string | undefined) || ''
+    hydrateParcelForm(selectedRequest.value)
     hydrateItemUiState(selectedRequest.value?.items || [])
     nearbyPharmacies.value = []
     candidatePlans.value = []
@@ -6310,6 +6446,7 @@ const refreshSelectedRequestState = async () => {
   const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
   selectedRequest.value = detailRes.data as RichOrderRequest
   adminNotes.value = (selectedRequest.value?.admin_notes as string | undefined) || ''
+  hydrateParcelForm(selectedRequest.value)
   hydrateItemUiState(selectedRequest.value?.items || [])
   nearbyPharmacies.value = []
   candidatePlans.value = []
@@ -6745,4 +6882,81 @@ definePageMeta({
 
 <style scoped>
 @import '~/assets/css/order-requests.css';
+.provider-readonly-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.provider-readonly-chip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+}
+.provider-readonly-chip--muted {
+  background: #f4f4f5;
+  color: #71717a;
+}
+.provider-readonly-chip--parcel {
+  background: #fffbeb;
+  color: #92400e;
+}
+.parcel-panel {
+  margin: 0 1rem 1rem;
+  padding: 1rem;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  background: #fffbeb;
+}
+.parcel-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.parcel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.parcel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #57534e;
+}
+.parcel-input {
+  height: 2rem;
+  padding: 0 0.6rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+.parcel-input:focus {
+  outline: none;
+  border-color: #4F217A;
+  box-shadow: 0 0 0 3px rgba(79,33,122,0.08);
+}
+.parcel-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #44403c;
+}
+.parcel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
 </style>
