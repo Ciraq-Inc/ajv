@@ -1,172 +1,147 @@
 <template>
-  <div>
-    <div class="flex flex-col gap-1 border-b border-slate-100 px-5 py-3.5 sm:flex-row sm:items-baseline sm:justify-between sm:px-6">
-      <h2 class="text-sm font-semibold text-slate-950">Reports</h2>
-      <div class="flex items-center gap-2">
-        <p class="text-xs text-slate-400">
-          <span class="font-semibold tabular-nums text-slate-700">{{ formatPesewas(outstandingTotalPesewas) }}</span>
-          outstanding
-        </p>
+  <div class="pr">
+    <div class="pr-bar">
+      <div class="pr-tabs" role="tablist" aria-label="Payables reports">
         <button
+          v-for="tab in tabs"
+          :id="`payables-report-tab-${tab.value}`"
+          :key="tab.value"
           type="button"
-          :disabled="isRefreshing"
-          class="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
-          @click="refresh"
-        >
-          <ArrowPathIcon class="h-3.5 w-3.5" :class="isRefreshing ? 'animate-spin' : ''" aria-hidden="true" />
-          {{ isRefreshing ? 'Refreshing' : 'Refresh' }}
+          role="tab"
+          :aria-selected="activeTab === tab.value"
+          :aria-controls="`payables-report-panel-${tab.value}`"
+          class="pr-tab"
+          :class="{ 'is-on': activeTab === tab.value }"
+          @click="activeTab = tab.value"
+        >{{ tab.label }}</button>
+      </div>
+      <div class="pr-tools">
+        <span class="pr-total"><b>{{ formatPesewas(outstandingTotalPesewas) }}</b> outstanding</span>
+        <button type="button" class="pr-icon" :disabled="isRefreshing" aria-label="Refresh reports" title="Refresh" @click="refresh">
+          <ArrowPathIcon class="pr-ico" :class="{ 'pr-spin': isRefreshing }" aria-hidden="true" />
         </button>
       </div>
     </div>
 
-    <div v-if="isLoading" class="space-y-2 p-5" aria-label="Loading reports">
-      <div v-for="item in 6" :key="item" class="flex items-center gap-4">
-        <div class="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-slate-100" />
-        <div class="flex-1 space-y-2"><div class="h-3 w-1/4 animate-pulse rounded bg-slate-100" /><div class="h-3 w-1/3 animate-pulse rounded bg-slate-50" /></div>
-        <div class="h-3 w-20 animate-pulse rounded bg-slate-100" />
-      </div>
+    <div v-if="isLoading" class="pr-skel" aria-label="Loading reports">
+      <div v-for="item in 6" :key="item" class="pr-skel-row"><i /><i /><i /></div>
     </div>
 
-    <div v-else-if="error" class="p-10 text-center">
-      <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600"><ExclamationTriangleIcon class="h-6 w-6" aria-hidden="true" /></span>
-      <h2 class="mt-4 text-base font-semibold text-slate-950">We could not load the reports</h2>
-      <p class="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-600">{{ error }}</p>
-      <button type="button" class="mt-4 inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" @click="refresh">Try again</button>
+    <div v-else-if="error" class="pr-state" role="alert">
+      <h3>We could not load the reports</h3>
+      <p>{{ error }}</p>
+      <button type="button" class="pr-btn" @click="refresh">Try again</button>
     </div>
 
     <template v-else>
-      <div class="border-b border-slate-200/80 px-5 sm:px-6" role="tablist" aria-label="Payables reports">
-        <div class="-mb-px flex flex-wrap gap-x-2 gap-y-1">
-          <button v-for="tab in tabs" :id="`payables-report-tab-${tab.value}`" :key="tab.value" type="button" role="tab" :aria-selected="activeTab === tab.value" :aria-controls="`payables-report-panel-${tab.value}`" class="relative inline-flex min-h-10 items-center px-2.5 text-sm font-medium transition first:pl-0 focus:outline-none focus-visible:text-slate-950 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" :class="activeTab === tab.value ? 'text-slate-950' : 'text-slate-500 hover:text-slate-900'" @click="activeTab = tab.value">
-            {{ tab.label }}
-            <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full transition group-first:left-0" :class="activeTab === tab.value ? 'bg-slate-950' : 'bg-transparent'" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-
       <!-- Cheque register -->
       <section v-if="activeTab === 'cheques'" id="payables-report-panel-cheques" role="tabpanel" aria-labelledby="payables-report-tab-cheques" aria-label="Cheque register">
-        <div class="flex flex-wrap gap-1 px-5 py-3 sm:px-6" aria-label="Cheque register filter">
-          <button v-for="filter in chequeFilters" :key="filter.value" type="button" class="min-h-8 rounded-md px-2.5 text-xs font-semibold transition focus:outline-none focus-visible:text-slate-950" :class="chequeFilter === filter.value ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'" @click="chequeFilter = filter.value">{{ filter.label }}</button>
+        <div class="pr-chips" aria-label="Cheque register filter">
+          <button v-for="filter in chequeFilters" :key="filter.value" type="button" class="pr-chip" :class="{ 'is-on': chequeFilter === filter.value }" :aria-pressed="chequeFilter === filter.value" @click="chequeFilter = filter.value">{{ filter.label }}</button>
         </div>
-        <div v-if="visibleCheques.length" class="overflow-x-auto">
-          <table class="min-w-[760px] w-full border-collapse">
-            <colgroup><col class="w-[22%]" /><col class="w-[18%]" /><col class="w-[28%]" /><col class="w-[17%]" /><col class="w-[15%]" /></colgroup>
-            <thead>
-              <tr class="border-b border-slate-200">
-                <th scope="col" class="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Expected clearance</th>
-                <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Cheque no.</th>
-                <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Supplier</th>
-                <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Invoice</th>
-                <th scope="col" class="px-5 py-2.5 text-right text-xs font-medium text-slate-400">Amount</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="entry in visibleCheques" :key="entry.payment.id" class="transition-colors hover:bg-slate-50">
-                <td class="whitespace-nowrap px-5 py-3 text-sm tabular-nums" :class="entry.date ? (chequeDateTone(entry.date)) : 'text-slate-400'">
-                    {{ entry.date ? formatDate(entry.date) : 'Not recorded' }}
-                    <span v-if="entry.estimated" class="ml-1 text-xs font-normal text-slate-500">(estimated)</span>
-                </td>
-                <td class="max-w-[160px] truncate px-4 py-3 text-sm text-slate-500" :title="entry.chequeNumber || undefined">{{ entry.chequeNumber || '—' }}</td>
-                <td class="max-w-[260px] truncate px-4 py-3 text-sm font-medium text-slate-900" :title="entry.payment.supplierName || undefined">{{ entry.payment.supplierName || 'Unnamed supplier' }}</td>
-                <td class="max-w-[190px] truncate px-4 py-3 text-sm text-slate-500" :title="entry.payment.supplierInvoiceNo || entry.payment.payableId">{{ entry.payment.supplierInvoiceNo || entry.payment.payableId }}</td>
-                <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold tabular-nums text-slate-950">{{ formatPesewas(entry.payment.amountPesewas) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-else class="min-h-[320px] px-6 py-14 text-center">
-          <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><BanknotesIcon class="h-6 w-6" aria-hidden="true" /></span>
-          <h3 class="mt-4 text-base font-semibold text-slate-950">{{ chequeEmptyTitle }}</h3>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{{ chequeEmptyHint }}</p>
+        <table v-if="visibleCheques.length" class="pr-table">
+          <thead>
+            <tr>
+              <th scope="col">Expected clearance</th>
+              <th scope="col">Cheque no.</th>
+              <th scope="col">Supplier</th>
+              <th scope="col">Invoice</th>
+              <th scope="col" class="r">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="entry in visibleCheques" :key="entry.payment.id">
+              <td class="pr-date" :class="entry.date ? dueTone(entry.date) : 'is-none'" data-label="Clears">
+                <span>{{ entry.date ? formatDate(entry.date) : 'Not recorded' }}</span>
+                <em v-if="entry.estimated">estimated</em>
+              </td>
+              <td class="pr-mute pr-cut" data-label="Cheque no." :title="entry.chequeNumber || undefined">{{ entry.chequeNumber || '—' }}</td>
+              <td class="pr-strong pr-cut pr-main" :title="entry.payment.supplierName || undefined">{{ entry.payment.supplierName || 'Unnamed supplier' }}</td>
+              <td class="pr-mute pr-cut" data-label="Invoice" :title="entry.payment.supplierInvoiceNo || entry.payment.payableId">{{ entry.payment.supplierInvoiceNo || entry.payment.payableId }}</td>
+              <td class="r pr-amt">{{ formatPesewas(entry.payment.amountPesewas) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="pr-state">
+          <h3>{{ chequeEmptyTitle }}</h3>
+          <p>{{ chequeEmptyHint }}</p>
         </div>
       </section>
 
       <!-- Supplier balances -->
       <section v-else-if="activeTab === 'supplier_balances'" id="payables-report-panel-supplier_balances" role="tabpanel" aria-labelledby="payables-report-tab-supplier_balances" aria-label="Supplier balances report">
-        <div v-if="supplierBalances.length" class="overflow-x-auto">
-          <table class="min-w-[640px] w-full border-collapse">
-            <colgroup><col class="w-[46%]" /><col class="w-[18%]" /><col class="w-[18%]" /><col class="w-[18%]" /></colgroup>
-            <thead>
-              <tr class="border-b border-slate-200">
-                <th scope="col" class="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Supplier</th>
-                <th scope="col" class="px-4 py-2.5 text-right text-xs font-medium text-slate-400">Invoices</th>
-                <th scope="col" class="px-4 py-2.5 text-right text-xs font-medium text-slate-400">Overdue</th>
-                <th scope="col" class="px-5 py-2.5 text-right text-xs font-medium text-slate-400">Balance</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="supplier in supplierBalances" :key="supplier.name" class="transition-colors hover:bg-slate-50">
-                <th scope="row" class="max-w-[280px] truncate px-5 py-3 text-left text-sm font-medium text-slate-900" :title="supplier.name">{{ supplier.name }}</th>
-                <td class="px-4 py-3 text-right text-sm tabular-nums text-slate-500">{{ supplier.invoiceCount }}</td>
-                <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-slate-500">{{ supplier.overduePesewas ? formatPesewas(supplier.overduePesewas) : '—' }}</td>
-                <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold tabular-nums text-slate-950">{{ formatPesewas(supplier.balancePesewas) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-else class="min-h-[320px] px-6 py-14 text-center">
-          <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><BuildingOffice2Icon class="h-6 w-6" aria-hidden="true" /></span>
-          <h3 class="mt-4 text-base font-semibold text-slate-950">No outstanding supplier balances</h3>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">Open supplier invoices will appear here grouped by supplier.</p>
+        <table v-if="supplierBalances.length" class="pr-table pr-table-3">
+          <thead>
+            <tr>
+              <th scope="col">Supplier</th>
+              <th scope="col" class="r">Invoices</th>
+              <th scope="col" class="r">Overdue</th>
+              <th scope="col" class="r">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="supplier in supplierBalances" :key="supplier.name">
+              <th scope="row" class="pr-strong pr-cut pr-main" :title="supplier.name">{{ supplier.name }}</th>
+              <td class="r pr-mute" data-label="Invoices">{{ supplier.invoiceCount }}</td>
+              <td class="r pr-mute" :class="{ 'is-late': supplier.overduePesewas }" data-label="Overdue">{{ supplier.overduePesewas ? formatPesewas(supplier.overduePesewas) : '—' }}</td>
+              <td class="r pr-amt">{{ formatPesewas(supplier.balancePesewas) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="pr-state">
+          <h3>No outstanding supplier balances</h3>
+          <p>Open supplier invoices will appear here grouped by supplier.</p>
         </div>
       </section>
 
       <!-- Invoice due dates -->
       <section v-else-if="activeTab === 'invoice_due_dates'" id="payables-report-panel-invoice_due_dates" role="tabpanel" aria-labelledby="payables-report-tab-invoice_due_dates" aria-label="Invoice due dates report">
-        <div v-if="invoicesByDueDate.length" class="overflow-x-auto">
-          <table class="min-w-[680px] w-full border-collapse">
-            <colgroup><col class="w-[22%]" /><col class="w-[30%]" /><col class="w-[30%]" /><col class="w-[18%]" /></colgroup>
-            <thead>
-              <tr class="border-b border-slate-200">
-                <th scope="col" class="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Due date</th>
-                <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Supplier</th>
-                <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Invoice</th>
-                <th scope="col" class="px-5 py-2.5 text-right text-xs font-medium text-slate-400">Outstanding</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="payable in invoicesByDueDate" :key="payable.id" class="transition-colors hover:bg-slate-50">
-                <td class="whitespace-nowrap px-5 py-3 text-sm tabular-nums" :class="invoiceDueTone(payable.dueDate)">{{ formatDate(dueDateOf(payable)) }}</td>
-                <td class="max-w-[260px] truncate px-4 py-3 text-sm font-medium text-slate-900" :title="payable.supplierName || undefined">{{ payable.supplierName || 'Unnamed supplier' }}</td>
-                <td class="max-w-[220px] truncate px-4 py-3 text-sm text-slate-500" :title="payable.supplierInvoiceNo || payable.invoiceId">{{ payable.supplierInvoiceNo || payable.invoiceId }}</td>
-                <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold tabular-nums text-slate-950">{{ formatPesewas(payable.balancePesewas) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-else class="min-h-[320px] px-6 py-14 text-center">
-          <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><DocumentTextIcon class="h-6 w-6" aria-hidden="true" /></span>
-          <h3 class="mt-4 text-base font-semibold text-slate-950">No open invoices with a due date</h3>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">Invoices with a due date will appear here, ordered from the most urgent.</p>
+        <table v-if="invoicesByDueDate.length" class="pr-table pr-table-4">
+          <thead>
+            <tr>
+              <th scope="col">Due date</th>
+              <th scope="col">Supplier</th>
+              <th scope="col">Invoice</th>
+              <th scope="col" class="r">Outstanding</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="payable in invoicesByDueDate" :key="payable.id">
+              <td class="pr-date" :class="invoiceDueTone(payable.dueDate)" data-label="Due"><span>{{ formatDate(dueDateOf(payable)) }}</span></td>
+              <td class="pr-strong pr-cut pr-main" :title="payable.supplierName || undefined">{{ payable.supplierName || 'Unnamed supplier' }}</td>
+              <td class="pr-mute pr-cut" data-label="Invoice" :title="payable.supplierInvoiceNo || payable.invoiceId">{{ payable.supplierInvoiceNo || payable.invoiceId }}</td>
+              <td class="r pr-amt">{{ formatPesewas(payable.balancePesewas) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="pr-state">
+          <h3>No open invoices with a due date</h3>
+          <p>Invoices with a due date will appear here, ordered from the most urgent.</p>
         </div>
       </section>
 
       <!-- Payment activity -->
       <section v-else id="payables-report-panel-payment_activity" role="tabpanel" aria-labelledby="payables-report-tab-payment_activity" aria-label="Payment activity report">
-        <div v-if="paymentMethods.length" class="overflow-x-auto">
-          <table class="min-w-[560px] w-full border-collapse">
-            <colgroup><col class="w-[50%]" /><col class="w-[22%]" /><col class="w-[28%]" /></colgroup>
-            <thead>
-              <tr class="border-b border-slate-200">
-                <th scope="col" class="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Payment method</th>
-                <th scope="col" class="px-4 py-2.5 text-right text-xs font-medium text-slate-400">Payments</th>
-                <th scope="col" class="px-5 py-2.5 text-right text-xs font-medium text-slate-400">Amount paid</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="method in paymentMethods" :key="method.label" class="transition-colors hover:bg-slate-50">
-                <th scope="row" class="px-5 py-3 text-left text-sm font-medium text-slate-900">{{ method.label }}</th>
-                <td class="px-4 py-3 text-right text-sm tabular-nums text-slate-500">{{ method.count }}</td>
-                <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold tabular-nums text-slate-950">{{ formatPesewas(method.totalPesewas) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-else class="min-h-[320px] px-6 py-14 text-center">
-          <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400"><BanknotesIcon class="h-6 w-6" aria-hidden="true" /></span>
-          <h3 class="mt-4 text-base font-semibold text-slate-950">No supplier payments yet</h3>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">Payments posted against supplier invoices in the last 30 days will appear here.</p>
+        <p v-if="paymentMethods.length" class="pr-note">Last 30 days</p>
+        <table v-if="paymentMethods.length" class="pr-table pr-table-2">
+          <thead>
+            <tr>
+              <th scope="col">Payment method</th>
+              <th scope="col" class="r">Payments</th>
+              <th scope="col" class="r">Amount paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="method in paymentMethods" :key="method.label">
+              <th scope="row" class="pr-strong pr-main">{{ method.label }}</th>
+              <td class="r pr-mute" data-label="Payments">{{ method.count }}</td>
+              <td class="r pr-amt">{{ formatPesewas(method.totalPesewas) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="pr-state">
+          <h3>No supplier payments yet</h3>
+          <p>Payments posted against supplier invoices in the last 30 days will appear here.</p>
         </div>
       </section>
     </template>
@@ -175,7 +150,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ArrowPathIcon, BanknotesIcon, BuildingOffice2Icon, DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 import { useAccountsWorkbench } from '~/composables/useAccountsWorkbench'
 import { buildChequeCalendar, buildMethodTable, usePayablesReports } from '~/composables/usePayablesReports'
 import type { ChequeCalendarEntry } from '~/composables/usePayablesReports'
@@ -280,19 +255,15 @@ const recentPayments = computed(() => payments.value.filter((payment) => {
 }))
 const paymentMethods = computed(() => buildMethodTable(recentPayments.value))
 
-const chequeDateTone = (date: string): string => {
+const dueTone = (date: string): string => {
   const days = daysFromToday(date)
-  if (days < 0) return 'text-rose-700'
-  if (days <= 7) return 'text-amber-700'
-  return 'text-slate-900'
+  if (days < 0) return 'is-late'
+  if (days <= 7) return 'is-soon'
+  return ''
 }
 const invoiceDueTone = (dueDate: string | null | undefined): string => {
   const due = isoDate(dueDate)
-  if (!due) return 'text-slate-400'
-  const days = daysFromToday(due)
-  if (days < 0) return 'text-rose-700'
-  if (days <= 7) return 'text-amber-700'
-  return 'text-slate-900'
+  return due ? dueTone(due) : 'is-none'
 }
 const refresh = async (): Promise<void> => {
   isRefreshing.value = true
@@ -300,3 +271,82 @@ const refresh = async (): Promise<void> => {
 }
 onMounted(() => { void load() })
 </script>
+
+<style scoped>
+.pr { --ink:#14161c; --ink-2:#3b3f4a; --mute:#6a6f7d; --faint:#9a9fac; --line:#e4e6eb; --line-2:#d3d6dd; --wash:#f6f7f9; color: var(--ink); font-size: 13.5px; }
+.pr-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+.pr-tabs { display: flex; gap: 22px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.pr-tabs::-webkit-scrollbar { display: none; }
+.pr-tab { flex: none; position: relative; height: 44px; padding: 0; background: none; border: 0; font: inherit; font-weight: 500; color: var(--mute); cursor: pointer; white-space: nowrap; }
+.pr-tab:hover { color: var(--ink); }
+.pr-tab.is-on { color: var(--ink); }
+.pr-tab.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--ink); border-radius: 2px; }
+.pr-tab:focus-visible, .pr-chip:focus-visible, .pr-icon:focus-visible, .pr-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pr-tools { flex: none; display: flex; align-items: center; gap: 12px; }
+.pr-total { font-size: 12.5px; color: var(--faint); white-space: nowrap; }
+.pr-total b { font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pr-icon { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line-2); border-radius: 8px; background: #fff; color: var(--ink-2); cursor: pointer; }
+.pr-icon:hover:not(:disabled) { background: var(--wash); color: var(--ink); }
+.pr-icon:disabled { cursor: wait; opacity: .6; }
+.pr-ico { width: 15px; height: 15px; display: block; }
+.pr-spin { animation: pr-rot .8s linear infinite; }
+@keyframes pr-rot { to { transform: rotate(360deg); } }
+
+.pr-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 20px 10px; }
+.pr-chip { height: 28px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 999px; background: #fff; font: inherit; font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+.pr-chip:hover { background: var(--wash); }
+.pr-chip.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pr-note { padding: 14px 20px 4px; font-size: 12px; color: var(--faint); }
+
+.pr-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.pr-table th { padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 500; color: var(--faint); border-bottom: 1px solid var(--line); }
+.pr-table tbody th { font-size: 13.5px; color: var(--ink); border-bottom: 1px solid var(--line); }
+.pr-table td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.pr-table tbody tr:last-child > * { border-bottom: 0; }
+.pr-table tbody tr:hover { background: var(--wash); }
+.pr-table th:first-child, .pr-table td:first-child { padding-left: 20px; }
+.pr-table th:last-child, .pr-table td:last-child { padding-right: 20px; }
+.pr-table .r { text-align: right; }
+.pr-table-2 th:first-child { width: 50%; }
+.pr-table-3 th:first-child { width: 46%; }
+.pr-table-4 th:nth-child(1) { width: 20%; }
+.pr-table-4 th:nth-child(4) { width: 18%; }
+.pr-strong { font-weight: 500; color: var(--ink); }
+.pr-mute { color: var(--mute); }
+.pr-cut { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pr-table .r.pr-mute { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pr-date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pr-date em { margin-left: 6px; font-style: normal; font-size: 12px; color: var(--faint); }
+.pr-date.is-none { color: var(--faint); }
+.pr-date.is-late { color: #b42318; }
+.pr-date.is-soon span::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 8px; border-radius: 50%; background: #d97706; vertical-align: 1px; }
+.pr-table .is-late { color: #b42318; }
+
+.pr-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 56px 24px; }
+.pr-state h3 { font-size: 14px; font-weight: 600; color: var(--ink); }
+.pr-state p { margin-top: 6px; max-width: 380px; line-height: 1.5; color: var(--mute); }
+.pr-btn { margin-top: 16px; height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--ink); color: #fff; font: inherit; font-weight: 500; cursor: pointer; }
+.pr-btn:hover { background: #2a2d36; }
+
+.pr-skel { padding: 8px 20px; }
+.pr-skel-row { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.pr-skel-row i { height: 10px; border-radius: 4px; background: var(--wash); animation: pr-pulse 1.4s ease-in-out infinite; }
+@keyframes pr-pulse { 50% { opacity: .5; } }
+
+@media (max-width: 720px) {
+  .pr-bar { padding: 0 16px; }
+  .pr-total { display: none; }
+  .pr-chips, .pr-note { padding-left: 16px; padding-right: 16px; }
+  .pr-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .pr-table, .pr-table tbody { display: block; }
+  .pr-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .pr-table tbody tr:last-child { border-bottom: 0; }
+  .pr-table td, .pr-table tbody th { display: block; padding: 0 !important; border: 0; min-width: 0; text-align: left; }
+  .pr-table td[data-label]::before { content: attr(data-label); margin-right: 6px; font-size: 12px; color: var(--faint); }
+  .pr-main { grid-column: 1; grid-row: 1; }
+  .pr-table td.r.pr-amt { grid-column: 2; grid-row: 1; text-align: right; }
+  .pr-table td[data-label] { grid-column: 1 / -1; font-size: 12.5px; }
+  .pr-date em { margin-left: 4px; }
+}
+</style>
