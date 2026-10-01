@@ -1294,7 +1294,7 @@ const submitBatchPayment = () => {
   batchSubmitError.value = ''
   openConfirm('batch', {
     title: 'Post this batch payment?',
-    message: `${selectedBatchPayables.length} ${selectedBatchSupplierName || 'supplier'} invoice${selectedBatchPayables.length === 1 ? '' : 's'} · applied to the oldest due first`,
+    message: `${selectedBatchPayables.value.length} ${selectedBatchSupplierName.value || 'supplier'} invoice${selectedBatchPayables.value.length === 1 ? '' : 's'} · applied to the oldest due first`,
     confirmLabel: 'Post payment',
     amount: batchAmountValue.value,
   }, executeBatchPayment)

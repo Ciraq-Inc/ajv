@@ -554,11 +554,34 @@
           </div>
         </div>
 
+        <section v-if="isChequeSelected" class="ad-chq-panel" aria-label="Cheque details">
+          <div class="ad-grid ad-grid-3">
+            <div class="ad-field">
+              <UiLabel for="money-in-cheque-number" class="ad-lbl">Cheque number</UiLabel>
+              <UiInput id="money-in-cheque-number" v-model="chequeForm.number" placeholder="e.g. 000184" :aria-invalid="isMoneyInFieldInvalid('chequeNumber')" class="ad-in" @blur="touchMoneyInField('chequeNumber')" />
+              <p v-if="isMoneyInFieldInvalid('chequeNumber')" class="ad-err">{{ moneyInErrors.chequeNumber }}</p>
+            </div>
+            <div class="ad-field">
+              <UiLabel for="money-in-cheque-due" class="ad-lbl">Cheque due date</UiLabel>
+              <UiInput id="money-in-cheque-due" v-model="chequeForm.dueDate" type="date" :aria-invalid="isMoneyInFieldInvalid('chequeDueDate')" class="ad-in" @blur="touchMoneyInField('chequeDueDate')" />
+              <p v-if="isMoneyInFieldInvalid('chequeDueDate')" class="ad-err">{{ moneyInErrors.chequeDueDate }}</p>
+            </div>
+            <div class="ad-field">
+              <UiLabel for="money-in-cheque-bank" class="ad-lbl">Bank <span class="ad-opt-tag">optional</span></UiLabel>
+              <UiInput id="money-in-cheque-bank" v-model="chequeForm.bank" placeholder="Issuing bank" class="ad-in" />
+            </div>
+          </div>
+          <p class="ad-chq-note" :class="{ 'is-future': isPostDatedCheque }">
+            <template v-if="isPostDatedCheque">Post-dated cheque. It stays pending and the amount reflects on the account balance on {{ formatDate(chequeForm.dueDate) }}.</template>
+            <template v-else>Due today or earlier, so the amount reflects on the account balance straight away.</template>
+          </p>
+        </section>
+
         <section class="ad-pick">
           <div class="ad-pick-head">
             <div>
               <h3>How was this paid?</h3>
-              <p>Select every method included in this credit.</p>
+              <p>{{ isChequeSelected ? 'Cheques are credited on their own, because they reflect on their due date.' : 'Select every method included in this credit.' }}</p>
             </div>
             <div class="ad-range">
               <UiInput v-model="guideFromDate" type="date" aria-label="Guide from date" class="ad-in ad-in-sm" />
@@ -874,6 +897,7 @@ const {
   loadPayables,
   payables,
   postMoneyIn,
+  receiveCheque,
   postMoneyOut,
   postLoanReceived,
   postLoanRepayment,
@@ -976,9 +1000,24 @@ const selectedPaymentMethodCount = computed(() => Object.values(paymentAllocatio
 const paymentAllocationTotal = computed(() => Math.max(Number(moneyInForm.value.amount) || 0, 0))
 const paymentMethodInputId = (methodId: string) => `credit-method-${String(methodId).replace(/[^a-zA-Z0-9_-]/g, '-')}`
 const isPaymentMethodSelected = (methodId: string) => Boolean(paymentAllocationSelected.value[methodId])
+const isChequeMethod = (method: { methodKey?: string, method?: string }) => String(method.methodKey || method.method || '').toLowerCase() === 'cheque'
+const isChequeSelected = computed(() => creditGuideMethods.value.some((method) => isChequeMethod(method) && isPaymentMethodSelected(method.id)))
+const chequeForm = ref({ number: '', bank: '', dueDate: '' })
+const isPostDatedCheque = computed(() => isChequeSelected.value && Boolean(chequeForm.value.dueDate) && chequeForm.value.dueDate > todayIsoDate())
 const togglePaymentMethod = (methodId: string, event: Event) => {
   const checked = (event.target as HTMLInputElement | null)?.checked === true
-  paymentAllocationSelected.value = { ...paymentAllocationSelected.value, [methodId]: checked }
+  const toggled = creditGuideMethods.value.find((method) => method.id === methodId)
+  const next = { ...paymentAllocationSelected.value, [methodId]: checked }
+  if (checked && toggled) {
+    // A cheque reflects on its due date, so it is credited on its own rather
+    // than mixed with methods that post immediately.
+    const toggledIsCheque = isChequeMethod(toggled)
+    creditGuideMethods.value.forEach((method) => {
+      if (method.id !== methodId && isChequeMethod(method) !== toggledIsCheque) next[method.id] = false
+    })
+    if (toggledIsCheque && !chequeForm.value.dueDate) chequeForm.value.dueDate = todayIsoDate()
+  }
+  paymentAllocationSelected.value = next
 }
 const paymentAllocationPayload = computed<PaymentAllocation[]>(() => creditGuideMethods.value
   .filter((method) => isPaymentMethodSelected(method.id))
@@ -1144,6 +1183,8 @@ const moneyInErrors = computed(() => {
       ? (usesPaymentGuide.value ? paymentAllocationErrorMessage.value : 'Amount must be greater than 0.')
       : (exceedsSyncedAmount ? `Amount cannot exceed ${formatMoney(selectedAmount)} for this synced selection.` : ''),
     paymentAllocations: usesPaymentGuide.value ? paymentAllocationErrorMessage.value : '',
+    chequeNumber: isChequeSelected.value && !chequeForm.value.number.trim() ? 'Cheque number is required.' : '',
+    chequeDueDate: isChequeSelected.value && !chequeForm.value.dueDate ? 'Choose the cheque due date.' : '',
     description: usesPaymentGuide.value || moneyInForm.value.description.trim() ? '' : 'Recipient is required.',
     reference: moneyInForm.value.source === 'cheque' && !moneyInForm.value.reference.trim() ? 'Cheque number is required.' : '',
     candidate: supportsSyncedCredits.value && !selectedCreditCandidate.value?.sourceLinks?.length ? 'A synced source is required.' : '',
@@ -1572,6 +1613,7 @@ const resetMoneyInForm = () => {
   guideFromDate.value = todayIsoDate()
   guideToDate.value = todayIsoDate()
   paymentAllocationSelected.value = {}
+  chequeForm.value = { number: '', bank: '', dueDate: '' }
   creditGuideError.value = ''
 }
 const resetMoneyOutForm = () => {
@@ -1584,6 +1626,7 @@ const resetMoneyOutForm = () => {
 const touchMoneyInRequiredFields = () => {
   touchMoneyInField('amount'); touchMoneyInField('description')
   if (moneyInForm.value.source === 'cheque') touchMoneyInField('reference')
+  if (isChequeSelected.value) { touchMoneyInField('chequeNumber'); touchMoneyInField('chequeDueDate') }
   if (supportsSyncedCredits.value) touchMoneyInField('candidate')
 }
 const touchMoneyOutRequiredFields = () => { touchMoneyOutField('amount'); touchMoneyOutField('balance'); touchMoneyOutField('description'); if (isSupplierPayment.value) touchMoneyOutField('payable') }
@@ -1722,6 +1765,9 @@ const executeMoneyIn = async (): Promise<boolean> => {
         guideToDate: guideToDate.value,
         paymentMethod: paymentAllocationPayload.value.length === 1 ? paymentAllocationPayload.value[0].methodKey : 'mixed',
         paymentMethodSummary: allocationSummary,
+        ...(isChequeSelected.value && chequeForm.value.number.trim()
+          ? { chequeNumber: chequeForm.value.number.trim(), ...(chequeForm.value.bank.trim() ? { bankName: chequeForm.value.bank.trim() } : {}) }
+          : {}),
       })
     : (supportsSyncedCredits.value && selectedCreditCandidate.value?.metadata
       ? buildMovementMetadata(moneyInForm.value.context, moneyInForm.value.source, 'in', selectedCreditCandidate.value.metadata)
@@ -1730,6 +1776,28 @@ const executeMoneyIn = async (): Promise<boolean> => {
     ? `accounts-${accountId.value}-${selectedCreditCandidate.value.id}-${movementAmount.toFixed(2)}`
     : `accounts-${accountId.value}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   try {
+    if (isPostDatedCheque.value) {
+      // Post-dated cheque: recorded as pending; the backend clears it so the
+      // amount reflects on the balance on its due date.
+      const dueDate = chequeForm.value.dueDate
+      await receiveCheque({
+        accountId: accountId.value,
+        amount: movementAmount,
+        chequeNumber: chequeForm.value.number.trim(),
+        drawerName: moneyInForm.value.description.trim() || undefined,
+        bankName: chequeForm.value.bank.trim() || undefined,
+        receivedDate: todayIsoDate(),
+        expectedClearanceDate: dueDate,
+        reference: moneyInForm.value.reference.trim() || undefined,
+        recipient: moneyInForm.value.description.trim() || undefined,
+        metadata: { ...metadata, paymentMethod: 'cheque', paymentMethodSummary: 'Cheque' },
+        postingKey,
+      })
+      await loadCheques(accountId.value)
+      closeMoneyInModal()
+      showSuccessModal('Post-dated cheque recorded', `${formatMoney(movementAmount)} will reflect on ${accountName} on ${formatDate(dueDate)}.`, movementAmount)
+      return true
+    }
     await postMoneyIn({ accountId: accountId.value, source: usesPaymentGuide.value ? 'manual' : moneyInForm.value.source, amount: movementAmount, recipient: description, reference: moneyInForm.value.reference.trim(), sourceLinks, paymentAllocations: usesPaymentGuide.value ? paymentAllocationPayload.value : undefined, postingKey, metadata })
     closeMoneyInModal()
     showSuccessModal('Credit posted', `Added to ${accountName}.`, movementAmount)
@@ -1747,8 +1815,10 @@ const submitMoneyIn = () => {
   const allocationSummary = paymentAllocationPayload.value.map((allocation) => allocation.methodName).join(' · ')
   openConfirmation({
     title: 'Post this credit?',
-    message: `Will be added to ${accountName}${allocationSummary ? ` via ${allocationSummary}` : ''}.`,
-    confirmLabel: 'Post credit',
+    message: isPostDatedCheque.value
+      ? `Cheque ${chequeForm.value.number.trim()} stays pending. It will be added to ${accountName} on ${formatDate(chequeForm.value.dueDate)}.`
+      : `Will be added to ${accountName}${allocationSummary ? ` via ${allocationSummary}` : ''}.`,
+    confirmLabel: isPostDatedCheque.value ? 'Record cheque' : 'Post credit',
     amount: movementAmount,
   }, executeMoneyIn, 'post', 'moneyIn')
 }
@@ -2383,6 +2453,9 @@ td small.ad-cut { margin-top: 2px; font-size: 12px; }
 .ad-pick-head p { margin-top: 2px; font-size: 12px; color: var(--mute); }
 .ad-range { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); }
 .ad-pick-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.ad-chq-panel { flex: none; margin-bottom: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--wash); }
+.ad-chq-note { margin-top: 10px; font-size: 12.5px; color: var(--mute); }
+.ad-chq-note.is-future { color: #1d4ed8; }
 .ad-pick-msg { padding: 18px 14px; font-size: 13px; color: var(--mute); }
 .ad-pick-msg-err { color: #b42318; }
 .ad-pick-skel span { display: block; height: 54px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #f6f7f9, #fff, #f6f7f9); background-size: 200% 100%; animation: ad-shimmer 1.4s linear infinite; }
