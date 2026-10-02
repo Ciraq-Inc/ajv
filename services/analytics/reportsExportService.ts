@@ -71,6 +71,47 @@ export interface CompanySalesItemsForCompanyParams extends SalesItemsParams {
   limit?: number;
 }
 
+export interface RawPurchaseItemsDataviewParams extends DateRangeParams {
+  companyIds?: string | number;
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  order?: 'asc' | 'desc';
+}
+
+/** One purchase-item (product) line, as returned by the raw-purchase-items dataview endpoint. */
+export interface PurchaseItemLine {
+  id: number;
+  company_id: number;
+  company_name: string | null;
+  invoice_id: string | null;
+  invoice_date: string | null;
+  product_id: string | null;
+  product_name: string | null;
+  strength: string | null;
+  unit: string | null;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
+/** Response shape for the dataview endpoint: the standard envelope plus a `pagination` sibling. */
+export interface PaginatedEnvelope<T> extends ApiEnvelope<T> {
+  pagination: PaginationMeta;
+}
+
 export const createReportsExportService = (api: ApiInstance) => ({
   /**
    * Export all customers across pharmacies as CSV.
@@ -133,6 +174,35 @@ export const createReportsExportService = (api: ApiInstance) => ({
     return api.getBlob('/api/reports/cross-tenant/raw-purchase-items/export', {
       params: stripEmpty({ format: 'csv', start_date: startDate, end_date: endDate }),
     });
+  },
+
+  /**
+   * Fetch individual purchase-item (product) lines, paginated and searchable.
+   * Search matches product name/id, supplier name, invoice id, or company name.
+   * GET /api/reports/cross-tenant/raw-purchase-items/dataview?page=&limit=&search=&start_date=&end_date=&sort_by=&order=&company_ids=
+   */
+  getPurchaseItemsDataview({
+    startDate,
+    endDate,
+    companyIds,
+    page = 1,
+    limit = 25,
+    search,
+    sortBy,
+    order,
+  }: RawPurchaseItemsDataviewParams = {}): Promise<PaginatedEnvelope<PurchaseItemLine[]>> {
+    return api.get('/api/reports/cross-tenant/raw-purchase-items/dataview', {
+      params: stripEmpty({
+        start_date: startDate,
+        end_date: endDate,
+        company_ids: companyIds !== undefined ? String(companyIds) : undefined,
+        page,
+        limit,
+        search,
+        sort_by: sortBy,
+        order,
+      }),
+    }) as unknown as Promise<PaginatedEnvelope<PurchaseItemLine[]>>;
   },
 
   // -------------------------------------------------------------------
