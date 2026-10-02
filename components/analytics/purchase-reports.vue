@@ -104,47 +104,179 @@
       </div>
     </div>
 
-    <!-- Purchase Items List -->
-    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" v-if="purchaseItems && purchaseItems.length > 0">
-      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-        <h3 class="text-sm font-semibold text-gray-900">Sample Purchase Items</h3>
-        <span class="text-xs text-gray-500">Up to 100 records</span>
+    <!-- Tabs -->
+    <div class="flex gap-1 border-b border-gray-200 mb-6">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        @click="activeTab = tab.id"
+        class="px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors"
+        :class="activeTab === tab.id
+          ? 'border-indigo-600 text-indigo-600'
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <!-- By Company Tab -->
+    <div v-if="activeTab === 'company'">
+      <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" v-if="purchaseItems && purchaseItems.length > 0">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+          <h3 class="text-sm font-semibold text-gray-900">Sample Purchase Items</h3>
+          <span class="text-xs text-gray-500">Up to 100 records</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unique Products</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unique Suppliers</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Trans. Count</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Total Quantity</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="item in purchaseItems" :key="(item.id as PropertyKey | undefined) ?? ''" class="hover:bg-gray-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ item.company_name }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">{{ item.unique_products || 0 }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">{{ item.unique_suppliers || 0 }}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ item.transaction_count || 0 }}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ item.total_quantity || 0 }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unique Products</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Unique Suppliers</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Trans. Count</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Total Quantity</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-for="item in purchaseItems" :key="(item.id as PropertyKey | undefined) ?? ''" class="hover:bg-gray-50 transition-colors">
-              <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ item.company_name }}</td>
-              <td class="px-4 py-3 text-sm text-gray-700">{{ item.unique_products || 0 }}</td>
-              <td class="px-4 py-3 text-sm text-gray-700">{{ item.unique_suppliers || 0 }}</td>
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ item.transaction_count || 0 }}</td>
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ item.total_quantity || 0 }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Error State -->
+      <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4 mt-6">
+        <div class="flex gap-3">
+          <ExclamationTriangleIcon class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 class="text-sm font-medium text-red-800">Something went wrong</h3>
+            <div class="mt-1 text-sm text-red-700">{{ error }}</div>
+            <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">Try again</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Error State -->
-    <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-4 mt-6">
-      <div class="flex gap-3">
-        <ExclamationTriangleIcon class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+    <!-- Products Tab (individual line items, searchable) -->
+    <div v-if="activeTab === 'products'" class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 class="text-sm font-medium text-red-800">Something went wrong</h3>
-          <div class="mt-1 text-sm text-red-700">{{ error }}</div>
-          <button @click="fetchData" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">Try again</button>
+          <h3 class="text-sm font-semibold text-gray-900">Purchase Products</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Search individual purchase line items across all companies</p>
+        </div>
+        <div class="relative w-full sm:w-72">
+          <input
+            v-model="productSearch"
+            type="text"
+            placeholder="Search product, supplier, invoice, or company…"
+            @input="debouncedProductSearch"
+            class="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon class="w-4 h-4 text-gray-400" aria-hidden="true" />
+          </div>
         </div>
       </div>
+
+      <!-- Loading -->
+      <div v-if="productsLoading" class="px-6 py-10 text-center text-sm text-gray-500">
+        Loading purchase products…
+      </div>
+
+      <!-- Products error -->
+      <div v-else-if="productsError" class="px-6 py-4">
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div class="flex gap-3">
+            <ExclamationTriangleIcon class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 class="text-sm font-medium text-red-800">Could not load purchase products</h3>
+              <div class="mt-1 text-sm text-red-700">{{ productsError }}</div>
+              <button @click="fetchProductItems" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">Try again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="productItems.length === 0" class="px-6 py-10 text-center text-sm text-gray-500">
+        {{ productSearch ? `No purchase products match "${productSearch}".` : 'No purchase products found for this date range.' }}
+      </div>
+
+      <!-- Results table -->
+      <template v-else>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Product</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Supplier</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice #</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice Date</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Qty</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Unit Cost</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="line in productItems" :key="line.id" class="hover:bg-gray-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                  {{ line.product_name || '—' }}
+                  <span v-if="line.strength" class="text-gray-500 font-normal"> · {{ line.strength }}</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-700">{{ line.company_name || '—' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">{{ line.supplier_name || '—' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">{{ line.invoice_id || '—' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700">{{ formatDate(line.invoice_date ?? undefined) }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700 text-right">{{ line.quantity ?? 0 }}</td>
+                <td class="px-4 py-3 text-sm text-gray-700 text-right">{{ Number(line.unit_cost ?? 0).toFixed(2) }}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{{ Number(line.total_cost ?? 0).toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div
+          v-if="productsPagination"
+          class="px-6 py-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3"
+        >
+          <span class="text-xs text-gray-500">
+            Showing {{ (productsPagination.page - 1) * productsPagination.limit + 1 }}–{{
+              Math.min(productsPagination.page * productsPagination.limit, productsPagination.total)
+            }}
+            of {{ productsPagination.total.toLocaleString() }}
+          </span>
+          <div class="flex items-center gap-2">
+            <button
+              @click="goToProductPage(productsPagination.page - 1)"
+              :disabled="productsPagination.page <= 1"
+              class="h-8 w-8 border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 rounded-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              aria-label="Previous page"
+            >
+              <ChevronLeftIcon class="w-4 h-4" />
+            </button>
+            <span class="text-xs text-gray-600 px-1">
+              Page {{ productsPagination.page }} of {{ productsPagination.total_pages }}
+            </span>
+            <button
+              @click="goToProductPage(productsPagination.page + 1)"
+              :disabled="productsPagination.page >= productsPagination.total_pages"
+              class="h-8 w-8 border border-gray-200 bg-white hover:bg-gray-50 text-gray-500 rounded-lg flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              aria-label="Next page"
+            >
+              <ChevronRightIcon class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -153,7 +285,18 @@
 import { ref, onMounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
-import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import type { PurchaseItemLine, PaginationMeta } from '~/services/analytics/reportsExportService'
+import {
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  BuildingOfficeIcon,
+  ShoppingBagIcon,
+  ChartBarIcon,
+  ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from '@heroicons/vue/24/outline'
 
 interface PurchaseItem {
   [key: string]: unknown;
@@ -190,6 +333,22 @@ const filters = ref<{ start_date: string; end_date: string }>({
   end_date: ''
 })
 
+// Tabs
+const tabs: Array<{ id: string; label: string }> = [
+  { id: 'company', label: 'By Company' },
+  { id: 'products', label: 'Purchase Products' },
+]
+const activeTab = ref<string>('company')
+
+// Purchase Products (individual line-item search + pagination)
+const productSearch = ref<string>('')
+const productPage = ref<number>(1)
+const PRODUCT_PAGE_SIZE = 25
+const productItems = ref<PurchaseItemLine[]>([])
+const productsPagination = ref<PaginationMeta | null>(null)
+const productsLoading = ref<boolean>(false)
+const productsError = ref<string | null>(null)
+
 // Fetch summary data from the cross-tenant summary API
 const fetchSummary = async (): Promise<void> => {
   try {
@@ -224,15 +383,61 @@ const fetchPurchaseItems = async (): Promise<void> => {
   }
 }
 
+// Fetch individual purchase-item (product) lines for the searchable table
+const fetchProductItems = async (): Promise<void> => {
+  productsLoading.value = true
+  productsError.value = null
+
+  try {
+    const response = await reportsService.getPurchaseItemsDataview({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      page: productPage.value,
+      limit: PRODUCT_PAGE_SIZE,
+      search: productSearch.value,
+    })
+    if (response.success) {
+      productItems.value = response.data ?? []
+      productsPagination.value = response.pagination
+    } else {
+      productItems.value = []
+      productsPagination.value = null
+    }
+  } catch (err) {
+    productsError.value = err instanceof Error ? err.message : 'Failed to fetch purchase products'
+    console.error('Error fetching purchase products:', err)
+  } finally {
+    productsLoading.value = false
+  }
+}
+
+// Debounced product search — resets to page 1 on every new search term
+let productSearchTimeout: ReturnType<typeof setTimeout> | null = null
+const debouncedProductSearch = (): void => {
+  if (productSearchTimeout !== null) clearTimeout(productSearchTimeout)
+  productSearchTimeout = setTimeout(() => {
+    productPage.value = 1
+    void fetchProductItems()
+  }, 500)
+}
+
+const goToProductPage = (page: number): void => {
+  if (page < 1 || (productsPagination.value && page > productsPagination.value.total_pages)) return
+  productPage.value = page
+  void fetchProductItems()
+}
+
 // Fetch all data
 const fetchData = async (): Promise<void> => {
   loading.value = true
   error.value = null
 
   try {
+    productPage.value = 1
     await Promise.all([
       fetchSummary(),
-      fetchPurchaseItems()
+      fetchPurchaseItems(),
+      fetchProductItems(),
     ])
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to fetch purchase items data'
