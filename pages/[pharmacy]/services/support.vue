@@ -52,14 +52,6 @@
           </div>
 
           <div class="mb-4">
-            <label for="supportCategory" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">What do you need help with?</label>
-            <select v-model="category" id="supportCategory" :disabled="loading"
-              class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 outline-none bg-white">
-              <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
-          </div>
-
-          <div class="mb-4">
             <label for="supportSubject" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Subject</label>
             <input v-model="subject" id="supportSubject" type="text" required maxlength="255" :disabled="loading"
               class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none" />
@@ -145,15 +137,11 @@ const companyDomain = computed<string>(() => route.path.match(/\/([^/]+)\/servic
 const companyName = computed<string>(() =>
   companyDomain.value.charAt(0).toUpperCase() + companyDomain.value.slice(1))
 
-const categoryOptions: { value: TicketCategory; label: string }[] = [
-  { value: 'account', label: 'Sign-in or account access' },
-  { value: 'technical', label: 'Something isn\'t working' },
-  { value: 'billing', label: 'Billing' },
-  { value: 'other', label: 'Something else' },
-]
+// This screen exists for staff who can't sign in, so every ticket is filed
+// under 'account' for agent triage rather than asking the user to pick.
+const TICKET_CATEGORY: TicketCategory = 'account'
 
 const phone = ref<string>('')
-const category = ref<TicketCategory>('account')
 const subject = ref<string>('')
 const description = ref<string>('')
 const loading = ref<boolean>(false)
@@ -204,7 +192,7 @@ const submit = async (): Promise<void> => {
       phone: phone.value,
       subject: subject.value.trim(),
       description: description.value.trim(),
-      category: category.value,
+      category: TICKET_CATEGORY,
     })
     ticketId.value = result.data.id
     submitted.value = true
