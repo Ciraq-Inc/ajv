@@ -329,7 +329,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="entry in visibleLedger" :key="entry.id" tabindex="0" @click="openLedgerEntry(entry)" @keydown.enter="openLedgerEntry(entry)" @keydown.space.prevent="openLedgerEntry(entry)">
+                <tr v-for="entry in visibleLedger" :key="entry.id" tabindex="0" :class="{ 'is-reversed': entry.status === 'reversed' }" @click="openLedgerEntry(entry)" @keydown.enter="openLedgerEntry(entry)" @keydown.space.prevent="openLedgerEntry(entry)">
                   <td class="ad-dim">{{ shortDate(entry.date) }}</td>
                   <td><b class="ad-cut ad-ref" :title="entry.reference || ledgerEntrySummary(entry)">{{ ledgerReferenceLabel(entry) }}</b></td>
                   <td>
@@ -340,9 +340,9 @@
                     <span class="ad-cut" :title="ledgerSourceLabel(entry)">{{ ledgerSourceLabel(entry) }}</span>
                     <small v-if="ledgerSourceDetail(entry)" class="ad-cut ad-dim">{{ ledgerSourceDetail(entry) }}</small>
                   </td>
-                  <td class="r ad-amt" :class="{ 'is-none': !entry.moneyIn }">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : '—' }}</td>
-                  <td class="r ad-amt" :class="{ 'is-none': !entry.moneyOut }">{{ entry.moneyOut ? `−${formatLedgerAmount(entry.moneyOut)}` : '—' }}</td>
-                  <td class="r ad-amt ad-bal">{{ formatLedgerAmount(entry.runningBalance) }}</td>
+                  <td class="r ad-amt ad-amt-in" :class="{ 'is-none': !entry.moneyIn }">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : '—' }}</td>
+                  <td class="r ad-amt ad-amt-out" :class="{ 'is-none': !entry.moneyOut }">{{ entry.moneyOut ? `−${formatLedgerAmount(entry.moneyOut)}` : '—' }}</td>
+                  <td class="r ad-amt ad-bal">{{ entry.status === 'reversed' ? '—' : formatLedgerAmount(entry.runningBalance) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -353,11 +353,11 @@
             <button v-for="entry in visibleLedger" :key="`mobile-ledger-${entry.id}`" type="button" class="ad-mrow" @click="openLedgerEntry(entry)">
               <span class="ad-mtop">
                 <b class="ad-cut" :title="entry.reference || ledgerEntrySummary(entry)">{{ ledgerReferenceLabel(entry) }}</b>
-                <span class="ad-amt">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : `−${formatLedgerAmount(entry.moneyOut)}` }}</span>
+                <span class="ad-amt" :class="[entry.moneyIn ? 'ad-amt-in' : 'ad-amt-out', { 'ad-struck': entry.status === 'reversed' }]">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : `−${formatLedgerAmount(entry.moneyOut)}` }}</span>
               </span>
               <span class="ad-msub">
                 <span class="ad-cut">{{ ledgerSourceLabel(entry) }} · {{ shortDate(entry.date) }}<template v-if="entry.status !== 'posted'"> · {{ statusLabel(entry.status) }}</template></span>
-                <span class="ad-amt">{{ formatLedgerAmount(entry.runningBalance) }}</span>
+                <span class="ad-amt">{{ entry.status === 'reversed' ? '—' : formatLedgerAmount(entry.runningBalance) }}</span>
               </span>
             </button>
             <p class="ad-foot">Balance is the running account total.</p>
@@ -482,6 +482,7 @@
             <div><dt>Reference</dt><dd :class="{ 'is-none': !selectedLedgerEntry.reference }">{{ selectedLedgerEntry.reference || 'None' }}</dd></div>
             <div v-if="ledgerPaymentMethodDisplay(selectedLedgerEntry)"><dt>Payment method</dt><dd>{{ ledgerPaymentMethodDisplay(selectedLedgerEntry) }}</dd></div>
             <div><dt>Recorded by</dt><dd>{{ recordedByLabel(selectedLedgerEntry) }}</dd></div>
+            <div v-if="selectedLedgerEntry.status === 'reversed'"><dt>Reversed</dt><dd>{{ [selectedLedgerEntry.reversedAt ? formatDate(selectedLedgerEntry.reversedAt) : '', selectedLedgerEntry.reversedBy].filter(Boolean).join(' · ') || 'Yes' }}</dd></div>
             <div><dt>Entry source</dt><dd>{{ ledgerSourceLabel(selectedLedgerEntry) }}<template v-if="ledgerSourceDetail(selectedLedgerEntry)"><span class="ad-kv-sub"> · {{ ledgerSourceDetail(selectedLedgerEntry) }}</span></template></dd></div>
           </dl>
 
@@ -519,7 +520,7 @@
 
         <p v-if="reversalError" class="ad-dlg-error" role="alert">{{ reversalError }}</p>
         <footer class="ad-dlg-foot">
-          <button v-if="selectedLedgerEntry.status === 'posted'" type="button" :disabled="isReversing" class="ad-btn ad-btn-danger" @click="requestReverseSelectedEntry">
+          <button v-if="canReverseEntry(selectedLedgerEntry)" type="button" :disabled="isReversing" class="ad-btn ad-btn-danger" @click="requestReverseSelectedEntry">
             <ArrowPathIcon v-if="isReversing" class="ad-ico ad-spin" aria-hidden="true" />
             {{ isReversing ? 'Reversing…' : 'Reverse' }}
           </button>
@@ -537,7 +538,7 @@
         <UiDialogDescription class="ad-dlg-sub">{{ account?.name }} · Balance {{ formatMoney(Number(account?.currentBalance || 0)) }}</UiDialogDescription>
       </header>
 
-      <div v-if="usesPaymentGuide" class="ad-dlg-body ad-dlg-fill">
+      <div v-if="usesPaymentGuide" ref="moneyInScrollRegion" class="ad-dlg-body ad-dlg-fill">
         <div class="ad-grid ad-grid-3">
           <div class="ad-field">
             <UiLabel for="money-in-amount" class="ad-lbl">Amount received</UiLabel>
@@ -589,7 +590,7 @@
               <UiInput v-model="guideToDate" type="date" aria-label="Guide to date" class="ad-in ad-in-sm" />
             </div>
           </div>
-          <div ref="moneyInScrollRegion" class="ad-pick-list">
+          <div class="ad-pick-list">
             <p v-if="creditGuideError" class="ad-pick-msg ad-pick-msg-err">{{ creditGuideError }}</p>
             <div v-else-if="isLoadingCandidates" class="ad-pick-skel"><span v-for="item in 5" :key="item" /></div>
             <template v-else-if="creditGuideMethods.length">
@@ -1099,6 +1100,7 @@ const visibleLedger = computed(() => {
     const dateMatches = (!ledgerFromDate.value || entryDate >= ledgerFromDate.value) && (!ledgerToDate.value || entryDate <= ledgerToDate.value)
     const methodMatches = ledgerMethod.value === 'all' || ledgerMethodValues(entry).includes(ledgerMethod.value)
     const statusMatches = ledgerStatus.value === 'all' || entry.status === ledgerStatus.value
+    if (entry.source === 'reversal') return false
     if (!directionMatches || !dateMatches || !methodMatches || !statusMatches) return false
     if (!query) return true
     return [entry.reference, entry.enteredBy, ...ledgerMethodValues(entry), ledgerSourceLabel(entry), entry.metadata?.context, statusLabel(entry.status)].filter(Boolean).join(' ').toLowerCase().includes(query)
@@ -1472,9 +1474,12 @@ const onChequeAction = async (action: 'clear' | 'deposit' | 'bounce' | 'cancel',
   }
 }
 
+// Reversal records are audit markers, so only real posted movements can be reversed.
+const canReverseEntry = (entry: LedgerEntry | null | undefined) => Boolean(entry) && entry!.status === 'posted' && entry!.source !== 'reversal'
+
 const onReverseSelectedEntry = async (): Promise<boolean> => {
   const entry = selectedLedgerEntry.value
-  if (!entry || !account.value || entry.status !== 'posted') return false
+  if (!entry || !account.value || !canReverseEntry(entry)) return false
   isReversing.value = true
   reversalError.value = ''
   const reversedAmount = Number(entry.moneyIn || entry.moneyOut || 0)
@@ -1538,10 +1543,10 @@ const openConfirmation = (details: AccountConfirmation, action: () => Promise<bo
 
 const requestReverseSelectedEntry = () => {
   const entry = selectedLedgerEntry.value
-  if (!entry || !account.value || entry.status !== 'posted') return
+  if (!entry || !account.value || !canReverseEntry(entry)) return
   openConfirmation({
     title: 'Reverse this ledger entry?',
-    message: `A reversal record will be added to ${account.value.name} and the balance restored.`,
+    message: `A reversal record will be added to ${account.value.name} and the balance restored. Any linked cheque, sale or credit record is released so it can be recorded again.`,
     confirmLabel: 'Reverse entry',
     tone: 'danger',
     amount: Number(entry.moneyIn || entry.moneyOut || 0),
@@ -2357,10 +2362,16 @@ onMounted(() => { printGeneratedAt.value = printTimestamp(); loadCurrentAccount(
 .ad-dim { color: var(--mute); }
 td small.ad-cut { margin-top: 2px; font-size: 12px; }
 .ad-amt { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ad-amt.ad-amt-in { color: #067647; }
+.ad-amt.ad-amt-out { color: #b42318; }
 .ad-amt.is-none { color: var(--faint); }
 .ad-bal { font-weight: 600; }
 .ad-status { display: inline-block; margin-top: 3px; font-style: normal; font-size: 11.5px; padding: 0 7px; border-radius: 99px; line-height: 18px; border: 1px solid var(--line-2); color: var(--mute); }
 .ad-status.is-reversed { color: #b42318; border-color: #fecdca; background: #fef3f2; }
+.ad-table tbody tr.is-reversed td { color: var(--mute); }
+.ad-table tbody tr.is-reversed td.ad-amt:not(.ad-bal) { text-decoration: line-through; }
+.ad-table tbody tr.is-reversed .ad-ref { font-weight: 500; }
+.ad-struck, .ad-amt.ad-struck { text-decoration: line-through; color: var(--mute); }
 .ad-foot { margin: 0; padding: 10px 18px; font-size: 12px; color: var(--mute); border-top: 1px solid var(--line); }
 .ad-mlist { display: none; border-top: 1px solid var(--line); }
 .ad-mrow { display: grid; gap: 4px; width: 100%; padding: 13px 16px; text-align: left; border-top: 1px solid var(--line); background: #fff; cursor: pointer; }
@@ -2418,7 +2429,7 @@ td small.ad-cut { margin-top: 2px; font-size: 12px; }
 
 .ad-dlg-body { padding: 20px 24px; min-width: 0; }
 .ad-dlg-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px; }
-.ad-dlg-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+.ad-dlg-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; overscroll-behavior: contain; }
 
 .ad-grid { display: grid; gap: 14px 14px; }
 .ad-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2447,13 +2458,13 @@ td small.ad-cut { margin-top: 2px; font-size: 12px; }
 .ad-dlg-actions { display: flex; gap: 8px; margin-left: auto; }
 
 /* credit: payment method picker */
-.ad-pick { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.ad-pick { flex: none; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .ad-pick-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--wash); }
 .ad-pick-head h3 { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .ad-pick-head p { margin-top: 2px; font-size: 12px; color: var(--mute); }
 .ad-range { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); }
-.ad-pick-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-.ad-chq-panel { flex: none; margin-bottom: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--wash); }
+.ad-pick-list { flex: none; }
+.ad-chq-panel { flex: none; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--wash); }
 .ad-chq-note { margin-top: 10px; font-size: 12.5px; color: var(--mute); }
 .ad-chq-note.is-future { color: #1d4ed8; }
 .ad-pick-msg { padding: 18px 14px; font-size: 13px; color: var(--mute); }

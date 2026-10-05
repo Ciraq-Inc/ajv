@@ -225,6 +225,8 @@ export interface LedgerEntry {
   runningBalance: number;
   enteredBy: string;
   status: 'posted' | 'pending' | 'reversed';
+  reversedBy?: string;
+  reversedAt?: string | null;
   sourceLinks?: AccountSourceLink[];
   paymentAllocations?: PaymentAllocation[];
   metadata?: Record<string, string>;
