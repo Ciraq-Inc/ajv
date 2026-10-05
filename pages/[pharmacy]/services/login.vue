@@ -68,7 +68,12 @@
           <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
           </svg>
-          <p class="text-sm text-red-700 font-medium">{{ error }}</p>
+          <div class="text-sm text-red-700 font-medium">
+            <p>{{ error }}</p>
+            <NuxtLink v-if="showSupportLink" :to="supportPath" class="inline-block mt-1.5 font-bold underline">
+              Contact support
+            </NuxtLink>
+          </div>
         </div>
 
         <!-- Success -->
@@ -277,7 +282,10 @@
         <svg class="w-3 h-3 opacity-30" viewBox="0 0 100 100" :fill="accentColor">
           <path d="M50 5 L58 42 L95 50 L58 58 L50 95 L42 58 L5 50 L42 42 Z" />
         </svg>
-        <p class="text-xs text-zinc-400 font-medium">Need help? Contact your administrator</p>
+        <p class="text-xs text-zinc-400 font-medium">
+          Can't sign in?
+          <NuxtLink :to="supportPath" class="font-bold underline">Contact support</NuxtLink>
+        </p>
       </div>
 
     </div>
@@ -375,6 +383,8 @@ const companyDomain = computed<string>(() => {
   return pathMatch?.[1] ?? 'company'
 })
 
+const supportPath = computed<string>(() => `/${companyDomain.value}/services/support`)
+
 const companyName = computed<string>(() => {
   return companyDomain.value.charAt(0).toUpperCase() + companyDomain.value.slice(1)
 })
@@ -405,6 +415,10 @@ const otpSent = ref<boolean>(false)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const rememberMe = ref<boolean>(true)
 const phoneNumberError = ref<string>('')
+
+// Set when the phone step is refused for a reason support can fix
+// (not enabled / not on file) — see checkPhone.
+const showSupportLink = ref<boolean>(false)
 
 const loading = ref<boolean>(false)
 const error = ref<string>('')
@@ -482,19 +496,22 @@ const checkPhone = async (): Promise<void> => {
   if (!validatePhoneNumber()) return
   
   error.value = ''
+  showSupportLink.value = false
   loading.value = true
 
   try {
     const result = await companyStore.checkPhoneStatus(phone.value)
-    
+
     if (result.status === 'setup_required') {
       step.value = 'setup'
     } else if (result.status === 'registered') {
       step.value = 'password'
     } else if (result.status === 'not_found') {
-      error.value = 'Phone number not found. Please contact your administrator.'
+      error.value = 'Phone number not found. Check the number, or contact support.'
+      showSupportLink.value = true
     } else if (result.status === 'access_denied') {
-      error.value = 'You do not have permission to access online services.'
+      error.value = 'You do not have permission to access online services yet.'
+      showSupportLink.value = true
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to verify phone number'
@@ -638,6 +655,7 @@ const goBack = (): void => {
   confirmPassword.value = ''
   otpSent.value = false
   error.value = ''
+  showSupportLink.value = false
   successMessage.value = ''
   phoneNumberError.value = ''
 }
