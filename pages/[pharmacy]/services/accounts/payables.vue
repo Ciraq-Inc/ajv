@@ -103,12 +103,12 @@
             <UiSelectItem value="warehouse">Warehouse</UiSelectItem>
           </UiSelectContent>
         </UiSelect>
-        <div class="pb-range" :class="{ 'is-set': dateFrom || dateTo }">
-          <UiDatePicker v-model="dateFrom" aria-label="From date" placeholder="From date" class="pb-date h-9 w-[150px] shrink-0 max-sm:w-auto max-sm:flex-1 rounded-lg border-0 bg-transparent px-2.5 text-xs shadow-none hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0" />
-          <span class="pb-range-sep" aria-hidden="true" />
-          <UiDatePicker v-model="dateTo" aria-label="To date" placeholder="To date" class="pb-date h-9 w-[150px] shrink-0 max-sm:w-auto max-sm:flex-1 rounded-lg border-0 bg-transparent px-2.5 text-xs shadow-none hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0" />
-          <button v-if="dateFrom || dateTo" type="button" aria-label="Clear dates" class="pb-x" @click="dateFrom = ''; dateTo = ''"><XMarkIcon class="pb-ico" aria-hidden="true" /></button>
-        </div>
+        <DateRangePicker
+          v-model:from="dateFrom"
+          v-model:to="dateTo"
+          placeholder="Any date"
+          class="pb-range"
+        />
         <button v-if="activeTab !== 'ledger'" type="button" :aria-pressed="attentionOnly" class="pb-attn" :class="{ 'is-on': attentionOnly }" @click="attentionOnly = !attentionOnly">
           <ExclamationTriangleIcon class="pb-ico" aria-hidden="true" />Attention
           <span v-if="attentionCount" class="pb-count pb-count-bad">{{ attentionCount }}</span>
@@ -631,6 +631,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import DateRangePicker from '~/components/ui/date-range-picker/DateRangePicker.vue'
 import { ArrowPathIcon, BanknotesIcon, BellIcon, CheckIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import type { PayableLedgerEntry, PayablePaymentContextInput, PayablePaymentMethod, PayableSummary, PaymentMethodSubtype, PaymentMethodSummary } from '~/services/types'
 import { useAccountsWorkbench } from '~/composables/useAccountsWorkbench'
@@ -1581,11 +1582,7 @@ onBeforeUnmount(() => {
 .pb-w-supplier { width: 176px; }
 .pb-w-source { width: 128px; }
 .pb-w-method { width: 170px; flex: none; }
-.pb-range { display: flex; align-items: center; height: 36px; border: 1px solid var(--line-2); border-radius: 8px; background: #fff; padding-right: 4px; }
-.pb-range.is-set { background: var(--wash); border-color: #b9bdc7; }
-.pb-range:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20, 22, 28, 0.1); }
-.pb-date { flex: none; }
-.pb-range-sep { width: 1px; height: 18px; background: var(--line); }
+.pb-range { display: inline-flex; }
 .pb-attn { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-left: auto; padding: 0 12px; border-radius: 8px; border: 1px solid transparent; background: none; font-size: 13px; font-weight: 500; color: #b42318; cursor: pointer; }
 .pb-attn:hover { background: #fef3f2; }
 .pb-attn.is-on { background: #fef3f2; border-color: #fecdca; }
@@ -1755,8 +1752,7 @@ onBeforeUnmount(() => {
   .pb-toolbar { padding: 12px 14px; }
   .pb-search { max-width: none; flex-basis: 100%; }
   .pb-w-supplier, .pb-w-source { flex: 1; width: auto; min-width: 0; }
-  .pb-range { width: 100%; }
-  .pb-attn { margin-left: 0; }
+  .pb-range { width: 100%; }  .pb-attn { margin-left: 0; }
   .pb-tabs { padding: 0 14px; gap: 4px 18px; }
   .pb-grid-2, .pb-grid-pay, .pb-grid-batch { grid-template-columns: minmax(0, 1fr); }
   .pb-dlg-head, .pb-dlg-body, .pb-dlg-foot, .pb-dlg-error { padding-left: 18px; padding-right: 18px; }
