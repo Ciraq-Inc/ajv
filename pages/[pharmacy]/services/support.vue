@@ -17,7 +17,7 @@
         </p>
       </div>
 
-      <div class="px-6 pb-2">
+      <div class="px-6 pb-6">
 
         <div v-if="error" role="alert" class="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 mb-4">
           <p class="text-sm text-red-700 font-medium">{{ error }}</p>
@@ -40,6 +40,12 @@
 
         <!-- Form -->
         <form v-else @submit.prevent="submit">
+          <div class="mb-4">
+            <label for="supportName" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Your name</label>
+            <input v-model="name" id="supportName" type="text" required maxlength="190" autocomplete="name" :disabled="loading"
+              class="block w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm font-semibold text-zinc-900 placeholder-zinc-400 outline-none" />
+          </div>
+
           <div class="mb-4">
             <label for="supportPhone" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Your phone number</label>
             <div class="flex">
@@ -75,10 +81,6 @@
             </button>
           </div>
         </form>
-      </div>
-
-      <div class="px-6 py-4 mt-2 border-t border-zinc-100 flex items-center justify-center">
-        <p class="text-xs text-zinc-400 font-medium">Your pharmacy administrator can also enable your access</p>
       </div>
     </div>
   </div>
@@ -141,6 +143,7 @@ const companyName = computed<string>(() =>
 // under 'account' for agent triage rather than asking the user to pick.
 const TICKET_CATEGORY: TicketCategory = 'account'
 
+const name = ref<string>('')
 const phone = ref<string>('')
 const subject = ref<string>('')
 const description = ref<string>('')
@@ -150,7 +153,8 @@ const submitted = ref<boolean>(false)
 const ticketId = ref<number | null>(null)
 
 const canSubmit = computed<boolean>(() =>
-  phone.value.replace(/\D/g, '').length >= 9
+  name.value.trim().length > 0
+  && phone.value.replace(/\D/g, '').length >= 9
   && subject.value.trim().length > 0
   && description.value.trim().length > 0)
 
@@ -169,6 +173,8 @@ onMounted(async () => {
   await companyStore.checkAuthState()
   const known = companyStore.userPhone ?? typedAtLogin
   if (known) phone.value = known.replace(/^\+?233/, '0')
+  // Only known when someone is signed in; otherwise they type it.
+  if (companyStore.userName) name.value = companyStore.userName
   if (companyStore.currentCompany) {
     applyTheme(companyStore.currentCompany)
     return
@@ -190,6 +196,7 @@ const submit = async (): Promise<void> => {
     const result = await createSupportService(useApi()).submitStaffTicket({
       companyDomain: companyDomain.value,
       phone: phone.value,
+      requesterName: name.value.trim(),
       subject: subject.value.trim(),
       description: description.value.trim(),
       category: TICKET_CATEGORY,
