@@ -13,6 +13,7 @@ export type TicketCategory =
 export interface StaffTicketParams {
   companyDomain: string;
   phone: string;
+  requesterName: string;
   subject: string;
   description: string;
   category?: TicketCategory;
@@ -29,10 +30,11 @@ export const createSupportService = (api: ApiInstance) => ({
    * Submit a support ticket as a pharmacy staff member.
    * POST /api/staff-tickets
    */
-  submitStaffTicket({ companyDomain, phone, subject, description, category }: StaffTicketParams): Promise<ApiEnvelope<StaffTicketResult>> {
+  submitStaffTicket({ companyDomain, phone, requesterName, subject, description, category }: StaffTicketParams): Promise<ApiEnvelope<StaffTicketResult>> {
     return api.post('/api/staff-tickets', {
       company_domain: companyDomain,
       phone,
+      requester_name: requesterName,
       subject,
       description,
       category,
