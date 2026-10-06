@@ -94,7 +94,7 @@
             <form @submit.prevent="onSignInSubmit" novalidate>
 
               <!-- Phone field -->
-              <div class="mb-4">
+              <div v-if="signInMethod === 'phone'" class="mb-4">
                 <label for="phoneNumber" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
                 <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
                   <select
@@ -124,6 +124,33 @@
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ phoneNumberError }}
                 </p>
+              </div>
+
+              <!-- Email field (alternative to phone; verified emails only) -->
+              <div v-else class="mb-4">
+                <label for="loginEmail" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Email address</label>
+                <input
+                  v-model="loginEmail"
+                  type="email"
+                  id="loginEmail"
+                  class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                  placeholder="name@example.com"
+                  autocomplete="email"
+                  required
+                >
+                <p v-if="loginEmailError" role="alert" class="mt-1.5 text-xs text-red-600">{{ loginEmailError }}</p>
+              </div>
+
+              <!-- Switch between phone and email sign-in -->
+              <div class="mb-4 -mt-2 text-right">
+                <button
+                  type="button"
+                  @click="signInMethod === 'phone' ? switchToEmailSignIn() : switchToPhoneSignIn()"
+                  class="text-xs font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
+                  data-testid="toggle-signin-method"
+                >
+                  {{ signInMethod === 'phone' ? 'Use email instead' : 'Use phone number instead' }}
+                </button>
               </div>
 
               <!-- Password field -->
@@ -365,7 +392,61 @@
               </div>
             </Transition>
 
-            <form v-if="!resetSuccess" @submit.prevent="handleResetPassword" novalidate>
+            <!-- Reset by emailed link -->
+            <div v-if="!resetSuccess && resetMethod === 'email'" data-testid="reset-by-email">
+              <div v-if="!resetEmailSent">
+                <form @submit.prevent="sendResetLink" novalidate>
+                  <div class="mb-5">
+                    <label for="resetEmail" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Email address</label>
+                    <input
+                      v-model="resetEmail"
+                      type="email"
+                      id="resetEmail"
+                      class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                      placeholder="name@example.com"
+                      autocomplete="email"
+                    >
+                    <p v-if="resetEmailError" role="alert" class="mt-1.5 text-xs text-red-600">{{ resetEmailError }}</p>
+                    <p v-if="resetEmailMessage" role="alert" class="mt-2 text-sm text-red-700">{{ resetEmailMessage }}</p>
+                  </div>
+                  <button
+                    type="submit"
+                    :disabled="resetEmailBusy || resetEmailCooldown > 0"
+                    class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
+                  >
+                    {{ resetEmailBusy ? 'Sending…' : (resetEmailCooldown > 0 ? `Try again in ${resetEmailCooldown}s` : 'Send reset link') }}
+                  </button>
+                </form>
+              </div>
+
+              <div v-else role="status" class="text-center py-2">
+                <h4 class="text-base font-bold text-[#1e1a22]">Check your email</h4>
+                <p class="mt-2 text-sm text-[#4c4453]">
+                  If an account exists for <strong>{{ resetEmailSentTo }}</strong>, we've sent a link to reset your password.
+                  It works once and expires soon. Only verified email addresses get a link, so if nothing arrives, reset with your phone number instead.
+                </p>
+                <p v-if="resetEmailMessage" role="alert" class="mt-2 text-sm text-red-700">{{ resetEmailMessage }}</p>
+                <div class="mt-4 flex gap-3">
+                  <button
+                    type="button"
+                    @click="resetEmailStartOver"
+                    class="flex-1 rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm font-semibold text-[#4c4453] hover:bg-[#f5eeff] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                  >
+                    Use a different email
+                  </button>
+                  <button
+                    type="button"
+                    @click="sendResetLink"
+                    :disabled="resetEmailBusy || resetEmailCooldown > 0"
+                    class="flex-1 rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm font-semibold text-[#520094] hover:bg-[#f5eeff] disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                  >
+                    {{ resetEmailCooldown > 0 ? `Resend in ${resetEmailCooldown}s` : 'Resend link' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <form v-if="!resetSuccess && resetMethod === 'phone'" @submit.prevent="handleResetPassword" novalidate>
               <!-- Phone input -->
               <div class="mb-5">
                 <label for="resetPhone" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
@@ -529,6 +610,26 @@
                 </div>
               </div>
             </form>
+
+            <div v-if="!resetSuccess && !otpSent" class="mt-4 text-center">
+              <button
+                type="button"
+                @click="resetMethod === 'phone' ? switchToEmailReset() : switchToPhoneReset()"
+                class="text-sm font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
+                data-testid="toggle-reset-method"
+              >
+                {{ resetMethod === 'phone' ? 'Reset with email instead' : 'Reset with phone number instead' }}
+              </button>
+            </div>
+            <div v-if="!resetSuccess && resetMethod === 'email'" class="mt-3 text-center">
+              <button
+                type="button"
+                @click="backToSignIn"
+                class="text-sm text-[#7d7484] hover:text-[#520094] focus:outline-none focus-visible:underline"
+              >
+                Back to sign in
+              </button>
+            </div>
           </div>
 
           <!-- ══════════════════════════════════════════════════════════════ -->
@@ -783,6 +884,7 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
 import { useUserStore } from '~/stores/user';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useModalA11y } from '~/composables/useModalA11y';
+import { useEmailSignIn, useEmailReset, signInReady } from '~/composables/useEmailSignIn';
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 import phoneUtils from '~/utils/phone';
 
@@ -813,6 +915,8 @@ interface UserStoreShape {
   }) => Promise<void>;
   sendResetOTP: (phone: string) => Promise<void>;
   resetPassword: (phone: string, otp: string, password: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<unknown>;
+  requestEmailReset: (email: string) => Promise<unknown>;
 }
 
 // TODO: remove once stores/ are .ts
@@ -859,6 +963,29 @@ const phoneNumberError = ref<string>('');
 const rememberMe = ref<boolean>(true);
 const showPassword = ref<boolean>(false);
 const resetSuccess = ref<boolean>(false);
+
+// Email as an alternative to phone: sign in with a VERIFIED email + password, and
+// reset a password by emailed link. Logic and wording live in useEmailSignIn.ts.
+type ContactMethod = 'phone' | 'email';
+const signInMethod = ref<ContactMethod>('phone');
+const resetMethod = ref<ContactMethod>('phone');
+const {
+  email: loginEmail,
+  emailError: loginEmailError,
+  errorMessage: loginEmailMessage,
+  submit: submitEmailSignIn,
+} = useEmailSignIn({ login: (e, p) => userStore.loginWithEmail(e, p) });
+const {
+  email: resetEmail,
+  emailError: resetEmailError,
+  errorMessage: resetEmailMessage,
+  busy: resetEmailBusy,
+  sent: resetEmailSent,
+  sentTo: resetEmailSentTo,
+  cooldown: resetEmailCooldown,
+  send: sendResetLink,
+  startOver: resetEmailStartOver,
+} = useEmailReset({ request: (e) => userStore.requestEmailReset(e) });
 
 // OTP digit boxes — 6 individual single-char slots kept in sync with otp ref
 const otpDigits = ref<string[]>(['', '', '', '', '', '']);
@@ -933,7 +1060,11 @@ const stepSubtitle = computed<string>(() => {
     }
     return 'Enter your number and we\'ll send a verification code.';
   }
-  if (currentStep.value === 'reset') return 'Verify your number and set a new password.';
+  if (currentStep.value === 'reset') {
+    return resetMethod.value === 'email'
+      ? "Enter your email and we'll send you a link to set a new password."
+      : 'Verify your number and set a new password.';
+  }
   if (mode.value === 'verify') return "Confirm the code we sent and we'll activate your account.";
   if (mode.value === 'register') {
     return registrationCompany.value
@@ -957,7 +1088,11 @@ const submittingLabel = computed<string>(() => {
 
 const canSubmit = computed<boolean>(() => {
   if (mode.value === 'login') {
-    return Boolean(phoneNumber.value) && Boolean(password.value) && password.value.length >= 6;
+    return signInReady(signInMethod.value, {
+      phone: phoneNumber.value,
+      email: loginEmail.value,
+      password: password.value,
+    });
   }
   if (mode.value === 'verify') {
     return Boolean(otp.value) && otp.value.length === 6;
@@ -1134,6 +1269,7 @@ const onSignInSubmit = async (): Promise<void> => {
 
 // Path A: phone + password submitted. Decide what to do.
 const submitLogin = async (): Promise<void> => {
+  if (signInMethod.value === 'email') return submitEmailLogin();
   if (!validatePhoneNumber()) return;
   if (!password.value || password.value.length < 6) {
     errorMessage.value = 'Enter your password (min. 6 characters).';
@@ -1177,6 +1313,47 @@ const submitLogin = async (): Promise<void> => {
   } finally {
     isLoading.value = false;
   }
+};
+
+// Path A': email + password. Only verified emails can sign in; the refusal wording is
+// deliberately the same for an unknown, unverified or wrong email (see useEmailSignIn).
+const submitEmailLogin = async (): Promise<void> => {
+  errorMessage.value = '';
+  isLoading.value = true;
+  try {
+    const signedIn = await submitEmailSignIn(password.value);
+    if (signedIn) {
+      emit('login-success', { destination: 'new', action: 'login' });
+      closeModal();
+    } else {
+      errorMessage.value = loginEmailMessage.value;
+    }
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const switchToEmailSignIn = (): void => {
+  signInMethod.value = 'email';
+  mode.value = 'login';
+  errorMessage.value = '';
+};
+
+const switchToPhoneSignIn = (): void => {
+  signInMethod.value = 'phone';
+  loginEmailError.value = '';
+  errorMessage.value = '';
+};
+
+const switchToEmailReset = (): void => {
+  resetMethod.value = 'email';
+  errorMessage.value = '';
+};
+
+const switchToPhoneReset = (): void => {
+  resetMethod.value = 'phone';
+  resetEmailStartOver();
+  errorMessage.value = '';
 };
 
 // Path B: existing customer activates with OTP; reuse already-typed password.
@@ -1252,6 +1429,8 @@ const resendRegisterOTP = async (): Promise<void> => {
 
 const forgotPassword = (): void => {
   showPassword.value = false;
+  resetMethod.value = 'phone';
+  resetEmailStartOver();
   currentStep.value = 'reset';
   mode.value = 'login';
   otpSent.value = false;
@@ -1304,6 +1483,8 @@ const handleResetPassword = async (): Promise<void> => {
 
 const backToSignIn = (): void => {
   showPassword.value = false;
+  resetMethod.value = 'phone';
+  resetEmailStartOver();
   currentStep.value = 'signin';
   mode.value = 'login';
   password.value = '';
@@ -1326,6 +1507,12 @@ const closeModal = (): void => {
     mode.value = 'login';
     signupOtpSent.value = false;
     phoneNumber.value = '';
+    signInMethod.value = 'phone';
+    loginEmail.value = '';
+    loginEmailError.value = '';
+    resetMethod.value = 'phone';
+    resetEmail.value = '';
+    resetEmailStartOver();
     password.value = '';
     confirmPassword.value = '';
     clearOtp();
