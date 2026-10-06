@@ -292,3 +292,42 @@ test.describe('customer sign-up by email', () => {
     await expect(page.getByLabel('Email address')).toHaveValue('ama@example.com');
   });
 });
+
+test.describe('request form for an email-only customer', () => {
+  const emailOnly = { id: 9, fname: 'Ama', lname: 'Mensah', phone: null, email: 'ama@example.com', email_verified: true };
+
+  // Signs the browser in the way the app persists a session, and answers the start-up calls.
+  const signInAs = async (page, customer) => {
+    await page.addInitScript(([c, token]) => {
+      localStorage.setItem('masterCustomer', JSON.stringify(c));
+      localStorage.setItem('customerAuthToken', token);
+      localStorage.setItem('companies', '[]');
+    }, [customer, tokenFor('access')]);
+    // A signed-in customer's other start-up calls (orders, requests...) just return nothing.
+    await page.route(anyApi, (route) => json(route, 200, { success: true, data: [] }));
+    await page.route(api('auth/customer/profile'), (route) => json(route, 200, { success: true, data: customer }));
+    await page.route(api('wallet'), (route) => json(route, 200, { success: true, data: { balance: 100 } }));
+  };
+
+  test('asks for a phone number and refuses one that is not valid', async ({ page }) => {
+    await signInAs(page, emailOnly);
+    await page.goto('/customer?tab=new');
+
+    const phone = page.getByLabel(/Phone number we can reach you on/);
+    await expect(phone).toBeVisible();
+
+    await phone.fill('abc');
+    await expect(page.getByText(/Include the country code/).first()).toBeVisible();
+
+    await phone.fill('+44 7911 123456');
+    await expect(page.getByText(/Enter a valid phone number/)).toHaveCount(0);
+  });
+
+  test('a customer whose account has a phone is not asked for one', async ({ page }) => {
+    await signInAs(page, { ...emailOnly, phone: '+233241234567' });
+    await page.goto('/customer?tab=new');
+
+    await expect(page.getByRole('heading').first()).toBeVisible();
+    await expect(page.getByLabel(/Phone number we can reach you on/)).toHaveCount(0);
+  });
+});

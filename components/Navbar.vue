@@ -70,7 +70,7 @@
             >
               <div class="border-b border-slate-100 px-4 py-3">
                 <p class="text-sm font-semibold text-slate-900">{{ userStore.currentUser?.fname }} {{ userStore.currentUser?.lname }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ formatPhone(userStore.currentUser?.phone) }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ formatPhone(userStore.currentUser?.phone) || userStore.currentUser?.email }}</p>
                 <p v-if="userStore.currentCompany" class="mt-1 flex items-center gap-1 text-xs text-purple-700">
                   <i class="ri-building-line"></i>
                   {{ currentCompanyName }}
@@ -180,7 +180,7 @@
           <div v-if="userStore.isLoggedIn" class="mt-3 space-y-2 border-t border-[#efe4fa] pt-3">
             <div class="rounded-lg bg-white px-3 py-2">
               <p class="text-sm font-semibold text-slate-900">{{ userStore.currentUser?.fname }} {{ userStore.currentUser?.lname }}</p>
-              <p class="mt-1 text-xs text-slate-500">{{ formatPhone(userStore.currentUser?.phone) }}</p>
+              <p class="mt-1 text-xs text-slate-500">{{ formatPhone(userStore.currentUser?.phone) || userStore.currentUser?.email }}</p>
             </div>
             <nuxt-link to="/customer" @click="showMobileMenu = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-white">
               <i class="ri-user-settings-line"></i>

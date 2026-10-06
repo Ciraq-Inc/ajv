@@ -286,7 +286,7 @@ const userInitials = computed(() => {
 const displayUserName = computed(() => hasMounted.value ? userName.value : 'Customer')
 const displayUserFirstName = computed(() => hasMounted.value ? userFirstName.value : 'Customer')
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
-const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
+const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || userStore.currentUser?.email || '') : '')
 const activeNav = computed(() => route.query.tab || 'new')
 const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock', 'profile'].includes(activeNav.value))
 const canGoBack = computed(() => route.query.tab && route.query.tab !== 'new' && route.query.tab !== 'requests')

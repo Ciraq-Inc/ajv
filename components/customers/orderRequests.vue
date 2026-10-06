@@ -119,6 +119,24 @@
                             <span class="text-xs font-bold text-[#4F217A] tabular-nums">{{ Math.round(uploadProgress) }}%</span>
                         </div>
 
+                        <!-- Contact phone: email-only accounts have no number on file -->
+                        <div v-if="needsContactPhone || contactPhone">
+                            <label for="request-contact-phone" class="mb-1.5 block text-sm font-semibold text-zinc-800">
+                                Phone number we can reach you on
+                                <span v-if="needsContactPhone" class="text-red-500">*</span>
+                            </label>
+                            <input v-model="contactPhone" id="request-contact-phone" type="tel"
+                                inputmode="tel" autocomplete="tel"
+                                placeholder="024 123 4567 or +44 7911 123456"
+                                aria-describedby="request-contact-phone-help"
+                                :aria-invalid="contactPhoneError ? 'true' : 'false'"
+                                class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
+                            <p v-if="contactPhoneError" class="mt-1.5 text-xs font-semibold text-red-600">{{ contactPhoneError }}</p>
+                            <p id="request-contact-phone-help" class="mt-1.5 text-xs text-zinc-500">
+                                The rider and pharmacy use this to reach you about this delivery. Include the country code if it is not a Ghana number.
+                            </p>
+                        </div>
+
                         <!-- Notes -->
                         <div v-if="showNotesField" class="flex items-start gap-2">
                             <textarea v-model="customerNotes" rows="2"
@@ -1242,6 +1260,7 @@ import { createOrderRequestsService } from '~/services/orderRequests/orderReques
 import { useApi, ApiError } from '~/composables/useApi'
 import { useOrderStatus } from '~/composables/useOrderStatus'
 import { formatCompactAddress } from '~/utils/addressFormat'
+import { resolveContactPhoneInput } from '~/utils/contactPhoneInput'
 import {
     PAYABLE_REQUEST_STATUSES as payableStatuses,
     getRequestTotalAmount as getPayableAmount,
@@ -1558,6 +1577,7 @@ const saveFormDraft = (): void => {
             customerAddress: customerAddress.value,
             deliveryAddress: deliveryAddress.value,
             customerNotes: customerNotes.value,
+            contactPhone: contactPhone.value,
             locationMode: locationMode.value,
             savedAt: Date.now()
         }
@@ -1621,6 +1641,7 @@ const restoreFormDraft = (): void => {
         if (draft['customerAddress']) customerAddress.value = String(draft['customerAddress'])
         if (draft['deliveryAddress']) deliveryAddress.value = String(draft['deliveryAddress'])
         if (draft['customerNotes']) customerNotes.value = String(draft['customerNotes'])
+        if (draft['contactPhone']) contactPhone.value = String(draft['contactPhone'])
     } catch (err) {
         console.error('Failed to restore form draft:', err)
     }
@@ -1761,6 +1782,16 @@ const deliveryAddressSuggestions = ref<AddressSuggestion[]>([])
 const deliveryAddressActiveIndex = ref<number>(-1)
 const deliveryAutocompleteLoading = ref<boolean>(false)
 const customerNotes = ref<string>('')
+// Riders and SMS need a phone number. Accounts made with an email address have none, so
+// the form asks for one (accounts with a phone can still give a different delivery contact).
+const contactPhone = ref<string>('')
+const contactPhoneResult = computed(() =>
+    resolveContactPhoneInput({ accountPhone: userStore.currentUser?.phone ?? null, typed: contactPhone.value })
+)
+const needsContactPhone = computed<boolean>(() => !userStore.currentUser?.phone)
+const contactPhoneError = computed<string>(() =>
+    contactPhone.value.trim() && !contactPhoneResult.value.ok ? contactPhoneResult.value.message : ''
+)
 const notesTextarea = ref<HTMLTextAreaElement | null>(null)
 const showPrescriptionField = ref<boolean>(false)
 const showNotesField = ref<boolean>(false)
@@ -1882,6 +1913,7 @@ const canSubmit = computed<boolean>(() => {
     // the server enforces this too, but disabling here avoids a confusing
     // round-trip and matches the amber "top up first" warning already shown.
     if (!canSearchProducts.value) return false
+    if (!contactPhoneResult.value.ok) return false
     return true
 })
 
@@ -2636,6 +2668,9 @@ const submitRequest = async (): Promise<void> => {
             delivery_address: deliveryAddress.value.trim(),
             customer_address: (customerAddress.value || deliveryAddress.value).trim(),
             customer_notes: customerNotes.value.trim(),
+            ...(contactPhoneResult.value.ok && contactPhoneResult.value.phone
+                ? { contact_phone: contactPhoneResult.value.phone }
+                : {}),
         }
         let res: { data?: unknown; message?: string; success?: boolean }
         if (hasMultipartUploads.value) {
@@ -2649,6 +2684,7 @@ const submitRequest = async (): Promise<void> => {
             formData.append('delivery_address', payload.delivery_address)
             formData.append('customer_address', payload.customer_address)
             formData.append('customer_notes', payload.customer_notes)
+            if (payload.contact_phone) formData.append('contact_phone', payload.contact_phone)
             prescriptionFiles.value.forEach((image) => formData.append('prescription_images', image.file))
             validItems.value.forEach((item, index) => {
                 item.imageFiles.forEach((image) => formData.append(`item_images_${index}`, image.file))
