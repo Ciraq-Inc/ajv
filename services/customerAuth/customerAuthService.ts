@@ -42,8 +42,10 @@ export interface RegisterParams {
   otp?: string;
 }
 
+// Exactly one of `phone` / `email` identifies who is signing in (the API rejects both).
 export interface LoginParams {
-  phone: string;
+  phone?: string;
+  email?: string;
   password: string;
 }
 
@@ -63,6 +65,19 @@ export interface SendResetOtpParams {
 export interface ResetPasswordParams {
   phone: string;
   otp: string;
+  newPassword: string;
+}
+
+export interface VerifyEmailParams {
+  token: string;
+}
+
+export interface RequestEmailResetParams {
+  email: string;
+}
+
+export interface ResetPasswordWithEmailTokenParams {
+  token: string;
   newPassword: string;
 }
 
@@ -124,11 +139,13 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
-   * Log in with phone + password.
+   * Log in with phone + password, or with a VERIFIED email + password.
+   * Only the identifier that was given is sent.
    * POST /api/auth/customer/login
    */
-  login({ phone, password }: LoginParams): Promise<ApiEnvelope<AuthPayload>> {
-    return api.post('/api/auth/customer/login', { phone, password });
+  login({ phone, email, password }: LoginParams): Promise<ApiEnvelope<AuthPayload>> {
+    const body: Record<string, unknown> = email !== undefined ? { email, password } : { phone, password };
+    return api.post('/api/auth/customer/login', body);
   },
 
   /**
@@ -215,6 +232,42 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
       otp,
       new_password: newPassword,
     });
+  },
+
+  /**
+   * Request a password-reset link by email. The API answers the same way whether or
+   * not the address has an account.
+   * POST /api/auth/customer/forgot-password
+   */
+  requestEmailReset({ email }: RequestEmailResetParams): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/forgot-password', { email });
+  },
+
+  /**
+   * Set a new password using the single-use token from a reset email.
+   * POST /api/auth/customer/email/reset-password (public; the token is the credential)
+   */
+  resetPasswordWithEmailToken({ token, newPassword }: ResetPasswordWithEmailTokenParams): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/email/reset-password', {
+      token,
+      new_password: newPassword,
+    });
+  },
+
+  /**
+   * Redeem the single-use token from a verification email.
+   * POST /api/auth/customer/email/verify (public; the token is the credential)
+   */
+  verifyEmail({ token }: VerifyEmailParams): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/email/verify', { token });
+  },
+
+  /**
+   * Send (or re-send) the verification email for the signed-in customer's address.
+   * POST /api/auth/customer/email/send-verification
+   */
+  sendEmailVerification(): Promise<ApiEnvelope<{ status?: string } | null>> {
+    return api.post('/api/auth/customer/email/send-verification', {});
   },
 
   /**

@@ -57,6 +57,8 @@ export interface CustomerProfile {
   lname: string;
   phone: string;
   email?: string;
+  /** True only once the customer has redeemed the link emailed to their current address. */
+  email_verified?: boolean;
   created_at: string;
 }
 

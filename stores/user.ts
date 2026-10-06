@@ -32,6 +32,8 @@ export interface MasterCustomer extends Omit<CustomerProfile, 'id'> {
   home_longitude?: number | string | null;
   total_orders?: number;
   total_spent?: number;
+  /** True only once the customer has redeemed the link emailed to their current address. */
+  email_verified?: boolean;
   [key: string]: unknown;
 }
 
@@ -326,6 +328,34 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    /**
+     * Sign in with a VERIFIED email + password (the alternative to phone). The
+     * address is sent as typed; the server normalises it. Errors are rethrown as-is
+     * so the caller can tell a refusal (401) from a lockout (429).
+     */
+    async loginWithEmail(email: string, password: string): Promise<unknown> {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const data = await this._customerAuthService().login({
+          email: String(email ?? '').trim(),
+          password,
+        });
+        if (!data.success) throw new Error(data.message ?? 'Login failed');
+        this.applyCustomerAuthPayload(data.data as CustomerAuthPayload);
+
+        await this.loadUserStats();
+
+        return data.data;
+      } catch (error: unknown) {
+        console.error('Error logging in with email:', error);
+        this.error = error instanceof Error ? error.message : 'Login failed';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async redeemSessionHandoff(token: string): Promise<unknown> {
       this.isLoading = true;
       this.error = null;
@@ -465,6 +495,54 @@ export const useUserStore = defineStore('user', {
       } finally {
         this.isLoading = false;
       }
+    },
+
+    // -------------------------------------------------------------------
+    // Email: reset link, verification
+    // -------------------------------------------------------------------
+
+    /** Ask for a password-reset link. The reply is the same whether or not the address has an account. */
+    async requestEmailReset(email: string): Promise<unknown> {
+      const data = await this._customerAuthService().requestEmailReset({
+        email: String(email ?? '').trim(),
+      });
+      if (!data.success) throw new Error(data.message ?? 'Failed to send reset link');
+      return data;
+    },
+
+    /** Set a new password from an emailed token. Does not sign anyone in. */
+    async resetPasswordWithEmailToken(token: string, newPassword: string): Promise<unknown> {
+      const data = await this._customerAuthService().resetPasswordWithEmailToken({ token, newPassword });
+      if (!data.success) throw new Error(data.message ?? 'Failed to reset password');
+      return data;
+    },
+
+    /**
+     * Redeem a verification link. Works with or without a session on this device (the
+     * link may be opened on another phone). If someone is signed in, their profile is
+     * re-read from the server rather than assumed verified: the link may belong to a
+     * different account.
+     */
+    async verifyEmail(token: string): Promise<unknown> {
+      const data = await this._customerAuthService().verifyEmail({ token });
+      if (!data.success) throw new Error(data.message ?? 'Failed to verify email');
+
+      if (this.isLoggedIn && this.customerAuthToken) {
+        try {
+          await this.getProfile();
+        } catch (refreshError: unknown) {
+          console.warn('Email verified, but the profile refresh failed:', refreshError);
+        }
+      }
+      return data;
+    },
+
+    /** Send (or re-send) the verification email for the signed-in customer's address. */
+    async sendEmailVerification(): Promise<{ status?: string } | null> {
+      if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
+      const data = await this._customerAuthService().sendEmailVerification();
+      if (!data.success) throw new Error(data.message ?? 'Failed to send verification email');
+      return data as unknown as { status?: string };
     },
 
     async autocompleteLocation(query: string): Promise<LocationSuggestion[]> {
