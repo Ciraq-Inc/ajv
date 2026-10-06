@@ -93,64 +93,34 @@
           <div v-if="view === 'login' && currentStep === 'signin'">
             <form @submit.prevent="onSignInSubmit" novalidate>
 
-              <!-- Phone field -->
-              <div v-if="signInMethod === 'phone'" class="mb-4">
-                <label for="phoneNumber" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
-                <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
-                  <select
-                    v-model="selectedCountry"
-                    class="flex-shrink-0 rounded-l-2xl border-0 bg-[#f5eeff] px-3 text-sm font-semibold text-[#520094] focus:outline-none cursor-pointer"
-                    @change="onPhoneInput"
-                    aria-label="Country code"
-                  >
-                    <option value="GH">🇬🇭 +233</option>
-                    <!-- US disabled — Termii not activated for +1 on this account -->
-                    <!-- <option value="US">🇺🇸 +1</option> -->
-                    <option value="GB">🇬🇧 +44</option>
-                  </select>
-                  <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
-                  <input
-                    v-model="phoneNumber"
-                    type="tel"
-                    id="phoneNumber"
-                    class="min-w-0 flex-1 rounded-r-2xl border-0 bg-transparent px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none"
-                    placeholder="24 123 4567"
-                    required
-                    autocomplete="tel-national"
-                    @input="onPhoneInput"
-                  >
-                </div>
-                <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                  {{ phoneNumberError }}
-                </p>
-              </div>
-
-              <!-- Email field (alternative to phone; verified emails only) -->
-              <div v-else class="mb-4">
-                <label for="loginEmail" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Email address</label>
+              <!-- One box for a phone number or an email -->
+              <div class="mb-4">
+                <label for="identifier" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number or email</label>
                 <input
-                  v-model="loginEmail"
-                  type="email"
-                  id="loginEmail"
-                  class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
-                  placeholder="name@example.com"
-                  autocomplete="email"
-                  required
+                  v-model="identifier"
+                  type="text"
+                  id="identifier"
+                  inputmode="email"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow disabled:opacity-60"
+                  placeholder="024 123 4567 or you@example.com"
+                  aria-describedby="identifierHint"
+                  :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
+                  @input="onIdentifierInput"
                 >
-                <p v-if="loginEmailError" role="alert" class="mt-1.5 text-xs text-red-600">{{ loginEmailError }}</p>
-              </div>
-
-              <!-- Switch between phone and email sign-in -->
-              <div class="mb-4 -mt-2 text-right">
-                <button
-                  type="button"
-                  @click="signInMethod === 'phone' ? switchToEmailSignIn() : switchToPhoneSignIn()"
-                  class="text-xs font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
-                  data-testid="toggle-signin-method"
-                >
-                  {{ signInMethod === 'phone' ? 'Use email instead' : 'Use phone number instead' }}
-                </button>
+                <p v-if="identifierError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1" role="alert">
+                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  {{ identifierError }}
+                </p>
+                <p
+                  id="identifierHint"
+                  v-if="identifierHint"
+                  class="mt-1.5 text-xs leading-relaxed"
+                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-[#e4d0f8] bg-[#f5eeff] px-3 py-2 text-[#4c4453]' : 'text-[#7d7484]'"
+                  role="status"
+                >{{ identifierHint.text }}</p>
               </div>
 
               <!-- Password field -->
@@ -392,21 +362,43 @@
               </div>
             </Transition>
 
+            <div v-if="!resetSuccess && !otpSent && !resetEmailSent">
+              <!-- One box for a phone number or an email -->
+              <div class="mb-4">
+                <label for="identifier" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number or email</label>
+                <input
+                  v-model="identifier"
+                  type="text"
+                  id="identifier"
+                  inputmode="email"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow disabled:opacity-60"
+                  placeholder="024 123 4567 or you@example.com"
+                  aria-describedby="identifierHint"
+                  :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
+                  @input="onIdentifierInput"
+                >
+                <p v-if="identifierError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1" role="alert">
+                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  {{ identifierError }}
+                </p>
+                <p
+                  id="identifierHint"
+                  v-if="identifierHint"
+                  class="mt-1.5 text-xs leading-relaxed"
+                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-[#e4d0f8] bg-[#f5eeff] px-3 py-2 text-[#4c4453]' : 'text-[#7d7484]'"
+                  role="status"
+                >{{ identifierHint.text }}</p>
+              </div>
+            </div>
+
             <!-- Reset by emailed link -->
             <div v-if="!resetSuccess && resetMethod === 'email'" data-testid="reset-by-email">
               <div v-if="!resetEmailSent">
                 <form @submit.prevent="sendResetLink" novalidate>
-                  <div class="mb-5">
-                    <label for="resetEmail" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Email address</label>
-                    <input
-                      v-model="resetEmail"
-                      type="email"
-                      id="resetEmail"
-                      class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
-                      placeholder="name@example.com"
-                      autocomplete="email"
-                    >
-                    <p v-if="resetEmailError" role="alert" class="mt-1.5 text-xs text-red-600">{{ resetEmailError }}</p>
+                  <div v-if="resetEmailError || resetEmailMessage" class="mb-5">
                     <p v-if="resetEmailMessage" role="alert" class="mt-2 text-sm text-red-700">{{ resetEmailMessage }}</p>
                   </div>
                   <button
@@ -447,37 +439,9 @@
             </div>
 
             <form v-if="!resetSuccess && resetMethod === 'phone'" @submit.prevent="handleResetPassword" novalidate>
-              <!-- Phone input -->
-              <div class="mb-5">
-                <label for="resetPhone" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
-                <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
-                  <select
-                    v-model="selectedCountry"
-                    class="flex-shrink-0 rounded-l-2xl border-0 bg-[#f5eeff] px-3 text-sm font-semibold text-[#520094] focus:outline-none cursor-pointer"
-                    :disabled="otpSent"
-                    aria-label="Country code"
-                  >
-                    <option value="GH">🇬🇭 +233</option>
-                    <!-- US disabled — Termii not activated for +1 on this account -->
-                    <!-- <option value="US">🇺🇸 +1</option> -->
-                    <option value="GB">🇬🇧 +44</option>
-                  </select>
-                  <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
-                  <input
-                    v-model="phoneNumber"
-                    type="tel"
-                    id="resetPhone"
-                    class="min-w-0 flex-1 rounded-r-2xl border-0 bg-transparent px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none disabled:opacity-60"
-                    placeholder="24 123 4567"
-                    :disabled="otpSent"
-                    autocomplete="tel-national"
-                    @input="onPhoneInput"
-                  >
-                </div>
-                <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                  {{ phoneNumberError }}
-                </p>
+              <div v-if="otpSent" class="mb-4 flex items-center gap-2 rounded-2xl bg-[#f5eeff] border border-[#e4d0f8] px-4 py-3 text-xs text-[#4c4453]">
+                <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                Code sent to <strong class="text-[#1e1a22] ml-0.5">{{ formattedPhoneNumber }}</strong>
               </div>
 
               <!-- Step 1: Send OTP -->
@@ -485,7 +449,7 @@
                 <button
                   type="button"
                   @click="sendResetOTP"
-                  :disabled="isLoading"
+                  :disabled="isLoading || !phoneNumber || identifierKind === 'foreign_phone'"
                   class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
                 >
                   <span v-if="isLoading" class="flex items-center justify-center gap-2">
@@ -556,35 +520,6 @@
                   </div>
                 </div>
 
-                <div>
-                  <label for="resetConfirmPassword" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Confirm new password</label>
-                  <div class="relative">
-                    <input
-                      v-model="confirmPassword"
-                      :type="showPassword ? 'text' : 'password'"
-                      id="resetConfirmPassword"
-                      class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 pr-11 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
-                      placeholder="Re-enter new password"
-                      required
-                      minlength="6"
-                      autocomplete="new-password"
-                    >
-                    <button
-                      type="button"
-                      @click="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#7d7484] hover:text-[#520094] hover:bg-[#f2eaf9] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
-                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                    >
-                      <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
-                      <EyeIcon v-else class="w-4 h-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                  <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                    <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                    Passwords don't match
-                  </p>
-                </div>
-
                 <div class="flex gap-3 pt-1">
                   <button
                     type="button"
@@ -595,7 +530,7 @@
                   </button>
                   <button
                     type="submit"
-                    :disabled="isLoading || !otp || password !== confirmPassword"
+                    :disabled="isLoading || otp.length !== 6 || password.length < 6"
                     class="flex-1 rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
                   >
                     <span v-if="isLoading" class="flex items-center justify-center gap-2">
@@ -611,14 +546,13 @@
               </div>
             </form>
 
-            <div v-if="!resetSuccess && !otpSent" class="mt-4 text-center">
+            <div v-if="!resetSuccess && resetMethod === 'phone' && !otpSent" class="mt-3 text-center">
               <button
                 type="button"
-                @click="resetMethod === 'phone' ? switchToEmailReset() : switchToPhoneReset()"
-                class="text-sm font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
-                data-testid="toggle-reset-method"
+                @click="backToSignIn"
+                class="text-sm text-[#7d7484] hover:text-[#520094] focus:outline-none focus-visible:underline"
               >
-                {{ resetMethod === 'phone' ? 'Reset with email instead' : 'Reset with phone number instead' }}
+                Back to sign in
               </button>
             </div>
             <div v-if="!resetSuccess && resetMethod === 'email'" class="mt-3 text-center">
@@ -639,121 +573,35 @@
 
             <!-- Step 1: phone or email, then send a code -->
             <form v-if="!signupOtpSent" @submit.prevent="continueSignup" novalidate>
-              <!-- Phone / Email switch -->
-              <div class="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-[#f5eeff] p-1" role="group" aria-label="Sign up with">
-                <button
-                  type="button"
-                  :aria-pressed="signupMethod === 'phone'"
-                  @click="chooseSignupMethod('phone')"
-                  class="rounded-xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
-                  :class="signupMethod === 'phone' ? 'bg-white text-[#520094] shadow-sm' : 'text-[#7d7484] hover:text-[#520094]'"
-                >
-                  Phone
-                </button>
-                <button
-                  type="button"
-                  :aria-pressed="signupMethod === 'email'"
-                  @click="chooseSignupMethod('email')"
-                  class="rounded-xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
-                  :class="signupMethod === 'email' ? 'bg-white text-[#520094] shadow-sm' : 'text-[#7d7484] hover:text-[#520094]'"
-                >
-                  Email
-                </button>
-              </div>
-
-              <!-- Why we switched them to email (screen readers hear it too) -->
-              <p
-                v-if="signupSwitchNote"
-                class="mb-4 flex items-start gap-2 rounded-xl border border-[#e4d0f8] bg-[#f5eeff] px-3.5 py-2.5 text-xs leading-relaxed text-[#4c4453]"
-                role="status"
-              >
-                <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-[#520094]" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
-                {{ signupSwitchNote }}
-              </p>
-
-              <!-- Phone -->
-              <div v-if="signupMethod === 'phone'" class="mb-5">
-                <label for="signupPhone" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
-                <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
-                  <select
-                    v-model="selectedCountry"
-                    class="flex-shrink-0 rounded-l-2xl border-0 bg-[#f5eeff] px-3 text-sm font-semibold text-[#520094] focus:outline-none cursor-pointer"
-                    aria-label="Country code"
-                  >
-                    <option value="GH">🇬🇭 +233</option>
-                    <option :value="COUNTRY_OTHER">🌍 Other country</option>
-                  </select>
-                  <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
-                  <input
-                    v-model="phoneNumber"
-                    type="tel"
-                    id="signupPhone"
-                    class="min-w-0 flex-1 rounded-r-2xl border-0 bg-transparent px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none"
-                    placeholder="24 123 4567"
-                    autocomplete="tel-national"
-                    aria-describedby="signupPhoneHelp"
-                    @input="validatePhoneNumber"
-                  >
-                </div>
-                <p v-if="phoneNumberError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                  {{ phoneNumberError }}
-                </p>
-                <p id="signupPhoneHelp" class="mt-1.5 text-xs text-[#7d7484]">
-                  We text a code to Ghana numbers.
-                  <button
-                    type="button"
-                    @click="chooseSignupMethod('email')"
-                    class="font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
-                  >
-                    No Ghana number? Use email
-                  </button>
-                </p>
-              </div>
-
-              <!-- Email -->
-              <div v-else class="mb-5">
-                <label for="signupEmail" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Email address</label>
+              <!-- One box for a phone number or an email -->
+              <div class="mb-4">
+                <label for="identifier" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number or email</label>
                 <input
-                  v-model="signupEmail"
-                  ref="signupEmailInput"
-                  type="email"
-                  id="signupEmail"
+                  v-model="identifier"
+                  type="text"
+                  id="identifier"
                   inputmode="email"
-                  autocomplete="email"
+                  autocomplete="username"
                   autocapitalize="none"
                   spellcheck="false"
-                  class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
-                  placeholder="you@example.com"
-                  aria-describedby="signupEmailHelp"
-                  :aria-invalid="signupEmailError ? 'true' : 'false'"
-                  @input="signupEmailError = ''"
+                  class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow disabled:opacity-60"
+                  placeholder="024 123 4567 or you@example.com"
+                  aria-describedby="identifierHint"
+                  :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
+                  @input="onIdentifierInput"
                 >
-                <p v-if="signupEmailError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                <p v-if="identifierError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1" role="alert">
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                  {{ signupEmailError }}
+                  {{ identifierError }}
                 </p>
-                <p id="signupEmailHelp" class="mt-1.5 text-xs text-[#7d7484]">
-                  We'll email you a 6-digit code. Works from anywhere.
-                </p>
+                <p
+                  id="identifierHint"
+                  v-if="identifierHint"
+                  class="mt-1.5 text-xs leading-relaxed"
+                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-[#e4d0f8] bg-[#f5eeff] px-3 py-2 text-[#4c4453]' : 'text-[#7d7484]'"
+                  role="status"
+                >{{ identifierHint.text }}</p>
               </div>
-
-              <!-- Consent -->
-              <label class="mb-4 flex items-start gap-2.5 cursor-pointer select-none">
-                <input
-                  id="su-sms-consent"
-                  v-model="smsConsent"
-                  type="checkbox"
-                  class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
-                  required
-                >
-                <span class="text-xs text-[#4c4453] leading-relaxed">
-                  {{ signupMethod === 'email'
-                    ? 'I agree to receive order updates and notifications from MedsGH by email'
-                    : 'I agree to receive order updates and SMS notifications from MedsGH' }}
-                  <span class="text-red-500">*</span>
-                </span>
-              </label>
 
               <button
                 type="submit"
@@ -768,8 +616,15 @@
                   Sending code…
                 </span>
                 <span v-else-if="signupMethod === 'email' && signupEmailWaitsForOtherAddress">Wait {{ signupEmailCooldown }}s to send again</span>
-                <span v-else>Send verification code</span>
+                <span v-else>Send code</span>
               </button>
+
+              <p class="mt-3 text-center text-xs leading-relaxed text-[#7d7484]">
+                By continuing you agree to the
+                <a href="/terms" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-[#520094]">Terms</a>,
+                <a href="/privacy" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-[#520094]">Privacy Policy</a>
+                and to receive order updates, and confirm you are 18 or older.
+              </p>
             </form>
 
             <!-- Step 2: Details + submit -->
@@ -803,14 +658,6 @@
                     class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
                     placeholder="Doe" required autocomplete="family-name">
                 </div>
-              </div>
-
-              <!-- Email (optional extra for phone sign-ups; the email IS the account for email sign-ups) -->
-              <div v-if="signupMethod === 'phone'">
-                <label for="su-email" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Email <span class="font-normal text-[#7d7484]">(optional)</span></label>
-                <input v-model="email" type="email" id="su-email"
-                  class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
-                  placeholder="john@example.com" autocomplete="email">
               </div>
 
               <!-- OTP boxes -->
@@ -873,50 +720,6 @@
                 </div>
               </div>
 
-              <!-- Confirm password -->
-              <div>
-                <label for="su-confirm" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Confirm password <span class="text-red-500">*</span></label>
-                <div class="relative">
-                  <input
-                    v-model="confirmPassword"
-                    :type="showPassword ? 'text' : 'password'"
-                    id="su-confirm"
-                    class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 pr-11 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
-                    placeholder="Re-enter password"
-                    required
-                    minlength="6"
-                    autocomplete="new-password"
-                  >
-                  <button
-                    type="button"
-                    @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-[#7d7484] hover:text-[#520094] hover:bg-[#f2eaf9] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
-                    :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                  >
-                    <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
-                    <EyeIcon v-else class="w-4 h-4" aria-hidden="true" />
-                  </button>
-                </div>
-                <p v-if="password && confirmPassword && password !== confirmPassword" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                  Passwords don't match
-                </p>
-              </div>
-
-              <!-- Age checkbox -->
-              <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                <input
-                  id="su-age"
-                  v-model="isOver18"
-                  type="checkbox"
-                  class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-[#cec2d5] bg-white text-[#520094] focus:ring-[#520094]"
-                  required
-                >
-                <span class="text-xs text-[#4c4453] leading-relaxed">
-                  I confirm I am 18 years or older <span class="text-red-500">*</span>
-                </span>
-              </label>
-
               <!-- Submit -->
               <button
                 type="submit"
@@ -963,7 +766,7 @@ import { useEmailSignIn, useEmailReset, signInReady } from '~/composables/useEma
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 import phoneUtils from '~/utils/phone';
 import { describeEmailAuthError } from '~/utils/emailAuthMessages';
-import { COUNTRY_OTHER, suggestEmailInstead, type EmailSuggestion } from '~/utils/signupContact';
+import { classifyIdentifier, describeIdentifier, type IdentifierPurpose } from '~/utils/contactIdentifier';
 
 type LoginStep = 'signin' | 'reset';
 type LoginMode = 'login' | 'verify' | 'register';
@@ -987,7 +790,7 @@ interface UserStoreShape {
     lname: string;
     phone: string;
     password: string;
-    email: string;
+    email?: string;
     otp: string;
   }) => Promise<void>;
   sendResetOTP: (phone: string) => Promise<void>;
@@ -1053,8 +856,12 @@ const resetSuccess = ref<boolean>(false);
 // Email as an alternative to phone: sign in with a VERIFIED email + password, and
 // reset a password by emailed link. Logic and wording live in useEmailSignIn.ts.
 type ContactMethod = 'phone' | 'email';
-const signInMethod = ref<ContactMethod>('phone');
-const resetMethod = ref<ContactMethod>('phone');
+// One box serves sign-in, sign-up and reset. What was typed decides the path.
+const identifier = ref<string>('');
+const identifierKind = computed(() => classifyIdentifier(identifier.value).kind);
+const methodOf = (): ContactMethod => (identifierKind.value === 'email' ? 'email' : 'phone');
+const signInMethod = computed<ContactMethod>(methodOf);
+const resetMethod = computed<ContactMethod>(methodOf);
 const {
   email: loginEmail,
   emailError: loginEmailError,
@@ -1073,12 +880,8 @@ const {
   startOver: resetEmailStartOver,
 } = useEmailReset({ request: (e) => userStore.requestEmailReset(e) });
 
-// Sign-up takes a phone OR an email. SMS codes only reach Ghana numbers, so anyone
-// without one is steered to email (see utils/signupContact.ts). The emailed code uses the
-// same request/cooldown machinery as the reset link.
-const signupMethod = ref<ContactMethod>('phone');
-const signupSwitchNote = ref<string>('');
-const signupEmailInput = ref<HTMLInputElement | null>(null);
+// The emailed sign-up code uses the same request/cooldown machinery as the reset link.
+const signupMethod = computed<ContactMethod>(methodOf);
 const {
   email: signupEmail,
   emailError: signupEmailError,
@@ -1090,6 +893,37 @@ const {
   send: sendSignupEmail,
   startOver: signupEmailStartOver,
 } = useEmailReset({ request: (e) => userStore.sendSignupEmailCode(e), context: 'signupCode' });
+
+// Mirror the box into the fields the sign-in, sign-up and reset flows read. Synchronous, so a
+// view change that clears and restores the box can never leave them behind.
+watch(identifier, (typed) => {
+  const { kind, value } = classifyIdentifier(typed);
+  const email = kind === 'email' ? value : '';
+  loginEmail.value = email;
+  resetEmail.value = email;
+  signupEmail.value = email;
+  loginEmailError.value = '';
+  resetEmailError.value = '';
+  signupEmailError.value = '';
+  selectedCountry.value = 'GH';
+  phoneNumber.value = kind === 'ghana_phone' || kind === 'foreign_phone' ? value : '';
+  if (phoneNumber.value) validatePhoneNumber(); else phoneNumberError.value = '';
+}, { flush: 'sync' });
+
+const identifierPurpose = computed<IdentifierPurpose>(() =>
+  view.value === 'signup' ? 'signup' : currentStep.value === 'reset' ? 'reset' : 'signin'
+);
+const identifierHint = computed(() =>
+  describeIdentifier(identifierKind.value, identifierPurpose.value, identifier.value.trim())
+);
+// Whichever error applies to what is typed: a bad number, or a bad email after a send attempt.
+const identifierError = computed<string>(() => {
+  // A number is only called wrong once it is long enough to be finished, and a number from
+  // another country already has its own note.
+  const digits = phoneNumber.value.replace(/\D/g, '').length;
+  const phoneError = identifierKind.value === 'ghana_phone' && digits >= 9 ? phoneNumberError.value : '';
+  return phoneError || loginEmailError.value || signupEmailError.value || resetEmailError.value;
+});
 
 // OTP digit boxes — 6 individual single-char slots kept in sync with otp ref
 const otpDigits = ref<string[]>(['', '', '', '', '', '']);
@@ -1162,14 +996,11 @@ const stepSubtitle = computed<string>(() => {
         ? `Fill in your details and join ${registrationCompany.value}.`
         : 'Fill in a few details and you\'re in.';
     }
-    return signupMethod.value === 'email'
-      ? 'Enter your email and we\'ll send a verification code.'
-      : 'Enter your Ghana number and we\'ll text you a verification code.';
+    return 'Use your phone number or your email. We\'ll send a code.';
   }
   if (currentStep.value === 'reset') {
-    return resetMethod.value === 'email'
-      ? "Enter your email and we'll send you a link to set a new password."
-      : 'Verify your number and set a new password.';
+    if (otpSent.value) return 'Enter the code and choose a new password.';
+    return "Enter your phone number or email and we'll help you set a new password.";
   }
   if (mode.value === 'verify') return "Confirm the code we sent and we'll activate your account.";
   if (mode.value === 'register') {
@@ -1213,11 +1044,9 @@ const canSubmit = computed<boolean>(() => {
 
 const canSignupSubmit = computed<boolean>(() =>
   signupOtpSent.value &&
-  Boolean(firstName.value) && Boolean(lastName.value) &&
+  Boolean(firstName.value.trim()) && Boolean(lastName.value.trim()) &&
   otp.value.length === 6 &&
-  password.value.length >= 6 && password.value === confirmPassword.value &&
-  isOver18.value &&
-  smsConsent.value
+  password.value.length >= 6
 );
 
 // A second address cannot be asked for while the first one's cooldown runs.
@@ -1226,11 +1055,12 @@ const signupEmailWaitsForOtherAddress = computed<boolean>(() =>
 );
 
 const signupStep1Ready = computed<boolean>(() => {
-  if (isLoading.value || !smsConsent.value) return false;
-  if (signupMethod.value === 'email') {
-    return !signupEmailBusy.value && signupEmail.value.trim().length > 0 && !signupEmailWaitsForOtherAddress.value;
+  if (isLoading.value) return false;
+  if (identifierKind.value === 'email') {
+    return !signupEmailBusy.value && !signupEmailWaitsForOtherAddress.value;
   }
-  return Boolean(phoneNumber.value) && !phoneNumberError.value;
+  // A number from outside Ghana cannot be texted; it is told to use email instead.
+  return identifierKind.value === 'ghana_phone' && Boolean(phoneNumber.value) && !phoneNumberError.value;
 });
 
 const resolveCurrentPharmacyId = (): unknown => {
@@ -1275,8 +1105,7 @@ const validatePhoneNumber = (): boolean => {
 };
 
 // If user edits phone after a reveal, snap back to login mode
-const onPhoneInput = (): void => {
-  validatePhoneNumber();
+const onIdentifierInput = (): void => {
   if (mode.value !== 'login') {
     mode.value = 'login';
     clearOtp();
@@ -1293,15 +1122,13 @@ const onPhoneInput = (): void => {
 // ── View navigation ──────────────────────────────────────────────────────────
 
 const resetSignupContact = (): void => {
-  signupMethod.value = 'phone';
-  signupSwitchNote.value = '';
-  signupEmail.value = '';
   signupEmailError.value = '';
   signupEmailStartOver();
 };
 
 const resetSharedFields = (): void => {
   resetSignupContact();
+  identifier.value = '';
   phoneNumber.value = '';
   selectedCountry.value = 'GH';
   password.value = '';
@@ -1316,9 +1143,12 @@ const resetSharedFields = (): void => {
 };
 
 const goToSignup = (): void => {
+  // What they typed on the sign-in screen comes with them.
+  const carried = identifier.value;
   view.value = 'signup';
   signupOtpSent.value = false;
   resetSharedFields();
+  identifier.value = carried;
 };
 
 const goToLogin = (): void => {
@@ -1334,41 +1164,11 @@ const goToLogin = (): void => {
 
 // ── Signup flow ──────────────────────────────────────────────────────────────
 
-const focusSignupEmail = (): void => {
-  nextTick(() => signupEmailInput.value?.focus());
+const continueSignup = async (): Promise<void> => {
+  if (!signupStep1Ready.value) return;
+  if (signupMethod.value === 'email') await requestSignupEmailCode();
+  else await sendSignupOTP();
 };
-
-const switchSignupToEmail = (suggestion: EmailSuggestion): void => {
-  signupMethod.value = 'email';
-  signupSwitchNote.value = suggestion.note;
-  if (suggestion.carry) signupEmail.value = suggestion.carry;
-  // The number belonged to the phone form; leave it clean so switching back starts fresh.
-  phoneNumber.value = '';
-  selectedCountry.value = 'GH';
-  phoneNumberError.value = '';
-  errorMessage.value = '';
-  focusSignupEmail();
-};
-
-const chooseSignupMethod = (method: ContactMethod): void => {
-  if (signupMethod.value === method) return;
-  signupMethod.value = method;
-  signupSwitchNote.value = '';
-  signupEmailError.value = '';
-  phoneNumberError.value = '';
-  errorMessage.value = '';
-  if (method === 'email') focusSignupEmail();
-};
-
-// Move to email on their own the moment the phone box cannot lead to a Ghana number.
-watch([phoneNumber, selectedCountry], () => {
-  if (view.value !== 'signup' || signupMethod.value !== 'phone' || signupOtpSent.value) return;
-  const suggestion = suggestEmailInstead({ typed: phoneNumber.value, country: selectedCountry.value });
-  if (suggestion) switchSignupToEmail(suggestion);
-});
-
-const continueSignup = (): Promise<void> =>
-  signupMethod.value === 'email' ? requestSignupEmailCode() : sendSignupOTP();
 
 const requestSignupEmailCode = async (): Promise<void> => {
   errorMessage.value = '';
@@ -1411,16 +1211,11 @@ const changeSignupContact = (): void => {
   errorMessage.value = '';
 };
 
-// "Already have an account? Sign in": bring the email they typed along.
+// "Already have an account? Sign in": what they typed comes along.
 const signInInstead = (): void => {
-  const carried = signupMethod.value === 'email'
-    ? (signupEmailSentTo.value || signupEmail.value).trim()
-    : '';
+  const carried = identifier.value;
   goToLogin();
-  if (carried) {
-    switchToEmailSignIn();
-    loginEmail.value = carried;
-  }
+  identifier.value = carried;
 };
 
 const sendSignupOTP = async (): Promise<void> => {
@@ -1442,10 +1237,6 @@ const sendSignupOTP = async (): Promise<void> => {
 };
 
 const submitSignup = async (): Promise<void> => {
-  if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Passwords do not match';
-    return;
-  }
   errorMessage.value = '';
   isLoading.value = true;
   if (signupMethod.value === 'email') {
@@ -1480,7 +1271,6 @@ const submitSignup = async (): Promise<void> => {
       lname: lastName.value,
       phone: phoneE164.value,
       password: password.value,
-      email: email.value,
       otp: otp.value,
     });
     emit('login-success', { destination: 'new', action: 'register' });
@@ -1575,29 +1365,6 @@ const submitEmailLogin = async (): Promise<void> => {
   }
 };
 
-const switchToEmailSignIn = (): void => {
-  signInMethod.value = 'email';
-  mode.value = 'login';
-  errorMessage.value = '';
-};
-
-const switchToPhoneSignIn = (): void => {
-  signInMethod.value = 'phone';
-  loginEmailError.value = '';
-  errorMessage.value = '';
-};
-
-const switchToEmailReset = (): void => {
-  resetMethod.value = 'email';
-  errorMessage.value = '';
-};
-
-const switchToPhoneReset = (): void => {
-  resetMethod.value = 'phone';
-  resetEmailStartOver();
-  errorMessage.value = '';
-};
-
 // Path B: existing customer activates with OTP; reuse already-typed password.
 const submitVerify = async (): Promise<void> => {
   errorMessage.value = '';
@@ -1671,7 +1438,6 @@ const resendRegisterOTP = async (): Promise<void> => {
 
 const forgotPassword = (): void => {
   showPassword.value = false;
-  resetMethod.value = 'phone';
   resetEmailStartOver();
   currentStep.value = 'reset';
   mode.value = 'login';
@@ -1700,11 +1466,6 @@ const sendResetOTP = async (): Promise<void> => {
 };
 
 const handleResetPassword = async (): Promise<void> => {
-  if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Passwords do not match';
-    return;
-  }
-
   errorMessage.value = '';
   isLoading.value = true;
 
@@ -1725,7 +1486,6 @@ const handleResetPassword = async (): Promise<void> => {
 
 const backToSignIn = (): void => {
   showPassword.value = false;
-  resetMethod.value = 'phone';
   resetEmailStartOver();
   currentStep.value = 'signin';
   mode.value = 'login';
@@ -1749,12 +1509,7 @@ const closeModal = (): void => {
     mode.value = 'login';
     signupOtpSent.value = false;
     resetSignupContact();
-    phoneNumber.value = '';
-    signInMethod.value = 'phone';
-    loginEmail.value = '';
-    loginEmailError.value = '';
-    resetMethod.value = 'phone';
-    resetEmail.value = '';
+    identifier.value = '';
     resetEmailStartOver();
     password.value = '';
     confirmPassword.value = '';
@@ -1775,10 +1530,7 @@ const closeModal = (): void => {
 const tryToRestorePhone = (): void => {
   if (typeof localStorage !== 'undefined') {
     const savedPhone = localStorage.getItem('lastPhoneNumber');
-    if (savedPhone) {
-      phoneNumber.value = savedPhone;
-      validatePhoneNumber();
-    }
+    if (savedPhone && !identifier.value) identifier.value = savedPhone;
   }
 };
 

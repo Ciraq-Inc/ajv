@@ -129,22 +129,23 @@ test.describe('admin sign-in', () => {
   });
 });
 
-test.describe('customer sign-up by email', () => {
-  const session = () => ({
+test.describe('sign-up, sign-in and reset from one box', () => {
+  const session = (phone = null) => ({
     success: true,
     data: {
       token: tokenFor('access'),
-      master_customer: { id: 9, fname: 'Ama', lname: 'Mensah', phone: null, email: 'ama@example.com', email_verified: true },
+      master_customer: { id: 9, fname: 'Ama', lname: 'Mensah', phone, email: phone ? null : 'ama@example.com', email_verified: !phone },
       companies: [],
     },
   });
 
-  const startEmailSignup = async (page, email = 'ama@example.com') => {
+  const box = (page) => page.getByLabel('Phone number or email');
+  const form = (page) => page.locator('form');
+
+  const startSignup = async (page, typed) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Email', exact: true }).click();
-    await page.getByLabel('Email address').fill(email);
-    await page.getByLabel(/I agree to receive order updates/).check();
-    await page.getByRole('button', { name: 'Send verification code' }).click();
+    await box(page).fill(typed);
+    await page.getByRole('button', { name: 'Send code' }).click();
   };
 
   const fillDetails = async (page, code = '123456') => {
@@ -153,31 +154,30 @@ test.describe('customer sign-up by email', () => {
     await page.getByLabel('Digit 1').click();
     await page.keyboard.type(code);
     await page.getByLabel('Create a password').fill('a-long-new-password');
-    await page.getByLabel('Confirm password').fill('a-long-new-password');
-    await page.getByLabel(/18 years or older/).check();
   };
 
-  test('emails a code, then creates the account with no phone number', async ({ page }) => {
+  test('an email gets a code by email, then the account is created with no phone', async ({ page }) => {
     let codeRequest = null;
     let registerBody = null;
     await page.route(api('auth/customer/email/send-signup-code'), (route) => {
       codeRequest = route.request().postDataJSON();
-      return json(route, 200, { success: true, message: 'If that address can be used, a code is on its way' });
+      return json(route, 200, { success: true });
     });
     await page.route(api('auth/customer/register'), (route) => {
       registerBody = route.request().postDataJSON();
       return json(route, 201, session());
     });
 
-    await startEmailSignup(page);
+    await page.goto('/');
+    await box(page).fill('ama@example.com');
+    await expect(page.getByText("We'll email a 6-digit code to ama@example.com.")).toBeVisible();
+    await page.getByRole('button', { name: 'Send code' }).click();
 
     await expect(page.getByText('Code sent to')).toContainText('ama@example.com');
     expect(codeRequest).toEqual({ email: 'ama@example.com' });
-    // The address is the account here, so there is no optional-email box to fill in.
-    await expect(page.getByLabel(/^Email \(optional\)/)).toHaveCount(0);
 
     await fillDetails(page);
-    await page.locator('form').getByRole('button', { name: 'Create account' }).click();
+    await form(page).getByRole('button', { name: 'Create account' }).click();
 
     await expect.poll(() => registerBody).not.toBeNull();
     expect(registerBody).toMatchObject({
@@ -186,30 +186,36 @@ test.describe('customer sign-up by email', () => {
     expect(registerBody).not.toHaveProperty('phone');
   });
 
-  test('a Ghana number still gets its code by SMS, and the optional email box is still there', async ({ page }) => {
+  test('a Ghana number gets a text, and step 2 has only code, names and password', async ({ page }) => {
     let smsBody = null;
+    let registerBody = null;
     await page.route(api('auth/customer/send-otp'), (route) => {
       smsBody = route.request().postDataJSON();
       return json(route, 200, { success: true });
     });
-    let emailCodeRequested = false;
-    await page.route(api('auth/customer/email/send-signup-code'), (route) => {
-      emailCodeRequested = true;
-      return json(route, 200, { success: true });
+    await page.route(api('auth/customer/register'), (route) => {
+      registerBody = route.request().postDataJSON();
+      return json(route, 201, session('+233241234567'));
     });
 
-    await page.goto('/');
-    await page.getByLabel('Phone number').fill('24 123 4567');
-    await page.getByLabel(/I agree to receive order updates and SMS/).check();
-    await page.getByRole('button', { name: 'Send verification code' }).click();
+    await startSignup(page, '024 123 4567');
 
     await expect(page.getByText('Code sent to')).toBeVisible();
     expect(smsBody).toEqual({ phone: '+233241234567' });
-    expect(emailCodeRequested).toBe(false);
-    await expect(page.getByLabel('Email (optional)')).toBeVisible();
+    // No second password box, no optional email, no checkboxes.
+    await expect(form(page).getByLabel('Confirm password')).toHaveCount(0);
+    await expect(form(page).getByLabel(/Email/)).toHaveCount(0);
+    await expect(form(page).getByRole('checkbox')).toHaveCount(0);
+
+    await fillDetails(page);
+    await form(page).getByRole('button', { name: 'Create account' }).click();
+
+    await expect.poll(() => registerBody).not.toBeNull();
+    expect(registerBody).toMatchObject({ phone: '+233241234567', otp: '123456' });
+    expect(registerBody).not.toHaveProperty('email');
   });
 
-  test('typing a number that is not +233 moves to email and explains why, without texting anyone', async ({ page }) => {
+  test('a number from another country is told to use email and cannot be sent a text', async ({ page }) => {
     let smsRequested = false;
     await page.route(api('auth/customer/send-otp'), (route) => {
       smsRequested = true;
@@ -217,27 +223,22 @@ test.describe('customer sign-up by email', () => {
     });
 
     await page.goto('/');
-    await page.getByLabel('Phone number').fill('+44 7700 900123');
+    await box(page).fill('+44 7911 123456');
 
-    await expect(page.getByLabel('Email address')).toBeVisible();
-    await expect(page.getByRole('status')).toContainText(/SMS codes only work for Ghana numbers/i);
-    await expect(page.getByLabel('Email address')).toHaveValue('');
+    await expect(page.getByRole('status')).toContainText(/only reach Ghana numbers/i);
+    await expect(page.getByRole('button', { name: 'Send code' })).toBeDisabled();
     expect(smsRequested).toBe(false);
+
+    // Replacing it with an email unblocks the same button.
+    await box(page).fill('ama@example.com');
+    await expect(page.getByRole('button', { name: 'Send code' })).toBeEnabled();
   });
 
-  test('choosing "Other country" moves to email', async ({ page }) => {
+  test('nothing is sent until what is typed can be a phone or an email', async ({ page }) => {
     await page.goto('/');
-    await page.getByLabel('Country code').selectOption({ label: '🌍 Other country' });
-
-    await expect(page.getByLabel('Email address')).toBeVisible();
-    await expect(page.getByRole('status')).toContainText(/Ghana numbers/i);
-  });
-
-  test('typing an @ into the phone box carries the text over to the email box', async ({ page }) => {
-    await page.goto('/');
-    await page.getByLabel('Phone number').fill('ama@example.com');
-
-    await expect(page.getByLabel('Email address')).toHaveValue('ama@example.com');
+    await expect(page.getByRole('button', { name: 'Send code' })).toBeDisabled();
+    await box(page).fill('ama');
+    await expect(page.getByRole('button', { name: 'Send code' })).toBeDisabled();
   });
 
   test('an address that cannot be an email is refused before any request is made', async ({ page }) => {
@@ -247,7 +248,7 @@ test.describe('customer sign-up by email', () => {
       return json(route, 200, { success: true });
     });
 
-    await startEmailSignup(page, 'not-an-email');
+    await startSignup(page, 'ama@');
 
     await expect(page.getByText(/valid email address/i).first()).toBeVisible();
     expect(called).toBe(false);
@@ -263,33 +264,73 @@ test.describe('customer sign-up by email', () => {
         : json(route, 429, { success: false, code: 'OTP_LOCKED', message: 'Too many attempts' });
     });
 
-    await startEmailSignup(page);
+    await startSignup(page, 'ama@example.com');
     await fillDetails(page, '000000');
-    await page.locator('form').getByRole('button', { name: 'Create account' }).click();
+    await form(page).getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByRole('alert')).toContainText('Invalid or expired code');
 
-    await page.locator('form').getByRole('button', { name: 'Create account' }).click();
+    await form(page).getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByRole('alert')).toContainText(/Request a new code/i);
     await expect(page.getByLabel('Digit 1')).toHaveValue('');
   });
 
-  test('resending is blocked during the cooldown and shows the wait', async ({ page }) => {
+  test('resending an email code is blocked during the cooldown and shows the wait', async ({ page }) => {
     await page.route(api('auth/customer/email/send-signup-code'), (route) => json(route, 200, { success: true }));
 
-    await startEmailSignup(page);
+    await startSignup(page, 'ama@example.com');
 
     const resend = page.getByRole('button', { name: /Resend code in \d+s/ });
     await expect(resend).toBeVisible();
     await expect(resend).toBeDisabled();
   });
 
-  test('"Sign in" from the sign-up card brings the typed email to the sign-in form', async ({ page }) => {
-    await page.route(api('auth/customer/email/send-signup-code'), (route) => json(route, 200, { success: true }));
+  test('"Sign in" from sign-up carries what was typed, and an email signs in with email + password', async ({ page }) => {
+    let loginBody = null;
+    await page.route(api('auth/customer/login'), (route) => {
+      loginBody = route.request().postDataJSON();
+      return json(route, 200, session());
+    });
 
-    await startEmailSignup(page);
+    await page.goto('/');
+    await box(page).fill('ama@example.com');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
-    await expect(page.getByLabel('Email address')).toHaveValue('ama@example.com');
+    await expect(box(page)).toHaveValue('ama@example.com');
+    await page.getByLabel('Password', { exact: true }).fill('a-long-new-password');
+    await form(page).getByRole('button', { name: 'Sign in' }).click();
+
+    await expect.poll(() => loginBody).not.toBeNull();
+    expect(loginBody).toEqual({ email: 'ama@example.com', password: 'a-long-new-password' });
+  });
+
+  test('forgot password uses the same box: an email gets a link', async ({ page }) => {
+    let resetBody = null;
+    await page.route(api('auth/customer/forgot-password'), (route) => {
+      resetBody = route.request().postDataJSON();
+      return json(route, 200, { success: true });
+    });
+
+    await page.goto('/');
+    await box(page).fill('ama@example.com');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('button', { name: 'Forgot password?' }).click();
+
+    await expect(box(page)).toHaveValue('ama@example.com');
+    await expect(page.getByText(/email a reset link to ama@example.com/i)).toBeVisible();
+    await page.getByRole('button', { name: 'Send reset link' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+    expect(resetBody).toEqual({ email: 'ama@example.com' });
+  });
+
+  test('forgot password with a number from another country says to use email', async ({ page }) => {
+    await page.goto('/');
+    await box(page).fill('+44 7911 123456');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await page.getByRole('button', { name: 'Forgot password?' }).click();
+
+    await expect(page.getByRole('status')).toContainText(/only reach Ghana numbers/i);
+    await expect(page.getByRole('button', { name: 'Send reset code' })).toBeDisabled();
   });
 });
 
