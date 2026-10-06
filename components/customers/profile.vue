@@ -77,10 +77,46 @@
 
               <!-- Email -->
               <div class="flex flex-col gap-1.5">
-                <label for="email" class="text-sm font-semibold text-zinc-700">Email Address</label>
+                <div class="flex items-center justify-between">
+                  <label for="email" class="text-sm font-semibold text-zinc-700">Email Address</label>
+                  <span v-if="emailStatus === 'verified' && !emailIsChanged" data-testid="email-verified"
+                    class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                    <CheckCircleIcon class="w-3.5 h-3.5" /> Verified
+                  </span>
+                  <span v-else-if="emailStatus === 'unverified' && !emailIsChanged" data-testid="email-unverified"
+                    class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                    <ExclamationCircleIcon class="w-3.5 h-3.5" /> Not verified
+                  </span>
+                </div>
                 <input v-model="profile.email" type="email" id="email" placeholder="Enter email address"
                   autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false"
+                  :aria-invalid="emailFieldError ? 'true' : undefined"
                   class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 font-semibold text-zinc-900 transition-shadow" />
+                <p v-if="emailFieldError" role="alert" class="text-xs font-medium text-red-600">{{ emailFieldError }}</p>
+
+                <div v-if="emailStatus === 'unverified' && !emailIsChanged" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                  <p class="text-xs font-medium text-amber-800">
+                    Verify this address to receive order updates by email and to sign in with it.
+                  </p>
+                  <button type="button" data-testid="resend-verification"
+                    :disabled="resendBusy || resendCooldown > 0" @click="resendVerification"
+                    class="mt-1.5 text-xs font-bold text-[#4F217A] hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed">
+                    {{ resendBusy ? 'Sending…' : (resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Send verification email') }}
+                  </button>
+                  <p v-if="resendMessage" role="alert" class="mt-1 text-xs font-medium text-red-600">{{ resendMessage }}</p>
+                </div>
+                <p v-if="emailNotice" role="status" data-testid="email-notice" class="text-xs font-medium text-emerald-700">{{ emailNotice }}</p>
+              </div>
+
+              <!-- Current password: only when the email is being changed -->
+              <div v-if="emailIsChanged" class="flex flex-col gap-1.5 sm:col-span-2" data-testid="current-password-field">
+                <label for="current-password" class="text-sm font-semibold text-zinc-700">Current password</label>
+                <input v-model="currentPassword" type="password" id="current-password" autocomplete="current-password"
+                  placeholder="Enter your current password"
+                  :aria-invalid="passwordError ? 'true' : undefined"
+                  class="rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 font-semibold text-zinc-900 transition-shadow" />
+                <p class="text-xs font-medium text-zinc-500">Needed to change your email. We'll send a verification link to the new address.</p>
+                <p v-if="passwordError" role="alert" class="text-xs font-medium text-red-600">{{ passwordError }}</p>
               </div>
 
               <!-- Phone (Read-only) -->
@@ -375,6 +411,7 @@ import {
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService'
 import type { ProfessionalProfile, VerificationOptions } from '~/services/customerAuth/customerAuthService'
 import { useApi } from '~/composables/useApi'
+import { useProfileEmail } from '~/composables/useProfileEmail'
 import phoneUtils from '~/utils/phone'
 
 interface AddressSuggestion {
@@ -388,6 +425,7 @@ interface ProfileData {
   fname?: string;
   lname?: string;
   email?: string;
+  email_verified?: boolean;
   home_address?: string;
   address?: string;
   home_latitude?: number | null;
@@ -398,17 +436,19 @@ interface ProfileData {
 
 // TODO: remove once stores/ are .ts
 interface UserStoreShape {
-  currentUser?: { fname?: string; lname?: string; email?: string; phone?: string };
+  currentUser?: { fname?: string; lname?: string; email?: string; email_verified?: boolean; phone?: string };
   userPhoneNumber?: string;
   getProfile: () => Promise<ProfileData | null>;
   updateProfile: (data: {
     fname: string;
     lname: string;
     email: string;
+    current_password?: string;
     home_address: string | null;
     home_latitude: number | null;
     home_longitude: number | null;
-  }) => Promise<void>;
+  }) => Promise<ProfileData | void>;
+  sendEmailVerification: () => Promise<unknown>;
   autocompleteLocation: (query: string) => Promise<AddressSuggestion[]>;
   reverseGeocodeHomeLocation: (lat: number, lng: number) => Promise<{ address?: string }>;
 }
@@ -416,6 +456,25 @@ interface UserStoreShape {
 const userStore = useUserStore() as unknown as UserStoreShape;
 const api = useApi();
 const profService = createCustomerAuthService(api);
+
+// Email: verified badge + resend, and the current-password rule for changing it.
+// Logic and wording live in useProfileEmail.ts.
+const {
+  status: emailStatus,
+  currentPassword,
+  passwordError,
+  emailError: emailFieldError,
+  notice: emailNotice,
+  resendBusy,
+  resendCooldown,
+  resendMessage,
+  load: loadEmailState,
+  isChanged: isEmailChanged,
+  prepare: prepareEmail,
+  applySaved: applySavedEmail,
+  explainFailure: explainEmailFailure,
+  resend: resendVerification,
+} = useProfileEmail({ sendVerification: () => userStore.sendEmailVerification() });
 
 // State
 const isLoading = ref<boolean>(false);
@@ -446,6 +505,8 @@ const profile = reactive<{
   longitude: null,
 });
 
+const emailIsChanged = computed<boolean>(() => isEmailChanged(profile.email));
+
 const profileDisplayName = computed<string>(() => {
   const fullName = `${profile.fname} ${profile.lname}`.trim();
   return fullName || 'Customer Profile';
@@ -469,6 +530,10 @@ const loadProfile = async (): Promise<void> => {
       profile.fname = profileData.fname ?? userStore.currentUser?.fname ?? '';
       profile.lname = profileData.lname ?? userStore.currentUser?.lname ?? '';
       profile.email = profileData.email ?? userStore.currentUser?.email ?? '';
+      loadEmailState({
+        email: profile.email,
+        email_verified: profileData.email_verified ?? userStore.currentUser?.email_verified,
+      });
       profile.address = profileData.home_address ?? profileData.address ?? '';
       profile.latitude = profileData.home_latitude ?? profileData.latitude ?? null;
       profile.longitude = profileData.home_longitude ?? profileData.longitude ?? null;
@@ -585,21 +650,40 @@ const saveProfile = async (): Promise<void> => {
     isLoading.value = true;
     error.value = null;
 
-    await userStore.updateProfile({
+    // A changed email needs the current password; an unchanged one is sent as-is.
+    const emailFields = prepareEmail(profile.email);
+    if (!emailFields) return;
+    const emailWasChanged = emailIsChanged.value;
+    const wasVerified = emailStatus.value === 'verified';
+
+    const saved = await userStore.updateProfile({
       fname: profile.fname,
       lname: profile.lname,
-      email: profile.email,
+      ...emailFields,
       home_address: profile.address || null,
       home_latitude: profile.latitude,
       home_longitude: profile.longitude,
     });
+
+    // Take the verified flag from the server. If a response ever omits it, an unchanged
+    // address keeps its state and a changed one is, by definition, not yet verified.
+    const savedProfile = (saved ?? {}) as ProfileData;
+    applySavedEmail(
+      {
+        email: savedProfile.email ?? profile.email,
+        email_verified: savedProfile.email_verified ?? (emailWasChanged ? false : wasVerified),
+      },
+      emailWasChanged,
+    );
 
     updateSuccess.value = true;
     setTimeout(() => {
       updateSuccess.value = false;
     }, 3000);
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to update profile';
+    // Wrong password / invalid email are shown at their own field; the rest in the banner.
+    const banner = explainEmailFailure(err);
+    error.value = banner || null;
     setTimeout(() => {
       error.value = null;
     }, 5000);

@@ -41,6 +41,12 @@ describe('describeEmailAuthError: any context', () => {
     expect(describeEmailAuthError(apiError(502, 'x'), 'sendVerification').kind).toBe('unavailable')
   })
 
+  it('does not call an ordinary error a network failure; it keeps its own message', () => {
+    const r = describeEmailAuthError(new Error('Failed to update profile'), 'profile')
+    expect(r.kind).toBe('unknown')
+    expect(r.message).toBe('Failed to update profile')
+  })
+
   it('handles a network failure (no status) and non-Error values', () => {
     expect(describeEmailAuthError(new TypeError('Failed to fetch'), 'verify').kind).toBe('network')
     expect(describeEmailAuthError('boom', 'verify').kind).toBe('unknown')

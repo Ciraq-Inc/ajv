@@ -65,9 +65,13 @@ export function describeEmailAuthError(err: unknown, context: EmailAuthContext):
   const serverMessage = e?.body?.message ?? e?.message
 
   if (status === undefined) {
-    // No HTTP status: the request never completed (offline, DNS, CORS, aborted).
-    if (err instanceof Error && err.name !== 'ApiError') {
+    // No HTTP status. fetch() rejects with a TypeError when the request never completed
+    // (offline, DNS, CORS); any other Error is the app's own and keeps its message.
+    if (err instanceof TypeError) {
       return { kind: 'network', message: 'We could not reach the server. Check your connection and try again.' }
+    }
+    if (err instanceof Error && err.message) {
+      return { kind: 'unknown', message: err.message }
     }
     return { kind: 'unknown', message: 'Something went wrong. Please try again.' }
   }
