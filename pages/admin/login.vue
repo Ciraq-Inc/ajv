@@ -192,6 +192,12 @@
             <input v-model="password" type="password" id="password"
               class="block w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
               placeholder="Enter your password" required :disabled="isLoading" />
+            <div class="mt-2 text-right">
+              <button type="button" @click="showResetForm" :disabled="isLoading"
+                class="text-sm font-medium text-[#5A2468] hover:underline disabled:opacity-50">
+                Forgot password?
+              </button>
+            </div>
           </div>
 
           <div class="mt-6">
