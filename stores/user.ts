@@ -333,6 +333,56 @@ export const useUserStore = defineStore('user', {
      * address is sent as typed; the server normalises it. Errors are rethrown as-is
      * so the caller can tell a refusal (401) from a lockout (429).
      */
+    async sendSignupEmailCode(email: string): Promise<unknown> {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const data = await this._customerAuthService().sendSignupEmailCode({
+          email: String(email ?? '').trim(),
+        });
+        if (!data.success) throw new Error(data.message ?? 'Could not send the code');
+        return data;
+      } catch (error: unknown) {
+        this.error = error instanceof Error ? error.message : 'Could not send the code';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async registerWithEmail(registrationData: {
+      fname: string;
+      lname: string;
+      email: string;
+      otp: string;
+      password: string;
+      company_id?: number | string;
+    }): Promise<unknown> {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const data = await this._customerAuthService().registerWithEmail({
+          companyId: registrationData.company_id ?? null,
+          fname: registrationData.fname,
+          lname: registrationData.lname,
+          email: String(registrationData.email ?? '').trim(),
+          otp: registrationData.otp,
+          password: registrationData.password,
+        });
+        if (!data.success) throw new Error(data.message ?? 'Registration failed');
+        this.applyCustomerAuthPayload(data.data as CustomerAuthPayload);
+
+        await this.loadUserStats();
+
+        return data.data;
+      } catch (error: unknown) {
+        this.error = error instanceof Error ? error.message : 'Registration failed';
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async loginWithEmail(email: string, password: string): Promise<unknown> {
       this.isLoading = true;
       this.error = null;

@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from 'pinia'
 
 const service = vi.hoisted(() => ({
   login: vi.fn(),
+  sendSignupEmailCode: vi.fn(),
+  registerWithEmail: vi.fn(),
   requestEmailReset: vi.fn(),
   resetPasswordWithEmailToken: vi.fn(),
   verifyEmail: vi.fn(),
@@ -201,5 +203,50 @@ describe('updateProfile with an email change', () => {
 
     await expect(store.updateProfile({ email: 'new@example.com', current_password: 'nope' })).rejects.toMatchObject({ status: 403 })
     expect(store.masterCustomer?.email).toBe('ama@example.com')
+  })
+})
+
+describe('email sign-up', () => {
+  it('asks for a sign-up code with the email trimmed', async () => {
+    service.sendSignupEmailCode.mockResolvedValue({ success: true })
+    const store = useUserStore()
+
+    await store.sendSignupEmailCode('  ama@example.com ')
+
+    expect(service.sendSignupEmailCode).toHaveBeenCalledWith({ email: 'ama@example.com' })
+    expect(store.isLoading).toBe(false)
+  })
+
+  it('rethrows the original error (with its status) when the code request is refused', async () => {
+    service.sendSignupEmailCode.mockRejectedValue(new FakeApiError('Slow down', 429))
+    const store = useUserStore()
+
+    await expect(store.sendSignupEmailCode('ama@example.com')).rejects.toMatchObject({ status: 429 })
+    expect(store.isLoading).toBe(false)
+  })
+
+  it('registers by email, signs the new customer in, and sends no phone', async () => {
+    const emailOnly = { ...session, master_customer: { ...session.master_customer, phone: null } }
+    service.registerWithEmail.mockResolvedValue({ success: true, data: emailOnly })
+    const store = useUserStore()
+    store.loadUserStats = vi.fn()
+
+    await store.registerWithEmail({ fname: 'Ama', lname: 'Mensah', email: ' ama@example.com ', otp: '123456', password: 'Pw-123456' })
+
+    expect(service.registerWithEmail).toHaveBeenCalledWith({
+      companyId: null, fname: 'Ama', lname: 'Mensah', email: 'ama@example.com', otp: '123456', password: 'Pw-123456',
+    })
+    expect(store.isLoggedIn).toBe(true)
+    expect(store.masterCustomer?.phone).toBeNull()
+    expect(store.loadUserStats).toHaveBeenCalled()
+  })
+
+  it('stays signed out and rethrows when registration is refused', async () => {
+    service.registerWithEmail.mockRejectedValue(new FakeApiError('Invalid code', 400))
+    const store = useUserStore()
+
+    await expect(store.registerWithEmail({ fname: 'A', lname: 'B', email: 'a@b.co', otp: '000000', password: 'Pw-123456' }))
+      .rejects.toMatchObject({ status: 400 })
+    expect(store.isLoggedIn).toBe(false)
   })
 })

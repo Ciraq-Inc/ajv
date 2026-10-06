@@ -180,6 +180,40 @@ describe('useEmailReset', () => {
   })
 })
 
+describe('useEmailReset used to request a sign-up code', () => {
+  const request = vi.fn()
+  beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('words a refusal for "a code was sent recently", not "that was requested recently"', async () => {
+    request.mockRejectedValue(apiError(429, 'slow', { retry_after_seconds: 42 }))
+    const code = useEmailReset({ request, context: 'signupCode' })
+    code.email.value = 'ama@example.com'
+    await code.send()
+
+    expect(code.errorMessage.value).toBe('A code was sent recently. Please wait 42 seconds and try again.')
+    expect(code.cooldown.value).toBe(42)
+  })
+
+  it('tells someone whose address already has an account to sign in', async () => {
+    request.mockRejectedValue(apiError(409, 'exists', { code: 'ALREADY_REGISTERED' }))
+    const code = useEmailReset({ request, context: 'signupCode' })
+    code.email.value = 'ama@example.com'
+    await code.send()
+
+    expect(code.errorMessage.value).toMatch(/already has an account/i)
+    expect(code.sent.value).toBe(false)
+  })
+
+  it('still words password-reset refusals the old way when no context is given', async () => {
+    request.mockRejectedValue(apiError(429, 'slow', { retry_after_seconds: 42 }))
+    const reset = useEmailReset({ request })
+    reset.email.value = 'ama@example.com'
+    await reset.send()
+    expect(reset.errorMessage.value).toBe('That was requested recently. Please wait 42 seconds and try again.')
+  })
+})
+
 describe('signInReady', () => {
   it('phone sign-in needs a phone number and a password of at least 6 characters (unchanged)', () => {
     expect(signInReady('phone', { phone: '241234567', email: '', password: 'abcdef' })).toBe(true)

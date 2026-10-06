@@ -61,3 +61,25 @@ describe('customer auth service: email', () => {
     expect(api.put).toHaveBeenCalledWith('/api/auth/customer/profile', { email: 'new@example.com', current_password: 'pw-123456' })
   })
 })
+
+describe('customer auth service: email sign-up', () => {
+  it('asks for a sign-up code by email', async () => {
+    const { api, service } = make()
+    await service.sendSignupEmailCode({ email: 'ama@example.com' })
+    expect(api.post).toHaveBeenCalledWith('/api/auth/customer/email/send-signup-code', { email: 'ama@example.com' })
+  })
+
+  it('registers with an email and code and sends no phone field at all', async () => {
+    const { api, service } = make()
+    await service.registerWithEmail({ fname: 'Ama', lname: 'Mensah', email: 'ama@example.com', otp: '123456', password: 'Pw-123456' })
+    const [path, body] = api.post.mock.calls[0]
+    expect(path).toBe('/api/auth/customer/register')
+    expect(body).toStrictEqual({ fname: 'Ama', lname: 'Mensah', email: 'ama@example.com', otp: '123456', password: 'Pw-123456' })
+  })
+
+  it('links the new account to a company when one is given', async () => {
+    const { api, service } = make()
+    await service.registerWithEmail({ companyId: 5, fname: 'A', lname: 'B', email: 'a@b.co', otp: '123456', password: 'Pw-123456' })
+    expect(api.post.mock.calls[0][1]).toMatchObject({ company_id: 5 })
+  })
+})

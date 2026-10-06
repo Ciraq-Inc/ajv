@@ -637,9 +637,42 @@
           <!-- ══════════════════════════════════════════════════════════════ -->
           <div v-else-if="view === 'signup'">
 
-            <!-- Step 1: Phone + send OTP -->
-            <div v-if="!signupOtpSent">
-              <div class="mb-5">
+            <!-- Step 1: phone or email, then send a code -->
+            <form v-if="!signupOtpSent" @submit.prevent="continueSignup" novalidate>
+              <!-- Phone / Email switch -->
+              <div class="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-[#f5eeff] p-1" role="group" aria-label="Sign up with">
+                <button
+                  type="button"
+                  :aria-pressed="signupMethod === 'phone'"
+                  @click="chooseSignupMethod('phone')"
+                  class="rounded-xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                  :class="signupMethod === 'phone' ? 'bg-white text-[#520094] shadow-sm' : 'text-[#7d7484] hover:text-[#520094]'"
+                >
+                  Phone
+                </button>
+                <button
+                  type="button"
+                  :aria-pressed="signupMethod === 'email'"
+                  @click="chooseSignupMethod('email')"
+                  class="rounded-xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/40"
+                  :class="signupMethod === 'email' ? 'bg-white text-[#520094] shadow-sm' : 'text-[#7d7484] hover:text-[#520094]'"
+                >
+                  Email
+                </button>
+              </div>
+
+              <!-- Why we switched them to email (screen readers hear it too) -->
+              <p
+                v-if="signupSwitchNote"
+                class="mb-4 flex items-start gap-2 rounded-xl border border-[#e4d0f8] bg-[#f5eeff] px-3.5 py-2.5 text-xs leading-relaxed text-[#4c4453]"
+                role="status"
+              >
+                <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-[#520094]" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                {{ signupSwitchNote }}
+              </p>
+
+              <!-- Phone -->
+              <div v-if="signupMethod === 'phone'" class="mb-5">
                 <label for="signupPhone" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Phone number</label>
                 <div class="flex rounded-2xl border border-[#ddd0eb] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus-within:border-[#520094]/50 focus-within:ring-2 focus-within:ring-[#520094]/15 transition-shadow">
                   <select
@@ -648,9 +681,7 @@
                     aria-label="Country code"
                   >
                     <option value="GH">🇬🇭 +233</option>
-                    <!-- US disabled — Termii not activated for +1 on this account -->
-                    <!-- <option value="US">🇺🇸 +1</option> -->
-                    <option value="GB">🇬🇧 +44</option>
+                    <option :value="COUNTRY_OTHER">🌍 Other country</option>
                   </select>
                   <div class="w-px self-stretch bg-[#e8def8] my-2"></div>
                   <input
@@ -660,6 +691,7 @@
                     class="min-w-0 flex-1 rounded-r-2xl border-0 bg-transparent px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none"
                     placeholder="24 123 4567"
                     autocomplete="tel-national"
+                    aria-describedby="signupPhoneHelp"
                     @input="validatePhoneNumber"
                   >
                 </div>
@@ -667,9 +699,46 @@
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ phoneNumberError }}
                 </p>
+                <p id="signupPhoneHelp" class="mt-1.5 text-xs text-[#7d7484]">
+                  We text a code to Ghana numbers.
+                  <button
+                    type="button"
+                    @click="chooseSignupMethod('email')"
+                    class="font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
+                  >
+                    No Ghana number? Use email
+                  </button>
+                </p>
               </div>
 
-              <!-- SMS consent checkbox -->
+              <!-- Email -->
+              <div v-else class="mb-5">
+                <label for="signupEmail" class="mb-1.5 block text-sm font-semibold text-[#1e1a22]">Email address</label>
+                <input
+                  v-model="signupEmail"
+                  ref="signupEmailInput"
+                  type="email"
+                  id="signupEmail"
+                  inputmode="email"
+                  autocomplete="email"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  class="w-full rounded-2xl border border-[#ddd0eb] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#a090b0] shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
+                  placeholder="you@example.com"
+                  aria-describedby="signupEmailHelp"
+                  :aria-invalid="signupEmailError ? 'true' : 'false'"
+                  @input="signupEmailError = ''"
+                >
+                <p v-if="signupEmailError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                  <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                  {{ signupEmailError }}
+                </p>
+                <p id="signupEmailHelp" class="mt-1.5 text-xs text-[#7d7484]">
+                  We'll email you a 6-digit code. Works from anywhere.
+                </p>
+              </div>
+
+              <!-- Consent -->
               <label class="mb-4 flex items-start gap-2.5 cursor-pointer select-none">
                 <input
                   id="su-sms-consent"
@@ -679,14 +748,16 @@
                   required
                 >
                 <span class="text-xs text-[#4c4453] leading-relaxed">
-                  I agree to receive order updates and SMS notifications from MedsGH <span class="text-red-500">*</span>
+                  {{ signupMethod === 'email'
+                    ? 'I agree to receive order updates and notifications from MedsGH by email'
+                    : 'I agree to receive order updates and SMS notifications from MedsGH' }}
+                  <span class="text-red-500">*</span>
                 </span>
               </label>
 
               <button
-                type="button"
-                :disabled="isLoading || !phoneNumber || !!phoneNumberError || !smsConsent"
-                @click="sendSignupOTP"
+                type="submit"
+                :disabled="!signupStep1Ready"
                 class="w-full rounded-2xl bg-[#520094] px-4 py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(82,0,148,0.55)] transition hover:bg-[#6c24b3] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/60 focus-visible:ring-offset-2"
               >
                 <span v-if="isLoading" class="flex items-center justify-center gap-2">
@@ -696,9 +767,10 @@
                   </svg>
                   Sending code…
                 </span>
+                <span v-else-if="signupMethod === 'email' && signupEmailWaitsForOtherAddress">Wait {{ signupEmailCooldown }}s to send again</span>
                 <span v-else>Send verification code</span>
               </button>
-            </div>
+            </form>
 
             <!-- Step 2: Details + submit -->
             <form v-else @submit.prevent="submitSignup" class="space-y-4" novalidate>
@@ -706,11 +778,11 @@
               <div class="flex items-center justify-between rounded-2xl bg-[#f5eeff] border border-[#e4d0f8] px-4 py-3">
                 <div class="flex items-center gap-2 text-xs text-[#4c4453]">
                   <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-                  Code sent to <strong class="text-[#1e1a22] ml-0.5">{{ formattedPhoneNumber }}</strong>
+                  Code sent to <strong class="text-[#1e1a22] ml-0.5 break-all">{{ signupMethod === 'email' ? signupEmailSentTo : formattedPhoneNumber }}</strong>
                 </div>
                 <button
                   type="button"
-                  @click="signupOtpSent = false; otp = ''; otpDigits.fill('')"
+                  @click="changeSignupContact"
                   class="text-xs font-semibold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
                 >
                   Change
@@ -733,8 +805,8 @@
                 </div>
               </div>
 
-              <!-- Email -->
-              <div>
+              <!-- Email (optional extra for phone sign-ups; the email IS the account for email sign-ups) -->
+              <div v-if="signupMethod === 'phone'">
                 <label for="su-email" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">Email <span class="font-normal text-[#7d7484]">(optional)</span></label>
                 <input v-model="email" type="email" id="su-email"
                   class="w-full rounded-xl border border-[#ddd0eb] bg-white px-3 py-2.5 text-sm text-[#1e1a22] placeholder-[#a090b0] focus:outline-none focus:border-[#520094]/50 focus:ring-2 focus:ring-[#520094]/15 transition-shadow"
@@ -762,13 +834,16 @@
                     autocomplete="one-time-code"
                   >
                 </div>
+                <p v-if="signupMethod === 'email'" class="mt-2 text-xs text-[#7d7484]">
+                  Can't find it? Check your spam folder.
+                </p>
                 <button
                   type="button"
-                  @click="sendSignupOTP"
-                  :disabled="isLoading"
+                  @click="resendSignupCode"
+                  :disabled="isLoading || (signupMethod === 'email' && signupEmailCooldown > 0)"
                   class="mt-2 text-xs font-semibold text-[#520094] hover:text-[#6c24b3] disabled:opacity-50 focus:outline-none focus-visible:underline"
                 >
-                  Resend code
+                  {{ signupMethod === 'email' && signupEmailCooldown > 0 ? `Resend code in ${signupEmailCooldown}s` : 'Resend code' }}
                 </button>
               </div>
 
@@ -864,7 +939,7 @@
               Already have an account?
               <button
                 type="button"
-                @click="goToLogin"
+                @click="signInInstead"
                 class="font-bold text-[#520094] hover:text-[#6c24b3] focus:outline-none focus-visible:underline"
               >
                 Sign in
@@ -887,6 +962,8 @@ import { useModalA11y } from '~/composables/useModalA11y';
 import { useEmailSignIn, useEmailReset, signInReady } from '~/composables/useEmailSignIn';
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 import phoneUtils from '~/utils/phone';
+import { describeEmailAuthError } from '~/utils/emailAuthMessages';
+import { COUNTRY_OTHER, suggestEmailInstead, type EmailSuggestion } from '~/utils/signupContact';
 
 type LoginStep = 'signin' | 'reset';
 type LoginMode = 'login' | 'verify' | 'register';
@@ -917,6 +994,15 @@ interface UserStoreShape {
   resetPassword: (phone: string, otp: string, password: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<unknown>;
   requestEmailReset: (email: string) => Promise<unknown>;
+  sendSignupEmailCode: (email: string) => Promise<unknown>;
+  registerWithEmail: (payload: {
+    company_id?: unknown;
+    fname: string;
+    lname: string;
+    email: string;
+    otp: string;
+    password: string;
+  }) => Promise<unknown>;
 }
 
 // TODO: remove once stores/ are .ts
@@ -986,6 +1072,24 @@ const {
   send: sendResetLink,
   startOver: resetEmailStartOver,
 } = useEmailReset({ request: (e) => userStore.requestEmailReset(e) });
+
+// Sign-up takes a phone OR an email. SMS codes only reach Ghana numbers, so anyone
+// without one is steered to email (see utils/signupContact.ts). The emailed code uses the
+// same request/cooldown machinery as the reset link.
+const signupMethod = ref<ContactMethod>('phone');
+const signupSwitchNote = ref<string>('');
+const signupEmailInput = ref<HTMLInputElement | null>(null);
+const {
+  email: signupEmail,
+  emailError: signupEmailError,
+  errorMessage: signupEmailMessage,
+  busy: signupEmailBusy,
+  sent: signupEmailSent,
+  sentTo: signupEmailSentTo,
+  cooldown: signupEmailCooldown,
+  send: sendSignupEmail,
+  startOver: signupEmailStartOver,
+} = useEmailReset({ request: (e) => userStore.sendSignupEmailCode(e), context: 'signupCode' });
 
 // OTP digit boxes — 6 individual single-char slots kept in sync with otp ref
 const otpDigits = ref<string[]>(['', '', '', '', '', '']);
@@ -1058,7 +1162,9 @@ const stepSubtitle = computed<string>(() => {
         ? `Fill in your details and join ${registrationCompany.value}.`
         : 'Fill in a few details and you\'re in.';
     }
-    return 'Enter your number and we\'ll send a verification code.';
+    return signupMethod.value === 'email'
+      ? 'Enter your email and we\'ll send a verification code.'
+      : 'Enter your Ghana number and we\'ll text you a verification code.';
   }
   if (currentStep.value === 'reset') {
     return resetMethod.value === 'email'
@@ -1113,6 +1219,19 @@ const canSignupSubmit = computed<boolean>(() =>
   isOver18.value &&
   smsConsent.value
 );
+
+// A second address cannot be asked for while the first one's cooldown runs.
+const signupEmailWaitsForOtherAddress = computed<boolean>(() =>
+  signupEmailCooldown.value > 0 && signupEmail.value.trim() !== signupEmailSentTo.value
+);
+
+const signupStep1Ready = computed<boolean>(() => {
+  if (isLoading.value || !smsConsent.value) return false;
+  if (signupMethod.value === 'email') {
+    return !signupEmailBusy.value && signupEmail.value.trim().length > 0 && !signupEmailWaitsForOtherAddress.value;
+  }
+  return Boolean(phoneNumber.value) && !phoneNumberError.value;
+});
 
 const resolveCurrentPharmacyId = (): unknown => {
   if (pharmacyStore.currentPharmacy) {
@@ -1173,7 +1292,16 @@ const onPhoneInput = (): void => {
 
 // ── View navigation ──────────────────────────────────────────────────────────
 
+const resetSignupContact = (): void => {
+  signupMethod.value = 'phone';
+  signupSwitchNote.value = '';
+  signupEmail.value = '';
+  signupEmailError.value = '';
+  signupEmailStartOver();
+};
+
 const resetSharedFields = (): void => {
+  resetSignupContact();
   phoneNumber.value = '';
   selectedCountry.value = 'GH';
   password.value = '';
@@ -1206,6 +1334,95 @@ const goToLogin = (): void => {
 
 // ── Signup flow ──────────────────────────────────────────────────────────────
 
+const focusSignupEmail = (): void => {
+  nextTick(() => signupEmailInput.value?.focus());
+};
+
+const switchSignupToEmail = (suggestion: EmailSuggestion): void => {
+  signupMethod.value = 'email';
+  signupSwitchNote.value = suggestion.note;
+  if (suggestion.carry) signupEmail.value = suggestion.carry;
+  // The number belonged to the phone form; leave it clean so switching back starts fresh.
+  phoneNumber.value = '';
+  selectedCountry.value = 'GH';
+  phoneNumberError.value = '';
+  errorMessage.value = '';
+  focusSignupEmail();
+};
+
+const chooseSignupMethod = (method: ContactMethod): void => {
+  if (signupMethod.value === method) return;
+  signupMethod.value = method;
+  signupSwitchNote.value = '';
+  signupEmailError.value = '';
+  phoneNumberError.value = '';
+  errorMessage.value = '';
+  if (method === 'email') focusSignupEmail();
+};
+
+// Move to email on their own the moment the phone box cannot lead to a Ghana number.
+watch([phoneNumber, selectedCountry], () => {
+  if (view.value !== 'signup' || signupMethod.value !== 'phone' || signupOtpSent.value) return;
+  const suggestion = suggestEmailInstead({ typed: phoneNumber.value, country: selectedCountry.value });
+  if (suggestion) switchSignupToEmail(suggestion);
+});
+
+const continueSignup = (): Promise<void> =>
+  signupMethod.value === 'email' ? requestSignupEmailCode() : sendSignupOTP();
+
+const requestSignupEmailCode = async (): Promise<void> => {
+  errorMessage.value = '';
+  const address = signupEmail.value.trim();
+  // Already sent to this address (they pressed Change by mistake): that code still works.
+  if (signupEmailSent.value && address === signupEmailSentTo.value) {
+    signupOtpSent.value = true;
+    return;
+  }
+  isLoading.value = true;
+  try {
+    await sendSignupEmail();
+  } finally {
+    isLoading.value = false;
+  }
+  if (signupEmailSent.value && signupEmailSentTo.value === address) {
+    signupOtpSent.value = true;
+    clearOtp();
+  } else {
+    errorMessage.value = signupEmailMessage.value;
+  }
+};
+
+const resendSignupCode = async (): Promise<void> => {
+  if (signupMethod.value !== 'email') return sendSignupOTP();
+  errorMessage.value = '';
+  isLoading.value = true;
+  try {
+    await sendSignupEmail();
+  } finally {
+    isLoading.value = false;
+  }
+  if (signupEmailMessage.value) errorMessage.value = signupEmailMessage.value;
+  else clearOtp();
+};
+
+const changeSignupContact = (): void => {
+  signupOtpSent.value = false;
+  clearOtp();
+  errorMessage.value = '';
+};
+
+// "Already have an account? Sign in": bring the email they typed along.
+const signInInstead = (): void => {
+  const carried = signupMethod.value === 'email'
+    ? (signupEmailSentTo.value || signupEmail.value).trim()
+    : '';
+  goToLogin();
+  if (carried) {
+    switchToEmailSignIn();
+    loginEmail.value = carried;
+  }
+};
+
 const sendSignupOTP = async (): Promise<void> => {
   if (!validatePhoneNumber()) return;
   errorMessage.value = '';
@@ -1231,6 +1448,31 @@ const submitSignup = async (): Promise<void> => {
   }
   errorMessage.value = '';
   isLoading.value = true;
+  if (signupMethod.value === 'email') {
+    try {
+      await userStore.registerWithEmail({
+        company_id: resolveCurrentPharmacyId() ?? undefined,
+        fname: firstName.value,
+        lname: lastName.value,
+        email: signupEmailSentTo.value,
+        otp: otp.value,
+        password: password.value,
+      });
+      emit('login-success', { destination: 'new', action: 'register' });
+      closeModal();
+    } catch (err) {
+      const described = describeEmailAuthError(err, 'signup');
+      errorMessage.value = described.message;
+      if (described.kind === 'code_locked') {
+        // The code is destroyed after too many guesses; start the boxes over.
+        clearOtp();
+        nextTick(() => otpRefs.value[0]?.focus());
+      }
+    } finally {
+      isLoading.value = false;
+    }
+    return;
+  }
   try {
     await userStore.register({
       company_id: resolveCurrentPharmacyId() ?? undefined,
@@ -1506,6 +1748,7 @@ const closeModal = (): void => {
     currentStep.value = 'signin';
     mode.value = 'login';
     signupOtpSent.value = false;
+    resetSignupContact();
     phoneNumber.value = '';
     signInMethod.value = 'phone';
     loginEmail.value = '';

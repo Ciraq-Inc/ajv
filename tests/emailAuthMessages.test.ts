@@ -115,3 +115,58 @@ describe('describeEmailAuthError: profile email change', () => {
     expect(r.kind).toBe('rate_limited')
   })
 })
+
+describe('describeEmailAuthError: asking for a sign-up code', () => {
+  it('says a code was sent recently, with the wait', () => {
+    const r = describeEmailAuthError(apiError(429, 'x', { retry_after_seconds: 41 }), 'signupCode')
+    expect(r.kind).toBe('rate_limited')
+    expect(r.retryAfterSeconds).toBe(41)
+    expect(r.message).toBe('A code was sent recently. Please wait 41 seconds and try again.')
+  })
+
+  it('shows the server wording for an address it will not accept', () => {
+    const r = describeEmailAuthError(apiError(400, 'Please enter a valid email address.', { field: 'email' }), 'signupCode')
+    expect(r).toMatchObject({ kind: 'invalid_email', field: 'email', message: 'Please enter a valid email address.' })
+  })
+
+  it('treats an email outage like any other', () => {
+    expect(describeEmailAuthError(apiError(503, 'x'), 'signupCode').kind).toBe('unavailable')
+  })
+})
+
+describe('describeEmailAuthError: finishing sign-up with the code', () => {
+  it('an address that already has an account points to sign in', () => {
+    const r = describeEmailAuthError(apiError(409, 'This email address is already registered. Please sign in instead.', { field: 'email' }), 'signup')
+    expect(r.kind).toBe('email_taken')
+    expect(r.message).toMatch(/already has an account/i)
+    expect(r.message).toMatch(/sign in/i)
+  })
+
+  it('a locked code says to ask for a new one, not to wait', () => {
+    const r = describeEmailAuthError(apiError(429, 'Too many incorrect attempts. Please request a new code.'), 'signup')
+    expect(r.kind).toBe('code_locked')
+    expect(r.message).toMatch(/new code/i)
+    expect(r.message).not.toMatch(/wait/i)
+  })
+
+  it('a wrong or expired code shows the server wording', () => {
+    expect(describeEmailAuthError(apiError(400, 'Invalid code'), 'signup'))
+      .toMatchObject({ kind: 'rejected', message: 'Invalid code' })
+    expect(describeEmailAuthError(apiError(400, 'Code not found or expired. Please request a new code.'), 'signup').message)
+      .toBe('Code not found or expired. Please request a new code.')
+  })
+
+  it('a weak password shows the server wording', () => {
+    const r = describeEmailAuthError(apiError(400, 'Password must be at least 10 characters.'), 'signup')
+    expect(r.message).toBe('Password must be at least 10 characters.')
+  })
+
+  it('a bad email goes to the email field', () => {
+    const r = describeEmailAuthError(apiError(400, 'Please enter a valid email address.', { field: 'email' }), 'signup')
+    expect(r).toMatchObject({ kind: 'invalid_email', field: 'email' })
+  })
+
+  it('a network failure is a network failure', () => {
+    expect(describeEmailAuthError(new TypeError('Failed to fetch'), 'signup').kind).toBe('network')
+  })
+})

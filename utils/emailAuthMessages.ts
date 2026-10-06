@@ -18,6 +18,8 @@ export type EmailAuthContext =
   | 'requestReset'
   | 'emailLogin'
   | 'profile'
+  | 'signupCode' // asking for the emailed sign-up code
+  | 'signup' // finishing sign-up with that code
 
 export type EmailAuthErrorKind =
   | 'rate_limited'
@@ -30,6 +32,7 @@ export type EmailAuthErrorKind =
   | 'wrong_password'
   | 'password_required'
   | 'invalid_email'
+  | 'code_locked'
   | 'unknown'
 
 export interface EmailAuthError {
@@ -76,12 +79,20 @@ export function describeEmailAuthError(err: unknown, context: EmailAuthContext):
     return { kind: 'unknown', message: 'Something went wrong. Please try again.' }
   }
 
+  // Too many wrong guesses at the sign-up code: the code is destroyed, so waiting helps
+  // nobody. They need a new one.
+  if (status === 429 && context === 'signup') {
+    return { kind: 'code_locked', message: 'Too many incorrect attempts. Request a new code to continue.' }
+  }
+
   if (status === 429) {
     const retryAfterSeconds = e?.body?.retry_after_seconds
     const wait = formatWait(retryAfterSeconds)
     const base = context === 'emailLogin' || context === 'profile'
       ? 'Too many attempts.'
-      : 'That was requested recently.'
+      : context === 'signupCode'
+        ? 'A code was sent recently.'
+        : 'That was requested recently.'
     return {
       kind: 'rate_limited',
       message: `${base} Please wait ${wait} and try again.`,
@@ -108,6 +119,19 @@ export function describeEmailAuthError(err: unknown, context: EmailAuthContext):
     }
     if (status === 400) {
       return { kind: 'rejected', message: serverMessage ?? 'That password was not accepted. Please choose another.' }
+    }
+  }
+
+  if (context === 'signupCode' || context === 'signup') {
+    if (status === 409 || code === 'ALREADY_REGISTERED') {
+      return { kind: 'email_taken', field: 'email', message: 'This email already has an account. Sign in instead.' }
+    }
+    if (status === 400 && field === 'email') {
+      return { kind: 'invalid_email', field: 'email', message: serverMessage ?? 'Enter a valid email address.' }
+    }
+    // A wrong or expired code, or a password the policy refused: the server's own words.
+    if (status === 400) {
+      return { kind: 'rejected', message: serverMessage ?? 'That did not work. Please check it and try again.' }
     }
   }
 

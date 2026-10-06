@@ -8,7 +8,7 @@
 // Dependencies are injected (the store actions), so nothing here touches Pinia or HTTP.
 
 import { onScopeDispose, getCurrentScope, ref } from 'vue'
-import { describeEmailAuthError } from '~/utils/emailAuthMessages'
+import { describeEmailAuthError, type EmailAuthContext } from '~/utils/emailAuthMessages'
 
 // A convenience check, not a validator: the server decides what is acceptable.
 const PLAUSIBLE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -70,7 +70,13 @@ export function useEmailReset(deps: {
   request: (email: string) => Promise<unknown>
   /** Matches the server's per-address cooldown. */
   cooldownSeconds?: number
+  /**
+   * What is being requested, for wording the refusals: a password-reset link (default) or
+   * the emailed sign-up code. The cooldown, resend and start-over behaviour is identical.
+   */
+  context?: Extract<EmailAuthContext, 'requestReset' | 'signupCode'>
 }) {
+  const context = deps.context ?? 'requestReset'
   const defaultCooldown = deps.cooldownSeconds ?? 60
 
   const email = ref('')
@@ -121,7 +127,7 @@ export function useEmailReset(deps: {
       sentTo.value = address
       startCooldown(defaultCooldown)
     } catch (error: unknown) {
-      const described = describeEmailAuthError(error, 'requestReset')
+      const described = describeEmailAuthError(error, context)
       errorMessage.value = described.message
       if (described.kind === 'rate_limited') startCooldown(described.retryAfterSeconds ?? defaultCooldown)
     } finally {

@@ -42,6 +42,16 @@ export interface RegisterParams {
   otp?: string;
 }
 
+// Sign-up with an email address instead of a phone: no phone field exists on the wire.
+export interface RegisterWithEmailParams {
+  companyId?: number | string | null;
+  fname: string;
+  lname: string;
+  email: string;
+  otp: string;
+  password: string;
+}
+
 // Exactly one of `phone` / `email` identifies who is signing in (the API rejects both).
 export interface LoginParams {
   phone?: string;
@@ -132,6 +142,26 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
    */
   register({ companyId, fname, lname, phone, password, email, otp }: RegisterParams): Promise<ApiEnvelope<AuthPayload>> {
     const body: Record<string, unknown> = { fname, lname, phone, password, email, otp };
+    if (companyId !== undefined && companyId !== null) {
+      body['company_id'] = companyId;
+    }
+    return api.post('/api/auth/customer/register', body);
+  },
+
+  /**
+   * Email a sign-up code to an address (the route for people without a Ghana number).
+   * POST /api/auth/customer/email/send-signup-code
+   */
+  sendSignupEmailCode({ email }: { email: string }): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/email/send-signup-code', { email });
+  },
+
+  /**
+   * Register with an email address and the code that was emailed to it. No phone is sent.
+   * POST /api/auth/customer/register
+   */
+  registerWithEmail({ companyId, fname, lname, email, otp, password }: RegisterWithEmailParams): Promise<ApiEnvelope<AuthPayload>> {
+    const body: Record<string, unknown> = { fname, lname, email, otp, password };
     if (companyId !== undefined && companyId !== null) {
       body['company_id'] = companyId;
     }
