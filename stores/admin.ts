@@ -15,6 +15,7 @@ import { createAdminService } from '~/services/admin/adminService';
 import { createWebAuthnService } from '~/services/admin/webAuthnService';
 import { createWebAuthnRegistrationService } from '~/services/admin/webAuthnRegistrationService';
 import type { AdminProfile } from '~/services/types';
+import { describeEmailAuthError } from '~/utils/emailAuthMessages';
 
 // ---------------------------------------------------------------------------
 // Domain types
@@ -68,6 +69,8 @@ export interface LoginFailure {
   success: false;
   mfaRequired?: false;
   message: string;
+  /** Machine-readable cause for reset flows (see utils/emailAuthMessages). */
+  kind?: string;
 }
 
 export type LoginResult = LoginSuccess | LoginMfaChallenge | LoginFailure;
@@ -394,7 +397,12 @@ export const useAdminStore = defineStore('admin', {
         }
       } catch (error: unknown) {
         console.error('Password reset request error:', error);
-        return { success: false as const, message: 'Failed to send reset instructions. Please try again.' };
+        const described = describeEmailAuthError(error, 'requestReset');
+        return {
+          success: false as const,
+          message: described.kind === 'unknown' ? 'Failed to send reset instructions. Please try again.' : described.message,
+          kind: described.kind,
+        };
       }
     },
 
@@ -409,7 +417,12 @@ export const useAdminStore = defineStore('admin', {
         }
       } catch (error: unknown) {
         console.error('Password reset error:', error);
-        return { success: false as const, message: 'Failed to reset password. Please try again.' };
+        const described = describeEmailAuthError(error, 'reset');
+        return {
+          success: false as const,
+          message: described.kind === 'unknown' ? 'Failed to reset password. Please try again.' : described.message,
+          kind: described.kind,
+        };
       }
     },
 
