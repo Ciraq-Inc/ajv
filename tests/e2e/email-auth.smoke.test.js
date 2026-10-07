@@ -332,6 +332,30 @@ test.describe('sign-up, sign-in and reset from one box', () => {
     await expect(page.getByRole('status')).toContainText(/only reach Ghana numbers/i);
     await expect(page.getByRole('button', { name: 'Send reset code' })).toBeDisabled();
   });
+
+  test.describe('the agreement under "Send code"', () => {
+    const agreement = (page) => form(page).getByText(/By continuing/);
+
+    test('links only to pages that exist, and the Privacy Policy opens', async ({ page, request }) => {
+      await page.goto('/');
+      await expect(agreement(page)).toBeVisible();
+      const hrefs = await agreement(page).locator('a').evaluateAll((links) => links.map((a) => a.getAttribute('href')));
+
+      expect(hrefs).toEqual(['/privacy']);
+      expect((await request.get('/privacy')).status()).toBe(200);
+    });
+
+    test('names the channel the order updates will come by', async ({ page }) => {
+      await page.goto('/');
+      await expect(agreement(page)).toContainText('order updates');
+
+      await box(page).fill('ama@example.com');
+      await expect(agreement(page)).toContainText('order updates by email');
+
+      await box(page).fill('024 123 4567');
+      await expect(agreement(page)).toContainText('order updates by text');
+    });
+  });
 });
 
 test.describe('request form for an email-only customer', () => {

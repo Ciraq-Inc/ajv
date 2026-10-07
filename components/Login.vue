@@ -620,10 +620,9 @@
               </button>
 
               <p class="mt-3 text-center text-xs leading-relaxed text-[#7d7484]">
-                By continuing you agree to the
-                <a href="/terms" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-[#520094]">Terms</a>,
+                By continuing you agree to our
                 <a href="/privacy" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-[#520094]">Privacy Policy</a>
-                and to receive order updates, and confirm you are 18 or older.
+                and to receive order updates{{ signupUpdatesChannel }}, and confirm you are 18 or older.
               </p>
             </form>
 
@@ -843,7 +842,6 @@ const lastName = ref<string>('');
 const email = ref<string>('');
 const gender = ref<string>('');
 const isOver18 = ref<boolean>(false);
-const smsConsent = ref<boolean>(false);
 const otpSent = ref<boolean>(false);
 const signupOtpSent = ref<boolean>(false);
 const isLoading = ref<boolean>(false);
@@ -882,6 +880,13 @@ const {
 
 // The emailed sign-up code uses the same request/cooldown machinery as the reset link.
 const signupMethod = computed<ContactMethod>(methodOf);
+// Names where order updates will arrive once we know: a Ghana number gets texts, an email gets emails.
+const signupUpdatesChannel = computed(() => {
+  const kind = identifierKind.value;
+  if (kind === 'email') return ' by email';
+  if (kind === 'ghana_phone') return ' by text';
+  return '';
+});
 const {
   email: signupEmail,
   emailError: signupEmailError,
@@ -1114,7 +1119,6 @@ const onIdentifierInput = (): void => {
     lastName.value = '';
     email.value = '';
     isOver18.value = false;
-    smsConsent.value = false;
     errorMessage.value = '';
   }
 };
@@ -1519,7 +1523,6 @@ const closeModal = (): void => {
     email.value = '';
     gender.value = '';
     isOver18.value = false;
-    smsConsent.value = false;
     otpSent.value = false;
     errorMessage.value = '';
     phoneNumberError.value = '';
