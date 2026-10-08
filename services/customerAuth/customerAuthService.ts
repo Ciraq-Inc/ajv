@@ -301,6 +301,22 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
+   * Which channels this customer can be reached on, and what they have switched on.
+   * GET /api/auth/customer/notification-preferences
+   */
+  getNotificationPreferences(): Promise<ApiEnvelope<NotificationPreferences>> {
+    return api.get('/api/auth/customer/notification-preferences');
+  },
+
+  /**
+   * Change some channels; categories not mentioned are left alone.
+   * PUT /api/auth/customer/notification-preferences
+   */
+  updateNotificationPreferences(categories: NotificationPreferenceChanges): Promise<ApiEnvelope<NotificationPreferences>> {
+    return api.put('/api/auth/customer/notification-preferences', { categories });
+  },
+
+  /**
    * Autocomplete address suggestions for the saved-location flow.
    * GET /api/auth/customer/autocomplete-location?q=&limit=
    */
@@ -363,6 +379,24 @@ export interface VerificationOptions {
   available: boolean;
   phone_hint?: string | null;
 }
+
+export type NotificationChannel = 'sms' | 'email';
+export type NotificationCategoryKey = 'security' | 'action_required' | 'outcome' | 'order_progress' | 'marketing';
+export type NotificationCategoryMode = 'locked' | 'minimum_one' | 'optional' | 'opt_in';
+
+export interface NotificationCategory {
+  mode: NotificationCategoryMode;
+  sms: boolean;
+  email: boolean;
+}
+
+export interface NotificationPreferences {
+  channels: Record<NotificationChannel, { reachable: boolean }>;
+  categories: Record<NotificationCategoryKey, NotificationCategory>;
+}
+
+/** Only the channels being changed, per category. */
+export type NotificationPreferenceChanges = Partial<Record<NotificationCategoryKey, Partial<Record<NotificationChannel, boolean>>>>;
 
 export interface ConfirmVerificationOtpParams {
   challengeId: string;

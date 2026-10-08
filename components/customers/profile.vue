@@ -186,6 +186,9 @@
           </div>
         </section>
 
+        <!-- Notifications -->
+        <NotificationPreferences />
+
         <!-- Delivery address -->
         <section id="profile-address" aria-labelledby="sec-address" class="scroll-mt-6 border-t border-ink-100 pt-10">
           <div>
@@ -488,6 +491,7 @@ import { createCustomerAuthService } from '~/services/customerAuth/customerAuthS
 import type { ProfessionalProfile, VerificationOptions } from '~/services/customerAuth/customerAuthService'
 import { useApi } from '~/composables/useApi'
 import { useProfileEmail } from '~/composables/useProfileEmail'
+import NotificationPreferences from '~/components/customers/notificationPreferences.vue'
 import phoneUtils from '~/utils/phone'
 
 interface AddressSuggestion {

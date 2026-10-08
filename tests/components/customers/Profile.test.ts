@@ -16,6 +16,8 @@ const authService = vi.hoisted(() => ({
   applyForProfessional: vi.fn(),
   sendProfessionalVerificationOtp: vi.fn(),
   confirmProfessionalVerificationOtp: vi.fn(),
+  getNotificationPreferences: vi.fn().mockResolvedValue({ success: true, data: { channels: { sms: { reachable: true }, email: { reachable: true } }, categories: {} } }),
+  updateNotificationPreferences: vi.fn(),
 }))
 vi.mock('~/stores/user', () => ({ useUserStore: () => user }))
 vi.mock('~/services/customerAuth/customerAuthService', () => ({ createCustomerAuthService: () => authService }))

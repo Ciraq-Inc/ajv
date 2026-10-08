@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "data": {
+    "channels": {
+      "sms": { "reachable": true },
+      "email": { "reachable": true }
+    },
+    "categories": {
+      "security": { "mode": "locked", "sms": true, "email": true },
+      "action_required": { "mode": "minimum_one", "sms": true, "email": true },
+      "outcome": { "mode": "minimum_one", "sms": true, "email": true },
+      "order_progress": { "mode": "optional", "sms": true, "email": true },
+      "marketing": { "mode": "opt_in", "sms": false, "email": false }
+    }
+  }
+}
