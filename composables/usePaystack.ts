@@ -39,12 +39,6 @@ interface PaystackPop {
   setup: (options: PaystackSetupOptions) => PaystackHandler
 }
 
-interface VerifyResult {
-  status: 'success' | 'error'
-  data?: unknown
-  message?: string
-}
-
 export const usePaystack = () => {
   const config = useRuntimeConfig()
 
@@ -111,47 +105,7 @@ export const usePaystack = () => {
     }
   }
 
-  /**
-   * Verify payment status (client-side verification)
-   * Note: this calls the Paystack API directly using the secret key exposed
-   * via runtimeConfig.public — this is intentional per the existing JS code
-   * and noted as a legacy pattern.
-   */
-  const verifyPayment = async (reference: string): Promise<VerifyResult> => {
-    try {
-      const secretKey = config.public.paystackSecretKey2 as string
-
-      const response = await fetch(
-        `https://api.paystack.co/transaction/verify/${reference}`,
-        {
-          headers: {
-            Authorization: `Bearer ${secretKey}`,
-          },
-        }
-      )
-
-      const data = (await response.json()) as { status: boolean; data: unknown }
-      console.log('Payment verification data:', data)
-
-      if (data.status) {
-        return {
-          status: 'success',
-          data: data.data,
-        }
-      } else {
-        throw new Error('Payment verification failed')
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error)
-      return {
-        status: 'error',
-        message: (error as Error).message || 'Payment verification failed',
-      }
-    }
-  }
-
   return {
     initializePayment,
-    verifyPayment,
   }
 }
