@@ -316,6 +316,19 @@ describe('New request: prescription first, quieter extras', () => {
     expect(card.text()).toContain('Upload prescription')
   })
 
+  it('keeps Take photo and Upload on one row, even on a phone', async () => {
+    const w = await open()
+    const card = w.find('[aria-labelledby="request-rx-title"]')
+    const row = card.find('label').element.parentElement as HTMLElement
+    const labels = Array.from(row.querySelectorAll('label')) as HTMLElement[]
+
+    expect(labels).toHaveLength(2)
+    expect(row.classList.contains('grid')).toBe(true)
+    expect(row.classList.contains('grid-cols-2')).toBe(true)
+    expect(row.classList.contains('flex-wrap')).toBe(false)
+    for (const l of labels) expect(l.classList.contains('justify-center')).toBe(true)
+  })
+
   it('shows Unit and Quantity labels above the controls once a medicine is named', async () => {
     const w = await open()
     await w.find('#request-medicine-0').setValue('Paracetamol')

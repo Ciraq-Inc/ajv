@@ -15,15 +15,15 @@
                     <section aria-labelledby="request-rx-title" class="rounded-2xl bg-brand-50 p-5">
                         <h2 id="request-rx-title" class="font-display text-xl font-bold text-ink-900">Have a prescription?</h2>
                         <p class="mt-1 text-sm text-ink-600">Take a photo or upload it and skip the typing. You can add medicines too.</p>
-                        <div class="mt-4 flex flex-wrap items-center gap-3">
-                            <label class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-brand-700 px-5 text-sm font-semibold text-white transition-colors focus-within:ring-2 focus-within:ring-brand-700 focus-within:ring-offset-2 hover:bg-brand-600">
+                        <div class="mt-4 grid grid-cols-2 items-center gap-3 sm:flex sm:flex-wrap">
+                            <label class="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-700 px-3 text-sm sm:px-5 font-semibold text-white transition-colors focus-within:ring-2 focus-within:ring-brand-700 focus-within:ring-offset-2 hover:bg-brand-600">
                                 <CameraIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                                 Take photo
                                 <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="sr-only" />
                             </label>
-                            <label class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-brand-700 ring-1 ring-brand-700/30 transition-colors focus-within:ring-2 focus-within:ring-brand-700 hover:bg-brand-100">
+                            <label class="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-white px-3 text-sm sm:px-5 font-semibold text-brand-700 ring-1 ring-brand-700/30 transition-colors focus-within:ring-2 focus-within:ring-brand-700 hover:bg-brand-100">
                                 <ArrowUpTrayIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                                Upload prescription
+                                Upload<span class="hidden sm:inline"> prescription</span>
                                 <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="sr-only" />
                             </label>
                         </div>
