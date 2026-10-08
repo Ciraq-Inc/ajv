@@ -55,8 +55,8 @@ describe('HomeStats', () => {
     const terms = wrapper.findAll('dt').map(t => t.text())
     const values = wrapper.findAll('dd').map(d => d.text())
 
-    expect(terms).toEqual(['Verified pharmacies', 'Avg. delivery', 'Genuine medicines', 'Expert support'])
-    expect(values).toEqual(['210+', '45 min', '100%', '24 / 7'])
+    expect(terms).toEqual(['Genuine medicines', 'Expert support'])
+    expect(values).toEqual(['100%', '24 / 7'])
   })
 })
 
@@ -80,6 +80,23 @@ describe('HomeHowItWorks', () => {
     for (const step of steps) {
       expect(step.find('p').text().length).toBeGreaterThan(20)
       expect(step.find('img').attributes('alt')).toBeTruthy()
+    }
+  })
+
+  it('swipes sideways as snapping cards on phones and sits in a grid from md up', () => {
+    const wrapper = mount(HomeHowItWorks)
+    const track = wrapper.find('article').element.closest('[data-steps-track]') as HTMLElement
+
+    expect(track).not.toBeNull()
+    for (const cls of ['flex', 'snap-x', 'snap-mandatory', 'overflow-x-auto', 'md:grid', 'md:grid-cols-3', 'md:overflow-visible']) {
+      expect(track.classList.contains(cls), cls).toBe(true)
+    }
+    for (const card of wrapper.findAll('article')) {
+      const slot = card.element.closest('[data-step-slot]') as HTMLElement
+      expect(slot.classList.contains('snap-center')).toBe(true)
+      expect(slot.classList.contains('shrink-0')).toBe(true)
+      expect(slot.classList.contains('w-[82%]')).toBe(true)
+      expect(slot.classList.contains('md:w-auto')).toBe(true)
     }
   })
 })

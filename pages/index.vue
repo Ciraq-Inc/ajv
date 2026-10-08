@@ -24,43 +24,39 @@
     <main class="pb-6">
 
       <!-- ── Hero ── -->
-      <section class="relative isolate overflow-hidden bg-white pb-16 pt-28 sm:pt-32 lg:pb-20 lg:pt-36">
+      <section class="relative isolate overflow-hidden bg-white pb-0 pt-0 lg:pb-20 lg:pt-36">
         <img
-          src="/hero_image.jpg"
+          :src="HERO_MOBILE_SRC"
           alt=""
           role="presentation"
-          class="lg:hidden absolute left-0 top-20 -z-10 h-[calc(100%-5rem)] w-[143%] max-w-none -scale-x-100 object-cover object-top opacity-20"
+          class="block h-[28rem] w-full object-cover object-top lg:hidden"
         />
         <img
-          src="/hero_desktop.jpg"
+          :src="HERO_DESKTOP_SRC"
           alt=""
           role="presentation"
           class="absolute left-0 top-20 -z-10 hidden h-[calc(100%-5rem)] w-full -scale-x-100 object-cover object-top opacity-20 lg:block"
         />
-        <div class="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,26rem)] lg:gap-12">
+        <div data-hero-sheet class="relative -mt-9 rounded-t-[2rem] bg-brand-700 pb-8 pt-7 lg:mt-0 lg:rounded-none lg:bg-transparent lg:pb-0 lg:pt-0">
+        <div class="mx-auto grid max-w-6xl items-center gap-4 px-4 sm:gap-6 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,26rem)] lg:gap-12">
 
-          <div class="text-center lg:text-left">
-            <span class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3.5 py-2 text-sm font-bold text-brand-700">
-              <span class="h-2 w-2 rounded-full bg-brand-700" aria-hidden="true"></span>
-              Verified pharmacies across Ghana
-            </span>
-
-            <h1 class="mt-5 font-display text-[clamp(2.4rem,6vw,4rem)] font-extrabold leading-[1.04] text-ink-900">
-              Order <span class="text-brand-700">any medication</span> online.
+          <div class="contents text-left lg:block">
+            <h1 class="font-display text-[clamp(2.25rem,6vw,4rem)] font-extrabold leading-[1.04] text-white lg:text-ink-900">
+              Order <span class="text-brand-200 lg:text-brand-700">any medication</span> online.
             </h1>
 
-            <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-600 sm:text-xl lg:mx-0">
-              From 210+ verified pharmacies across Ghana, delivered in about 45 minutes.
+            <p class="max-w-xl text-base leading-relaxed text-brand-100 sm:text-xl lg:mt-5 lg:text-ink-600">
+              From verified pharmacies across Ghana, delivered to your door.
             </p>
 
-            <ul class="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-3 text-base font-semibold text-ink-900 lg:justify-start">
-              <li class="flex items-center gap-2"><ShieldCheckIcon class="h-6 w-6 text-brand-700" aria-hidden="true" /> Licensed pharmacies only</li>
-              <li class="flex items-center gap-2"><BoltIcon class="h-6 w-6 text-brand-700" aria-hidden="true" /> About 45 min delivery</li>
-              <li class="flex items-center gap-2"><LockClosedIcon class="h-6 w-6 text-brand-700" aria-hidden="true" /> Secure payment</li>
+            <ul data-trust class="order-last grid grid-cols-3 gap-2 text-center text-sm font-semibold text-white lg:order-none lg:mt-7 lg:flex lg:flex-wrap lg:justify-start lg:gap-x-6 lg:gap-y-3 lg:text-left lg:text-base lg:text-ink-900">
+              <li class="flex flex-col items-center gap-1.5 rounded-2xl bg-brand-800 px-2 py-3 lg:flex-row lg:gap-2 lg:rounded-none lg:bg-transparent lg:p-0"><ShieldCheckIcon class="h-6 w-6 text-white lg:text-brand-700" aria-hidden="true" /> Licensed pharmacies</li>
+              <li class="flex flex-col items-center gap-1.5 rounded-2xl bg-brand-800 px-2 py-3 lg:flex-row lg:gap-2 lg:rounded-none lg:bg-transparent lg:p-0"><BoltIcon class="h-6 w-6 text-white lg:text-brand-700" aria-hidden="true" /> Fast delivery</li>
+              <li class="flex flex-col items-center gap-1.5 rounded-2xl bg-brand-800 px-2 py-3 lg:flex-row lg:gap-2 lg:rounded-none lg:bg-transparent lg:p-0"><LockClosedIcon class="h-6 w-6 text-white lg:text-brand-700" aria-hidden="true" /> Secure payment</li>
             </ul>
           </div>
 
-          <div class="mx-auto w-full max-w-md lg:max-w-none">
+          <div class="mx-auto w-full max-w-md rounded-3xl bg-white p-3 lg:max-w-none lg:rounded-none lg:bg-transparent lg:p-0">
 
             <!-- Loading state: skeleton while checkAuthState() resolves -->
             <div
@@ -97,6 +93,7 @@
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       <HomeStats />
@@ -122,6 +119,10 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import type { HeroDraftItem } from '~/components/home/content'
 import { useUserStore } from '~/stores/user'
+
+// Bound from script so Vite's dev server can't rewrite them into stale asset URLs.
+const HERO_MOBILE_SRC = '/hero_image_mobile.png'
+const HERO_DESKTOP_SRC = '/hero_desktop.jpg'
 import { BoltIcon, LockClosedIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 interface LoginPayload {

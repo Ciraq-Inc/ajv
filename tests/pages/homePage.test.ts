@@ -266,35 +266,92 @@ describe('home page: arriving from the Clearance Marketplace', () => {
 })
 
 describe('home page: hero picture', () => {
-  it('shows the hero photo as a mirrored backdrop behind the hero', async () => {
+  it('shows the portrait mobile photo full-bleed at the top below lg, not as a faint backdrop', async () => {
     const wrapper = await open()
-    const img = wrapper.find('img[src="/hero_image.jpg"]')
+    const img = wrapper.find('img[src="/hero_image_mobile.png"]')
 
     expect(img.exists()).toBe(true)
-    expect(img.classes()).toContain('-scale-x-100')
-    expect(img.classes()).toContain('absolute')
-    expect(img.classes()).toContain('opacity-20')
-    // The JPG has a white fade baked into its left 30%; the oversized box pushes it out of view.
-    expect(img.classes()).toContain('w-[143%]')
-    expect(img.classes()).toContain('max-w-none')
-    // Anchor to the top so the pharmacist's head is never cropped.
-    expect(img.classes()).toContain('object-top')
-    // Starts below the floating navbar so the head isn't hidden behind it.
-    expect(img.classes()).toContain('top-20')
+    expect(img.classes()).toEqual(expect.arrayContaining(['lg:hidden', 'w-full', 'object-cover', 'object-top', 'h-[28rem]']))
+    expect(img.classes()).not.toContain('absolute')
+    expect(img.classes()).not.toContain('opacity-20')
     expect(img.attributes('alt')).toBe('')
   })
 
-  it('uses the full-frame desktop photo from the lg breakpoint up, hiding the older one there', async () => {
+  it('does not use the desktop photo for small screens', async () => {
+    const wrapper = await open()
+    expect(wrapper.find('img[src="/hero_image.jpg"]').exists()).toBe(false)
+  })
+
+  it('uses the full-frame desktop photo from the lg breakpoint up, mirrored', async () => {
     const wrapper = await open()
     const desktop = wrapper.find('img[src="/hero_desktop.jpg"]')
-    const older = wrapper.find('img[src="/hero_image.jpg"]')
 
     expect(desktop.exists()).toBe(true)
-    expect(desktop.classes()).toEqual(expect.arrayContaining(['hidden', 'lg:block', 'absolute', '-scale-x-100', 'opacity-20', 'object-top', 'top-20']))
-    // This photo has no baked-in fade, so it fills the section without oversizing.
-    expect(desktop.classes()).not.toContain('w-[143%]')
+    expect(desktop.classes()).toEqual(expect.arrayContaining(['hidden', 'lg:block', 'absolute', '-scale-x-100', 'opacity-20', 'object-top', 'top-20', 'w-full']))
     expect(desktop.attributes('alt')).toBe('')
-    expect(older.classes()).toContain('lg:hidden')
+  })
+})
+
+describe('home page: phone layout', () => {
+  it('left-aligns the hero copy and lays the trust points out as a compact three-column row', async () => {
+    const wrapper = await open()
+    const h1 = wrapper.find('h1').element
+    const copy = h1.parentElement as HTMLElement
+    const trust = wrapper.find('ul[data-trust]').element as HTMLElement
+
+    expect(copy.classList.contains('text-center')).toBe(false)
+    for (const cls of ['grid', 'grid-cols-3', 'lg:flex']) expect(trust.classList.contains(cls), cls).toBe(true)
+    expect(trust.querySelectorAll('li')).toHaveLength(3)
+  })
+
+  it('states no pharmacy count or delivery time anywhere on the page', async () => {
+    const wrapper = await open()
+    const text = wrapper.text()
+
+    expect(text).not.toMatch(/210/)
+    expect(text).not.toMatch(/45\s*min/i)
+    expect(text).not.toMatch(/Avg\.? delivery/i)
+  })
+
+  it('drops the verified-pharmacies badge', async () => {
+    const wrapper = await open()
+    expect(wrapper.text()).not.toContain('Verified pharmacies across Ghana')
+  })
+
+  it('lets the photo run to the top of the page on phones, with no top padding', async () => {
+    const wrapper = await open()
+    const hero = wrapper.find('section').element as HTMLElement
+
+    expect(hero.classList.contains('pt-0')).toBe(true)
+    expect(hero.classList.contains('lg:pt-36')).toBe(true)
+  })
+
+  it('puts the headline and form on a solid brand sheet that overlaps the photo on phones only', async () => {
+    const wrapper = await open()
+    const sheet = wrapper.find('[data-hero-sheet]').element as HTMLElement
+
+    for (const cls of ['bg-brand-700', '-mt-9', 'rounded-t-[2rem]', 'lg:bg-transparent', 'lg:mt-0', 'lg:rounded-none']) {
+      expect(sheet.classList.contains(cls), cls).toBe(true)
+    }
+    expect(sheet.contains(wrapper.find('h1').element)).toBe(true)
+    expect(sheet.contains(wrapper.find('[role="tablist"]').element)).toBe(true)
+  })
+
+  it('sets the headline in white on the sheet and back to ink from lg', async () => {
+    const wrapper = await open()
+    const h1 = wrapper.find('h1')
+
+    expect(h1.classes()).toEqual(expect.arrayContaining(['text-white', 'lg:text-ink-900']))
+  })
+
+  it('shows the form before the trust points on phones', async () => {
+    const wrapper = await open()
+    const trust = wrapper.find('ul[data-trust]').element
+    const tabs = wrapper.find('[role="tablist"]').element
+
+    expect(trust.classList.contains('order-last')).toBe(true)
+    expect(trust.classList.contains('lg:order-none')).toBe(true)
+    expect(tabs).toBeTruthy()
   })
 })
 

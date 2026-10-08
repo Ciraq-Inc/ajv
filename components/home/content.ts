@@ -44,8 +44,6 @@ export const FAQS: Faq[] = [
 ]
 
 export const STATS: Stat[] = [
-  { label: 'Verified pharmacies', value: '210+' },
-  { label: 'Avg. delivery', value: '45 min' },
   { label: 'Genuine medicines', value: '100%' },
   { label: 'Expert support', value: '24 / 7' },
 ]
@@ -59,13 +57,13 @@ export const STEPS: Step[] = [
   },
   {
     title: 'We source and verify',
-    body: 'Our system checks stock across 210+ verified pharmacies to find the best price and availability.',
+    body: 'Our system checks stock across our verified pharmacies to find the best price and availability.',
     image: '/pharmacist_picking_order.png',
     alt: 'Pharmacist picking and verifying a medication order',
   },
   {
     title: 'Confirm and receive',
-    body: 'Pay securely, then track your order in real time. Most deliveries arrive within 45 minutes.',
+    body: 'Pay securely, then track your order in real time until it reaches your door.',
     image: '/drug_delivery.png',
     alt: 'Delivery rider handing medication to a customer',
   },
