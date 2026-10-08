@@ -2,7 +2,7 @@
 <template>
   <div class="container mx-auto px-4 py-6 max-w-5xl">
     <!-- Header with back button and gradient background -->
-    <div class="mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-4 text-white">
+    <div class="mb-8 bg-brand-700 rounded-xl shadow-lg p-4 text-white">
       <div class="flex items-center">
         <button @click="goBack" class="mr-4 p-2 rounded-full hover:bg-white/20 active:bg-white/30 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -28,10 +28,10 @@
     />
 
     <!-- Filter card with improved layout -->
-    <div class="mb-8 bg-white rounded-xl shadow-lg p-5 border border-gray-100 transition-all duration-300 hover:shadow-xl">
+    <div class="mb-8 bg-white rounded-xl shadow-lg p-5 border border-ink-100 transition-all duration-300 hover:shadow-xl">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 class="text-lg font-medium text-gray-800 flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <h2 class="text-lg font-medium text-ink-900 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-brand-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
           </svg>
           Filter Orders
@@ -39,20 +39,20 @@
 
         <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           <div class="flex flex-col">
-            <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">From</label>
+            <label for="startDate" class="block text-sm font-medium text-ink-600 mb-1">From</label>
             <input type="date" id="startDate" v-model="dateFilter.startDate"
-              class="rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm w-full" />
+              class="rounded-lg border-ink-200 shadow-sm focus:border-brand-700 focus:ring-brand-700 text-sm w-full" />
           </div>
 
           <div class="flex flex-col">
-            <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">To</label>
+            <label for="endDate" class="block text-sm font-medium text-ink-600 mb-1">To</label>
             <input type="date" id="endDate" v-model="dateFilter.endDate"
-              class="rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm w-full" />
+              class="rounded-lg border-ink-200 shadow-sm focus:border-brand-700 focus:ring-brand-700 text-sm w-full" />
           </div>
 
           <div class="flex items-end">
             <button @click="clearDateFilter"
-              class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200 text-sm font-medium shadow-sm w-full sm:w-auto">
+              class="px-4 py-2 border border-ink-200 text-ink-600 rounded-lg hover:bg-ink-100 active:bg-ink-200 transition-colors duration-200 text-sm font-medium shadow-sm w-full sm:w-auto">
               Clear Filter
             </button>
           </div>
@@ -60,24 +60,24 @@
       </div>
 
       <!-- Filter status indicator with animation -->
-      <div v-if="isFilterActive" class="mt-3 text-sm text-gray-600 flex items-center animate-fadeIn">
-        <span class="inline-block h-2 w-2 rounded-full bg-indigo-500 mr-2"></span>
+      <div v-if="isFilterActive" class="mt-3 text-sm text-ink-600 flex items-center animate-fadeIn">
+        <span class="inline-block h-2 w-2 rounded-full bg-brand-700 mr-2"></span>
         Showing {{ filteredOrders.length }} of {{ orders.length }} orders
       </div>
     </div>
 
     <!-- Loading state with improved animation -->
     <div v-if="isLoading" class="py-16 flex flex-col items-center justify-center">
-      <div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-indigo-600 mb-2"></div>
+      <div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-brand-700 mb-2"></div>
       <div class="animate-pulse">
-        <p class="mt-4 text-indigo-600 font-medium text-center">Loading your orders...</p>
+        <p class="mt-4 text-brand-700 font-medium text-center">Loading your orders...</p>
       </div>
     </div>
 
     <!-- Error state with improved styling -->
-    <div v-else-if="error" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-5 rounded-lg shadow-lg mb-8 animate-fadeIn">
+    <div v-else-if="error" class="bg-red-50 border-l-4 border-red-700 text-red-700 p-5 rounded-lg shadow-lg mb-8 animate-fadeIn">
       <div class="flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-red-500" fill="none" viewBox="0 0 24 24"
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-red-700" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -85,7 +85,7 @@
         <p class="font-medium">{{ error }}</p>
       </div>
       <button @click="fetchOrders"
-        class="mt-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-4 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
+        class="mt-4 bg-red-700 hover:bg-red-700 active:bg-red-800 text-white px-4 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -97,9 +97,9 @@
 
     <!-- Not logged in state with improved styling -->
     <div v-else-if="!userStore.isLoggedIn"
-      class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-5 rounded-lg shadow-lg mb-8 animate-fadeIn">
+      class="bg-amber-50 border-l-4 border-amber-800 text-amber-800 p-5 rounded-lg shadow-lg mb-8 animate-fadeIn">
       <div class="flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-yellow-500" fill="none" viewBox="0 0 24 24"
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-amber-800" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -107,7 +107,7 @@
         <p class="font-medium">Please log in to view your order history</p>
       </div>
       <button @click="showLoginModal = true"
-        class="mt-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-5 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
+        class="mt-4 bg-brand-700 hover:bg-brand-700 active:bg-brand-800 text-white px-5 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -119,16 +119,16 @@
 
     <!-- No orders state with improved styling -->
     <div v-else-if="orders.length === 0" class="py-16 bg-white rounded-xl shadow-lg text-center animate-fadeIn">
-      <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-indigo-100 text-indigo-600 mb-6">
+      <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-brand-100 text-brand-700 mb-6">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
         </svg>
       </div>
-      <h2 class="text-2xl font-medium text-gray-900 mb-2">No orders yet</h2>
-      <p class="text-gray-600 mb-8 max-w-md mx-auto">You haven't placed any orders with us yet. Start shopping to discover our products!</p>
+      <h2 class="text-2xl font-medium text-ink-900 mb-2">No orders yet</h2>
+      <p class="text-ink-600 mb-8 max-w-md mx-auto">You haven't placed any orders with us yet. Start shopping to discover our products!</p>
       <button @click="goShopping"
-        class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
+        class="px-6 py-3 bg-brand-700 hover:bg-brand-700 active:bg-brand-800 text-white rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -142,9 +142,9 @@
     <div v-else class="space-y-8">
       <!-- No matching orders message when filter is active -->
       <div v-if="isFilterActive && filteredOrders.length === 0"
-        class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-5 rounded-lg shadow-lg mb-8 animate-fadeIn">
+        class="bg-amber-50 border-l-4 border-amber-800 text-amber-800 p-5 rounded-lg shadow-lg mb-8 animate-fadeIn">
         <div class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-yellow-500" fill="none" viewBox="0 0 24 24"
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-amber-800" fill="none" viewBox="0 0 24 24"
             stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -152,7 +152,7 @@
           <p class="font-medium">No orders found for the selected date range.</p>
         </div>
         <button @click="clearDateFilter"
-          class="mt-4 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
+          class="mt-4 bg-amber-800 hover:bg-amber-800 active:bg-amber-800 text-white px-4 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
             stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -163,7 +163,7 @@
 
       <!-- Order cards with improved styling -->
       <div v-for="order in filteredOrders" :key="order.id" :id="`order-${order.id}`"
-           class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-xl">
+           class="bg-white rounded-xl shadow-lg overflow-hidden border border-ink-100 transition-all duration-300 hover:shadow-xl">
         <!-- Order header with gradient background based on status -->
         <div :class="[
           'p-5 border-b flex flex-col sm:flex-row justify-between',
@@ -193,15 +193,15 @@
           <!-- Order items with improved spacing -->
           <div class="space-y-4">
             <div v-for="(item, index) in order.items" :key="index" 
-                 class="p-3 flex justify-between bg-gray-50 rounded-lg">
+                 class="p-3 flex justify-between bg-ink-50 rounded-lg">
               <div class="flex-1">
-                <p class="font-medium text-gray-800">{{ item.brandName }}</p>
-                <p class="text-sm text-gray-500 mt-1">
+                <p class="font-medium text-ink-900">{{ item.brandName }}</p>
+                <p class="text-sm text-ink-500 mt-1">
                   {{ item.quantity }} × GHS{{ formatPrice(item.price) }}
                 </p>
               </div>
               <div class="text-right">
-                <p class="font-semibold text-gray-800">GHS{{ formatPrice(item.subtotal) }}</p>
+                <p class="font-semibold text-ink-900">GHS{{ formatPrice(item.subtotal) }}</p>
               </div>
             </div>
           </div>
@@ -209,12 +209,12 @@
           <!-- Order totals with improved styling -->
           <div class="mt-6 pt-4 border-t border-dashed">
             <div class="flex justify-between mb-2">
-              <span class="text-gray-600">Total Items:</span>
+              <span class="text-ink-600">Total Items:</span>
               <span class="font-medium">{{ order.totalQuantity }}</span>
             </div>
             <div class="flex justify-between text-lg font-bold">
               <span>Total:</span>
-              <span class="text-indigo-700">GHS{{ formatPrice(order.totalAmount) }}</span>
+              <span class="text-brand-700">GHS{{ formatPrice(order.totalAmount) }}</span>
             </div>
           </div>
 
@@ -222,7 +222,7 @@
           <div class="mt-6 pt-4 border-t flex flex-wrap gap-3 sm:justify-end">
             <button v-if="order.status === 'pending' || order.status === 'processing'"
               @click="cancelOrder(order.orderId)"
-              class="w-full sm:w-auto px-4 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 active:bg-red-100 transition-colors duration-200 font-medium">
+              class="w-full sm:w-auto px-4 py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 active:bg-red-100 transition-colors duration-200 font-medium">
               <span class="flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -231,7 +231,7 @@
               </span>
             </button>
             <button @click="reorderItems(order.items)"
-              class="w-full sm:w-auto px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-colors duration-200 font-medium shadow-md">
+              class="w-full sm:w-auto px-4 py-3 bg-brand-700 text-white rounded-lg hover:bg-brand-700 active:bg-brand-800 transition-colors duration-200 font-medium shadow-md">
               <span class="flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -248,7 +248,7 @@
         <button
           :disabled="isLoadingMore"
           @click="loadMore"
-          class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200 inline-flex items-center gap-2 shadow-md font-medium"
+          class="px-6 py-3 bg-brand-700 hover:bg-brand-700 active:bg-brand-800 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200 inline-flex items-center gap-2 shadow-md font-medium"
         >
           <svg v-if="isLoadingMore" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -263,15 +263,15 @@
     <div v-if="reorderConfirmItems" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="fixed inset-0 bg-black/50" @click="reorderConfirmItems = null"></div>
       <div class="relative z-10 bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full">
-        <h3 class="text-base font-bold text-gray-900 mb-2">Replace current cart?</h3>
-        <p class="text-sm text-gray-600 mb-5">This will replace your current cart with the items from this order. Continue?</p>
+        <h3 class="text-base font-bold text-ink-900 mb-2">Replace current cart?</h3>
+        <p class="text-sm text-ink-600 mb-5">This will replace your current cart with the items from this order. Continue?</p>
         <div class="flex gap-3 justify-end">
           <button @click="reorderConfirmItems = null"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+            class="px-4 py-2 text-sm font-medium text-ink-600 bg-ink-100 hover:bg-ink-200 rounded-lg transition-colors">
             Cancel
           </button>
           <button @click="doReorder(reorderConfirmItems)"
-            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors">
+            class="px-4 py-2 text-sm font-medium text-white bg-brand-700 hover:bg-brand-700 rounded-lg transition-colors">
             Continue
           </button>
         </div>
@@ -463,23 +463,23 @@ const capitalizeFirstLetter = (string: string | undefined | null): string => {
 
 const getStatusClass = (status: string | undefined): string => {
   switch (status) {
-    case 'pending':    return 'bg-yellow-100 text-yellow-800'
-    case 'processing': return 'bg-blue-100 text-blue-800'
-    case 'delivered':  return 'bg-green-100 text-green-800'
-    case 'completed':  return 'bg-green-100 text-green-800'
+    case 'pending':    return 'bg-amber-100 text-amber-800'
+    case 'processing': return 'bg-brand-100 text-brand-800'
+    case 'delivered':  return 'bg-brand-100 text-brand-800'
+    case 'completed':  return 'bg-brand-100 text-brand-800'
     case 'cancelled':  return 'bg-red-100 text-red-800'
-    default:           return 'bg-gray-100 text-gray-800'
+    default:           return 'bg-ink-100 text-ink-900'
   }
 }
 
 const getHeaderBackgroundClass = (status: string | undefined): string => {
   switch (status) {
-    case 'pending':    return 'bg-yellow-50 text-yellow-800'
-    case 'processing': return 'bg-blue-50 text-blue-800'
-    case 'delivered':  return 'bg-green-50 text-green-800'
-    case 'completed':  return 'bg-green-50 text-green-800'
+    case 'pending':    return 'bg-amber-50 text-amber-800'
+    case 'processing': return 'bg-brand-50 text-brand-800'
+    case 'delivered':  return 'bg-brand-50 text-brand-800'
+    case 'completed':  return 'bg-brand-50 text-brand-800'
     case 'cancelled':  return 'bg-red-50 text-red-800'
-    default:           return 'bg-gray-50 text-gray-800'
+    default:           return 'bg-ink-50 text-ink-900'
   }
 }
 

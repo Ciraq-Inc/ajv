@@ -78,12 +78,13 @@ describe('ConfirmDialog', () => {
     expect(w.emitted('confirm')).toBeUndefined()
   })
 
-  it('styles a destructive confirmation in red and a normal one in blue', () => {
+  it('styles a destructive confirmation in red and a normal one in brand purple, both 44px tall', () => {
     const danger = open({ variant: 'danger' })
-    expect(danger.findAll('button').at(-1)!.classes()).toContain('bg-red-600')
+    expect(danger.findAll('button').at(-1)!.classes()).toContain('bg-red-700')
     danger.unmount()
 
     const normal = open()
-    expect(normal.findAll('button').at(-1)!.classes()).toContain('bg-sky-600')
+    expect(normal.findAll('button').at(-1)!.classes()).toContain('bg-brand-700')
+    expect(normal.findAll('button').every(b => b.classes().includes('min-h-[44px]'))).toBe(true)
   })
 })

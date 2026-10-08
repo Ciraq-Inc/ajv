@@ -992,8 +992,7 @@
                 class="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/50">
                 <div
                     class="bg-white rounded-3xl p-8 max-w-[320px] w-full mx-4 shadow-lift flex flex-col items-center justify-center text-center relative overflow-hidden">
-                    <div class="absolute inset-0 pointer-events-none"
-                        style="background: radial-gradient(circle at center, transparent 0%, transparent 70%);">
+                    <div class="absolute inset-0 pointer-events-none">
                     </div>
                     <div class="w-24 h-24 mb-6 relative z-10 flex items-center justify-center">
                         <div

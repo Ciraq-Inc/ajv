@@ -1,5 +1,5 @@
 <template>
-  <div class="theme-medsgh min-h-screen text-brand-950">
+  <div class="theme-medsgh min-h-screen bg-white text-ink-900">
 
     <!-- Toast notification -->
     <Transition
@@ -12,7 +12,7 @@
         v-if="toast"
         role="alert"
         aria-live="polite"
-        class="fixed right-4 top-24 z-50 flex max-w-sm items-center gap-3 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-lift"
+        class="fixed right-4 top-24 z-50 flex max-w-sm items-center gap-3 rounded-2xl px-5 py-3 text-base font-semibold text-white shadow-lift"
         :class="toast.type === 'success' ? 'bg-brand-800' : 'bg-red-700'"
       >
         <ShieldCheckIcon v-if="toast.type === 'success'" class="h-4 w-4 shrink-0 opacity-90" aria-hidden="true" />
@@ -24,35 +24,39 @@
     <main class="pb-6">
 
       <!-- ── Hero ── -->
-      <section class="mesh-hero relative isolate overflow-hidden pb-28 pt-32 sm:pt-36 lg:pb-36 lg:pt-40">
+      <section class="relative isolate overflow-hidden bg-white pb-16 pt-28 sm:pt-32 lg:pb-20 lg:pt-36">
         <img
-          :src="heroOrderingImage"
+          src="/hero_image.jpg"
           alt=""
           role="presentation"
-          class="absolute inset-0 -z-10 h-full w-full object-cover object-right opacity-[0.28] mix-blend-luminosity [mask-image:linear-gradient(to_left,black_10%,transparent_60%)]"
+          class="lg:hidden absolute left-0 top-20 -z-10 h-[calc(100%-5rem)] w-[143%] max-w-none -scale-x-100 object-cover object-top opacity-20"
         />
-        <div class="dot-grid absolute inset-0 -z-10 opacity-40 [mask-image:radial-gradient(ellipse_at_30%_40%,black,transparent_70%)]" aria-hidden="true"></div>
-
-        <div class="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,27rem)] lg:gap-16">
+        <img
+          src="/hero_desktop.jpg"
+          alt=""
+          role="presentation"
+          class="absolute left-0 top-20 -z-10 hidden h-[calc(100%-5rem)] w-full -scale-x-100 object-cover object-top opacity-20 lg:block"
+        />
+        <div class="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,26rem)] lg:gap-12">
 
           <div class="text-center lg:text-left">
-            <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-brand-100 backdrop-blur">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true"></span>
-              Verified pharmacies · Across Ghana
+            <span class="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3.5 py-2 text-sm font-bold text-brand-700">
+              <span class="h-2 w-2 rounded-full bg-brand-700" aria-hidden="true"></span>
+              Verified pharmacies across Ghana
             </span>
 
-            <h1 class="mt-6 font-display text-[clamp(2.5rem,6.4vw,4.25rem)] font-extrabold leading-[1.04] text-white">
-              Order <span class="bg-gradient-to-r from-coral-300 via-brand-200 to-brand-100 bg-clip-text text-transparent">any medication</span> online.
+            <h1 class="mt-5 font-display text-[clamp(2.4rem,6vw,4rem)] font-extrabold leading-[1.04] text-ink-900">
+              Order <span class="text-brand-700">any medication</span> online.
             </h1>
 
-            <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-brand-100/90 lg:mx-0">
+            <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-600 sm:text-xl lg:mx-0">
               From 210+ verified pharmacies across Ghana, delivered in about 45 minutes.
             </p>
 
-            <ul class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm font-semibold text-white/90 lg:justify-start">
-              <li class="flex items-center gap-2"><ShieldCheckIcon class="h-5 w-5 text-coral-300" aria-hidden="true" /> Licensed pharmacies only</li>
-              <li class="flex items-center gap-2"><BoltIcon class="h-5 w-5 text-coral-300" aria-hidden="true" /> About 45 min delivery</li>
-              <li class="flex items-center gap-2"><LockClosedIcon class="h-5 w-5 text-coral-300" aria-hidden="true" /> Secure payment</li>
+            <ul class="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-3 text-base font-semibold text-ink-900 lg:justify-start">
+              <li class="flex items-center gap-2"><ShieldCheckIcon class="h-6 w-6 text-brand-700" aria-hidden="true" /> Licensed pharmacies only</li>
+              <li class="flex items-center gap-2"><BoltIcon class="h-6 w-6 text-brand-700" aria-hidden="true" /> About 45 min delivery</li>
+              <li class="flex items-center gap-2"><LockClosedIcon class="h-6 w-6 text-brand-700" aria-hidden="true" /> Secure payment</li>
             </ul>
           </div>
 
@@ -62,7 +66,7 @@
             <div
               v-if="authChecking"
               aria-label="Loading sign-in form"
-              class="glass overflow-hidden rounded-3xl p-6"
+              class="overflow-hidden rounded-3xl bg-white p-6 shadow-lift ring-1 ring-ink-200"
             >
               <Skeleton class="mb-5 h-12 w-full rounded-full" />
               <Skeleton class="mb-2 h-4 w-28" />
@@ -72,10 +76,10 @@
               <Skeleton class="h-12 w-full bg-brand-200" />
             </div>
 
-            <div v-else class="glass rounded-[2rem] p-3 sm:p-4">
-              <!-- Tab switcher: Create account (default) ↔ Quick request -->
+            <div v-else>
+              <!-- Tab switcher: Create account (default) <-> Quick request -->
               <Tabs v-model="heroTab" class="mb-3">
-                <TabsList class="flex w-full bg-brand-50 ring-1 ring-brand-700/10" aria-label="How would you like to get started?">
+                <TabsList class="flex w-full bg-ink-50" aria-label="How would you like to get started?">
                   <TabsTrigger value="signup">Create account</TabsTrigger>
                   <TabsTrigger value="guest">Quick request</TabsTrigger>
                 </TabsList>
@@ -131,7 +135,6 @@ const HOMEPAGE_PRESCRIPTION_DRAFT_KEY = 'medsgh_homepage_prescription_image'
 const userStore = useUserStore()
 const route = useRoute()
 const authChecking = ref<boolean>(true)
-const heroOrderingImage = '/hero_image.jpg'
 
 const heroTab = ref<'signup' | 'guest'>('signup')
 const heroLoginInitialView = ref<'login' | 'signup'>('signup')

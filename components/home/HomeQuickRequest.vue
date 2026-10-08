@@ -180,7 +180,7 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
 
     <!-- Success state -->
     <div v-if="heroGuestSuccess" class="px-7 py-9 text-center" role="status">
-      <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+      <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-brand-700">
         <CheckIcon class="h-7 w-7" stroke-width="2.5" aria-hidden="true" />
       </div>
       <p class="font-display text-xl font-extrabold text-brand-950">Request sent!</p>
@@ -253,7 +253,7 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
             <button
               type="button"
               :disabled="heroGuestLoading"
-              class="shrink-0 text-ink-300 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
+              class="shrink-0 text-ink-300 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
               aria-label="Remove item"
               @click="removeHeroDraftItem(index)"
             >
@@ -330,7 +330,7 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
             {{ heroGpsLoading ? 'Detecting location…' : 'Use my location' }}
           </button>
 
-          <p v-if="heroGpsError" class="mt-1.5 text-xs text-red-600">{{ heroGpsError }}</p>
+          <p v-if="heroGpsError" class="mt-1.5 text-xs text-red-700">{{ heroGpsError }}</p>
 
           <div class="relative my-2.5 flex items-center">
             <div class="flex-1 border-t border-brand-100"></div>

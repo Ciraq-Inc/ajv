@@ -86,10 +86,8 @@ describe('Navbar: navigation', () => {
     const hrefs = mountNav().findAll('nav a').map(a => [a.text(), a.attributes('href')])
     expect(hrefs).toEqual([
       ['Home', '/'],
-      ['Products', '/drugs'],
       ['How It Works', '/#how-it-works'],
       ['Support', '/#support'],
-      ['For Pharmacies', '/#for-pharmacies'],
       ['Jobs', '/jobs'],
     ])
   })

@@ -79,10 +79,10 @@ describe('customer activation: choosing a password', () => {
 
     await w.find('#password').setValue('short')
     const rule = w.find('ul li')
-    expect(rule.classes()).toContain('text-zinc-400')
+    expect(rule.classes()).toContain('text-ink-500')
 
     await w.find('#password').setValue('long-enough')
-    expect(w.find('ul li').classes()).toContain('text-green-600')
+    expect(w.find('ul li').classes()).toContain('text-brand-700')
   })
 
   it('rejects a short password before calling the API', async () => {

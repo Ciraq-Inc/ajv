@@ -3,7 +3,7 @@
     <!-- Auth-check skeleton: mirror of the home layout to avoid layout pop-in -->
     <div v-if="isCheckingAuth" class="space-y-6" aria-busy="true" aria-label="Loading your dashboard">
       <span class="sr-only" role="status">Loading your dashboard…</span>
-      <section class="rounded-2xl bg-gradient-to-br from-brand-500 via-brand-700 to-brand-900 p-6 shadow-lift" aria-hidden="true">
+      <section class="rounded-2xl bg-brand-700 p-6 shadow-lift" aria-hidden="true">
         <div class="h-3 w-24 rounded bg-white/15 animate-pulse"></div>
         <div class="mt-3 h-10 w-20 rounded bg-white/15 animate-pulse"></div>
         <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
@@ -44,16 +44,16 @@
           class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
           role="alert"
         >
-          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+          <svg class="w-4 h-4 text-amber-800 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
           <span class="text-amber-900 font-medium flex-1">We couldn't load some of your data. Check your connection and try again.</span>
           <button
             type="button"
             @click="startHomeStatsPolling"
-            class="min-h-[32px] rounded-lg px-3 text-xs font-bold text-amber-900 underline underline-offset-2 hover:bg-amber-100 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700/50"
+            class="min-h-[32px] rounded-lg px-3 text-xs font-bold text-amber-900 underline underline-offset-2 hover:bg-amber-100 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-800/50"
           >Try again</button>
         </div>
 
-        <section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500 via-brand-700 to-brand-900 p-6 text-white shadow-lift">
+        <section class="relative overflow-hidden rounded-2xl bg-brand-700 p-6 text-white shadow-lift">
           <!-- decorative blobs -->
           <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" aria-hidden="true"></div>
           <div class="absolute right-16 top-4 w-20 h-20 bg-brand-300/10 rounded-full blur-xl pointer-events-none" aria-hidden="true"></div>
@@ -127,7 +127,7 @@
               >
                 <div
                   class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full mt-0.5 sm:mt-0"
-                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-green-50 text-green-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status ?? '') ? 'bg-blue-50 text-blue-700' : 'bg-ink-50 text-ink-600'"
+                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-brand-50 text-brand-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status ?? '') ? 'bg-brand-50 text-brand-700' : 'bg-ink-50 text-ink-600'"
                   aria-hidden="true"
                 >
                   <component :is="requestIcon(request)" class="w-5 h-5" />
@@ -140,7 +140,7 @@
                         {{ getRequestHeadline(request) }}
                       </h3>
                       <span
-                        class="inline-flex px-1.5 py-0.5 text-[11px] font-black uppercase tracking-[0.08em] rounded-md shrink-0 whitespace-nowrap"
+                        class="inline-flex px-1.5 py-0.5 text-xs font-black uppercase tracking-[0.08em] rounded-md shrink-0 whitespace-nowrap"
                         :class="getRequestStatusClass(request.status ?? '')"
                       >
                         {{ getRequestStatusLabel(request.status ?? '') }}
@@ -221,7 +221,7 @@
 
         <button
           type="button"
-          class="w-full flex items-center gap-4 rounded-2xl border border-brand-100 bg-gradient-to-br from-white to-brand-50 px-5 py-4 text-left hover:border-brand-300 hover:shadow-soft transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
+          class="w-full flex items-center gap-4 rounded-2xl border border-brand-100 bg-brand-700 px-5 py-4 text-left hover:border-brand-300 hover:shadow-soft transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
           @click="goTab('clearance')"
         >
           <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 border border-brand-100 text-brand-700 group-hover:bg-brand-700 group-hover:text-white transition-colors" aria-hidden="true">
@@ -250,7 +250,7 @@
               :key="company.id ?? ''"
               type="button"
               data-testid="partner-row"
-              class="flex items-center sm:items-start gap-4 rounded-xl border border-brand-100 bg-gradient-to-br from-white to-brand-50 px-5 py-4 text-left hover:border-brand-300 hover:shadow-soft transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
+              class="flex items-center sm:items-start gap-4 rounded-xl border border-brand-100 bg-brand-700 px-5 py-4 text-left hover:border-brand-300 hover:shadow-soft transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
               @click="goToPharmacy(company)"
             >
               <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 border border-brand-100 text-brand-700 group-hover:bg-brand-700 group-hover:text-white transition-colors" aria-hidden="true">
@@ -481,7 +481,7 @@ const getOrderDotClass = (status: string | undefined): string => {
   switch (status) {
     case 'processing':
     case 'pending':
-      return 'bg-amber-500'
+      return 'bg-amber-800'
     case 'shipped':
     case 'out_for_delivery':
     case 'driver_assigned':
@@ -490,11 +490,11 @@ const getOrderDotClass = (status: string | undefined): string => {
     case 'delivered':
     case 'completed':
     case 'picked_up':
-      return 'bg-green-500'
+      return 'bg-brand-700'
     case 'cancelled':
-      return 'bg-red-500'
+      return 'bg-red-700'
     default:
-      return 'bg-violet-500'
+      return 'bg-brand-700'
   }
 }
 

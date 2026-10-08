@@ -5,11 +5,11 @@
     <div v-if="loading" role="status" aria-busy="true" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
       <span class="sr-only">Loading products…</span>
       <div v-for="n in 8" :key="n" aria-hidden="true" class="bg-white rounded-3xl overflow-hidden shadow-soft">
-        <div class="bg-gray-100 h-36 sm:h-44 w-full skeleton-shimmer"></div>
+        <div class="bg-ink-100 h-36 sm:h-44 w-full skeleton-shimmer"></div>
         <div class="p-3 space-y-2.5">
-          <div class="bg-gray-100 rounded-lg h-4 w-3/4 skeleton-shimmer"></div>
-          <div class="bg-gray-100 rounded-lg h-3 w-1/3 skeleton-shimmer"></div>
-          <div class="mt-3 bg-gray-100 rounded-full h-9 w-full skeleton-shimmer"></div>
+          <div class="bg-ink-100 rounded-lg h-4 w-3/4 skeleton-shimmer"></div>
+          <div class="bg-ink-100 rounded-lg h-3 w-1/3 skeleton-shimmer"></div>
+          <div class="mt-3 bg-ink-100 rounded-full h-9 w-full skeleton-shimmer"></div>
         </div>
       </div>
     </div>

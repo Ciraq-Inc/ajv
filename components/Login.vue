@@ -58,7 +58,7 @@
           >
             <div class="h-1.5 w-8 rounded-full bg-brand-700"></div>
             <div class="h-1.5 w-8 rounded-full bg-brand-700"></div>
-            <span class="ml-1 text-[11px] font-semibold text-brand-700 tracking-wide">Step 2 of 2</span>
+            <span class="ml-1 text-xs font-semibold text-brand-700 tracking-wide">Step 2 of 2</span>
           </div>
           <div
             v-else-if="view === 'signup' && !signupOtpSent"
@@ -67,7 +67,7 @@
           >
             <div class="h-1.5 w-8 rounded-full bg-brand-700"></div>
             <div class="h-1.5 w-8 rounded-full bg-brand-100"></div>
-            <span class="ml-1 text-[11px] font-semibold text-ink-400 tracking-wide">Step 1 of 2</span>
+            <span class="ml-1 text-xs font-semibold text-ink-400 tracking-wide">Step 1 of 2</span>
           </div>
         </div>
 
@@ -80,7 +80,7 @@
             class="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
             role="alert"
           >
-            <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
             </svg>
             <p class="text-sm text-red-700 leading-snug">{{ errorMessage }}</p>
@@ -109,7 +109,7 @@
                   :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
                   @input="onIdentifierInput"
                 >
-                <p v-if="identifierError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1" role="alert">
+                <p v-if="identifierError" class="mt-1.5 text-xs text-red-700 flex items-center gap-1" role="alert">
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ identifierError }}
                 </p>
@@ -228,7 +228,7 @@
                     </p>
                     <div
                       v-if="registrationCompany"
-                      class="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-brand-700"
+                      class="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-700"
                     >
                       <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>
                       {{ registrationCompany }}
@@ -296,7 +296,7 @@
                       required
                     >
                     <span class="text-xs text-ink-500 leading-relaxed">
-                      I confirm I am 18 years or older <span class="text-red-500">*</span>
+                      I confirm I am 18 years or older <span class="text-red-700">*</span>
                     </span>
                   </label>
                 </div>
@@ -347,8 +347,8 @@
               enter-active-class="transition duration-300 ease-out"
             >
               <div v-if="resetSuccess" class="text-center py-4">
-                <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 border-2 border-emerald-200">
-                  <svg class="h-7 w-7 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 border-2 border-brand-200">
+                  <svg class="h-7 w-7 text-brand-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M20 6L9 17l-5-5"/>
                   </svg>
                 </div>
@@ -382,7 +382,7 @@
                   :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
                   @input="onIdentifierInput"
                 >
-                <p v-if="identifierError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1" role="alert">
+                <p v-if="identifierError" class="mt-1.5 text-xs text-red-700 flex items-center gap-1" role="alert">
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ identifierError }}
                 </p>
@@ -442,7 +442,7 @@
 
             <form v-if="!resetSuccess && resetMethod === 'phone'" @submit.prevent="handleResetPassword" novalidate>
               <div v-if="otpSent" class="mb-4 flex items-center gap-2 rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3 text-xs text-ink-500">
-                <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                <svg class="h-4 w-4 text-brand-700 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                 Code sent to <strong class="text-ink-900 ml-0.5">{{ formattedPhoneNumber }}</strong>
               </div>
 
@@ -592,7 +592,7 @@
                   :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
                   @input="onIdentifierInput"
                 >
-                <p v-if="identifierError" class="mt-1.5 text-xs text-red-600 flex items-center gap-1" role="alert">
+                <p v-if="identifierError" class="mt-1.5 text-xs text-red-700 flex items-center gap-1" role="alert">
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ identifierError }}
                 </p>
@@ -633,7 +633,7 @@
               <!-- Phone confirmation pill -->
               <div class="flex items-center justify-between rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3">
                 <div class="flex items-center gap-2 text-xs text-ink-500">
-                  <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  <svg class="h-4 w-4 text-brand-700 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                   Code sent to <strong class="text-ink-900 ml-0.5 break-all">{{ signupMethod === 'email' ? signupEmailSentTo : formattedPhoneNumber }}</strong>
                 </div>
                 <button
@@ -648,13 +648,13 @@
               <!-- Name row -->
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label for="su-fname" class="block text-sm font-semibold text-ink-900 mb-1.5">First name <span class="text-red-500">*</span></label>
+                  <label for="su-fname" class="block text-sm font-semibold text-ink-900 mb-1.5">First name <span class="text-red-700">*</span></label>
                   <input v-model="firstName" type="text" id="su-fname"
                     class="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder-ink-400 focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                     placeholder="John" required autocomplete="given-name">
                 </div>
                 <div>
-                  <label for="su-lname" class="block text-sm font-semibold text-ink-900 mb-1.5">Last name <span class="text-red-500">*</span></label>
+                  <label for="su-lname" class="block text-sm font-semibold text-ink-900 mb-1.5">Last name <span class="text-red-700">*</span></label>
                   <input v-model="lastName" type="text" id="su-lname"
                     class="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder-ink-400 focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                     placeholder="Doe" required autocomplete="family-name">
@@ -663,7 +663,7 @@
 
               <!-- OTP boxes -->
               <div>
-                <label class="block text-sm font-semibold text-ink-900 mb-2">Verification code <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-semibold text-ink-900 mb-2">Verification code <span class="text-red-700">*</span></label>
                 <div class="flex gap-2" role="group" aria-label="6-digit verification code">
                   <input
                     v-for="(_, idx) in otpDigits"
@@ -697,7 +697,7 @@
 
               <!-- Password -->
               <div>
-                <label for="su-password" class="block text-sm font-semibold text-ink-900 mb-1.5">Create a password <span class="text-red-500">*</span></label>
+                <label for="su-password" class="block text-sm font-semibold text-ink-900 mb-1.5">Create a password <span class="text-red-700">*</span></label>
                 <div class="relative">
                   <input
                     v-model="password"

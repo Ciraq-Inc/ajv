@@ -5,25 +5,25 @@
     <Transition name="sticky-header">
       <div
         v-if="showStickyHeader && pharmacyStore.pharmacyData"
-        class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100 px-4 py-2 flex items-center justify-between gap-3"
+        class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-ink-100 px-4 py-2 flex items-center justify-between gap-3"
       >
         <div class="flex items-center gap-2.5 min-w-0">
           <img
             v-if="pharmacyStore.pharmacyData.logo"
             :src="pharmacyStore.pharmacyData.logo"
-            class="h-7 w-7 rounded-full object-cover flex-shrink-0 border border-gray-100"
+            class="h-7 w-7 rounded-full object-cover flex-shrink-0 border border-ink-100"
             :alt="pharmacyStore.pharmacyData.name ?? ''"
           />
           <div v-else class="h-7 w-7 rounded-full shopfront-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
             {{ (pharmacyStore.pharmacyData.name || '')[0]?.toUpperCase() }}
           </div>
-          <span class="font-semibold text-gray-900 text-sm truncate">{{ pharmacyStore.pharmacyData.name }}</span>
+          <span class="font-semibold text-ink-900 text-sm truncate">{{ pharmacyStore.pharmacyData.name }}</span>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
           <a
             v-if="pharmacyStore.pharmacyData.phone"
             :href="`tel:${pharmacyStore.pharmacyData.phone}`"
-            class="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+            class="p-1.5 rounded-lg bg-ink-100 hover:bg-ink-200 text-ink-600 transition-colors"
             aria-label="Call pharmacy"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -34,7 +34,7 @@
             v-if="pharmacyStore.pharmacyData.phone"
             :href="whatsappLink"
             target="_blank"
-            class="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+            class="p-1.5 rounded-lg bg-brand-100 hover:bg-brand-200 text-brand-700 transition-colors"
             aria-label="WhatsApp pharmacy"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,9 +57,9 @@
 
     <!-- Error State with improved styling -->
     <div v-else-if="pharmacyStore.error"
-      class="bg-red-50 border-l-4 border-red-500 text-red-700 p-6 rounded-xl shadow-lg mb-8 animate-fadeIn">
+      class="bg-red-50 border-l-4 border-red-700 text-red-700 p-6 rounded-xl shadow-lg mb-8 animate-fadeIn">
       <div class="flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-4 text-red-500" fill="none" viewBox="0 0 24 24"
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-4 text-red-700" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -67,7 +67,7 @@
         <p class="font-medium text-lg">{{ pharmacyStore.error }}</p>
       </div>
       <button @click="refreshData"
-        class="mt-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
+        class="mt-4 bg-red-700 hover:bg-red-700 active:bg-red-800 text-white px-5 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -79,9 +79,9 @@
 
     <!-- Not Found State with improved styling -->
     <div v-else-if="pharmacyStore.notFound"
-      class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 p-6 rounded-xl shadow-lg mb-8 animate-fadeIn">
+      class="bg-amber-50 border-l-4 border-amber-800 text-amber-800 p-6 rounded-xl shadow-lg mb-8 animate-fadeIn">
       <div class="flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-4 text-yellow-500" fill="none" viewBox="0 0 24 24"
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-4 text-amber-800" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -91,7 +91,7 @@
         </p>
       </div>
       <button @click="goToPharmacySelection"
-        class="mt-4 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white px-5 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
+        class="mt-4 bg-amber-800 hover:bg-amber-800 active:bg-amber-800 text-white px-5 py-2 rounded-lg transition-colors duration-200 inline-flex items-center shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -103,7 +103,7 @@
     <div v-else class="space-y-5">
       <!-- Pharmacy Header -->
       <div ref="pharmacyHeaderRef">
-        <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-ink-100">
           <!-- Hero banner — taller, more immersive -->
           <div class="shopfront-hero h-48 md:h-64 relative" :style="heroStyle">
             <!-- Bottom gradient scrim so logo/text sit on a readable surface -->
@@ -169,17 +169,17 @@
           <div class="px-5 pt-10 pb-5 md:px-6 md:pt-12 md:pb-6">
             <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
               <div class="min-w-0">
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+                <h1 class="text-2xl md:text-3xl font-bold text-ink-900 leading-tight">
                   {{ pharmacyStore.pharmacyData?.name || "Welcome" }}
                 </h1>
-                <div class="flex items-center mt-1.5 text-sm text-gray-500 gap-1.5">
+                <div class="flex items-center mt-1.5 text-sm text-ink-500 gap-1.5">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 shopfront-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <span class="truncate">{{ pharmacyStore.pharmacyData?.location }}</span>
                 </div>
-                <p class="mt-3 text-gray-600 text-sm leading-relaxed max-w-xl line-clamp-2 md:line-clamp-none">
+                <p class="mt-3 text-ink-600 text-sm leading-relaxed max-w-xl line-clamp-2 md:line-clamp-none">
                   {{
                     pharmacyStore.pharmacyData?.description ||
                     "Browse medications and health products, then place your order for fast local delivery."
@@ -196,7 +196,7 @@
                   <span v-if="!pharmacyStore.pharmacyData?.hide_prices" class="font-semibold text-sm">GHS {{ formatCartTotal }}</span>
                   <span
                     v-if="cartStore.cartItemCount > 0"
-                    class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none"
+                    class="absolute -top-1.5 -right-1.5 bg-red-700 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none"
                   >{{ cartStore.cartItemCount }}</span>
                 </div>
               </button>
@@ -210,11 +210,11 @@
           <div class="shopfront-ad-top">
             <div class="flex items-center gap-2">
               <span class="shopfront-ad-chip">{{ ad.type === "image" ? "Visual Ad" : "Promo" }}</span>
-              <span class="shopfront-ad-chip bg-white/70 text-gray-700">Featured</span>
+              <span class="shopfront-ad-chip bg-white/70 text-ink-600">Featured</span>
             </div>
-            <h3 class="mt-4 text-3xl font-black tracking-tight text-gray-950 leading-tight">{{ ad.headline }}</h3>
-            <p v-if="ad.body" class="shopfront-ad-body mt-3 text-sm font-medium leading-5 text-gray-700">{{ ad.body }}</p>
-            <p class="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">{{ formatAdWindow(ad.start_date, ad.end_date) }}</p>
+            <h3 class="mt-4 text-3xl font-black tracking-tight text-ink-900 leading-tight">{{ ad.headline }}</h3>
+            <p v-if="ad.body" class="shopfront-ad-body mt-3 text-sm font-medium leading-5 text-ink-600">{{ ad.body }}</p>
+            <p class="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-ink-600">{{ formatAdWindow(ad.start_date, ad.end_date) }}</p>
           </div>
 
           <div class="shopfront-ad-media">
@@ -238,12 +238,12 @@
       </section>
 
       <!-- Search + category chips -->
-      <div class="sticky top-0 z-40 py-3 bg-gray-50/90 backdrop-blur-md -mx-4 px-4 sm:-mx-0 sm:px-0 sm:rounded-none">
-        <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+      <div class="sticky top-0 z-40 py-3 bg-ink-50/90 backdrop-blur-md -mx-4 px-4 sm:-mx-0 sm:px-0 sm:rounded-none">
+        <div class="bg-white rounded-2xl shadow-md border border-ink-100 overflow-hidden">
           <!-- Search row -->
           <div class="relative px-4 pt-3.5 pb-2">
             <div class="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none top-3.5 bottom-auto h-11">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-ink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -252,14 +252,14 @@
               ref="searchInput"
               type="search"
               placeholder="Search medications, vitamins, supplements…"
-              class="w-full pl-11 pr-10 py-2.5 border border-gray-200 rounded-xl shopfront-input bg-gray-50 text-gray-800 placeholder-gray-400 text-base transition-all duration-200"
+              class="w-full pl-11 pr-10 py-2.5 border border-ink-200 rounded-xl shopfront-input bg-ink-50 text-ink-900 placeholder-ink-400 text-base transition-all duration-200"
               aria-label="Search products"
             />
             <button
               v-if="searchQuery && !searchLoading"
               type="button"
               @click="clearSearch"
-              class="absolute right-8 top-1/2 -translate-y-1/2 mt-1.5 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+              class="absolute right-8 top-1/2 -translate-y-1/2 mt-1.5 text-ink-500 hover:text-ink-600 p-1 rounded-full hover:bg-ink-100 transition-colors"
               aria-label="Clear search"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -281,15 +281,15 @@
             <button
               type="button"
               @click="isCategoryPanelOpen = !isCategoryPanelOpen"
-              class="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 hover:border-gray-300 transition-colors"
+              class="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-ink-50 border border-ink-200 hover:border-ink-200 transition-colors"
               :aria-expanded="isCategoryPanelOpen"
             >
-              <span class="text-sm text-gray-600 truncate">
+              <span class="text-sm text-ink-600 truncate">
                 Classification:
-                <strong class="text-gray-900 font-semibold">{{ selectedClassificationName }}</strong>
+                <strong class="text-ink-900 font-semibold">{{ selectedClassificationName }}</strong>
               </span>
               <svg
-                xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 flex-shrink-0 transition-transform duration-200"
+                xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-ink-500 flex-shrink-0 transition-transform duration-200"
                 :class="{ 'rotate-180': isCategoryPanelOpen }"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
               >
@@ -298,16 +298,16 @@
             </button>
 
             <div class="category-panel" :class="{ 'category-panel--open': isCategoryPanelOpen }">
-              <div class="category-panel-inner border border-gray-200 rounded-xl bg-white p-3 mt-2">
+              <div class="category-panel-inner border border-ink-200 rounded-xl bg-white p-3 mt-2">
                 <div class="relative">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
                     v-model="categorySearchQuery"
                     type="search"
                     placeholder="Search categories…"
-                    class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-800 placeholder-gray-400 text-sm shopfront-input"
+                    class="w-full pl-9 pr-3 py-2 border border-ink-200 rounded-lg bg-ink-50 text-ink-900 placeholder-ink-400 text-sm shopfront-input"
                     aria-label="Search categories"
                   />
                 </div>
@@ -323,7 +323,7 @@
                       selectedClassificationId === cls.id ? 'category-pill--active' : ''
                     ]"
                   >{{ cls.name }}</button>
-                  <p v-if="!filteredClassifications.length" class="col-span-full text-center text-xs text-gray-400 py-4">
+                  <p v-if="!filteredClassifications.length" class="col-span-full text-center text-xs text-ink-500 py-4">
                     No categories match "{{ categorySearchQuery }}"
                   </p>
                 </div>
@@ -347,7 +347,7 @@
       <!-- User welcome strip — condensed single-line banner -->
       <div
         v-if="userStore.isLoggedIn && userStore.currentUser"
-        class="flex items-center justify-between gap-3 px-4 py-2.5 bg-white rounded-xl border border-gray-100 shadow-sm animate-fadeIn"
+        class="flex items-center justify-between gap-3 px-4 py-2.5 bg-white rounded-xl border border-ink-100 shadow-sm animate-fadeIn"
       >
         <div class="flex items-center gap-2 min-w-0">
           <div class="w-7 h-7 rounded-full shopfront-accent-soft flex items-center justify-center flex-shrink-0">
@@ -355,8 +355,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <span class="text-sm text-gray-600 truncate">
-            Welcome back, <strong class="text-gray-900 font-semibold">{{ userStore.currentUser.lname || "there" }}</strong>
+          <span class="text-sm text-ink-600 truncate">
+            Welcome back, <strong class="text-ink-900 font-semibold">{{ userStore.currentUser.lname || "there" }}</strong>
           </span>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
@@ -365,10 +365,10 @@
             class="text-xs font-semibold shopfront-text hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 rounded px-1 py-0.5"
             style="--tw-ring-color: var(--shopfront-accent)"
           >My Account</button>
-          <span class="text-gray-200 select-none" aria-hidden="true">|</span>
+          <span class="text-ink-200 select-none" aria-hidden="true">|</span>
           <button
             @click="handleLogout"
-            class="text-xs font-semibold text-gray-400 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-red-400 rounded px-1 py-0.5 transition-colors"
+            class="text-xs font-semibold text-ink-500 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-red-700 rounded px-1 py-0.5 transition-colors"
           >Logout</button>
         </div>
       </div>
@@ -378,13 +378,13 @@
       <div class="animate-fadeIn">
         <!-- View Toggle and Title -->
         <div class="mb-4 lg:mb-6 flex justify-between items-center">
-          <h2 class="text-lg font-bold text-gray-800">Products</h2>
-          <div class="lg:flex bg-gray-100 p-1 rounded-lg hidden shadow-inner">
+          <h2 class="text-lg font-bold text-ink-900">Products</h2>
+          <div class="lg:flex bg-ink-100 p-1 rounded-lg hidden shadow-inner">
             <button @click="viewMode = 'grid'" :class="[
               'p-2 rounded-md transition-colors duration-200',
               viewMode === 'grid'
                 ? 'shopfront-primary text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-200',
+                : 'text-ink-600 hover:bg-ink-200',
             ]">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -396,7 +396,7 @@
               'p-2 rounded-md transition-colors duration-200',
               viewMode === 'table'
                 ? 'shopfront-primary text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-200',
+                : 'text-ink-600 hover:bg-ink-200',
             ]">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -409,7 +409,7 @@
 
         <!-- No products state with improved styling -->
         <div v-if="!pharmacyStore.hasProducts"
-          class="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-100 transition-all duration-300 hover:shadow-xl">
+          class="bg-white rounded-xl shadow-lg p-12 text-center border border-ink-100 transition-all duration-300 hover:shadow-xl">
           <div
             class="inline-flex items-center justify-center w-20 h-20 rounded-full shopfront-accent-soft shopfront-text mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24"
@@ -418,10 +418,10 @@
                 d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
           </div>
-          <h3 class="text-2xl font-medium text-gray-900 mb-3">
+          <h3 class="text-2xl font-medium text-ink-900 mb-3">
             No products available
           </h3>
-          <p class="mt-2 text-gray-600 max-w-md mx-auto">
+          <p class="mt-2 text-ink-600 max-w-md mx-auto">
             This pharmacy has no products listed yet. Please check back later or
             contact the pharmacy directly.
           </p>
@@ -442,31 +442,31 @@
 
           <!-- Offset-based pagination (legacy backend shape) -->
           <div v-if="pharmacyStore.productPagination.totalPages > 1"
-            class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3">
-            <p class="text-sm text-gray-500">
+            class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl shadow-sm border border-ink-100 px-4 py-3">
+            <p class="text-sm text-ink-500">
               Showing
-              <span class="font-medium text-gray-700">{{ paginationFrom }}</span>
+              <span class="font-medium text-ink-600">{{ paginationFrom }}</span>
               –
-              <span class="font-medium text-gray-700">{{ paginationTo }}</span>
+              <span class="font-medium text-ink-600">{{ paginationTo }}</span>
               of
-              <span class="font-medium text-gray-700">{{ pharmacyStore.productPagination.total }}</span>
+              <span class="font-medium text-ink-600">{{ pharmacyStore.productPagination.total }}</span>
               products
             </p>
             <nav class="flex items-center gap-1">
               <button @click="changePage(pharmacyStore.productPagination.currentPage - 1)"
                 :disabled="pharmacyStore.productPagination.currentPage === 1"
-                class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                class="px-3 py-1.5 text-sm rounded-lg border border-ink-200 text-ink-600 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 Previous
               </button>
               <button v-for="p in paginationPages" :key="p" @click="changePage(p)" :class="[
                 'px-3 py-1.5 text-sm rounded-lg border transition-colors',
                 p === pharmacyStore.productPagination.currentPage
                   ? 'shopfront-primary text-white border-transparent'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  : 'border-ink-200 text-ink-600 hover:bg-ink-50'
               ]">{{ p }}</button>
               <button @click="changePage(pharmacyStore.productPagination.currentPage + 1)"
                 :disabled="pharmacyStore.productPagination.currentPage === pharmacyStore.productPagination.totalPages"
-                class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                class="px-3 py-1.5 text-sm rounded-lg border border-ink-200 text-ink-600 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 Next
               </button>
             </nav>
@@ -501,9 +501,9 @@
     <Transition name="cart-toast">
       <div
         v-if="cartToast.show"
-        class="fixed bottom-24 right-6 z-50 bg-gray-900/95 backdrop-blur-sm text-white text-xs font-medium px-3.5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 max-w-[210px]"
+        class="fixed bottom-24 right-6 z-50 bg-ink-900/95 backdrop-blur-sm text-white text-xs font-medium px-3.5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 max-w-[210px]"
       >
-        <div class="w-4 h-4 bg-green-400 rounded-full flex items-center justify-center flex-shrink-0">
+        <div class="w-4 h-4 bg-brand-500 rounded-full flex items-center justify-center flex-shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
           </svg>
@@ -527,10 +527,10 @@
 
     <!-- Order Success Notification with improved animation -->
     <div v-if="showOrderSuccess"
-      class="fixed top-6 right-6 bg-green-100 border-l-4 border-green-600 text-green-800 p-4 rounded-lg shadow-lg z-50 max-w-md animate-slideIn">
+      class="fixed top-6 right-6 bg-brand-100 border-l-4 border-brand-700 text-brand-800 p-4 rounded-lg shadow-lg z-50 max-w-md animate-slideIn">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+          <svg class="h-6 w-6 text-brand-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
             fill="currentColor">
             <path fill-rule="evenodd"
               d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -543,7 +543,7 @@
         <div class="ml-auto pl-3">
           <div class="-mx-1.5 -my-1.5">
             <button @click="showOrderSuccess = false"
-              class="inline-flex rounded-md p-1.5 text-green-600 hover:bg-green-200 focus:outline-none transition-colors duration-200">
+              class="inline-flex rounded-md p-1.5 text-brand-700 hover:bg-brand-200 focus:outline-none transition-colors duration-200">
               <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"
                   d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"

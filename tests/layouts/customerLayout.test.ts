@@ -96,3 +96,38 @@ describe('Customer layout: background', () => {
     expect(w.classes()).toContain('bg-white')
   })
 })
+
+describe('Customer layout: look', () => {
+  const BAD = /zinc-|emerald-|rose-|slate-|gray-|\bblue-\d|\[#[0-9a-fA-F]{3,6}\]|#[0-9a-fA-F]{6}|text-\[(9|10|11|13)px\]|gradient|red-500|red-600/
+
+  it('uses brand tokens only, with readable text and no gradients', async () => {
+    const w = await open('new')
+    await w.find('button[aria-label="More options"]').trigger('click')
+    expect(document.body.innerHTML).not.toMatch(BAD)
+  })
+
+  it('keeps every bottom-bar and side-menu button at least 44px tall', async () => {
+    const w = await open('new')
+    const buttons = [...w.findAll('nav button')]
+    expect(buttons.length).toBeGreaterThan(5)
+    for (const b of buttons) expect(b.classes().some(c => c.startsWith('min-h-[44px]'))).toBe(true)
+  })
+
+  it('marks the active side-menu item as the current page', async () => {
+    const w = await open('wallet')
+    const active = w.findAll('aside nav button').filter(b => b.attributes('aria-current') === 'page')
+    expect(active).toHaveLength(1)
+    expect(active[0].text()).toContain('Wallet')
+  })
+
+  it('opens the account menu as a labelled dialog that closes on Escape', async () => {
+    const w = await open('profile')
+    await w.find('button[aria-label="More options"]').trigger('click')
+    const dlg = document.body.querySelector('[role="dialog"]') as HTMLElement
+    expect(dlg.getAttribute('aria-modal')).toBe('true')
+    expect(dlg.getAttribute('aria-labelledby')).toBeTruthy()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+  })
+})

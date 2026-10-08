@@ -265,6 +265,49 @@ describe('home page: arriving from the Clearance Marketplace', () => {
   })
 })
 
+describe('home page: hero picture', () => {
+  it('shows the hero photo as a mirrored backdrop behind the hero', async () => {
+    const wrapper = await open()
+    const img = wrapper.find('img[src="/hero_image.jpg"]')
+
+    expect(img.exists()).toBe(true)
+    expect(img.classes()).toContain('-scale-x-100')
+    expect(img.classes()).toContain('absolute')
+    expect(img.classes()).toContain('opacity-20')
+    // The JPG has a white fade baked into its left 30%; the oversized box pushes it out of view.
+    expect(img.classes()).toContain('w-[143%]')
+    expect(img.classes()).toContain('max-w-none')
+    // Anchor to the top so the pharmacist's head is never cropped.
+    expect(img.classes()).toContain('object-top')
+    // Starts below the floating navbar so the head isn't hidden behind it.
+    expect(img.classes()).toContain('top-20')
+    expect(img.attributes('alt')).toBe('')
+  })
+
+  it('uses the full-frame desktop photo from the lg breakpoint up, hiding the older one there', async () => {
+    const wrapper = await open()
+    const desktop = wrapper.find('img[src="/hero_desktop.jpg"]')
+    const older = wrapper.find('img[src="/hero_image.jpg"]')
+
+    expect(desktop.exists()).toBe(true)
+    expect(desktop.classes()).toEqual(expect.arrayContaining(['hidden', 'lg:block', 'absolute', '-scale-x-100', 'opacity-20', 'object-top', 'top-20']))
+    // This photo has no baked-in fade, so it fills the section without oversizing.
+    expect(desktop.classes()).not.toContain('w-[143%]')
+    expect(desktop.attributes('alt')).toBe('')
+    expect(older.classes()).toContain('lg:hidden')
+  })
+})
+
+describe('home page: sign-in card', () => {
+  it('has no extra panel wrapped around the tabs and form', async () => {
+    const wrapper = await open()
+    const tablist = wrapper.find('[role="tablist"]').element
+    const wrapperPanel = tablist.closest('div.shadow-lift, div.ring-1')
+
+    expect(wrapperPanel).toBeNull()
+  })
+})
+
 describe('home page: content', () => {
   it('has the sections the navbar links to', async () => {
     const wrapper = await open()

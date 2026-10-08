@@ -66,7 +66,7 @@ describe('HomeHowItWorks', () => {
     expect(wrapper.find('section#how-it-works').exists()).toBe(true)
   })
 
-  it('walks through three numbered steps, each with an illustrated image', () => {
+  it('walks through three numbered steps, each with a description and an illustrated image', () => {
     const wrapper = mount(HomeHowItWorks)
     const steps = wrapper.findAll('article')
 
@@ -78,6 +78,7 @@ describe('HomeHowItWorks', () => {
     ])
     expect(steps.map(s => s.find('[data-step]').text())).toEqual(['1', '2', '3'])
     for (const step of steps) {
+      expect(step.find('p').text().length).toBeGreaterThan(20)
       expect(step.find('img').attributes('alt')).toBeTruthy()
     }
   })
