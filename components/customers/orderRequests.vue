@@ -1,33 +1,63 @@
 <template>
     <div class="order-requests">
         <!-- ====== NEW REQUEST FORM ====== -->
-        <div v-if="isNewView" class="space-y-6 pb-6">
+        <div v-if="isNewView" class="mx-auto w-full max-w-2xl space-y-8 pb-8 pt-2 font-body">
 
             <!-- Page Header -->
-            <div>
-                <p class="text-[10px] font-bold uppercase tracking-widest text-[#4F217A]/50 mb-1">Medication Request</p>
-                <h2 class="text-[1.6rem] font-black text-[#350062] leading-tight">What do you need?</h2>
-            </div>
+            <header>
+                <h1 class="font-display text-3xl font-bold tracking-tight text-ink-900">What do you need?</h1>
+                <p class="mt-2 text-base text-ink-600">List your medicines and we will find them at pharmacies near you.</p>
+            </header>
 
-            <div class="relative space-y-4">
+            <div class="relative space-y-6">
 
-                    <!-- Add Medication (with inline triggers for prescription + notes) -->
-                    <section class="bg-white rounded-2xl shadow-[0_2px_20px_rgba(79,33,122,0.08)] ring-1 ring-[#4F217A]/[0.06]">
-                        <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-zinc-100">
-                            <div>
-                                <h3 class="font-bold text-zinc-900 text-sm leading-tight">Medications</h3>
-                                <p class="text-[11px] text-zinc-400 font-medium">Add everything you need</p>
-                            </div>
-                            <button @click="addItem" type="button"
-                                class="w-7 h-7 rounded-lg bg-[#4F217A]/[0.08] flex items-center justify-center flex-shrink-0 hover:bg-[#4F217A]/[0.16] transition-colors"
-                                aria-label="Add another medication">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-[#4F217A]" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                            </button>
+                    <!-- Prescription: first, because it can stand on its own -->
+                    <section aria-labelledby="request-rx-title" class="rounded-2xl bg-brand-50 p-5">
+                        <h2 id="request-rx-title" class="font-display text-xl font-bold text-ink-900">Have a prescription?</h2>
+                        <p class="mt-1 text-sm text-ink-600">Take a photo or upload it and skip the typing. You can add medicines too.</p>
+                        <div class="mt-4 flex flex-wrap items-center gap-3">
+                            <label class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-brand-700 px-5 text-sm font-semibold text-white transition-colors focus-within:ring-2 focus-within:ring-brand-700 focus-within:ring-offset-2 hover:bg-brand-600">
+                                <CameraIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                                Take photo
+                                <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="sr-only" />
+                            </label>
+                            <label class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-brand-700 ring-1 ring-brand-700/30 transition-colors focus-within:ring-2 focus-within:ring-brand-700 hover:bg-brand-100">
+                                <ArrowUpTrayIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                                Upload prescription
+                                <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="sr-only" />
+                            </label>
                         </div>
-                        <div class="flex flex-col divide-y divide-zinc-100 px-5 pt-1">
-                            <div v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3 py-4 first:pt-3">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-5 h-5 rounded-full bg-[#4F217A]/[0.07] text-[#4F217A] text-[10px] font-black flex items-center justify-center flex-shrink-0 select-none">{{ index + 1 }}</span>
+                        <p v-if="prescriptionFileError" role="alert" class="mt-3 text-sm font-medium text-red-700">{{ prescriptionFileError }}</p>
+                        <input ref="prescriptionReplacePicker" type="file" accept="image/*" @change="onReplacePrescriptionFile" class="hidden" />
+                        <ul v-if="prescriptionFiles.length" class="mt-4 flex flex-wrap gap-3">
+                            <li v-for="(preview, index) in prescriptionFiles" :key="preview.id"
+                                class="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-white">
+                                <img :src="preview.previewUrl" :alt="`Prescription photo ${index + 1}`" class="h-full w-full object-cover" />
+                                <button type="button" @click="removePrescriptionFile(index)"
+                                    :aria-label="`Remove prescription photo ${index + 1}`"
+                                    class="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full bg-ink-900/80 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                                    <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+                                </button>
+                            </li>
+                        </ul>
+                        <div v-if="isUploading" class="mt-4 flex items-center gap-3" role="status" aria-label="Uploading prescription">
+                            <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-white">
+                                <span class="block h-full bg-brand-700 transition-all duration-300"
+                                    :style="{ width: `${uploadProgress}%` }"></span>
+                            </div>
+                            <span class="text-sm font-semibold tabular-nums text-ink-900">{{ Math.round(uploadProgress) }}%</span>
+                        </div>
+                    </section>
+
+                    <!-- Medications -->
+                    <section aria-labelledby="request-meds-title" class="space-y-5">
+                        <h2 id="request-meds-title" class="font-display text-xl font-bold text-ink-900">Medications</h2>
+
+                        <ul class="space-y-6">
+                            <li v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3">
+                                <div class="relative">
+                                    <span class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 select-none items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white" aria-hidden="true">{{ index + 1 }}</span>
+                                    <label :for="`request-medicine-${index}`" class="sr-only">Medication {{ index + 1 }}: name, brand or strength</label>
                                     <input v-model="item.product_name" type="text"
                                         :id="`request-medicine-${index}`"
                                         autocomplete="off"
@@ -35,612 +65,414 @@
                                         inputmode="text"
                                         placeholder="Medicine name, brand, or strength"
                                         @input="debouncedSaveFormDraft()"
-                                        class="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 transition-colors" />
+                                        :class="requestItems.length > 1 ? 'pr-14' : 'pr-4'"
+                                        class="min-h-[56px] w-full rounded-lg border-2 border-transparent bg-ink-100 py-3 pl-14 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none" />
+                                    <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
+                                        type="button" :aria-label="`Remove medication ${index + 1}`"
+                                        class="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+                                    </button>
                                 </div>
 
-                                <!-- Unit + Qty with labels -->
-                                <div v-if="item.product_name.trim()" class="flex items-end gap-2">
-                                    <div class="flex-1 flex flex-col gap-1">
-                                        <select v-model="item.requested_unit"
-                                            class="h-10 w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 text-sm font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 cursor-pointer">
-                                            <option value="">Choose unit…</option>
-                                            <option v-for="option in medicineUnitOptions" :key="option" :value="option">{{ option }}</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="flex-shrink-0">
-                                        <div class="flex items-center h-10 bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden">
-                                            <button type="button"
-                                                class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 transition-colors"
-                                                @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1">−</button>
-                                            <input v-model.number="item.quantity" type="number" min="1" placeholder="1"
-                                                class="w-10 h-full text-center text-sm font-black text-zinc-900 focus:outline-none border-x border-zinc-200 appearance-none bg-transparent p-0" />
-                                            <button type="button"
-                                                class="w-10 h-full flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-                                                @click="incrementQty(item)">+</button>
+                                <!-- Unit + Qty -->
+                                <div v-if="item.product_name.trim()" class="flex flex-wrap items-end gap-4">
+                                    <div class="min-w-[9rem] flex-1">
+                                        <label :for="`request-unit-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Unit</label>
+                                        <div class="relative">
+                                            <select v-model="item.requested_unit" :id="`request-unit-${index}`"
+                                                class="min-h-[48px] w-full cursor-pointer appearance-none rounded-lg border-2 border-transparent bg-ink-100 px-4 pr-11 text-base font-medium text-ink-900 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none">
+                                                <option value="" class="bg-white text-base text-ink-900">Choose unit…</option>
+                                                <option v-for="option in medicineUnitOptions" :key="option" :value="option" class="bg-white text-base text-ink-900">{{ option }}</option>
+                                            </select>
+                                            <ChevronDownIcon class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-600" aria-hidden="true" />
                                         </div>
                                     </div>
 
-                                    <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
-                                        class="w-10 h-10 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0 mb-0.5"
-                                        type="button">
-                                        <XMarkIcon class="w-4 h-4" />
-                                    </button>
+                                    <div>
+                                        <label :for="`request-qty-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Quantity</label>
+                                        <div class="flex items-center gap-1 rounded-full bg-ink-100 p-1">
+                                            <button type="button" :aria-label="`Decrease quantity of ${item.product_name.trim()}`"
+                                                class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                                                @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1"><span aria-hidden="true">−</span></button>
+                                            <input v-model.number="item.quantity" :id="`request-qty-${index}`" type="number" min="1" inputmode="numeric" placeholder="1"
+                                                class="h-11 w-12 appearance-none bg-transparent p-0 text-center text-base font-bold text-ink-900 focus:outline-none" />
+                                            <button type="button" :aria-label="`Increase quantity of ${item.product_name.trim()}`"
+                                                class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                                @click="incrementQty(item)"><span aria-hidden="true">+</span></button>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <label v-if="item.product_name.trim()"
-                                    class="flex items-center gap-2 pl-1 cursor-pointer select-none w-fit">
+                                    class="flex min-h-[44px] w-fit cursor-pointer select-none items-center gap-3">
                                     <input type="checkbox" v-model="item.prefer_clearance_only"
                                         @change="debouncedSaveFormDraft()"
-                                        class="w-4 h-4 rounded accent-amber-600 cursor-pointer" />
-                                    <span class="text-[11px] font-bold text-amber-700">Clearance/discounted stock only</span>
+                                        class="h-5 w-5 cursor-pointer rounded accent-brand-700" />
+                                    <span class="text-sm font-medium text-ink-900">Clearance/discounted stock only</span>
                                 </label>
-                            </div>
-                        </div>
-                        <!-- Prescription + Notes footer -->
-                        <div class="px-5 pb-5 pt-4 border-t border-zinc-100 space-y-3">
-                        <div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Prescription</span>
-                                <span class="text-[9px] font-semibold text-zinc-300">optional</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="sr-only">Rx</span>
-                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Take a prescription photo">
-                                    <CameraIcon class="w-4 h-4 flex-shrink-0" />
-                                    Photo
-                                    <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="hidden" />
-                                </label>
-                                <label class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 cursor-pointer transition-colors text-xs font-semibold" title="Upload prescription">
-                                    <ArrowUpTrayIcon class="w-4 h-4 flex-shrink-0" />
-                                    Upload
-                                    <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="hidden" />
-                                </label>
-                            </div>
-                            <p v-if="prescriptionFileError" class="mt-1.5 text-xs font-semibold text-red-600">{{ prescriptionFileError }}</p>
-                            <input ref="prescriptionReplacePicker" type="file" accept="image/*" @change="onReplacePrescriptionFile" class="hidden" />
-                            <div v-if="prescriptionFiles.length" class="mt-3 flex flex-wrap gap-2">
-                                <div v-for="(preview, index) in prescriptionFiles" :key="preview.id"
-                                    class="relative w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 flex-shrink-0">
-                                    <img :src="preview.previewUrl" :alt="`Rx ${index + 1}`" class="w-full h-full object-cover" />
-                                    <button type="button" @click="removePrescriptionFile(index)"
-                                        class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center">
-                                        <XMarkIcon class="w-3 h-3" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                            </li>
+                        </ul>
 
-                        <div v-if="isUploading" class="flex items-center gap-3">
-                            <div class="flex-1 h-1.5 bg-[#4F217A]/10 rounded-full overflow-hidden">
-                                <span class="block h-full bg-[#4F217A] transition-all duration-300"
-                                    :style="{ width: `${uploadProgress}%` }"></span>
-                            </div>
-                            <span class="text-xs font-bold text-[#4F217A] tabular-nums">{{ Math.round(uploadProgress) }}%</span>
+                        <div class="flex flex-wrap items-center gap-x-6">
+                            <button @click="addItem" type="button"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full pr-3 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <PlusIcon class="h-5 w-5" aria-hidden="true" />
+                                Add another medication
+                            </button>
+                            <button v-if="!showNotesField" @click="openNotesField" type="button"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full pr-3 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <ChatBubbleLeftEllipsisIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                                Add note
+                            </button>
                         </div>
+                    </section>
+
+                    <!-- Contact + notes -->
+                    <section v-if="showNotesField || needsContactPhone || contactPhone" aria-labelledby="request-extras-title" class="space-y-5 border-t border-ink-100 pt-8">
+                        <h2 id="request-extras-title" class="font-display text-xl font-bold text-ink-900">
+                            <template v-if="showNotesField">Notes <span class="text-base font-medium text-ink-500">(optional)</span></template>
+                            <template v-else>Contact number</template>
+                        </h2>
 
                         <!-- Contact phone: email-only accounts have no number on file -->
                         <div v-if="needsContactPhone || contactPhone">
-                            <label for="request-contact-phone" class="mb-1.5 block text-sm font-semibold text-zinc-800">
+                            <label for="request-contact-phone" class="mb-2 block text-sm font-semibold text-ink-900">
                                 Phone number we can reach you on
-                                <span v-if="needsContactPhone" class="text-red-500">*</span>
+                                <span v-if="needsContactPhone" class="text-red-700" aria-hidden="true">*</span>
                             </label>
                             <input v-model="contactPhone" id="request-contact-phone" type="tel"
                                 inputmode="tel" autocomplete="tel"
                                 placeholder="024 123 4567 or +44 7911 123456"
                                 aria-describedby="request-contact-phone-help"
                                 :aria-invalid="contactPhoneError ? 'true' : 'false'"
-                                class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40" />
-                            <p v-if="contactPhoneError" class="mt-1.5 text-xs font-semibold text-red-600">{{ contactPhoneError }}</p>
-                            <p id="request-contact-phone-help" class="mt-1.5 text-xs text-zinc-500">
+                                class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-ink-100 px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none" />
+                            <p v-if="contactPhoneError" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ contactPhoneError }}</p>
+                            <p id="request-contact-phone-help" class="mt-2 text-sm text-ink-600">
                                 The rider and pharmacy use this to reach you about this delivery. Include the country code if it is not a Ghana number.
                             </p>
                         </div>
 
                         <!-- Notes -->
-                        <div v-if="showNotesField" class="flex items-start gap-2">
-                            <textarea v-model="customerNotes" rows="2"
+                        <div v-if="showNotesField" class="flex items-start gap-3">
+                            <label for="request-notes" class="sr-only">Notes for the pharmacy</label>
+                            <textarea v-model="customerNotes" rows="3"
                                 ref="notesTextarea"
                                 id="request-notes"
                                 inputmode="text"
                                 autocapitalize="sentences"
                                 placeholder="Notes — e.g. brand preference, dosage form..."
-                                class="flex-1 rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none"></textarea>
-                            <button v-if="!customerNotes.trim()" @click="dismissNotesField" type="button"
-                                class="mt-1 w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors flex-shrink-0">
-                                <XMarkIcon class="w-4 h-4" />
+                                class="min-w-0 flex-1 resize-none rounded-lg border-2 border-transparent bg-ink-100 px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none"></textarea>
+                            <button v-if="!customerNotes.trim()" @click="dismissNotesField" type="button" aria-label="Remove note"
+                                class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <XMarkIcon class="h-5 w-5" aria-hidden="true" />
                             </button>
                         </div>
-
-                        <!-- Action row -->
-                        <div v-if="!showNotesField">
-                            <button @click="openNotesField" type="button"
-                                class="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 transition-colors text-sm font-semibold">
-                                <ChatBubbleLeftEllipsisIcon class="w-4 h-4 flex-shrink-0" />
-                                Add note
-                            </button>
-                        </div>
-                        </div><!-- /footer -->
                     </section>
 
-
-                    <!-- Address trigger -->
-                    <button @click="showAddressModal = true" type="button"
-                        class="w-full flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 border transition-colors text-left shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
-                        :class="customerLat && deliveryAddress.trim() ? 'border-emerald-200 hover:border-emerald-300 hover:shadow-[0_2px_16px_rgba(16,185,129,0.12)]' : 'border-amber-200 hover:border-amber-300 hover:shadow-[0_2px_16px_rgba(245,158,11,0.12)]'">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                            :class="customerLat && deliveryAddress.trim() ? 'bg-emerald-500 text-white' : 'bg-amber-100 text-amber-600'">
-                            <MapPinIconSolid v-if="customerLat && deliveryAddress.trim()" class="w-4 h-4" />
-                            <MapPinIcon v-else class="w-4 h-4" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <template v-if="customerLat && deliveryAddress.trim()">
-                                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Delivery address</p>
-                                <p class="text-sm font-semibold text-zinc-900 truncate mt-0.5">{{ deliveryAddress }}</p>
-                            </template>
-                            <template v-else>
-                                <p class="text-sm font-semibold text-zinc-900">Set delivery address</p>
-                                <p class="text-[11px] font-medium text-amber-600 mt-0.5">Required to continue</p>
-                            </template>
-                        </div>
-                        <ChevronRightIcon class="w-4 h-4 text-zinc-300 flex-shrink-0" />
-                    </button>
+                    <!-- Delivery address -->
+                    <section aria-labelledby="request-address-title" class="space-y-4 border-t border-ink-100 pt-8">
+                        <h2 id="request-address-title" class="font-display text-xl font-bold text-ink-900">Delivery address</h2>
+                        <button @click="showAddressModal = true" type="button"
+                            class="flex min-h-[64px] w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                            :class="customerLat && deliveryAddress.trim() ? 'bg-ink-100 hover:bg-ink-200' : 'border-2 border-amber-500 bg-amber-50 hover:bg-amber-100'">
+                            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+                                :class="customerLat && deliveryAddress.trim() ? 'bg-brand-700 text-white' : 'bg-amber-200 text-amber-900'">
+                                <MapPinIconSolid v-if="customerLat && deliveryAddress.trim()" class="h-5 w-5" aria-hidden="true" />
+                                <MapPinIcon v-else class="h-5 w-5" aria-hidden="true" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <template v-if="customerLat && deliveryAddress.trim()">
+                                    <span class="block text-sm text-ink-600">Delivering to</span>
+                                    <span class="mt-0.5 block truncate text-base font-semibold text-ink-900">{{ deliveryAddress }}</span>
+                                </template>
+                                <template v-else>
+                                    <span class="block text-base font-semibold text-ink-900">Set delivery address</span>
+                                    <span class="mt-0.5 block text-sm font-medium text-amber-900">Required to continue</span>
+                                </template>
+                            </span>
+                            <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
+                        </button>
+                    </section>
 
                     <!-- Wallet gate overlay -->
-                    <div v-if="!canSearchProducts && !walletGateDismissed"
-                        class="absolute inset-0 z-10 rounded-2xl bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4 px-6 text-center">
+                    <div v-if="!canSearchProducts && !walletGateDismissed" role="group" aria-label="Top up needed"
+                        class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/90 px-6 text-center backdrop-blur-[2px]">
                         <button @click="walletGateDismissed = true" type="button"
-                            class="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors text-zinc-500 hover:text-zinc-700"
+                            class="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
                             aria-label="Dismiss">
-                            <XMarkIcon class="w-4 h-4" />
+                            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
                         </button>
-                        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                            <WalletIcon class="w-6 h-6" />
-                        </div>
+                        <span class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 text-white">
+                            <WalletIcon class="h-7 w-7" aria-hidden="true" />
+                        </span>
                         <div>
-                            <p class="font-black text-zinc-900 text-sm">Top up to continue</p>
-                            <p class="text-xs text-zinc-500 mt-0.5">GHS {{ requestFee.toFixed(2) }} needed · Balance: GHS {{ (walletBalance ?? 0).toFixed(2) }}</p>
+                            <p class="font-display text-xl font-bold text-ink-900">Top up to continue</p>
+                            <p class="mt-1 text-sm text-ink-600">GHS {{ requestFee.toFixed(2) }} needed · Balance: GHS {{ (walletBalance ?? 0).toFixed(2) }}</p>
                         </div>
                         <button @click="openWalletTab" type="button"
-                            class="bg-[#4F217A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors">
+                            class="min-h-[48px] rounded-full bg-brand-700 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
                             Top Up Wallet
                         </button>
                         <button @click="walletGateDismissed = true" type="button"
-                            class="text-xs font-semibold text-zinc-400 hover:text-zinc-600 transition-colors underline-offset-2 hover:underline">
+                            class="min-h-[44px] px-3 text-sm font-semibold text-ink-900 underline underline-offset-2 hover:text-ink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
                             Continue filling in my request
                         </button>
                     </div>
             </div>
 
-            <div class="flex items-center justify-between px-1">
-                <span class="text-[11px] font-semibold text-zinc-400">Wallet balance</span>
-                <button @click="openWalletTab" type="button"
-                    class="text-[11px] font-bold transition-colors"
-                    :class="canSearchProducts ? 'text-emerald-600 hover:text-emerald-700' : 'text-amber-500 hover:text-amber-600'">
-                    GHS {{ walletBalance.toFixed(2) }}
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-ink-600">Wallet balance</span>
+                    <button @click="openWalletTab" type="button"
+                        :aria-label="`Wallet balance GHS ${walletBalance.toFixed(2)}. Open wallet`"
+                        class="min-h-[44px] rounded-full px-3 text-sm font-bold transition-colors hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                        :class="canSearchProducts ? 'text-brand-800' : 'text-amber-800'">
+                        GHS {{ walletBalance.toFixed(2) }}
+                    </button>
+                </div>
+                <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
+                    :aria-describedby="sendWhy ? 'send-why' : undefined"
+                    class="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brand-700">
+                    <ArrowPathIcon v-if="isSubmitting" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                    <template v-else>
+                        <span>Send Request</span>
+                        <span class="h-4 w-px bg-white/30" aria-hidden="true"></span>
+                        <span class="text-sm font-medium opacity-80">{{ isProfessional ? 'Free · Pro' : firstRequestFree ? 'Free · first request' : `GHS ${requestFee.toFixed(2)}` }}</span>
+                    </template>
                 </button>
+                <p v-if="sendWhy" id="send-why" class="text-center text-sm text-ink-600">{{ sendWhy }}</p>
             </div>
-            <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
-                class="w-full bg-[#4F217A] text-white py-4 rounded-2xl text-sm font-bold hover:bg-[#3d1861] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2.5 shadow-[0_8px_28px_rgba(79,33,122,0.35)]">
-                <ArrowPathIcon v-if="isSubmitting" class="w-4 h-4 animate-spin" />
-                <template v-else>
-                    <span>Send Request</span>
-                    <span class="h-4 w-px bg-white/30"></span>
-                    <span class="opacity-70 font-medium text-xs">{{ isProfessional ? 'Free · Pro' : firstRequestFree ? 'Free · first request' : `GHS ${requestFee.toFixed(2)}` }}</span>
-                </template>
-            </button>
         </div>
 
         <!-- ====== REQUESTS LIST ====== -->
-        <div v-if="isListView" class="w-full pb-12">
+        <div v-if="isListView" class="mx-auto w-full max-w-2xl px-5 pb-12 pt-2 font-body">
+            <h1 class="pb-5 font-display text-3xl font-bold text-ink-900">My requests</h1>
 
-            <div class="flex items-center gap-3 px-5 pt-2 pb-4">
-                <button @click="goToNewRequest"
-                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-100 hover:bg-zinc-200 transition-colors text-zinc-600 flex-shrink-0"
-                    type="button" aria-label="Back">
-                    <ChevronLeftIcon class="w-4 h-4" />
-                </button>
-                <h1 class="text-xl font-black text-[#350062] tracking-tight">My Requests</h1>
+            <!-- Loading -->
+            <div v-if="loadingRequests" role="status" aria-busy="true" class="space-y-3 py-2">
+                <span class="sr-only">Loading your requests</span>
+                <div v-for="n in 4" :key="`req-sk-${n}`" aria-hidden="true" class="flex items-center gap-4 rounded-2xl bg-ink-50 px-4 py-4">
+                    <div class="h-10 w-10 flex-shrink-0 animate-pulse rounded-full bg-ink-100"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="h-3 w-1/2 animate-pulse rounded bg-ink-100"></div>
+                        <div class="h-2.5 w-1/3 animate-pulse rounded bg-ink-100"></div>
+                    </div>
+                    <div class="h-3 w-14 flex-shrink-0 animate-pulse rounded bg-ink-100"></div>
+                </div>
             </div>
 
-            <div class="px-5 max-w-5xl mx-auto">
-                <div v-if="loadingRequests" class="space-y-3 py-2" aria-busy="true" aria-label="Loading your requests">
-                    <div v-for="n in 4" :key="`req-sk-${n}`" class="flex items-center gap-4 rounded-xl border border-zinc-100 bg-white px-4 py-4">
-                        <div class="h-10 w-10 rounded-full bg-zinc-200 animate-pulse shrink-0"></div>
-                        <div class="flex-1 space-y-2">
-                            <div class="h-3 w-1/2 rounded bg-zinc-200 animate-pulse"></div>
-                            <div class="h-2.5 w-1/3 rounded bg-zinc-200 animate-pulse"></div>
-                        </div>
-                        <div class="h-3 w-14 rounded bg-zinc-200 animate-pulse shrink-0"></div>
-                    </div>
-                </div>
+            <!-- Could not load: say so, do not pretend there are none -->
+            <div v-else-if="loadFailed && !myRequests.length" role="alert" class="rounded-2xl bg-red-50 px-5 py-6 text-center">
+                <ExclamationCircleIcon class="mx-auto h-8 w-8 text-red-700" aria-hidden="true" />
+                <p class="mt-3 font-display text-xl font-bold text-ink-900">We could not load your requests</p>
+                <p class="mt-1 text-base text-ink-600">Check your connection and try again. Your requests are safe.</p>
+                <button @click="fetchMyRequests()" type="button"
+                    class="mt-5 inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                    <ArrowPathIcon class="h-5 w-5" aria-hidden="true" />
+                    Try again
+                </button>
+            </div>
 
-                <div v-else-if="myRequests.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
-                    <div class="w-14 h-14 bg-[#4F217A]/[0.06] rounded-2xl flex items-center justify-center mb-4">
-                        <InboxIcon class="w-6 h-6 text-[#4F217A]/40" />
-                    </div>
-                    <p class="text-base font-bold text-zinc-800 mb-1">No requests yet</p>
-                    <p class="text-sm text-zinc-400 mb-6 max-w-[22ch]">Submit your first request and we'll source your medications.</p>
-                    <button @click="goToNewRequest"
-                        class="px-5 py-2.5 bg-[#4F217A] text-white rounded-xl font-bold text-sm hover:bg-[#3d1861] transition-colors inline-flex items-center gap-2 shadow-[0_4px_14px_rgba(79,33,122,0.3)]">
-                        <PlusIcon class="w-4 h-4" /> New request
-                    </button>
-                </div>
+            <!-- Empty -->
+            <div v-else-if="myRequests.length === 0" class="flex flex-col items-center py-16 text-center">
+                <span class="flex h-16 w-16 items-center justify-center rounded-full bg-brand-50">
+                    <InboxIcon class="h-7 w-7 text-brand-700" aria-hidden="true" />
+                </span>
+                <p class="mt-4 font-display text-xl font-bold text-ink-900">No requests yet</p>
+                <p class="mt-1 max-w-[28ch] text-base text-ink-600">Send your first request and we will find your medicines.</p>
+                <button @click="goToNewRequest" type="button"
+                    class="mt-6 inline-flex min-h-[48px] items-center gap-2 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                    <PlusIcon class="h-5 w-5" aria-hidden="true" />
+                    New request
+                </button>
+            </div>
 
-                <div v-else class="space-y-2 mb-6">
-
-                    <!-- ── New today strip ── -->
-                    <section v-if="showAttentionStrip" role="status" aria-live="polite"
-                        class="rounded-2xl bg-gradient-to-r from-[#4F217A]/[0.06] to-[#4F217A]/[0.03] ring-1 ring-[#4F217A]/[0.15] px-4 py-3.5 flex flex-col gap-2.5">
-                        <div class="flex items-center gap-2">
-                            <span class="relative flex h-2.5 w-2.5 flex-shrink-0">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4F217A] opacity-50"></span>
-                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#4F217A]"></span>
-                            </span>
-                            <span class="text-[11px] font-black uppercase tracking-widest text-[#4F217A]">New</span>
-                        </div>
-                        <ul class="flex flex-col gap-1.5">
-                            <li v-for="req in newItems.filter(r => reqStage(r) !== requestListTab)" :key="`attn-${req.id}`"
-                                @click="requestListTab = reqStage(req); viewDetail(req)"
-                                class="flex items-center justify-between gap-2 cursor-pointer rounded-xl px-3 py-2 bg-white/70 hover:bg-white/90 transition-colors">
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <ExclamationCircleIcon v-if="reqStage(req) === 'awaiting_payment'" class="w-3.5 h-3.5 text-[#F04E37] flex-shrink-0" />
-                                    <TruckIcon v-else-if="reqStage(req) === 'awaiting_fulfilment'" class="w-3.5 h-3.5 text-[#4F217A] flex-shrink-0" />
-                                    <BeakerIcon v-else class="w-3.5 h-3.5 text-[#4F217A] flex-shrink-0" />
-                                    <span class="text-xs font-bold text-zinc-900 truncate">#{{ req.request_number }}</span>
-                                </div>
-                                <span class="text-[10px] font-semibold flex-shrink-0 px-2 py-0.5 rounded-full whitespace-nowrap"
-                                    :class="reqStage(req) === 'awaiting_payment' ? 'bg-[#F04E37]/[0.10] text-[#F04E37]' : 'bg-[#4F217A]/[0.08] text-[#4F217A]'">
+            <div v-else class="space-y-3">
+                <!-- New today -->
+                <section v-if="showAttentionStrip" role="status" aria-live="polite" aria-label="New today" class="rounded-2xl bg-brand-50 px-3 py-3">
+                    <p class="px-2 pb-1 text-sm font-semibold text-brand-700">New today</p>
+                    <ul>
+                        <li v-for="req in newItems.filter(r => reqStage(r) !== requestListTab)" :key="`attn-${req.id}`">
+                            <button type="button" @click="requestListTab = reqStage(req); viewDetail(req)"
+                                class="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <span class="truncate text-base font-semibold text-ink-900">#{{ req.request_number }}</span>
+                                <span class="flex-shrink-0 text-sm font-medium text-brand-700">
                                     {{ reqStage(req) === 'awaiting_payment'
-                                        ? ((req.total_cost || req.estimated_total) ? `Pay GHS ${parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2)}` : 'Pay now')
+                                        ? (requestPrice(req) ? `Pay GHS ${requestPrice(req)}` : 'Ready to pay')
                                         : reqStage(req) === 'awaiting_fulfilment' ? 'On the way' : 'Being sourced' }}
                                 </span>
+                            </button>
+                        </li>
+                    </ul>
+                </section>
+
+                <!-- Stages -->
+                <section v-for="section in requestSections" :key="section.key" class="overflow-hidden rounded-2xl border border-ink-100 bg-white">
+                    <h2>
+                        <button type="button" :id="`requests-toggle-${section.key}`"
+                            :aria-expanded="requestListTab === section.key"
+                            :aria-controls="`requests-section-${section.key}`"
+                            @click="toggleRequestSection(section.key)"
+                            class="flex min-h-[64px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-700"
+                            :class="requestListTab === section.key ? 'bg-ink-50' : ''">
+                            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+                                :class="requestListTab === section.key ? 'bg-brand-700 text-white' : 'bg-ink-100 text-ink-600'">
+                                <component :is="section.icon" class="h-5 w-5" aria-hidden="true" />
+                            </span>
+                            <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                                <span class="text-base font-semibold text-ink-900">{{ section.title }}</span>
+                                <span v-if="section.items.length" class="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-ink-100 px-2 text-sm font-semibold text-ink-900">{{ section.items.length }}</span>
+                                <span v-if="tabHasNew[section.key as keyof typeof tabHasNew]" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">New</span>
+                                <span v-if="section.key === 'awaiting_payment' && awaitingPaymentTotal" class="text-sm text-ink-600">GHS {{ awaitingPaymentTotal }}</span>
+                            </span>
+                            <ChevronDownIcon class="h-5 w-5 flex-shrink-0 text-ink-600 transition-transform duration-200"
+                                :class="requestListTab === section.key ? 'rotate-180' : ''" aria-hidden="true" />
+                        </button>
+                    </h2>
+                    <div v-if="requestListTab === section.key" :id="`requests-section-${section.key}`" role="region"
+                        :aria-labelledby="`requests-toggle-${section.key}`" class="border-t border-ink-100">
+                        <p v-if="!section.items.length" class="px-4 py-6 text-center text-base text-ink-600">{{ section.empty }}</p>
+                        <ul v-else class="divide-y divide-ink-100 px-1 py-1">
+                            <li v-for="req in section.items" :key="req.id" class="flex items-center gap-1">
+                                <button type="button" @click="viewDetail(req)"
+                                    class="group flex min-h-[64px] min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-base font-semibold text-ink-900">{{ getRequestCardSummary(req) }}</span>
+                                        <span class="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-ink-600">
+                                            <span>#{{ req.request_number }}</span>
+                                            <span :class="requestAgeDays(req) > 7 ? 'font-semibold text-amber-800' : ''">{{ requestAgeLabel(req) }}</span>
+                                            <span v-if="newItemIds.has(req.id)" class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">New</span>
+                                        </span>
+                                    </span>
+                                    <span class="flex-shrink-0 text-right">
+                                        <strong v-if="requestPrice(req)" class="block text-base font-bold tabular-nums text-ink-900">GHS {{ requestPrice(req) }}</strong>
+                                        <span v-else class="block text-sm text-ink-600">Waiting for a price</span>
+                                    </span>
+                                    <ChevronRightIcon v-if="section.key !== 'awaiting_payment'" class="h-5 w-5 flex-shrink-0 text-ink-400 transition-colors group-hover:text-ink-900" aria-hidden="true" />
+                                </button>
+                                <button v-if="section.key === 'awaiting_payment'" type="button" @click="viewDetail(req)"
+                                    :aria-label="requestPrice(req) ? `Pay GHS ${requestPrice(req)} for ${getRequestCardSummary(req)}` : `Pay for ${getRequestCardSummary(req)}`"
+                                    class="mr-2 inline-flex min-h-[44px] flex-shrink-0 items-center rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                                    Pay
+                                </button>
                             </li>
                         </ul>
-                        <p v-if="newItems.filter(r => reqStage(r) !== requestListTab).length > 1" class="text-[10px] font-medium text-zinc-400 text-center">
-                            Tap a row to jump to that section
-                        </p>
-                    </section>
-
-                    <!-- ── Pay Now (first — urgency conveyed by position + weight, not color) ── -->
-                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-200 shadow-sm">
-                        <button type="button"
-                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
-                            :class="requestListTab === 'awaiting_payment' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
-                            @click="requestListTab = requestListTab === 'awaiting_payment' ? '' : 'awaiting_payment'">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                                    :class="requestListTab === 'awaiting_payment' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
-                                    <ExclamationCircleIcon class="w-4 h-4" />
-                                </div>
-                                <span class="text-sm font-black"
-                                    :class="requestListTab === 'awaiting_payment' ? 'text-[#4F217A]' : 'text-zinc-900'">Pay Now</span>
-                                <span v-if="awaitingPaymentRequests.length"
-                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-900 text-white">
-                                    {{ awaitingPaymentRequests.length }}
-                                </span>
-                                <span v-if="tabHasNew.awaiting_payment"
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#F04E37]/[0.10] text-[#F04E37] text-[9px] font-black uppercase tracking-wider">
-                                    New
-                                </span>
-                                <span v-if="awaitingPaymentTotal" class="text-[11px] font-semibold text-zinc-400 ml-0.5">GHS {{ awaitingPaymentTotal }}</span>
-                            </div>
-                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
-                                :class="requestListTab === 'awaiting_payment' ? 'rotate-180' : ''" />
-                        </button>
-                        <div v-if="requestListTab === 'awaiting_payment'" class="border-t border-zinc-100 divide-y divide-zinc-50">
-                            <p v-if="!awaitingPaymentRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
-                                Nothing to pay right now
-                            </p>
-                            <article v-for="req in awaitingPaymentRequests" :key="req.id"
-                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
-                                @click="viewDetail(req)">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
-                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
-                                        <span v-if="newItemIds.has(req.id)"
-                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#F04E37]/[0.10] text-[#F04E37] text-[9px] font-black uppercase tracking-wider">
-                                            New
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
-                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
-                                    </template>
-                                    <button @click.stop="viewDetail(req)"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#4F217A] text-white text-[11px] font-bold hover:bg-[#3d1861] transition-colors">
-                                        Pay <ChevronRightIcon class="w-3 h-3" />
-                                    </button>
-                                </div>
-                            </article>
-                        </div>
                     </div>
-
-                    <!-- ── Processing ── -->
-                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-100 shadow-sm">
-                        <button type="button"
-                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
-                            :class="requestListTab === 'processing' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
-                            @click="requestListTab = requestListTab === 'processing' ? '' : 'processing'">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                                    :class="requestListTab === 'processing' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
-                                    <BeakerIcon class="w-4 h-4" />
-                                </div>
-                                <span class="text-sm font-bold"
-                                    :class="requestListTab === 'processing' ? 'text-[#4F217A]' : 'text-zinc-700'">Processing</span>
-                                <span v-if="processingRequests.length"
-                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
-                                    {{ processingRequests.length }}
-                                </span>
-                                <span v-if="tabHasNew.processing"
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
-                                    New
-                                </span>
-                            </div>
-                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
-                                :class="requestListTab === 'processing' ? 'rotate-180' : ''" />
-                        </button>
-                        <div v-if="requestListTab === 'processing'" class="border-t border-zinc-100 divide-y divide-zinc-50">
-                            <p v-if="!processingRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
-                                No requests in progress
-                            </p>
-                            <article v-for="req in processingRequests" :key="req.id"
-                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
-                                @click="viewDetail(req)">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
-                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
-                                        <span v-if="newItemIds.has(req.id)"
-                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
-                                            New
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
-                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
-                                    </template>
-                                    <span v-else class="text-xs font-semibold text-zinc-400 italic">To be priced</span>
-                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-
-                    <!-- ── En Route ── -->
-                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-100 shadow-sm">
-                        <button type="button"
-                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
-                            :class="requestListTab === 'awaiting_fulfilment' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
-                            @click="requestListTab = requestListTab === 'awaiting_fulfilment' ? '' : 'awaiting_fulfilment'">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                                    :class="requestListTab === 'awaiting_fulfilment' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
-                                    <TruckIcon class="w-4 h-4" />
-                                </div>
-                                <span class="text-sm font-bold"
-                                    :class="requestListTab === 'awaiting_fulfilment' ? 'text-[#4F217A]' : 'text-zinc-700'">En Route</span>
-                                <span v-if="awaitingFulfilmentRequests.length"
-                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
-                                    {{ awaitingFulfilmentRequests.length }}
-                                </span>
-                                <span v-if="tabHasNew.awaiting_fulfilment"
-                                    class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
-                                    New
-                                </span>
-                            </div>
-                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
-                                :class="requestListTab === 'awaiting_fulfilment' ? 'rotate-180' : ''" />
-                        </button>
-                        <div v-if="requestListTab === 'awaiting_fulfilment'" class="border-t border-zinc-100 divide-y divide-zinc-50">
-                            <p v-if="!awaitingFulfilmentRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
-                                No orders en route
-                            </p>
-                            <article v-for="req in awaitingFulfilmentRequests" :key="req.id"
-                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
-                                @click="viewDetail(req)">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
-                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
-                                        <span v-if="newItemIds.has(req.id)"
-                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#4F217A]/[0.08] text-[#4F217A] text-[9px] font-black uppercase tracking-wider">
-                                            New
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
-                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
-                                    </template>
-                                    <span v-else class="text-xs font-semibold text-zinc-400 italic">To be priced</span>
-                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-
-                    <!-- ── Done ── -->
-                    <div class="rounded-2xl overflow-hidden bg-white ring-1 ring-zinc-100 shadow-sm">
-                        <button type="button"
-                            class="w-full flex items-center justify-between px-4 py-4 transition-colors"
-                            :class="requestListTab === 'complete' ? 'bg-zinc-50' : 'bg-white hover:bg-zinc-50/50'"
-                            @click="requestListTab = requestListTab === 'complete' ? '' : 'complete'">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                                    :class="requestListTab === 'complete' ? 'bg-[#4F217A]/[0.08] text-[#4F217A]' : 'bg-zinc-100 text-zinc-400'">
-                                    <CheckCircleIcon class="w-4 h-4" />
-                                </div>
-                                <span class="text-sm font-bold"
-                                    :class="requestListTab === 'complete' ? 'text-[#4F217A]' : 'text-zinc-700'">Done</span>
-                                <span v-if="completedRequests.length"
-                                    class="inline-flex items-center justify-center px-1.5 min-w-[20px] h-5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-500">
-                                    {{ completedRequests.length }}
-                                </span>
-                            </div>
-                            <ChevronDownIcon class="w-4 h-4 transition-transform duration-200 text-zinc-400"
-                                :class="requestListTab === 'complete' ? 'rotate-180' : ''" />
-                        </button>
-                        <div v-if="requestListTab === 'complete'" class="border-t border-zinc-100 divide-y divide-zinc-50">
-                            <p v-if="!completedRequests.length" class="py-8 text-center text-sm font-semibold text-zinc-400">
-                                No completed requests yet
-                            </p>
-                            <article v-for="req in completedRequests" :key="req.id"
-                                class="flex items-center gap-3 px-4 py-4 hover:bg-zinc-50 transition-colors cursor-pointer group"
-                                @click="viewDetail(req)">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold text-zinc-900 truncate mb-0.5">{{ getRequestCardSummary(req) }}</p>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wide">#{{ req.request_number }}</span>
-                                        <span class="text-[10px]" :class="requestAgeDays(req) > 7 ? 'text-amber-600 font-semibold' : 'text-zinc-400'">{{ requestAgeLabel(req) }}</span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                    <template v-if="(req.total_cost && parseFloat(String(req.total_cost)) > 0) || (req.estimated_total && parseFloat(String(req.estimated_total)) > 0)">
-                                        <strong class="text-sm font-black text-zinc-900 tabular-nums">GHS {{ parseFloat(String(req.total_cost ?? req.estimated_total ?? 0)).toFixed(2) }}</strong>
-                                    </template>
-                                    <span v-else class="text-xs font-semibold text-zinc-400 italic">To be priced</span>
-                                    <ChevronRightIcon class="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-
-                </div>
-                <!-- End of max-w-5xl container -->
+                </section>
             </div>
         </div>
 
         <!-- ====== REQUEST DETAIL MODAL ====== -->
-        <div v-if="selectedRequest" class="modal-overlay" @click.self="selectedRequest = null">
-            <div class="modal-content">
-                <div class="modal-header modal-header--concierge">
-                    <div>
-                        <h3>Request #{{ selectedRequest.request_number }}</h3>
-                        <span class="status-badge" :class="getRequestStatus(selectedRequest)">{{
-                            formatStatus(getRequestStatus(selectedRequest))
-                        }}</span>
+        <div v-if="selectedRequest" data-testid="request-detail-backdrop"
+            class="fixed inset-0 z-[60] flex items-end justify-center bg-ink-900/50 sm:items-center sm:p-4"
+            @click.self="selectedRequest = null">
+            <div ref="detailDialogRef" role="dialog" aria-modal="true" aria-labelledby="request-detail-title"
+                class="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white font-body shadow-lift sm:rounded-3xl">
+                <div data-testid="request-detail-header" class="flex items-start justify-between gap-3 px-6 pb-3 pt-6">
+                    <div class="min-w-0">
+                        <h2 id="request-detail-title" class="font-display text-2xl font-bold text-ink-900">Request #{{ selectedRequest.request_number }}</h2>
+                        <div data-testid="request-detail-status" class="mt-1">
+                            <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700">{{ formatStatus(getRequestStatus(selectedRequest)) }}</span>
+                            <p class="mt-2 text-base text-ink-600">{{ getRequestSubtext(selectedRequest.status) }}</p>
+                        </div>
                     </div>
-                    <button @click="selectedRequest = null" class="modal-close">
-                        <XMarkIcon class="close-svg" />
+                    <button @click="selectedRequest = null" type="button" aria-label="Close"
+                        class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
                     </button>
                 </div>
 
-                <div class="modal-body">
+                <div class="px-6 pb-6 pt-2">
                     <!-- Items -->
-                    <div v-if="selectedRequest.items?.length" class="detail-section">
-                        <div class="detail-section-header">
-                            <span class="detail-section-label">Items</span>
-                            <button v-if="canEditRequest(selectedRequest)" @click="startEditing(selectedRequest)" class="edit-request-btn" type="button">
-                                <PencilIcon class="w-3 h-3" />
-                                Edit
+                    <section v-if="selectedRequest.items?.length" aria-labelledby="request-items-title" class="mb-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <h3 id="request-items-title" class="font-display text-lg font-bold text-ink-900">Items</h3>
+                            <button v-if="canEditRequest(selectedRequest)" @click="startEditing(selectedRequest)" type="button"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full pl-3 text-base font-semibold text-brand-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <PencilIcon class="h-5 w-5" aria-hidden="true" />
+                                Edit items
                             </button>
                         </div>
-                        <div v-for="(item, itemIdx) in selectedRequest.items" :key="item.id ?? itemIdx" class="detail-item">
-                            <div>
-                                <strong>{{ item.product_name }}</strong>
-                                <span class="item-qty">Qty: {{ item.quantity }}</span>
-                            </div>
-                            <div class="item-price-info">
-                                <span v-if="item.marked_up_price" class="item-price">GHS {{
-                                    parseFloat(String(item.marked_up_price)).toFixed(2) }}</span>
-                                <span v-else class="price-pending">Price pending</span>
-                                <span class="status-badge sm" :class="item.item_status || 'pending'">{{ item.item_status || 'pending' }}</span>
-                            </div>
-                        </div>
+                        <ul class="mt-1 divide-y divide-ink-100">
+                            <li v-for="(item, itemIdx) in selectedRequest.items" :key="item.id ?? itemIdx" class="flex items-start justify-between gap-4 py-3">
+                                <div class="min-w-0">
+                                    <p class="text-base font-semibold text-ink-900">{{ item.product_name }}</p>
+                                    <p class="text-sm text-ink-600">Qty {{ item.quantity }}<template v-if="item.item_status && !['pending', 'available'].includes(String(item.item_status))"> · <span class="capitalize">{{ String(item.item_status).replace(/_/g, ' ') }}</span></template></p>
+                                </div>
+                                <p v-if="item.marked_up_price" class="flex-shrink-0 text-base font-bold tabular-nums text-ink-900">GHS {{ parseFloat(String(item.marked_up_price)).toFixed(2) }}</p>
+                                <p v-else class="flex-shrink-0 text-sm text-ink-600">Waiting for a price</p>
+                            </li>
+                        </ul>
+                    </section>
+
+                    <!-- How it is being received — always visible once locked -->
+                    <div v-if="!requiresMethodSelection(selectedRequest) && !overrideMethodPickerFor[selectedRequest.id] && (selectedRequest.fulfillment_type === 'pickup' || selectedRequest.fulfillment_type === 'delivery')"
+                        data-testid="fulfillment-method" class="mb-4 flex items-center gap-3 rounded-2xl bg-ink-50 px-4 py-2">
+                        <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+                            <BuildingStorefrontIcon v-if="selectedRequest.fulfillment_type === 'pickup'" class="h-5 w-5" aria-hidden="true" />
+                            <TruckIcon v-else class="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <p class="text-base font-semibold text-ink-900">{{ selectedRequest.fulfillment_type === 'pickup' ? 'Pickup' : 'Delivery' }}</p>
+                        <button v-if="canPayRequest(selectedRequest)" type="button"
+                            :aria-label="`Change ${selectedRequest.fulfillment_type === 'pickup' ? 'pickup' : 'delivery'} method`"
+                            class="ml-auto min-h-[44px] rounded-full px-3 text-base font-semibold text-brand-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                            @click="startChangingMethod(selectedRequest.id)">Change</button>
                     </div>
 
-                    <!-- Fulfillment method — always visible once locked -->
-                    <div v-if="!requiresMethodSelection(selectedRequest) && !overrideMethodPickerFor[selectedRequest.id] && (selectedRequest.fulfillment_type === 'pickup' || selectedRequest.fulfillment_type === 'delivery')" class="fulfillment-locked-strip">
-                        <div class="fulfillment-locked-strip-icon" :class="selectedRequest.fulfillment_type === 'pickup' ? 'fulfillment-locked-strip-icon--pickup' : 'fulfillment-locked-strip-icon--delivery'">
-                            <BuildingStorefrontIcon v-if="selectedRequest.fulfillment_type === 'pickup'" class="w-4 h-4" />
-                            <TruckIcon v-else class="w-4 h-4" />
-                        </div>
-                        <span class="fulfillment-locked-strip-label">{{ selectedRequest.fulfillment_type === 'pickup' ? 'Pickup' : 'Delivery' }}</span>
-                        <CheckCircleIconSolid class="w-4 h-4 text-emerald-500 ml-auto flex-shrink-0" />
-                        <button v-if="canPayRequest(selectedRequest)" type="button" class="fulfillment-locked-strip-change" @click="startChangingMethod(selectedRequest.id)">Change</button>
-                    </div>
-
-                    <!-- Delivery progress strip (paid → out_for_delivery, delivery orders only) -->
+                    <!-- Delivery progress (paid → out_for_delivery, delivery orders only) -->
                     <div v-if="selectedRequest.fulfillment_type === 'delivery' && DELIVERY_PROGRESS_STATUSES.has(selectedRequest.status ?? '')"
-                        class="mx-1 mb-3 rounded-2xl bg-[#4F217A]/[0.04] ring-1 ring-[#4F217A]/10 px-4 py-3.5">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span class="relative flex h-2 w-2 flex-shrink-0">
-                                <span class="animate-pulse absolute inline-flex h-full w-full rounded-full opacity-60"
-                                    :class="selectedRequest.status === 'driver_unavailable' ? 'bg-[#F04E37]' : 'bg-[#4F217A]'"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2"
-                                    :class="selectedRequest.status === 'driver_unavailable' ? 'bg-[#F04E37]' : 'bg-[#4F217A]'"></span>
-                            </span>
-                            <span class="text-[13px] font-semibold leading-snug"
-                                :class="selectedRequest.status === 'driver_unavailable' ? 'text-[#F04E37]' : 'text-zinc-800'">
-                                {{ getRequestSubtext(selectedRequest.status) }}
-                            </span>
-                        </div>
-                        <div class="flex items-start gap-1.5">
-                            <div class="flex-1 flex flex-col gap-1">
-                                <div class="h-1 rounded-full bg-[#4F217A]"></div>
-                                <span class="text-[9px] font-semibold text-[#4F217A]">Preparing</span>
-                            </div>
-                            <div class="flex-1 flex flex-col gap-1">
-                                <div class="h-1 rounded-full transition-colors"
-                                    :class="deliveryStep >= 2 ? (selectedRequest.status === 'driver_unavailable' ? 'bg-[#F04E37]' : 'bg-[#4F217A]') : 'bg-zinc-200'"></div>
-                                <span class="text-[9px] font-semibold transition-colors"
-                                    :class="deliveryStep >= 2 ? (selectedRequest.status === 'driver_unavailable' ? 'text-[#F04E37]' : 'text-[#4F217A]') : 'text-zinc-400'">Finding rider</span>
-                            </div>
-                            <div class="flex-1 flex flex-col gap-1">
-                                <div class="h-1 rounded-full transition-colors"
-                                    :class="deliveryStep >= 3 ? 'bg-[#4F217A]' : 'bg-zinc-200'"></div>
-                                <span class="text-[9px] font-semibold transition-colors"
-                                    :class="deliveryStep >= 3 ? 'text-[#4F217A]' : 'text-zinc-400'">On the way</span>
-                            </div>
-                        </div>
+                        data-testid="delivery-progress" class="mb-4 rounded-2xl bg-brand-50 px-4 py-4">
+                        <p class="text-base font-semibold" :class="selectedRequest.status === 'driver_unavailable' ? 'text-amber-800' : 'text-ink-900'">
+                            {{ getRequestSubtext(selectedRequest.status) }}
+                        </p>
+                        <ol class="mt-3 flex items-start gap-2">
+                            <li v-for="(label, stepIdx) in ['Preparing', 'Finding a rider', 'On the way']" :key="label"
+                                class="flex flex-1 flex-col gap-1.5" :aria-current="deliveryStep === stepIdx + 1 ? 'step' : undefined">
+                                <span class="h-1.5 rounded-full"
+                                    :class="deliveryStep >= stepIdx + 1 ? (selectedRequest.status === 'driver_unavailable' ? 'bg-amber-600' : 'bg-brand-700') : 'bg-ink-200'"></span>
+                                <span class="text-sm" :class="deliveryStep >= stepIdx + 1 ? 'font-semibold text-ink-900' : 'text-ink-600'">{{ label }}</span>
+                            </li>
+                        </ol>
                     </div>
 
-                    <!-- Rider contact (shown when delivery is active and rider is assigned) -->
-                    <div v-if="selectedRequest.rider_phone" class="rider-contact-card">
-                        <div class="rider-contact-row">
-                            <div class="rider-contact-info">
-                                <span class="rider-contact-label">Your rider is on the way</span>
-                                <span v-if="selectedRequest.rider_name" class="rider-contact-name">{{ selectedRequest.rider_name }}</span>
-                            </div>
-                            <div class="rider-contact-actions">
-                                <a :href="`tel:${selectedRequest.rider_phone}`" class="rider-action-btn rider-action-btn--call" :aria-label="`Call ${selectedRequest.rider_name || 'rider'}`">
-                                    <PhoneIcon class="w-4 h-4" />
-                                </a>
-                                <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer" class="rider-action-btn rider-action-btn--wa" :aria-label="`WhatsApp ${selectedRequest.rider_name || 'rider'}`">
-                                    <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
-                                </a>
-                            </div>
+                    <!-- Rider (shown when delivery is active and a rider is assigned) -->
+                    <div v-if="selectedRequest.rider_phone" data-testid="rider-card" class="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-ink-50 px-4 py-3">
+                        <div class="min-w-0">
+                            <p class="text-sm text-ink-600">Your rider is on the way</p>
+                            <p v-if="selectedRequest.rider_name" class="truncate text-lg font-bold text-ink-900">{{ selectedRequest.rider_name }}</p>
+                        </div>
+                        <div class="flex flex-shrink-0 gap-2">
+                            <a :href="`tel:${selectedRequest.rider_phone}`" :aria-label="`Call ${selectedRequest.rider_name || 'rider'}`"
+                                class="flex h-11 w-11 items-center justify-center rounded-full bg-brand-700 text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                                <PhoneIcon class="h-5 w-5" aria-hidden="true" />
+                            </a>
+                            <a :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.rider_phone)}`" target="_blank" rel="noopener noreferrer"
+                                :aria-label="`WhatsApp ${selectedRequest.rider_name || 'rider'}`"
+                                class="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-brand-700 transition-colors hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                                <ChatBubbleLeftEllipsisIcon class="h-5 w-5" aria-hidden="true" />
+                            </a>
                         </div>
                     </div>
 
                     <!-- Pickup location (revealed after payment for pickup orders) -->
-                    <div v-if="selectedRequest.fulfillment_type === 'pickup' && selectedRequest.pharmacy?.name" class="rider-contact-card">
-                        <span class="detail-label">Pickup Location</span>
-                        <p class="rider-name">{{ selectedRequest.pharmacy.name }}</p>
-                        <p v-if="selectedRequest.pharmacy.address" class="text-sm text-zinc-500 mt-0.5">{{ selectedRequest.pharmacy.address }}</p>
-                        <div class="flex flex-wrap gap-2 mt-2">
-                            <a v-if="selectedRequest.pharmacy.phone" :href="`tel:${selectedRequest.pharmacy.phone}`" class="rider-whatsapp-btn">
-                                <PhoneIcon class="w-4 h-4" />
+                    <div v-if="selectedRequest.fulfillment_type === 'pickup' && selectedRequest.pharmacy?.name" data-testid="pickup-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
+                        <p class="text-sm text-ink-600">Pickup location</p>
+                        <p class="text-lg font-bold text-ink-900">{{ selectedRequest.pharmacy.name }}</p>
+                        <p v-if="selectedRequest.pharmacy.address" class="mt-0.5 text-base text-ink-600">{{ selectedRequest.pharmacy.address }}</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <a v-if="selectedRequest.pharmacy.phone" :href="`tel:${selectedRequest.pharmacy.phone}`"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-brand-700 px-4 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                                <PhoneIcon class="h-5 w-5" aria-hidden="true" />
                                 Call
                             </a>
-                            <a v-if="selectedRequest.pharmacy.phone"
-                                :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.pharmacy.phone)}`"
-                                target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
-                                <ChatBubbleLeftEllipsisIcon class="w-4 h-4" />
+                            <a v-if="selectedRequest.pharmacy.phone" :href="`https://wa.me/${riderWhatsAppNumber(selectedRequest.pharmacy.phone)}`" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-4 text-base font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <ChatBubbleLeftEllipsisIcon class="h-5 w-5" aria-hidden="true" />
                                 WhatsApp
                             </a>
-                            <a v-if="pharmacyNavUrl(selectedRequest.pharmacy)"
-                                :href="pharmacyNavUrl(selectedRequest.pharmacy)"
-                                target="_blank" rel="noopener noreferrer" class="rider-whatsapp-btn">
-                                <MapPinIcon class="w-4 h-4" />
+                            <a v-if="pharmacyNavUrl(selectedRequest.pharmacy)" :href="pharmacyNavUrl(selectedRequest.pharmacy)" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-4 text-base font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <MapPinIcon class="h-5 w-5" aria-hidden="true" />
                                 Navigate
                             </a>
                         </div>
@@ -648,383 +480,307 @@
 
                     <!-- Totals (hidden while pickup vs delivery is still being chosen — the
                          comparison cards below carry per-method totals) -->
-                    <div v-if="selectedRequest.estimated_total && !requiresMethodSelection(selectedRequest)" class="totals-box">
-                        <div class="total-row"><span>Items total</span><span>GHS {{
-                            parseFloat(String(selectedRequest.items_total ?? 0)).toFixed(2) }}</span></div>
-                        <div v-if="selectedRequest.fulfillment_type === 'delivery' && selectedRequest.delivery_fee" class="total-row"><span>Delivery fee</span><span>GHS {{
-                            parseFloat(String(selectedRequest.delivery_fee)).toFixed(2) }}</span></div>
-                        <div class="total-row grand"><span>Estimated Total</span><span>GHS {{
-                            parseFloat(String(selectedRequest.estimated_total)).toFixed(2) }}</span></div>
-                    </div>
+                    <dl v-if="selectedRequest.estimated_total && !requiresMethodSelection(selectedRequest)" data-testid="request-totals" class="mb-4 space-y-2 rounded-2xl bg-ink-50 px-4 py-4">
+                        <div class="flex justify-between text-base text-ink-600">
+                            <dt>Items total</dt>
+                            <dd class="tabular-nums">GHS {{ parseFloat(String(selectedRequest.items_total ?? 0)).toFixed(2) }}</dd>
+                        </div>
+                        <div v-if="selectedRequest.fulfillment_type === 'delivery' && selectedRequest.delivery_fee" class="flex justify-between text-base text-ink-600">
+                            <dt>Delivery fee</dt>
+                            <dd class="tabular-nums">GHS {{ parseFloat(String(selectedRequest.delivery_fee)).toFixed(2) }}</dd>
+                        </div>
+                        <div class="flex justify-between border-t border-ink-200 pt-2 text-lg font-bold text-ink-900">
+                            <dt>Estimated total</dt>
+                            <dd class="tabular-nums">GHS {{ parseFloat(String(selectedRequest.estimated_total)).toFixed(2) }}</dd>
+                        </div>
+                    </dl>
 
-                    <div v-if="canLeaveFeedback(selectedRequest)" class="feedback-card">
-                        <div class="feedback-head">
+                    <div v-if="canLeaveFeedback(selectedRequest)" data-testid="feedback-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
+                        <div class="flex items-start justify-between gap-3">
                             <div>
-                                <span class="detail-label">Your Feedback</span>
-                                <p class="feedback-copy">
+                                <h3 class="font-display text-lg font-bold text-ink-900">Your feedback</h3>
+                                <p class="text-base text-ink-600">
                                     {{ selectedRequest.fulfillment_type === 'pickup' ? 'How was your pickup experience?' : 'How was your delivery experience?' }}
                                 </p>
                             </div>
-                            <span v-if="selectedRequest.feedback?.created_at" class="feedback-date">
+                            <span v-if="selectedRequest.feedback?.created_at" class="flex-shrink-0 text-sm text-ink-600">
                                 {{ formatDate(selectedRequest.feedback?.created_at) }}
                             </span>
                         </div>
 
-                        <!-- Delivery categories: Product · Delivery quality · Overall -->
-                        <template v-if="selectedRequest.fulfillment_type === 'delivery'">
-                            <div class="feedback-category">
-                                <span class="feedback-category-label">Product quality</span>
-                                <div class="feedback-stars" role="radiogroup" aria-label="Product quality rating">
-                                    <button v-for="star in 5" :key="`prod-star-${star}`" type="button"
-                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_product }"
-                                        @click="feedbackForm.rating_product = star">
-                                        <StarIcon class="feedback-star-icon" />
-                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
-                                    </button>
-                                </div>
+                        <div v-for="cat in feedbackCategories" :key="cat.key" class="mt-4">
+                            <p class="text-base font-semibold text-ink-900">{{ cat.label }}</p>
+                            <div class="mt-1 flex gap-1" role="radiogroup" :aria-label="`${cat.label} rating`">
+                                <button v-for="star in 5" :key="`${cat.key}-${star}`" type="button" role="radio"
+                                    :aria-checked="star === feedbackForm[cat.key] ? 'true' : 'false'"
+                                    :aria-label="`${star} star${star > 1 ? 's' : ''}`"
+                                    class="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                    @click="feedbackForm[cat.key] = star">
+                                    <StarIcon class="h-7 w-7" :class="star <= feedbackForm[cat.key] ? 'text-brand-700' : 'text-ink-200'" aria-hidden="true" />
+                                </button>
                             </div>
-                            <div class="feedback-category">
-                                <span class="feedback-category-label">Delivery quality</span>
-                                <div class="feedback-stars" role="radiogroup" aria-label="Delivery quality rating">
-                                    <button v-for="star in 5" :key="`del-star-${star}`" type="button"
-                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_delivery }"
-                                        @click="feedbackForm.rating_delivery = star">
-                                        <StarIcon class="feedback-star-icon" />
-                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="feedback-category">
-                                <span class="feedback-category-label">Overall</span>
-                                <div class="feedback-stars" role="radiogroup" aria-label="Overall rating">
-                                    <button v-for="star in 5" :key="`overall-star-${star}`" type="button"
-                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_overall }"
-                                        @click="feedbackForm.rating_overall = star">
-                                        <StarIcon class="feedback-star-icon" />
-                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </template>
+                        </div>
 
-                        <!-- Pickup categories: Product · Customer Service -->
-                        <template v-else>
-                            <div class="feedback-category">
-                                <span class="feedback-category-label">Product quality</span>
-                                <div class="feedback-stars" role="radiogroup" aria-label="Product quality rating">
-                                    <button v-for="star in 5" :key="`prod-star-${star}`" type="button"
-                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_product }"
-                                        @click="feedbackForm.rating_product = star">
-                                        <StarIcon class="feedback-star-icon" />
-                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="feedback-category">
-                                <span class="feedback-category-label">Customer Service</span>
-                                <div class="feedback-stars" role="radiogroup" aria-label="Customer service rating">
-                                    <button v-for="star in 5" :key="`svc-star-${star}`" type="button"
-                                        class="feedback-star-btn" :class="{ active: star <= feedbackForm.rating_service }"
-                                        @click="feedbackForm.rating_service = star">
-                                        <StarIcon class="feedback-star-icon" />
-                                        <span class="sr-only">{{ star }} star{{ star > 1 ? 's' : '' }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </template>
-
-                        <textarea v-model="feedbackForm.notes" rows="3" maxlength="2000"
-                            class="form-textarea feedback-textarea"
+                        <textarea v-model="feedbackForm.notes" rows="3" maxlength="2000" aria-label="Tell us more about your experience"
+                            class="mt-4 w-full rounded-2xl border-0 bg-white px-4 py-3 text-base text-ink-900 ring-1 ring-inset ring-ink-200 placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-brand-700"
                             placeholder="Optional: tell us what worked well or what felt difficult."></textarea>
 
-                        <div class="feedback-actions">
-                            <button type="button" class="nav-submit feedback-submit-btn" :disabled="savingFeedback"
-                                @click="submitFeedback">
-                                <ArrowPathIcon v-if="savingFeedback" class="nav-svg spin" />
-                                <span>{{ savingFeedback ? 'Saving...' : (selectedRequest.feedback ? 'Update Feedback' : 'Submit Feedback') }}</span>
-                            </button>
-                        </div>
+                        <button type="button" :disabled="savingFeedback"
+                            class="mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:opacity-60"
+                            @click="submitFeedback">
+                            <ArrowPathIcon v-if="savingFeedback" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                            <span>{{ savingFeedback ? 'Saving...' : (selectedRequest.feedback ? 'Update Feedback' : 'Submit Feedback') }}</span>
+                        </button>
                     </div>
 
-                    <div v-if="selectedRequest.pending_decisions?.length" class="decision-panel">
-                        <span class="detail-label">Customer Decision</span>
+                    <div v-if="selectedRequest.pending_decisions?.length" data-testid="decision-panel" class="mb-4 space-y-3">
                         <div v-for="(decision, decIdx) in selectedRequest.pending_decisions" :key="decision.id ?? decIdx"
-                            class="decision-card">
-                            <span class="decision-eyebrow" :class="getDecisionVariantClass(decision)">{{
+                            data-testid="decision-card" class="rounded-2xl bg-brand-50 px-4 py-4">
+                            <span class="inline-block rounded-full px-3 py-1 text-sm font-semibold"
+                                :class="getDecisionVariantClass(decision) === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-white text-brand-700'">{{
                                 getDecisionEyebrow(decision) }}</span>
-                            <div class="decision-copy">
-                                <strong>{{ decision.title }}</strong>
-                                <p>{{ decision.message }}</p>
-                            </div>
-                            <p v-if="getDecisionConciseSummary(decision)" class="decision-flow-headline">
+                            <h3 class="mt-2 font-display text-lg font-bold text-ink-900">{{ decision.title }}</h3>
+                            <p class="text-base text-ink-600">{{ decision.message }}</p>
+                            <p v-if="getDecisionConciseSummary(decision)" class="mt-2 text-base font-semibold text-ink-900">
                                 {{ getDecisionConciseSummary(decision) }}
                             </p>
 
-                            <div v-if="getDecisionItems(decision).length" class="decision-item-list">
-                                <div v-for="decisionItem in getDecisionItems(decision)"
-                                    :key="`${decision.id}-${decisionItem.item_id}`" class="decision-item-row">
-                                    <div class="decision-item-copy">
-                                        <strong>{{ decisionItem.product_name }}</strong>
-                                        <span class="decision-item-meta">Qty: {{ decisionItem.quantity }}</span>
-                                        <span v-if="shouldShowDecisionItemPrice(decisionItem)"
-                                            class="decision-item-meta">
-                                            GHS {{ formatMoney(decisionItem.unit_price) }} each
-                                        </span>
-                                        <span v-if="getDecisionItemRouteText(decision, decisionItem)"
-                                            class="decision-item-meta source">
-                                            {{ getDecisionItemRouteText(decision, decisionItem) }}
-                                        </span>
-                                        <span v-if="decisionItem.status === 'unavailable'"
-                                            class="decision-item-meta unavailable">
-                                            Unavailable right now
-                                        </span>
-                                        <div v-if="decisionItem.substitute_option" class="decision-substitute">
-                                            <span class="decision-item-meta substitute-label">Suggested
-                                                alternative</span>
-                                            <strong>{{ decisionItem.substitute_option.name }}</strong>
-                                            <span v-if="decisionItem.substitute_option.marked_up_price !== null"
-                                                class="decision-item-meta">
-                                                GHS {{ formatMoney(decisionItem.substitute_option.marked_up_price) }}
-                                                each
-                                            </span>
-                                            <span v-if="getDecisionSubstituteRouteText(decision, decisionItem)"
-                                                class="decision-item-meta source">
-                                                {{ getDecisionSubstituteRouteText(decision, decisionItem) }}
-                                            </span>
-                                        </div>
+                            <ul v-if="getDecisionItems(decision).length" class="mt-3 space-y-3">
+                                <li v-for="decisionItem in getDecisionItems(decision)"
+                                    :key="`${decision.id}-${decisionItem.item_id}`" class="rounded-2xl bg-white px-4 py-3">
+                                    <p class="text-base font-semibold text-ink-900">{{ decisionItem.product_name }}</p>
+                                    <p class="text-sm text-ink-600">
+                                        Qty {{ decisionItem.quantity }}
+                                        <span v-if="shouldShowDecisionItemPrice(decisionItem)"> · GHS {{ formatMoney(decisionItem.unit_price) }} each</span>
+                                    </p>
+                                    <p v-if="getDecisionItemRouteText(decision, decisionItem)" class="text-sm text-ink-600">
+                                        {{ getDecisionItemRouteText(decision, decisionItem) }}
+                                    </p>
+                                    <p v-if="decisionItem.status === 'unavailable'" class="text-sm font-semibold text-amber-800">
+                                        Unavailable right now
+                                    </p>
+                                    <div v-if="decisionItem.substitute_option" class="mt-2 rounded-xl bg-ink-50 px-3 py-2">
+                                        <p class="text-sm text-ink-600">Suggested alternative</p>
+                                        <p class="text-base font-semibold text-ink-900">{{ decisionItem.substitute_option.name }}</p>
+                                        <p v-if="decisionItem.substitute_option.marked_up_price !== null" class="text-sm text-ink-600">
+                                            GHS {{ formatMoney(decisionItem.substitute_option.marked_up_price) }} each
+                                        </p>
+                                        <p v-if="getDecisionSubstituteRouteText(decision, decisionItem)" class="text-sm text-ink-600">
+                                            {{ getDecisionSubstituteRouteText(decision, decisionItem) }}
+                                        </p>
                                     </div>
-                                    <div class="decision-item-actions">
+                                    <div class="mt-3 flex flex-wrap gap-2">
                                         <button v-for="choice in getDecisionItemChoices(decisionItem)"
                                             :key="`${decision.id}-${decisionItem.item_id}-${choice.value}`"
-                                            type="button" class="decision-item-btn"
-                                            :class="{ active: getDecisionChoice(decision, decisionItem) === choice.value }"
+                                            type="button" :aria-pressed="getDecisionChoice(decision, decisionItem) === choice.value ? 'true' : 'false'"
+                                            class="min-h-[44px] rounded-full px-4 text-base font-semibold ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                            :class="getDecisionChoice(decision, decisionItem) === choice.value ? 'bg-brand-700 text-white ring-brand-700' : 'bg-white text-brand-700 ring-brand-200 hover:bg-brand-50'"
                                             @click="setDecisionChoice(decision, decisionItem, choice.value)">
                                             {{ choice.label }}
                                         </button>
                                     </div>
-                                </div>
-                                <div class="decision-preview-total">
-                                    <span>Updated total</span>
-                                    <strong>GHS {{ formatMoney(getDecisionPreviewTotal(decision)) }}</strong>
-                                </div>
-                            </div>
-                            <div class="decision-actions">
-                                <button class="decision-btn secondary" :disabled="respondingDecisionId === decision.id"
+                                </li>
+                            </ul>
+                            <p v-if="getDecisionItems(decision).length" class="mt-3 flex justify-between text-lg font-bold text-ink-900">
+                                <span>Updated total</span>
+                                <span class="tabular-nums">GHS {{ formatMoney(getDecisionPreviewTotal(decision)) }}</span>
+                            </p>
+
+                            <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+                                <button type="button" :disabled="respondingDecisionId === decision.id"
+                                    class="min-h-[44px] flex-1 rounded-full bg-white px-5 text-base font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:opacity-60"
                                     @click="respondToDecision(decision, 'declined')">
                                     {{ getDecisionDeclineLabel(decision) }}
                                 </button>
-                                <button class="decision-btn primary" :disabled="respondingDecisionId === decision.id"
+                                <button type="button" :disabled="respondingDecisionId === decision.id"
+                                    class="min-h-[44px] flex-1 rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:opacity-60"
                                     @click="respondToDecision(decision, 'approved')">
-                                    {{ respondingDecisionId === decision.id ? 'Saving...' :
-                                    getDecisionApproveLabel(decision) }}
+                                    {{ respondingDecisionId === decision.id ? 'Saving...' : getDecisionApproveLabel(decision) }}
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     <div v-if="canPayRequest(selectedRequest) && !selectedRequest.pending_decisions?.length"
-                        class="payment-action">
-                        <!-- Fulfillment picker — shown when no method is locked yet -->
-                        <div v-if="requiresMethodSelection(selectedRequest) || overrideMethodPickerFor[selectedRequest.id]" class="fulfillment-picker">
-                            <p class="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-3">How would you like to receive your order?</p>
+                        data-testid="request-payment" class="mt-6 space-y-5 border-t border-ink-100 pt-6">
+                        <!-- Fulfilment picker: shown until a method is locked in -->
+                        <div v-if="requiresMethodSelection(selectedRequest) || overrideMethodPickerFor[selectedRequest.id]">
+                            <h3 id="request-method-title" class="font-display text-lg font-bold text-ink-900">How would you like to receive your order?</h3>
 
-                            <div v-if="paymentOptionsLoading[selectedRequest.id]" class="fulfillment-picker-loading">
-                                <ArrowPathIcon class="pay-svg spin" />
-                                <span>Loading options…</span>
+                            <div v-if="paymentOptionsLoading[selectedRequest.id]" role="status" class="mt-3 flex items-center gap-2 text-base text-ink-600">
+                                <ArrowPathIcon class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                Loading your options
                             </div>
 
-                            <div v-else-if="selectedPaymentOptions" class="fulfillment-options">
-                                <!-- Pickup card -->
-                                <button
-                                    type="button"
-                                    class="fulfillment-option"
-                                    :class="{
-                                        'fulfillment-option--selected': selectedPaymentMethodByRequest[selectedRequest.id] === 'pickup',
-                                        'fulfillment-option--disabled': !selectedPaymentOptions?.pickup?.available
-                                    }"
-                                    :disabled="!selectedPaymentOptions?.pickup?.available"
-                                    @click="choosePaymentMethod(selectedRequest.id, 'pickup')"
-                                >
-                                    <div class="fulfillment-option-row">
-                                        <div class="fulfillment-option-icon fulfillment-option-icon--pickup" aria-hidden="true">
-                                            <BuildingStorefrontIcon />
-                                        </div>
-                                        <div class="fulfillment-option-body">
-                                            <div class="fulfillment-option-head">
-                                                <span class="fulfillment-option-title">Pickup</span>
-                                                <span class="fulfillment-option-price">
-                                                    <template v-if="selectedPaymentOptions?.pickup?.available">
-                                                        GHS {{ Number(selectedPaymentOptions?.pickup?.total ?? 0).toFixed(2) }}
-                                                    </template>
-                                                    <template v-else>—</template>
-                                                </span>
-                                            </div>
-                                            <div v-if="selectedPaymentOptions?.pickup?.available && selectedPaymentOptions?.pickup?.pharmacy" class="fulfillment-option-meta">
-                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">{{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away</span>
-                                                <span v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours"> · Open 24 hours</span>
-                                                <span v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at"> · Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}</span>
-                                                <span class="fulfillment-option-meta--muted"> · Pharmacy shown after payment</span>
-                                            </div>
-                                            <div v-else-if="selectedPaymentOptions?.pickup?.unavailable_reason" class="fulfillment-option-meta fulfillment-option-meta--muted">
+                            <template v-else-if="selectedPaymentOptions">
+                                <div role="radiogroup" aria-labelledby="request-method-title" class="mt-3 space-y-3">
+                                    <button type="button" role="radio"
+                                        :aria-checked="selectedPaymentMethodByRequest[selectedRequest.id] === 'pickup'"
+                                        :disabled="!selectedPaymentOptions?.pickup?.available"
+                                        @click="choosePaymentMethod(selectedRequest.id, 'pickup')"
+                                        class="flex min-h-[72px] w-full items-center gap-4 rounded-2xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:opacity-70"
+                                        :class="selectedPaymentMethodByRequest[selectedRequest.id] === 'pickup' ? 'border-brand-700 bg-brand-50 ring-1 ring-brand-700' : 'border-ink-100 bg-white hover:bg-ink-50'">
+                                        <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-900" aria-hidden="true">
+                                            <BuildingStorefrontIcon class="h-5 w-5" />
+                                        </span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="flex items-baseline justify-between gap-3">
+                                                <span class="text-base font-semibold text-ink-900">Pickup</span>
+                                                <span v-if="selectedPaymentOptions?.pickup?.available" class="text-base font-bold tabular-nums text-ink-900">GHS {{ Number(selectedPaymentOptions?.pickup?.total ?? 0).toFixed(2) }}</span>
+                                            </span>
+                                            <span v-if="selectedPaymentOptions?.pickup?.available && selectedPaymentOptions?.pickup?.pharmacy" class="mt-0.5 block text-sm text-ink-600">
+                                                <template v-if="selectedPaymentOptions?.pickup?.pharmacy?.distance_km != null">{{ selectedPaymentOptions?.pickup?.pharmacy?.distance_km }} km away. </template>
+                                                <template v-if="selectedPaymentOptions?.pickup?.pharmacy?.is_24_hours">Open 24 hours. </template>
+                                                <template v-else-if="selectedPaymentOptions?.pickup?.pharmacy?.closes_at">Open until {{ selectedPaymentOptions?.pickup?.pharmacy?.closes_at }}. </template>
+                                                We show you the pharmacy after you pay.
+                                            </span>
+                                            <span v-else-if="selectedPaymentOptions?.pickup?.unavailable_reason" class="mt-0.5 block text-sm text-ink-600">
                                                 {{ formatPickupReason(selectedPaymentOptions?.pickup?.unavailable_reason) }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </button>
+                                            </span>
+                                        </span>
+                                    </button>
 
-                                <!-- Delivery card + expandable provider rate sheet -->
-                                <div class="fulfillment-option-wrap">
-                                <button
-                                    type="button"
-                                    class="fulfillment-option"
-                                    :class="{ 'fulfillment-option--selected': selectedPaymentMethodByRequest[selectedRequest.id] === 'delivery' }"
-                                    @click="choosePaymentMethod(selectedRequest.id, 'delivery')"
-                                >
-                                    <div class="fulfillment-option-row">
-                                        <div class="fulfillment-option-icon fulfillment-option-icon--delivery" aria-hidden="true">
-                                            <TruckIcon />
-                                        </div>
-                                        <div class="fulfillment-option-body">
-                                            <div class="fulfillment-option-head">
-                                                <span class="fulfillment-option-title">Delivery</span>
-                                                <span class="fulfillment-option-price">GHS {{ Number(deliveryDisplayTotal(selectedRequest) ?? 0).toFixed(2) }}</span>
-                                            </div>
-                                            <div class="fulfillment-option-meta">
-                                                <span v-if="selectedDeliveryRate(selectedRequest)">via {{ selectedDeliveryRate(selectedRequest)?.provider_name }} · GHS {{ Number(selectedDeliveryRate(selectedRequest)?.amount ?? 0).toFixed(2) }}</span>
-                                                <span v-else>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</span>
-                                                <span v-if="selectedPaymentOptions?.delivery?.distance_km != null"> · {{ selectedPaymentOptions?.delivery?.distance_km }} km</span>
-                                                <span v-if="selectedDeliveryRate(selectedRequest)?.eta_minutes"> · ~{{ selectedDeliveryRate(selectedRequest)?.eta_minutes }} min</span>
-                                                <span v-else-if="selectedPaymentOptions?.delivery?.eta_minutes"> · ~{{ selectedPaymentOptions?.delivery?.eta_minutes }} min</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </button>
-                                <!-- Rate sheet: always visible when provider rates exist — tap a rate to pick it (also selects Delivery) -->
-                                <div v-if="(selectedPaymentOptions?.delivery?.provider_rates?.length ?? 0) > 0" class="provider-rate-sheet">
-                                    <p class="provider-rate-sheet-title">Choose delivery speed</p>
-                                    <button
-                                        v-for="rate in selectedPaymentOptions?.delivery?.provider_rates"
-                                        :key="`${rate.provider_code}:${rate.service_level}`"
-                                        type="button"
-                                        class="provider-rate-option"
-                                        :class="{ 'provider-rate-option--selected': selectedRateByRequest[selectedRequest.id] === `${rate.provider_code}:${rate.service_level}` }"
-                                        @click="chooseDeliveryRate(selectedRequest.id, rate)"
-                                    >
-                                        <span class="provider-rate-name">{{ rate.provider_name }}{{ rate.service_level && rate.service_level !== 'standard' ? ` · ${rate.service_level}` : '' }}</span>
-                                        <span class="provider-rate-price">GHS {{ Number(rate.amount ?? 0).toFixed(2) }}</span>
-                                        <span v-if="rate.eta_minutes" class="provider-rate-meta">~{{ rate.eta_minutes }} min</span>
+                                    <button type="button" role="radio"
+                                        :aria-checked="selectedPaymentMethodByRequest[selectedRequest.id] === 'delivery'"
+                                        @click="choosePaymentMethod(selectedRequest.id, 'delivery')"
+                                        class="flex min-h-[72px] w-full items-center gap-4 rounded-2xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                        :class="selectedPaymentMethodByRequest[selectedRequest.id] === 'delivery' ? 'border-brand-700 bg-brand-50 ring-1 ring-brand-700' : 'border-ink-100 bg-white hover:bg-ink-50'">
+                                        <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-900" aria-hidden="true">
+                                            <TruckIcon class="h-5 w-5" />
+                                        </span>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="flex items-baseline justify-between gap-3">
+                                                <span class="text-base font-semibold text-ink-900">Delivery</span>
+                                                <span class="text-base font-bold tabular-nums text-ink-900">GHS {{ Number(deliveryDisplayTotal(selectedRequest) ?? 0).toFixed(2) }}</span>
+                                            </span>
+                                            <span class="mt-0.5 block text-sm text-ink-600">
+                                                <template v-if="selectedDeliveryRate(selectedRequest)">via {{ selectedDeliveryRate(selectedRequest)?.provider_name }}, GHS {{ Number(selectedDeliveryRate(selectedRequest)?.amount ?? 0).toFixed(2) }}</template>
+                                                <template v-else>Delivery fee GHS {{ Number(selectedPaymentOptions?.delivery?.fee ?? 0).toFixed(2) }}</template>
+                                                <template v-if="selectedPaymentOptions?.delivery?.distance_km != null">. {{ selectedPaymentOptions?.delivery?.distance_km }} km</template>
+                                                <template v-if="selectedDeliveryRate(selectedRequest)?.eta_minutes">. About {{ selectedDeliveryRate(selectedRequest)?.eta_minutes }} min</template>
+                                                <template v-else-if="selectedPaymentOptions?.delivery?.eta_minutes">. About {{ selectedPaymentOptions?.delivery?.eta_minutes }} min</template>
+                                            </span>
+                                        </span>
                                     </button>
                                 </div>
+
+                                <div v-if="(selectedPaymentOptions?.delivery?.provider_rates?.length ?? 0) > 0" class="mt-4">
+                                    <p id="request-rate-title" class="text-sm font-semibold text-ink-900">Choose delivery speed</p>
+                                    <div role="radiogroup" aria-labelledby="request-rate-title" class="mt-2 space-y-2">
+                                        <button v-for="rate in selectedPaymentOptions?.delivery?.provider_rates"
+                                            :key="`${rate.provider_code}:${rate.service_level}`"
+                                            type="button" role="radio"
+                                            :aria-checked="selectedRateByRequest[selectedRequest.id] === `${rate.provider_code}:${rate.service_level}`"
+                                            @click="chooseDeliveryRate(selectedRequest.id, rate)"
+                                            class="flex min-h-[56px] w-full items-center justify-between gap-3 rounded-xl border px-4 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                            :class="selectedRateByRequest[selectedRequest.id] === `${rate.provider_code}:${rate.service_level}` ? 'border-brand-700 bg-brand-50 ring-1 ring-brand-700' : 'border-ink-100 bg-white hover:bg-ink-50'">
+                                            <span class="min-w-0">
+                                                <span class="block text-base font-semibold text-ink-900">{{ rate.provider_name }}{{ rate.service_level && rate.service_level !== 'standard' ? `, ${rate.service_level}` : '' }}</span>
+                                                <span v-if="rate.eta_minutes" class="block text-sm text-ink-600">About {{ rate.eta_minutes }} min</span>
+                                            </span>
+                                            <span class="flex-shrink-0 text-base font-bold tabular-nums text-ink-900">GHS {{ Number(rate.amount ?? 0).toFixed(2) }}</span>
+                                        </button>
+                                    </div>
                                 </div>
+                            </template>
+
+                            <p v-else role="alert" class="mt-3 text-base text-ink-600">We could not load your options. Close this and open the request again.</p>
+                        </div>
+
+                        <!-- Search fee: keep it for later, or take it off this order -->
+                        <div v-if="canPayWithSelection(selectedRequest) && selectedPaymentOptions?.fee_applicable">
+                            <p id="request-fee-title" class="text-base font-semibold text-ink-900">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</p>
+                            <div role="radiogroup" aria-labelledby="request-fee-title" class="mt-2 grid grid-cols-2 gap-2">
+                                <button type="button" role="radio" :aria-checked="applyFeeByRequest[selectedRequest.id] === true"
+                                    @click="setApplyFee(selectedRequest.id, true)"
+                                    class="min-h-[56px] rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                    :class="applyFeeByRequest[selectedRequest.id] === true ? 'border-brand-700 bg-brand-50 ring-1 ring-brand-700' : 'border-ink-100 bg-white hover:bg-ink-50'">
+                                    <span class="block text-base font-semibold text-ink-900">Apply to order</span>
+                                    <span class="block text-sm text-ink-600">Pay less now</span>
+                                </button>
+                                <button type="button" role="radio" :aria-checked="applyFeeByRequest[selectedRequest.id] !== true"
+                                    @click="setApplyFee(selectedRequest.id, false)"
+                                    class="min-h-[56px] rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                    :class="applyFeeByRequest[selectedRequest.id] !== true ? 'border-brand-700 bg-brand-50 ring-1 ring-brand-700' : 'border-ink-100 bg-white hover:bg-ink-50'">
+                                    <span class="block text-base font-semibold text-ink-900">Return to wallet</span>
+                                    <span class="block text-sm text-ink-600">Keep it for a later request</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Payment section — only shown once a fulfillment method is chosen (or not required) -->
-                        <template v-if="canPayWithSelection(selectedRequest)">
-                            <!-- Fee credit toggle -->
-                            <div v-if="selectedPaymentOptions?.fee_applicable" class="fee-credit-picker">
-                                <span class="fee-credit-label">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</span>
-                                <div class="fee-credit-toggle">
-                                    <button
-                                        type="button"
-                                        class="fee-credit-option"
-                                        :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] !== false }"
-                                        title="Pay less now"
-                                        @click="setApplyFee(selectedRequest.id, true)"
-                                    >Apply to order</button>
-                                    <button
-                                        type="button"
-                                        class="fee-credit-option"
-                                        :class="{ 'fee-credit-option--selected': applyFeeByRequest[selectedRequest.id] === false }"
-                                        title="Save for a future request"
-                                        @click="setApplyFee(selectedRequest.id, false)"
-                                    >Return to wallet</button>
-                                </div>
-                            </div>
+                        <!-- Total -->
+                        <div v-if="selectedMethodTotal != null" class="flex items-baseline justify-between rounded-2xl bg-ink-50 px-4 py-4">
+                            <span class="text-base font-semibold text-ink-900">Total</span>
+                            <span data-testid="payment-total" class="font-display text-2xl font-bold tabular-nums text-ink-900">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
+                        </div>
 
-                            <!-- Total -->
-                            <div v-if="selectedMethodTotal != null" class="payment-total-row">
-                                <span>Total</span>
-                                <span class="payment-total-amount">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
-                            </div>
+                        <!-- Pay -->
+                        <div class="space-y-3">
+                            <button type="button" @click="payForRequest(selectedRequest.id, 'wallet')"
+                                :disabled="payingRequest || !!walletBlockReason"
+                                :aria-describedby="walletBlockReason ? 'request-pay-reason' : undefined"
+                                class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                :class="walletShort ? 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50' : 'bg-brand-700 text-white hover:bg-brand-600'">
+                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                {{ payingRequest && payingMethod === 'wallet'
+                                    ? 'Paying…'
+                                    : selectedMethodTotal != null ? `Pay with wallet · GHS ${selectedMethodTotal.toFixed(2)}` : 'Pay with wallet' }}
+                            </button>
+                            <button type="button" @click="payForRequest(selectedRequest.id, 'paystack')"
+                                :disabled="payingRequest || payNeedsChoice"
+                                :aria-describedby="payNeedsChoice ? 'request-pay-reason' : undefined"
+                                class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                :class="walletShort ? 'bg-brand-700 text-white hover:bg-brand-600' : 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50'">
+                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                {{ payingRequest && payingMethod === 'paystack'
+                                    ? 'Opening Paystack…'
+                                    : paystackChargeTotal != null ? `Pay with card or mobile money · GHS ${paystackChargeTotal.toFixed(2)}` : 'Pay with card or mobile money' }}
+                            </button>
+                            <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-center text-sm text-ink-600">
+                                Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
+                            </p>
+                            <p v-if="walletBlockReason" id="request-pay-reason" class="text-center text-sm text-ink-600">{{ walletBlockReason }}</p>
+                            <button v-if="walletShort && !payNeedsChoice && paymentShortfall.requestId !== selectedRequest.id" type="button" @click="openWalletTab"
+                                class="mx-auto flex min-h-[44px] items-center rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                Top up wallet
+                            </button>
+                            <p role="status" class="sr-only">{{ payingRequest ? (payingMethod === 'paystack' ? 'Opening Paystack…' : 'Paying from your wallet…') : '' }}</p>
+                            <p v-if="payError" role="alert" class="rounded-xl bg-red-50 px-4 py-3 text-base text-red-800">{{ payError }}</p>
+                        </div>
 
-                            <!-- Pay buttons -->
-                            <div class="payment-method-grid">
-                                <button v-if="walletBalance > 5"
-                                    @click="payForRequest(selectedRequest.id, 'wallet')"
-                                    :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? '' : 'secondary-pay-btn']"
-                                    :disabled="payingRequest">
-                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="pay-svg spin" />
-                                    <CurrencyDollarIcon v-else class="pay-svg" />
-                                    <span>
-                                        {{ payingRequest && payingMethod === 'wallet'
-                                            ? 'Processing wallet payment...'
-                                            : selectedMethodTotal != null
-                                                ? `Pay with Wallet · GHS ${selectedMethodTotal.toFixed(2)}`
-                                                : 'Pay with Wallet' }}
-                                    </span>
-                                </button>
-                                <button @click="payForRequest(selectedRequest.id, 'paystack')"
-                                    :class="['pay-request-btn', walletBalance >= (selectedMethodTotal ?? 0) ? 'secondary-pay-btn' : '']"
-                                    :disabled="payingRequest">
-                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="pay-svg spin" />
-                                    <CreditCardIcon v-else class="pay-svg" />
-                                    <span>
-                                        {{ payingRequest && payingMethod === 'paystack'
-                                            ? 'Redirecting to Paystack...'
-                                            : paystackChargeTotal != null
-                                                ? `Pay · GHS ${paystackChargeTotal.toFixed(2)}`
-                                                : 'Pay' }}
-                                    </span>
-                                </button>
-                                <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-[11px] text-zinc-400 text-center -mt-1">
-                                    Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
-                                </p>
-                            </div>
-                        </template>
-
+                        <!-- The server said the wallet was short -->
                         <div v-if="paymentShortfall.requestId === selectedRequest.id && paymentShortfall.amount > 0"
-                            class="payment-shortfall">
-                            <div class="payment-shortfall-head">
-                                <div class="payment-shortfall-icon">
-                                    <ExcTriIcon class="payment-shortfall-svg" />
-                                </div>
-                                <div class="payment-shortfall-copy">
-                                    <strong>Add funds to continue</strong>
-                                    <span>Your wallet balance is below the amount needed for this payment.</span>
-                                </div>
-                                <div class="payment-shortfall-amount">
-                                    GHS {{ paymentShortfall.amount.toFixed(2) }}
-                                </div>
-                            </div>
-                            <div class="payment-shortfall-actions">
-                                <span class="payment-shortfall-note">Top up this amount to complete the payment from
-                                    your
-                                    wallet.</span>
-                                <button @click="openWalletTab" class="priority-topup payment-topup-btn">
-                                    Top Up Wallet
-                                </button>
-                            </div>
+                            role="alert" class="rounded-2xl bg-amber-50 px-4 py-4">
+                            <p class="text-base font-semibold text-ink-900">Add GHS {{ paymentShortfall.amount.toFixed(2) }} to continue</p>
+                            <p class="mt-1 text-base text-ink-600">Your wallet is short for this payment. Top up that amount, then pay from your wallet.</p>
+                            <button type="button" @click="openWalletTab"
+                                class="mt-3 inline-flex min-h-[48px] items-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                                Top up wallet
+                            </button>
                         </div>
                     </div>
-                    <div v-else-if="isPaymentPendingRequest(selectedRequest)"
-                        class="payment-action payment-action--pending">
-                        <p class="payment-note">Pricing being confirmed — payment will appear here shortly.</p>
-                    </div>
+                    <p v-else-if="isPaymentPendingRequest(selectedRequest)" role="status" class="mt-6 rounded-2xl bg-ink-50 px-4 py-4 text-base text-ink-600">
+                        We are confirming the price. Payment will appear here shortly.
+                    </p>
 
-                    <div v-if="canCancelRequest(selectedRequest)" class="cancel-action">
-                        <button @click="requestCancelConfirmation(selectedRequest.id)" class="cancel-request-btn"
-                            :disabled="cancelingRequest || payingRequest">
-                            <ArrowPathIcon v-if="cancelingRequest" class="pay-svg spin" />
-                            <XMarkIcon v-else class="pay-svg" />
-                            <span>{{ cancelingRequest ? 'Cancelling request...' : 'Cancel request' }}</span>
+                    <div v-if="canCancelRequest(selectedRequest)" class="mt-6 border-t border-ink-100 pt-4">
+                        <button type="button" @click="requestCancelConfirmation(selectedRequest.id)"
+                            :disabled="cancelingRequest || payingRequest"
+                            class="inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 text-base font-semibold text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 disabled:opacity-50">
+                            <ArrowPathIcon v-if="cancelingRequest" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                            <XMarkIcon v-else class="h-5 w-5" aria-hidden="true" />
+                            {{ cancelingRequest ? 'Cancelling request…' : 'Cancel request' }}
                         </button>
                     </div>
 
-                    <!-- Address / Notes -->
-                    <div v-if="selectedRequest.customer_address || selectedRequest.delivery_address"
-                        class="detail-info">
-                        <MapPinIcon class="detail-svg" /> {{ compactAddress(selectedRequest.customer_address ?? selectedRequest.delivery_address ?? '') }}
+                    <!-- Address -->
+                    <div v-if="selectedRequest.customer_address || selectedRequest.delivery_address" data-testid="request-address"
+                        class="mt-4 flex items-start gap-3 rounded-2xl bg-ink-50 px-4 py-3">
+                        <MapPinIcon class="mt-0.5 h-5 w-5 flex-shrink-0 text-brand-700" aria-hidden="true" />
+                        <div class="min-w-0">
+                            <p class="text-sm text-ink-600">Delivery address</p>
+                            <p class="text-base font-semibold text-ink-900">{{ compactAddress(selectedRequest.customer_address ?? selectedRequest.delivery_address ?? '') }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1032,35 +788,45 @@
 
 
         <!-- Address Modal -->
-        <div v-if="showAddressModal" class="modal-overlay" @click.self="showAddressModal = false">
-            <div class="modal-content" style="max-width: 480px">
-                <div class="modal-header">
-                    <div>
-                        <h3>{{ customerLat && deliveryAddress.trim() ? 'Update Address' : 'Delivery Address' }}</h3>
-                    </div>
-                    <button @click="showAddressModal = false" class="modal-close">
-                        <XMarkIcon class="close-svg" />
+        <div v-if="showAddressModal" data-testid="address-backdrop"
+            class="fixed inset-0 z-[70] flex items-end justify-center bg-ink-900/50 sm:items-center sm:p-4"
+            @click.self="showAddressModal = false">
+            <div ref="addressDialogRef" role="dialog" aria-modal="true" aria-labelledby="address-dialog-title"
+                class="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-6 font-body shadow-lift sm:rounded-3xl">
+                <div class="mb-5 flex items-center justify-between gap-3">
+                    <h2 id="address-dialog-title" class="font-display text-2xl font-bold text-ink-900">{{ customerLat && deliveryAddress.trim() ? 'Update address' : 'Delivery address' }}</h2>
+                    <button @click="showAddressModal = false" type="button" aria-label="Close"
+                        class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
                     </button>
                 </div>
-                <div class="modal-body">
-                    <!-- GPS button -->
-                    <button @click="getLocation" :disabled="gettingLocation" type="button"
-                        class="w-full flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl p-3 mb-4 transition-all hover:bg-zinc-100 hover:border-zinc-300">
-                        <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 bg-white border border-zinc-200 text-zinc-500">
-                            <ArrowPathIcon v-if="gettingLocation" class="w-5 h-5 animate-spin" />
-                            <MapPinIcon v-else class="w-5 h-5" />
+
+                <div class="space-y-5">
+                    <!-- GPS -->
+                    <div>
+                        <button @click="getLocation" :disabled="gettingLocation" type="button"
+                            class="flex min-h-[64px] w-full items-center gap-4 rounded-xl bg-ink-100 px-4 py-3 text-left transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:opacity-60">
+                            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-700 text-white">
+                                <ArrowPathIcon v-if="gettingLocation" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                <MapPinIcon v-else class="h-5 w-5" aria-hidden="true" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-base font-semibold text-ink-900">Use my current location</span>
+                                <span class="mt-0.5 block text-sm text-ink-600">{{ gettingLocation ? 'Getting location…' : 'Detect where you are with GPS' }}</span>
+                            </span>
+                            <CheckCircleIconSolid v-if="customerLat" class="h-6 w-6 flex-shrink-0 text-brand-700" aria-label="Location set" />
+                        </button>
+                        <div v-if="locationIssue" role="alert" class="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                            <p class="text-sm font-semibold text-red-800">{{ locationIssue.message }}</p>
+                            <p class="mt-1 text-sm text-red-800">{{ locationIssue.instructions }}</p>
                         </div>
-                        <div class="flex-1 text-left min-w-0">
-                            <strong class="block text-sm font-bold text-zinc-900">Use my current location</strong>
-                            <span class="block text-[11px] font-semibold text-zinc-500 mt-0.5">{{ gettingLocation ? 'Getting location…' : 'Tap to detect via GPS' }}</span>
-                        </div>
-                        <CheckCircleIconSolid v-if="customerLat" class="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                    </button>
+                    </div>
 
                     <!-- Address search -->
-                    <div class="relative mb-3">
-                        <div class="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#4F217A]/40 focus-within:ring-2 focus-within:ring-[#4F217A]/10">
-                            <MagnifyingGlassIcon class="w-[18px] h-[18px] text-zinc-400" />
+                    <div>
+                        <label for="delivery-address-search" class="mb-2 block text-sm font-semibold text-ink-900">Search for your address</label>
+                        <div class="flex items-center gap-2 rounded-lg border-2 border-transparent bg-ink-100 px-4 transition-colors focus-within:border-brand-700 focus-within:bg-white">
+                            <MagnifyingGlassIcon class="h-5 w-5 flex-shrink-0 text-ink-600" aria-hidden="true" />
                             <input v-model="deliveryAddressSearch" type="text"
                                 id="delivery-address-search"
                                 placeholder="Type an address or landmark"
@@ -1072,102 +838,126 @@
                                 autocomplete="street-address"
                                 inputmode="text"
                                 @keydown="onDeliveryAddressKeydown"
-                                class="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400" />
-                            <ArrowPathIcon v-if="deliveryAutocompleteLoading" class="w-[18px] h-[18px] text-zinc-400 animate-spin" />
+                                class="min-h-[48px] w-full bg-transparent text-base font-medium text-ink-900 outline-none placeholder:text-ink-500" />
+                            <ArrowPathIcon v-if="deliveryAutocompleteLoading" class="h-5 w-5 flex-shrink-0 animate-spin text-ink-600" aria-hidden="true" />
                         </div>
                         <ul v-if="deliveryAddressSuggestions.length"
                             id="delivery-address-suggestions-modal"
                             role="listbox"
                             aria-label="Address suggestions"
-                            class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl max-h-52 overflow-y-auto overscroll-contain list-none m-0 p-0">
+                            class="m-0 mt-2 max-h-56 list-none overflow-y-auto overscroll-contain rounded-xl border border-ink-100 bg-white p-0">
                             <li v-for="(suggestion, idx) in deliveryAddressSuggestions"
                                 :key="`${suggestion.display_name}-${idx}`"
                                 :id="`delivery-address-modal-option-${idx}`"
                                 role="option"
                                 :aria-selected="deliveryAddressActiveIndex === idx"
-                                class="border-b border-zinc-100 last:border-b-0 cursor-pointer transition-colors"
-                                :class="deliveryAddressActiveIndex === idx ? 'bg-[#f7f1ff]' : 'hover:bg-zinc-50'"
+                                class="min-h-[56px] cursor-pointer border-b border-ink-100 px-4 py-3 transition-colors last:border-b-0"
+                                :class="deliveryAddressActiveIndex === idx ? 'bg-ink-100' : 'hover:bg-ink-50'"
                                 @click="applyDeliveryAddressSuggestion(suggestion)"
                                 @mouseenter="deliveryAddressActiveIndex = idx">
-                                <div class="px-4 py-3">
-                                    <p class="text-sm font-semibold text-zinc-900 truncate">{{ formatSuggestionPrimary(String(suggestion.display_name ?? '')) }}</p>
-                                    <p class="mt-0.5 text-[11px] font-medium text-zinc-400 truncate">{{ formatSuggestionSecondary(String(suggestion.display_name ?? '')) || suggestion.type || '' }}</p>
-                                </div>
+                                <p class="truncate text-base font-semibold text-ink-900">{{ formatSuggestionPrimary(String(suggestion.display_name ?? '')) }}</p>
+                                <p class="mt-0.5 truncate text-sm text-ink-600">{{ formatSuggestionSecondary(String(suggestion.display_name ?? '')) || suggestion.type || '' }}</p>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Delivery address textarea -->
-                    <textarea v-model="deliveryAddress" rows="2"
-                        placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
-                        autocomplete="street-address"
-                        inputmode="text"
-                        class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40 resize-none mb-4"></textarea>
+                    <!-- Delivery address text -->
+                    <div>
+                        <label for="delivery-address-text" class="mb-2 block text-sm font-semibold text-ink-900">Address and directions</label>
+                        <textarea v-model="deliveryAddress" id="delivery-address-text" rows="3"
+                            placeholder="e.g. Room 12, Kofi Mensah Hostel, University of Ghana, Legon"
+                            aria-describedby="delivery-address-text-help"
+                            autocomplete="street-address"
+                            inputmode="text"
+                            class="w-full resize-none rounded-lg border-2 border-transparent bg-ink-100 px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none"></textarea>
+                        <p id="delivery-address-text-help" class="mt-2 text-sm text-ink-600">Add a building, room or landmark so the rider can find you.</p>
+                    </div>
 
-                    <button @click="showAddressModal = false" type="button"
-                        :disabled="!customerLat || !deliveryAddress.trim()"
-                        class="w-full bg-[#4F217A] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                        Confirm Address
+                    <div>
+                        <button @click="showAddressModal = false" type="button"
+                            :disabled="!customerLat || !deliveryAddress.trim()"
+                            :aria-describedby="addressWhy ? 'address-why' : undefined"
+                            class="min-h-[56px] w-full rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brand-700">
+                            Confirm Address
+                        </button>
+                        <p v-if="addressWhy" id="address-why" class="mt-3 text-center text-sm text-ink-600">{{ addressWhy }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request sent -->
+        <div v-if="showSuccess" data-testid="request-sent-backdrop"
+            class="fixed inset-0 z-[80] flex items-end justify-center bg-ink-900/50 sm:items-center sm:p-4"
+            @click.self="showSuccess = false">
+            <div ref="successDialogRef" role="dialog" aria-modal="true" aria-labelledby="request-sent-title"
+                class="w-full max-w-sm rounded-t-3xl bg-white p-6 text-center font-body shadow-lift sm:rounded-3xl">
+                <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+                    <CheckBadgeIcon class="h-9 w-9" aria-hidden="true" />
+                </span>
+                <h2 id="request-sent-title" class="mt-4 font-display text-2xl font-bold text-ink-900">Request sent</h2>
+                <p class="mt-2 text-base text-ink-600">We'll notify you once a pharmacist has looked at it.</p>
+                <p v-if="submittedNumber" class="mt-2 text-base text-ink-600">Request <strong class="text-ink-900">#{{ submittedNumber }}</strong></p>
+                <button type="button" @click="goToRequestHistory"
+                    class="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">View my requests</button>
+            </div>
+        </div>
+
+        <!-- Edit request -->
+        <div v-if="editingRequest" data-testid="edit-request-backdrop"
+            class="fixed inset-0 z-[80] flex items-end justify-center bg-ink-900/50 sm:items-center sm:p-4"
+            @click.self="editingRequest = null">
+            <div ref="editDialogRef" role="dialog" aria-modal="true" aria-labelledby="edit-request-title"
+                class="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-6 font-body shadow-lift sm:rounded-3xl">
+                <div class="mb-5 flex items-start justify-between gap-3">
+                    <div>
+                        <h2 id="edit-request-title" class="font-display text-2xl font-bold text-ink-900">Edit request</h2>
+                        <p class="text-base text-ink-600">#{{ editingRequest.request_number }}</p>
+                    </div>
+                    <button type="button" aria-label="Close" @click="editingRequest = null"
+                        class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                        <XMarkIcon class="h-6 w-6" aria-hidden="true" />
                     </button>
                 </div>
-            </div>
-        </div>
 
-        <!-- Success Modal -->
-        <div v-if="showSuccess" class="modal-overlay" @click.self="showSuccess = false">
-            <div class="success-modal">
-                <div class="success-icon">
-                    <CheckBadgeIcon class="success-svg" />
-                </div>
-                <h3>Request Submitted</h3>
-                <p>Your request has been submitted, we'll notify you once it has been processed.</p>
-                <p v-if="submittedNumber" class="success-num">Request #<strong>{{ submittedNumber }}</strong></p>
-                <button @click="goToRequestHistory" class="nav-submit" style="width:100%">View My Requests</button>
-            </div>
-        </div>
-
-        <!-- Edit request modal -->
-        <div v-if="editingRequest" class="modal-overlay" @click.self="editingRequest = null">
-            <div class="modal-content" style="max-width: 480px">
-                <div class="modal-header">
-                    <div>
-                        <h3>Edit Request</h3>
-                        <p class="modal-subtitle">{{ editingRequest.request_number }}</p>
-                    </div>
-                    <button @click="editingRequest = null" class="modal-close"><XMarkIcon class="close-svg" /></button>
-                </div>
-                <div class="modal-body">
-                    <div class="edit-items-list">
-                        <div v-for="(item, idx) in editItems" :key="idx" class="edit-item-row">
-                            <div class="edit-item-name-wrap">
-                                <span class="edit-item-index">{{ idx + 1 }}</span>
-                                <input v-model="item.product_name" type="text" placeholder="Medicine name or brand" autocomplete="off"
-                                    class="edit-item-input" />
-                            </div>
-                            <div class="edit-item-meta">
-                                <select v-model="item.requested_unit" class="edit-item-select">
-                                    <option value="">Unit</option>
-                                    <option v-for="opt in medicineUnitOptions" :key="opt" :value="opt">{{ opt }}</option>
-                                </select>
-                                <div class="edit-item-qty">
-                                    <button type="button" @click="item.quantity = Math.max(1, item.quantity - 1)" class="qty-btn">−</button>
-                                    <span class="qty-val">{{ item.quantity }}</span>
-                                    <button type="button" @click="item.quantity++" class="qty-btn">+</button>
-                                </div>
-                                <button v-if="editItems.length > 1" type="button" @click="editItems.splice(idx, 1)" class="edit-item-remove">
-                                    <XMarkIcon class="w-3.5 h-3.5" />
-                                </button>
+                <ul class="space-y-3">
+                    <li v-for="(item, idx) in editItems" :key="idx" class="rounded-2xl bg-ink-50 p-3">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700" aria-hidden="true">{{ idx + 1 }}</span>
+                            <input v-model="item.product_name" type="text" :aria-label="`Medicine ${idx + 1}`" placeholder="Medicine name or brand" autocomplete="off"
+                                class="min-h-[44px] min-w-0 flex-1 rounded-xl border-0 bg-white px-3 text-base text-ink-900 ring-1 ring-inset ring-ink-200 placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-brand-700" />
+                            <button v-if="editItems.length > 1" type="button" :aria-label="`Remove medicine ${idx + 1}`" @click="editItems.splice(idx, 1)"
+                                class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+                            </button>
+                        </div>
+                        <div class="mt-2 flex items-center gap-3 pl-11">
+                            <select v-model="item.requested_unit" :aria-label="`Unit for medicine ${idx + 1}`"
+                                class="min-h-[44px] min-w-0 flex-1 rounded-xl border-0 bg-white px-3 text-base text-ink-900 ring-1 ring-inset ring-ink-200 focus:outline-none focus:ring-2 focus:ring-brand-700">
+                                <option value="">Unit</option>
+                                <option v-for="opt in medicineUnitOptions" :key="opt" :value="opt">{{ opt }}</option>
+                            </select>
+                            <div class="flex items-center gap-1">
+                                <button type="button" :aria-label="`Decrease quantity of medicine ${idx + 1}`" @click="item.quantity = Math.max(1, item.quantity - 1)"
+                                    class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">−</button>
+                                <span class="w-8 text-center text-base font-semibold tabular-nums text-ink-900" aria-live="polite">{{ item.quantity }}</span>
+                                <button type="button" :aria-label="`Increase quantity of medicine ${idx + 1}`" @click="item.quantity++"
+                                    class="flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">+</button>
                             </div>
                         </div>
-                    </div>
-                    <button type="button" @click="editItems.push({ product_name: '', requested_unit: '', quantity: 1 })" class="edit-add-item-btn">
-                        + Add another item
-                    </button>
-                </div>
-                <div class="modal-footer">
-                    <button @click="editingRequest = null" class="modal-cancel-btn">Cancel</button>
-                    <button @click="saveEdit" :disabled="savingEdit" class="modal-confirm-btn">
-                        <ArrowPathIcon v-if="savingEdit" class="w-4 h-4 animate-spin" />
+                    </li>
+                </ul>
+                <button type="button" @click="editItems.push({ product_name: '', requested_unit: '', quantity: 1 })"
+                    class="mt-3 min-h-[44px] rounded-full px-3 text-base font-semibold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                    + Add another item
+                </button>
+
+                <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button type="button" @click="editingRequest = null"
+                        class="min-h-[44px] rounded-full bg-white px-5 text-base font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">Cancel</button>
+                    <button type="button" @click="saveEdit" :disabled="savingEdit"
+                        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-brand-700 px-5 text-base font-semibold text-white hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:opacity-60">
+                        <ArrowPathIcon v-if="savingEdit" class="h-5 w-5 animate-spin" aria-hidden="true" />
                         <span>{{ savingEdit ? 'Saving…' : 'Save changes' }}</span>
                     </button>
                 </div>
@@ -1187,14 +977,10 @@
         />
 
         <!-- Toast -->
-        <div v-if="toast"
-            class="fixed bottom-8 right-8 z-[2000] flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white shadow-lg animate-[slideUp_0.3s_ease]"
-            :class="{
-                'bg-emerald-500': toast.type === 'success',
-                'bg-red-500': toast.type === 'error',
-                'bg-[#350062]': toast.type === 'info' || !toast.type
-            }">
-            <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="w-5 h-5 flex-shrink-0" />
+        <div v-if="toast" data-testid="toast" :role="toast.type === 'error' ? 'alert' : 'status'"
+            class="fixed inset-x-4 bottom-6 z-[2000] mx-auto flex max-w-md items-center gap-3 rounded-2xl px-5 py-3 text-base font-semibold text-white shadow-lift sm:inset-x-auto sm:right-8"
+            :class="toast.type === 'error' ? 'bg-red-700' : 'bg-brand-700'">
+            <component :is="toast.type === 'error' ? ExcTriIcon : CheckCircleIcon" class="h-6 w-6 flex-shrink-0" aria-hidden="true" />
             {{ toast.text }}
         </div>
 
@@ -1202,36 +988,36 @@
         <Transition enter-active-class="transition duration-500 ease-out" enter-from-class="opacity-0 scale-95"
             enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-300 ease-in"
             leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-            <div v-if="showPaymentSuccessAnim"
-                class="fixed inset-0 z-[100] flex items-center justify-center bg-[#4F217A]/60 backdrop-blur-sm">
+            <div v-if="showPaymentSuccessAnim" role="dialog" aria-modal="true" aria-labelledby="payment-success-title"
+                class="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/50">
                 <div
-                    class="bg-white rounded-[2rem] p-8 max-w-[320px] w-full mx-4 shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    class="bg-white rounded-3xl p-8 max-w-[320px] w-full mx-4 shadow-lift flex flex-col items-center justify-center text-center relative overflow-hidden">
                     <div class="absolute inset-0 pointer-events-none"
-                        style="background: radial-gradient(circle at center, rgba(16, 185, 129, 0.05) 0%, transparent 70%);">
+                        style="background: radial-gradient(circle at center, transparent 0%, transparent 70%);">
                     </div>
                     <div class="w-24 h-24 mb-6 relative z-10 flex items-center justify-center">
                         <div
-                            class="absolute inset-0 rounded-full bg-emerald-100 scale-0 animate-[scaleIn_0.5s_ease-out_forwards]">
+                            class="absolute inset-0 rounded-full bg-brand-50 scale-0 animate-[scaleIn_0.5s_ease-out_forwards]">
                         </div>
                         <div
-                            class="absolute inset-0 rounded-full border-4 border-emerald-500 scale-0 animate-[scaleIn_0.5s_ease-out_0.2s_forwards]">
+                            class="absolute inset-0 rounded-full border-4 border-brand-700 scale-0 animate-[scaleIn_0.5s_ease-out_0.2s_forwards]">
                         </div>
-                        <svg class="w-12 h-12 text-emerald-600 relative z-20 stroke-dasharray-[100] stroke-dashoffset-[100] animate-[drawCheck_0.5s_ease-out_0.4s_forwards]"
+                        <svg class="w-12 h-12 text-brand-700 relative z-20 stroke-dasharray-[100] stroke-dashoffset-[100] animate-[drawCheck_0.5s_ease-out_0.4s_forwards]"
                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"
                             stroke-linecap="round" stroke-linejoin="round">
                             <path d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h3
-                        class="text-2xl font-black text-[#350062] mb-3 opacity-0 animate-[fadeUp_0.5s_ease-out_0.6s_forwards]">
+                    <h3 id="payment-success-title"
+                        class="font-display text-2xl font-bold text-ink-900 mb-3 opacity-0 animate-[fadeUp_0.5s_ease-out_0.6s_forwards]">
                         Payment Successful!</h3>
                     <p
-                        class="text-gray-600 text-[0.85rem] mb-8 font-medium leading-relaxed opacity-0 animate-[fadeUp_0.5s_ease-out_0.7s_forwards]">
+                        class="text-ink-600 text-base mb-8 font-medium leading-relaxed opacity-0 animate-[fadeUp_0.5s_ease-out_0.7s_forwards]">
                         Your order payment was successfully processed. Our pharmacists will fulfill your request
                         shortly.
                     </p>
                     <button @click="showPaymentSuccessAnim = false"
-                        class="w-full bg-[#4F217A] hover:bg-[#350062] text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-[0_4px_14px_rgba(79,33,122,0.3)] opacity-0 animate-[fadeUp_0.5s_ease-out_0.8s_forwards]">
+                        class="w-full bg-brand-700 hover:bg-brand-800 text-white font-semibold min-h-[44px] px-4 rounded-full transition-colors opacity-0 animate-[fadeUp_0.5s_ease-out_0.8s_forwards]">
                         Awesome
                     </button>
                     <!-- Scoped keyframes purely for this modal -->
@@ -1279,6 +1065,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
+import { useModalA11y } from '~/composables/useModalA11y'
 
 // ─── Domain types ────────────────────────────────────────────────────────────
 
@@ -1476,15 +1263,23 @@ const isNewView = computed<boolean>(() => props.defaultSubTab === 'new')
 const isListView = computed<boolean>(() => props.defaultSubTab === 'list')
 const isSubmitting = ref<boolean>(false)
 const loadingRequests = ref<boolean>(props.defaultSubTab === 'list')
+const loadFailed = ref<boolean>(false)
 const gettingLocation = ref<boolean>(false)
 const payingRequest = ref<boolean>(false)
 const payingMethod = ref<string>('')
+const payError = ref<string>('')
 const cancelingRequest = ref<boolean>(false)
 const toast = ref<{ text: string; type: string } | null>(null)
 const showSuccess = ref<boolean>(false)
 const showPaymentSuccessAnim = ref<boolean>(false)
 const showPriorityModal = ref<boolean>(false)
 const showAddressModal = ref<boolean>(false)
+const detailDialogRef = ref<HTMLElement | null>(null)
+const addressDialogRef = ref<HTMLElement | null>(null)
+useModalA11y(addressDialogRef, () => showAddressModal.value, () => { showAddressModal.value = false })
+const successDialogRef = ref<HTMLElement | null>(null)
+const editDialogRef = ref<HTMLElement | null>(null)
+useModalA11y(successDialogRef, () => showSuccess.value, () => { showSuccess.value = false })
 const submittedNumber = ref<string>('')
 const requestFee = ref<number>(5)
 const requestRefundMinutes = ref<number>(30)
@@ -1852,6 +1647,7 @@ watch(selectedRequest, (req) => {
     if (!req) return
     if (!canPayRequest(req)) return
     if (req.id != null && paymentOptionsByRequest.value[req.id]) return
+    payError.value = ''
     if (req.id != null) void loadPaymentOptions(req.id)
 })
 const SESSION_TAB_KEY = 'medsgh_request_list_tab'
@@ -1917,6 +1713,23 @@ const canSubmit = computed<boolean>(() => {
     return true
 })
 
+// Why Send is off, in plain words. Same order as canSubmit.
+const sendWhy = computed<string>(() => {
+    if (!validItems.value.length && !prescriptionFiles.value.length) return 'Add a medication or a prescription photo.'
+    if (!customerLat.value || !deliveryAddress.value.trim()) return 'Set your delivery address.'
+    if (!canSearchProducts.value) return 'Top up your wallet to send this request.'
+    if (!contactPhoneResult.value.ok) return 'Enter a phone number we can reach you on.'
+    return ''
+})
+
+// Why Confirm is off in the address dialog, in plain words.
+const addressWhy = computed<string>(() => {
+    if (!deliveryAddress.value.trim() && !customerLat.value) return 'Search for your address, or use your current location.'
+    if (!customerLat.value) return 'Pick a suggestion or use your location so we can find pharmacies near you.'
+    if (!deliveryAddress.value.trim()) return 'Enter your delivery address.'
+    return ''
+})
+
 const locationLabel = computed<string>(() => {
     if (customerLat.value) return 'Location set'
     if (gettingLocation.value) return 'Getting location...'
@@ -1952,6 +1765,19 @@ const processingRequests = computed<OrderRequest[]>(() => myRequests.value.filte
 const awaitingPaymentRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'awaiting_payment'))
 const awaitingFulfilmentRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'awaiting_fulfilment'))
 const completedRequests = computed<OrderRequest[]>(() => myRequests.value.filter(r => reqStage(r) === 'complete'))
+const requestPrice = (req: OrderRequest): string | null => {
+    const amount = parseFloat(String(req.total_cost ?? req.estimated_total ?? 0))
+    return amount > 0 ? amount.toFixed(2) : null
+}
+const requestSections = computed(() => [
+    { key: 'awaiting_payment', title: 'Pay now', items: awaitingPaymentRequests.value, empty: 'Nothing to pay right now.', icon: ExclamationCircleIcon },
+    { key: 'processing', title: 'Processing', items: processingRequests.value, empty: 'Nothing is being sourced right now.', icon: BeakerIcon },
+    { key: 'awaiting_fulfilment', title: 'On the way', items: awaitingFulfilmentRequests.value, empty: 'Nothing is on the way right now.', icon: TruckIcon },
+    { key: 'complete', title: 'Done', items: completedRequests.value, empty: 'No completed requests yet.', icon: CheckCircleIcon },
+])
+const toggleRequestSection = (key: string): void => {
+    requestListTab.value = requestListTab.value === key ? '' : key
+}
 const newItems = computed<OrderRequest[]>(() => {
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
@@ -2116,6 +1942,10 @@ const selectFulfillment = (type: string): void => {
 
 const isFeedbackEligibleStatus = (status: string | undefined): boolean =>
     ['completed', 'delivered', 'picked_up'].includes(getCustomerStatus(status ?? ''))
+
+const feedbackCategories = computed(() => selectedRequest.value?.fulfillment_type === 'delivery'
+    ? [{ key: 'rating_product', label: 'Product quality' }, { key: 'rating_delivery', label: 'Delivery quality' }, { key: 'rating_overall', label: 'Overall' }] as const
+    : [{ key: 'rating_product', label: 'Product quality' }, { key: 'rating_service', label: 'Customer service' }] as const)
 
 const canLeaveFeedback = (request: OrderRequest): boolean => isFeedbackEligibleStatus(request?.status)
 
@@ -2504,6 +2334,7 @@ const fetchMyRequests = async ({ silent = false }: { silent?: boolean } = {}): P
     if (!silent) loadingRequests.value = true
     try {
         const res = await apiCall('GET', '/api/order-requests/customer')
+        loadFailed.value = false
         const nextRequests = (res.data ?? []) as OrderRequest[]
         myRequests.value = nextRequests
 
@@ -2522,7 +2353,7 @@ const fetchMyRequests = async ({ silent = false }: { silent?: boolean } = {}): P
             }
         }
     } catch {
-        if (!silent) showToast('Failed to load requests', 'error')
+        if (!silent) loadFailed.value = true
     }
     finally { if (!silent) loadingRequests.value = false }
 }
@@ -2785,13 +2616,6 @@ const getCustomerStatus = (s: string): string => {
     if (s === 'awaiting_customer') return 'awaiting_input'
     return s ?? ''
 }
-const getStatusClasses = (status: string): string => {
-    switch (status) {
-        case 'paid': case 'verified': case 'preparing': return 'bg-green-100 text-green-700';
-        case 'cancelled': case 'rejected': return 'bg-red-100 text-red-700';
-        default: return 'bg-[#f5eefb] text-[#6c24b3]';
-    }
-}
 const formatStatus = (s: string | undefined): string => getCustomerStatus(s ?? '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 const formatDate = (d: string | undefined): string => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''
 const requestAgeDays = (req: OrderRequest): number => {
@@ -2872,6 +2696,8 @@ interface EditItem { product_name: string; requested_unit: string; quantity: num
 const editingRequest = ref<OrderRequest | null>(null)
 const editItems = ref<EditItem[]>([])
 const savingEdit = ref<boolean>(false)
+useModalA11y(detailDialogRef, () => !!selectedRequest.value && !editingRequest.value && !showAddressModal.value, () => { selectedRequest.value = null })
+useModalA11y(editDialogRef, () => !!editingRequest.value, () => { editingRequest.value = null })
 
 const startEditing = (req: OrderRequest): void => {
     editItems.value = (req.items ?? []).map(item => ({
@@ -2996,7 +2822,7 @@ const selectedMethodTotal = computed<number | null>(() => {
     // If method selection is still required but none chosen yet, show nothing
     if (requiresMethodSelection(req) && !selectedPaymentMethodByRequest.value[reqId]) return null
 
-    const applyFee = applyFeeByRequest.value[reqId] !== false // default true
+    const applyFee = applyFeeByRequest.value[reqId] === true
     if (method === 'pickup' && opts.pickup?.available) {
         const total = applyFee ? opts.pickup.total_fee_applied : opts.pickup.total
         return total != null ? Number(total) : null
@@ -3020,6 +2846,14 @@ const paystackChargeTotal = computed<number | null>(() => {
     if (base == null) return null
     const fee = Math.round((base * 0.0195 + 0.50) * 100) / 100
     return Math.round((base + fee) * 100) / 100
+})
+
+const payNeedsChoice = computed<boolean>(() => !!selectedRequest.value && !canPayWithSelection(selectedRequest.value))
+const walletShort = computed<boolean>(() => !payNeedsChoice.value && selectedMethodTotal.value != null && walletBalance.value < selectedMethodTotal.value)
+const walletBlockReason = computed<string>(() => {
+    if (payNeedsChoice.value) return 'Choose pickup or delivery to see your total.'
+    if (walletShort.value) return `Your wallet has GHS ${walletBalance.value.toFixed(2)}. Top up to pay with it.`
+    return ''
 })
 
 const formatPickupReason = (reason: string | undefined): string => {
@@ -3054,7 +2888,7 @@ const deliveryDisplayTotal = (req: OrderRequest | null): number | null => {
     if (!req || req.id == null) return null
     const opts = paymentOptionsByRequest.value[req.id]
     if (!opts) return null
-    const applyFee = applyFeeByRequest.value[req.id] !== false
+    const applyFee = applyFeeByRequest.value[req.id] === true
     const rate = selectedDeliveryRate(req)
     if (rate) {
         const total = deliveryItemsBase(req, opts) + Number(rate.amount ?? 0) - (applyFee ? Number(opts.request_fee ?? 0) : 0)
@@ -3097,18 +2931,19 @@ const submitFulfillmentChoice = async (requestId: number | string, method: strin
 
 const payForRequest = async (id: number | string, method = 'wallet'): Promise<void> => {
     if (!id || payingRequest.value) return
+    payError.value = ''
 
     const request = selectedRequest.value
     if (requiresMethodSelection(request)) {
         const chosen = selectedPaymentMethodByRequest.value[id]
         if (!chosen) {
-            showToast('Please select pickup or delivery first', 'error')
+            payError.value = 'Choose pickup or delivery first.'
             return
         }
         try {
             await submitFulfillmentChoice(id, chosen)
         } catch (err) {
-            showToast(err instanceof Error ? err.message : 'Could not save your fulfillment choice', 'error')
+            payError.value = err instanceof Error ? err.message : 'We could not save your choice. Please try again.'
             return
         }
     }
@@ -3120,7 +2955,7 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
 
         const opts = paymentOptionsByRequest.value[id]
         const feeApplicable = Boolean(opts?.fee_applicable)
-        const applyFee = feeApplicable ? applyFeeByRequest.value[id] !== false : undefined
+        const applyFee = feeApplicable ? applyFeeByRequest.value[id] === true : undefined
         const payBody = feeApplicable ? { apply_fee: applyFee } : undefined
 
         if (method === 'paystack') {
@@ -3149,9 +2984,8 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
                 requestId: id,
                 amount: shortfall > 0 ? shortfall : Number(getPayableAmount(selectedRequest.value) ?? 0)
             }
-            showToast(`Insufficient wallet balance. Top up GHS ${shortfall.toFixed(2)} to continue.`, 'error')
         } else {
-            showToast(e.message ?? `Failed to start ${method === 'paystack' ? 'Paystack' : 'wallet'} payment`, 'error')
+            payError.value = e.message ?? `We could not start your ${method === 'paystack' ? 'card' : 'wallet'} payment. Nothing was charged. Please try again.`
         }
     } finally {
         payingRequest.value = false
@@ -3703,4579 +3537,5 @@ void isPaymentPendingRequest
     max-width: 1380px;
     margin: 0 auto;
     overflow-x: clip;
-}
-
-/* Heroicon SVG sizing */
-.tab-svg {
-    width: 18px;
-    height: 18px;
-    display: inline;
-    vertical-align: middle;
-}
-
-.step-svg {
-    width: 16px;
-    height: 16px;
-}
-
-.rm-svg {
-    width: 16px;
-    height: 16px;
-}
-
-.add-svg {
-    width: 16px;
-    height: 16px;
-    display: inline;
-    vertical-align: middle;
-}
-
-.prescription-svg {
-    width: 24px;
-    height: 24px;
-    color: #3b82f6;
-    margin-top: 2px;
-    flex-shrink: 0;
-}
-
-.upload-svg {
-    width: 16px;
-    height: 16px;
-    display: inline;
-    vertical-align: middle;
-}
-
-.loc-svg {
-    width: 22px;
-    height: 22px;
-}
-
-.location-check-svg {
-    width: 24px;
-    height: 24px;
-    color: #22c55e;
-    flex-shrink: 0;
-}
-
-.attach-svg {
-    width: 16px;
-    height: 16px;
-    display: inline;
-    vertical-align: middle;
-}
-
-.info-svg {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-}
-
-.nav-svg {
-    width: 16px;
-    height: 16px;
-    display: inline;
-    vertical-align: middle;
-}
-
-.load-svg {
-    width: 18px;
-    height: 18px;
-    display: inline;
-    vertical-align: middle;
-}
-
-.empty-svg {
-    width: 2rem;
-    height: 2rem;
-    color: #d1d5db;
-    margin: 0 auto;
-}
-
-.meta-svg {
-    width: 14px;
-    height: 14px;
-    display: inline;
-    vertical-align: middle;
-}
-
-.close-svg {
-    width: 20px;
-    height: 20px;
-}
-
-.ful-svg {
-    width: 24px;
-    height: 24px;
-}
-
-.detail-svg {
-    width: 18px;
-    height: 18px;
-    display: inline;
-    vertical-align: middle;
-    flex-shrink: 0;
-}
-
-.success-svg {
-    width: 32px;
-    height: 32px;
-}
-
-.request-arrow {
-    width: 18px;
-    height: 18px;
-    color: #94a3b8;
-    flex-shrink: 0;
-}
-
-/* Sub-tabs */
-.sub-tabs {
-    display: flex;
-    gap: 0.4rem;
-    margin-bottom: 1.5rem;
-    padding: 0.4rem;
-    background: linear-gradient(180deg, #fffdfd, #f7f2fb);
-    border: 1px solid #eadff0;
-    border-radius: 1.15rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-}
-
-.sub-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.sub-tab {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.95rem 1.15rem;
-    background: transparent;
-    border: none;
-    color: #6b7280;
-    font-weight: 700;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    border-radius: 0.95rem;
-}
-
-.sub-tab:hover {
-    color: #6c24b3;
-}
-
-.sub-tab.active {
-    color: #350062;
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(53, 0, 98, 0.08);
-}
-
-.badge {
-    background: #efe4fb;
-    color: #6c24b3;
-    font-size: 0.68rem;
-    font-weight: 800;
-    padding: 0.18rem 0.45rem;
-    border-radius: 9999px;
-    margin-left: 0.1rem;
-}
-
-/* Shell header */
-.request-shell-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1.35rem;
-    padding-bottom: 1.1rem;
-    border-bottom: 1px solid #ece4ef;
-}
-
-.request-shell-head.compact {
-    margin-bottom: 1rem;
-}
-
-.new-request-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.95fr);
-    gap: 1rem;
-    margin-bottom: 1.4rem;
-    padding: 1.2rem 1.25rem;
-    border: 1px solid #ece2f2;
-    border-radius: 22px;
-    background:
-        radial-gradient(circle at top right, rgba(177, 132, 228, 0.16), transparent 34%),
-        linear-gradient(180deg, #fefcff 0%, #f8f3fb 100%);
-}
-
-.new-request-hero-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    justify-content: center;
-}
-
-.new-request-title {
-    margin: 0;
-    font-size: 1.8rem;
-    line-height: 1.08;
-    font-weight: 700;
-    color: #350062;
-    max-width: 14ch;
-}
-
-.new-request-desc {
-    margin: 0;
-    max-width: 44rem;
-    font-size: 0.94rem;
-    line-height: 1.65;
-    color: #6f5f7a;
-}
-
-.new-request-hero-panel {
-    display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-content: start;
-}
-
-.hero-panel-item {
-    padding: 0.9rem 1rem;
-    border-radius: 18px;
-    border: 1px solid #eadff0;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 10px 24px rgba(53, 0, 98, 0.04);
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-.hero-panel-item.muted {
-    grid-column: 1 / -1;
-    background: linear-gradient(180deg, #fcf8ff, #f7f0fb);
-}
-
-.hero-panel-item span {
-    font-size: 0.7rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #7b3dbd;
-}
-
-.hero-panel-item strong {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #2f1d43;
-}
-
-.shell-eyebrow {
-    margin: 0 0 0.3rem;
-    font-size: 0.68rem;
-    font-weight: 800;
-    color: #7b3dbd;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.shell-title {
-    margin: 0;
-    font-size: 1.6rem;
-    line-height: 1.15;
-    font-weight: 700;
-    color: #350062;
-}
-
-.shell-copy {
-    margin: 0.4rem 0 0;
-    font-size: 0.92rem;
-    line-height: 1.5;
-    color: #6f5f7a;
-    max-width: 40rem;
-}
-
-.shell-stats {
-    display: flex;
-    gap: 0.65rem;
-    flex-wrap: wrap;
-}
-
-.shell-pill {
-    min-width: 5.25rem;
-    padding: 0.8rem 0.9rem;
-    border-radius: 1rem;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe);
-    border: 1px solid #bfdbfe;
-    color: #1e3a8a;
-}
-
-.shell-pill.muted {
-    background: linear-gradient(135deg, #f8fafc, #eef2ff);
-    border-color: #dbe4ee;
-    color: #334155;
-}
-
-.shell-pill span {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.8;
-}
-
-.shell-pill strong {
-    display: block;
-    font-size: 1.05rem;
-    font-weight: 800;
-}
-
-/* Step bar */
-.step-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, #0f766e, #2563eb);
-    margin: 0 0 1.25rem 0;
-    border-radius: 14px;
-    box-shadow: 0 16px 30px rgba(37, 99, 235, 0.14);
-}
-
-.step-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.step-dot {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 700;
-    background: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.6);
-    transition: all 0.3s;
-}
-
-.step-item.active .step-dot,
-.step-item.done .step-dot {
-    background: white;
-    color: #667eea;
-    transform: scale(1.1);
-}
-
-.step-label {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    font-weight: 600;
-}
-
-.step-item.active .step-label {
-    color: white;
-}
-
-.step-line {
-    width: 40px;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 1px;
-}
-
-.step-line.filled {
-    background: rgba(255, 255, 255, 0.8);
-}
-
-/* Step content */
-.form-section,
-.list-section {
-    padding: 1.55rem 1.75rem 1.8rem;
-    background: linear-gradient(180deg, #ffffff, #fcf9ff);
-    border: 1px solid #eadff0;
-    border-radius: 24px;
-    box-shadow: 0 18px 40px rgba(53, 0, 98, 0.07);
-}
-
-.step-content {
-    animation: fadeIn 0.2s ease;
-}
-
-.editor-section {
-    margin-bottom: 1rem;
-}
-
-.editor-section-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.editor-section-badge {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 0.8rem;
-    border-radius: 999px;
-    background: #f4ecfb;
-    color: #6c24b3;
-    font-size: 0.74rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-}
-
-.step-title {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #350062;
-    margin: 0 0 0.25rem;
-}
-
-.step-desc {
-    font-size: 0.93rem;
-    color: #6f5f7a;
-    margin: 0 0 1.4rem;
-}
-
-.search-lock-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding: 0.95rem 1rem;
-    border-radius: 14px;
-    border: 1px solid #fde68a;
-    background: linear-gradient(180deg, #fffbeb, #fef3c7);
-}
-
-.search-lock-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.search-lock-copy strong {
-    font-size: 0.88rem;
-    color: #92400e;
-}
-
-.search-lock-copy span {
-    font-size: 0.79rem;
-    line-height: 1.5;
-    color: #b45309;
-}
-
-.editor-card {
-    margin-bottom: 1rem;
-    padding: 1.1rem 1.15rem;
-    border: 1px solid #ebe1f0;
-    border-radius: 20px;
-    background: linear-gradient(180deg, #fffeff, #fbf7fd);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
-}
-
-.editor-card-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 0.9rem;
-}
-
-.editor-card-head h4 {
-    margin: 0.2rem 0 0;
-    font-size: 1rem;
-    line-height: 1.35;
-    color: #2f1d43;
-    font-weight: 700;
-}
-
-.editor-card-kicker {
-    display: inline-flex;
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #7b3dbd;
-}
-
-.editor-card-status {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.45rem 0.75rem;
-    border-radius: 999px;
-    background: #f5f0f8;
-    color: #6f5f7a;
-    font-size: 0.72rem;
-    font-weight: 800;
-}
-
-.editor-card-status.ready {
-    background: #e9f9ef;
-    color: #1f8a45;
-}
-
-.request-builder-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.95fr);
-    gap: 1rem;
-    margin-top: 1rem;
-    align-items: start;
-}
-
-.builder-card {
-    padding: 1.2rem;
-    border-radius: 20px;
-    border: 1px solid #e4ddeb;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 247, 253, 0.98));
-    box-shadow: 0 14px 32px rgba(53, 0, 98, 0.05);
-}
-
-.builder-card-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.1rem;
-}
-
-.builder-title {
-    margin: 0;
-    font-size: 1.06rem;
-    font-weight: 700;
-    color: #350062;
-}
-
-.builder-copy {
-    margin: 0.35rem 0 0;
-    font-size: 0.86rem;
-    line-height: 1.55;
-    color: #6f5f7a;
-}
-
-.review-card {
-    position: sticky;
-    top: 1.25rem;
-    background:
-        linear-gradient(180deg, rgba(252, 249, 255, 0.98), rgba(246, 241, 250, 0.98));
-    overflow: hidden;
-}
-
-.request-submit-bar {
-    margin-top: 0.5rem;
-    padding: 1.05rem 1.15rem;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    border: 1px solid #cbd5e1;
-    background: linear-gradient(135deg, #0f172a, #1e293b 58%, #334155);
-    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.14);
-}
-
-.request-submit-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-}
-
-.request-submit-copy strong {
-    color: #f8fafc;
-    font-size: 0.95rem;
-    font-weight: 700;
-}
-
-.request-submit-copy span {
-    color: rgba(226, 232, 240, 0.86);
-    font-size: 0.8rem;
-    line-height: 1.5;
-}
-
-.request-submit-btn {
-    flex-shrink: 0;
-    min-width: 240px;
-    white-space: nowrap;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
-}
-
-/* Items list */
-.items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.item-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.7rem;
-    background: linear-gradient(180deg, #fcfbfd, #f7f3fa);
-    border: 1px solid #e9e2ee;
-    border-radius: 18px;
-    padding: 0.9rem 1rem;
-}
-
-.item-main {
-    flex: 1;
-    min-width: 0;
-}
-
-.item-search-shell {
-    background: #ffffff;
-    border: 1px solid #dbe4f0;
-    border-radius: 16px;
-    padding: 0.9rem 1rem;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-}
-
-.item-search-shell.locked {
-    background: #f8fafc;
-    border-color: #e2e8f0;
-}
-
-.item-search-head {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    margin-bottom: 0.45rem;
-}
-
-.item-search-head strong {
-    font-size: 0.8rem;
-    color: #1e293b;
-    letter-spacing: 0.02em;
-}
-
-.item-search-head span {
-    font-size: 0.73rem;
-    color: #64748b;
-    line-height: 1.35;
-}
-
-.item-num {
-    width: 28px;
-    height: 28px;
-    background: #e0e7ff;
-    color: #4f46e5;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-}
-
-.item-input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    font-size: 0.95rem;
-    color: #111827;
-    font-weight: 600;
-}
-
-.item-input:focus {
-    outline: 2px solid #4f46e5;
-    outline-offset: 2px;
-    border-radius: 4px;
-}
-
-.item-input::placeholder {
-    color: #94a3b8;
-}
-
-.input-wrap {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #f8fafc;
-    border: 1px solid #dbe4f0;
-    border-radius: 12px;
-    padding: 0.75rem 0.85rem;
-    position: relative;
-}
-
-.input-wrap .item-input {
-    flex: 1;
-    min-width: 0;
-}
-
-.search-chip {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.3rem 0.55rem;
-    border-radius: 999px;
-    background: #ede9fe;
-    color: #5b34a5;
-    font-size: 0.67rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-}
-
-.search-chip.searching {
-    background: #f0e6fa;
-    color: #6c24b3;
-}
-
-.item-upload-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    margin-top: 0.55rem;
-}
-
-.item-upload-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px dashed #c4a8e8;
-    background: #f7f0fb;
-    color: #6c24b3;
-    border-radius: 999px;
-    width: 2.1rem;
-    height: 2.1rem;
-    flex-shrink: 0;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-}
-
-.item-upload-count {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    min-width: 1rem;
-    height: 1rem;
-    padding: 0 3px;
-    background: #520094;
-    color: #fff;
-    border-radius: 999px;
-    font-size: 0.6rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-}
-
-.item-upload-btn:hover {
-    border-color: #350062;
-    background: #ede0f5;
-    color: #350062;
-}
-
-.item-upload-note {
-    font-size: 0.75rem;
-    color: #64748b;
-}
-
-.item-image-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
-    margin-top: 0.65rem;
-}
-
-.item-image-card {
-    width: 92px;
-    border: 1px solid #dbe4f0;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #ffffff;
-}
-
-.item-image-preview {
-    width: 100%;
-    height: 72px;
-    object-fit: cover;
-    display: block;
-}
-
-.item-image-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.4rem;
-}
-
-.clickable-input-wrap {
-    cursor: text;
-    min-height: 3rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.item-search-icon {
-    width: 1rem;
-    height: 1rem;
-    color: #64748b;
-    flex-shrink: 0;
-}
-
-.search-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    z-index: 200;
-    margin-top: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.search-dropdown-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.65rem 0.8rem;
-    border-bottom: 1px solid #eef2f7;
-    background: #faf7fd;
-}
-
-.search-dropdown-head span {
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #7b3dbd;
-}
-
-.search-dropdown-head strong {
-    font-size: 0.72rem;
-    color: #5f6b7b;
-    font-weight: 700;
-}
-
-.search-item {
-    padding: 0.65rem 0.8rem;
-    cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.85rem;
-}
-
-.search-item:last-child {
-    border-bottom: none;
-}
-
-.search-item:hover {
-    background-color: #faf7fd;
-}
-
-.search-item-main {
-    min-width: 0;
-}
-
-.search-item-side {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.3rem;
-}
-
-.search-availability {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.2rem 0.45rem;
-    border-radius: 999px;
-    background: #e8f8ec;
-    color: #1f8a45;
-    font-size: 0.64rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-}
-
-.search-pick {
-    font-size: 0.67rem;
-    font-weight: 700;
-    color: #5b34a5;
-}
-
-.search-item.loading {
-    display: flex;
-    align-items: center;
-    color: #6b7280;
-    font-size: 0.875rem;
-}
-
-.search-item.no-results {
-    color: #6b7280;
-    font-size: 0.875rem;
-    font-style: italic;
-    cursor: default;
-}
-
-.search-helper-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-top: 0.55rem;
-    flex-wrap: wrap;
-}
-
-.search-helper-note,
-.search-helper-state {
-    font-size: 0.72rem;
-    line-height: 1.4;
-}
-
-.search-helper-note {
-    color: #64748b;
-}
-
-.search-helper-state {
-    color: #5b34a5;
-    font-weight: 700;
-}
-
-.qty-picker {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-width: 118px;
-}
-
-.qty-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #64748b;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-align: center;
-}
-
-.qty-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem;
-    background: #ffffff;
-    border: 1px solid #dbe4f0;
-    border-radius: 12px;
-}
-
-.qty-btn {
-    width: 34px;
-    height: 34px;
-    border: none;
-    border-radius: 10px;
-    background: #eef2ff;
-    color: #4f46e5;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
-}
-
-.qty-btn:hover:not(:disabled) {
-    background: #e0e7ff;
-    transform: translateY(-1px);
-}
-
-.qty-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-.qty-svg {
-    width: 1rem;
-    height: 1rem;
-}
-
-.qty-input {
-    width: 42px;
-    text-align: center;
-    border: none;
-    background: transparent;
-    padding: 0.25rem 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #111827;
-    -moz-appearance: textfield;
-}
-
-.qty-input:focus {
-    outline: 2px solid #4f46e5;
-    outline-offset: 2px;
-}
-
-.qty-input::-webkit-outer-spin-button,
-.qty-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-.remove-btn {
-    background: none;
-    border: none;
-    color: #ef4444;
-    cursor: pointer;
-    padding: 0.25rem;
-    font-size: 1.1rem;
-    opacity: 0.5;
-    transition: opacity 0.2s;
-}
-
-.remove-btn:hover {
-    opacity: 1;
-}
-
-.add-item-btn {
-    width: 100%;
-    padding: 0.625rem;
-    border: 2px dashed #d1d5db;
-    border-radius: 10px;
-    background: none;
-    color: #6b7280;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
-}
-
-.add-item-btn:hover {
-    border-color: #667eea;
-    color: #667eea;
-}
-
-/* Prescription */
-.prescription-box {
-    padding: 1rem;
-    background: linear-gradient(180deg, #eef6ff, #f7fbff);
-    border: 1px solid #d3e4ff;
-    border-radius: 18px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.75rem;
-}
-
-.prescription-icon {
-    font-size: 1.5rem;
-    color: #3b82f6;
-    margin-top: 0.125rem;
-}
-
-.prescription-text {
-    flex: 1;
-}
-
-.prescription-text strong {
-    display: block;
-    font-size: 0.875rem;
-    color: #111827;
-    margin-bottom: 0.125rem;
-}
-
-.prescription-text span {
-    font-size: 0.8rem;
-    color: #6b7280;
-}
-
-.upload-label {
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #3b82f6;
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    white-space: nowrap;
-}
-
-.prescription-preview-grid {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem;
-}
-
-.prescription-preview-card {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid #dbeafe;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
-}
-
-.prescription-preview-image {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    display: block;
-    background: #dbeafe;
-}
-
-.prescription-preview-copy {
-    padding: 0.75rem 0.75rem 0.35rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.prescription-preview-copy strong {
-    font-size: 0.8rem;
-    color: #0f172a;
-}
-
-.prescription-preview-copy span {
-    font-size: 0.72rem;
-    color: #64748b;
-    word-break: break-word;
-}
-
-.prescription-preview-actions {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0 0.75rem 0.75rem;
-}
-
-.preview-action-btn {
-    flex: 1;
-    border: 1px solid #bfdbfe;
-    background: #ffffff;
-    color: #1d4ed8;
-    border-radius: 999px;
-    padding: 0.45rem 0.7rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.preview-action-btn.danger {
-    border-color: #fecaca;
-    color: #b91c1c;
-}
-
-.upload-progress-card {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #bfdbfe;
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-}
-
-.upload-progress-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    font-size: 0.8rem;
-    color: #1e3a8a;
-    margin-bottom: 0.55rem;
-}
-
-.upload-progress-track {
-    width: 100%;
-    height: 8px;
-    border-radius: 999px;
-    background: #dbeafe;
-    overflow: hidden;
-}
-
-.upload-progress-fill {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, #2563eb, #0ea5e9);
-    transition: width 0.2s ease;
-}
-
-.hidden-input {
-    display: none;
-}
-
-/* Location */
-.location-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-    margin-bottom: 0.9rem;
-}
-
-.location-btn.set {
-    border-color: #86efac;
-    background: #f0fdf4;
-}
-
-.concierge-shell .location-btn {
-    border-color: #e5d9f5;
-    background: #ffffff;
-}
-
-.concierge-shell .location-btn.set {
-    border-color: #c4a8e8;
-    background: #f7f0fb;
-}
-
-.concierge-shell .location-icon-wrap {
-    background: #f0e6fa;
-    color: #6c24b3;
-}
-
-.concierge-shell .location-icon-wrap.set {
-    background: #e8d5fa;
-    color: #350062;
-}
-
-.location-icon-wrap {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #f3f4f6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    color: #6b7280;
-    flex-shrink: 0;
-}
-
-.location-icon-wrap.set {
-    background: #dcfce7;
-    color: #16a34a;
-}
-
-.location-text {
-    flex: 1;
-}
-
-.location-text strong {
-    display: block;
-    font-size: 0.875rem;
-    color: #111827;
-}
-
-.location-text span {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.location-check {
-    color: #22c55e;
-    font-size: 1.5rem;
-}
-
-.location-help-card {
-    margin: -0.25rem 0 1rem;
-    padding: 0.9rem 1rem;
-    border-radius: 12px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-}
-
-.location-help-card.error {
-    background: #fff7ed;
-    border-color: #fed7aa;
-}
-
-.location-help-copy {
-    margin: 0;
-    font-size: 0.8rem;
-    color: #1e3a8a;
-}
-
-.location-help-card.error .location-help-copy {
-    color: #9a3412;
-}
-
-.location-help-actions {
-    display: flex;
-    gap: 0.6rem;
-    margin-top: 0.7rem;
-}
-
-.location-help-btn {
-    border: none;
-    background: #350062;
-    color: white;
-    border-radius: 999px;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.location-help-btn:hover {
-    background: #520094;
-}
-
-.location-help-btn.secondary {
-    background: white;
-    color: #350062;
-    border: 1px solid #ddd0ea;
-}
-
-.location-help-btn.secondary:hover {
-    background: #f7f0fb;
-    border-color: #350062;
-}
-
-.location-help-note {
-    margin: 0.7rem 0 0;
-    font-size: 0.75rem;
-    color: #7c2d12;
-    line-height: 1.5;
-}
-
-/* Form */
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 0.375rem;
-}
-
-.optional {
-    color: #9ca3af;
-    font-weight: 400;
-}
-
-.form-textarea {
-    width: 100%;
-    padding: 0.625rem 0.875rem;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    font-size: 0.875rem;
-    resize: none;
-    transition: all 0.2s;
-}
-
-.form-textarea:focus {
-    outline: 2px solid #4f46e5;
-    outline-offset: 2px;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.field-hint {
-    margin-top: 0.375rem;
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-/* Review */
-.review-box {
-    background: #f9fafb;
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-}
-
-.review-section {
-    margin-bottom: 0.75rem;
-}
-
-.review-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.review-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    padding: 0.375rem 0;
-    font-size: 0.875rem;
-    color: #374151;
-}
-
-.review-qty {
-    color: #9ca3af;
-}
-
-.review-item-images {
-    color: #2563eb;
-    font-size: 0.75rem;
-    font-weight: 700;
-}
-
-.review-prescription-only {
-    margin-top: 0.5rem;
-    font-size: 0.88rem;
-    line-height: 1.5;
-    color: #4b5563;
-}
-
-.review-attach {
-    font-size: 0.8rem;
-    color: #3b82f6;
-    margin-bottom: 0.75rem;
-}
-
-.review-meta {
-    border-top: 1px solid #e5e7eb;
-    padding-top: 0.75rem;
-}
-
-.review-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.875rem;
-    padding: 0.25rem 0;
-}
-
-.review-row span:first-child {
-    color: #6b7280;
-}
-
-.review-addr {
-    text-align: right;
-    max-width: 60%;
-    color: #374151;
-}
-
-.fee-notice {
-    display: flex;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: #eef2ff;
-    border-radius: 10px;
-    align-items: flex-start;
-}
-
-.fee-notice i {
-    color: #667eea;
-    font-size: 1.25rem;
-    margin-top: 0.125rem;
-}
-
-.fee-notice strong {
-    display: block;
-    font-size: 0.875rem;
-    color: #111827;
-}
-
-.fee-notice span {
-    font-size: 0.8rem;
-    color: #6b7280;
-}
-
-.priority-note {
-    background: linear-gradient(135deg, #eef2ff, #e0f2fe);
-    border: 1px solid #c7d2fe;
-}
-
-.nav-back {
-    background: none;
-    border: none;
-    color: #6b7280;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.nav-back:hover {
-    color: #111827;
-}
-
-.nav-next {
-    padding: 0.625rem 1.5rem;
-    background: #520094;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    transition: all 0.2s;
-}
-
-.nav-next:hover:not(:disabled) {
-    background: #6c24b3;
-}
-
-.nav-next:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.nav-submit {
-    padding: 0.75rem 2rem;
-    background: #520094;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.875rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
-}
-
-.nav-submit:hover:not(:disabled) {
-    background: #6c24b3;
-    box-shadow: 0 4px 14px rgba(82, 0, 148, 0.35);
-}
-
-.nav-submit:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-/* Requests list */
-.request-list-tabs {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.4rem;
-    margin-bottom: 1rem;
-    border-radius: 1.05rem;
-    background: linear-gradient(180deg, #fffafd, #f7f2fb);
-    border: 1px solid #eadff0;
-}
-
-.request-list-tab {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.8rem 0.95rem;
-    border: none;
-    border-radius: 0.92rem;
-    background: transparent;
-    color: #64748b;
-    font-size: 0.82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.request-list-tab.active {
-    background: #ffffff;
-    color: #350062;
-    box-shadow: 0 10px 22px rgba(53, 0, 98, 0.07);
-}
-
-.request-list-count {
-    min-width: 1.7rem;
-    height: 1.7rem;
-    padding: 0 0.4rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9999px;
-    background: #efe4fb;
-    color: #6c24b3;
-    font-size: 0.72rem;
-    font-weight: 800;
-}
-
-.request-list-tab.active .request-list-count {
-    background: #6c24b3;
-    color: #ffffff;
-}
-
-.compact-empty {
-    padding: 1.5rem 1rem;
-    border-radius: 1rem;
-    margin-bottom: 0.25rem;
-}
-
-.requests-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.9rem;
-}
-
-.request-card {
-    background: linear-gradient(180deg, #ffffff, #fcf9ff);
-    border: 1px solid #eadff0;
-    border-radius: 18px;
-    padding: 1.1rem 1.2rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 10px 24px rgba(53, 0, 98, 0.05);
-}
-
-.request-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 18px 32px rgba(53, 0, 98, 0.08);
-}
-
-.request-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.5rem;
-}
-
-.request-card-copy {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.65rem;
-}
-
-.request-card-copy p {
-    margin: 0;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #475569;
-}
-
-.request-prescription-preview {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    padding: 0.8rem 0.9rem;
-    margin-bottom: 0.65rem;
-    border-radius: 16px;
-    background: linear-gradient(180deg, #f5eefb, #fcf9ff);
-    border: 1px solid #eadff0;
-}
-
-.request-prescription-thumb-link {
-    display: inline-flex;
-    flex-shrink: 0;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #bfdbfe;
-    background: #ffffff;
-}
-
-.request-prescription-thumb {
-    width: 64px;
-    height: 64px;
-    object-fit: cover;
-    display: block;
-}
-
-.request-prescription-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-}
-
-.request-prescription-copy strong {
-    font-size: 0.82rem;
-    color: #1e3a8a;
-}
-
-.request-prescription-copy span {
-    font-size: 0.76rem;
-    line-height: 1.45;
-    color: #475569;
-}
-
-.request-num {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #350062;
-}
-
-.request-date {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    margin-left: 0.5rem;
-}
-
-.request-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    row-gap: 0.35rem;
-    font-size: 0.8rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-}
-
-.request-meta span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.28rem;
-    padding: 0.3rem 0.55rem;
-    border-radius: 9999px;
-    background: #ffffff;
-    border: 1px solid #ece4ef;
-}
-
-.request-meta i {
-    margin-right: 0.125rem;
-}
-
-/* Progress bar */
-.progress-bar {
-    height: 3px;
-    background: #f3f4f6;
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.5s;
-}
-
-.progress-fill.pending {
-    background: #f59e0b;
-}
-
-.progress-fill.processing {
-    background: #3b82f6;
-}
-
-.progress-fill.confirming_with_pharm {
-    background: #3b82f6;
-}
-
-.progress-fill.confirmed_in_pharm {
-    background: #22c55e;
-}
-
-.progress-fill.paid {
-    background: #0ea5e9;
-}
-
-.progress-fill.logistics_pending {
-    background: #3b82f6;
-}
-
-.progress-fill.driver_unavailable {
-    background: #ef4444;
-}
-
-.progress-fill.ready_for_pickup {
-    background: #7c3aed;
-}
-
-.progress-fill.picked_up {
-    background: #22c55e;
-}
-
-.progress-fill.out_for_delivery {
-    background: #6366f1;
-}
-
-.progress-fill.delivered {
-    background: #22c55e;
-}
-
-.progress-fill.returned {
-    background: #ef4444;
-}
-
-.progress-fill.items_sourced {
-    background: #8b5cf6;
-}
-
-.progress-fill.awaiting_customer {
-    background: #7c3aed;
-}
-
-.progress-fill.confirmed {
-    background: #06b6d4;
-}
-
-.progress-fill.completed {
-    background: #22c55e;
-}
-
-.progress-fill.cancelled {
-    background: #ef4444;
-}
-
-/* Status badge */
-.status-badge {
-    padding: 0.2rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.status-badge.sm {
-    font-size: 0.625rem;
-    padding: 0.125rem 0.5rem;
-}
-
-.status-badge.pending,
-.status-badge.processing,
-.status-badge.confirming_with_pharm,
-.status-badge.paid,
-.status-badge.logistics_pending,
-.status-badge.ready_for_pickup,
-.status-badge.out_for_delivery,
-.status-badge.items_sourced,
-.status-badge.sourced,
-.status-badge.awaiting_customer,
-.status-badge.confirmed {
-    background: #f5eefb;
-    color: #6c24b3;
-}
-
-.status-badge.confirmed_in_pharm,
-.status-badge.picked_up,
-.status-badge.delivered,
-.status-badge.completed {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.status-badge.driver_unavailable,
-.status-badge.returned,
-.status-badge.cancelled,
-.status-badge.unavailable {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-/* Modal */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 0.75rem;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 720px;
-    max-height: calc(100dvh - 1.5rem);
-    overflow: hidden;
-    box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
-    display: flex;
-    flex-direction: column;
-}
-
-.priority-modal {
-    max-width: 640px;
-}
-
-.modal-header {
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #efdbff;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    background: #fff;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-}
-
-.modal-header h3 {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.375rem 0;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.5rem;
-    color: #9ca3af;
-    padding: 0.25rem;
-}
-
-.modal-close:hover {
-    color: #374151;
-}
-
-.modal-body {
-    padding: 1rem 1.25rem 1.25rem;
-    overflow-y: auto;
-}
-
-.reimbursement-modal {
-    max-width: 520px;
-}
-
-.reimbursement-icon {
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-}
-
-.reimbursement-summary {
-    margin: 1rem 0 1.15rem;
-    padding: 0.85rem 1rem;
-    border-radius: 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    display: grid;
-    gap: 0.55rem;
-}
-
-.reimbursement-summary div {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    font-size: 0.84rem;
-    color: #475569;
-}
-
-.reimbursement-summary strong {
-    color: #0f172a;
-}
-
-.reimbursement-summary .net {
-    padding-top: 0.55rem;
-    border-top: 1px solid #dbe4ee;
-    font-weight: 700;
-}
-
-.priority-hero {
-    padding: 1rem 1.1rem;
-    border-radius: 14px;
-
-    color: #374151;
-    margin-bottom: 1rem;
-}
-
-.priority-kicker {
-    margin: 0 0 0.45rem 0;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #374151;
-}
-
-.priority-copy {
-    margin: 0;
-    font-size: 0.92rem;
-    line-height: 1.65;
-    color: #374151;
-}
-
-.priority-points {
-    display: grid;
-    gap: 0.8rem;
-}
-
-.priority-point {
-    display: grid;
-    gap: 0.25rem;
-    padding: 0.95rem 1rem;
-    border-radius: 14px;
-    border: 1px solid #efdbff;
-    background: #faf5ff;
-}
-
-.priority-point strong {
-    font-size: 0.9rem;
-    color: #1e1a22;
-}
-
-.priority-point span {
-    font-size: 0.83rem;
-    line-height: 1.6;
-    color: #7d7484;
-}
-
-.priority-point.muted {
-    background: #faf5ff;
-    border-style: dashed;
-}
-
-.priority-shortfall {
-    margin-top: 0.9rem;
-    padding: 0.95rem 1rem;
-    border-radius: 14px;
-    background: #fff7ed;
-    border: 1px solid #fdba74;
-    display: grid;
-    gap: 0.2rem;
-}
-
-.priority-shortfall strong {
-    font-size: 0.88rem;
-    color: #9a3412;
-}
-
-.priority-shortfall span {
-    font-size: 0.8rem;
-    line-height: 1.55;
-    color: #9a3412;
-}
-
-.priority-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #efdbff;
-}
-
-.priority-back {
-    padding: 0.8rem 1rem;
-    border-radius: 10px;
-    border: 1px solid #efdbff;
-    color: #520094;
-}
-
-.priority-back:hover {
-    background: #f3e8ff;
-    color: #3b006a;
-}
-
-.priority-submit {
-    min-width: 220px;
-}
-
-.priority-topup {
-    padding-inline: 1rem;
-}
-
-.detail-section {
-    background: #ffffff;
-    border: 1px solid #f0f0f1;
-    border-radius: 14px;
-    padding: 0.25rem 1rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.detail-prescription-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-}
-
-.detail-prescription-link {
-    display: inline-flex;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid #dbe4f0;
-    background: #ffffff;
-}
-
-.detail-prescription-image {
-    width: 118px;
-    height: 118px;
-    object-fit: cover;
-    display: block;
-}
-
-.detail-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: block;
-    margin-bottom: 0.5rem;
-}
-
-.detail-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 0;
-    background: transparent;
-    border-radius: 0;
-    border-bottom: 1px solid #f4f4f5;
-}
-
-.detail-item:last-child {
-    border-bottom: none;
-}
-
-.detail-item strong {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #18181b;
-}
-
-.item-qty {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    margin-left: 0.5rem;
-}
-
-.detail-item-images {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-top: 0.55rem;
-}
-
-.detail-item-image-link {
-    display: inline-flex;
-}
-
-.detail-item-image {
-    width: 58px;
-    height: 58px;
-    object-fit: cover;
-    border-radius: 10px;
-    border: 1px solid #dbe4f0;
-}
-
-.item-price-info {
-    text-align: right;
-}
-
-.item-price {
-    font-weight: 700;
-    font-size: 0.875rem;
-    color: #111827;
-    display: block;
-}
-
-.price-pending {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    font-style: italic;
-    display: block;
-}
-
-.rider-contact-card {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 10px;
-    padding: 0.6rem 0.75rem;
-    margin-bottom: 0.75rem;
-}
-.rider-contact-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-}
-.rider-contact-info {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-}
-.rider-contact-label {
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    color: #15803d;
-    text-transform: uppercase;
-}
-.rider-contact-name {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #111;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.rider-contact-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-}
-.rider-action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    text-decoration: none;
-    color: white;
-    flex-shrink: 0;
-}
-.rider-action-btn--call { background: #4F217A; }
-.rider-action-btn--wa   { background: #25D366; }
-
-.totals-box {
-    background: #eef2ff;
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1.25rem;
-}
-
-.total-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.875rem;
-    padding: 0.25rem 0;
-}
-
-.total-row.grand {
-    font-weight: 700;
-    font-size: 1rem;
-    border-top: 1px solid #c7d2fe;
-    padding-top: 0.5rem;
-    margin-top: 0.375rem;
-    color: #4f46e5;
-}
-
-.decision-panel {
-    margin-bottom: 1rem;
-    padding: 0.95rem 1rem;
-    border-radius: 12px;
-    border: 1px solid #fcd34d;
-    background: #fffdf4;
-}
-
-.decision-card {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0.8rem 0;
-    border-top: 1px solid rgba(251, 191, 36, 0.25);
-}
-
-.decision-card:first-of-type {
-    border-top: none;
-    padding-top: 0;
-}
-
-.decision-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-    padding: 0.28rem 0.55rem;
-    border-radius: 999px;
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.decision-eyebrow.warning {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.decision-eyebrow.info {
-    background: #dbeafe;
-    color: #1d4ed8;
-}
-
-.decision-eyebrow.success {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.decision-eyebrow.neutral {
-    background: #e2e8f0;
-    color: #334155;
-}
-
-.decision-copy strong {
-    display: block;
-    font-size: 0.9rem;
-    color: #111827;
-    margin-bottom: 0.25rem;
-}
-
-.decision-copy p {
-    margin: 0;
-    font-size: 0.82rem;
-    line-height: 1.55;
-    color: #475569;
-}
-
-.decision-human-summary {
-    display: grid;
-    gap: 0.3rem;
-    padding: 0.55rem 0.7rem;
-    border-radius: 10px;
-    border: 1px solid #dbeafe;
-    background: #f8fbff;
-}
-
-.decision-human-summary p {
-    margin: 0;
-    font-size: 0.78rem;
-    color: #1e3a8a;
-    line-height: 1.45;
-}
-
-.decision-flow-headline {
-    margin: 0;
-    font-size: 0.8rem;
-    line-height: 1.55;
-    color: #1f2937;
-    font-weight: 600;
-}
-
-.decision-split-note {
-    margin-top: 0.05rem;
-    padding: 0.55rem 0.7rem;
-    border-radius: 10px;
-    border: 1px solid #bfdbfe;
-    background: #eff6ff;
-    color: #1e3a8a;
-    font-size: 0.78rem;
-    font-weight: 500;
-}
-
-.decision-item-list {
-    display: grid;
-    gap: 0.8rem;
-}
-
-.decision-item-row {
-    display: grid;
-    gap: 0.7rem;
-    padding: 0.85rem;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(226, 232, 240, 0.9);
-}
-
-.decision-item-copy {
-    display: grid;
-    gap: 0.2rem;
-}
-
-.decision-item-copy strong {
-    font-size: 0.88rem;
-    color: #0f172a;
-}
-
-.decision-item-meta {
-    font-size: 0.78rem;
-    color: #475569;
-}
-
-.decision-item-meta.unavailable {
-    color: #b45309;
-    font-weight: 700;
-}
-
-.decision-item-meta.source {
-    color: #0f766e;
-    font-weight: 700;
-}
-
-.decision-substitute {
-    margin-top: 0.3rem;
-    padding-top: 0.45rem;
-    border-top: 1px dashed rgba(148, 163, 184, 0.5);
-    display: grid;
-    gap: 0.15rem;
-}
-
-.decision-item-meta.substitute-label {
-    font-weight: 800;
-    color: #0f766e;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.68rem;
-}
-
-.decision-item-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.decision-item-btn {
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #475569;
-    border-radius: 999px;
-    padding: 0.45rem 0.75rem;
-    font-size: 0.76rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.decision-item-btn.active {
-    border-color: #0f766e;
-    background: #0f766e;
-    color: #ffffff;
-}
-
-.decision-preview-total {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.8rem 0.9rem;
-    border-radius: 12px;
-    background: #ecfeff;
-    border: 1px solid #a5f3fc;
-    color: #0f172a;
-    font-size: 0.82rem;
-}
-
-.decision-actions {
-    display: flex;
-    gap: 0.65rem;
-}
-
-.decision-btn {
-    flex: 1;
-    border-radius: 10px;
-    padding: 0.7rem 0.9rem;
-    font-weight: 700;
-    font-size: 0.82rem;
-    border: 1px solid transparent;
-    cursor: pointer;
-}
-
-.decision-btn.primary {
-    background: #0f766e;
-    color: #ffffff;
-}
-
-.decision-btn.secondary {
-    background: #ffffff;
-    color: #475569;
-    border-color: #cbd5e1;
-}
-
-.decision-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.feedback-card {
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border: 1px solid #dbe4f0;
-    border-radius: 18px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-}
-
-.feedback-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    align-items: flex-start;
-    margin-bottom: 0.85rem;
-}
-
-.feedback-copy {
-    margin: 0.3rem 0 0;
-    color: #526173;
-    font-size: 0.92rem;
-}
-
-.feedback-date {
-    color: #7a8699;
-    font-size: 0.8rem;
-    white-space: nowrap;
-}
-
-.feedback-category {
-    margin-bottom: 0.75rem;
-}
-
-.feedback-category-label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.3rem;
-}
-
-.feedback-stars {
-    display: flex;
-    gap: 0.35rem;
-    margin-bottom: 0.25rem;
-}
-
-.feedback-star-btn {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 999px;
-    border: 1px solid #d7e0ec;
-    background: #fff;
-    color: #b7c2d0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.feedback-star-btn.active {
-    background: #fff4d6;
-    border-color: #f1c65d;
-    color: #d99000;
-}
-
-.feedback-star-icon {
-    width: 1.2rem;
-    height: 1.2rem;
-}
-
-.feedback-textarea {
-    margin-bottom: 0.85rem;
-}
-
-.feedback-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    align-items: center;
-}
-
-.feedback-saved-note {
-    color: #526173;
-    font-size: 0.9rem;
-}
-
-.feedback-submit-btn {
-    width: auto;
-    min-width: 12rem;
-}
-
-.payment-action {
-    margin-bottom: 1rem;
-}
-
-.payment-method-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 0.7rem;
-}
-
-.payment-total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 0.65rem 0.85rem;
-    margin-bottom: 0.7rem;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #111827;
-}
-
-.payment-total-amount {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #4F217A;
-    font-variant-numeric: tabular-nums;
-}
-
-.fulfillment-locked-strip {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
-    background: #ffffff;
-    border: 1px solid #f0f0f1;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.fulfillment-locked-strip-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.fulfillment-locked-strip-icon--pickup {
-    background: #fff7ed;
-    color: #c2410c;
-}
-
-.fulfillment-locked-strip-icon--delivery {
-    background: #eff6ff;
-    color: #2563eb;
-}
-
-.fulfillment-locked-strip-label {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #18181b;
-}
-
-.fulfillment-locked-strip-change {
-    flex-shrink: 0;
-    margin-left: 0.5rem;
-    padding: 0.3rem 0.65rem;
-    border-radius: 8px;
-    border: 1px solid #e4e4e7;
-    background: transparent;
-    color: #71717a;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.fulfillment-locked-strip-change:hover {
-    border-color: #4F217A;
-    color: #4F217A;
-    background: #faf5ff;
-}
-
-.fulfillment-picker {
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background: #ffffff;
-    border: 1px solid #ede8f5;
-    border-radius: 16px;
-    box-shadow: 0 1px 4px rgba(79,33,122,0.06);
-}
-
-.fulfillment-picker-header h4 {
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: #0f172a;
-}
-
-.fulfillment-picker-header p {
-    margin: 0.15rem 0 0;
-    font-size: 0.75rem;
-    color: #64748b;
-}
-
-.fulfillment-picker-loading {
-    margin-top: 0.65rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8125rem;
-    color: #64748b;
-}
-
-.fulfillment-options {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-    margin-top: 0.75rem;
-}
-
-.fulfillment-option {
-    position: relative;
-    display: block;
-    text-align: left;
-    padding: 1rem 3rem 1rem 1rem;
-    border-radius: 14px;
-    border: 1.5px solid #e4e4e7;
-    background: #ffffff;
-    cursor: pointer;
-    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.fulfillment-option::after {
-    content: '';
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid #d4d4d8;
-    background: #ffffff;
-    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
-}
-
-.fulfillment-option-row {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-}
-
-.fulfillment-option-icon {
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.fulfillment-option-icon svg {
-    width: 22px;
-    height: 22px;
-}
-
-.fulfillment-option-icon--pickup {
-    background: #fff7ed;
-    color: #c2410c;
-}
-
-.fulfillment-option-icon--delivery {
-    background: #eff6ff;
-    color: #2563eb;
-}
-
-.fulfillment-option-body {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-.fulfillment-option:hover:not(:disabled) {
-    border-color: #c4a3e8;
-    box-shadow: 0 2px 8px rgba(79,33,122,0.08);
-}
-
-.fulfillment-option--selected {
-    border-color: #4F217A;
-    background: #faf5ff;
-    box-shadow: 0 0 0 3px rgba(79,33,122,0.08);
-}
-
-.fulfillment-option--selected::after {
-    border-color: #4F217A;
-    background: #4F217A;
-    box-shadow: inset 0 0 0 4px #ffffff;
-}
-
-/* Provider rate sheet (booking step 3): expands under Delivery once tapped. */
-.fulfillment-option-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.provider-rate-sheet {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin: 0 0.25rem;
-    padding: 0.75rem;
-    border: 1px dashed #c4a3e8;
-    border-radius: 12px;
-    background: #faf5ff;
-}
-.provider-rate-sheet-title {
-    margin: 0;
-    font-size: 0.7rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #4F217A;
-}
-.provider-rate-option {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    text-align: left;
-    padding: 0.6rem 0.75rem;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 10px;
-    background: #fff;
-    cursor: pointer;
-}
-.provider-rate-option:hover {
-    border-color: #c4a3e8;
-}
-.provider-rate-option--selected {
-    border-color: #4F217A;
-    background: #f5eefd;
-    box-shadow: 0 0 0 3px rgba(79,33,122,0.08);
-}
-.provider-rate-name {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #18181b;
-}
-.provider-rate-price {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: #4F217A;
-    white-space: nowrap;
-}
-.provider-rate-meta {
-    font-size: 0.75rem;
-    color: #71717a;
-    white-space: nowrap;
-}
-
-.fulfillment-option--disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-.fulfillment-option-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.fulfillment-option-title {
-    font-weight: 700;
-    font-size: 0.9375rem;
-    color: #18181b;
-}
-
-.fulfillment-option-price {
-    font-weight: 800;
-    font-size: 0.9375rem;
-    color: #4F217A;
-    font-variant-numeric: tabular-nums;
-}
-
-.fulfillment-option-meta {
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 0.3rem;
-    margin-top: 0.3rem;
-    font-size: 0.775rem;
-    color: #71717a;
-    line-height: 1.5;
-}
-
-.fulfillment-option-meta--muted {
-    color: #a1a1aa;
-    font-style: italic;
-}
-
-.fee-credit-picker {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.fee-credit-label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #0f172a;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.fee-credit-toggle {
-    display: flex;
-    align-items: center;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 20px;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.fee-credit-option {
-    padding: 0 0.75rem;
-    height: 32px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #64748b;
-    background: #ffffff;
-    border: none;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    white-space: nowrap;
-    line-height: 1;
-}
-
-.fee-credit-option:first-child {
-    border-right: 1.5px solid #e2e8f0;
-}
-
-.fee-credit-option:hover:not(.fee-credit-option--selected) {
-    background: #f8fafc;
-    color: #0f172a;
-}
-
-.fee-credit-option--selected {
-    background: #4F217A;
-    color: #ffffff;
-}
-
-.pay-request-btn {
-    width: 100%;
-    border: none;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    background: linear-gradient(135deg, #a855f7, #7c3aed);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 0.875rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-}
-
-.secondary-pay-btn {
-    background: #ffffff;
-    color: #0f172a;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
-}
-
-.pay-request-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);
-}
-
-.secondary-pay-btn:hover:not(:disabled) {
-    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
-}
-
-.pay-request-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.pay-svg {
-    width: 16px;
-    height: 16px;
-}
-
-.payment-note {
-    margin: 0.5rem 0 0;
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.payment-shortfall {
-    margin-top: 0.875rem;
-    padding: 1rem;
-    border-radius: 16px;
-    border: 1px solid #f3d7a3;
-    background: linear-gradient(180deg, #fffaf0, #fff7e8);
-    display: grid;
-    gap: 0.9rem;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.payment-shortfall-head {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 0.85rem;
-    align-items: start;
-}
-
-.payment-shortfall-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: #fff;
-    border: 1px solid #f2d6a4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.payment-shortfall-svg {
-    width: 18px;
-    height: 18px;
-    color: #b45309;
-}
-
-.payment-shortfall-copy {
-    display: grid;
-    gap: 0.25rem;
-    min-width: 0;
-}
-
-.payment-shortfall strong {
-    font-size: 0.92rem;
-    color: #78350f;
-}
-
-.payment-shortfall span {
-    font-size: 0.8rem;
-    line-height: 1.5;
-    color: #92400e;
-}
-
-.payment-shortfall-amount {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 92px;
-    padding: 0.55rem 0.8rem;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid #f2d6a4;
-    color: #92400e;
-    font-size: 0.82rem;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.payment-shortfall-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    padding-top: 0.15rem;
-    border-top: 1px solid rgba(180, 83, 9, 0.12);
-}
-
-.payment-shortfall-note {
-    max-width: 24rem;
-}
-
-.payment-topup-btn {
-    width: fit-content;
-    min-height: 40px;
-    padding: 0.7rem 1rem;
-    border-radius: 12px;
-    background: #b45309;
-    color: #fff;
-    border: none;
-    font-size: 0.82rem;
-    font-weight: 800;
-    box-shadow: 0 10px 20px rgba(180, 83, 9, 0.16);
-}
-
-.payment-topup-btn:hover {
-    background: #9a3412;
-}
-
-@media (max-width: 640px) {
-    .payment-method-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .payment-shortfall-head {
-        grid-template-columns: auto 1fr;
-    }
-
-    .payment-shortfall-amount {
-        grid-column: 1 / -1;
-        justify-self: start;
-    }
-
-    .payment-shortfall-actions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .payment-topup-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-.detail-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-.detail-section-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #9ca3af;
-}
-.edit-request-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #4F217A;
-    background: #f5f0fb;
-    border: 1px solid #e4d9f5;
-    border-radius: 6px;
-    padding: 0.2rem 0.5rem;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.edit-request-btn:hover { background: #ebe3f7; }
-
-.edit-items-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.75rem; }
-.edit-item-row { display: flex; flex-direction: column; gap: 0.4rem; }
-.edit-item-name-wrap { display: flex; align-items: center; gap: 0.5rem; }
-.edit-item-index {
-    width: 1.25rem; height: 1.25rem; flex-shrink: 0;
-    border-radius: 50%; background: #f0e8ff; color: #4F217A;
-    font-size: 0.65rem; font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-}
-.edit-item-input {
-    flex: 1; border: 1px solid #e4d9f5; border-radius: 10px;
-    padding: 0.55rem 0.75rem; font-size: 0.85rem; font-weight: 600;
-    color: #1a0a2e; background: #faf8ff;
-}
-.edit-item-input:focus { outline: 2px solid #4f46e5; outline-offset: 2px; border-color: #4F217A; box-shadow: 0 0 0 3px rgba(79,33,122,0.08); }
-.edit-item-meta { display: flex; align-items: center; gap: 0.5rem; padding-left: 1.75rem; }
-.edit-item-select {
-    flex: 1; border: 1px solid #e4d9f5; border-radius: 8px;
-    padding: 0.4rem 0.5rem; font-size: 0.78rem; font-weight: 600;
-    color: #4F217A; background: #faf8ff; cursor: pointer;
-}
-.edit-item-select:focus { outline: 2px solid #4f46e5; outline-offset: 2px; }
-.edit-item-qty {
-    display: flex; align-items: center; border: 1px solid #e4d9f5;
-    border-radius: 8px; overflow: hidden; background: #faf8ff;
-}
-.qty-btn {
-    width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; font-weight: 700; color: #4F217A; background: transparent; border: none;
-    cursor: pointer; transition: background 0.15s;
-}
-.qty-btn:hover { background: #f0e8ff; }
-.qty-val { width: 1.75rem; text-align: center; font-size: 0.8rem; font-weight: 800; color: #1a0a2e; }
-.edit-item-remove {
-    width: 1.75rem; height: 1.75rem; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 6px; border: none; background: transparent;
-    color: #d1a8f0; cursor: pointer; transition: color 0.15s, background 0.15s;
-}
-.edit-item-remove:hover { color: #b91c1c; background: #fff1f2; }
-.edit-add-item-btn {
-    font-size: 0.78rem; font-weight: 700; color: #4F217A;
-    background: transparent; border: 1px dashed #c4a8e8;
-    border-radius: 8px; padding: 0.45rem 0.75rem;
-    width: 100%; cursor: pointer; transition: background 0.15s;
-}
-.edit-add-item-btn:hover { background: #f5f0fb; }
-
-.modal-subtitle { font-size: 0.75rem; color: #9b7ec0; font-weight: 500; margin-top: 0.1rem; }
-.modal-footer {
-    display: flex; gap: 0.75rem; padding: 1rem 1.25rem 1.25rem;
-    border-top: 1px solid #f0e8ff;
-}
-.modal-cancel-btn {
-    flex: 1; border: 1px solid #e4d9f5; background: white; color: #7c5fa0;
-    padding: 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
-    cursor: pointer; transition: background 0.15s;
-}
-.modal-cancel-btn:hover { background: #faf8ff; }
-.modal-confirm-btn {
-    flex: 1; background: #4F217A; color: white;
-    padding: 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 700;
-    border: none; cursor: pointer; display: inline-flex; align-items: center;
-    justify-content: center; gap: 0.4rem; transition: background 0.15s;
-}
-.modal-confirm-btn:hover:not(:disabled) { background: #3d1861; }
-.modal-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.cancel-action {
-    margin-bottom: 1rem;
-    display: flex;
-    justify-content: center;
-}
-
-.cancel-request-btn {
-    border: none;
-    background: transparent;
-    color: #9ca3af;
-    font-weight: 500;
-    font-size: 0.75rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    transition: color 0.2s;
-}
-
-.cancel-request-btn:hover:not(:disabled) {
-    color: #b91c1c;
-}
-
-.cancel-request-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.fulfillment-section {
-    margin-bottom: 1.25rem;
-}
-
-.fulfillment-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-}
-
-.fulfillment-btn {
-    padding: 1rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    background: white;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s;
-}
-
-.fulfillment-btn i {
-    font-size: 1.5rem;
-    color: #667eea;
-    display: block;
-    margin-bottom: 0.375rem;
-}
-
-.fulfillment-btn strong {
-    display: block;
-    font-size: 0.875rem;
-    color: #111827;
-}
-
-.fulfillment-btn span {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.fulfillment-btn.selected {
-    border-color: #667eea;
-    background: #eef2ff;
-}
-
-.fulfillment-btn:hover {
-    border-color: #a5b4fc;
-}
-
-.detail-info {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-}
-
-.detail-info i {
-    color: #9ca3af;
-    margin-top: 0.125rem;
-}
-
-/* Success modal */
-.success-modal {
-    background: white;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 380px;
-    padding: 2rem;
-    text-align: center;
-}
-
-.success-icon {
-    width: 64px;
-    height: 64px;
-    background: #dcfce7;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1rem;
-}
-
-.success-icon i {
-    font-size: 2rem;
-    color: #16a34a;
-}
-
-.success-modal h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem;
-}
-
-.success-modal p {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin: 0 0 0.5rem;
-}
-
-.success-num {
-    color: #374151;
-    margin-bottom: 1.25rem !important;
-}
-
-.success-num strong {
-    color: #4f46e5;
-}
-
-/* States */
-.loading-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: #6b7280;
-    font-size: 0.875rem;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-}
-
-.empty-icon {
-    font-size: 2.5rem;
-    color: #d1d5db;
-}
-
-.empty-title {
-    font-weight: 600;
-    color: #374151;
-    margin: 0.5rem 0 0.25rem;
-}
-
-.empty-desc {
-    font-size: 0.875rem;
-    color: #9ca3af;
-    margin-bottom: 1rem;
-}
-
-/* Toast */
-.spin {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@media (max-width: 640px) {
-    .new-request-hero {
-        grid-template-columns: 1fr;
-        padding: 0.95rem;
-        border-radius: 18px;
-        margin-bottom: 1rem;
-    }
-
-    .new-request-title {
-        font-size: 1.35rem;
-        max-width: none;
-    }
-
-    .new-request-desc {
-        font-size: 0.88rem;
-        line-height: 1.55;
-    }
-
-    .new-request-hero-panel {
-        grid-template-columns: 1fr;
-    }
-
-    .hero-panel-item,
-    .hero-panel-item.muted {
-        grid-column: auto;
-    }
-
-    .editor-section-head,
-    .editor-card-head {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.6rem;
-    }
-
-    .editor-section-badge,
-    .editor-card-status {
-        align-self: flex-start;
-    }
-
-    .requests-list {
-        gap: 0.45rem;
-    }
-
-    .request-shell-head {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.7rem;
-    }
-
-    .shell-title {
-        font-size: 1.12rem;
-    }
-
-    .shell-stats {
-        width: 100%;
-    }
-
-    .shell-pill {
-        flex: 1;
-        padding: 0.58rem 0.68rem;
-    }
-
-    .request-builder-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .step-desc {
-        margin-bottom: 0.8rem;
-    }
-
-    .search-lock-card {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .search-lock-card .location-help-btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .location-btn {
-        align-items: flex-start;
-        padding: 0.88rem;
-    }
-
-    .location-help-card {
-        padding: 0.78rem 0.82rem;
-    }
-
-    .location-help-actions {
-        flex-direction: column;
-    }
-
-    .location-help-btn {
-        width: 100%;
-        text-align: center;
-    }
-
-    .fulfillment-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .fulfillment-btn {
-        text-align: left;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .fulfillment-btn strong,
-    .fulfillment-btn span {
-        display: block;
-    }
-
-    .item-row {
-        display: grid;
-        grid-template-columns: 28px minmax(0, 1fr) auto;
-        grid-template-areas:
-            "num main remove"
-            "qty qty qty";
-        gap: 0.6rem 0.5rem;
-        padding: 0.68rem;
-    }
-
-    .item-num {
-        grid-area: num;
-    }
-
-    .item-main {
-        grid-area: main;
-    }
-
-    .qty-picker {
-        grid-area: qty;
-        min-width: 0;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.55rem 0.65rem;
-        border: 1px solid #dbe4f0;
-        border-radius: 12px;
-        background: #ffffff;
-    }
-
-    .qty-label {
-        text-align: left;
-        margin-right: 0.75rem;
-    }
-
-    .qty-controls {
-        justify-content: flex-end;
-        margin-left: auto;
-    }
-
-    .remove-btn {
-        grid-area: remove;
-        justify-self: end;
-        align-self: start;
-    }
-
-    .add-item-btn,
-    .upload-label {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .prescription-box {
-        padding: 0.88rem;
-        gap: 0.6rem;
-    }
-
-    .prescription-text {
-        width: 100%;
-    }
-
-    .prescription-preview-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .prescription-preview-actions {
-        flex-direction: column;
-    }
-
-    .form-textarea {
-        font-size: 0.95rem;
-    }
-
-    .review-box {
-        padding: 0.88rem;
-    }
-
-    .review-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.2rem;
-    }
-
-    .modal-overlay {
-        align-items: flex-end;
-        padding: 0;
-    }
-
-    .modal-content {
-        max-width: none;
-        width: 100%;
-        max-height: 92dvh;
-        border-radius: 16px 16px 0 0;
-    }
-
-    .modal-header,
-    .modal-body {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-
-    .review-addr {
-        max-width: none;
-        text-align: left;
-    }
-
-    .toast {
-        left: 1rem;
-        right: 1rem;
-        bottom: 1rem;
-    }
-
-    .nav-next,
-    .nav-submit {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-
-    .builder-card {
-        padding: 0.88rem;
-    }
-
-    .builder-card-head {
-        margin-bottom: 0.75rem;
-    }
-
-    .editor-card {
-        padding: 0.88rem;
-        border-radius: 16px;
-    }
-
-    .review-card {
-        position: static;
-    }
-
-    .request-submit-bar {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 0.85rem 0.9rem;
-        border-radius: 13px;
-    }
-
-    .request-submit-btn {
-        width: 100%;
-        min-width: 0;
-        justify-content: center;
-    }
-
-    .form-section,
-    .list-section {
-        padding: 0.88rem;
-        border-radius: 13px;
-    }
-
-    .sub-tabs {
-        padding: 0.24rem;
-    }
-
-    .request-list-tabs {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.35rem;
-        padding: 0.24rem;
-    }
-
-    .request-list-tab {
-        min-width: 0;
-        padding: 0.58rem 0.62rem;
-        font-size: 0.76rem;
-    }
-
-    .request-list-count {
-        min-width: 1.5rem;
-        height: 1.5rem;
-        font-size: 0.68rem;
-    }
-
-    .request-card {
-        padding: 0.64rem 0.7rem;
-        border-radius: 12px;
-        background: #ffffff;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-    }
-
-    .request-header {
-        gap: 0.45rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .request-header>div {
-        min-width: 0;
-    }
-
-    .request-num {
-        font-size: 0.86rem;
-        display: block;
-        line-height: 1.25;
-    }
-
-    .request-date {
-        display: block;
-        margin-left: 0;
-        margin-top: 0.1rem;
-        font-size: 0.69rem;
-    }
-
-    .request-card-copy {
-        gap: 0.35rem;
-        margin-bottom: 0.3rem;
-    }
-
-    .request-card-copy {
-        align-items: flex-start;
-        flex-direction: row;
-    }
-
-    .request-card-copy p {
-        font-size: 0.73rem;
-        line-height: 1.35;
-        min-width: 0;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .request-arrow {
-        flex-shrink: 0;
-        width: 0.9rem;
-        height: 0.9rem;
-        margin-top: 0.1rem;
-    }
-
-    .request-prescription-preview {
-        gap: 0.35rem;
-        padding: 0.38rem 0.48rem;
-        border-radius: 999px;
-        margin-bottom: 0.35rem;
-        background: #f8fafc;
-        border: 1px dashed #cbd5e1;
-    }
-
-    .request-prescription-thumb-link {
-        display: none;
-    }
-
-    .request-prescription-copy strong {
-        font-size: 0.69rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #475569;
-    }
-
-    .request-prescription-copy span {
-        font-size: 0.69rem;
-        line-height: 1.2;
-    }
-
-    .request-meta {
-        gap: 0.32rem;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: stretch;
-        margin-bottom: 0;
-    }
-
-    .request-meta span:first-child {
-        display: none;
-    }
-
-    .request-meta span {
-        width: auto;
-        justify-content: flex-start;
-        min-width: 0;
-        padding: 0.24rem 0.4rem;
-        font-size: 0.68rem;
-        line-height: 1.2;
-        border-radius: 10px;
-        background: #f8fafc;
-    }
-
-    .status-badge {
-        font-size: 0.61rem;
-        padding: 0.18rem 0.46rem;
-        letter-spacing: 0.02em;
-    }
-
-    .progress-bar {
-        display: none;
-    }
-}
-
-@media (max-width: 420px) {
-    .sub-tab {
-        padding: 0.72rem 0.78rem;
-        font-size: 0.79rem;
-    }
-
-    .step-title {
-        font-size: 1.1rem;
-    }
-
-    .item-search-shell {
-        padding: 0.7rem 0.75rem;
-    }
-
-    .input-wrap {
-        padding: 0.7rem 0.75rem;
-    }
-
-    .qty-picker {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.5rem;
-    }
-
-    .qty-label {
-        margin-right: 0;
-    }
-
-    .qty-controls {
-        width: 100%;
-        justify-content: space-between;
-        margin-left: 0;
-    }
-
-    .request-submit-copy strong {
-        font-size: 0.9rem;
-    }
-
-    .request-submit-copy span {
-        font-size: 0.78rem;
-    }
-
-    .request-list-tab {
-        padding: 0.56rem 0.54rem;
-        font-size: 0.73rem;
-    }
-
-    .request-card {
-        padding: 0.62rem 0.66rem;
-    }
-
-    .request-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .request-card-copy {
-        align-items: flex-start;
-    }
-
-    .request-meta {
-        grid-template-columns: 1fr;
-    }
-
-    .request-prescription-preview {
-        align-items: flex-start;
-        border-radius: 12px;
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   CONCIERGE REDESIGN — new classes
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Step fade-in animation ── */
-@keyframes stepFadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.concierge-step {
-    animation: stepFadeUp 0.3s ease both;
-}
-
-.concierge-step:nth-child(1) {
-    animation-delay: 0.05s;
-}
-
-.concierge-step:nth-child(2) {
-    animation-delay: 0.12s;
-}
-
-.concierge-step:nth-child(3) {
-    animation-delay: 0.19s;
-}
-
-.concierge-step:nth-child(4) {
-    animation-delay: 0.26s;
-}
-
-/* ── Concierge: strip double-card inside med-card ── */
-.med-card .item-search-shell {
-    background: transparent;
-    border: none;
-    padding: 0;
-    box-shadow: none;
-    border-radius: 0;
-}
-
-.med-card .input-wrap {
-    background: #f4f4f5;
-    border-color: #e4e4e7;
-}
-
-.med-card .input-wrap:focus-within {
-    border-color: #4F217A;
-    background: #faf5ff;
-}
-
-/* ── Concierge Shell ── */
-.concierge-shell {
-    padding: 0;
-    max-width: 560px;
-    margin: 0 auto;
-    background: #f4f4f5;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-}
-
-/* ── Concierge Header ── */
-.concierge-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1.25rem 0.75rem;
-    background: #ffffff;
-    border-bottom: 1px solid #e4e4e7;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.list-header {
-    background: #ffffff;
-    border-bottom: 1px solid #e4e4e7;
-    margin-bottom: 0;
-}
-
-.concierge-back-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: #350062;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.concierge-back-btn:hover {
-    background: rgba(0, 0, 0, 0.06);
-}
-
-.concierge-back-svg {
-    width: 20px;
-    height: 20px;
-}
-
-.concierge-title {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #4F217A;
-    margin: 0;
-    letter-spacing: -0.02em;
-}
-
-.concierge-help-ring {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1.5px solid #e4e4e7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #4F217A;
-    background: #f4f4f5;
-    cursor: default;
-}
-
-/* ── Concierge Steps Container ── */
-.concierge-steps {
-    flex: 1;
-    padding: 0.25rem 1rem 12rem;
-    display: flex;
-    flex-direction: column;
-}
-
-/* ── Single Step Row ── */
-.concierge-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid #e4e4e7;
-}
-
-.concierge-step:last-of-type {
-    border-bottom: none;
-}
-
-.step-num-circle {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #350062;
-    color: #ffffff;
-    font-size: 0.95rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 0.1rem;
-}
-
-.concierge-step-body {
-    flex: 1;
-    min-width: 0;
-}
-
-.concierge-step-title {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: #4F217A;
-    margin: 0 0 0.85rem;
-    letter-spacing: -0.02em;
-}
-
-/* ── Med Cards (Step 1) ── */
-.med-card-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-    margin-bottom: 0.75rem;
-}
-
-.med-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    border-radius: 14px;
-    padding: 0.8rem 0.85rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    transition: border-color 0.15s;
-}
-
-.med-icon-circle {
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #f0e6fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 0.15rem;
-}
-
-.med-icon-glyph {
-    font-size: 20px;
-    color: #6c24b3;
-}
-
-.med-card-body {
-    flex: 1;
-    min-width: 0;
-}
-
-/* When named: remove shell styling from search box */
-.med-card--named .item-search-shell {
-    background: transparent;
-    border: none;
-    padding: 0;
-    box-shadow: none;
-}
-
-.med-card--named .item-search-head {
-    display: none;
-}
-
-.med-card--named .item-input {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1a0030;
-    padding: 0;
-    background: transparent;
-}
-
-/* Qty controls */
-.med-qty-control {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: #f7f0fb;
-    border-radius: 999px;
-    padding: 0.25rem 0.45rem;
-    margin-top: 0.2rem;
-    transition: opacity 0.15s;
-}
-
-.med-qty-control.med-qty-hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.med-qty-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1.5px solid #ddd0ea;
-    background: #ffffff;
-    color: #350062;
-    font-size: 1.1rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    line-height: 1;
-    transition: background 0.15s;
-    padding: 0;
-}
-
-.med-qty-btn:hover:not(:disabled) {
-    background: #350062;
-    color: #ffffff;
-    border-color: #350062;
-}
-
-.med-qty-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-}
-
-.med-qty-input {
-    width: 28px;
-    text-align: center;
-    border: none;
-    background: transparent;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #350062;
-    padding: 0;
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-
-.med-qty-input:focus {
-    outline: 2px solid #4f46e5;
-    outline-offset: 2px;
-    border-radius: 4px;
-}
-
-.med-qty-input::-webkit-outer-spin-button,
-.med-qty-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-}
-
-.med-remove-btn {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: #9ca3af;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 0.2rem;
-    transition: background 0.15s, color 0.15s;
-}
-
-.med-remove-btn:hover {
-    background: #fee2e2;
-    color: #ef4444;
-}
-
-.add-med-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 0;
-    background: transparent;
-    border: none;
-    color: #6c24b3;
-    font-size: 0.9rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.add-med-link:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.add-med-link:hover:not(:disabled) {
-    color: #350062;
-}
-
-/* ── Prescription Choice Grid (Step 2) ── */
-.prescription-choice-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.prescription-choice-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-    padding: 1.4rem 1rem;
-    background: #ffffff;
-    border: 1px solid #e5d9f5;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(53, 0, 98, 0.05);
-}
-
-.prescription-choice-card:hover {
-    border-color: #350062;
-    box-shadow: 0 4px 12px rgba(53, 0, 98, 0.1);
-}
-
-.prx-choice-icon {
-    width: 28px;
-    height: 28px;
-    color: #6c24b3;
-}
-
-.prescription-choice-card span {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #1a0030;
-}
-
-/* ── Fulfillment Choice Cards (Step 3) ── */
-.fulfillment-choices {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-    margin-bottom: 0.5rem;
-}
-
-.fulfillment-choice-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.1rem;
-    background: #ffffff;
-    border: 1.5px solid #e4e4e7;
-    border-radius: 14px;
-    cursor: pointer;
-    text-align: left;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    width: 100%;
-}
-
-.fulfillment-choice-card.selected {
-    border-color: #4F217A;
-    box-shadow: 0 0 0 3px rgba(79, 33, 122, 0.1);
-}
-
-.fulfillment-choice-card:hover {
-    border-color: #4F217A;
-}
-
-.fulfillment-choice-icon-wrap {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: #f0e6fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.ful-choice-svg {
-    width: 22px;
-    height: 22px;
-    color: #6c24b3;
-}
-
-.fulfillment-choice-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.fulfillment-choice-text strong {
-    font-size: 0.97rem;
-    font-weight: 700;
-    color: #1a0030;
-}
-
-.fulfillment-choice-text span {
-    font-size: 0.82rem;
-    color: #6b6b7b;
-}
-
-/* ── Privacy Strip ── */
-.privacy-strip {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-    margin: 0.25rem 0 1.5rem;
-    padding: 0.8rem 0.9rem;
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    border-radius: 12px;
-    font-size: 0.78rem;
-    line-height: 1.55;
-    color: #71717a;
-}
-
-.privacy-icon {
-    width: 22px;
-    height: 22px;
-    flex-shrink: 0;
-    color: #6c24b3;
-    margin-top: 1px;
-}
-
-/* ── Concierge Sticky Footer ── */
-.concierge-footer {
-    position: fixed;
-    bottom: 5.75rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 560px;
-    z-index: 30;
-    background: #ffffff;
-    border-top: 1px solid #e4e4e7;
-    border-radius: 1rem 1rem 0 0;
-    padding: 0.85rem 1.25rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
-    display: flex;
-    flex-direction: column;
-    gap: 0.7rem;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.footer-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.footer-total-col {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.footer-total-label {
-    font-size: 0.65rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #71717a;
-}
-
-.footer-total-row {
-    display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
-}
-
-.footer-total-amount {
-    font-size: 1.5rem;
-    font-weight: 900;
-    color: #18181b;
-    line-height: 1;
-}
-
-.footer-fee-note {
-    font-size: 0.78rem;
-    color: #71717a;
-}
-
-.footer-count-col {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.15rem;
-}
-
-.footer-count-label {
-    font-size: 0.65rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #71717a;
-}
-
-.footer-count-value {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: #18181b;
-}
-
-.footer-send-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 1rem 1.5rem;
-    background: #18181b;
-    color: #ffffff;
-    font-size: 1.02rem;
-    font-weight: 800;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-}
-
-.footer-send-btn:hover:not(:disabled) {
-    background: #27272a;
-    transform: translateY(-1px);
-}
-
-.footer-send-btn:active:not(:disabled) {
-    transform: translateY(0);
-}
-
-.footer-send-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* ── Detail Modal: purple header ── */
-.modal-header--concierge {
-    background: linear-gradient(135deg, #3d0074 0%, #280052 100%);
-    border-radius: 1rem 1rem 0 0;
-    padding: 1.2rem 1.25rem;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-}
-
-.modal-header--concierge h3 {
-    color: #ffffff;
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-}
-
-.modal-header--concierge .status-badge {
-    background: rgba(255, 255, 255, 0.15);
-    color: rgba(255,255,255,0.9);
-    border: 1px solid rgba(255,255,255,0.2);
-    backdrop-filter: blur(4px);
-    letter-spacing: 0.04em;
-    margin-top: 0.5rem;
-}
-
-.modal-header--concierge .modal-close {
-    color: rgba(255, 255, 255, 0.7);
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    flex-shrink: 0;
-    transition: background 0.15s, color 0.15s;
-}
-
-.modal-header--concierge .modal-close:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.18);
-}
-
-/* ── Mobile: detail modal as bottom-sheet ── */
-@media (max-width: 640px) {
-    .modal-content {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        border-radius: 1.5rem 1.5rem 0 0;
-        max-height: 92vh;
-        overflow-y: auto;
-        margin: 0;
-        transform: none;
-        animation: slideUpSheet 0.25s ease;
-    }
-
-    .modal-header--concierge {
-        border-radius: 1.5rem 1.5rem 0 0;
-    }
-}
-
-@keyframes slideUpSheet {
-    from {
-        transform: translateY(40px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* ── Concierge: override outer order-requests background for new view ── */
-.order-requests:has(.concierge-shell) {
-    background: #f4f4f5;
-    max-width: 100%;
 }
 </style>

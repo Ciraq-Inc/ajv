@@ -38,13 +38,13 @@ import type { Component } from 'vue'
 
 type StateKind = 'error' | 'empty' | 'loading' | 'success'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   state?: StateKind
   icon?: Component | null
   heading?: string
   message?: string
   actionLabel?: string
-}>()
+}>(), { state: 'empty' })
 
 defineEmits<{ action: [] }>()
 

@@ -214,10 +214,11 @@ const fetchPharmacies = async (): Promise<void> => {
         .filter(company => company.companytype === 0) // Only get pharmacies (type 0)
         .map(company => ({
           id: company.id.toString(),
-          name: company.name ?? 'Unknown Pharmacy',
-          location: company.location ?? 'Location not provided',
-          tel: company.tel1 ?? company.tel2 ?? 'No contact information',
-          subdomain: company.domain_name ?? company.id.toString(),
+          // Blank strings are as good as missing, so use || rather than ??.
+          name: company.name?.trim() || 'Unknown Pharmacy',
+          location: company.location?.trim() || 'Location not provided',
+          tel: company.tel1?.trim() || company.tel2?.trim() || 'No contact information',
+          subdomain: company.domain_name?.trim() || company.id.toString(),
         }));
     } else {
       pharmacies.value = [];

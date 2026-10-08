@@ -1,5 +1,5 @@
 <template>
-  <div class="text-[#1d1a20] antialiased overflow-x-hidden min-h-screen bg-[#f4f4f5]">
+  <div class="text-[#1d1a20] antialiased overflow-x-hidden min-h-screen bg-white">
     <!-- WCAG 2.4.1 Bypass Blocks: keyboard skip-link, visible on focus -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- SideNavBar -->
@@ -61,65 +61,7 @@
       </div>
     </aside>
 
-    <main id="main-content" tabindex="-1" class="lg:ml-64 min-h-screen bg-gradient-to-br from-[#e8dff5] to-[#ddd5ef] pb-28 lg:pb-0">
-      <!-- TopAppBar: hidden on concierge new-request and list views -->
-      <header
-        v-if="activeNav !== 'new' && activeNav !== 'requests' && activeNav !== 'wallet' && activeNav !== 'orders'"
-        class="sticky top-0 z-40 bg-[#f4f4f5]/92 backdrop-blur-md px-4 lg:px-8 flex justify-between items-center border-b border-zinc-200"
-        :class="activeNav === 'new' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
-      >
-        <div v-if="activeNav === 'new' || canGoBack" class="flex min-w-0 flex-1 items-center gap-2.5 lg:gap-3">
-          <div v-if="activeNav === 'new' && !canGoBack" class="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#e9daf7] bg-white shadow-sm">
-            <img :src="brandLogo" alt="MedsGH Logo" class="h-7 w-7 object-contain" />
-          </div>
-          <button v-else-if="canGoBack" @click="goTo('new')" aria-label="Back to home" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
-            <ArrowLeftIcon class="w-6 h-6" />
-          </button>
-
-          <div v-if="activeNav === 'new'" class="min-w-0 flex-1">
-            <h2 class="truncate text-[1.05rem] font-bold leading-tight tracking-tight text-zinc-900 lg:text-[2rem]">
-              {{ headerGreeting }}
-            </h2>
-            <button
-              type="button"
-              @click="refreshDeliveryLocation"
-              :disabled="isRefreshingLocation"
-              class="mt-1 flex min-w-0 w-full items-center gap-2 rounded-full border border-transparent bg-white/0 px-0 py-1 text-left text-[#7a7280] transition-all hover:bg-[#f7f1ff] hover:text-[#4F217A] focus:outline-none focus-visible:border-[#4F217A]/20 focus-visible:bg-[#f7f1ff] focus-visible:text-[#4F217A]"
-              :title="headerLocation === 'Set your delivery location' ? 'Set your delivery location' : 'Update delivery location'"
-            >
-              <component :is="isRefreshingLocation ? ArrowPathIcon : MapPinIcon" class="w-3.5 h-3.5 shrink-0" :class="isRefreshingLocation ? 'animate-spin' : ''" />
-              <span class="truncate text-xs font-semibold uppercase tracking-[0.08em] lg:text-[12px] lg:tracking-[0.1em]">{{ headerLocation }}</span>
-              <span class="ml-auto shrink-0 hidden sm:inline-flex items-center gap-1 rounded-full border border-[#4F217A]/15 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#4F217A] shadow-sm transition-colors">
-                <template v-if="isRefreshingLocation">
-                  Updating
-                  <ArrowPathIcon class="w-3 h-3 animate-spin" />
-                </template>
-                <template v-else>
-                  Update
-                  <ChevronRightIcon class="w-3 h-3" />
-                </template>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 lg:gap-5" :class="activeNav === 'new' ? '' : 'ml-auto'">
-          <button aria-label="Notifications" class="relative w-10 h-10 hidden lg:flex items-center justify-center rounded-xl text-[#71717a] hover:bg-[#e8e0e8] transition-colors">
-            <BellIcon class="w-6 h-6" />
-            <span v-if="notificationCount > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none pointer-events-none">
-              {{ notificationCount > 99 ? '99+' : notificationCount }}
-            </span>
-          </button>
-          <button class="flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm group" @click="toggleMenu">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F217A] to-[#381659] text-white flex items-center justify-center text-xs font-black shadow-inner">
-              {{ displayUserInitials }}
-            </div>
-            <span class="text-xs font-bold text-zinc-700 group-hover:text-zinc-900 transition-colors hidden sm:block">Menu</span>
-            <ChevronDownIcon class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 transition-colors hidden sm:block" />
-          </button>
-        </div>
-      </header>
-
+    <main id="main-content" tabindex="-1" class="lg:ml-64 min-h-screen bg-white pb-28 lg:pb-0">
       <!-- Slot Area -->
       <div :class="(activeNav === 'requests' || activeNav === 'wallet') ? '' : (activeNav === 'clearance' ? 'p-4 lg:px-8 lg:pb-8 lg:pt-0' : 'p-4 lg:p-8')">
         <slot />
@@ -222,7 +164,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import brandLogo from '~/assets/images/rigellogo.png'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
@@ -237,8 +178,6 @@ import {
   UserIcon as UserOutline,
   ArrowRightOnRectangleIcon,
   PlusIcon,
-  BellIcon,
-  ArrowLeftIcon,
   ArrowPathIcon,
   MapPinIcon,
   ChevronRightIcon,
@@ -289,7 +228,6 @@ const displayUserInitials = computed(() => hasMounted.value ? userInitials.value
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || userStore.currentUser?.email || '') : '')
 const activeNav = computed(() => route.query.tab || 'new')
 const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock', 'profile'].includes(activeNav.value))
-const canGoBack = computed(() => route.query.tab && route.query.tab !== 'new' && route.query.tab !== 'requests')
 const isProfessionalApproved = computed(() => userStore.masterCustomer?.professional_status === 'approved')
 const greetingLabel = computed(() => {
   const hour = new Date().getHours()

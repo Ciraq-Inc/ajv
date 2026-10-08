@@ -7,6 +7,7 @@
  */
 @import './remixicon-slim.css';
 @import './rigelis.css';
+@import './theme-medsgh.css';
 
 @tailwind base;
 @tailwind components;

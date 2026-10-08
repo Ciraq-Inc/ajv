@@ -2,6 +2,7 @@
 // Composable for making authenticated API calls to the backend
 
 import type { ApiEnvelope } from '~/services/types'
+import { friendlyApiMessage } from '~/utils/friendlyError'
 
 // ---------------------------------------------------------------------------
 // Augmented error type so we can attach an HTTP status code to thrown errors
@@ -334,10 +335,15 @@ export const useApi = (): ApiInstance => {
       headers['Authorization'] = `Bearer ${token}`
     }
 
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      ...options,
-      headers,
-    })
+    let response: Response
+    try {
+      response = await fetch(`${baseURL}${endpoint}`, {
+        ...options,
+        headers,
+      })
+    } catch (err) {
+      throw new ApiError(friendlyApiMessage(err instanceof Error ? err.message : '', 0), 0)
+    }
 
     // 401: attempt a silent token refresh, then retry once.
     // Exclude auth endpoints — a 401 there means wrong credentials, not session expiry.
@@ -354,11 +360,16 @@ export const useApi = (): ApiInstance => {
       throw new ApiError('Session expired. Please log in again.', 401)
     }
 
-    const data = (await response.json()) as ApiEnvelope<T>
+    let data: ApiEnvelope<T>
+    try {
+      data = (await response.json()) as ApiEnvelope<T>
+    } catch {
+      throw new ApiError(friendlyApiMessage('', response.ok ? 500 : response.status), response.status)
+    }
 
     if (!response.ok) {
       throw new ApiError(
-        (data as { message?: string }).message ?? `API request failed with status ${response.status}`,
+        friendlyApiMessage((data as { message?: string }).message, response.status),
         response.status,
         data,
       )
@@ -442,7 +453,7 @@ export const useApi = (): ApiInstance => {
       } catch {
         // ignore body-read errors
       }
-      throw new ApiError(message, response.status)
+      throw new ApiError(friendlyApiMessage(message, response.status), response.status)
     }
 
     return response.blob()

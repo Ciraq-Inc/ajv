@@ -1,0 +1,193 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+
+// ── Boundaries: HTTP (useApi + service), user store, Nuxt globals ──
+const api = vi.hoisted(() => ({ request: vi.fn() }))
+vi.mock('~/composables/useApi', () => ({
+  useApi: () => api,
+  ApiError: class ApiError extends Error {
+    status?: number
+    data?: Record<string, unknown>
+  },
+}))
+
+const service = vi.hoisted(() => ({ getCustomerSettings: vi.fn() }))
+vi.mock('~/services/orderRequests/orderRequestsService', () => ({
+  createOrderRequestsService: () => service,
+}))
+
+const store = vi.hoisted(() => ({ state: null as any }))
+vi.mock('~/stores/user', () => ({ useUserStore: () => store.state }))
+
+vi.stubGlobal('navigateTo', vi.fn())
+vi.stubGlobal('useRoute', () => ({ query: {} }))
+vi.stubGlobal('useRouter', () => ({ push: vi.fn(), replace: vi.fn() }))
+vi.stubGlobal('useRuntimeConfig', () => ({ public: { apiBase: 'http://api.test' } }))
+
+import OrderRequests from '~/components/customers/orderRequests.vue'
+
+let wrapper: ReturnType<typeof mount> | undefined
+
+const LIST = [{ id: 7, request_number: 'R-107', status: 'payment_pending', first_item_name: 'Amoxicillin', item_count: 1, estimated_total: 55, created_at: '2020-01-01T10:00:00Z' }]
+const OPTIONS = {
+  fee_applicable: true,
+  request_fee: 5,
+  pickup: { available: true, total: 50, total_fee_applied: 45, pharmacy: { distance_km: 2 } },
+  delivery: { fee: 5, total: 55, total_fee_applied: 50 },
+}
+
+interface Setup { detail?: Record<string, unknown>, options?: Record<string, unknown>, balance?: number, pay?: () => Promise<unknown> }
+const open = async (s: Setup = {}) => {
+  store.state.getProfile.mockResolvedValue({})
+  service.getCustomerSettings.mockResolvedValue({ data: {} })
+  api.request.mockImplementation(async (url: string, opts?: { method?: string }) => {
+    if (url === '/api/wallet') return { data: { balance: s.balance ?? 100 } }
+    if (url === '/api/order-requests/customer') return { data: LIST }
+    if (url === '/api/order-requests/customer/7/payment-options') return { data: { ...OPTIONS, ...(s.options ?? {}) } }
+    if (url === '/api/order-requests/customer/7/pay' && opts?.method === 'POST') return s.pay ? s.pay() : { message: 'Paid' }
+    if (url === '/api/order-requests/customer/7') {
+      return {
+        data: {
+          id: 7, request_number: 'R-107', status: 'payment_pending', fulfillment_type: null,
+          items_total: 50, estimated_total: 55, delivery_fee: 5,
+          items: [{ id: 1, product_name: 'Amoxicillin', quantity: 1, marked_up_price: 50 }],
+          ...(s.detail ?? {}),
+        },
+      }
+    }
+    return { data: {} }
+  })
+  wrapper = mount(OrderRequests, { props: { defaultSubTab: 'list' }, attachTo: document.body })
+  await flushPromises()
+  await wrapper.findAll('button').find(b => b.text().includes('Amoxicillin'))!.trigger('click')
+  await flushPromises()
+}
+const dialog = () => document.body.querySelector('[role="dialog"][aria-labelledby="request-detail-title"]') as HTMLElement | null
+const payment = () => dialog()!.querySelector('[data-testid="request-payment"]') as HTMLElement
+const find = (root: ParentNode, sel: string, text: string) =>
+  Array.from(root.querySelectorAll<HTMLElement>(sel)).find(e => (e.getAttribute('aria-label') ?? e.textContent ?? '').includes(text)) ?? null
+const radio = (text: string) => find(payment(), '[role="radio"]', text)
+const btn = (text: string) => find(payment(), 'button', text) as HTMLButtonElement | null
+const click = async (e: HTMLElement | null) => { if (!e) throw new Error('missing element'); e.click(); await flushPromises() }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  localStorage.clear()
+  sessionStorage.clear()
+  store.state = {
+    currentUser: { phone: '0244123456', email: '' },
+    masterCustomer: { id: 1 },
+    customerAuthToken: 'tok',
+    getProfile: vi.fn(),
+    updateProfile: vi.fn(),
+    clearAuthState: vi.fn(),
+  }
+})
+afterEach(() => {
+  wrapper?.unmount()
+  wrapper = undefined
+  document.body.innerHTML = ''
+})
+
+describe('Request payment: choosing how to receive the order', () => {
+  it('offers pickup and delivery as a labelled choice, and explains why there is no total yet', async () => {
+    await open()
+    const group = payment().querySelector('[role="radiogroup"][aria-labelledby="request-method-title"]')!
+
+    expect(payment().querySelector('#request-method-title')!.textContent).toContain('How would you like to receive your order?')
+    expect(group.querySelectorAll('[role="radio"]')).toHaveLength(2)
+    expect(radio('Pickup')!.getAttribute('aria-checked')).toBe('false')
+    expect(payment().textContent).toContain('Choose pickup or delivery to see your total.')
+    expect(btn('Pay with wallet')!.disabled).toBe(true)
+  })
+
+  it('says why pickup is not available, and does not let it be chosen', async () => {
+    await open({ options: { pickup: { available: false, unavailable_reason: 'closed' } } })
+    const pickup = radio('Pickup') as HTMLButtonElement
+
+    expect(pickup.disabled).toBe(true)
+    expect(pickup.textContent).toContain('The pharmacy is currently closed')
+  })
+
+  it('shows the total once a method is chosen, with the search fee kept for later by default', async () => {
+    await open()
+    await click(radio('Delivery'))
+
+    expect(radio('Delivery')!.getAttribute('aria-checked')).toBe('true')
+    expect(radio('Return to wallet')!.getAttribute('aria-checked')).toBe('true')
+    expect(payment().querySelector('[data-testid="payment-total"]')!.textContent).toContain('GHS 55.00')
+  })
+
+  it('lets the customer take the search fee off this order', async () => {
+    await open()
+    await click(radio('Delivery'))
+    await click(radio('Apply to order'))
+
+    expect(radio('Apply to order')!.getAttribute('aria-checked')).toBe('true')
+    expect(payment().querySelector('[data-testid="payment-total"]')!.textContent).toContain('GHS 50.00')
+  })
+})
+
+describe('Request payment: paying', () => {
+  it('pays from the wallet with the main button when the balance covers it', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' }, balance: 100 })
+    const wallet = btn('Pay with wallet')!
+
+    expect(wallet.textContent).toContain('GHS 55.00')
+    expect(wallet.disabled).toBe(false)
+    expect(wallet.className).toContain('bg-brand-700')
+
+    await click(wallet)
+    expect(api.request).toHaveBeenCalledWith('/api/order-requests/customer/7/pay', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('turns the wallet button off with a reason and a way to top up when the balance is too low', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' }, balance: 10 })
+    const wallet = btn('Pay with wallet')!
+
+    expect(wallet.disabled).toBe(true)
+    expect(wallet.getAttribute('aria-describedby')).toBeTruthy()
+    expect(payment().querySelector(`#${wallet.getAttribute('aria-describedby')}`)!.textContent).toContain('Your wallet has GHS 10.00')
+    expect(btn('Top up wallet')).not.toBeNull()
+    expect(btn('Pay with card or mobile money')!.className).toContain('bg-brand-700')
+  })
+
+  it('shows the card fee in plain words', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' } })
+
+    expect(payment().textContent).toMatch(/GHS \d+\.\d\d Paystack processing fee/)
+  })
+
+  it('says it is working while the payment goes through, and blocks a second tap', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' }, pay: () => new Promise(() => {}) })
+    await click(btn('Pay with wallet'))
+
+    expect(payment().querySelector('[role="status"]')!.textContent).toContain('Paying')
+    expect(btn('Paying')!.disabled).toBe(true)
+    expect(btn('Pay with card or mobile money')!.disabled).toBe(true)
+  })
+
+  it('tells the customer when pricing is still being confirmed', async () => {
+    await open({ detail: { items_total: 0, estimated_total: 0, items: [] } })
+
+    expect(dialog()!.querySelector('[role="status"]')!.textContent).toContain('We are confirming the price')
+  })
+})
+
+describe('Request payment: cancelling', () => {
+  it('offers Cancel request while it can still be cancelled', async () => {
+    await open({ detail: { status: 'pending' } })
+
+    expect(find(dialog()!, 'button', 'Cancel request')).not.toBeNull()
+  })
+})
+
+describe('Request payment: look', () => {
+  it('uses brand tokens, not hex or zinc greys', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' } })
+    const html = payment().outerHTML
+
+    expect(html).not.toMatch(/\[#[0-9a-fA-F]{3,6}\]/)
+    expect(html).not.toContain('zinc-')
+  })
+})

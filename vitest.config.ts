@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '~': fileURLToPath(new URL('.', import.meta.url)),
+      // Templates that import images as "~/assets/…" are rewritten to a bare "assets/…" specifier.
+      assets: fileURLToPath(new URL('./assets', import.meta.url)),
     },
   },
   test: {

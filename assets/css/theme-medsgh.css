@@ -1,0 +1,102 @@
+/*
+ * MedsGh storefront theme.
+ *
+ * Opt-in: wrap a page or layout in `.theme-medsgh`. The admin and pharmacy
+ * portals do not use this class, so their slate shadcn look is untouched.
+ * Inside the class, shadcn-vue components (Button, Input, Tabs, Accordion...)
+ * pick up the brand purple through the same CSS variables they already read.
+ */
+.theme-medsgh {
+  /* shadcn variables (HSL triplets) → brand purple #520094 */
+  --background: 292 100% 98%;
+  --foreground: 270 15% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 270 15% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 270 15% 11%;
+  --primary: 276 100% 29%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 276 55% 96%;
+  --secondary-foreground: 276 100% 22%;
+  --muted: 276 40% 96%;
+  --muted-foreground: 268 12% 34%;
+  --accent: 276 55% 94%;
+  --accent-foreground: 276 100% 22%;
+  --border: 270 30% 90%;
+  --input: 270 30% 86%;
+  --ring: 276 100% 29%;
+  --radius: 0.875rem;
+
+  /* page surfaces */
+  --surface-page: #fcf8ff;
+  --surface-soft: #f6eefb;
+  --surface-deep: #1f0b3c;
+
+  font-family: 'Manrope', 'Poppins', system-ui, sans-serif;
+  color: hsl(var(--foreground));
+  background-color: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+.theme-medsgh h1,
+.theme-medsgh h2,
+.theme-medsgh h3 {
+  font-family: 'Plus Jakarta Sans', 'Poppins', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+@layer components {
+  /* Small uppercase label above a section title */
+  .theme-medsgh .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-brand-100/70 px-3.5 py-1 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-brand-700;
+  }
+
+  .theme-medsgh .section-title {
+    @apply text-[clamp(1.85rem,4vw,2.75rem)] font-extrabold leading-[1.1] text-brand-950;
+  }
+
+  .theme-medsgh .section-lede {
+    @apply text-base leading-relaxed text-ink-500 sm:text-lg;
+  }
+
+  /* Primary call to action: coral on white text meets AA (4.9:1). */
+  .theme-medsgh .btn-cta {
+    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-2xl bg-coral-600 px-6 text-[0.95rem] font-bold text-white shadow-glow transition duration-200 hover:-translate-y-0.5 hover:bg-coral-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral-400/40 active:translate-y-0 disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .theme-medsgh .btn-ghost-light {
+    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-6 text-[0.95rem] font-semibold text-white backdrop-blur transition duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30;
+  }
+
+  /* Frosted panel used on the dark hero */
+  .theme-medsgh .glass {
+    @apply border border-white/60 bg-white/85 shadow-lift backdrop-blur-xl;
+  }
+
+  /* Deep-purple hero field with soft colour blooms */
+  .theme-medsgh .mesh-hero {
+    background-color: #1f0b3c;
+    background-image:
+      radial-gradient(60rem 36rem at 88% -8%, rgba(155, 95, 201, 0.55) 0%, transparent 60%),
+      radial-gradient(44rem 30rem at -6% 108%, rgba(241, 87, 51, 0.28) 0%, transparent 62%),
+      radial-gradient(40rem 28rem at 50% 50%, rgba(82, 0, 148, 0.5) 0%, transparent 70%);
+  }
+
+  .theme-medsgh .mesh-soft {
+    background-image:
+      radial-gradient(40rem 22rem at 100% 0%, rgba(212, 174, 235, 0.35) 0%, transparent 65%),
+      radial-gradient(34rem 20rem at 0% 100%, rgba(251, 141, 116, 0.14) 0%, transparent 65%);
+  }
+
+  /* Grain-free dot grid for depth on dark sections */
+  .theme-medsgh .dot-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-medsgh .btn-cta:hover {
+    transform: none;
+  }
+}

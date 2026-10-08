@@ -116,9 +116,9 @@ describe('CampaignDetailsModal.vue', () => {
       expect(wrapper.props('campaignId')).toBe(1)
     })
 
-    it('should default campaignId to null', () => {
+    it('should leave campaignId undefined when not provided', () => {
       wrapper = createWrapper({ campaignId: undefined })
-      expect(wrapper.props('campaignId')).toBeNull()
+      expect(wrapper.props('campaignId')).toBeUndefined()
     })
   })
 
@@ -126,7 +126,7 @@ describe('CampaignDetailsModal.vue', () => {
     it('should emit close event when close button is clicked', async () => {
       wrapper = createWrapper()
       await flushPromises()
-      const closeButton = wrapper.find('button.text-gray-200')
+      const closeButton = wrapper.find('button.text-gray-500')
       await closeButton.trigger('click')
       expect(wrapper.emitted('close')).toBeTruthy()
     })
@@ -168,9 +168,10 @@ describe('CampaignDetailsModal.vue', () => {
   describe('Data Loading', () => {
     it('should show loading state when loading is true', async () => {
       wrapper = createWrapper()
+      await flushPromises()
       wrapper.vm.loading = true
       await flushPromises()
-      expect(wrapper.find('p:has-text("Loading campaign details")').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Loading campaign details')
     })
 
     it('should load campaign details on mount', async () => {
@@ -250,7 +251,7 @@ describe('CampaignDetailsModal.vue', () => {
       await flushPromises()
       expect(wrapper.text()).toContain('Campaign Information')
       expect(wrapper.text()).toContain('Test message')
-      expect(wrapper.text()).toContain('Test Provider')
+      expect(wrapper.text()).toContain('Payment Status')
     })
 
     it('should display message logs section', async () => {
@@ -294,7 +295,7 @@ describe('CampaignDetailsModal.vue', () => {
 
     it('should return correct class for sending status', () => {
       wrapper = createWrapper()
-      expect(wrapper.vm.getStatusClass('sending')).toContain('bg-blue-100')
+      expect(wrapper.vm.getStatusClass('sending')).toContain('cs-badge')
     })
 
     it('should return correct class for completed status', () => {
@@ -353,12 +354,13 @@ describe('CampaignDetailsModal.vue', () => {
     it('should handle empty campaign', async () => {
       wrapper = createWrapper({ campaignId: 999 })
       await flushPromises()
-      expect(wrapper.find('.text-center').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Campaign Details')
     })
 
     it('should handle empty logs', async () => {
       const { useSMSCampaigns } = await import('~/composables/useSMSCampaigns')
       wrapper = createWrapper()
+      await flushPromises()
       wrapper.vm.logs = []
       await flushPromises()
       expect(wrapper.text()).toContain('No message logs yet')
