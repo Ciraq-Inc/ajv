@@ -155,6 +155,22 @@ describe('Request detail: delivery progress', () => {
       .toEqual(['Preparing', 'Finding a rider', 'On the way'])
     expect(steps.querySelector('[aria-current="step"]')!.textContent).toContain('On the way')
   })
+
+  it('says a rider is assigned, rather than still finding one, once one has claimed the order', async () => {
+    await open({ status: 'driver_assigned', fulfillment_type: 'delivery' })
+    const steps = dialog()!.querySelector('[data-testid="delivery-progress"] ol')!
+
+    expect(Array.from(steps.querySelectorAll('li')).map(li => li.textContent!.trim()))
+      .toEqual(['Preparing', 'Rider assigned', 'On the way'])
+    expect(steps.querySelector('[aria-current="step"]')!.textContent).toContain('Rider assigned')
+  })
+
+  it('does not move back a step when the rider heads to the pharmacy', async () => {
+    await open({ status: 'logistics_pending', fulfillment_type: 'delivery', rider_name: 'Kojo', rider_phone: '+233200000009' })
+    const steps = dialog()!.querySelector('[data-testid="delivery-progress"] ol')!
+
+    expect(steps.querySelector('[aria-current="step"]')!.textContent).toContain('Rider assigned')
+  })
 })
 
 describe('Request detail: look', () => {

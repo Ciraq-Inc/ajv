@@ -453,7 +453,7 @@
                             {{ getRequestSubtext(selectedRequest.status) }}
                         </p>
                         <ol class="mt-3 flex items-start gap-2">
-                            <li v-for="(label, stepIdx) in ['Preparing', 'Finding a rider', 'On the way']" :key="label"
+                            <li v-for="(label, stepIdx) in ['Preparing', riderStepLabel, 'On the way']" :key="label"
                                 class="flex flex-1 flex-col gap-1.5" :aria-current="deliveryStep === stepIdx + 1 ? 'step' : undefined">
                                 <span class="h-1.5 rounded-full"
                                     :class="deliveryStep >= stepIdx + 1 ? (selectedRequest.status === 'driver_unavailable' ? 'bg-amber-600' : 'bg-brand-700') : 'bg-ink-200'"></span>
@@ -2134,9 +2134,15 @@ const canLeaveFeedback = (request: OrderRequest): boolean => isFeedbackEligibleS
 const DELIVERY_PROGRESS_STATUSES = new Set(['paid','verified','preparing','logistics_pending','driver_unavailable','driver_assigned','out_for_delivery'])
 const deliveryStep = computed((): 1 | 2 | 3 => {
     const s = selectedRequest.value?.status ?? ''
-    if (s === 'driver_assigned' || s === 'out_for_delivery') return 3
-    if (s === 'logistics_pending' || s === 'driver_unavailable') return 2
+    if (s === 'out_for_delivery') return 3
+    if (s === 'driver_assigned' || s === 'logistics_pending' || s === 'driver_unavailable') return 2
     return 1
+})
+// A claimed order goes driver_assigned, then logistics_pending while the rider collects it:
+// both mean a rider is on it, so the label must not slide back to "Finding a rider".
+const riderStepLabel = computed<string>(() => {
+    const r = selectedRequest.value
+    return r?.status === 'driver_assigned' || r?.rider_name ? 'Rider assigned' : 'Finding a rider'
 })
 
 const syncFeedbackForm = (): void => {
