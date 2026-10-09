@@ -18,3 +18,15 @@ describe('useOrderStatus badges', () => {
     for (const s of STATUSES) expect(requestStatusBadgeClass(s)).toMatch(/text-((brand|ink|red|amber)-\d+|white)/)
   })
 })
+
+describe('useOrderStatus: a delivery that could not be completed', () => {
+  it('reads as a failed delivery, in the warning colour, and still needs the team', () => {
+    const { formatRequestStatus, requestStatusBadgeClass, getRequestStage, getRequestSubtext, isActiveRequestStatus } = useOrderStatus()
+    expect(formatRequestStatus('delivery_failed')).toBe('Delivery failed')
+    expect(requestStatusBadgeClass('delivery_failed')).toMatch(/red-/)
+    expect(getRequestStage('delivery_failed')).toBe('awaiting_fulfilment')
+    expect(getRequestSubtext('delivery_failed')).toMatch(/team/i)
+    // not closed: an admin still has to redeliver or refund it
+    expect(isActiveRequestStatus('delivery_failed')).toBe(true)
+  })
+})

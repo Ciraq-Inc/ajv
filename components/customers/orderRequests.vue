@@ -462,8 +462,15 @@
                         </ol>
                     </div>
 
+                    <!-- Delivery could not be completed: an admin redelivers or refunds -->
+                    <div v-if="selectedRequest.status === 'delivery_failed'" data-testid="delivery-failed" role="status"
+                        class="mb-4 rounded-2xl bg-red-50 px-4 py-4">
+                        <p class="text-base font-semibold text-red-700">We couldn't deliver your order</p>
+                        <p class="mt-1 text-base text-ink-700">Our team will contact you shortly to arrange another delivery or a refund.</p>
+                    </div>
+
                     <!-- Rider (shown when delivery is active and a rider is assigned) -->
-                    <div v-if="selectedRequest.rider_phone" data-testid="rider-card" class="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-ink-50 px-4 py-3">
+                    <div v-if="selectedRequest.rider_phone && selectedRequest.status !== 'delivery_failed'" data-testid="rider-card" class="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-ink-50 px-4 py-3">
                         <div class="min-w-0">
                             <p class="text-sm text-ink-600">Your rider is on the way</p>
                             <p v-if="selectedRequest.rider_name" class="truncate text-lg font-bold text-ink-900">{{ selectedRequest.rider_name }}</p>
@@ -1059,7 +1066,7 @@
         <ConfirmDialog
             :is-open="!!pendingCancelRequestId"
             title="Cancel this request?"
-            message="The pharmacy will stop sourcing for you. You can submit a new request anytime."
+            message="We will stop working on this request. You can submit a new one anytime."
             confirm-text="Yes, cancel"
             cancel-text="Keep request"
             variant="danger"

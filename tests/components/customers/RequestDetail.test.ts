@@ -173,6 +173,25 @@ describe('Request detail: delivery progress', () => {
   })
 })
 
+describe('Request detail: a delivery that could not be completed', () => {
+  it('tells the customer it failed and what happens next, instead of showing the progress steps', async () => {
+    await open({ status: 'delivery_failed', fulfillment_type: 'delivery', rider_name: 'Kojo', rider_phone: '+233200000009' })
+
+    const notice = dialog()!.querySelector('[data-testid="delivery-failed"]')!
+    expect(notice).not.toBeNull()
+    expect(notice.textContent).toMatch(/couldn.t deliver/i)
+    expect(notice.textContent).toMatch(/redeliver|refund/i)
+    expect(dialog()!.querySelector('[data-testid="delivery-progress"]')).toBeNull()
+    // the rider is no longer "on the way"
+    expect(dialog()!.querySelector('[data-testid="rider-card"]')).toBeNull()
+  })
+
+  it('is not offered feedback, since nothing was delivered', async () => {
+    await open({ status: 'delivery_failed', fulfillment_type: 'delivery' })
+    expect(dialog()!.textContent).not.toMatch(/rate your/i)
+  })
+})
+
 describe('Request detail: look', () => {
   it('uses brand tokens in the header, items and progress, not hex or zinc greys', async () => {
     await open({ status: 'out_for_delivery', fulfillment_type: 'delivery' })

@@ -134,6 +134,7 @@
                   <option value="driver_assigned">Driver Assigned</option>
                   <option value="in_transit">In Transit</option>
                   <option value="out_for_delivery">Out For Delivery</option>
+                  <option value="delivery_failed">Delivery Failed</option>
                   <option value="ready_for_pickup">Ready For Pickup</option>
                   <option value="picked_up">Picked Up</option>
                   <option value="delivered">Delivered</option>
@@ -671,6 +672,7 @@
                               <option value="driver_assigned">Driver Assigned</option>
                               <option value="in_transit">In Transit</option>
                               <option value="out_for_delivery">Out For Delivery</option>
+                              <option value="delivery_failed">Delivery Failed</option>
                               <option value="ready_for_pickup">Ready For Pickup</option>
                               <option value="picked_up">Picked Up</option>
                               <option value="delivered">Delivered</option>
@@ -1704,6 +1706,22 @@
             </section>
           </template>
 
+          <!-- delivery_failed mode: the rider could not hand the order over -->
+          <template v-else-if="workspaceMode === 'delivery_failed'">
+            <section class="section-card workspace-main-card" data-testid="delivery-failed-panel">
+              <div class="section-head">
+                <div>
+                  <h4 class="section-title">Delivery Failed</h4>
+                  <p class="workspace-panel-subcopy">The customer has been told we couldn't deliver. Send it out again, or arrange a refund with them.</p>
+                </div>
+                <span class="status-badge cancelled">{{ formatStatus(selectedRequest?.status) }}</span>
+              </div>
+              <button class="btn btn-sm btn-primary" :disabled="redelivering" @click="redeliverRequest">
+                {{ redelivering ? 'Reopening…' : 'Redeliver' }}
+              </button>
+            </section>
+          </template>
+
           <!-- transit mode: in transit / out for delivery -->
           <template v-else-if="workspaceMode === 'transit'">
             <section class="section-card workspace-main-card">
@@ -2280,6 +2298,7 @@
                   <option value="ready_for_pickup">Ready For Pickup</option>
                   <option value="picked_up">Picked Up</option>
                   <option value="out_for_delivery">Out For Delivery</option>
+                  <option value="delivery_failed">Delivery Failed</option>
                   <option value="delivered">Delivered</option>
                   <option value="cancelled">Cancelled</option>
                   <option value="returned">Returned</option>
@@ -2774,7 +2793,7 @@ const PIPELINE_STAGES = [
   { label: 'Awaiting Input',  statuses: ['awaiting_input', 'awaiting_customer'],                                                          nextStatus: 'payment_pending', nextLabel: 'Mark Payment Pending' },
   { label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'], nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
   { label: 'Paid',            statuses: ['paid', 'preparing', 'logistics_pending', 'driver_unavailable'],                                 nextStatus: null,              nextLabel: null                   },
-  { label: 'In Transit',      statuses: ['in_transit', 'driver_assigned', 'out_for_delivery', 'ready_for_pickup', 'ready_to_order'],      nextStatus: null,              nextLabel: null                   },
+  { label: 'In Transit',      statuses: ['in_transit', 'driver_assigned', 'out_for_delivery', 'delivery_failed', 'ready_for_pickup', 'ready_to_order'],      nextStatus: null,              nextLabel: null                   },
   { label: 'Done',            statuses: ['delivered', 'picked_up', 'completed'],                                                          nextStatus: null,              nextLabel: null                   },
 ]
 
@@ -3052,13 +3071,14 @@ const STATUS_TAB_CONFIG = [
   { value: 'awaiting_input', label: 'Awaiting Customer', statuses: ['awaiting_input', 'awaiting_customer'] },
   { value: 'payment_pending', label: 'Payment Pending', statuses: ['payment_pending', 'confirmed_in_pharm', 'items_sourced', 'confirmed'] },
   { value: 'paid', label: 'Paid', statuses: ['paid'] },
-  { value: 'in_transit', label: 'In Transit', statuses: ['in_transit', 'out_for_delivery', 'driver_assigned'] }
+  { value: 'in_transit', label: 'In Transit', statuses: ['in_transit', 'out_for_delivery', 'driver_assigned', 'delivery_failed'] }
 ]
 
 const STATUS_SELECTOR_OPTIONS = [
   { value: 'preparing', label: 'Preparing' },
   { value: 'ready_for_pickup', label: 'Ready For Pickup' },
   { value: 'picked_up', label: 'Picked Up' },
+  { value: 'delivery_failed', label: 'Delivery Failed' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'returned', label: 'Returned' },
   { value: 'expired', label: 'Expired' },
@@ -4042,6 +4062,7 @@ const workspaceMode = computed(() => {
   if (['awaiting_input', 'awaiting_customer'].includes(status)) return 'decision'
   if (['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'].includes(status)) return 'payment'
   if (['paid', 'preparing'].includes(status)) return 'fulfillment'
+  if (status === 'delivery_failed') return 'delivery_failed'
   if (['driver_assigned', 'in_transit', 'out_for_delivery'].includes(status)) return 'transit'
   if (['ready_for_pickup'].includes(status)) return 'pickup'
   if (['delivered', 'picked_up', 'completed'].includes(status)) return 'done'
@@ -4439,6 +4460,21 @@ const initiateDeliveries = async () => {
     showMessage(errMsg(e) || 'Failed to initiate deliveries', 'error')
   } finally {
     loadingDeliveries.value = false
+  }
+}
+
+const redelivering = ref(false)
+const redeliverRequest = async () => {
+  if (!selectedRequest.value?.id || redelivering.value) return
+  redelivering.value = true
+  try {
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/redeliver`)
+    showMessage('Delivery reopened for a new rider', 'success')
+    await refreshSelectedRequestDetails()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to reopen the delivery', 'error')
+  } finally {
+    redelivering.value = false
   }
 }
 
