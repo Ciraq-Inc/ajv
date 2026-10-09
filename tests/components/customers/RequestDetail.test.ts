@@ -245,6 +245,23 @@ describe('Request detail: totals', () => {
   })
 })
 
+describe('Request detail: the delivery code', () => {
+  it('shows the code to read out to the rider, in plain large type, with what to do with it', async () => {
+    await open({ ...PAID_DELIVERY, status: 'out_for_delivery', rider_name: 'Kofi', rider_phone: '0244000111', delivery_code: '4827' })
+    const card = part('[data-testid="delivery-code"]')!
+
+    expect(card.textContent).toContain('4827')
+    expect(card.textContent).toMatch(/give (this|the) code to the rider/i)
+    expect(card.textContent).toMatch(/only/i)
+  })
+
+  it('shows nothing when there is no code to give yet', async () => {
+    await open({ ...PAID_DELIVERY, rider_name: 'Kofi', rider_phone: '0244000111', delivery_code: null })
+
+    expect(part('[data-testid="delivery-code"]')).toBeNull()
+  })
+})
+
 describe('Request detail: look, part two', () => {
   it('uses brand tokens in the method strip, rider, pickup and totals', async () => {
     await open({ ...PAID_DELIVERY, rider_name: 'Kofi', rider_phone: '0244000111' })

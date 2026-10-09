@@ -454,6 +454,13 @@
                         </div>
                     </div>
 
+                    <!-- Delivery code: what the rider needs to hear before handing the order over -->
+                    <div v-if="selectedRequest.delivery_code" data-testid="delivery-code" class="mb-4 rounded-2xl bg-brand-50 px-4 py-4">
+                        <p class="text-sm text-ink-600">Your delivery code</p>
+                        <p class="mt-1 text-4xl font-bold tracking-[0.3em] text-ink-900" aria-label="Delivery code">{{ selectedRequest.delivery_code }}</p>
+                        <p class="mt-2 text-base text-ink-600">Give this code to the rider when your order arrives. Give it only to the rider, and only once you have your order.</p>
+                    </div>
+
                     <!-- Pickup location (revealed after payment for pickup orders) -->
                     <div v-if="selectedRequest.fulfillment_type === 'pickup' && selectedRequest.pharmacy?.name" data-testid="pickup-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
                         <p class="text-sm text-ink-600">Pickup location</p>
@@ -1176,6 +1183,7 @@ interface OrderRequest {
     rider?: { phone?: string; [key: string]: unknown };
     rider_phone?: string;
     rider_name?: string;
+    delivery_code?: string | null;
     customer_address?: string;
     delivery_address?: string;
     pharmacy?: { name?: string; address?: string; latitude?: number | string | null; longitude?: number | string | null; [key: string]: unknown };
