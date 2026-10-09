@@ -348,3 +348,86 @@ describe('Request detail: address', () => {
     expect(row.outerHTML).not.toMatch(/zinc-|emerald-|\[#[0-9a-fA-F]{3,6}\]/)
   })
 })
+
+describe('Request detail: the receiver', () => {
+  const WITH_RECEIVER = { ...PAID_DELIVERY, recipient_name: 'Ama Mensah', recipient_phone: '+233244000111', recipient_email: 'ama@example.com', recipient_locked: false }
+  const card = () => part('[data-testid="receiver-card"]')
+  const changeButton = () => Array.from(card()!.querySelectorAll('button')).find(b => b.textContent!.trim() === 'Change')
+  const type = async (sel: string, value: string) => {
+    const el = card()!.querySelector(sel) as HTMLInputElement
+    el.value = value
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+  }
+  const putCalls = () => api.request.mock.calls.filter(([url, o]) => String(url).endsWith('/recipient') && o?.method === 'PUT')
+
+  it('says who the delivery is for', async () => {
+    await open(WITH_RECEIVER)
+
+    expect(card()!.textContent).toContain('Ama Mensah')
+    expect(card()!.textContent).toContain('+233244000111')
+    expect(card()!.textContent).toMatch(/you still get every update/i)
+  })
+
+  it('shows nothing for an order with no receiver', async () => {
+    await open(PAID_DELIVERY)
+
+    expect(card()).toBeNull()
+  })
+
+  it('lets the orderer change the receiver until a rider is assigned', async () => {
+    await open(WITH_RECEIVER)
+    await changeButton()!.click()
+    await flushPromises()
+    await type('#detail-receiver-name', 'Esi Owusu')
+    await type('#detail-receiver-phone', '020 400 0222')
+    ;(Array.from(card()!.querySelectorAll('button')).find(b => b.textContent!.trim() === 'Save')!).click()
+    await flushPromises()
+
+    expect(putCalls()).toHaveLength(1)
+    expect(putCalls()[0]![0]).toBe('/api/order-requests/customer/7/recipient')
+    expect(JSON.parse(putCalls()[0]![1].body)).toMatchObject({ recipient_name: 'Esi Owusu', recipient_phone: '+233204000222' })
+    expect(card()!.textContent).toContain('Esi Owusu')
+    expect(card()!.textContent).toContain('+233204000222')
+  })
+
+  it('offers no change once a rider has been assigned, and says why', async () => {
+    await open({ ...WITH_RECEIVER, recipient_locked: true })
+
+    expect(changeButton()).toBeUndefined()
+    expect(card()!.textContent).toMatch(/rider|can no longer be changed/i)
+  })
+
+  it('shows the server\'s reason when the change is refused, and keeps the old receiver', async () => {
+    await open(WITH_RECEIVER)
+    const original = api.request.getMockImplementation()!
+    api.request.mockImplementation(async (url: string, o: any) => {
+      if (String(url).endsWith('/recipient')) throw Object.assign(new Error('A rider has been assigned, so the receiver can no longer be changed.'), { status: 409 })
+      return original(url, o)
+    })
+    await changeButton()!.click()
+    await flushPromises()
+    await type('#detail-receiver-name', 'Esi')
+    await type('#detail-receiver-phone', '0204000222')
+    ;(Array.from(card()!.querySelectorAll('button')).find(b => b.textContent!.trim() === 'Save')!).click()
+    await flushPromises()
+
+    expect(card()!.textContent).toContain('A rider has been assigned')
+    expect(card()!.textContent).toContain('Ama Mensah')
+  })
+
+  it('does not leave a half-edited receiver open when the request is closed and opened again', async () => {
+    const w = await open(WITH_RECEIVER)
+    await changeButton()!.click()
+    await flushPromises()
+    expect(card()!.querySelector('#detail-receiver-name')).not.toBeNull()
+
+    press('Escape')
+    await flushPromises()
+    await w.findAll('button').find(b => b.text().includes('Amoxicillin'))!.trigger('click')
+    await flushPromises()
+
+    expect(card()!.querySelector('#detail-receiver-name')).toBeNull()
+    expect(card()!.textContent).toContain('Ama Mensah')
+  })
+})

@@ -432,3 +432,92 @@ describe('New request: Add note beside Add another medication', () => {
     expect(w.find('#request-contact-phone').exists()).toBe(true)
   })
 })
+
+describe('New request: delivering to someone else', () => {
+  const toggle = (w: W) => w.find('#request-someone-else')
+  const filled = async (w: W) => {
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+    await toggle(w).setValue(true)
+  }
+  const postedBody = () => {
+    const post = api.request.mock.calls.find(([url, opts]) => url === '/api/order-requests/customer' && opts?.method === 'POST')
+    return post ? JSON.parse(post[1].body) : null
+  }
+
+  it('is off by default and shows no receiver fields', async () => {
+    const w = await open()
+
+    expect(w.text()).toContain('Delivering to someone else?')
+    expect((toggle(w).element as HTMLInputElement).checked).toBe(false)
+    expect(w.find('#request-receiver-name').exists()).toBe(false)
+    expect(w.find('#request-receiver-phone').exists()).toBe(false)
+  })
+
+  it('asks for the receiver once switched on, and holds the request until they are given', async () => {
+    const w = await open()
+    await filled(w)
+
+    expect(w.find('#request-receiver-name').exists()).toBe(true)
+    expect(w.find('#request-receiver-phone').exists()).toBe(true)
+    expect(w.find('#request-receiver-email').exists()).toBe(true)
+    expect(sendButton(w).attributes('disabled')).toBeDefined()
+    expect(w.find('#send-why').text()).toMatch(/name of the person receiving/i)
+
+    await w.find('#request-receiver-name').setValue('Ama Mensah')
+    expect(w.find('#send-why').text()).toMatch(/phone number for the person receiving/i)
+  })
+
+  it('sends the receiver with the request', async () => {
+    const w = await open()
+    await filled(w)
+    await w.find('#request-receiver-name').setValue('Ama Mensah')
+    await w.find('#request-receiver-phone').setValue('024 400 0111')
+    await w.find('#request-receiver-email').setValue('Ama@Example.com')
+
+    expect(sendButton(w).attributes('disabled')).toBeUndefined()
+    await sendButton(w).trigger('click')
+    await flushPromises()
+
+    expect(postedBody()).toMatchObject({
+      recipient_name: 'Ama Mensah',
+      recipient_phone: '+233244000111',
+      recipient_email: 'ama@example.com',
+    })
+  })
+
+  it('sends no receiver at all when the toggle is off, even after it was filled in', async () => {
+    const w = await open()
+    await filled(w)
+    await w.find('#request-receiver-name').setValue('Ama')
+    await w.find('#request-receiver-phone').setValue('0244000111')
+    await toggle(w).setValue(false)
+    await sendButton(w).trigger('click')
+    await flushPromises()
+
+    const body = postedBody()
+    expect(body).not.toBeNull()
+    expect(body).not.toHaveProperty('recipient_name')
+    expect(body).not.toHaveProperty('recipient_phone')
+  })
+
+  it('tells the orderer a foreign number cannot be texted and suggests an email', async () => {
+    const w = await open()
+    await filled(w)
+    expect(w.text()).not.toContain('We can only text Ghana numbers')
+
+    await w.find('#request-receiver-phone').setValue('+44 7911 123456')
+
+    expect(w.find('#request-receiver-foreign-hint').text()).toMatch(/only text Ghana numbers/i)
+    expect(w.find('#request-receiver-foreign-hint').text()).toMatch(/email/i)
+  })
+
+  it('refuses the orderer\'s own number as the receiver', async () => {
+    const w = await open()
+    await filled(w)
+    await w.find('#request-receiver-name').setValue('Kofi')
+    await w.find('#request-receiver-phone').setValue('0244123456')
+
+    expect(sendButton(w).attributes('disabled')).toBeDefined()
+    expect(w.find('#request-receiver-phone-error').text()).toMatch(/your own number/i)
+  })
+})

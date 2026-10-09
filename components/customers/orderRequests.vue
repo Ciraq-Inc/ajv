@@ -192,6 +192,52 @@
                             </span>
                             <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
                         </button>
+
+                        <!-- Delivering to someone else: they only get the delivery texts; you get everything -->
+                        <div class="rounded-xl bg-ink-50 px-4 py-3">
+                            <label for="request-someone-else" class="flex min-h-[44px] cursor-pointer items-center gap-3">
+                                <input v-model="deliverToSomeoneElse" id="request-someone-else" type="checkbox"
+                                    class="h-5 w-5 rounded border-ink-300 text-brand-700 focus:ring-brand-700" />
+                                <span class="text-base font-semibold text-ink-900">Delivering to someone else?</span>
+                            </label>
+                            <div v-if="deliverToSomeoneElse" class="mt-3 space-y-4">
+                                <p class="text-sm text-ink-600">
+                                    You will still get every update. They only get a text with the delivery code, and a note when it is delivered or could not be delivered.
+                                </p>
+                                <div>
+                                    <label for="request-receiver-name" class="mb-2 block text-sm font-semibold text-ink-900">
+                                        Their name <span class="text-red-700" aria-hidden="true">*</span>
+                                    </label>
+                                    <input v-model="receiverName" id="request-receiver-name" type="text"
+                                        autocomplete="off" maxlength="100"
+                                        :aria-invalid="receiverError.name ? 'true' : 'false'"
+                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
+                                    <p v-if="receiverError.name" id="request-receiver-name-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.name }}</p>
+                                </div>
+                                <div>
+                                    <label for="request-receiver-phone" class="mb-2 block text-sm font-semibold text-ink-900">
+                                        Their phone number <span class="text-red-700" aria-hidden="true">*</span>
+                                    </label>
+                                    <input v-model="receiverPhone" id="request-receiver-phone" type="tel"
+                                        inputmode="tel" autocomplete="off"
+                                        placeholder="024 123 4567 or +44 7911 123456"
+                                        :aria-invalid="receiverError.phone ? 'true' : 'false'"
+                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
+                                    <p v-if="receiverError.phone" id="request-receiver-phone-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.phone }}</p>
+                                    <p v-if="receiverForeignNumber" id="request-receiver-foreign-hint" class="mt-2 text-sm font-medium text-amber-900">{{ RECEIVER_FOREIGN_HINT }}</p>
+                                </div>
+                                <div>
+                                    <label for="request-receiver-email" class="mb-2 block text-sm font-semibold text-ink-900">
+                                        Their email <span class="text-base font-medium text-ink-500">(optional)</span>
+                                    </label>
+                                    <input v-model="receiverEmail" id="request-receiver-email" type="email"
+                                        inputmode="email" autocomplete="off"
+                                        :aria-invalid="receiverError.email ? 'true' : 'false'"
+                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
+                                    <p v-if="receiverError.email" id="request-receiver-email-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.email }}</p>
+                                </div>
+                            </div>
+                        </div>
                     </section>
 
                     <!-- Wallet gate overlay -->
@@ -459,6 +505,44 @@
                         <p class="text-sm text-ink-600">Your delivery code</p>
                         <p class="mt-1 text-4xl font-bold tracking-[0.3em] text-ink-900" aria-label="Delivery code">{{ selectedRequest.delivery_code }}</p>
                         <p class="mt-2 text-base text-ink-600">Give this code to the rider when your order arrives. Give it only to the rider, and only once you have your order.</p>
+                    </div>
+
+                    <!-- Who the delivery is for, when it is someone else. Editable until a rider is assigned. -->
+                    <div v-if="selectedRequest.recipient_phone && selectedRequest.fulfillment_type !== 'pickup'" data-testid="receiver-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
+                        <template v-if="!editingReceiver">
+                            <p class="text-sm text-ink-600">Delivering to</p>
+                            <p class="text-lg font-bold text-ink-900">{{ selectedRequest.recipient_name }}</p>
+                            <p class="mt-0.5 text-base text-ink-600">{{ selectedRequest.recipient_phone }}<template v-if="selectedRequest.recipient_email"> · {{ selectedRequest.recipient_email }}</template></p>
+                            <p class="mt-2 text-sm text-ink-600">You still get every update. They only get the delivery code and the delivered or not-delivered notes.</p>
+                            <p v-if="selectedRequest.recipient_locked" class="mt-2 text-sm text-ink-600">A rider is on this order, so the receiver can no longer be changed.</p>
+                            <button v-else type="button" @click="startEditingReceiver"
+                                class="mt-2 min-h-[44px] rounded-full px-3 text-base font-semibold text-brand-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">Change</button>
+                        </template>
+                        <form v-else class="space-y-3" @submit.prevent="saveReceiver">
+                            <div>
+                                <label for="detail-receiver-name" class="mb-1 block text-sm font-semibold text-ink-900">Their name</label>
+                                <input v-model="detailReceiverName" id="detail-receiver-name" type="text" maxlength="100" autocomplete="off"
+                                    class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 focus:border-brand-700 focus:outline-none" />
+                            </div>
+                            <div>
+                                <label for="detail-receiver-phone" class="mb-1 block text-sm font-semibold text-ink-900">Their phone number</label>
+                                <input v-model="detailReceiverPhone" id="detail-receiver-phone" type="tel" inputmode="tel" autocomplete="off"
+                                    class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 focus:border-brand-700 focus:outline-none" />
+                                <p v-if="detailReceiverForeign" class="mt-2 text-sm font-medium text-amber-900">{{ RECEIVER_FOREIGN_HINT }}</p>
+                            </div>
+                            <div>
+                                <label for="detail-receiver-email" class="mb-1 block text-sm font-semibold text-ink-900">Their email <span class="font-medium text-ink-500">(optional)</span></label>
+                                <input v-model="detailReceiverEmail" id="detail-receiver-email" type="email" inputmode="email" autocomplete="off"
+                                    class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 focus:border-brand-700 focus:outline-none" />
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="submit" :disabled="savingReceiver"
+                                    class="min-h-[44px] rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">Save</button>
+                                <button type="button" :disabled="savingReceiver" @click="editingReceiver = false"
+                                    class="min-h-[44px] rounded-full px-4 text-base font-semibold text-ink-900 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">Cancel</button>
+                            </div>
+                        </form>
+                        <p v-if="receiverFormError" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverFormError }}</p>
                     </div>
 
                     <!-- Pickup location (revealed after payment for pickup orders) -->
@@ -1053,6 +1137,7 @@ import { useApi, ApiError } from '~/composables/useApi'
 import { useOrderStatus } from '~/composables/useOrderStatus'
 import { formatCompactAddress } from '~/utils/addressFormat'
 import { resolveContactPhoneInput } from '~/utils/contactPhoneInput'
+import { resolveReceiverInput, isForeignReceiverPhone, RECEIVER_FOREIGN_HINT } from '~/utils/receiverInput'
 import {
     PAYABLE_REQUEST_STATUSES as payableStatuses,
     getRequestTotalAmount as getPayableAmount,
@@ -1184,6 +1269,10 @@ interface OrderRequest {
     rider_phone?: string;
     rider_name?: string;
     delivery_code?: string | null;
+    recipient_name?: string | null;
+    recipient_phone?: string | null;
+    recipient_email?: string | null;
+    recipient_locked?: boolean;
     customer_address?: string;
     delivery_address?: string;
     pharmacy?: { name?: string; address?: string; latitude?: number | string | null; longitude?: number | string | null; [key: string]: unknown };
@@ -1594,6 +1683,78 @@ const needsContactPhone = computed<boolean>(() => !userStore.currentUser?.phone)
 const contactPhoneError = computed<string>(() =>
     contactPhone.value.trim() && !contactPhoneResult.value.ok ? contactPhoneResult.value.message : ''
 )
+// Delivering to someone else. Kept out of the saved draft: it is another person's details.
+const deliverToSomeoneElse = ref<boolean>(false)
+const receiverName = ref<string>('')
+const receiverPhone = ref<string>('')
+const receiverEmail = ref<string>('')
+const receiverResult = computed(() =>
+    resolveReceiverInput({
+        enabled: deliverToSomeoneElse.value,
+        accountPhone: userStore.currentUser?.phone ?? null,
+        accountEmail: userStore.currentUser?.email ?? null,
+        name: receiverName.value,
+        phone: receiverPhone.value,
+        email: receiverEmail.value,
+    })
+)
+// An empty box is not an error yet: only say what is wrong with what was typed.
+const receiverError = computed<{ name: string; phone: string; email: string }>(() => {
+    const out = { name: '', phone: '', email: '' }
+    const r = receiverResult.value
+    if (r.ok) return out
+    const typed = { name: receiverName.value, phone: receiverPhone.value, email: receiverEmail.value }
+    if (typed[r.field].trim()) out[r.field] = r.message
+    return out
+})
+const receiverForeignNumber = computed<boolean>(() => deliverToSomeoneElse.value && isForeignReceiverPhone(receiverPhone.value))
+// Changing the receiver on a request that is already sent (allowed until a rider is assigned).
+const editingReceiver = ref<boolean>(false)
+const savingReceiver = ref<boolean>(false)
+const receiverFormError = ref<string>('')
+const detailReceiverName = ref<string>('')
+const detailReceiverPhone = ref<string>('')
+const detailReceiverEmail = ref<string>('')
+const detailReceiverForeign = computed<boolean>(() => isForeignReceiverPhone(detailReceiverPhone.value))
+const startEditingReceiver = (): void => {
+    detailReceiverName.value = String(selectedRequest.value?.recipient_name ?? '')
+    detailReceiverPhone.value = String(selectedRequest.value?.recipient_phone ?? '')
+    detailReceiverEmail.value = String(selectedRequest.value?.recipient_email ?? '')
+    receiverFormError.value = ''
+    editingReceiver.value = true
+}
+const saveReceiver = async (): Promise<void> => {
+    const request = selectedRequest.value
+    if (!request || savingReceiver.value) return
+    const result = resolveReceiverInput({
+        enabled: true,
+        accountPhone: userStore.currentUser?.phone ?? null,
+        accountEmail: userStore.currentUser?.email ?? null,
+        name: detailReceiverName.value,
+        phone: detailReceiverPhone.value,
+        email: detailReceiverEmail.value,
+    })
+    if (!result.ok || !result.receiver) {
+        receiverFormError.value = result.ok ? 'Enter their name and phone number.' : result.message
+        return
+    }
+    savingReceiver.value = true
+    receiverFormError.value = ''
+    try {
+        await apiCall('PUT', `/api/order-requests/customer/${String(request.id)}/recipient`, { ...result.receiver })
+        selectedRequest.value = { ...request, ...result.receiver }
+        editingReceiver.value = false
+    } catch (err) {
+        receiverFormError.value = err instanceof Error && err.message ? err.message : 'Could not change the receiver. Try again.'
+        // 409 = a rider has since been assigned: nothing more to edit.
+        if ((err as ApiError).status === 409) {
+            selectedRequest.value = { ...request, recipient_locked: true }
+            editingReceiver.value = false
+        }
+    } finally {
+        savingReceiver.value = false
+    }
+}
 const notesTextarea = ref<HTMLTextAreaElement | null>(null)
 const showPrescriptionField = ref<boolean>(false)
 const showNotesField = ref<boolean>(false)
@@ -1657,6 +1818,11 @@ watch(selectedRequest, (req) => {
     payError.value = ''
     if (req.id != null) void loadPaymentOptions(req.id)
 })
+// A half-edited receiver belongs to the request it was started on.
+watch(() => selectedRequest.value?.id, () => {
+    editingReceiver.value = false
+    receiverFormError.value = ''
+})
 const SESSION_TAB_KEY = 'medsgh_request_list_tab'
 const requestListTab = ref<string>(
   (process.client && sessionStorage.getItem(SESSION_TAB_KEY)) || 'processing'
@@ -1717,6 +1883,7 @@ const canSubmit = computed<boolean>(() => {
     // round-trip and matches the amber "top up first" warning already shown.
     if (!canSearchProducts.value) return false
     if (!contactPhoneResult.value.ok) return false
+    if (!receiverResult.value.ok) return false
     return true
 })
 
@@ -1726,6 +1893,7 @@ const sendWhy = computed<string>(() => {
     if (!customerLat.value || !deliveryAddress.value.trim()) return 'Set your delivery address.'
     if (!canSearchProducts.value) return 'Top up your wallet to send this request.'
     if (!contactPhoneResult.value.ok) return 'Enter a phone number we can reach you on.'
+    if (!receiverResult.value.ok) return receiverResult.value.message
     return ''
 })
 
@@ -2509,6 +2677,7 @@ const submitRequest = async (): Promise<void> => {
             ...(contactPhoneResult.value.ok && contactPhoneResult.value.phone
                 ? { contact_phone: contactPhoneResult.value.phone }
                 : {}),
+            ...(receiverResult.value.ok && receiverResult.value.receiver ? receiverResult.value.receiver : {}),
         }
         let res: { data?: unknown; message?: string; success?: boolean }
         if (hasMultipartUploads.value) {
@@ -2523,6 +2692,11 @@ const submitRequest = async (): Promise<void> => {
             formData.append('customer_address', payload.customer_address)
             formData.append('customer_notes', payload.customer_notes)
             if (payload.contact_phone) formData.append('contact_phone', payload.contact_phone)
+            if ('recipient_name' in payload) {
+                formData.append('recipient_name', payload.recipient_name)
+                formData.append('recipient_phone', payload.recipient_phone)
+                if (payload.recipient_email) formData.append('recipient_email', payload.recipient_email)
+            }
             prescriptionFiles.value.forEach((image) => formData.append('prescription_images', image.file))
             validItems.value.forEach((item, index) => {
                 item.imageFiles.forEach((image) => formData.append(`item_images_${index}`, image.file))
@@ -2550,6 +2724,10 @@ const submitRequest = async (): Promise<void> => {
         deliveryAddressSearch.value = ''
         clearDeliveryAddressSuggestions()
         customerNotes.value = ''
+        deliverToSomeoneElse.value = false
+        receiverName.value = ''
+        receiverPhone.value = ''
+        receiverEmail.value = ''
         customerLat.value = null
         customerLng.value = null
         locationMode.value = 'none'
