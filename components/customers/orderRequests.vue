@@ -2872,7 +2872,10 @@ const getRequestStatus = (req: OrderRequest): string => {
     return rawStatus
 }
 const canCancelRequest = (req: OrderRequest | null): boolean =>
-    !!req && ['pending', 'processing', 'sourcing'].includes(req.status ?? '')
+    !!req && [
+        'pending', 'processing', 'sourcing', 'awaiting_input', 'awaiting_customer',
+        'awaiting_method_selection', 'payment_pending',
+    ].includes(req.status ?? '')
 
 const canEditRequest = (req: OrderRequest | null): boolean =>
     !!req && ['pending', 'processing'].includes(req.status ?? '')

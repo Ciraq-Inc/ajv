@@ -180,6 +180,21 @@ describe('Request payment: cancelling', () => {
 
     expect(find(dialog()!, 'button', 'Cancel request')).not.toBeNull()
   })
+
+  it.each(['awaiting_input', 'awaiting_customer', 'awaiting_method_selection', 'payment_pending'])(
+    'lets the customer walk away while the request is waiting on them (%s)',
+    async (status) => {
+      await open({ detail: { status } })
+
+      expect(find(dialog()!, 'button', 'Cancel request')).not.toBeNull()
+    },
+  )
+
+  it('does not offer Cancel request once it is paid', async () => {
+    await open({ detail: { status: 'paid' } })
+
+    expect(find(dialog()!, 'button', 'Cancel request')).toBeNull()
+  })
 })
 
 describe('Request payment: look', () => {
