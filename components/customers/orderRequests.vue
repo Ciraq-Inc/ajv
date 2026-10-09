@@ -128,29 +128,10 @@
                     </section>
 
                     <!-- Contact + notes -->
-                    <section v-if="showNotesField || needsContactPhone || contactPhone" aria-labelledby="request-extras-title" class="space-y-5 border-t border-ink-100 pt-8">
+                    <section v-if="showNotesField" aria-labelledby="request-extras-title" class="space-y-5 border-t border-ink-100 pt-8">
                         <h2 id="request-extras-title" class="font-display text-xl font-bold text-ink-900">
-                            <template v-if="showNotesField">Notes <span class="text-base font-medium text-ink-500">(optional)</span></template>
-                            <template v-else>Contact number</template>
+                            Notes <span class="text-base font-medium text-ink-500">(optional)</span>
                         </h2>
-
-                        <!-- Contact phone: email-only accounts have no number on file -->
-                        <div v-if="needsContactPhone || contactPhone">
-                            <label for="request-contact-phone" class="mb-2 block text-sm font-semibold text-ink-900">
-                                Phone number we can reach you on
-                                <span v-if="needsContactPhone" class="text-red-700" aria-hidden="true">*</span>
-                            </label>
-                            <input v-model="contactPhone" id="request-contact-phone" type="tel"
-                                inputmode="tel" autocomplete="tel"
-                                placeholder="024 123 4567 or +44 7911 123456"
-                                aria-describedby="request-contact-phone-help"
-                                :aria-invalid="contactPhoneError ? 'true' : 'false'"
-                                class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-ink-100 px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none" />
-                            <p v-if="contactPhoneError" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ contactPhoneError }}</p>
-                            <p id="request-contact-phone-help" class="mt-2 text-sm text-ink-600">
-                                The rider and pharmacy use this to reach you about this delivery. Include the country code if it is not a Ghana number.
-                            </p>
-                        </div>
 
                         <!-- Notes -->
                         <div v-if="showNotesField" class="flex items-start gap-3">
@@ -778,6 +759,25 @@
                             <p v-else role="alert" class="mt-3 text-base text-ink-600">We could not load your options. Close this and open the request again.</p>
                         </div>
 
+                        <!-- Contact number: only for delivery, and only when nobody else on the order has one -->
+                        <div v-if="deliveryContactNeeded(selectedRequest)" data-testid="delivery-contact">
+                            <label for="request-contact-phone" class="mb-2 block text-sm font-semibold text-ink-900">
+                                Phone number we can reach you on
+                                <span class="text-red-700" aria-hidden="true">*</span>
+                            </label>
+                            <input id="request-contact-phone" type="tel" inputmode="tel" autocomplete="tel"
+                                :value="deliveryContactByRequest[selectedRequest.id] ?? ''"
+                                @input="deliveryContactByRequest = { ...deliveryContactByRequest, [selectedRequest.id]: ($event.target as HTMLInputElement).value }"
+                                placeholder="024 123 4567 or +44 7911 123456"
+                                aria-describedby="request-contact-phone-help"
+                                :aria-invalid="deliveryContactError(selectedRequest) ? 'true' : 'false'"
+                                class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-ink-100 px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none" />
+                            <p v-if="deliveryContactError(selectedRequest)" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ deliveryContactError(selectedRequest) }}</p>
+                            <p id="request-contact-phone-help" class="mt-2 text-sm text-ink-600">
+                                The rider uses this to reach you about this delivery. Include the country code if it is not a Ghana number.
+                            </p>
+                        </div>
+
                         <!-- Search fee: keep it for later, or take it off this order -->
                         <div v-if="canPayWithSelection(selectedRequest) && selectedPaymentOptions?.fee_applicable">
                             <p id="request-fee-title" class="text-base font-semibold text-ink-900">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</p>
@@ -1273,6 +1273,7 @@ interface OrderRequest {
     recipient_phone?: string | null;
     recipient_email?: string | null;
     recipient_locked?: boolean;
+    contact_phone?: string | null;
     customer_address?: string;
     delivery_address?: string;
     pharmacy?: { name?: string; address?: string; latitude?: number | string | null; longitude?: number | string | null; [key: string]: unknown };
@@ -1468,7 +1469,6 @@ const saveFormDraft = (): void => {
             customerAddress: customerAddress.value,
             deliveryAddress: deliveryAddress.value,
             customerNotes: customerNotes.value,
-            contactPhone: contactPhone.value,
             locationMode: locationMode.value,
             savedAt: Date.now()
         }
@@ -1532,7 +1532,6 @@ const restoreFormDraft = (): void => {
         if (draft['customerAddress']) customerAddress.value = String(draft['customerAddress'])
         if (draft['deliveryAddress']) deliveryAddress.value = String(draft['deliveryAddress'])
         if (draft['customerNotes']) customerNotes.value = String(draft['customerNotes'])
-        if (draft['contactPhone']) contactPhone.value = String(draft['contactPhone'])
     } catch (err) {
         console.error('Failed to restore form draft:', err)
     }
@@ -1673,16 +1672,26 @@ const deliveryAddressSuggestions = ref<AddressSuggestion[]>([])
 const deliveryAddressActiveIndex = ref<number>(-1)
 const deliveryAutocompleteLoading = ref<boolean>(false)
 const customerNotes = ref<string>('')
-// Riders and SMS need a phone number. Accounts made with an email address have none, so
-// the form asks for one (accounts with a phone can still give a different delivery contact).
-const contactPhone = ref<string>('')
-const contactPhoneResult = computed(() =>
-    resolveContactPhoneInput({ accountPhone: userStore.currentUser?.phone ?? null, typed: contactPhone.value })
-)
-const needsContactPhone = computed<boolean>(() => !userStore.currentUser?.phone)
-const contactPhoneError = computed<string>(() =>
-    contactPhone.value.trim() && !contactPhoneResult.value.ok ? contactPhoneResult.value.message : ''
-)
+// Riders and SMS need a phone number for a delivery. Accounts made with an email address have
+// none, so the payment screen asks for one once delivery is chosen (not here, and not when the
+// order goes to a receiver, who is the contact).
+const deliveryContactByRequest = ref<Record<string, string>>({})
+const deliveryContactNeeded = (request: OrderRequest | null): boolean => {
+    if (!request || request.id == null) return false
+    if (selectedPaymentMethodByRequest.value[request.id] !== 'delivery' && request.fulfillment_type !== 'delivery') return false
+    if (request.recipient_phone || request.contact_phone) return false
+    return !userStore.currentUser?.phone
+}
+const deliveryContactResult = (request: OrderRequest | null) =>
+    resolveContactPhoneInput({
+        accountPhone: userStore.currentUser?.phone ?? null,
+        typed: request?.id != null ? (deliveryContactByRequest.value[request.id] ?? '') : ''
+    })
+const deliveryContactError = (request: OrderRequest | null): string => {
+    const typed = request?.id != null ? (deliveryContactByRequest.value[request.id] ?? '') : ''
+    const result = deliveryContactResult(request)
+    return typed.trim() && !result.ok ? result.message : ''
+}
 // Delivering to someone else. Kept out of the saved draft: it is another person's details.
 const deliverToSomeoneElse = ref<boolean>(false)
 const receiverName = ref<string>('')
@@ -1882,7 +1891,6 @@ const canSubmit = computed<boolean>(() => {
     // the server enforces this too, but disabling here avoids a confusing
     // round-trip and matches the amber "top up first" warning already shown.
     if (!canSearchProducts.value) return false
-    if (!contactPhoneResult.value.ok) return false
     if (!receiverResult.value.ok) return false
     return true
 })
@@ -1892,7 +1900,6 @@ const sendWhy = computed<string>(() => {
     if (!validItems.value.length && !prescriptionFiles.value.length) return 'Add a medication or a prescription photo.'
     if (!customerLat.value || !deliveryAddress.value.trim()) return 'Set your delivery address.'
     if (!canSearchProducts.value) return 'Top up your wallet to send this request.'
-    if (!contactPhoneResult.value.ok) return 'Enter a phone number we can reach you on.'
     if (!receiverResult.value.ok) return receiverResult.value.message
     return ''
 })
@@ -2674,9 +2681,6 @@ const submitRequest = async (): Promise<void> => {
             delivery_address: deliveryAddress.value.trim(),
             customer_address: (customerAddress.value || deliveryAddress.value).trim(),
             customer_notes: customerNotes.value.trim(),
-            ...(contactPhoneResult.value.ok && contactPhoneResult.value.phone
-                ? { contact_phone: contactPhoneResult.value.phone }
-                : {}),
             ...(receiverResult.value.ok && receiverResult.value.receiver ? receiverResult.value.receiver : {}),
         }
         let res: { data?: unknown; message?: string; success?: boolean }
@@ -2691,7 +2695,6 @@ const submitRequest = async (): Promise<void> => {
             formData.append('delivery_address', payload.delivery_address)
             formData.append('customer_address', payload.customer_address)
             formData.append('customer_notes', payload.customer_notes)
-            if (payload.contact_phone) formData.append('contact_phone', payload.contact_phone)
             if ('recipient_name' in payload) {
                 formData.append('recipient_name', payload.recipient_name)
                 formData.append('recipient_phone', payload.recipient_phone)
@@ -2991,6 +2994,7 @@ const requiresMethodSelection = (request: OrderRequest | null): boolean => {
 const canPayWithSelection = (request: OrderRequest | null): boolean => {
     if (!request) return false
     if (request.id != null && overrideMethodPickerFor.value[request.id]) return false
+    if (deliveryContactNeeded(request) && !deliveryContactResult(request).ok) return false
     if (!requiresMethodSelection(request)) return true
     return Boolean(request.id != null && selectedPaymentMethodByRequest.value[request.id])
 }
@@ -3105,6 +3109,8 @@ const submitFulfillmentChoice = async (requestId: number | string, method: strin
             body.provider_code = rate.provider_code
             body.service_level = rate.service_level ?? 'standard'
         }
+        const contact = selectedRequest.value?.id === requestId ? deliveryContactResult(selectedRequest.value) : null
+        if (contact?.ok && contact.phone) body.contact_phone = contact.phone
     }
     const res = await apiCall('PUT', `/api/order-requests/customer/${String(requestId)}/fulfillment`, body)
     if (selectedRequest.value?.id === requestId) {

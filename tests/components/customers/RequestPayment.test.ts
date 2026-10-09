@@ -128,6 +128,69 @@ describe('Request payment: choosing how to receive the order', () => {
   })
 })
 
+describe('Request payment: contact number for delivery', () => {
+  const emailOnly = () => { store.state.currentUser = { phone: '', email: 'a@b.co' } }
+  const putBody = () => {
+    const call = api.request.mock.calls.find(([url, o]) => url === '/api/order-requests/customer/7/fulfillment' && o?.method === 'PUT')
+    return call ? JSON.parse(call[1].body) : null
+  }
+  const phoneBox = () => payment().querySelector('#request-contact-phone') as HTMLInputElement | null
+  const type = async (el: HTMLInputElement, v: string) => { el.value = v; el.dispatchEvent(new Event('input')); await flushPromises() }
+
+  it('asks an email-only account for a number once it picks delivery, and not for pickup', async () => {
+    emailOnly()
+    await open()
+    expect(phoneBox()).toBeNull()
+
+    await click(radio('Pickup'))
+    expect(phoneBox()).toBeNull()
+
+    await click(radio('Delivery'))
+    expect(phoneBox()).not.toBeNull()
+  })
+
+  it('keeps Pay off until a valid number is typed, then sends it with the delivery choice', async () => {
+    emailOnly()
+    await open()
+    await click(radio('Delivery'))
+    expect(btn('Pay with wallet')!.disabled).toBe(true)
+
+    await type(phoneBox()!, '0244123456')
+    expect(btn('Pay with wallet')!.disabled).toBe(false)
+
+    await click(btn('Pay with wallet'))
+    expect(putBody()).toMatchObject({ fulfillment_type: 'delivery', contact_phone: '+233244123456' })
+  })
+
+  it('does not ask when the account already has a number', async () => {
+    await open()
+    await click(radio('Delivery'))
+
+    expect(phoneBox()).toBeNull()
+  })
+
+  it('does not ask when the order goes to a receiver', async () => {
+    emailOnly()
+    await open({ detail: { recipient_phone: '+233200000001' } })
+    await click(radio('Delivery'))
+
+    expect(phoneBox()).toBeNull()
+  })
+
+  it('says the choice is locked when the server refuses it', async () => {
+    await open()
+    const original = api.request.getMockImplementation()!
+    api.request.mockImplementation(async (url: string, opts?: { method?: string }) => {
+      if (url.endsWith('/fulfillment') && opts?.method === 'PUT') throw Object.assign(new Error('You can no longer change how this order is received.'), { status: 409, data: { code: 'FULFILLMENT_LOCKED' } })
+      return original(url, opts)
+    })
+    await click(radio('Delivery'))
+    await click(btn('Pay with wallet'))
+
+    expect(payment().textContent).toContain('no longer change how this order is received')
+  })
+})
+
 describe('Request payment: paying', () => {
   it('pays from the wallet with the main button when the balance covers it', async () => {
     await open({ detail: { fulfillment_type: 'delivery' }, balance: 100 })

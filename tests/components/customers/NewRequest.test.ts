@@ -425,11 +425,11 @@ describe('New request: Add note beside Add another medication', () => {
     expect(w.find('#request-extras-title').text()).toContain('Notes')
   })
 
-  it('still shows the contact phone field when the account has no number', async () => {
+  it('does not ask an email-only account for a phone number until it chooses delivery', async () => {
     store.state.currentUser = { phone: '', email: 'a@b.co' }
     const w = await open()
 
-    expect(w.find('#request-contact-phone').exists()).toBe(true)
+    expect(w.find('#request-contact-phone').exists()).toBe(false)
   })
 })
 
