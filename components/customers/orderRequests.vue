@@ -173,52 +173,6 @@
                             </span>
                             <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
                         </button>
-
-                        <!-- Delivering to someone else: they only get the delivery texts; you get everything -->
-                        <div class="rounded-xl bg-ink-50 px-4 py-3">
-                            <label for="request-someone-else" class="flex min-h-[44px] cursor-pointer items-center gap-3">
-                                <input v-model="deliverToSomeoneElse" id="request-someone-else" type="checkbox"
-                                    class="h-5 w-5 rounded border-ink-300 text-brand-700 focus:ring-brand-700" />
-                                <span class="text-base font-semibold text-ink-900">Delivering to someone else?</span>
-                            </label>
-                            <div v-if="deliverToSomeoneElse" class="mt-3 space-y-4">
-                                <p class="text-sm text-ink-600">
-                                    You will still get every update. They only get a text with the delivery code, and a note when it is delivered or could not be delivered.
-                                </p>
-                                <div>
-                                    <label for="request-receiver-name" class="mb-2 block text-sm font-semibold text-ink-900">
-                                        Their name <span class="text-red-700" aria-hidden="true">*</span>
-                                    </label>
-                                    <input v-model="receiverName" id="request-receiver-name" type="text"
-                                        autocomplete="off" maxlength="100"
-                                        :aria-invalid="receiverError.name ? 'true' : 'false'"
-                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
-                                    <p v-if="receiverError.name" id="request-receiver-name-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.name }}</p>
-                                </div>
-                                <div>
-                                    <label for="request-receiver-phone" class="mb-2 block text-sm font-semibold text-ink-900">
-                                        Their phone number <span class="text-red-700" aria-hidden="true">*</span>
-                                    </label>
-                                    <input v-model="receiverPhone" id="request-receiver-phone" type="tel"
-                                        inputmode="tel" autocomplete="off"
-                                        placeholder="024 123 4567 or +44 7911 123456"
-                                        :aria-invalid="receiverError.phone ? 'true' : 'false'"
-                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
-                                    <p v-if="receiverError.phone" id="request-receiver-phone-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.phone }}</p>
-                                    <p v-if="receiverForeignNumber" id="request-receiver-foreign-hint" class="mt-2 text-sm font-medium text-amber-900">{{ RECEIVER_FOREIGN_HINT }}</p>
-                                </div>
-                                <div>
-                                    <label for="request-receiver-email" class="mb-2 block text-sm font-semibold text-ink-900">
-                                        Their email <span class="text-base font-medium text-ink-500">(optional)</span>
-                                    </label>
-                                    <input v-model="receiverEmail" id="request-receiver-email" type="email"
-                                        inputmode="email" autocomplete="off"
-                                        :aria-invalid="receiverError.email ? 'true' : 'false'"
-                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
-                                    <p v-if="receiverError.email" id="request-receiver-email-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.email }}</p>
-                                </div>
-                            </div>
-                        </div>
                     </section>
 
                     <!-- Wallet gate overlay -->
@@ -773,6 +727,53 @@
                             <p v-else role="alert" class="mt-3 text-base text-ink-600">We could not load your options. Close this and open the request again.</p>
                         </div>
 
+                        <!-- Delivering to someone else: they only get the delivery texts; you get everything.
+                             Asked here, with the delivery choice, because it only applies to a delivery. -->
+                        <div v-if="receiverOffered(selectedRequest)" data-testid="payment-receiver" class="rounded-xl bg-ink-50 px-4 py-3">
+                            <label for="payment-someone-else" class="flex min-h-[44px] cursor-pointer items-center gap-3">
+                                <input v-model="deliverToSomeoneElse" id="payment-someone-else" type="checkbox"
+                                    class="h-5 w-5 rounded border-ink-300 text-brand-700 focus:ring-brand-700" />
+                                <span class="text-base font-semibold text-ink-900">Delivering to someone else?</span>
+                            </label>
+                            <div v-if="deliverToSomeoneElse" class="mt-3 space-y-4">
+                                <p class="text-sm text-ink-600">
+                                    You will still get every update. They only get a text with the delivery code, and a note when it is delivered or could not be delivered.
+                                </p>
+                                <div>
+                                    <label for="payment-receiver-name" class="mb-2 block text-sm font-semibold text-ink-900">
+                                        Their name <span class="text-red-700" aria-hidden="true">*</span>
+                                    </label>
+                                    <input v-model="receiverName" id="payment-receiver-name" type="text"
+                                        autocomplete="off" maxlength="100"
+                                        :aria-invalid="receiverError.name ? 'true' : 'false'"
+                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
+                                    <p v-if="receiverError.name" id="payment-receiver-name-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.name }}</p>
+                                </div>
+                                <div>
+                                    <label for="payment-receiver-phone" class="mb-2 block text-sm font-semibold text-ink-900">
+                                        Their phone number <span class="text-red-700" aria-hidden="true">*</span>
+                                    </label>
+                                    <input v-model="receiverPhone" id="payment-receiver-phone" type="tel"
+                                        inputmode="tel" autocomplete="off"
+                                        placeholder="024 123 4567 or +44 7911 123456"
+                                        :aria-invalid="receiverError.phone ? 'true' : 'false'"
+                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
+                                    <p v-if="receiverError.phone" id="payment-receiver-phone-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.phone }}</p>
+                                    <p v-if="receiverForeignNumber" id="payment-receiver-foreign-hint" class="mt-2 text-sm font-medium text-amber-900">{{ RECEIVER_FOREIGN_HINT }}</p>
+                                </div>
+                                <div>
+                                    <label for="payment-receiver-email" class="mb-2 block text-sm font-semibold text-ink-900">
+                                        Their email <span class="text-base font-medium text-ink-500">(optional)</span>
+                                    </label>
+                                    <input v-model="receiverEmail" id="payment-receiver-email" type="email"
+                                        inputmode="email" autocomplete="off"
+                                        :aria-invalid="receiverError.email ? 'true' : 'false'"
+                                        class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-white px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:outline-none" />
+                                    <p v-if="receiverError.email" id="payment-receiver-email-error" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverError.email }}</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Contact number: only for delivery, and only when nobody else on the order has one -->
                         <div v-if="deliveryContactNeeded(selectedRequest)" data-testid="delivery-contact">
                             <label for="request-contact-phone" class="mb-2 block text-sm font-semibold text-ink-900">
@@ -788,7 +789,7 @@
                                 class="min-h-[48px] w-full rounded-lg border-2 border-transparent bg-ink-100 px-4 py-3 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none" />
                             <p v-if="deliveryContactError(selectedRequest)" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ deliveryContactError(selectedRequest) }}</p>
                             <p id="request-contact-phone-help" class="mt-2 text-sm text-ink-600">
-                                The rider uses this to reach you about this delivery. Include the country code if it is not a Ghana number.
+                                This must be a number we can reach you on by call or WhatsApp about this delivery. Include the country code if it is not a Ghana number.
                             </p>
                         </div>
 
@@ -1695,6 +1696,7 @@ const deliveryContactNeeded = (request: OrderRequest | null): boolean => {
     if (!request || request.id == null) return false
     if (selectedPaymentMethodByRequest.value[request.id] !== 'delivery' && request.fulfillment_type !== 'delivery') return false
     if (request.recipient_phone || request.contact_phone) return false
+    if (receiverOffered(request) && receiverResult.value.ok && receiverResult.value.receiver) return false
     return !userStore.currentUser?.phone
 }
 const deliveryContactResult = (request: OrderRequest | null) =>
@@ -1707,7 +1709,12 @@ const deliveryContactError = (request: OrderRequest | null): string => {
     const result = deliveryContactResult(request)
     return typed.trim() && !result.ok ? result.message : ''
 }
-// Delivering to someone else. Kept out of the saved draft: it is another person's details.
+// Asked on the payment screen together with the delivery choice, so only while that choice is
+// still open and delivery is the one picked. It is another person's details, so never saved as a draft.
+const receiverOffered = (request: OrderRequest | null): boolean => {
+    if (!request || request.id == null) return false
+    return requiresMethodSelection(request) && selectedPaymentMethodByRequest.value[request.id] === 'delivery'
+}
 const deliverToSomeoneElse = ref<boolean>(false)
 const receiverName = ref<string>('')
 const receiverPhone = ref<string>('')
@@ -1846,6 +1853,10 @@ watch(selectedRequest, (req) => {
 watch(() => selectedRequest.value?.id, () => {
     editingReceiver.value = false
     receiverFormError.value = ''
+    deliverToSomeoneElse.value = false
+    receiverName.value = ''
+    receiverPhone.value = ''
+    receiverEmail.value = ''
 })
 const SESSION_TAB_KEY = 'medsgh_request_list_tab'
 const requestListTab = ref<string>(
@@ -1906,7 +1917,6 @@ const canSubmit = computed<boolean>(() => {
     // the server enforces this too, but disabling here avoids a confusing
     // round-trip and matches the amber "top up first" warning already shown.
     if (!canSearchProducts.value) return false
-    if (!receiverResult.value.ok) return false
     return true
 })
 
@@ -1915,7 +1925,6 @@ const sendWhy = computed<string>(() => {
     if (!validItems.value.length && !prescriptionFiles.value.length) return 'Add a medication or a prescription photo.'
     if (!customerLat.value || !deliveryAddress.value.trim()) return 'Set your delivery address.'
     if (!canSearchProducts.value) return 'Top up your wallet to send this request.'
-    if (!receiverResult.value.ok) return receiverResult.value.message
     return ''
 })
 
@@ -2702,7 +2711,6 @@ const submitRequest = async (): Promise<void> => {
             delivery_address: deliveryAddress.value.trim(),
             customer_address: (customerAddress.value || deliveryAddress.value).trim(),
             customer_notes: customerNotes.value.trim(),
-            ...(receiverResult.value.ok && receiverResult.value.receiver ? receiverResult.value.receiver : {}),
         }
         let res: { data?: unknown; message?: string; success?: boolean }
         if (hasMultipartUploads.value) {
@@ -2748,10 +2756,6 @@ const submitRequest = async (): Promise<void> => {
         deliveryAddressSearch.value = ''
         clearDeliveryAddressSuggestions()
         customerNotes.value = ''
-        deliverToSomeoneElse.value = false
-        receiverName.value = ''
-        receiverPhone.value = ''
-        receiverEmail.value = ''
         customerLat.value = null
         customerLng.value = null
         locationMode.value = 'none'
@@ -3016,6 +3020,7 @@ const canPayWithSelection = (request: OrderRequest | null): boolean => {
     if (!request) return false
     if (request.id != null && overrideMethodPickerFor.value[request.id]) return false
     if (deliveryContactNeeded(request) && !deliveryContactResult(request).ok) return false
+    if (receiverOffered(request) && !receiverResult.value.ok) return false
     if (!requiresMethodSelection(request)) return true
     return Boolean(request.id != null && selectedPaymentMethodByRequest.value[request.id])
 }
@@ -3132,6 +3137,10 @@ const submitFulfillmentChoice = async (requestId: number | string, method: strin
         }
         const contact = selectedRequest.value?.id === requestId ? deliveryContactResult(selectedRequest.value) : null
         if (contact?.ok && contact.phone) body.contact_phone = contact.phone
+        const receiver = selectedRequest.value?.id === requestId && receiverOffered(selectedRequest.value) && receiverResult.value.ok
+            ? receiverResult.value.receiver
+            : null
+        if (receiver) Object.assign(body, receiver)
     }
     const res = await apiCall('PUT', `/api/order-requests/customer/${String(requestId)}/fulfillment`, body)
     if (selectedRequest.value?.id === requestId) {

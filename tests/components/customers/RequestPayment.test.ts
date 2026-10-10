@@ -162,6 +162,16 @@ describe('Request payment: contact number for delivery', () => {
     expect(putBody()).toMatchObject({ fulfillment_type: 'delivery', contact_phone: '+233244123456' })
   })
 
+  it('asks for a number that can be reached by call or WhatsApp', async () => {
+    emailOnly()
+    await open()
+    await click(radio('Delivery'))
+
+    const block = payment().querySelector('[data-testid="delivery-contact"]')!
+    expect(block.textContent).toMatch(/call or WhatsApp/i)
+    expect(block.textContent).not.toMatch(/rider uses this/i)
+  })
+
   it('does not ask when the account already has a number', async () => {
     await open()
     await click(radio('Delivery'))
@@ -188,6 +198,131 @@ describe('Request payment: contact number for delivery', () => {
     await click(btn('Pay with wallet'))
 
     expect(payment().textContent).toContain('no longer change how this order is received')
+  })
+})
+
+describe('Request payment: delivering to someone else', () => {
+  const putBody = () => {
+    const call = api.request.mock.calls.find(([url, o]) => url === '/api/order-requests/customer/7/fulfillment' && o?.method === 'PUT')
+    return call ? JSON.parse(call[1].body) : null
+  }
+  const el = (sel: string) => payment().querySelector(sel) as HTMLInputElement | null
+  const type = async (sel: string, v: string) => { const e = el(sel)!; e.value = v; e.dispatchEvent(new Event('input')); await flushPromises() }
+  const setToggle = async (on: boolean) => { const t = el('#payment-someone-else')!; t.checked = on; t.dispatchEvent(new Event('change')); await flushPromises() }
+  const fill = async (name: string, phone: string, email = '') => {
+    await setToggle(true)
+    await type('#payment-receiver-name', name)
+    await type('#payment-receiver-phone', phone)
+    if (email) await type('#payment-receiver-email', email)
+  }
+
+  it('is offered only once delivery is chosen', async () => {
+    await open()
+    expect(el('#payment-someone-else')).toBeNull()
+
+    await click(radio('Pickup'))
+    expect(el('#payment-someone-else')).toBeNull()
+
+    await click(radio('Delivery'))
+    expect(el('#payment-someone-else')).not.toBeNull()
+    expect(payment().textContent).toContain('Delivering to someone else?')
+    expect(el('#payment-someone-else')!.checked).toBe(false)
+    expect(el('#payment-receiver-name')).toBeNull()
+  })
+
+  it('asks for their name, number and email, and keeps Pay off until name and number are valid', async () => {
+    await open()
+    await click(radio('Delivery'))
+    await setToggle(true)
+
+    expect(el('#payment-receiver-name')).not.toBeNull()
+    expect(el('#payment-receiver-phone')).not.toBeNull()
+    expect(el('#payment-receiver-email')).not.toBeNull()
+    expect(btn('Pay with wallet')!.disabled).toBe(true)
+
+    await type('#payment-receiver-name', 'Ama Mensah')
+    expect(btn('Pay with wallet')!.disabled).toBe(true)
+    await type('#payment-receiver-phone', '024 400 0111')
+    expect(btn('Pay with wallet')!.disabled).toBe(false)
+  })
+
+  it('sends the receiver with the delivery choice', async () => {
+    await open()
+    await click(radio('Delivery'))
+    await fill('Ama Mensah', '024 400 0111', 'Ama@Example.com')
+    await click(btn('Pay with wallet'))
+
+    expect(putBody()).toMatchObject({
+      fulfillment_type: 'delivery',
+      recipient_name: 'Ama Mensah',
+      recipient_phone: '+233244000111',
+      recipient_email: 'ama@example.com',
+    })
+  })
+
+  it('sends no receiver when it is switched off, even after it was filled in', async () => {
+    await open()
+    await click(radio('Delivery'))
+    await fill('Ama', '0244000111')
+    await setToggle(false)
+    await click(btn('Pay with wallet'))
+
+    const body = putBody()
+    expect(body).toMatchObject({ fulfillment_type: 'delivery' })
+    expect(body).not.toHaveProperty('recipient_name')
+    expect(body).not.toHaveProperty('recipient_phone')
+  })
+
+  it('drops the receiver again if the customer goes back to pickup', async () => {
+    await open()
+    await click(radio('Delivery'))
+    await fill('Ama', '0244000111')
+    await click(radio('Pickup'))
+    await click(btn('Pay with wallet'))
+
+    const body = putBody()
+    expect(body).toMatchObject({ fulfillment_type: 'pickup' })
+    expect(body).not.toHaveProperty('recipient_phone')
+  })
+
+  it('does not also ask an email-only account for its own number when a receiver is named', async () => {
+    store.state.currentUser = { phone: '', email: 'a@b.co' }
+    await open()
+    await click(radio('Delivery'))
+    expect(el('#request-contact-phone')).not.toBeNull()
+
+    await fill('Ama', '0244000111')
+
+    expect(el('#request-contact-phone')).toBeNull()
+    expect(btn('Pay with wallet')!.disabled).toBe(false)
+    await click(btn('Pay with wallet'))
+    expect(putBody()).not.toHaveProperty('contact_phone')
+  })
+
+  it('tells the customer a foreign number cannot be texted and suggests an email', async () => {
+    await open()
+    await click(radio('Delivery'))
+    await setToggle(true)
+    expect(payment().textContent).not.toContain('We can only text Ghana numbers')
+
+    await type('#payment-receiver-phone', '+44 7911 123456')
+
+    expect(el('#payment-receiver-foreign-hint')!.textContent).toMatch(/only text Ghana numbers/i)
+  })
+
+  it("refuses the customer's own number as the receiver", async () => {
+    await open()
+    await click(radio('Delivery'))
+    await fill('Kofi', '0244123456')
+
+    expect(btn('Pay with wallet')!.disabled).toBe(true)
+    expect(el('#payment-receiver-phone-error')!.textContent).toMatch(/your own number/i)
+  })
+
+  it('is not offered when the way of receiving was already settled', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' } })
+
+    expect(el('#payment-someone-else')).toBeNull()
   })
 })
 
