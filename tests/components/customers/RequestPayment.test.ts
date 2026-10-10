@@ -388,6 +388,89 @@ describe('Request payment: once delivery is locked in', () => {
   })
 })
 
+describe('Request payment: switching from pickup to delivery without a phone on the account', () => {
+  const fulfilmentPuts = () => api.request.mock.calls.filter(([url, o]) => url === '/api/order-requests/customer/7/fulfillment' && o?.method === 'PUT')
+  const phoneBox = () => payment().querySelector('#request-contact-phone') as HTMLInputElement | null
+  const type = async (el: HTMLInputElement, v: string) => { el.value = v; el.dispatchEvent(new Event('input')); await flushPromises() }
+  const changeMethod = async () => click(find(dialog()!, 'button', ' method'))
+  const startSwitch = async () => {
+    store.state.currentUser = { phone: '', email: 'a@b.co' }
+    await open({ detail: { fulfillment_type: 'pickup' } })
+    await changeMethod()
+    await click(radio('Delivery'))
+  }
+
+  it('asks for the number first instead of sending a request the server will refuse', async () => {
+    await startSwitch()
+
+    expect(fulfilmentPuts()).toHaveLength(0)
+    expect(phoneBox()).not.toBeNull()
+    expect(btn('Use delivery')!.disabled).toBe(true)
+  })
+
+  it('switches once a usable number is typed, and sends it with the choice', async () => {
+    await startSwitch()
+    await type(phoneBox()!, '0244000111')
+    expect(btn('Use delivery')!.disabled).toBe(false)
+    await click(btn('Use delivery'))
+
+    expect(fulfilmentPuts()).toHaveLength(1)
+    expect(JSON.parse(fulfilmentPuts()[0]![1].body)).toMatchObject({ fulfillment_type: 'delivery', contact_phone: '+233244000111' })
+    expect(find(dialog()!, 'button', 'Change delivery method')).not.toBeNull()
+  })
+
+  it('still switches straight away when the account already has a number', async () => {
+    await open({ detail: { fulfillment_type: 'pickup' } })
+    await changeMethod()
+    await click(radio('Delivery'))
+
+    expect(fulfilmentPuts()).toHaveLength(1)
+    expect(btn('Use delivery')).toBeNull()
+  })
+
+  it('says what is missing rather than asking to choose pickup or delivery again', async () => {
+    await startSwitch()
+
+    expect(payment().textContent).not.toContain('Choose pickup or delivery to see your total.')
+    expect(payment().textContent).toMatch(/phone number/i)
+  })
+})
+
+describe('Request payment: closing the screen while a payment is going through', () => {
+  const stuck = { detail: { fulfillment_type: 'delivery' }, pay: () => new Promise(() => {}) }
+  const startPaying = async () => { await open(stuck); await click(btn('Pay with wallet')) }
+  const escape = async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flushPromises() }
+
+  it('stays open when Close is pressed', async () => {
+    await startPaying()
+    await click(find(dialog()!, 'button', 'Close'))
+
+    expect(dialog()).not.toBeNull()
+  })
+
+  it('stays open on Escape', async () => {
+    await startPaying()
+    await escape()
+
+    expect(dialog()).not.toBeNull()
+  })
+
+  it('stays open when the backdrop is tapped', async () => {
+    await startPaying()
+    ;(document.body.querySelector('[data-testid="request-detail-backdrop"]') as HTMLElement).click()
+    await flushPromises()
+
+    expect(dialog()).not.toBeNull()
+  })
+
+  it('closes normally when nothing is being paid', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' } })
+    await escape()
+
+    expect(dialog()).toBeNull()
+  })
+})
+
 describe('Request payment: paying', () => {
   it('pays from the wallet with the main button when the balance covers it', async () => {
     await open({ detail: { fulfillment_type: 'delivery' }, balance: 100 })

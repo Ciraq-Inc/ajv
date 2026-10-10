@@ -346,7 +346,7 @@
         <!-- ====== REQUEST DETAIL MODAL ====== -->
         <div v-if="selectedRequest" data-testid="request-detail-backdrop"
             class="fixed inset-0 z-[60] flex items-end justify-center bg-ink-900/50 sm:items-center sm:p-4"
-            @click.self="selectedRequest = null">
+            @click.self="closeRequestDetail">
             <div ref="detailDialogRef" role="dialog" aria-modal="true" aria-labelledby="request-detail-title"
                 class="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white font-body shadow-lift sm:rounded-3xl">
                 <div data-testid="request-detail-header" class="flex items-start justify-between gap-3 px-6 pb-3 pt-6">
@@ -357,8 +357,8 @@
                             <p class="mt-2 text-base text-ink-600">{{ getRequestSubtext(selectedRequest.status) }}</p>
                         </div>
                     </div>
-                    <button @click="selectedRequest = null" type="button" aria-label="Close"
-                        class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                    <button @click="closeRequestDetail" type="button" aria-label="Close" :disabled="closeBlocked"
+                        class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
                         <XMarkIcon class="h-5 w-5" aria-hidden="true" />
                     </button>
                 </div>
@@ -800,6 +800,13 @@
                                 This must be a number we can reach you on by call or WhatsApp about this delivery. Include the country code if it is not a Ghana number.
                             </p>
                         </div>
+
+                        <button v-if="switchAwaitsContact(selectedRequest)" type="button"
+                            :disabled="!deliveryContactResult(selectedRequest).ok"
+                            @click="confirmDeliverySwitch(selectedRequest.id)"
+                            class="flex min-h-[52px] w-full items-center justify-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                            Use delivery
+                        </button>
 
                         <!-- Search fee: keep it for later, or take it off this order -->
                         <div v-if="canPayWithSelection(selectedRequest) && selectedPaymentOptions?.fee_applicable">
@@ -2947,7 +2954,13 @@ interface EditItem { product_name: string; requested_unit: string; quantity: num
 const editingRequest = ref<OrderRequest | null>(null)
 const editItems = ref<EditItem[]>([])
 const savingEdit = ref<boolean>(false)
-useModalA11y(detailDialogRef, () => !!selectedRequest.value && !editingRequest.value && !showAddressModal.value, () => { selectedRequest.value = null })
+// A payment that is going through must not be walked away from: closing would hide the result.
+const closeBlocked = computed<boolean>(() => payingRequest.value || cancelingRequest.value)
+const closeRequestDetail = (): void => {
+    if (closeBlocked.value) return
+    selectedRequest.value = null
+}
+useModalA11y(detailDialogRef, () => !!selectedRequest.value && !editingRequest.value && !showAddressModal.value, closeRequestDetail)
 useModalA11y(editDialogRef, () => !!editingRequest.value, () => { editingRequest.value = null })
 
 const startEditing = (req: OrderRequest): void => {
@@ -3031,24 +3044,41 @@ const choosePaymentMethod = (requestId: number | string, method: string): void =
         [requestId]: method
     }
     if (overrideMethodPickerFor.value[requestId]) {
-        overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: false }
-        const prevMethod = selectedRequest.value?.fulfillment_type
-        const prevReceiver = selectedRequest.value
-            ? { recipient_name: selectedRequest.value.recipient_name, recipient_phone: selectedRequest.value.recipient_phone, recipient_email: selectedRequest.value.recipient_email }
-            : null
-        if (selectedRequest.value?.id === requestId) {
-            // The server drops the receiver when the order goes to pickup, so do the same here.
-            const dropped = method === 'pickup' ? { recipient_name: null, recipient_phone: null, recipient_email: null } : {}
-            selectedRequest.value = { ...selectedRequest.value, fulfillment_type: method, ...dropped }
-        }
-        submitFulfillmentChoice(requestId, method).catch(err => {
-            showToast(err instanceof Error ? err.message : 'Could not update fulfillment choice', 'error')
-            if (selectedRequest.value?.id === requestId) {
-                selectedRequest.value = { ...selectedRequest.value, fulfillment_type: prevMethod ?? undefined, ...(prevReceiver ?? {}) }
-            }
-            overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: true }
-        })
+        // Switching to delivery on an account with no phone needs a number first; the server
+        // refuses the switch without one, so wait for it (see confirmDeliverySwitch).
+        if (method === 'delivery' && deliveryContactNeeded(selectedRequest.value)) return
+        applyMethodSwitch(requestId, method)
     }
+}
+
+// Whether a switch to delivery is waiting on the customer's phone number.
+const switchAwaitsContact = (request: OrderRequest | null): boolean =>
+    !!request && request.id != null && !!overrideMethodPickerFor.value[request.id]
+    && selectedPaymentMethodByRequest.value[request.id] === 'delivery' && deliveryContactNeeded(request)
+
+const confirmDeliverySwitch = (requestId: number | string): void => {
+    if (!deliveryContactResult(selectedRequest.value).ok) return
+    applyMethodSwitch(requestId, 'delivery')
+}
+
+const applyMethodSwitch = (requestId: number | string, method: string): void => {
+    overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: false }
+    const prevMethod = selectedRequest.value?.fulfillment_type
+    const prevReceiver = selectedRequest.value
+        ? { recipient_name: selectedRequest.value.recipient_name, recipient_phone: selectedRequest.value.recipient_phone, recipient_email: selectedRequest.value.recipient_email }
+        : null
+    if (selectedRequest.value?.id === requestId) {
+        // The server drops the receiver when the order goes to pickup, so do the same here.
+        const dropped = method === 'pickup' ? { recipient_name: null, recipient_phone: null, recipient_email: null } : {}
+        selectedRequest.value = { ...selectedRequest.value, fulfillment_type: method, ...dropped }
+    }
+    submitFulfillmentChoice(requestId, method).catch(err => {
+        showToast(err instanceof Error ? err.message : 'Could not update fulfillment choice', 'error')
+        if (selectedRequest.value?.id === requestId) {
+            selectedRequest.value = { ...selectedRequest.value, fulfillment_type: prevMethod ?? undefined, ...(prevReceiver ?? {}) }
+        }
+        overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: true }
+    })
 }
 
 const requiresMethodSelection = (request: OrderRequest | null): boolean => {
@@ -3122,7 +3152,11 @@ const paystackChargeTotal = computed<number | null>(() => {
 const payNeedsChoice = computed<boolean>(() => !!selectedRequest.value && !canPayWithSelection(selectedRequest.value))
 const walletShort = computed<boolean>(() => !payNeedsChoice.value && selectedMethodTotal.value != null && walletBalance.value < selectedMethodTotal.value)
 const walletBlockReason = computed<string>(() => {
-    if (payNeedsChoice.value) return 'Choose pickup or delivery to see your total.'
+    if (payNeedsChoice.value) {
+        return deliveryContactNeeded(selectedRequest.value) && !deliveryContactResult(selectedRequest.value).ok
+            ? 'Add a phone number we can reach you on to continue.'
+            : 'Choose pickup or delivery to see your total.'
+    }
     if (walletShort.value) return `Your wallet has GHS ${walletBalance.value.toFixed(2)}. Top up to pay with it.`
     return ''
 })
