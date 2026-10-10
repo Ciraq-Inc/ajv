@@ -326,6 +326,68 @@ describe('Request payment: delivering to someone else', () => {
   })
 })
 
+describe('Request payment: once delivery is locked in', () => {
+  const LOCKED = { fulfillment_type: 'delivery', items_total: 50, delivery_fee: 5, estimated_total: 55 }
+  const WITH_RECEIVER = { ...LOCKED, recipient_name: 'Ama Mensah', recipient_phone: '+233244000111', recipient_email: '', recipient_locked: false }
+  const card = () => dialog()!.querySelector('[data-testid="receiver-card"]') as HTMLElement | null
+  const cardBtn = (text: string) => card() ? find(card()!, 'button', text) as HTMLButtonElement | null : null
+  const type = async (sel: string, v: string) => { const e = card()!.querySelector(sel) as HTMLInputElement; e.value = v; e.dispatchEvent(new Event('input')); await flushPromises() }
+  const recipientPuts = () => api.request.mock.calls.filter(([url, o]) => String(url).endsWith('/recipient') && o?.method === 'PUT')
+  const changeMethod = async () => click(find(dialog()!, 'button', ' method'))
+
+  it('shows the total once, not an estimate and then the same total again beside the Pay buttons', async () => {
+    await open({ detail: LOCKED })
+
+    expect(dialog()!.querySelector('[data-testid="request-totals"]')).toBeNull()
+    expect(payment().querySelector('[data-testid="payment-total"]')!.textContent).toContain('GHS 55.00')
+    expect(payment().textContent).toContain('GHS 5.00 delivery')
+  })
+
+  it('does not bring back a receiver the server dropped when the customer switches to pickup and back', async () => {
+    await open({ detail: WITH_RECEIVER })
+    expect(card()!.textContent).toContain('Ama Mensah')
+
+    await changeMethod()
+    await click(radio('Pickup'))
+    await changeMethod()
+    await click(radio('Delivery'))
+
+    expect(card()?.textContent ?? '').not.toContain('Ama Mensah')
+  })
+
+  it('lets the customer name a receiver after delivery is already locked in', async () => {
+    await open({ detail: LOCKED })
+    expect(card()).not.toBeNull()
+    expect(card()!.textContent).toContain('Delivering to someone else?')
+
+    await click(cardBtn('Add a receiver'))
+    await type('#detail-receiver-name', 'Esi Owusu')
+    await type('#detail-receiver-phone', '020 400 0222')
+    await click(cardBtn('Save'))
+
+    expect(recipientPuts()).toHaveLength(1)
+    expect(JSON.parse(recipientPuts()[0]![1].body)).toMatchObject({ recipient_name: 'Esi Owusu', recipient_phone: '+233204000222' })
+    expect(card()!.textContent).toContain('Esi Owusu')
+  })
+
+  it('does not offer to add a receiver for pickup', async () => {
+    await open({ detail: { ...LOCKED, fulfillment_type: 'pickup' } })
+
+    expect(card()).toBeNull()
+  })
+
+  it('lets the customer take the receiver off and deliver to themselves again', async () => {
+    await open({ detail: WITH_RECEIVER })
+    await click(cardBtn('Change'))
+    await click(cardBtn('Deliver to me instead'))
+
+    expect(recipientPuts()).toHaveLength(1)
+    expect(JSON.parse(recipientPuts()[0]![1].body)).not.toHaveProperty('recipient_phone')
+    expect(card()!.textContent).not.toContain('Ama Mensah')
+    expect(card()!.textContent).toContain('Delivering to someone else?')
+  })
+})
+
 describe('Request payment: paying', () => {
   it('pays from the wallet with the main button when the balance covers it', async () => {
     await open({ detail: { fulfillment_type: 'delivery' }, balance: 100 })

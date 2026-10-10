@@ -457,8 +457,14 @@
                     </div>
 
                     <!-- Who the delivery is for, when it is someone else. Editable until a rider is assigned. -->
-                    <div v-if="selectedRequest.recipient_phone && selectedRequest.fulfillment_type !== 'pickup'" data-testid="receiver-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
-                        <template v-if="!editingReceiver">
+                    <div v-if="receiverCardShown(selectedRequest)" data-testid="receiver-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
+                        <template v-if="!editingReceiver && !selectedRequest.recipient_phone">
+                            <p class="text-base font-semibold text-ink-900">Delivering to someone else?</p>
+                            <p class="mt-1 text-sm text-ink-600">They only get the delivery code and the delivered or not-delivered notes. You still get every update.</p>
+                            <button type="button" @click="startEditingReceiver"
+                                class="mt-2 min-h-[44px] rounded-full px-3 text-base font-semibold text-brand-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">Add a receiver</button>
+                        </template>
+                        <template v-else-if="!editingReceiver">
                             <p class="text-sm text-ink-600">Delivering to</p>
                             <p class="text-lg font-bold text-ink-900">{{ selectedRequest.recipient_name }}</p>
                             <p class="mt-0.5 text-base text-ink-600">{{ selectedRequest.recipient_phone }}<template v-if="selectedRequest.recipient_email"> · {{ selectedRequest.recipient_email }}</template></p>
@@ -489,6 +495,8 @@
                                     class="min-h-[44px] rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">Save</button>
                                 <button type="button" :disabled="savingReceiver" @click="editingReceiver = false"
                                     class="min-h-[44px] rounded-full px-4 text-base font-semibold text-ink-900 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">Cancel</button>
+                                <button v-if="selectedRequest.recipient_phone" type="button" :disabled="savingReceiver" @click="removeReceiver"
+                                    class="min-h-[44px] rounded-full px-4 text-base font-semibold text-ink-900 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">Deliver to me instead</button>
                             </div>
                         </form>
                         <p v-if="receiverFormError" role="alert" class="mt-2 text-sm font-medium text-red-700">{{ receiverFormError }}</p>
@@ -520,7 +528,7 @@
 
                     <!-- Totals (hidden while pickup vs delivery is still being chosen — the
                          comparison cards below carry per-method totals) -->
-                    <dl v-if="selectedRequest.estimated_total && !requiresMethodSelection(selectedRequest)" data-testid="request-totals" class="mb-4 space-y-2 rounded-2xl bg-ink-50 px-4 py-4">
+                    <dl v-if="selectedRequest.estimated_total && !requiresMethodSelection(selectedRequest) && !paymentTotalShown(selectedRequest)" data-testid="request-totals" class="mb-4 space-y-2 rounded-2xl bg-ink-50 px-4 py-4">
                         <div class="flex justify-between text-base text-ink-600">
                             <dt>Items total</dt>
                             <dd class="tabular-nums">GHS {{ parseFloat(String(selectedRequest.items_total ?? 0)).toFixed(2) }}</dd>
@@ -819,6 +827,7 @@
                             <span class="text-base font-semibold text-ink-900">Total</span>
                             <span data-testid="payment-total" class="font-display text-2xl font-bold tabular-nums text-ink-900">GHS {{ selectedMethodTotal.toFixed(2) }}</span>
                         </div>
+                        <p v-if="selectedDeliveryAmount != null" class="-mt-3 px-1 text-sm text-ink-600">Includes GHS {{ selectedDeliveryAmount.toFixed(2) }} delivery</p>
 
                         <!-- Pay -->
                         <div class="space-y-3">
@@ -1747,6 +1756,13 @@ const detailReceiverName = ref<string>('')
 const detailReceiverPhone = ref<string>('')
 const detailReceiverEmail = ref<string>('')
 const detailReceiverForeign = computed<boolean>(() => isForeignReceiverPhone(detailReceiverPhone.value))
+// The card shows who the delivery is for. While the order can still be paid for it also lets the
+// customer add (or drop) a receiver they did not name at the delivery step.
+const receiverCardShown = (request: OrderRequest | null): boolean => {
+    if (!request) return false
+    if (request.recipient_phone && request.fulfillment_type !== 'pickup') return true
+    return request.fulfillment_type === 'delivery' && canPayRequest(request) && !request.pending_decisions?.length && !request.recipient_locked
+}
 const startEditingReceiver = (): void => {
     detailReceiverName.value = String(selectedRequest.value?.recipient_name ?? '')
     detailReceiverPhone.value = String(selectedRequest.value?.recipient_phone ?? '')
@@ -1778,6 +1794,25 @@ const saveReceiver = async (): Promise<void> => {
     } catch (err) {
         receiverFormError.value = err instanceof Error && err.message ? err.message : 'Could not change the receiver. Try again.'
         // 409 = a rider has since been assigned: nothing more to edit.
+        if ((err as ApiError).status === 409) {
+            selectedRequest.value = { ...request, recipient_locked: true }
+            editingReceiver.value = false
+        }
+    } finally {
+        savingReceiver.value = false
+    }
+}
+const removeReceiver = async (): Promise<void> => {
+    const request = selectedRequest.value
+    if (!request || savingReceiver.value) return
+    savingReceiver.value = true
+    receiverFormError.value = ''
+    try {
+        await apiCall('PUT', `/api/order-requests/customer/${String(request.id)}/recipient`, {})
+        selectedRequest.value = { ...request, recipient_name: null, recipient_phone: null, recipient_email: null }
+        editingReceiver.value = false
+    } catch (err) {
+        receiverFormError.value = err instanceof Error && err.message ? err.message : 'Could not change the receiver. Try again.'
         if ((err as ApiError).status === 409) {
             selectedRequest.value = { ...request, recipient_locked: true }
             editingReceiver.value = false
@@ -2998,13 +3033,18 @@ const choosePaymentMethod = (requestId: number | string, method: string): void =
     if (overrideMethodPickerFor.value[requestId]) {
         overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: false }
         const prevMethod = selectedRequest.value?.fulfillment_type
+        const prevReceiver = selectedRequest.value
+            ? { recipient_name: selectedRequest.value.recipient_name, recipient_phone: selectedRequest.value.recipient_phone, recipient_email: selectedRequest.value.recipient_email }
+            : null
         if (selectedRequest.value?.id === requestId) {
-            selectedRequest.value = { ...selectedRequest.value, fulfillment_type: method }
+            // The server drops the receiver when the order goes to pickup, so do the same here.
+            const dropped = method === 'pickup' ? { recipient_name: null, recipient_phone: null, recipient_email: null } : {}
+            selectedRequest.value = { ...selectedRequest.value, fulfillment_type: method, ...dropped }
         }
         submitFulfillmentChoice(requestId, method).catch(err => {
             showToast(err instanceof Error ? err.message : 'Could not update fulfillment choice', 'error')
             if (selectedRequest.value?.id === requestId) {
-                selectedRequest.value = { ...selectedRequest.value, fulfillment_type: prevMethod ?? undefined }
+                selectedRequest.value = { ...selectedRequest.value, fulfillment_type: prevMethod ?? undefined, ...(prevReceiver ?? {}) }
             }
             overrideMethodPickerFor.value = { ...overrideMethodPickerFor.value, [requestId]: true }
         })
@@ -3057,6 +3097,19 @@ const selectedMethodTotal = computed<number | null>(() => {
         return total != null ? Number(total) : null
     }
     return null
+})
+// The payment block's live total stands in for the estimate once it is on screen.
+const paymentTotalShown = (request: OrderRequest | null): boolean =>
+    !!request && canPayRequest(request) && !request.pending_decisions?.length && selectedMethodTotal.value != null
+// What the chosen delivery costs, for the line under the total.
+const selectedDeliveryAmount = computed<number | null>(() => {
+    const req = selectedRequest.value
+    if (!req || req.id == null || selectedMethodTotal.value == null) return null
+    const method = req.fulfillment_type ?? selectedPaymentMethodByRequest.value[req.id]
+    if (method !== 'delivery') return null
+    const rate = selectedDeliveryRate(req)
+    const amount = rate ? Number(rate.amount ?? 0) : Number(paymentOptionsByRequest.value[req.id]?.delivery?.fee ?? NaN)
+    return Number.isFinite(amount) && amount > 0 ? amount : null
 })
 // Total charged via Paystack = order total + Paystack processing fee (1.95% + GHS 0.50)
 const paystackChargeTotal = computed<number | null>(() => {
