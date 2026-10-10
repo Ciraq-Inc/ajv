@@ -1716,9 +1716,18 @@
                 </div>
                 <span class="status-badge cancelled">{{ formatStatus(selectedRequest?.status) }}</span>
               </div>
-              <button class="btn btn-sm btn-primary" :disabled="redelivering" @click="redeliverRequest">
-                {{ redelivering ? 'Reopening…' : 'Redeliver' }}
-              </button>
+              <div class="delivery-failed-actions">
+                <button class="btn btn-sm btn-primary" :disabled="redelivering || refundingFailed" @click="redeliverRequest">
+                  {{ redelivering ? 'Reopening…' : 'Redeliver' }}
+                </button>
+                <button class="btn btn-sm btn-secondary" :disabled="redelivering || refundingFailed" data-testid="refund-failed-delivery" @click="refundFailedDelivery">
+                  {{ refundingFailed ? 'Refunding…' : 'Refund customer' }}
+                </button>
+                <label class="delivery-failed-returned">
+                  <input v-model="failedGoodsReturned" type="checkbox" data-testid="goods-returned" />
+                  Goods returned to the pharmacy (takes back the pharmacy's credit)
+                </label>
+              </div>
             </section>
           </template>
 
@@ -4478,6 +4487,28 @@ const redeliverRequest = async () => {
   }
 }
 
+const refundingFailed = ref(false)
+const failedGoodsReturned = ref(false)
+const refundFailedDelivery = async () => {
+  if (!selectedRequest.value?.id || refundingFailed.value) return
+  const returned = failedGoodsReturned.value
+  const question = returned
+    ? 'Refund the customer in full (delivery fee included) and take back the pharmacy credit?'
+    : 'Refund the customer in full (delivery fee included)? The pharmacy keeps its credit and the platform absorbs the cost.'
+  if (!window.confirm(question)) return
+  refundingFailed.value = true
+  try {
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/refund-failed-delivery`, { goods_returned: returned })
+    failedGoodsReturned.value = false
+    showMessage('Customer refunded to their wallet', 'success')
+    await refreshSelectedRequestDetails()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to refund the customer', 'error')
+  } finally {
+    refundingFailed.value = false
+  }
+}
+
 const openAssignToPharmacy = (delivery: Delivery) => {
   assignPharmacyModal.value = { delivery }
 }
@@ -6941,6 +6972,20 @@ definePageMeta({
 
 
 <style scoped>
+.delivery-failed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+.delivery-failed-returned {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  flex-basis: 100%;
+}
+
 @import '~/assets/css/order-requests.css';
 .provider-readonly-strip {
   display: flex;
