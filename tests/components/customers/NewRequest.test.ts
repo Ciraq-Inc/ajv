@@ -194,6 +194,14 @@ describe('New request: wallet gate', () => {
     expect(w.text()).not.toContain('Top up to continue')
     expect(w.text()).toContain('Free')
   })
+
+  it('is not shown, and the send button says Free, while the fee is switched off', async () => {
+    const w = await open({ balance: 0, settings: { request_submission_fee: 0 } })
+
+    expect(w.text()).not.toContain('Top up to continue')
+    expect(sendButton(w).text()).toContain('Free')
+    expect(sendButton(w).text()).not.toContain('GHS')
+  })
 })
 
 // ───────────────────────────────────────────────────────────────────────────

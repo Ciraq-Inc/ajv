@@ -264,7 +264,7 @@
                     <template v-else>
                         <span>Send Request</span>
                         <span class="h-4 w-px bg-white/30" aria-hidden="true"></span>
-                        <span class="text-sm font-medium opacity-80">{{ isProfessional ? 'Free · Pro' : firstRequestFree ? 'Free · first request' : `GHS ${requestFee.toFixed(2)}` }}</span>
+                        <span class="text-sm font-medium opacity-80">{{ isProfessional ? 'Free · Pro' : firstRequestFree ? 'Free · first request' : requestFee > 0 ? `GHS ${requestFee.toFixed(2)}` : 'Free' }}</span>
                     </template>
                 </button>
                 <p v-if="sendWhy" id="send-why" class="text-center text-sm text-ink-600">{{ sendWhy }}</p>
