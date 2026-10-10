@@ -63,6 +63,8 @@
   body {
     overflow-x: clip;
     max-width: 100%;
+    /* No double-tap zoom: quick taps on buttons must not zoom the page. */
+    touch-action: manipulation;
   }
 
   /* Dialog scroll-lock must not change the width of the page underneath it. */
