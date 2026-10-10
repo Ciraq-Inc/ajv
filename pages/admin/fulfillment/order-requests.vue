@@ -6918,6 +6918,7 @@ definePageMeta({
 
 
 <style scoped>
+@import '~/assets/css/order-requests.css';
 .delivery-failed-actions {
   display: flex;
   flex-wrap: wrap;
@@ -6931,8 +6932,6 @@ definePageMeta({
   font-size: 0.8125rem;
   flex-basis: 100%;
 }
-
-@import '~/assets/css/order-requests.css';
 .provider-readonly-strip {
   display: flex;
   flex-wrap: wrap;
