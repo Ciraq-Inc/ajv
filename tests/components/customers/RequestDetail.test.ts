@@ -297,6 +297,31 @@ describe('Request detail: the delivery code', () => {
   })
 })
 
+describe('Request detail: the pickup code', () => {
+  const PICKUP = { fulfillment_type: 'pickup', pharmacy: { name: 'P', address: 'A', phone: '0302123456' } }
+
+  it('shows the code to show at the pharmacy, in plain large type, with what to do with it', async () => {
+    await open({ ...PICKUP, status: 'ready_for_pickup', pickup_code: '0417' })
+    const card = part('[data-testid="pickup-code"]')!
+
+    expect(card.textContent).toContain('0417')
+    expect(card.textContent).toMatch(/show (this|the) code/i)
+    expect(card.textContent).toMatch(/only/i)
+  })
+
+  it('shows nothing while the order is still being prepared', async () => {
+    await open({ ...PICKUP, status: 'preparing', pickup_code: null })
+
+    expect(part('[data-testid="pickup-code"]')).toBeNull()
+  })
+
+  it('shows nothing once the order has been collected', async () => {
+    await open({ ...PICKUP, status: 'completed', pickup_code: null })
+
+    expect(part('[data-testid="pickup-code"]')).toBeNull()
+  })
+})
+
 describe('Request detail: look, part two', () => {
   it('uses brand tokens in the method strip, rider, pickup and totals', async () => {
     await open({ ...PAID_DELIVERY, rider_name: 'Kofi', rider_phone: '0244000111' })

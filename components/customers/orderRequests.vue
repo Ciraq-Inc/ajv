@@ -495,6 +495,13 @@
                         <p class="mt-2 text-base text-ink-600">Give this code to the rider when your order arrives. Give it only to the rider, and only once you have your order.</p>
                     </div>
 
+                    <!-- Pickup code: what the pharmacy needs to see before handing the order over -->
+                    <div v-if="selectedRequest.pickup_code" data-testid="pickup-code" class="mb-4 rounded-2xl bg-brand-50 px-4 py-4">
+                        <p class="text-sm text-ink-600">Your pickup code</p>
+                        <p class="mt-1 text-4xl font-bold tracking-[0.3em] text-ink-900" aria-label="Pickup code">{{ selectedRequest.pickup_code }}</p>
+                        <p class="mt-2 text-base text-ink-600">Show this code at the pharmacy when you collect your order. Show it only to the pharmacy, and only when you are there.</p>
+                    </div>
+
                     <!-- Who the delivery is for, when it is someone else. Editable until a rider is assigned. -->
                     <div v-if="selectedRequest.recipient_phone && selectedRequest.fulfillment_type !== 'pickup'" data-testid="receiver-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
                         <template v-if="!editingReceiver">
@@ -1276,6 +1283,7 @@ interface OrderRequest {
     rider_phone?: string;
     rider_name?: string;
     delivery_code?: string | null;
+    pickup_code?: string | null;
     recipient_name?: string | null;
     recipient_phone?: string | null;
     recipient_email?: string | null;

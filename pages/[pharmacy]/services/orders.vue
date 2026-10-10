@@ -157,6 +157,28 @@
             </div>
           </div>
 
+          <!-- Pickup: prepare, mark ready, hand over against the customer's code -->
+          <div v-if="detailOrder?.fulfillment_type === 'pickup' && ['preparing', 'ready_for_pickup'].includes(detailOrder?.status ?? '')" data-testid="pickup-actions" class="px-5 py-4 border-b border-gray-200 space-y-3">
+            <template v-if="detailOrder?.status === 'preparing'">
+              <p class="text-sm text-gray-700">When the order is packed, mark it ready. The customer gets a 4-digit code to show when they collect.</p>
+              <button type="button" :disabled="pickup.busy.value" @click="markReady" class="w-full px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-60 transition">
+                {{ pickup.busy.value ? 'Marking ready...' : 'Mark ready for pickup' }}
+              </button>
+            </template>
+            <template v-else>
+              <label for="pickup-code" class="block text-sm font-medium text-gray-800">Customer's pickup code</label>
+              <div class="flex gap-2">
+                <input id="pickup-code" v-model="pickupCode" type="text" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="4 digits"
+                  class="flex-1 min-w-0 rounded-lg border border-gray-300 px-3 py-2 text-lg tracking-widest tabular-nums" @keyup.enter="handOver" />
+                <button type="button" :disabled="pickup.busy.value" @click="handOver" class="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-60 transition">
+                  {{ pickup.busy.value ? 'Checking...' : 'Hand over' }}
+                </button>
+              </div>
+              <p class="text-xs text-gray-500">Only hand the order over once the code matches.</p>
+            </template>
+            <p v-if="pickupError" role="alert" class="text-sm text-red-600">{{ pickupError }}</p>
+          </div>
+
           <!-- Items -->
           <div class="flex-1 overflow-y-auto p-5">
             <div v-if="detailLoading" class="py-12 text-center text-gray-500 text-sm">Loading items...</div>
@@ -336,6 +358,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useCompanyStore } from '~/stores/company'
+import { usePickupHandover } from '~/composables/usePickupHandover'
 
 definePageMeta({
   middleware: ['company-auth'],
@@ -503,6 +526,8 @@ const formatDate = (d: string | null | undefined): string => {
 const openDetail = async (order: OrderRow): Promise<void> => {
   detailOrder.value = order
   detailItems.value = []
+  pickupCode.value = ''
+  pickupError.value = ''
   detailOpen.value = true
   detailLoading.value = true
   try {
@@ -515,6 +540,36 @@ const openDetail = async (order: OrderRow): Promise<void> => {
     console.error('Failed to fetch order detail', e)
   } finally {
     detailLoading.value = false
+  }
+}
+
+const pickup = usePickupHandover((url, options) => companyStore.makeAuthRequest(url, options))
+const pickupCode = ref<string>('')
+const pickupError = ref<string>('')
+
+const setStatus = (order: OrderRow, status: string): void => {
+  order.status = status
+  const inList = orders.value.find(o => o.id === order.id)
+  if (inList) inList.status = status
+}
+
+const markReady = async (): Promise<void> => {
+  if (!detailOrder.value) return
+  pickupError.value = ''
+  const result = await pickup.markReady(detailOrder.value.id)
+  if (result.ok) setStatus(detailOrder.value, 'ready_for_pickup')
+  else pickupError.value = result.message
+}
+
+const handOver = async (): Promise<void> => {
+  if (!detailOrder.value) return
+  pickupError.value = ''
+  const result = await pickup.handOver(detailOrder.value.id, pickupCode.value)
+  if (result.ok) {
+    pickupCode.value = ''
+    setStatus(detailOrder.value, 'completed')
+  } else {
+    pickupError.value = result.message
   }
 }
 
