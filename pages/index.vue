@@ -73,10 +73,10 @@
             </div>
 
             <div v-else>
-              <!-- Tab switcher: Create account (default) <-> Quick request -->
+              <!-- Tab switcher: Sign in (default) <-> Quick request -->
               <Tabs v-model="heroTab" class="mb-3">
                 <TabsList class="flex w-full bg-ink-50" aria-label="How would you like to get started?">
-                  <TabsTrigger value="signup">Create account</TabsTrigger>
+                  <TabsTrigger value="signup">Sign in</TabsTrigger>
                   <TabsTrigger value="guest">Quick request</TabsTrigger>
                 </TabsList>
 
@@ -138,7 +138,7 @@ const route = useRoute()
 const authChecking = ref<boolean>(true)
 
 const heroTab = ref<'signup' | 'guest'>('signup')
-const heroLoginInitialView = ref<'login' | 'signup'>('signup')
+const heroLoginInitialView = ref<'login' | 'signup'>('login')
 
 // Pre-filled items when the guest arrives from the Clearance Marketplace (rOS) —
 // shown as a product list instead of the freeform textarea.

@@ -90,35 +90,35 @@ describe('home page: sign-in area', () => {
     expect(store.checkAuthState).toHaveBeenCalledTimes(1)
   })
 
-  it('leads with the headline and the account sign-up card for a logged-out visitor', async () => {
+  it('leads with the headline and the sign-in card for a logged-out visitor', async () => {
     const wrapper = await open()
 
     expect(wrapper.find('h1').text()).toBe('Order any medication online.')
-    expect(wrapper.find('[data-testid="login-inline"]').attributes('data-view')).toBe('signup')
+    expect(wrapper.find('[data-testid="login-inline"]').attributes('data-view')).toBe('login')
     expect(wrapper.find('#hero-medications').isVisible()).toBe(false)
   })
 
-  it('switches between "Create account" and "Quick request"', async () => {
+  it('switches between "Sign in" and "Quick request"', async () => {
     const wrapper = await open()
-    const tab = (label: string) => wrapper.findAll('button').find(b => b.text() === label)!
+    const tab = (label: string) => wrapper.findAll('[role="tab"]').find(b => b.text() === label)!
 
     await press(tab('Quick request'))
     expect(wrapper.find('#hero-medications').isVisible()).toBe(true)
     expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(false)
 
-    await press(tab('Create account'))
+    await press(tab('Sign in'))
     expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(true)
     expect(wrapper.find('#hero-medications').isVisible()).toBe(false)
   })
 
   it('keeps what the visitor typed when they peek at the other tab and come back', async () => {
     const wrapper = await open()
-    const tab = (label: string) => wrapper.findAll('button').find(b => b.text() === label)!
+    const tab = (label: string) => wrapper.findAll('[role="tab"]').find(b => b.text() === label)!
     await press(tab('Quick request'))
     await wrapper.find('#hero-medications').setValue('Paracetamol 500mg')
     await wrapper.find('#hero-phone').setValue('0244123456')
 
-    await press(tab('Create account'))
+    await press(tab('Sign in'))
     await press(tab('Quick request'))
 
     expect((wrapper.find('#hero-medications').element as HTMLTextAreaElement).value).toBe('Paracetamol 500mg')
@@ -129,7 +129,7 @@ describe('home page: sign-in area', () => {
     const wrapper = await open()
     await press(wrapper.findAll('button').find(b => b.text() === 'Quick request')!)
 
-    await wrapper.findAll('button').find(b => b.text() === 'Sign in')!.trigger('click')
+    await wrapper.findAll('button:not([role="tab"])').find(b => b.text() === 'Sign in')!.trigger('click')
 
     expect(wrapper.find('[data-testid="login-inline"]').attributes('data-view')).toBe('login')
   })
