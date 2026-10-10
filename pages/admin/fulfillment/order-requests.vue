@@ -5615,8 +5615,32 @@ const handlePharmacyContactStatus = async ({ pharmacy, action, note }: { pharmac
   await recordPharmacyContactAction(pharmacy, action ?? '', opts)
 }
 
+// Marking an order paid has to run the real payment: it credits the pharmacies
+// and sends the order out. A bare status change would do neither.
+const confirmPaymentReceived = async () => {
+  if (!selectedRequest.value) return
+  const ok = window.confirm('Confirm that you have received payment for this order? This credits the pharmacies and sends the order out.')
+  if (!ok) {
+    selectedStatus.value = ''
+    return
+  }
+  loading.value = true
+  try {
+    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/confirm-manual-payment`, { method: 'manual' })
+    selectedStatus.value = ''
+    showStatusOverride.value = false
+    showMessage(res?.message || 'Payment confirmed', 'success')
+    await refreshSelectedRequestDetails()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to confirm payment', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
 const updateStatus = async () => {
   if (!selectedRequest.value || !selectedStatus.value) return
+  if (selectedStatus.value === 'paid') return confirmPaymentReceived()
   loading.value = true
   try {
     const newStatus = selectedStatus.value
