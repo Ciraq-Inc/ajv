@@ -1,69 +1,59 @@
 <template>
   <div class="min-h-full bg-transparent">
     <UiDialog v-model:open="successModalOpen" data-print-hide>
-      <UiDialogContent class="!flex !flex-col !w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] !gap-0 overflow-hidden rounded-xl border-slate-200 bg-white p-0 box-border sm:!max-w-[420px]">
-        <div class="px-6 py-7 text-center sm:px-8">
-          <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <CheckCircleIcon class="h-6 w-6" aria-hidden="true" />
-          </span>
-          <UiDialogTitle class="mt-4 text-base font-semibold text-slate-950">{{ successModal?.title }}</UiDialogTitle>
-          <p v-if="successModal?.amount" class="mt-1.5 text-2xl font-semibold tabular-nums text-slate-950">{{ formatMoney(successModal.amount) }}</p>
-          <UiDialogDescription class="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">{{ successModal?.message }}</UiDialogDescription>
+      <UiDialogContent class="ad-dlg ad-dlg-sm !flex !flex-col !gap-0 !p-0 !border-0">
+        <div class="ad-dlg-body ad-center">
+          <span class="ad-tick" aria-hidden="true"><CheckIcon class="ad-ico" /></span>
+          <UiDialogTitle class="ad-dlg-title">{{ successModal?.title }}</UiDialogTitle>
+          <p v-if="successModal?.amount" class="ad-big">{{ formatMoney(successModal.amount) }}</p>
+          <UiDialogDescription class="ad-dlg-sub ad-wrap">{{ successModal?.message }}</UiDialogDescription>
         </div>
-        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-          <button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:text-slate-950" @click="dismissSuccessModal">Close</button>
-          <button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800" @click="focusLedgerFromSuccess">View ledger</button>
-        </div>
+        <footer class="ad-dlg-foot">
+          <span class="ad-dlg-meta" />
+          <div class="ad-dlg-actions">
+            <button type="button" class="ad-btn ad-btn-quiet" @click="dismissSuccessModal">Close</button>
+            <button type="button" class="ad-btn ad-btn-primary" @click="focusLedgerFromSuccess">View ledger</button>
+          </div>
+        </footer>
       </UiDialogContent>
     </UiDialog>
 
     <UiDialog v-model:open="confirmationModalOpen" data-print-hide>
-      <UiDialogContent class="!flex !flex-col !w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] !gap-0 overflow-hidden rounded-xl border-slate-200 bg-white p-0 box-border sm:!max-w-[420px]">
-        <div class="px-6 py-6 sm:px-7">
-          <div class="flex items-start gap-3.5">
-            <span v-if="confirmationTone === 'danger'" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-              <ExclamationTriangleIcon class="h-5 w-5" aria-hidden="true" />
-            </span>
-            <span v-else-if="!confirmationModal?.amount" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-              <QuestionMarkCircleIcon class="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div class="min-w-0 flex-1">
-              <UiDialogTitle class="text-base font-semibold text-slate-950">{{ confirmationModal?.title }}</UiDialogTitle>
-              <p v-if="confirmationModal?.amount" class="mt-2 text-2xl font-semibold tabular-nums text-slate-950">{{ formatMoney(confirmationModal.amount) }}</p>
-              <UiDialogDescription class="mt-1.5 text-sm leading-6 text-slate-500">{{ confirmationModal?.message }}</UiDialogDescription>
-            </div>
+      <UiDialogContent class="ad-dlg ad-dlg-sm !flex !flex-col !gap-0 !p-0 !border-0">
+        <div class="ad-dlg-body ad-center">
+          <span v-if="confirmationTone === 'danger'" class="ad-tick is-danger" aria-hidden="true"><ExclamationTriangleIcon class="ad-ico" /></span>
+          <UiDialogTitle class="ad-dlg-title">{{ confirmationModal?.title }}</UiDialogTitle>
+          <p v-if="confirmationModal?.amount" class="ad-big">{{ formatMoney(confirmationModal.amount) }}</p>
+          <UiDialogDescription class="ad-dlg-sub ad-wrap">{{ confirmationModal?.message }}</UiDialogDescription>
+        </div>
+        <footer class="ad-dlg-foot">
+          <span class="ad-dlg-meta" />
+          <div class="ad-dlg-actions">
+            <button type="button" :disabled="isConfirming" class="ad-btn ad-btn-quiet" @click="cancelConfirmation">Cancel</button>
+            <button type="button" :disabled="isConfirming" class="ad-btn" :class="confirmationTone === 'danger' ? 'ad-btn-danger-fill' : 'ad-btn-primary'" @click="confirmPendingAction">{{ isConfirming ? 'Working…' : (confirmationModal?.confirmLabel || 'Confirm') }}</button>
           </div>
-        </div>
-        <div class="flex flex-col-reverse gap-2 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-          <button type="button" :disabled="isConfirming" class="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:text-slate-950 disabled:opacity-60" @click="cancelConfirmation">Cancel</button>
-          <button type="button" :disabled="isConfirming" class="inline-flex min-h-9 items-center justify-center rounded-lg px-4 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60" :class="confirmationTone === 'danger' ? 'bg-rose-600 hover:bg-rose-700 focus-visible:ring-rose-600' : 'bg-slate-950 hover:bg-slate-800 focus-visible:ring-slate-950'" @click="confirmPendingAction">{{ isConfirming ? 'Working…' : (confirmationModal?.confirmLabel || 'Confirm') }}</button>
-        </div>
+        </footer>
       </UiDialogContent>
     </UiDialog>
-    <div v-if="isLoading" class="mx-auto max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8" aria-label="Loading account">
-      <div class="space-y-4">
-        <div class="h-5 w-24 animate-pulse rounded bg-slate-200" />
-        <div class="h-20 w-2/3 animate-pulse rounded-xl bg-white" />
-        <div class="h-28 animate-pulse rounded-xl bg-white" />
-        <div class="h-[420px] animate-pulse rounded-xl bg-white" />
-      </div>
+    <div v-if="isLoading" class="ad" aria-busy="true" aria-label="Loading account">
+      <div class="ad-skel ad-skel-head" />
+      <div class="ad-skel ad-skel-strip" />
+      <div class="ad-skel ad-skel-card" />
     </div>
 
-    <div v-else-if="error" class="mx-auto max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <section class="rounded-xl border border-rose-200 bg-white p-8 text-center shadow-sm sm:p-12">
-        <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-          <ExclamationTriangleIcon class="h-5 w-5" aria-hidden="true" />
-        </div>
-        <h1 class="mt-4 text-base font-semibold text-slate-950">We could not load this account</h1>
-        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{{ error }}</p>
-        <div class="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-          <button type="button" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2" @click="loadCurrentAccount">Try again</button>
-          <NuxtLink :to="accountsPath" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2">Back to accounts</NuxtLink>
+    <div v-else-if="error" class="ad">
+      <section class="ad-panel" role="alert">
+        <ExclamationTriangleIcon class="ad-panel-ico is-err" aria-hidden="true" />
+        <h1>Could not load account</h1>
+        <p>{{ error }}</p>
+        <div class="ad-panel-actions">
+          <button type="button" class="ad-btn ad-btn-quiet" @click="loadCurrentAccount">Try again</button>
+          <NuxtLink :to="accountsPath" class="ad-btn ad-btn-primary">Back to accounts</NuxtLink>
         </div>
       </section>
     </div>
 
-    <div v-else-if="account" data-ledger-print-root class="mx-auto max-w-[1220px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+    <div v-else-if="account" data-ledger-print-root class="ad">
       <div data-ledger-print-document class="hidden">
         <div class="print-document__masthead">
           <div>
@@ -133,142 +123,113 @@
         </div>
       </div>
 
-      <header data-print-hide class="mb-4 flex flex-col gap-5 border-b border-slate-200/80 pb-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="min-w-0">
-          <NuxtLink :to="accountsPath" class="inline-flex min-h-8 items-center gap-1 text-sm font-medium text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
-            <ArrowLeftIcon class="h-4 w-4" aria-hidden="true" />
-            Accounts
-          </NuxtLink>
-          <div class="mt-3 flex items-start gap-3 sm:gap-3.5">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50 text-slate-600">
-              <component :is="accountIcon(account.type)" class="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <h1 class="truncate text-2xl font-semibold tracking-tight text-slate-950">{{ account.name }}</h1>
-                <span class="inline-flex items-center text-sm text-slate-400">{{ accountTypeLabels[account.type] }}</span>
-              </div>
-              <p class="mt-0.5 truncate text-sm text-slate-500">{{ accountSubtitle(account) }}</p>
+      <header data-print-hide class="ad-head">
+        <nav class="ad-crumb" aria-label="Breadcrumb">
+          <NuxtLink :to="accountsPath">Accounts</NuxtLink>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{{ account.name }}</span>
+        </nav>
+        <div class="ad-titlebar">
+          <div class="ad-id">
+            <span class="ad-glyph"><component :is="accountIcon(account.type)" aria-hidden="true" /></span>
+            <div class="ad-name">
+              <h1>{{ account.name }}<span class="ad-tag">{{ accountTypeLabels[account.type] }}</span></h1>
+              <p>{{ accountSubtitle(account) }}</p>
             </div>
           </div>
-        </div>
-        <div v-if="isLoanAccount" class="flex w-full gap-2 sm:w-auto">
-          <button type="button" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:flex-none" @click="openLoanModal('repaid')"><ArrowUpIcon class="h-4 w-4" aria-hidden="true" />Make repayment</button>
-          <button type="button" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-slate-950 px-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:flex-none" @click="openLoanModal('received')"><ArrowDownIcon class="h-4 w-4" aria-hidden="true" />Receive loan</button>
-        </div>
-        <div v-else class="flex w-full gap-2 sm:w-auto">
-          <button type="button" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:flex-none" @click="openMoneyOutModal">
-            <ArrowUpIcon class="h-4 w-4" aria-hidden="true" />
-            Debit
-          </button>
-          <button type="button" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-slate-950 px-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 sm:flex-none" @click="openMoneyInModal">
-            <ArrowDownIcon class="h-4 w-4" aria-hidden="true" />
-            Credit
-          </button>
+          <div v-if="isLoanAccount" class="ad-actions">
+            <button type="button" class="ad-btn ad-btn-quiet" @click="openLoanModal('repaid')"><ArrowUpIcon class="ad-ico" aria-hidden="true" />Repay</button>
+            <button type="button" class="ad-btn ad-btn-primary" @click="openLoanModal('received')"><ArrowDownIcon class="ad-ico" aria-hidden="true" />Receive loan</button>
+          </div>
+          <div v-else class="ad-actions">
+            <button type="button" class="ad-btn ad-btn-quiet" @click="openMoneyOutModal"><ArrowUpIcon class="ad-ico" aria-hidden="true" />Debit</button>
+            <button type="button" class="ad-btn ad-btn-primary" @click="openMoneyInModal"><ArrowDownIcon class="ad-ico" aria-hidden="true" />Credit</button>
+          </div>
         </div>
       </header>
 
-      <section data-print-hide class="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div class="grid gap-4 px-5 py-4 sm:grid-cols-[1.2fr_1fr_1fr] sm:gap-0 sm:px-6">
-          <div class="sm:border-r sm:border-slate-100 sm:pr-6">
-            <p class="text-xs text-slate-400">{{ isLoanAccount ? 'Outstanding loan' : 'Current balance' }}</p>
-            <p class="mt-1 text-3xl font-semibold tracking-tight text-slate-950 tabular-nums">{{ formatMoney(account.currentBalance) }}</p>
-            <p class="mt-1.5 text-xs text-slate-400">Last activity {{ formatDate(account.lastMovementAt) }}</p>
-          </div>
-          <div class="flex items-center sm:px-6">
-            <div><p class="text-xs text-slate-400">{{ isLoanAccount ? 'Received' : 'Money in' }}</p><p class="mt-1 text-base font-semibold tabular-nums text-emerald-700">+{{ formatMoney(account.moneyIn) }}</p></div>
-          </div>
-          <div class="flex items-center sm:border-l sm:border-slate-100 sm:pl-6">
-            <div><p class="text-xs text-slate-400">{{ isLoanAccount ? 'Repaid' : 'Money out' }}</p><p class="mt-1 text-base font-semibold tabular-nums text-slate-700">&minus;{{ formatMoney(account.moneyOut) }}</p></div>
-          </div>
+      <dl data-print-hide class="ad-summary" aria-label="Summary">
+        <div>
+          <dt>{{ isLoanAccount ? 'Outstanding' : 'Balance' }}</dt>
+          <dd class="ad-lead"><small>GH₵</small>{{ splitMoney(account.currentBalance).neg ? '−' : '' }}{{ splitMoney(account.currentBalance).int }}<span>{{ splitMoney(account.currentBalance).dec }}</span></dd>
         </div>
-      </section>
+        <div>
+          <dt>{{ isLoanAccount ? 'Received' : 'Money in' }}</dt>
+          <dd class="ad-val">{{ formatMoney(account.moneyIn) }}</dd>
+        </div>
+        <div>
+          <dt>{{ isLoanAccount ? 'Repaid' : 'Money out' }}</dt>
+          <dd class="ad-val">{{ formatMoney(account.moneyOut) }}</dd>
+        </div>
+        <div>
+          <dt>Last activity</dt>
+          <dd class="ad-val" :class="{ 'is-none': !account.lastMovementAt }" :title="account.lastMovementAt ? formatDate(account.lastMovementAt) : undefined">{{ relativeWhen(account.lastMovementAt) }}</dd>
+        </div>
+      </dl>
 
-      <section
-        v-if="actionalCheques.length || isLoadingCheques"
-        data-print-hide
-        class="mb-4 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm"
-        aria-label="Cheques awaiting clearance"
-      >
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 bg-amber-50/70 px-5 py-3.5">
-          <div>
-            <h2 class="text-sm font-semibold text-slate-950">Cheques awaiting clearance</h2>
-            <p class="mt-0.5 text-xs text-slate-600">Received cheques are not part of the balance until they clear.</p>
-          </div>
-          <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">{{ actionalCheques.length }} pending</span>
-        </div>
-        <p v-if="chequeError" class="border-b border-rose-100 bg-rose-50 px-5 py-2 text-sm text-rose-700">{{ chequeError }}</p>
-        <div v-if="isLoadingCheques" class="space-y-2 px-5 py-4">
-          <div v-for="item in 2" :key="item" class="h-12 animate-pulse rounded-lg bg-slate-100" />
-        </div>
-        <ul v-else class="divide-y divide-slate-100">
-          <li v-for="cheque in actionalCheques" :key="cheque.id" class="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
-            <div class="min-w-0">
-              <p class="truncate text-sm font-semibold text-slate-950">Cheque {{ cheque.chequeNumber }}</p>
-              <p class="mt-0.5 truncate text-xs text-slate-500">
-                {{ [cheque.bankName, cheque.drawerName].filter(Boolean).join(' · ') || 'No bank details' }}
-                <template v-if="cheque.expectedClearanceDate"> · expected {{ cheque.expectedClearanceDate }}</template>
-              </p>
+      <section v-if="actionalCheques.length || isLoadingCheques" data-print-hide class="ad-card ad-cheques" aria-label="Pending cheques">
+        <header class="ad-chead">
+          <h2>Pending cheques</h2>
+          <span class="ad-count">{{ actionalCheques.length }}</span>
+        </header>
+        <p v-if="chequeError" class="ad-card-err">{{ chequeError }}</p>
+        <div v-if="isLoadingCheques" class="ad-chq-skel"><span class="ad-skel" /><span class="ad-skel" /></div>
+        <ul v-else class="ad-chq-list">
+          <li v-for="cheque in actionalCheques" :key="cheque.id">
+            <div class="ad-chq-main">
+              <b>Cheque {{ cheque.chequeNumber }}</b>
+              <i>{{ [cheque.bankName, cheque.drawerName].filter(Boolean).join(' · ') || 'No bank details' }}<template v-if="cheque.expectedClearanceDate"> · due {{ cheque.expectedClearanceDate }}</template></i>
             </div>
-            <div class="flex shrink-0 items-center gap-2">
-              <span class="mr-1 text-sm font-semibold tabular-nums text-slate-950">{{ formatMoney(cheque.amount) }}</span>
-              <button type="button" :disabled="isSaving" class="inline-flex min-h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60" @click="requestChequeAction('deposit', cheque.id)">Deposit</button>
-              <button type="button" :disabled="isSaving" class="inline-flex min-h-9 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60" @click="requestChequeAction('clear', cheque.id)">Mark cleared</button>
-              <button type="button" :disabled="isSaving" class="inline-flex min-h-9 items-center rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60" @click="requestChequeAction('bounce', cheque.id)">Bounce</button>
+            <span class="ad-chq-amt">{{ formatMoney(cheque.amount) }}</span>
+            <div class="ad-chq-actions">
+              <button type="button" :disabled="isSaving" class="ad-btn ad-btn-quiet ad-btn-sm" @click="requestChequeAction('deposit', cheque.id)">Deposit</button>
+              <button type="button" :disabled="isSaving" class="ad-btn ad-btn-quiet ad-btn-sm" @click="requestChequeAction('clear', cheque.id)">Clear</button>
+              <button type="button" :disabled="isSaving" class="ad-btn ad-btn-danger ad-btn-sm" @click="requestChequeAction('bounce', cheque.id)">Bounce</button>
             </div>
           </li>
         </ul>
       </section>
 
-      <section data-ledger-print-section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div data-print-hide class="border-b border-slate-200 px-4 py-4 sm:px-6">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
-                <h2 class="text-base font-semibold text-slate-950">Ledger</h2>
-                <span v-if="account.pendingReview > 0" class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">{{ account.pendingReview }} pending review</span>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <button type="button" :disabled="isRefreshing" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-wait disabled:opacity-60" aria-label="Refresh ledger" title="Refresh ledger" :aria-busy="isRefreshing" @click="refreshCurrentAccount">
-                <ArrowPathIcon class="h-4 w-4" :class="isRefreshing ? 'animate-spin' : ''" aria-hidden="true" />
-              </button>
-              <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2" aria-label="Print ledger" title="Print ledger" @click="printLedger">
-                <PrinterIcon class="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
+      <section data-ledger-print-section class="ad-card ad-ledger">
+        <div data-print-hide class="ad-lhead">
+          <div class="ad-ltitle">
+            <h2>Ledger</h2>
+            <span class="ad-count" aria-label="Entries shown">{{ visibleLedger.length }}</span>
+            <span v-if="account.pendingReview > 0" class="ad-pend"><i aria-hidden="true" />{{ account.pendingReview }} to review</span>
           </div>
+          <div class="ad-licons">
+            <button type="button" :disabled="isRefreshing" class="ad-icon" aria-label="Refresh ledger" title="Refresh ledger" :aria-busy="isRefreshing" @click="refreshCurrentAccount">
+              <ArrowPathIcon class="ad-ico" :class="{ 'ad-spin': isRefreshing }" aria-hidden="true" />
+            </button>
+            <button type="button" class="ad-icon" aria-label="Print ledger" title="Print ledger" @click="printLedger">
+              <PrinterIcon class="ad-ico" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
 
-          <p v-if="refreshError" role="status" class="mt-2 text-xs font-medium text-rose-700">
-            {{ refreshError }}
-            <button type="button" class="ml-1 underline underline-offset-2" @click="refreshCurrentAccount">Try again</button>
-          </p>
+        <p v-if="refreshError" data-print-hide role="status" class="ad-inline-err">
+          {{ refreshError }}
+          <button type="button" @click="refreshCurrentAccount">Try again</button>
+        </p>
 
-          <div class="mt-3 space-y-3">
-            <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_190px_auto]">
-              <div class="relative min-w-0">
-                <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                <UiInput v-model="ledgerSearch" aria-label="Search ledger" placeholder="Search references, sources, or methods" class="h-10 rounded-lg border-slate-200 pl-9 text-sm focus-visible:ring-slate-950" />
-              </div>
-              <UiSelect v-model="ledgerDatePreset" @update:model-value="applyLedgerDatePreset">
-                <UiSelectTrigger aria-label="Ledger period" class="h-10 rounded-lg border-slate-200 bg-white text-sm font-medium text-slate-700 focus:ring-slate-950"><UiSelectValue placeholder="This month" /></UiSelectTrigger>
-                <UiSelectContent :body-lock="false">
-                  <UiSelectItem v-for="option in ledgerPeriodOptions" :key="option.value" :value="option.value">{{ option.label }}</UiSelectItem>
-                </UiSelectContent>
-              </UiSelect>
-              <button
-                type="button"
-                class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2"
-                :class="ledgerMoreFiltersOpen || ledgerAdvancedFilterCount ? 'border-slate-300 bg-slate-100 text-slate-950' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
-                :aria-expanded="ledgerMoreFiltersOpen"
-                aria-controls="ledger-advanced-filters"
-                @click="ledgerMoreFiltersOpen = !ledgerMoreFiltersOpen"
-              >
-                <FunnelIcon class="h-4 w-4" aria-hidden="true" />
-                Filters<span v-if="ledgerAdvancedFilterCount"> ({{ ledgerAdvancedFilterCount }})</span>
-              </button>
-            </div>
-
+        <div data-print-hide class="ad-ltools">
+          <div class="ad-lrow">
+            <label class="ad-search">
+              <MagnifyingGlassIcon class="ad-ico" aria-hidden="true" />
+              <input v-model="ledgerSearch" type="search" placeholder="Search" aria-label="Search ledger" autocomplete="off">
+            </label>
+            <UiSelect v-model="ledgerDatePreset" @update:model-value="applyLedgerDatePreset">
+              <UiSelectTrigger aria-label="Ledger period" class="h-9 w-[150px] rounded-lg border-slate-200 bg-white text-[13px] font-medium text-slate-700 focus:ring-slate-950"><UiSelectValue placeholder="All time" /></UiSelectTrigger>
+              <UiSelectContent :body-lock="false">
+                <UiSelectItem v-for="option in ledgerPeriodOptions" :key="option.value" :value="option.value">{{ option.label }}</UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+            <button type="button" class="ad-filterbtn" :class="{ 'is-on': ledgerMoreFiltersOpen || ledgerAdvancedFilterCount }" :aria-expanded="ledgerMoreFiltersOpen" aria-controls="ledger-advanced-filters" @click="ledgerMoreFiltersOpen = !ledgerMoreFiltersOpen">
+              <FunnelIcon class="ad-ico" aria-hidden="true" />
+              Filters<span v-if="ledgerAdvancedFilterCount">{{ ledgerAdvancedFilterCount }}</span>
+            </button>
+          </div>
+          <div class="ad-extra space-y-3">
             <div v-if="ledgerDatePreset === 'custom'" class="flex flex-wrap items-center gap-2">
               <label class="flex items-center gap-2 text-xs font-medium text-slate-600">
                 <span>From</span>
@@ -329,79 +290,77 @@
               <button type="button" class="text-xs font-semibold text-slate-700 underline underline-offset-4 transition hover:text-slate-950" @click="clearLedgerFilters">Clear all</button>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <p v-if="ledgerDateRangeInvalid" class="font-medium text-rose-600">The from date cannot be after the to date.</p>
-              <p v-else class="text-slate-500">{{ ledgerViewSummary }}</p>
-            </div>
           </div>
+          <p v-if="ledgerDateRangeInvalid" class="ad-inline-err">The from date cannot be after the to date.</p>
         </div>
 
-        <div v-if="isLoadingLedger" data-print-hide class="space-y-3 px-6 py-8" aria-label="Loading ledger">
-          <div v-for="item in 5" :key="item" class="flex items-center gap-4">
-            <div class="h-4 w-20 animate-pulse rounded bg-slate-100" />
-            <div class="h-4 flex-1 animate-pulse rounded bg-slate-100" />
-            <div class="h-4 w-24 animate-pulse rounded bg-slate-100" />
+        <div v-if="isLoadingLedger" data-print-hide class="ad-lskel" aria-label="Loading ledger">
+          <div v-for="item in 5" :key="item"><span class="ad-skel" /><span class="ad-skel" /><span class="ad-skel" /></div>
+        </div>
+        <div v-else-if="ledger.length === 0" data-print-hide class="ad-lempty">
+          <DocumentTextIcon class="ad-panel-ico" aria-hidden="true" />
+          <h3>No entries yet</h3>
+          <div class="ad-panel-actions">
+            <button type="button" class="ad-btn ad-btn-quiet" @click="openMoneyOutModal">Record debit</button>
+            <button type="button" class="ad-btn ad-btn-primary" @click="openMoneyInModal">Record credit</button>
           </div>
         </div>
-        <div v-else-if="ledger.length === 0" data-print-hide class="px-6 py-16 text-center">
-          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><DocumentTextIcon class="h-6 w-6" aria-hidden="true" /></div>
-          <h3 class="mt-5 text-base font-semibold text-slate-950">No ledger entries yet</h3>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">Use Credit for sales and other receipts, or Debit for payments, withdrawals, and charges.</p>
-          <div class="mt-5 flex justify-center gap-2"><button type="button" class="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700" @click="openMoneyOutModal">Record debit</button><button type="button" class="inline-flex min-h-10 items-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white" @click="openMoneyInModal">Record credit</button></div>
-        </div>
-
-        <div v-else-if="visibleLedger.length === 0" data-print-hide class="px-6 py-14 text-center">
-          <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-500"><MagnifyingGlassIcon class="h-5 w-5" aria-hidden="true" /></div>
-          <h3 class="mt-4 text-base font-semibold text-slate-950">No matching entries</h3>
-          <p class="mt-2 text-sm text-slate-600">Clear the active filters to see the full ledger.</p>
-          <button type="button" class="mt-4 text-sm font-semibold text-slate-950 underline underline-offset-4" @click="clearLedgerFilters">Clear filters</button>
+        <div v-else-if="visibleLedger.length === 0" data-print-hide class="ad-lempty">
+          <MagnifyingGlassIcon class="ad-panel-ico" aria-hidden="true" />
+          <h3>No matches</h3>
+          <button type="button" class="ad-link" @click="clearLedgerFilters">Clear filters</button>
         </div>
 
         <template v-else>
-          <div data-ledger-print-table class="hidden w-full overflow-hidden md:block">
-            <table class="w-full table-fixed border-collapse">
+          <div data-ledger-print-table class="ad-tablewrap">
+            <table class="ad-table">
               <colgroup>
-                <col class="w-[12%]" />
-                <col class="w-[18%]" />
-                <col class="w-[16%]" />
-                <col class="w-[24%]" />
-                <col class="w-[10%]" />
-                <col class="w-[10%]" />
-                <col class="w-[10%]" />
+                <col style="width: 11%"><col style="width: 29%"><col style="width: 15%"><col style="width: 15%"><col style="width: 10%"><col style="width: 10%"><col style="width: 10%">
               </colgroup>
               <thead>
-                <tr class="border-b border-slate-200">
-                  <th scope="col" class="px-5 py-2.5 text-left text-xs font-medium text-slate-400">Date</th>
-                  <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Reference</th>
-                  <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Recorded by</th>
-                  <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-400">Source</th>
-                  <th scope="col" class="px-4 py-2.5 text-right text-xs font-medium text-slate-400">{{ isLoanAccount ? 'Received (GH₵)' : 'Money in (GH₵)' }}</th>
-                  <th scope="col" class="px-4 py-2.5 text-right text-xs font-medium text-slate-400">{{ isLoanAccount ? 'Repaid (GH₵)' : 'Money out (GH₵)' }}</th>
-                  <th scope="col" class="px-5 py-2.5 text-right text-xs font-medium text-slate-400">{{ isLoanAccount ? 'Outstanding (GH₵)' : 'Balance (GH₵)' }}</th>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Recorded by</th>
+                  <th scope="col">Source</th>
+                  <th scope="col" class="r">{{ isLoanAccount ? 'Received' : 'Money in' }}</th>
+                  <th scope="col" class="r">{{ isLoanAccount ? 'Repaid' : 'Money out' }}</th>
+                  <th scope="col" class="r">{{ isLoanAccount ? 'Outstanding' : 'Balance' }}</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr v-for="entry in visibleLedger" :key="entry.id" class="cursor-pointer transition-colors hover:bg-slate-50 active:bg-slate-100 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-700" tabindex="0" @click="openLedgerEntry(entry)" @keydown.enter="openLedgerEntry(entry)" @keydown.space.prevent="openLedgerEntry(entry)">
-                  <td class="min-w-0 whitespace-nowrap px-5 py-3 align-middle text-sm text-slate-500">{{ ledgerTableDate(entry) }}</td>
-                   <td class="min-w-0 px-4 py-3 align-middle"><p class="w-full min-w-0 max-w-full truncate text-sm font-medium text-slate-800" :title="entry.reference || ledgerEntrySummary(entry)">{{ ledgerReferenceDisplay(entry) }}</p></td>
-                  <td class="min-w-0 px-4 py-3 align-middle"><p class="w-full min-w-0 max-w-full truncate text-sm text-slate-500" :title="recordedByLabel(entry)">{{ recordedByLabel(entry) }}</p><p v-if="entry.status !== 'posted'" class="w-full min-w-0 max-w-full truncate mt-0.5 text-xs text-slate-400">{{ statusLabel(entry.status) }}</p></td>
-                  <td class="min-w-0 px-4 py-3 align-middle"><p class="w-full min-w-0 max-w-full truncate text-sm text-slate-500" :title="ledgerSourceLabel(entry)">{{ ledgerSourceLabel(entry) }}</p><p v-if="ledgerSourceDetail(entry)" class="w-full min-w-0 max-w-full truncate mt-0.5 text-xs text-slate-400">{{ ledgerSourceDetail(entry) }}</p></td>
-                  <td class="whitespace-nowrap px-4 py-3 text-right align-middle text-sm tabular-nums text-emerald-700">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : '—' }}</td>
-                  <td class="whitespace-nowrap px-4 py-3 text-right align-middle text-sm tabular-nums text-slate-600">{{ entry.moneyOut ? `−${formatLedgerAmount(entry.moneyOut)}` : '—' }}</td>
-                  <td class="whitespace-nowrap px-5 py-3 text-right align-middle text-sm font-semibold tabular-nums text-slate-950">{{ formatLedgerAmount(entry.runningBalance) }}</td>
+              <tbody>
+                <tr v-for="entry in visibleLedger" :key="entry.id" tabindex="0" :class="{ 'is-reversed': entry.status === 'reversed' }" @click="openLedgerEntry(entry)" @keydown.enter="openLedgerEntry(entry)" @keydown.space.prevent="openLedgerEntry(entry)">
+                  <td class="ad-dim">{{ shortDate(entry.date) }}</td>
+                  <td><b class="ad-cut ad-ref" :title="entry.reference || ledgerEntrySummary(entry)">{{ ledgerReferenceLabel(entry) }}</b></td>
+                  <td>
+                    <span class="ad-cut ad-dim" :title="recordedByLabel(entry)">{{ recordedByLabel(entry) }}</span>
+                    <em v-if="entry.status !== 'posted'" class="ad-status" :class="`is-${entry.status}`">{{ statusLabel(entry.status) }}</em>
+                  </td>
+                  <td>
+                    <span class="ad-cut" :title="ledgerSourceLabel(entry)">{{ ledgerSourceLabel(entry) }}</span>
+                    <small v-if="ledgerSourceDetail(entry)" class="ad-cut ad-dim">{{ ledgerSourceDetail(entry) }}</small>
+                  </td>
+                  <td class="r ad-amt ad-amt-in" :class="{ 'is-none': !entry.moneyIn }">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : '—' }}</td>
+                  <td class="r ad-amt ad-amt-out" :class="{ 'is-none': !entry.moneyOut }">{{ entry.moneyOut ? `−${formatLedgerAmount(entry.moneyOut)}` : '—' }}</td>
+                  <td class="r ad-amt ad-bal">{{ entry.status === 'reversed' ? '—' : formatLedgerAmount(entry.runningBalance) }}</td>
                 </tr>
               </tbody>
             </table>
-            <p class="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500">Balance is the account total after each entry, not a filtered-period balance.</p>
+            <p class="ad-foot">Balance is the running account total.</p>
           </div>
 
-          <div data-print-hide class="divide-y divide-slate-200 md:hidden">
-            <button v-for="entry in visibleLedger" :key="`mobile-ledger-${entry.id}`" type="button" class="block w-full px-4 py-4 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-700" @click="openLedgerEntry(entry)">
-              <div class="flex items-start justify-between gap-4">
-                 <div class="min-w-0"><p class="text-xs tabular-nums text-slate-500">{{ ledgerTableDate(entry) }}</p><p class="mt-1 truncate text-sm font-medium text-slate-800" :title="entry.reference || ledgerEntrySummary(entry)">{{ ledgerReferenceDisplay(entry) }}</p><p class="mt-1 truncate text-xs text-slate-500">{{ ledgerSourceLabel(entry) }}<template v-if="ledgerSourceDetail(entry)"> · {{ ledgerSourceDetail(entry) }}</template></p><p class="mt-1 truncate text-xs text-slate-500"><span class="font-medium text-slate-700">Recorded by:</span> {{ recordedByLabel(entry) }}<span v-if="entry.status !== 'posted'"> · {{ statusLabel(entry.status) }}</span></p></div><ChevronRightIcon class="mt-1 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" /></div>
-              <div class="mt-4 grid grid-cols-3 border-t border-slate-100 pt-3"><div><p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">{{ isLoanAccount ? 'Received (GH₵)' : 'Money in (GH₵)' }}</p><p class="mt-1 text-sm tabular-nums text-emerald-700">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : '—' }}</p></div><div><p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">{{ isLoanAccount ? 'Repaid (GH₵)' : 'Money out (GH₵)' }}</p><p class="mt-1 text-sm tabular-nums text-slate-600">{{ entry.moneyOut ? `−${formatLedgerAmount(entry.moneyOut)}` : '—' }}</p></div><div class="text-right"><p class="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">{{ isLoanAccount ? 'Outstanding (GH₵)' : 'Balance (GH₵)' }}</p><p class="mt-1 text-sm font-semibold tabular-nums text-slate-950">{{ formatLedgerAmount(entry.runningBalance) }}</p></div></div>
+          <div data-print-hide class="ad-mlist">
+            <button v-for="entry in visibleLedger" :key="`mobile-ledger-${entry.id}`" type="button" class="ad-mrow" @click="openLedgerEntry(entry)">
+              <span class="ad-mtop">
+                <b class="ad-cut" :title="entry.reference || ledgerEntrySummary(entry)">{{ ledgerReferenceLabel(entry) }}</b>
+                <span class="ad-amt" :class="[entry.moneyIn ? 'ad-amt-in' : 'ad-amt-out', { 'ad-struck': entry.status === 'reversed' }]">{{ entry.moneyIn ? `+${formatLedgerAmount(entry.moneyIn)}` : `−${formatLedgerAmount(entry.moneyOut)}` }}</span>
+              </span>
+              <span class="ad-msub">
+                <span class="ad-cut">{{ ledgerSourceLabel(entry) }} · {{ shortDate(entry.date) }}<template v-if="entry.status !== 'posted'"> · {{ statusLabel(entry.status) }}</template></span>
+                <span class="ad-amt">{{ entry.status === 'reversed' ? '—' : formatLedgerAmount(entry.runningBalance) }}</span>
+              </span>
             </button>
-            <p class="px-4 py-3 text-xs text-slate-500">Balance is the account total after each entry, not a filtered-period balance.</p>
+            <p class="ad-foot">Balance is the running account total.</p>
           </div>
 
           <div data-ledger-print-table class="hidden">
@@ -433,7 +392,7 @@
                 <tr v-for="entry in group.entries" :key="entry.id" class="group cursor-pointer border-t border-slate-100 transition-colors hover:bg-slate-50 focus:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-950" tabindex="0" @click="openLedgerEntry(entry)" @keydown.enter="openLedgerEntry(entry)" @keydown.space.prevent="openLedgerEntry(entry)">
                   <td class="px-4 py-3.5 align-middle">
                     <span class="block truncate text-sm text-slate-700">{{ recordedByLabel(entry) }}</span>
-                    <span v-if="entry.status !== 'posted'" class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="statusBadgeClass(entry.status)">{{ statusLabel(entry.status) }}</span>
+                    <span v-if="entry.status !== 'posted'" class="ad-tag ad-tag-row" :class="statusBadgeClass(entry.status)"><i aria-hidden="true" />{{ statusLabel(entry.status) }}</span>
                   </td>
                   <td class="px-4 py-3.5 align-middle">
                      <span class="inline-flex max-w-full truncate rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">{{ ledgerSourceLabel(entry) }}</span>
@@ -484,342 +443,395 @@
       </section>
     </div>
 
-    <div v-else class="mx-auto max-w-[1220px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <section class="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><ExclamationTriangleIcon class="h-6 w-6" aria-hidden="true" /></div>
-        <h1 class="mt-5 text-base font-semibold text-slate-950">Account not found</h1>
-        <p class="mt-2 text-sm text-slate-600">The account may have been removed or the link is incorrect.</p>
-        <NuxtLink :to="accountsPath" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white">Back to accounts</NuxtLink>
+    <div v-else class="ad">
+      <section class="ad-panel">
+        <ExclamationTriangleIcon class="ad-panel-ico" aria-hidden="true" />
+        <h1>Account not found</h1>
+        <p>It may have been removed.</p>
+        <NuxtLink :to="accountsPath" class="ad-btn ad-btn-primary">Back to accounts</NuxtLink>
       </section>
     </div>
   </div>
 
   <UiDialog v-model:open="ledgerDetailOpen" data-print-hide>
-    <UiDialogContent class="!flex !max-h-[calc(100vh-2rem)] !w-[calc(100vw-2rem)] !max-w-[500px] !flex-col !gap-0 overflow-hidden rounded-xl border-slate-200 bg-white p-0 sm:!max-w-[500px]">
-      <div v-if="selectedLedgerEntry" class="flex min-h-0 w-full min-w-0 flex-col">
-        <header class="shrink-0 border-b border-slate-200 px-6 py-4">
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <UiDialogTitle class="truncate text-base font-semibold text-slate-950">{{ ledgerEntrySummary(selectedLedgerEntry) }}</UiDialogTitle>
-              <UiDialogDescription class="mt-0.5 truncate text-xs text-slate-500">{{ formatDate(selectedLedgerEntry.date) }} · {{ ledgerSourceLabel(selectedLedgerEntry) }}</UiDialogDescription>
+    <UiDialogContent class="ad-dlg ad-dlg-narrow !flex !flex-col !gap-0 !p-0 !border-0">
+      <template v-if="selectedLedgerEntry">
+        <header class="ad-dlg-head">
+          <div class="ad-dlg-headrow">
+            <div class="ad-minw">
+              <UiDialogTitle class="ad-dlg-title">{{ ledgerEntrySummary(selectedLedgerEntry) }}</UiDialogTitle>
+              <UiDialogDescription class="ad-dlg-sub">{{ formatDate(selectedLedgerEntry.date) }} · {{ ledgerSourceLabel(selectedLedgerEntry) }}</UiDialogDescription>
             </div>
-            <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusBadgeClass(selectedLedgerEntry.status)">{{ statusLabel(selectedLedgerEntry.status) }}</span>
+            <span class="ad-tag" :class="statusBadgeClass(selectedLedgerEntry.status)"><i aria-hidden="true" />{{ statusLabel(selectedLedgerEntry.status) }}</span>
           </div>
         </header>
 
-        <div class="box-border min-h-0 w-full min-w-0 flex-1 overscroll-contain overflow-x-hidden overflow-y-auto px-6 py-5">
-          <div class="flex items-baseline justify-between gap-6">
-            <span class="text-sm text-slate-500">{{ isLoanAccount ? (selectedLedgerEntry.moneyIn ? 'Loan received' : 'Repayment recorded') : (selectedLedgerEntry.moneyIn ? 'Credit' : 'Debit') }}</span>
-            <span class="text-2xl font-semibold tabular-nums" :class="selectedLedgerEntry.moneyIn ? 'text-emerald-700' : 'text-slate-950'">{{ selectedLedgerEntry.moneyIn ? '+' : '−' }}{{ formatMoney(selectedLedgerEntry.moneyIn || selectedLedgerEntry.moneyOut) }}</span>
-          </div>
-          <div class="mt-2 flex items-baseline justify-between gap-6 border-t border-slate-200 pt-2.5">
-            <span class="text-sm font-medium text-slate-900">Balance after entry</span>
-            <span class="text-sm font-semibold tabular-nums text-slate-950">{{ formatMoney(selectedLedgerEntry.runningBalance) }}</span>
-          </div>
-
-          <dl class="mt-5 space-y-2.5 border-t border-slate-100 pt-4 text-sm">
-            <div class="flex items-baseline justify-between gap-6">
-              <dt class="text-slate-500">Reference</dt>
-              <dd class="text-right font-medium" :class="selectedLedgerEntry.reference ? 'text-slate-800' : 'text-slate-400'">{{ selectedLedgerEntry.reference || 'None' }}</dd>
+        <div class="ad-dlg-body ad-dlg-scroll">
+          <dl class="ad-kv">
+            <div class="ad-kv-amount">
+              <dt>{{ isLoanAccount ? (selectedLedgerEntry.moneyIn ? 'Loan received' : 'Repayment recorded') : (selectedLedgerEntry.moneyIn ? 'Credit' : 'Debit') }}</dt>
+              <dd>{{ selectedLedgerEntry.moneyIn ? '+' : '−' }}{{ formatMoney(selectedLedgerEntry.moneyIn || selectedLedgerEntry.moneyOut) }}</dd>
             </div>
-            <div v-if="ledgerPaymentMethodDisplay(selectedLedgerEntry)" class="flex items-baseline justify-between gap-6">
-              <dt class="text-slate-500">Payment method</dt>
-              <dd class="text-right font-medium text-slate-800">{{ ledgerPaymentMethodDisplay(selectedLedgerEntry) }}</dd>
-            </div>
-            <div class="flex items-baseline justify-between gap-6">
-              <dt class="text-slate-500">Recorded by</dt>
-              <dd class="text-right font-medium text-slate-800">{{ recordedByLabel(selectedLedgerEntry) }}</dd>
-            </div>
-            <div class="flex items-baseline justify-between gap-6">
-              <dt class="text-slate-500">Entry source</dt>
-              <dd class="text-right font-medium text-slate-800">{{ ledgerSourceLabel(selectedLedgerEntry) }}<template v-if="ledgerSourceDetail(selectedLedgerEntry)"><span class="font-normal text-slate-400"> · {{ ledgerSourceDetail(selectedLedgerEntry) }}</span></template></dd>
+            <div class="ad-kv-total">
+              <dt>Balance after entry</dt>
+              <dd>{{ formatMoney(selectedLedgerEntry.runningBalance) }}</dd>
             </div>
           </dl>
 
-          <div v-if="ledgerDescription(selectedLedgerEntry)" class="mt-4 border-t border-slate-100 pt-4">
-            <p class="text-xs text-slate-400">Description</p>
-            <p class="mt-1 text-sm leading-6 text-slate-700">{{ ledgerDescription(selectedLedgerEntry) }}</p>
+          <dl class="ad-kv ad-kv-soft">
+            <div><dt>Reference</dt><dd :class="{ 'is-none': !selectedLedgerEntry.reference }">{{ selectedLedgerEntry.reference || 'None' }}</dd></div>
+            <div v-if="ledgerPaymentMethodDisplay(selectedLedgerEntry)"><dt>Payment method</dt><dd>{{ ledgerPaymentMethodDisplay(selectedLedgerEntry) }}</dd></div>
+            <div><dt>Recorded by</dt><dd>{{ recordedByLabel(selectedLedgerEntry) }}</dd></div>
+            <div v-if="selectedLedgerEntry.status === 'reversed'"><dt>Reversed</dt><dd>{{ [selectedLedgerEntry.reversedAt ? formatDate(selectedLedgerEntry.reversedAt) : '', selectedLedgerEntry.reversedBy].filter(Boolean).join(' · ') || 'Yes' }}</dd></div>
+            <div><dt>Entry source</dt><dd>{{ ledgerSourceLabel(selectedLedgerEntry) }}<template v-if="ledgerSourceDetail(selectedLedgerEntry)"><span class="ad-kv-sub"> · {{ ledgerSourceDetail(selectedLedgerEntry) }}</span></template></dd></div>
+          </dl>
+
+          <div v-if="ledgerDescription(selectedLedgerEntry)" class="ad-block">
+            <p class="ad-kv-head">Description</p>
+            <p>{{ ledgerDescription(selectedLedgerEntry) }}</p>
           </div>
 
-          <div v-if="selectedLedgerEntry.metadata?.context" class="mt-4 border-t border-slate-100 pt-4">
-            <p class="text-xs text-slate-400">Context</p>
-            <p class="mt-1 text-sm leading-6 text-slate-700">{{ selectedLedgerEntry.metadata.context }}</p>
+          <div v-if="selectedLedgerEntry.metadata?.context" class="ad-block">
+            <p class="ad-kv-head">Context</p>
+            <p>{{ selectedLedgerEntry.metadata.context }}</p>
           </div>
 
-          <div v-if="selectedLedgerEntry.paymentContext?.fields?.length" class="mt-4 border-t border-slate-100 pt-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Payment details</p>
-            <dl class="mt-3 space-y-2.5 text-sm">
-              <div v-for="field in selectedLedgerEntry.paymentContext?.fields || []" :key="field.key" class="flex items-baseline justify-between gap-6">
-                <dt class="text-slate-500">{{ field.label }}</dt>
-                <dd class="max-w-[62%] truncate text-right font-medium text-slate-800" :title="field.value">{{ field.value }}</dd>
-              </div>
+          <div v-if="selectedLedgerEntry.paymentContext?.fields?.length" class="ad-block">
+            <p class="ad-kv-head">Payment details</p>
+            <dl class="ad-kv">
+              <div v-for="field in selectedLedgerEntry.paymentContext?.fields || []" :key="field.key"><dt>{{ field.label }}</dt><dd class="ad-cut" :title="field.value">{{ field.value }}</dd></div>
             </dl>
           </div>
 
-          <div v-if="ledgerAdditionalDetails(selectedLedgerEntry).length" class="mt-4 space-y-2.5 border-t border-slate-100 pt-4 text-sm">
-            <div v-for="detail in ledgerAdditionalDetails(selectedLedgerEntry)" :key="detail.key" class="flex items-baseline justify-between gap-6">
-              <dt class="text-slate-500">{{ detail.label }}</dt>
-              <dd class="text-right font-medium text-slate-800">{{ detail.value }}</dd>
-            </div>
-          </div>
+          <dl v-if="ledgerAdditionalDetails(selectedLedgerEntry).length" class="ad-kv ad-kv-soft">
+            <div v-for="detail in ledgerAdditionalDetails(selectedLedgerEntry)" :key="detail.key"><dt>{{ detail.label }}</dt><dd>{{ detail.value }}</dd></div>
+          </dl>
 
-          <div v-if="selectedLedgerEntry.sourceLinks?.length" class="mt-4 border-t border-slate-100 pt-4">
-            <p class="text-xs text-slate-400">Linked records</p>
-            <div class="mt-2 space-y-2">
-              <div v-for="link in selectedLedgerEntry.sourceLinks" :key="`${link.sourceType}-${link.sourceKey}`" class="flex items-baseline justify-between gap-6 text-sm">
-                <span class="min-w-0"><span class="font-medium text-slate-800">{{ link.sourceKey }}</span><span class="ml-2 text-xs text-slate-400">{{ link.sourceType.replace('_', ' ') }}</span></span>
-                <span class="shrink-0 font-medium tabular-nums text-slate-700">{{ formatMoney(link.amount) }}</span>
-              </div>
-            </div>
+          <div v-if="selectedLedgerEntry.sourceLinks?.length" class="ad-block">
+            <p class="ad-kv-head">Linked records</p>
+            <ul class="ad-links">
+              <li v-for="link in selectedLedgerEntry.sourceLinks" :key="`${link.sourceType}-${link.sourceKey}`">
+                <span><b>{{ link.sourceKey }}</b><i>{{ link.sourceType.replace('_', ' ') }}</i></span>
+                <strong>{{ formatMoney(link.amount) }}</strong>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <footer class="box-border flex w-full min-w-0 max-w-full shrink-0 items-center justify-between gap-3 overflow-hidden border-t border-slate-200 bg-white px-6 py-3.5">
-          <button
-            v-if="selectedLedgerEntry.status === 'posted'"
-            type="button"
-            :disabled="isReversing"
-            class="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-            @click="requestReverseSelectedEntry"
-          >
-            <ArrowPathIcon v-if="isReversing" class="h-4 w-4 animate-spin" aria-hidden="true" />
+        <p v-if="reversalError" class="ad-dlg-error" role="alert">{{ reversalError }}</p>
+        <footer class="ad-dlg-foot">
+          <button v-if="canReverseEntry(selectedLedgerEntry)" type="button" :disabled="isReversing" class="ad-btn ad-btn-danger" @click="requestReverseSelectedEntry">
+            <ArrowPathIcon v-if="isReversing" class="ad-ico ad-spin" aria-hidden="true" />
             {{ isReversing ? 'Reversing…' : 'Reverse' }}
           </button>
-          <p v-if="reversalError" class="min-w-0 flex-1 truncate text-xs font-medium text-rose-600">{{ reversalError }}</p>
-          <button type="button" class="ml-auto inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" @click="ledgerDetailOpen = false">Close</button>
+          <span v-else class="ad-dlg-meta" />
+          <div class="ad-dlg-actions"><button type="button" class="ad-btn ad-btn-quiet" @click="ledgerDetailOpen = false">Close</button></div>
         </footer>
-      </div>
+      </template>
     </UiDialogContent>
   </UiDialog>
 
   <UiDialog v-model:open="moneyInModalOpen" data-print-hide>
-    <UiDialogContent class="!flex !w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] h-[min(680px,calc(100vh-2rem))] min-h-0 min-w-0 !gap-0 overflow-hidden rounded-xl border-slate-200 bg-white p-0 box-border sm:!max-w-[820px]">
-      <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-        <div class="shrink-0 border-b border-slate-200 px-6 py-3">
-          <UiDialogTitle class="truncate text-base font-semibold text-slate-950">Credit {{ account?.name }}</UiDialogTitle>
-          <UiDialogDescription class="mt-0.5 text-xs text-slate-500">Record money received into this account.</UiDialogDescription>
-        </div>
-        <div class="box-border flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-6 py-2">
-          <div v-if="usesPaymentGuide" class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
-            <section class="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <div class="flex items-baseline justify-between gap-3">
-                <h3 class="text-sm font-semibold text-slate-950">Credit details</h3>
-                <span class="text-[11px] text-slate-500">Amount and optional details</span>
-              </div>
-              <div class="mt-2 grid gap-2 sm:grid-cols-[minmax(0,190px)_minmax(0,1fr)_minmax(0,1fr)]">
-                <div class="space-y-1.5">
-                  <UiLabel for="money-in-amount" class="text-xs font-medium text-slate-700">Total amount received</UiLabel>
-                  <UiInput id="money-in-amount" v-model="moneyInForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" :aria-invalid="isMoneyInFieldInvalid('amount')" class="h-9 border-slate-200 text-sm font-semibold tabular-nums focus-visible:ring-slate-950" @blur="touchMoneyInField('amount')" />
-                  <p v-if="isMoneyInFieldInvalid('amount')" class="text-xs text-rose-600">{{ moneyInErrors.amount }}</p>
-                </div>
-                <div class="space-y-1.5">
-                  <UiLabel for="money-in-reference" class="text-xs font-medium text-slate-600">Reference <span class="font-normal text-slate-400">(optional)</span></UiLabel>
-                  <UiInput id="money-in-reference" v-model="moneyInForm.reference" placeholder="Deposit slip, batch, or note" class="h-9 border-slate-200 text-sm focus-visible:ring-slate-950" />
-                </div>
-                <div class="space-y-1.5">
-                  <UiLabel for="money-in-note" class="text-xs font-medium text-slate-600">Recipient <span class="font-normal text-slate-400">(optional)</span></UiLabel>
-                  <UiInput id="money-in-note" v-model="moneyInForm.description" placeholder="Customer, payer, or source of funds" class="h-9 border-slate-200 text-sm focus-visible:ring-slate-950" />
-                </div>
-              </div>
-            </section>
+    <UiDialogContent class="ad-dlg ad-dlg-wide !flex !flex-col !gap-0 !p-0 !border-0">
+      <header class="ad-dlg-head">
+        <UiDialogTitle class="ad-dlg-title">Credit</UiDialogTitle>
+        <UiDialogDescription class="ad-dlg-sub">{{ account?.name }} · Balance {{ formatMoney(Number(account?.currentBalance || 0)) }}</UiDialogDescription>
+      </header>
 
-            <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <div class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-2">
-                <div>
-                  <h3 class="text-sm font-semibold text-slate-950">How was this paid?</h3>
-                  <p class="mt-0.5 text-xs text-slate-500">Select every method included in this credit.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <UiInput v-model="guideFromDate" type="date" aria-label="Guide from date" class="h-9 w-[138px] border-slate-200 bg-white text-xs focus-visible:ring-slate-950" />
-                  <span class="text-xs text-slate-400">to</span>
-                  <UiInput v-model="guideToDate" type="date" aria-label="Guide to date" class="h-9 w-[138px] border-slate-200 bg-white text-xs focus-visible:ring-slate-950" />
-                </div>
-              </div>
-              <div ref="moneyInScrollRegion" class="min-h-0 flex-1 overscroll-contain overflow-y-auto">
-                <div v-if="creditGuideError" class="px-4 py-3 text-sm text-rose-700">{{ creditGuideError }}</div>
-                <div v-else-if="isLoadingCandidates" class="divide-y divide-slate-100"><div v-for="item in 8" :key="item" class="h-16 animate-pulse bg-slate-50" /></div>
-                <div v-else-if="creditGuideMethods.length" class="divide-y divide-slate-100">
-                  <div v-for="item in creditGuideMethods" :key="item.id" class="px-4 py-2.5">
-                    <div class="flex items-start gap-3">
-                      <input :id="paymentMethodInputId(item.id)" type="checkbox" :checked="isPaymentMethodSelected(item.id)" class="mt-1 h-4 w-4 rounded border-slate-300 accent-slate-950 focus:ring-2 focus:ring-slate-950 focus:ring-offset-2" @change="togglePaymentMethod(item.id, $event)">
-                      <label :for="paymentMethodInputId(item.id)" class="min-w-0 flex-1 cursor-pointer">
-                        <span class="block truncate text-sm font-semibold text-slate-900">{{ item.label }}</span>
-                        <span class="mt-0.5 block text-xs text-slate-500">So far: <span class="font-semibold text-slate-700">{{ formatMoney(item.amount) }}</span> across {{ item.entries }} {{ item.entries === 1 ? 'payment' : 'payments' }}</span>
-                      </label>
-                      <span v-if="isPaymentMethodSelected(item.id)" class="shrink-0 text-xs font-semibold text-slate-700">Selected</span>
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="px-4 py-4 text-sm text-slate-500">No payment methods are available yet.</div>
-              </div>
-              <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-1.5">
-                <p class="text-xs font-medium text-slate-500">{{ selectedPaymentMethodCount }} {{ selectedPaymentMethodCount === 1 ? 'payment method' : 'payment methods' }} selected · recorded as one credit</p>
-              </div>
-            </section>
+      <div v-if="usesPaymentGuide" ref="moneyInScrollRegion" class="ad-dlg-body ad-dlg-fill">
+        <div class="ad-grid ad-grid-3">
+          <div class="ad-field">
+            <UiLabel for="money-in-amount" class="ad-lbl">Amount received</UiLabel>
+            <UiInput id="money-in-amount" v-model="moneyInForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" :aria-invalid="isMoneyInFieldInvalid('amount')" class="ad-in ad-in-num" @blur="touchMoneyInField('amount')" />
+            <p v-if="isMoneyInFieldInvalid('amount')" class="ad-err">{{ moneyInErrors.amount }}</p>
           </div>
-          <div v-else ref="moneyInScrollRegion" class="min-h-0 flex-1 space-y-5 overflow-y-auto">
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1.5">
-                <UiLabel for="money-in-source" class="text-xs font-medium text-slate-600">Credit source</UiLabel>
-                <UiSelect v-model="moneyInForm.source">
-                  <UiSelectTrigger id="money-in-source" class="h-10 rounded-lg border-slate-200 bg-white text-sm focus:ring-slate-950">
-                    <UiSelectValue />
-                  </UiSelectTrigger>
-                <UiSelectContent :body-lock="false">
-                    <UiSelectItem v-for="option in moneyInSourceOptions" :key="option.value" :value="option.value">{{ option.label }}</UiSelectItem>
-                  </UiSelectContent>
-                </UiSelect>
-              </div>
-              <div v-if="supportsSyncedCredits" class="space-y-1.5">
-                <UiLabel for="money-in-sync-date" class="text-xs font-medium text-slate-600">{{ moneyInForm.source === 'sales' ? 'Sales date' : (moneyInForm.source === 'cheque' ? 'Cheque date' : 'Payment date') }}</UiLabel>
-                <UiInput id="money-in-sync-date" v-model="moneyInSyncDate" type="date" class="h-10 rounded-lg border-slate-200 bg-white text-sm focus-visible:ring-slate-950" />
-              </div>
-            </div>
+          <div class="ad-field">
+            <UiLabel for="money-in-reference" class="ad-lbl">Reference <span class="ad-opt-tag">optional</span></UiLabel>
+            <UiInput id="money-in-reference" v-model="moneyInForm.reference" placeholder="Deposit slip, batch or note" class="ad-in" />
+          </div>
+          <div class="ad-field">
+            <UiLabel for="money-in-note" class="ad-lbl">Recipient <span class="ad-opt-tag">optional</span></UiLabel>
+            <UiInput id="money-in-note" v-model="moneyInForm.description" placeholder="Customer, payer or source" class="ad-in" />
+          </div>
+        </div>
 
-            <div v-if="supportsSyncedCredits" class="space-y-4 [overflow-anchor:none]">
-              <div v-if="moneyInGroupingOptions.length" class="space-y-2">
-                <div class="flex items-center justify-between gap-3">
-                  <p class="text-xs font-medium text-slate-400">{{ moneyInForm.source === 'sales' ? 'Group sales by' : 'Group payments by' }}</p>
-                  <span class="text-xs text-slate-400">Choose one view</span>
-                </div>
-                <div role="tablist" :aria-label="moneyInForm.source === 'sales' ? 'Group sales by' : 'Group payments by'" class="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
+        <section v-if="isChequeSelected" class="ad-chq-panel" aria-label="Cheque details">
+          <div class="ad-grid ad-grid-3">
+            <div class="ad-field">
+              <UiLabel for="money-in-cheque-number" class="ad-lbl">Cheque number</UiLabel>
+              <UiInput id="money-in-cheque-number" v-model="chequeForm.number" placeholder="e.g. 000184" :aria-invalid="isMoneyInFieldInvalid('chequeNumber')" class="ad-in" @blur="touchMoneyInField('chequeNumber')" />
+              <p v-if="isMoneyInFieldInvalid('chequeNumber')" class="ad-err">{{ moneyInErrors.chequeNumber }}</p>
+            </div>
+            <div class="ad-field">
+              <UiLabel for="money-in-cheque-due" class="ad-lbl">Cheque due date</UiLabel>
+              <UiInput id="money-in-cheque-due" v-model="chequeForm.dueDate" type="date" :aria-invalid="isMoneyInFieldInvalid('chequeDueDate')" class="ad-in" @blur="touchMoneyInField('chequeDueDate')" />
+              <p v-if="isMoneyInFieldInvalid('chequeDueDate')" class="ad-err">{{ moneyInErrors.chequeDueDate }}</p>
+            </div>
+            <div class="ad-field">
+              <UiLabel for="money-in-cheque-bank" class="ad-lbl">Bank <span class="ad-opt-tag">optional</span></UiLabel>
+              <UiInput id="money-in-cheque-bank" v-model="chequeForm.bank" placeholder="Issuing bank" class="ad-in" />
+            </div>
+          </div>
+          <p class="ad-chq-note" :class="{ 'is-future': isPostDatedCheque }">
+            <template v-if="isPostDatedCheque">Post-dated cheque. It stays pending and the amount reflects on the account balance on {{ formatDate(chequeForm.dueDate) }}.</template>
+            <template v-else>Due today or earlier, so the amount reflects on the account balance straight away.</template>
+          </p>
+        </section>
+
+        <section class="ad-pick">
+          <div class="ad-pick-head">
+            <div>
+              <h3>How was this paid?</h3>
+              <p>{{ isChequeSelected ? 'Cheques are credited on their own, because they reflect on their due date.' : 'Select every method included in this credit.' }}</p>
+            </div>
+            <div class="ad-range">
+              <UiInput v-model="guideFromDate" type="date" aria-label="Guide from date" class="ad-in ad-in-sm" />
+              <span>to</span>
+              <UiInput v-model="guideToDate" type="date" aria-label="Guide to date" class="ad-in ad-in-sm" />
+            </div>
+          </div>
+          <div class="ad-pick-list">
+            <p v-if="creditGuideError" class="ad-pick-msg ad-pick-msg-err">{{ creditGuideError }}</p>
+            <div v-else-if="isLoadingCandidates" class="ad-pick-skel"><span v-for="item in 5" :key="item" /></div>
+            <template v-else-if="creditGuideMethods.length">
+              <div v-for="item in creditGuideMethods" :key="item.id" class="ad-opt" :class="{ 'is-on': isPaymentMethodSelected(item.id) }">
+                <input :id="paymentMethodInputId(item.id)" type="checkbox" :checked="isPaymentMethodSelected(item.id)" class="ad-check" @change="togglePaymentMethod(item.id, $event)">
+                <label :for="paymentMethodInputId(item.id)">
+                  <span class="ad-opt-name">{{ item.label }}</span>
+                  <span class="ad-opt-meta">{{ formatMoney(item.amount) }} so far · {{ item.entries }} {{ item.entries === 1 ? 'payment' : 'payments' }}</span>
+                </label>
+              </div>
+            </template>
+            <p v-else class="ad-pick-msg">No payment methods are available yet.</p>
+          </div>
+        </section>
+      </div>
+
+      <div v-else ref="moneyInScrollRegion" class="ad-dlg-body ad-dlg-scroll">
+        <div class="ad-grid ad-grid-2">
+          <div class="ad-field">
+            <UiLabel for="money-in-source" class="ad-lbl">Credit source</UiLabel>
+            <UiSelect v-model="moneyInForm.source">
+              <UiSelectTrigger id="money-in-source" class="ad-in ad-sel">
+                <UiSelectValue />
+              </UiSelectTrigger>
+              <UiSelectContent :body-lock="false">
+                <UiSelectItem v-for="option in moneyInSourceOptions" :key="option.value" :value="option.value">{{ option.label }}</UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+          <div v-if="supportsSyncedCredits" class="ad-field">
+            <UiLabel for="money-in-sync-date" class="ad-lbl">{{ moneyInForm.source === 'sales' ? 'Sales date' : (moneyInForm.source === 'cheque' ? 'Cheque date' : 'Payment date') }}</UiLabel>
+            <UiInput id="money-in-sync-date" v-model="moneyInSyncDate" type="date" class="ad-in" />
+          </div>
+        </div>
+
+        <div v-if="supportsSyncedCredits" class="ad-synced">
+          <div v-if="moneyInGroupingOptions.length" class="ad-field">
+            <span class="ad-lbl">{{ moneyInForm.source === 'sales' ? 'Group sales by' : 'Group payments by' }}</span>
+            <div role="tablist" :aria-label="moneyInForm.source === 'sales' ? 'Group sales by' : 'Group payments by'" class="ad-seg">
+              <button
+                v-for="option in moneyInGroupingOptions"
+                :key="option.value"
+                type="button"
+                role="tab"
+                :aria-selected="moneyInCandidateGroupBy === option.value"
+                :aria-pressed="moneyInCandidateGroupBy === option.value"
+                class="ad-seg-btn"
+                :class="{ 'is-on': moneyInCandidateGroupBy === option.value }"
+                @click="changeMoneyInCandidateGroup(option.value)"
+              >{{ option.label }}</button>
+            </div>
+          </div>
+
+          <div ref="moneyInCandidatesPanel" class="ad-cand-panel" :style="{ minHeight: `${moneyInCandidatePanelHeight}px` }">
+            <div v-if="creditCandidatesError" class="ad-cand-state ad-cand-state-err">
+              <ExclamationTriangleIcon class="ad-ico" aria-hidden="true" />
+              <span>{{ creditCandidatesError }}</span>
+            </div>
+            <div v-else-if="isLoadingCandidates" class="ad-cand-state">
+              <span class="ad-spin-dot" aria-hidden="true" />
+              <span>Loading…</span>
+            </div>
+            <div v-else-if="moneyInCandidateGroupBy === 'total'" class="ad-cand-total">
+              <span class="ad-lbl">Available to post</span>
+              <strong>{{ formatMoney(creditCandidates?.summary.availableAmount ?? creditCandidates?.summary.totalAmount ?? 0) }}</strong>
+              <div v-if="selectedCreditCandidate?.paymentBreakdown?.length" class="ad-crumbs">
+                <span v-for="breakdown in selectedCreditCandidate.paymentBreakdown" :key="breakdown.method"><b>{{ paymentMethodLabel(breakdown.method) }}</b> {{ formatMoney(breakdown.amount) }}</span>
+              </div>
+              <p v-if="selectedCreditCandidate && candidateContext(selectedCreditCandidate)">{{ candidateContext(selectedCreditCandidate) }}</p>
+            </div>
+            <div v-else class="ad-cand-list">
+              <template v-if="creditCandidates?.candidates.length">
                 <button
-                  v-for="option in moneyInGroupingOptions"
-                  :key="option.value"
+                  v-for="candidate in creditCandidates.candidates"
+                  :key="candidate.id"
                   type="button"
-                  role="tab"
-                  :aria-selected="moneyInCandidateGroupBy === option.value"
-                  :aria-pressed="moneyInCandidateGroupBy === option.value"
-                  class="min-h-10 rounded-lg px-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-1"
-                  :class="moneyInCandidateGroupBy === option.value ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-white/70 hover:text-slate-950'"
-                  @click="changeMoneyInCandidateGroup(option.value)"
+                  class="ad-cand"
+                  :class="{ 'is-on': selectedCreditCandidateId === candidate.id }"
+                  @click="applyCreditCandidate(candidate.id)"
                 >
-                  {{ option.label }}
-                </button>
-                </div>
-              </div>
-
-              <div ref="moneyInCandidatesPanel" class="min-h-[220px]" :style="{ minHeight: `${moneyInCandidatePanelHeight}px` }">
-              <div v-if="creditCandidatesError" class="flex min-h-[220px] items-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-4">
-                <div class="flex items-start gap-2 text-sm text-rose-700">
-                  <ExclamationTriangleIcon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span>{{ creditCandidatesError }}</span>
-                </div>
-              </div>
-              <div v-else-if="isLoadingCandidates" class="flex min-h-[220px] items-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-950" />
-                  <span class="text-sm text-slate-600">Loading...</span>
-                </div>
-              </div>
-              <div v-else-if="moneyInCandidateGroupBy === 'total'" class="flex min-h-[220px] flex-col justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <p class="text-xs font-medium text-slate-400">Available to post</p>
-                <p class="mt-1 text-2xl font-semibold tabular-nums text-slate-950">{{ formatMoney(creditCandidates?.summary.availableAmount ?? creditCandidates?.summary.totalAmount ?? 0) }}</p>
-                <div v-if="selectedCreditCandidate?.paymentBreakdown?.length" class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-                  <span v-for="breakdown in selectedCreditCandidate.paymentBreakdown" :key="breakdown.method" class="inline-flex items-center gap-1">
-                    <span class="font-semibold text-slate-800">{{ paymentMethodLabel(breakdown.method) }}</span>
-                    <span class="tabular-nums">{{ formatMoney(breakdown.amount) }}</span>
-                  </span>
-                </div>
-                <p v-if="selectedCreditCandidate && candidateContext(selectedCreditCandidate)" class="mt-1 text-xs text-slate-500">{{ candidateContext(selectedCreditCandidate) }}</p>
-              </div>
-              <div v-else class="min-h-[220px] rounded-xl border border-slate-200 bg-white">
-                <div v-if="creditCandidates?.candidates.length" class="divide-y divide-slate-100">
-                  <button
-                    v-for="candidate in creditCandidates.candidates"
-                    :key="candidate.id"
-                    type="button"
-                    class="flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden px-4 py-3 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
-                    :class="selectedCreditCandidateId === candidate.id ? 'bg-slate-50' : ''"
-                    @click="applyCreditCandidate(candidate.id)"
-                  >
-                    <span class="flex min-w-0 flex-1 items-center gap-3">
-                      <span
-                        class="flex h-4 w-4 items-center justify-center rounded-full border-2"
-                        :class="selectedCreditCandidateId === candidate.id ? 'border-slate-950' : 'border-slate-300'"
-                      >
-                        <span v-if="selectedCreditCandidateId === candidate.id" class="h-2 w-2 rounded-full bg-slate-950" />
-                      </span>
-                      <span class="min-w-0 flex-1">
-                        <span class="block truncate text-sm font-semibold text-slate-950">{{ candidate.label }}</span>
-                        <span v-if="candidate.paymentBreakdown?.length" class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs leading-4 text-slate-500">
-                          <span v-for="breakdown in candidate.paymentBreakdown" :key="breakdown.method" class="inline-flex items-center gap-1 whitespace-nowrap">
-                            <span class="font-medium text-slate-700">{{ paymentMethodLabel(breakdown.method) }}</span>
-                            <span class="tabular-nums">{{ formatMoney(breakdown.amount) }}</span>
-                          </span>
-                        </span>
-                        <span v-if="candidateContext(candidate)" class="mt-0.5 block break-words text-xs leading-4 text-slate-500">{{ candidateContext(candidate) }}</span>
-                      </span>
+                  <span class="ad-radio" aria-hidden="true"><i v-if="selectedCreditCandidateId === candidate.id" /></span>
+                  <span class="ad-cand-main">
+                    <span class="ad-opt-name">{{ candidate.label }}</span>
+                    <span v-if="candidate.paymentBreakdown?.length" class="ad-crumbs">
+                      <span v-for="breakdown in candidate.paymentBreakdown" :key="breakdown.method"><b>{{ paymentMethodLabel(breakdown.method) }}</b> {{ formatMoney(breakdown.amount) }}</span>
                     </span>
-                    <span class="shrink-0 text-sm font-semibold tabular-nums text-slate-950">{{ formatMoney(candidate.amount) }}</span>
-                  </button>
-                </div>
-                <div v-else class="px-4 py-8 text-center">
-                  <p class="text-sm text-slate-500">No {{ candidateGroupLabel.toLowerCase() }} found for this date.</p>
-                </div>
-              </div>
-              </div>
-            </div>
-
-            <p v-if="isMoneyInFieldInvalid('candidate')" class="text-xs text-rose-600">Select a synced source before posting this credit.</p>
-
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-1.5">
-                <UiLabel for="money-in-amount" class="text-xs font-medium text-slate-600">Amount</UiLabel>
-                <UiInput id="money-in-amount" v-model="moneyInForm.amount" type="number" min="0.01" step="0.01" :max="supportsSyncedCredits ? selectedCreditCandidate?.amount : undefined" placeholder="0.00" :aria-invalid="isMoneyInFieldInvalid('amount')" class="h-10 rounded-lg border-slate-200 text-sm font-semibold tabular-nums focus-visible:ring-slate-950" @blur="touchMoneyInField('amount')" />
-                <p v-if="isMoneyInFieldInvalid('amount')" class="text-xs text-rose-600">{{ moneyInErrors.amount }}</p>
-                <p v-else-if="supportsSyncedCredits && selectedCreditCandidate" class="text-xs text-slate-500">Up to {{ formatMoney(selectedCreditCandidate.amount) }} from this synced selection.</p>
-              </div>
-              <div class="space-y-1.5">
-                <UiLabel for="money-in-reference" class="text-xs font-medium text-slate-600">{{ selectedMoneyInSource.referenceLabel }}</UiLabel>
-                <UiInput id="money-in-reference" v-model="moneyInForm.reference" :placeholder="selectedMoneyInSource.referencePlaceholder" :aria-invalid="isMoneyInFieldInvalid('reference')" class="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-slate-950" @blur="touchMoneyInField('reference')" />
-                <p v-if="isMoneyInFieldInvalid('reference')" class="text-xs text-rose-600">{{ moneyInErrors.reference }}</p>
-              </div>
-              <div class="space-y-1.5 sm:col-span-2">
-                <UiLabel for="money-in-note" class="text-xs font-medium text-slate-600">Recipient <span v-if="!isMoneyInFieldInvalid('description')" class="font-normal text-slate-400">(optional)</span></UiLabel>
-                <UiInput id="money-in-note" v-model="moneyInForm.description" :placeholder="selectedMoneyInSource.descriptionPlaceholder" :aria-invalid="isMoneyInFieldInvalid('description')" class="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-slate-950" @blur="touchMoneyInField('description')" />
-                <p v-if="isMoneyInFieldInvalid('description')" class="text-xs text-rose-600">{{ moneyInErrors.description }}</p>
-              </div>
-              <div class="space-y-1.5 sm:col-span-2">
-                <UiLabel for="money-in-context" class="text-xs font-medium text-slate-600">{{ selectedMoneyInSource.contextLabel }} <span class="font-normal text-slate-400">(optional)</span></UiLabel>
-                <UiInput id="money-in-context" v-model="moneyInForm.context" :placeholder="selectedMoneyInSource.contextPlaceholder" class="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-slate-950" />
-              </div>
+                    <span v-if="candidateContext(candidate)" class="ad-opt-meta">{{ candidateContext(candidate) }}</span>
+                  </span>
+                  <span class="ad-cand-amt">{{ formatMoney(candidate.amount) }}</span>
+                </button>
+              </template>
+              <p v-else class="ad-pick-msg">No {{ candidateGroupLabel.toLowerCase() }} found for this date.</p>
             </div>
           </div>
         </div>
-        <div v-if="moneyInError" class="shrink-0 border-t border-rose-200 bg-rose-50 px-6 py-1.5 text-xs text-rose-700">{{ moneyInError }}</div>
-        <div class="flex w-full min-w-0 shrink-0 items-center justify-between gap-2 border-t border-slate-200 bg-white px-5 py-1.5">
-          <button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950" @click="closeMoneyInModal">Cancel</button>
-          <button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canSubmitMoneyIn || isSaving || isLoadingCandidates" @click="submitMoneyIn">
-            {{ isSaving ? 'Posting...' : (usesPaymentGuide ? 'Add money' : `Post ${selectedMoneyInSource.label.toLowerCase()}`) }}
-          </button>
+
+        <p v-if="isMoneyInFieldInvalid('candidate')" class="ad-err">Select a synced source before posting this credit.</p>
+
+        <div class="ad-grid ad-grid-2">
+          <div class="ad-field">
+            <UiLabel for="money-in-amount" class="ad-lbl">Amount</UiLabel>
+            <UiInput id="money-in-amount" v-model="moneyInForm.amount" type="number" min="0.01" step="0.01" :max="supportsSyncedCredits ? selectedCreditCandidate?.amount : undefined" placeholder="0.00" :aria-invalid="isMoneyInFieldInvalid('amount')" class="ad-in ad-in-num" @blur="touchMoneyInField('amount')" />
+            <p v-if="isMoneyInFieldInvalid('amount')" class="ad-err">{{ moneyInErrors.amount }}</p>
+            <p v-else-if="supportsSyncedCredits && selectedCreditCandidate" class="ad-hint">Up to {{ formatMoney(selectedCreditCandidate.amount) }} from this selection.</p>
+          </div>
+          <div class="ad-field">
+            <UiLabel for="money-in-reference" class="ad-lbl">{{ selectedMoneyInSource.referenceLabel }}</UiLabel>
+            <UiInput id="money-in-reference" v-model="moneyInForm.reference" :placeholder="selectedMoneyInSource.referencePlaceholder" :aria-invalid="isMoneyInFieldInvalid('reference')" class="ad-in" @blur="touchMoneyInField('reference')" />
+            <p v-if="isMoneyInFieldInvalid('reference')" class="ad-err">{{ moneyInErrors.reference }}</p>
+          </div>
+          <div class="ad-field ad-span2">
+            <UiLabel for="money-in-note" class="ad-lbl">Recipient <span v-if="!isMoneyInFieldInvalid('description')" class="ad-opt-tag">optional</span></UiLabel>
+            <UiInput id="money-in-note" v-model="moneyInForm.description" :placeholder="selectedMoneyInSource.descriptionPlaceholder" :aria-invalid="isMoneyInFieldInvalid('description')" class="ad-in" @blur="touchMoneyInField('description')" />
+            <p v-if="isMoneyInFieldInvalid('description')" class="ad-err">{{ moneyInErrors.description }}</p>
+          </div>
+          <div class="ad-field ad-span2">
+            <UiLabel for="money-in-context" class="ad-lbl">{{ selectedMoneyInSource.contextLabel }} <span class="ad-opt-tag">optional</span></UiLabel>
+            <UiInput id="money-in-context" v-model="moneyInForm.context" :placeholder="selectedMoneyInSource.contextPlaceholder" class="ad-in" />
+          </div>
         </div>
       </div>
+
+      <p v-if="moneyInError" class="ad-dlg-error" role="alert">{{ moneyInError }}</p>
+      <footer class="ad-dlg-foot">
+        <span class="ad-dlg-meta"><template v-if="usesPaymentGuide">{{ selectedPaymentMethodCount }} {{ selectedPaymentMethodCount === 1 ? 'method' : 'methods' }} selected</template></span>
+        <div class="ad-dlg-actions">
+          <button type="button" class="ad-btn ad-btn-quiet" @click="closeMoneyInModal">Cancel</button>
+          <button type="button" class="ad-btn ad-btn-primary" :disabled="!canSubmitMoneyIn || isSaving || isLoadingCandidates" @click="submitMoneyIn">
+            {{ isSaving ? 'Posting…' : (usesPaymentGuide ? 'Add money' : `Post ${selectedMoneyInSource.label.toLowerCase()}`) }}
+          </button>
+        </div>
+      </footer>
     </UiDialogContent>
   </UiDialog>
 
   <UiDialog v-model:open="moneyOutModalOpen" data-print-hide>
-    <UiDialogContent class="!flex !w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] h-[min(600px,calc(100vh-2rem))] min-h-0 min-w-0 !gap-0 overflow-hidden rounded-xl border-slate-200 bg-white p-0 box-border sm:!max-w-[640px]">
-      <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-        <div class="border-b border-slate-200 px-6 py-4">
-          <UiDialogTitle class="truncate text-base font-semibold text-slate-950">Debit {{ account?.name }}</UiDialogTitle>
-          <UiDialogDescription class="mt-0.5 text-xs text-slate-500">Record money paid or withdrawn from this account.</UiDialogDescription>
+    <UiDialogContent class="ad-dlg ad-dlg-narrow !flex !flex-col !gap-0 !p-0 !border-0">
+      <header class="ad-dlg-head">
+        <UiDialogTitle class="ad-dlg-title">Debit</UiDialogTitle>
+        <UiDialogDescription class="ad-dlg-sub">{{ account?.name }} · Balance {{ formatMoney(Number(account?.currentBalance || 0)) }}</UiDialogDescription>
+      </header>
+
+      <div class="ad-dlg-body ad-dlg-scroll">
+        <div class="ad-grid ad-grid-2">
+          <div class="ad-field ad-span2">
+            <UiLabel for="money-out-source" class="ad-lbl">Debit reason</UiLabel>
+            <UiSelect v-model="moneyOutForm.source">
+              <UiSelectTrigger id="money-out-source" class="ad-in ad-sel">
+                <UiSelectValue />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem v-for="option in moneyOutSourceOptions" :key="option.value" :value="option.value">{{ option.label }}</UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+
+          <div v-if="isSupplierPayment" class="ad-field ad-span2">
+            <UiLabel for="supplier-payable" class="ad-lbl">Supplier invoice</UiLabel>
+            <UiSelect v-model="selectedPayableId">
+              <UiSelectTrigger id="supplier-payable" class="ad-in ad-sel">
+                <UiSelectValue placeholder="Select an outstanding invoice" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem v-for="payable in payables" :key="payable.id" :value="payable.id">{{ payable.supplierName || 'Supplier' }} · {{ payable.supplierInvoiceNo || payable.invoiceId }} · {{ formatPayableAmount(payable.balancePesewas) }}</UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+            <p v-if="payablesError" class="ad-err">{{ payablesError }}</p>
+            <p v-else-if="!payables.length" class="ad-hint">No outstanding payables have been synced yet.</p>
+            <p v-else-if="selectedPayable" class="ad-hint">{{ selectedPayable.source === 'warehouse' ? 'Warehouse' : 'Store' }} invoice · {{ formatPayableAmount(selectedPayable.balancePesewas) }} remaining</p>
+            <p v-if="isMoneyOutFieldInvalid('payable')" class="ad-err">{{ moneyOutErrors.payable }}</p>
+          </div>
+
+          <div class="ad-field">
+            <UiLabel for="money-out-amount" class="ad-lbl">Amount</UiLabel>
+            <UiInput id="money-out-amount" v-model="moneyOutForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" :aria-invalid="isMoneyOutFieldInvalid('amount')" class="ad-in ad-in-num" @blur="touchMoneyOutField('amount')" />
+            <p v-if="isMoneyOutFieldInvalid('amount')" class="ad-err">{{ moneyOutErrors.amount }}</p>
+            <p v-if="isMoneyOutFieldInvalid('balance')" class="ad-err">{{ moneyOutErrors.balance }}</p>
+            <p v-if="isMoneyOutFieldInvalid('payableBalance')" class="ad-err">{{ moneyOutErrors.payableBalance }}</p>
+          </div>
+          <div class="ad-field">
+            <UiLabel for="money-out-reference" class="ad-lbl">{{ selectedMoneyOutSource.referenceLabel }} <span class="ad-opt-tag">optional</span></UiLabel>
+            <UiInput id="money-out-reference" v-model="moneyOutForm.reference" :placeholder="selectedMoneyOutSource.referencePlaceholder" class="ad-in" />
+          </div>
+          <div class="ad-field ad-span2">
+            <UiLabel for="money-out-note" class="ad-lbl">{{ selectedMoneyOutSource.descriptionLabel }}</UiLabel>
+            <UiInput id="money-out-note" v-model="moneyOutForm.description" :placeholder="selectedMoneyOutSource.descriptionPlaceholder" :aria-invalid="isMoneyOutFieldInvalid('description')" class="ad-in" @blur="touchMoneyOutField('description')" />
+            <p v-if="isMoneyOutFieldInvalid('description')" class="ad-err">{{ moneyOutErrors.description }}</p>
+          </div>
+          <div class="ad-field ad-span2">
+            <UiLabel for="money-out-context" class="ad-lbl">{{ selectedMoneyOutSource.contextLabel }} <span class="ad-opt-tag">optional</span></UiLabel>
+            <UiInput id="money-out-context" v-model="moneyOutForm.context" :placeholder="selectedMoneyOutSource.contextPlaceholder" class="ad-in" />
+          </div>
         </div>
-        <div class="min-h-0 w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-5"><div class="space-y-5"><div class="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-end"><div class="space-y-1.5"><UiLabel for="money-out-source" class="text-xs font-medium text-slate-600">Debit reason</UiLabel><UiSelect v-model="moneyOutForm.source"><UiSelectTrigger id="money-out-source" class="h-10 rounded-lg border-slate-200 bg-white text-sm focus:ring-slate-950"><UiSelectValue /></UiSelectTrigger><UiSelectContent><UiSelectItem v-for="option in moneyOutSourceOptions" :key="option.value" :value="option.value">{{ option.label }}</UiSelectItem></UiSelectContent></UiSelect></div><p class="text-sm leading-5 text-slate-600">{{ selectedMoneyOutSource.descriptionPlaceholder }}</p></div><div v-if="isSupplierPayment" class="rounded-xl border border-slate-200 bg-slate-50/60 p-4"><div class="space-y-1.5"><UiLabel for="supplier-payable" class="text-xs font-medium text-slate-600">Synced payable</UiLabel><UiSelect v-model="selectedPayableId"><UiSelectTrigger id="supplier-payable" class="h-10 rounded-lg border-slate-200 bg-white text-sm focus:ring-slate-950"><UiSelectValue placeholder="Select an outstanding supplier invoice" /></UiSelectTrigger><UiSelectContent><UiSelectItem v-for="payable in payables" :key="payable.id" :value="payable.id">{{ payable.supplierName || 'Supplier' }} · {{ payable.supplierInvoiceNo || payable.invoiceId }} · {{ formatPayableAmount(payable.balancePesewas) }}</UiSelectItem></UiSelectContent></UiSelect><p v-if="payablesError" class="text-xs text-rose-600">{{ payablesError }}</p><p v-else-if="!payables.length" class="text-xs text-slate-500">No current outstanding payables have been synced yet.</p><p v-else-if="selectedPayable" class="text-xs text-slate-600">{{ selectedPayable.source === 'warehouse' ? 'Warehouse' : 'Store' }} invoice · {{ formatPayableAmount(selectedPayable.balancePesewas) }} remaining</p><p v-if="isMoneyOutFieldInvalid('payable')" class="text-xs text-rose-600">{{ moneyOutErrors.payable }}</p></div></div><div class="grid gap-4 sm:grid-cols-2"><div class="space-y-1.5"><UiLabel for="money-out-amount" class="text-xs font-medium text-slate-600">Amount</UiLabel><UiInput id="money-out-amount" v-model="moneyOutForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" :aria-invalid="isMoneyOutFieldInvalid('amount')" class="h-10 rounded-lg border-slate-200 text-sm font-semibold tabular-nums focus-visible:ring-slate-950" @blur="touchMoneyOutField('amount')" /><p v-if="isMoneyOutFieldInvalid('amount')" class="text-xs text-rose-600">{{ moneyOutErrors.amount }}</p><p v-if="isMoneyOutFieldInvalid('balance')" class="text-xs text-rose-600">{{ moneyOutErrors.balance }}</p><p v-if="isMoneyOutFieldInvalid('payableBalance')" class="text-xs text-rose-600">{{ moneyOutErrors.payableBalance }}</p></div><div class="space-y-1.5"><UiLabel for="money-out-reference" class="text-xs font-medium text-slate-600">{{ selectedMoneyOutSource.referenceLabel }} <span class="font-normal text-slate-400">(optional)</span></UiLabel><UiInput id="money-out-reference" v-model="moneyOutForm.reference" :placeholder="selectedMoneyOutSource.referencePlaceholder" class="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-slate-950" /></div><div class="space-y-1.5 sm:col-span-2"><UiLabel for="money-out-note" class="text-xs font-medium text-slate-600">{{ selectedMoneyOutSource.descriptionLabel }}</UiLabel><UiInput id="money-out-note" v-model="moneyOutForm.description" :placeholder="selectedMoneyOutSource.descriptionPlaceholder" :aria-invalid="isMoneyOutFieldInvalid('description')" class="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-slate-950" @blur="touchMoneyOutField('description')" /><p v-if="isMoneyOutFieldInvalid('description')" class="text-xs text-rose-600">{{ moneyOutErrors.description }}</p></div><div class="space-y-1.5 sm:col-span-2"><UiLabel for="money-out-context" class="text-xs font-medium text-slate-600">{{ selectedMoneyOutSource.contextLabel }} <span class="font-normal text-slate-400">(optional)</span></UiLabel><UiInput id="money-out-context" v-model="moneyOutForm.context" :placeholder="selectedMoneyOutSource.contextPlaceholder" class="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-slate-950" /></div></div><div class="flex items-baseline justify-between gap-6 border-t border-slate-100 pt-3 text-sm"><span class="text-slate-500">This will reduce the balance to</span><span class="font-semibold tabular-nums text-slate-950">{{ formatMoney(Number(account?.currentBalance || 0) - Number(moneyOutForm.amount || 0)) }}</span></div></div></div>
-        <div v-if="moneyOutError" class="shrink-0 border-t border-rose-200 bg-rose-50 px-6 py-2.5 text-xs text-rose-700">{{ moneyOutError }}</div>
-        <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-3.5"><button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950" @click="closeMoneyOutModal">Cancel</button><button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canSubmitMoneyOut || isSaving" @click="submitMoneyOut">{{ isSaving ? 'Recording...' : 'Post debit' }}</button></div>
       </div>
+
+      <p v-if="moneyOutError" class="ad-dlg-error" role="alert">{{ moneyOutError }}</p>
+      <footer class="ad-dlg-foot">
+        <span class="ad-dlg-meta">Balance after <b :class="{ 'is-neg': Number(account?.currentBalance || 0) - Number(moneyOutForm.amount || 0) < 0 }">{{ formatMoney(Number(account?.currentBalance || 0) - Number(moneyOutForm.amount || 0)) }}</b></span>
+        <div class="ad-dlg-actions">
+          <button type="button" class="ad-btn ad-btn-quiet" @click="closeMoneyOutModal">Cancel</button>
+          <button type="button" class="ad-btn ad-btn-primary" :disabled="!canSubmitMoneyOut || isSaving" @click="submitMoneyOut">{{ isSaving ? 'Recording…' : 'Post debit' }}</button>
+        </div>
+      </footer>
     </UiDialogContent>
   </UiDialog>
 
   <UiDialog v-model:open="loanModalOpen" data-print-hide>
-    <UiDialogContent class="!flex !w-[calc(100vw-2rem)] !max-w-[calc(100vw-2rem)] h-[min(600px,calc(100vh-2rem))] min-h-0 min-w-0 !gap-0 overflow-hidden rounded-xl border-slate-200 bg-white p-0 box-border sm:!max-w-[560px]">
+    <UiDialogContent class="ad-dlg ad-dlg-narrow !flex !flex-col !gap-0 !p-0 !border-0">
       <template v-if="account">
-        <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-          <div class="border-b border-slate-200 px-6 py-4"><UiDialogTitle class="truncate text-base font-semibold text-slate-950">{{ loanDirection === 'received' ? 'Receive loan' : 'Make repayment' }}</UiDialogTitle><UiDialogDescription class="mt-0.5 text-xs text-slate-500">{{ loanDirection === 'received' ? 'Record money borrowed from this lender.' : 'Record money paid back to this lender.' }}</UiDialogDescription></div>
-          <div class="min-h-0 w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-5"><div class="space-y-5"><p class="text-sm leading-6 text-slate-500">Records only on <span class="font-medium text-slate-900">{{ account.name }}</span>'s loan ledger — no other account balance changes.</p><div class="grid gap-4 sm:grid-cols-2"><div class="space-y-1.5"><UiLabel for="loan-amount" class="text-xs font-medium text-slate-600">Amount</UiLabel><UiInput id="loan-amount" v-model="loanForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" class="h-10 border-slate-200 text-sm font-semibold tabular-nums focus-visible:ring-slate-950" /><p v-if="loanFieldError()" class="text-xs text-rose-600">{{ loanFieldError() }}</p></div><div class="space-y-1.5"><UiLabel for="loan-reference" class="text-xs font-medium text-slate-600">Reference <span class="font-normal text-slate-400">(optional)</span></UiLabel><UiInput id="loan-reference" v-model="loanForm.reference" placeholder="Agreement or receipt number" class="h-10 border-slate-200 text-sm focus-visible:ring-slate-950" /></div></div><div class="space-y-1.5"><UiLabel for="loan-description" class="text-xs font-medium text-slate-600">Recipient <span class="font-normal text-slate-400">(optional)</span></UiLabel><UiInput id="loan-description" v-model="loanForm.description" :placeholder="loanDirection === 'received' ? 'Lender or person providing the loan' : 'Lender or person receiving repayment'" class="h-10 border-slate-200 text-sm focus-visible:ring-slate-950" /></div><div v-if="loanError" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{{ loanError }}</div></div></div>
-          <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-3.5"><button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950" @click="loanModalOpen = false">Cancel</button><button type="button" class="inline-flex min-h-9 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" :disabled="isSaving" @click="submitLoanMovement">{{ isSaving ? 'Recording...' : (loanDirection === 'received' ? 'Record loan received' : 'Record repayment') }}</button></div>
+        <header class="ad-dlg-head">
+          <UiDialogTitle class="ad-dlg-title">{{ loanDirection === 'received' ? 'Receive loan' : 'Make repayment' }}</UiDialogTitle>
+          <UiDialogDescription class="ad-dlg-sub">{{ account.name }} · {{ loanDirection === 'received' ? 'Money borrowed from this lender' : 'Money paid back to this lender' }}</UiDialogDescription>
+        </header>
+
+        <div class="ad-dlg-body ad-dlg-scroll">
+          <div class="ad-grid ad-grid-2">
+            <div class="ad-field">
+              <UiLabel for="loan-amount" class="ad-lbl">Amount</UiLabel>
+              <UiInput id="loan-amount" v-model="loanForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" class="ad-in ad-in-num" />
+              <p v-if="loanFieldError()" class="ad-err">{{ loanFieldError() }}</p>
+            </div>
+            <div class="ad-field">
+              <UiLabel for="loan-reference" class="ad-lbl">Reference <span class="ad-opt-tag">optional</span></UiLabel>
+              <UiInput id="loan-reference" v-model="loanForm.reference" placeholder="Agreement or receipt number" class="ad-in" />
+            </div>
+            <div class="ad-field ad-span2">
+              <UiLabel for="loan-description" class="ad-lbl">Recipient <span class="ad-opt-tag">optional</span></UiLabel>
+              <UiInput id="loan-description" v-model="loanForm.description" :placeholder="loanDirection === 'received' ? 'Lender or person providing the loan' : 'Lender or person receiving repayment'" class="ad-in" />
+            </div>
+          </div>
+          <p class="ad-hint">Recorded on this loan ledger only. No other account balance changes.</p>
         </div>
+
+        <p v-if="loanError" class="ad-dlg-error" role="alert">{{ loanError }}</p>
+        <footer class="ad-dlg-foot">
+          <span class="ad-dlg-meta" />
+          <div class="ad-dlg-actions">
+            <button type="button" class="ad-btn ad-btn-quiet" @click="loanModalOpen = false">Cancel</button>
+            <button type="button" class="ad-btn ad-btn-primary" :disabled="isSaving" @click="submitLoanMovement">{{ isSaving ? 'Recording…' : (loanDirection === 'received' ? 'Record loan received' : 'Record repayment') }}</button>
+          </div>
+        </footer>
       </template>
     </UiDialogContent>
   </UiDialog>
@@ -835,7 +847,7 @@ import {
   ArrowUpIcon,
   BanknotesIcon,
   BuildingLibraryIcon,
-  CheckCircleIcon,
+  CheckIcon,
   ChevronRightIcon,
   CreditCardIcon,
   DevicePhoneMobileIcon,
@@ -844,7 +856,7 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
   PrinterIcon,
-  QuestionMarkCircleIcon,
+  ScaleIcon,
   WalletIcon,
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
@@ -886,6 +898,7 @@ const {
   loadPayables,
   payables,
   postMoneyIn,
+  receiveCheque,
   postMoneyOut,
   postLoanReceived,
   postLoanRepayment,
@@ -988,9 +1001,24 @@ const selectedPaymentMethodCount = computed(() => Object.values(paymentAllocatio
 const paymentAllocationTotal = computed(() => Math.max(Number(moneyInForm.value.amount) || 0, 0))
 const paymentMethodInputId = (methodId: string) => `credit-method-${String(methodId).replace(/[^a-zA-Z0-9_-]/g, '-')}`
 const isPaymentMethodSelected = (methodId: string) => Boolean(paymentAllocationSelected.value[methodId])
+const isChequeMethod = (method: { methodKey?: string, method?: string }) => String(method.methodKey || method.method || '').toLowerCase() === 'cheque'
+const isChequeSelected = computed(() => creditGuideMethods.value.some((method) => isChequeMethod(method) && isPaymentMethodSelected(method.id)))
+const chequeForm = ref({ number: '', bank: '', dueDate: '' })
+const isPostDatedCheque = computed(() => isChequeSelected.value && Boolean(chequeForm.value.dueDate) && chequeForm.value.dueDate > todayIsoDate())
 const togglePaymentMethod = (methodId: string, event: Event) => {
   const checked = (event.target as HTMLInputElement | null)?.checked === true
-  paymentAllocationSelected.value = { ...paymentAllocationSelected.value, [methodId]: checked }
+  const toggled = creditGuideMethods.value.find((method) => method.id === methodId)
+  const next = { ...paymentAllocationSelected.value, [methodId]: checked }
+  if (checked && toggled) {
+    // A cheque reflects on its due date, so it is credited on its own rather
+    // than mixed with methods that post immediately.
+    const toggledIsCheque = isChequeMethod(toggled)
+    creditGuideMethods.value.forEach((method) => {
+      if (method.id !== methodId && isChequeMethod(method) !== toggledIsCheque) next[method.id] = false
+    })
+    if (toggledIsCheque && !chequeForm.value.dueDate) chequeForm.value.dueDate = todayIsoDate()
+  }
+  paymentAllocationSelected.value = next
 }
 const paymentAllocationPayload = computed<PaymentAllocation[]>(() => creditGuideMethods.value
   .filter((method) => isPaymentMethodSelected(method.id))
@@ -1072,6 +1100,7 @@ const visibleLedger = computed(() => {
     const dateMatches = (!ledgerFromDate.value || entryDate >= ledgerFromDate.value) && (!ledgerToDate.value || entryDate <= ledgerToDate.value)
     const methodMatches = ledgerMethod.value === 'all' || ledgerMethodValues(entry).includes(ledgerMethod.value)
     const statusMatches = ledgerStatus.value === 'all' || entry.status === ledgerStatus.value
+    if (entry.source === 'reversal') return false
     if (!directionMatches || !dateMatches || !methodMatches || !statusMatches) return false
     if (!query) return true
     return [entry.reference, entry.enteredBy, ...ledgerMethodValues(entry), ledgerSourceLabel(entry), entry.metadata?.context, statusLabel(entry.status)].filter(Boolean).join(' ').toLowerCase().includes(query)
@@ -1156,6 +1185,8 @@ const moneyInErrors = computed(() => {
       ? (usesPaymentGuide.value ? paymentAllocationErrorMessage.value : 'Amount must be greater than 0.')
       : (exceedsSyncedAmount ? `Amount cannot exceed ${formatMoney(selectedAmount)} for this synced selection.` : ''),
     paymentAllocations: usesPaymentGuide.value ? paymentAllocationErrorMessage.value : '',
+    chequeNumber: isChequeSelected.value && !chequeForm.value.number.trim() ? 'Cheque number is required.' : '',
+    chequeDueDate: isChequeSelected.value && !chequeForm.value.dueDate ? 'Choose the cheque due date.' : '',
     description: usesPaymentGuide.value || moneyInForm.value.description.trim() ? '' : 'Recipient is required.',
     reference: moneyInForm.value.source === 'cheque' && !moneyInForm.value.reference.trim() ? 'Cheque number is required.' : '',
     candidate: supportsSyncedCredits.value && !selectedCreditCandidate.value?.sourceLinks?.length ? 'A synced source is required.' : '',
@@ -1181,7 +1212,31 @@ const touchMoneyOutField = (field: string): void => { moneyOutTouched.value[fiel
 const canSubmitMoneyIn = computed(() => Object.values(moneyInErrors.value).every((message) => !message))
 const canSubmitMoneyOut = computed(() => Object.values(moneyOutErrors.value).every((message) => !message))
 
-const accountIcon = (type: AccountType) => ({ cash: BanknotesIcon, bank: BuildingLibraryIcon, mobile_money: DevicePhoneMobileIcon, pos: CreditCardIcon, petty_cash: WalletIcon, loan: BanknotesIcon }[type])
+const accountIcon = (type: AccountType) => ({ cash: BanknotesIcon, bank: BuildingLibraryIcon, mobile_money: DevicePhoneMobileIcon, pos: CreditCardIcon, petty_cash: WalletIcon, loan: ScaleIcon }[type])
+
+const plainMoney = new Intl.NumberFormat('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const splitMoney = (value: number | null | undefined) => {
+  const n = Number(value ?? 0)
+  const text = plainMoney.format(Math.abs(n))
+  const dot = text.lastIndexOf('.')
+  return { neg: n < 0, int: text.slice(0, dot), dec: text.slice(dot) }
+}
+const relativeUnits: [Intl.RelativeTimeFormatUnit, number][] = [['year', 31557600], ['month', 2629800], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]
+const relativeFormat = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+const relativeWhen = (iso: string | null | undefined): string => {
+  if (!iso) return 'No activity yet'
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return '—'
+  const diff = (t - Date.now()) / 1000
+  if (Math.abs(diff) < 60) return 'Just now'
+  const [unit, secs] = relativeUnits.find(([, size]) => Math.abs(diff) >= size) ?? relativeUnits[relativeUnits.length - 1]!
+  return relativeFormat.format(Math.round(diff / secs), unit)
+}
+const shortDate = (iso: string | null | undefined): string => {
+  const d = iso ? new Date(iso) : null
+  if (!d || Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('en-GH', { day: 'numeric', month: 'short', year: 'numeric' }).format(d)
+}
 const accountSubtitle = (item: AccountSummary) => {
   const metadata = item.metadata || {}
   if (item.type === 'bank') return [metadata.bankName, metadata.accountNumber].filter(Boolean).join(' / ') || item.branch || 'Bank account'
@@ -1252,11 +1307,7 @@ const ledgerAdditionalDetails = (entry: LedgerEntry) => Object.entries(entry.met
   ))
   .map(([key, value]) => ({ key, label: ledgerMetadataLabels[key] || key, value: String(value).trim() }))
 const statusLabel = (status: string) => status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
-const statusBadgeClass = (status: string) => {
-  if (status === 'pending') return 'border border-amber-200 bg-amber-50 text-amber-800'
-  if (status === 'reversed') return 'border border-rose-200 bg-rose-50 text-rose-700'
-  return 'border border-slate-200 bg-slate-100 text-slate-700'
-}
+const statusBadgeClass = (status: string) => `ad-tag-${status}`
 const recordedByLabel = (entry: LedgerEntry) => {
   const value = entry.enteredBy?.trim()
   return value === 'company_user' ? (companyStore.userName || 'Company user') : (value || 'Not recorded')
@@ -1423,9 +1474,12 @@ const onChequeAction = async (action: 'clear' | 'deposit' | 'bounce' | 'cancel',
   }
 }
 
+// Reversal records are audit markers, so only real posted movements can be reversed.
+const canReverseEntry = (entry: LedgerEntry | null | undefined) => Boolean(entry) && entry!.status === 'posted' && entry!.source !== 'reversal'
+
 const onReverseSelectedEntry = async (): Promise<boolean> => {
   const entry = selectedLedgerEntry.value
-  if (!entry || !account.value || entry.status !== 'posted') return false
+  if (!entry || !account.value || !canReverseEntry(entry)) return false
   isReversing.value = true
   reversalError.value = ''
   const reversedAmount = Number(entry.moneyIn || entry.moneyOut || 0)
@@ -1489,10 +1543,10 @@ const openConfirmation = (details: AccountConfirmation, action: () => Promise<bo
 
 const requestReverseSelectedEntry = () => {
   const entry = selectedLedgerEntry.value
-  if (!entry || !account.value || entry.status !== 'posted') return
+  if (!entry || !account.value || !canReverseEntry(entry)) return
   openConfirmation({
     title: 'Reverse this ledger entry?',
-    message: `A reversal record will be added to ${account.value.name} and the balance restored.`,
+    message: `A reversal record will be added to ${account.value.name} and the balance restored. Any linked cheque, sale or credit record is released so it can be recorded again.`,
     confirmLabel: 'Reverse entry',
     tone: 'danger',
     amount: Number(entry.moneyIn || entry.moneyOut || 0),
@@ -1564,6 +1618,7 @@ const resetMoneyInForm = () => {
   guideFromDate.value = todayIsoDate()
   guideToDate.value = todayIsoDate()
   paymentAllocationSelected.value = {}
+  chequeForm.value = { number: '', bank: '', dueDate: '' }
   creditGuideError.value = ''
 }
 const resetMoneyOutForm = () => {
@@ -1576,6 +1631,7 @@ const resetMoneyOutForm = () => {
 const touchMoneyInRequiredFields = () => {
   touchMoneyInField('amount'); touchMoneyInField('description')
   if (moneyInForm.value.source === 'cheque') touchMoneyInField('reference')
+  if (isChequeSelected.value) { touchMoneyInField('chequeNumber'); touchMoneyInField('chequeDueDate') }
   if (supportsSyncedCredits.value) touchMoneyInField('candidate')
 }
 const touchMoneyOutRequiredFields = () => { touchMoneyOutField('amount'); touchMoneyOutField('balance'); touchMoneyOutField('description'); if (isSupplierPayment.value) touchMoneyOutField('payable') }
@@ -1714,6 +1770,9 @@ const executeMoneyIn = async (): Promise<boolean> => {
         guideToDate: guideToDate.value,
         paymentMethod: paymentAllocationPayload.value.length === 1 ? paymentAllocationPayload.value[0].methodKey : 'mixed',
         paymentMethodSummary: allocationSummary,
+        ...(isChequeSelected.value && chequeForm.value.number.trim()
+          ? { chequeNumber: chequeForm.value.number.trim(), ...(chequeForm.value.bank.trim() ? { bankName: chequeForm.value.bank.trim() } : {}) }
+          : {}),
       })
     : (supportsSyncedCredits.value && selectedCreditCandidate.value?.metadata
       ? buildMovementMetadata(moneyInForm.value.context, moneyInForm.value.source, 'in', selectedCreditCandidate.value.metadata)
@@ -1722,6 +1781,28 @@ const executeMoneyIn = async (): Promise<boolean> => {
     ? `accounts-${accountId.value}-${selectedCreditCandidate.value.id}-${movementAmount.toFixed(2)}`
     : `accounts-${accountId.value}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   try {
+    if (isPostDatedCheque.value) {
+      // Post-dated cheque: recorded as pending; the backend clears it so the
+      // amount reflects on the balance on its due date.
+      const dueDate = chequeForm.value.dueDate
+      await receiveCheque({
+        accountId: accountId.value,
+        amount: movementAmount,
+        chequeNumber: chequeForm.value.number.trim(),
+        drawerName: moneyInForm.value.description.trim() || undefined,
+        bankName: chequeForm.value.bank.trim() || undefined,
+        receivedDate: todayIsoDate(),
+        expectedClearanceDate: dueDate,
+        reference: moneyInForm.value.reference.trim() || undefined,
+        recipient: moneyInForm.value.description.trim() || undefined,
+        metadata: { ...metadata, paymentMethod: 'cheque', paymentMethodSummary: 'Cheque' },
+        postingKey,
+      })
+      await loadCheques(accountId.value)
+      closeMoneyInModal()
+      showSuccessModal('Post-dated cheque recorded', `${formatMoney(movementAmount)} will reflect on ${accountName} on ${formatDate(dueDate)}.`, movementAmount)
+      return true
+    }
     await postMoneyIn({ accountId: accountId.value, source: usesPaymentGuide.value ? 'manual' : moneyInForm.value.source, amount: movementAmount, recipient: description, reference: moneyInForm.value.reference.trim(), sourceLinks, paymentAllocations: usesPaymentGuide.value ? paymentAllocationPayload.value : undefined, postingKey, metadata })
     closeMoneyInModal()
     showSuccessModal('Credit posted', `Added to ${accountName}.`, movementAmount)
@@ -1739,8 +1820,10 @@ const submitMoneyIn = () => {
   const allocationSummary = paymentAllocationPayload.value.map((allocation) => allocation.methodName).join(' · ')
   openConfirmation({
     title: 'Post this credit?',
-    message: `Will be added to ${accountName}${allocationSummary ? ` via ${allocationSummary}` : ''}.`,
-    confirmLabel: 'Post credit',
+    message: isPostDatedCheque.value
+      ? `Cheque ${chequeForm.value.number.trim()} stays pending. It will be added to ${accountName} on ${formatDate(chequeForm.value.dueDate)}.`
+      : `Will be added to ${accountName}${allocationSummary ? ` via ${allocationSummary}` : ''}.`,
+    confirmLabel: isPostDatedCheque.value ? 'Record cheque' : 'Post credit',
     amount: movementAmount,
   }, executeMoneyIn, 'post', 'moneyIn')
 }
@@ -1848,6 +1931,31 @@ onMounted(() => { printGeneratedAt.value = printTimestamp(); loadCurrentAccount(
 </script>
 
 <style>
+/* Credit / debit / loan dialogs: the dialog root is teleported and gets no scope id, so its rules are global (the rest are scoped in the block below). */
+.ad-dlg {
+  --ink: #14161c;
+  --ink-2: #3b3f4a;
+  --mute: #6a6f7d;
+  --faint: #9a9fac;
+  --line: #e4e6eb;
+  --line-2: #d3d6dd;
+  --wash: #f6f7f9;
+  width: calc(100vw - 2rem) !important;
+  max-width: calc(100vw - 2rem) !important;
+  max-height: calc(100vh - 2rem);
+  min-height: 0;
+  border-radius: 14px !important;
+  background: #fff;
+  color: var(--ink);
+  overflow: hidden;
+  box-shadow: 0 24px 60px -12px rgba(20, 22, 28, 0.28), 0 0 0 1px rgba(20, 22, 28, 0.06) !important;
+  -webkit-font-smoothing: antialiased;
+}
+.ad-dlg-sm { max-width: min(420px, calc(100vw - 2rem)) !important; }
+.ad-dlg-narrow { max-width: min(540px, calc(100vw - 2rem)) !important; }
+.ad-dlg-wide { max-width: min(760px, calc(100vw - 2rem)) !important; }
+.ad-dlg-wide:has(.ad-dlg-fill) { height: min(640px, calc(100vh - 2rem)); }
+
 @media print {
   @page {
     size: A4 portrait;
@@ -2122,4 +2230,332 @@ onMounted(() => { printGeneratedAt.value = printTimestamp(); loadCurrentAccount(
   }
 }
 
+</style>
+
+<style scoped>
+/* Account detail. Same quiet language as the accounts list: neutral ink, hairlines, no decoration.
+   Note: .ad must not set position/transform/overflow, the print document positions itself against the page. */
+.ad {
+  --ink: #14161c;
+  --ink-2: #3b3f4a;
+  --mute: #6a6f7d;
+  --faint: #9a9fac;
+  --line: #e4e6eb;
+  --line-2: #d3d6dd;
+  --wash: #f6f7f9;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  max-width: 1180px;
+  margin: 0 auto;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.ad *, .ad *::before, .ad *::after { box-sizing: border-box; }
+.ad-ico { width: 16px; height: 16px; flex: none; }
+.ad-spin { animation: ad-rot 0.9s linear infinite; }
+@keyframes ad-rot { to { transform: rotate(360deg); } }
+
+/* header */
+.ad-head { margin-bottom: 18px; }
+.ad-crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--mute); }
+.ad-crumb a { color: var(--mute); text-decoration: none; }
+.ad-crumb a:hover { color: var(--ink); }
+.ad-crumb a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 3px; }
+.ad-crumb span[aria-hidden] { color: var(--faint); }
+.ad-crumb span[aria-current] { color: var(--ink-2); max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+.ad-id { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.ad-glyph { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--wash); border: 1px solid var(--line); color: var(--ink-2); }
+.ad-glyph svg { width: 20px; height: 20px; }
+.ad-name { min-width: 0; }
+.ad-name h1 { margin: 0; display: flex; align-items: baseline; gap: 10px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.ad-tag { font-size: 13px; font-weight: 500; color: var(--mute); letter-spacing: 0; }
+.ad-name p { margin: 3px 0 0; font: 400 12.5px var(--mono); color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-actions { display: flex; gap: 8px; }
+
+/* buttons */
+.ad-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 8px; font-size: 13.5px; font-weight: 500; line-height: 1; cursor: pointer; border: 1px solid transparent; text-decoration: none; transition: background 0.12s, border-color 0.12s; }
+.ad-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ad-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.ad-btn-quiet { background: #fff; color: var(--ink); border-color: var(--line-2); }
+.ad-btn-quiet:hover:not(:disabled) { background: var(--wash); }
+.ad-btn-primary { background: var(--ink); color: #fff; }
+.ad-btn-primary:hover:not(:disabled) { background: #2a2d37; }
+.ad-btn-danger { background: #fff; color: #b42318; border-color: var(--line-2); }
+.ad-btn-danger:hover:not(:disabled) { background: #fef3f2; border-color: #fecdca; }
+.ad-btn-sm { height: 30px; padding: 0 11px; font-size: 12.5px; }
+.ad-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line-2); background: #fff; color: var(--ink-2); cursor: pointer; }
+.ad-icon:hover:not(:disabled) { background: var(--wash); color: var(--ink); }
+.ad-icon:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ad-icon:disabled { opacity: 0.6; cursor: wait; }
+.ad-link { font-size: 13px; font-weight: 500; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+
+/* summary */
+.ad-summary { margin: 0 0 16px; display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+.ad-summary > div { padding: 16px 22px 15px; border-left: 1px solid var(--line); min-width: 0; }
+.ad-summary > div:first-child { border-left: 0; }
+.ad-summary dt { font-size: 12.5px; color: var(--mute); }
+.ad-summary dd { margin: 6px 0 0; }
+.ad-lead { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ad-lead small { font-size: 14px; font-weight: 500; color: var(--mute); margin-right: 4px; letter-spacing: 0; }
+.ad-lead span { font-size: 18px; color: var(--faint); font-weight: 500; }
+.ad-val { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.ad-val.is-none { color: var(--faint); font-weight: 500; }
+
+/* cards */
+.ad-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; }
+.ad-count { font-size: 12px; font-weight: 500; color: var(--mute); background: rgba(20, 22, 28, 0.06); border-radius: 99px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+.ad-pend { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mute); }
+.ad-pend i { width: 6px; height: 6px; border-radius: 50%; background: #d9922b; }
+.ad-chead { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.ad-chead h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.ad-card-err { margin: 0; padding: 8px 18px; font-size: 12.5px; color: #b42318; background: #fef3f2; border-bottom: 1px solid #fecdca; }
+.ad-chq-list { list-style: none; margin: 0; padding: 0; }
+.ad-chq-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 12px 18px; }
+.ad-chq-list li + li { border-top: 1px solid var(--line); }
+.ad-chq-main { display: grid; gap: 2px; min-width: 0; }
+.ad-chq-main b { font-size: 13.5px; font-weight: 600; }
+.ad-chq-main i { font-style: normal; font-size: 12px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-chq-amt { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ad-chq-actions { display: flex; gap: 6px; }
+.ad-chq-skel { display: grid; gap: 8px; padding: 14px 18px; }
+.ad-chq-skel span { height: 14px; border-radius: 5px; }
+
+/* ledger */
+.ad-lhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px 10px; }
+.ad-ltitle { display: flex; align-items: center; gap: 10px; }
+.ad-ltitle h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.ad-licons { display: flex; gap: 6px; }
+.ad-inline-err { margin: 0; padding: 0 18px 8px; font-size: 12.5px; color: #b42318; }
+.ad-inline-err button { margin-left: 6px; text-decoration: underline; text-underline-offset: 2px; }
+.ad-ltools { padding: 0 18px 14px; }
+.ad-lrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.ad-search { position: relative; display: flex; align-items: center; flex: 1 1 220px; min-width: 0; }
+.ad-search .ad-ico { position: absolute; left: 11px; color: var(--faint); pointer-events: none; }
+.ad-search input { width: 100%; height: 36px; padding: 0 12px 0 33px; border-radius: 8px; border: 1px solid var(--line-2); background: #fff; font-size: 13px; color: var(--ink); outline: none; }
+.ad-search input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20, 22, 28, 0.08); }
+.ad-filterbtn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border-radius: 8px; border: 1px solid var(--line-2); background: #fff; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.ad-filterbtn:hover { background: var(--wash); }
+.ad-filterbtn.is-on { background: rgba(20, 22, 28, 0.06); }
+.ad-filterbtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ad-filterbtn span { font-size: 11.5px; background: var(--ink); color: #fff; border-radius: 99px; padding: 0 6px; line-height: 17px; }
+.ad-extra { margin-top: 12px; }
+.ad-extra:empty { display: none; }
+.ad-lskel { padding: 6px 18px 16px; display: grid; gap: 14px; }
+.ad-lskel > div { display: grid; grid-template-columns: 90px 1fr 120px; gap: 20px; }
+.ad-lskel span { height: 14px; border-radius: 5px; }
+.ad-lempty { text-align: center; padding: 44px 18px 48px; border-top: 1px solid var(--line); }
+.ad-lempty h3 { margin: 12px 0 10px; font-size: 15px; font-weight: 600; }
+
+.ad-tablewrap { border-top: 1px solid var(--line); }
+.ad-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.ad-table thead th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 500; color: var(--mute); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ad-table th:first-child, .ad-table td:first-child { padding-left: 18px; }
+.ad-table th:last-child, .ad-table td:last-child { padding-right: 18px; }
+.ad-table .r { text-align: right; }
+.ad-table tbody tr { cursor: pointer; transition: background 0.1s; outline: none; }
+.ad-table tbody tr + tr td { border-top: 1px solid var(--line); }
+.ad-table tbody tr:hover, .ad-table tbody tr:focus-visible { background: var(--wash); }
+.ad-table tbody tr:focus-visible { box-shadow: inset 0 0 0 2px var(--ink); }
+.ad-table td { padding: 12px 14px; vertical-align: middle; font-size: 13.5px; min-width: 0; }
+.ad-cut { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-ref { font-weight: 600; }
+.ad-dim { color: var(--mute); }
+td small.ad-cut { margin-top: 2px; font-size: 12px; }
+.ad-amt { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ad-amt.ad-amt-in { color: #067647; }
+.ad-amt.ad-amt-out { color: #b42318; }
+.ad-amt.is-none { color: var(--faint); }
+.ad-bal { font-weight: 600; }
+.ad-status { display: inline-block; margin-top: 3px; font-style: normal; font-size: 11.5px; padding: 0 7px; border-radius: 99px; line-height: 18px; border: 1px solid var(--line-2); color: var(--mute); }
+.ad-status.is-reversed { color: #b42318; border-color: #fecdca; background: #fef3f2; }
+.ad-table tbody tr.is-reversed td { color: var(--mute); }
+.ad-table tbody tr.is-reversed td.ad-amt:not(.ad-bal) { text-decoration: line-through; }
+.ad-table tbody tr.is-reversed .ad-ref { font-weight: 500; }
+.ad-struck, .ad-amt.ad-struck { text-decoration: line-through; color: var(--mute); }
+.ad-foot { margin: 0; padding: 10px 18px; font-size: 12px; color: var(--mute); border-top: 1px solid var(--line); }
+.ad-mlist { display: none; border-top: 1px solid var(--line); }
+.ad-mrow { display: grid; gap: 4px; width: 100%; padding: 13px 16px; text-align: left; border-top: 1px solid var(--line); background: #fff; cursor: pointer; }
+.ad-mrow:first-child { border-top: 0; }
+.ad-mrow:hover, .ad-mrow:focus-visible { background: var(--wash); outline: none; }
+.ad-mtop, .ad-msub { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.ad-mtop b { font-size: 14px; font-weight: 600; min-width: 0; }
+.ad-mtop .ad-amt { font-size: 14px; font-weight: 600; }
+.ad-msub { font-size: 12px; color: var(--mute); }
+.ad-msub .ad-cut { min-width: 0; }
+
+/* states */
+.ad-panel { text-align: center; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 52px 24px; }
+.ad-panel-ico { width: 26px; height: 26px; margin: 0 auto; color: var(--mute); }
+.ad-panel-ico.is-err { color: #b42318; }
+.ad-panel h1 { margin: 14px 0 4px; font-size: 16px; font-weight: 600; }
+.ad-panel p { margin: 0 auto 18px; max-width: 400px; font-size: 13.5px; line-height: 1.6; color: var(--mute); }
+.ad-panel-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.ad-skel { display: block; background: linear-gradient(100deg, #eceef2 30%, #f5f6f8 50%, #eceef2 70%); background-size: 220% 100%; animation: ad-shimmer 1.4s linear infinite; }
+.ad-skel-head { height: 64px; width: 55%; border-radius: 10px; margin-bottom: 18px; }
+.ad-skel-strip { height: 92px; border-radius: 12px; margin-bottom: 16px; }
+.ad-skel-card { height: 340px; border-radius: 12px; }
+@keyframes ad-shimmer { to { background-position: -120% 0; } }
+
+/* responsive */
+@media (max-width: 1100px) {
+  .ad-table { table-layout: auto; }
+  .ad-table thead th:nth-child(3), .ad-table tbody td:nth-child(3) { display: none; }
+}
+@media (max-width: 860px) {
+  .ad-summary { grid-template-columns: 1fr 1fr; }
+  .ad-summary > div:nth-child(3) { border-left: 0; }
+  .ad-summary > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .ad-chq-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .ad-chq-actions { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+  .ad-tablewrap { display: none; }
+  .ad-mlist { display: block; }
+  .ad-actions { width: 100%; }
+  .ad-actions .ad-btn { flex: 1; }
+  .ad-search { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ad *, .ad *::before, .ad *::after { animation: none !important; transition: none !important; }
+}
+
+/* Entry / credit / debit / loan dialogs. Teleported, so the variables are redeclared here instead of inherited from .ad. */
+.ad-dlg *, .ad-dlg *::before, .ad-dlg *::after { box-sizing: border-box; }
+.ad-dlg .ad-ico { width: 16px; height: 16px; flex: none; }
+
+.ad-dlg-head { flex: none; padding: 20px 56px 16px 24px; border-bottom: 1px solid var(--line); }
+.ad-dlg-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); line-height: 1.3; }
+.ad-dlg-sub { margin-top: 3px; font-size: 13px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ad-dlg-body { padding: 20px 24px; min-width: 0; }
+.ad-dlg-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px; }
+.ad-dlg-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; overscroll-behavior: contain; }
+
+.ad-grid { display: grid; gap: 14px 14px; }
+.ad-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ad-grid-3 { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr); }
+.ad-span2 { grid-column: 1 / -1; }
+.ad-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ad-lbl { font-size: 12.5px; font-weight: 500; color: var(--ink-2); line-height: 1.2; }
+.ad-opt-tag { margin-left: 4px; font-weight: 400; color: var(--faint); }
+.ad-hint { font-size: 12px; color: var(--mute); line-height: 1.4; }
+.ad-err { font-size: 12px; color: #b42318; line-height: 1.4; }
+
+.ad-in { height: 38px; width: 100%; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 8px; background: #fff; font-size: 14px; color: var(--ink); box-shadow: none; transition: border-color 0.12s, box-shadow 0.12s; }
+.ad-in::placeholder { color: var(--faint); }
+.ad-in:hover { border-color: #b9bdc7; }
+.ad-in:focus, .ad-in:focus-visible { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20, 22, 28, 0.1); }
+.ad-in[aria-invalid='true'] { border-color: #d92d20; }
+.ad-in-num { font-variant-numeric: tabular-nums; font-weight: 600; }
+.ad-in-sm { height: 32px; width: 128px; padding: 0 8px; font-size: 12.5px; }
+.ad-sel { display: flex; align-items: center; justify-content: space-between; text-align: left; }
+
+.ad-dlg-error { flex: none; margin: 0; padding: 10px 24px; border-top: 1px solid #fecdca; background: #fef3f2; color: #b42318; font-size: 13px; }
+.ad-dlg-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 24px; border-top: 1px solid var(--line); background: #fff; }
+.ad-dlg-meta { font-size: 13px; color: var(--mute); display: inline-flex; align-items: baseline; gap: 8px; }
+.ad-dlg-meta b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ad-dlg-meta b.is-neg { color: #b42318; }
+.ad-dlg-actions { display: flex; gap: 8px; margin-left: auto; }
+
+/* credit: payment method picker */
+.ad-pick { flex: none; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.ad-pick-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--wash); }
+.ad-pick-head h3 { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.ad-pick-head p { margin-top: 2px; font-size: 12px; color: var(--mute); }
+.ad-range { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); }
+.ad-pick-list { flex: none; }
+.ad-chq-panel { flex: none; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--wash); }
+.ad-chq-note { margin-top: 10px; font-size: 12.5px; color: var(--mute); }
+.ad-chq-note.is-future { color: #1d4ed8; }
+.ad-pick-msg { padding: 18px 14px; font-size: 13px; color: var(--mute); }
+.ad-pick-msg-err { color: #b42318; }
+.ad-pick-skel span { display: block; height: 54px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #f6f7f9, #fff, #f6f7f9); background-size: 200% 100%; animation: ad-shimmer 1.4s linear infinite; }
+@keyframes ad-shimmer { to { background-position: -200% 0; } }
+.ad-opt { display: flex; align-items: flex-start; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--line); transition: background 0.1s; }
+.ad-opt:last-child { border-bottom: 0; }
+.ad-opt:hover { background: var(--wash); }
+.ad-opt.is-on { background: var(--wash); }
+.ad-opt label { flex: 1; min-width: 0; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.ad-opt-name { display: block; font-size: 13.5px; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-opt-meta { display: block; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.ad-check { margin-top: 2px; width: 16px; height: 16px; flex: none; accent-color: var(--ink); cursor: pointer; }
+.ad-check:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* credit: synced sources */
+.ad-synced { display: flex; flex-direction: column; gap: 14px; overflow-anchor: none; }
+.ad-seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; border-radius: 9px; background: #eceef2; }
+.ad-seg-btn { height: 30px; padding: 0 14px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--mute); background: transparent; border: 0; cursor: pointer; transition: background 0.12s, color 0.12s; }
+.ad-seg-btn:hover { color: var(--ink); }
+.ad-seg-btn.is-on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(20, 22, 28, 0.12); }
+.ad-seg-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.ad-cand-panel { min-height: 180px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.ad-cand-state { min-height: 180px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; color: var(--mute); }
+.ad-cand-state-err { color: #b42318; }
+.ad-spin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--ink); animation: ad-rot 0.9s linear infinite; }
+.ad-cand-total { min-height: 180px; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 16px 18px; background: var(--wash); }
+.ad-cand-total strong { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ad-cand-total p { font-size: 12px; color: var(--mute); }
+.ad-crumbs { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.ad-crumbs b { font-weight: 500; color: var(--ink-2); }
+.ad-cand-list { max-height: 260px; overflow-y: auto; }
+.ad-cand { display: flex; width: 100%; align-items: center; gap: 12px; padding: 11px 14px; text-align: left; background: #fff; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; transition: background 0.1s; }
+.ad-cand:last-child { border-bottom: 0; }
+.ad-cand:hover, .ad-cand.is-on { background: var(--wash); }
+.ad-cand:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.ad-cand-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ad-cand-amt { flex: none; font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ad-radio { width: 16px; height: 16px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--line-2); background: #fff; }
+.ad-cand.is-on .ad-radio { border-color: var(--ink); }
+.ad-radio i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+
+@media (max-width: 600px) {
+  .ad-grid-2, .ad-grid-3 { grid-template-columns: minmax(0, 1fr); }
+  .ad-dlg-head, .ad-dlg-body, .ad-dlg-foot, .ad-dlg-error { padding-left: 18px; padding-right: 18px; }
+  .ad-dlg-head { padding-right: 48px; }
+  .ad-dlg-foot { flex-direction: column-reverse; align-items: stretch; }
+  .ad-dlg-actions { margin-left: 0; }
+  .ad-dlg-actions .ad-btn { flex: 1; }
+  .ad-dlg-meta { justify-content: center; }
+  .ad-range { width: 100%; }
+  .ad-in-sm { flex: 1; width: auto; }
+}
+
+/* entry detail, confirm and success */
+.ad-minw { min-width: 0; }
+.ad-dlg-headrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ad-center { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 26px 24px 22px; }
+.ad-wrap { white-space: normal; line-height: 1.5; margin-top: 8px; }
+.ad-big { margin-top: 8px; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ad-tick { width: 36px; height: 36px; margin-bottom: 14px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: #fff; }
+.ad-tick .ad-ico { width: 18px; height: 18px; stroke-width: 2.5; }
+.ad-tick.is-danger { background: #fef3f2; color: #b42318; box-shadow: inset 0 0 0 1px #fecdca; }
+.ad-btn-danger-fill { background: #b42318; color: #fff; }
+.ad-btn-danger-fill:hover:not(:disabled) { background: #912018; }
+.ad-tag { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 12px; font-weight: 500; color: var(--ink-2); background: #fff; }
+.ad-tag-row { height: 20px; padding: 0 8px; gap: 6px; margin-top: 4px; font-size: 11px; }
+.ad-tag i { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+.ad-tag-pending i { background: #d97706; }
+.ad-tag-posted i { background: var(--ink-2); }
+.ad-tag-reversed { color: #b42318; border-color: #fecdca; }
+.ad-tag-reversed i { background: #d92d20; }
+.ad-kv { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+.ad-kv > div { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; min-width: 0; }
+.ad-kv dt { color: var(--mute); flex: none; }
+.ad-kv dd { min-width: 0; text-align: right; font-weight: 500; color: var(--ink); }
+.ad-kv dd.is-none { color: var(--faint); font-weight: 400; }
+.ad-kv-sub { font-weight: 400; color: var(--faint); }
+.ad-kv-amount dd { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ad-kv-total { padding-top: 12px; border-top: 1px solid var(--line); }
+.ad-kv-total dt { color: var(--ink); font-weight: 500; }
+.ad-kv-total dd { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ad-kv-soft { padding-top: 16px; border-top: 1px solid var(--line); }
+.ad-kv-head { margin-bottom: 8px; font-size: 12px; font-weight: 500; color: var(--mute); }
+.ad-block { padding-top: 16px; border-top: 1px solid var(--line); }
+.ad-block > p:not(.ad-kv-head) { font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.ad-cut { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-links { display: flex; flex-direction: column; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.ad-links li { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 13.5px; }
+.ad-links b { font-weight: 500; }
+.ad-links i { margin-left: 8px; font-style: normal; font-size: 12px; color: var(--faint); text-transform: capitalize; }
+.ad-links strong { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 </style>

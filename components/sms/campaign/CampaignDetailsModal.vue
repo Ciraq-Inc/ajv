@@ -425,21 +425,6 @@ const recipientLogs = computed<CampaignLog[]>(() =>
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
 )
 
-watch(
-  () => props.campaignId,
-  async (newId) => {
-    if (newId && props.isOpen) await loadCampaignDetails()
-  },
-  { immediate: true },
-)
-
-watch(
-  () => props.isOpen,
-  async (isOpen) => {
-    if (isOpen && props.campaignId) await loadCampaignDetails()
-  },
-)
-
 const loadCampaignDetails = async (): Promise<void> => {
   if (!props.campaignId) return
   loading.value = true
@@ -489,6 +474,21 @@ const loadLogs = async (): Promise<void> => {
     loadingLogs.value = false
   }
 }
+
+watch(
+  () => props.campaignId,
+  async (newId) => {
+    if (newId && props.isOpen) await loadCampaignDetails()
+  },
+  { immediate: true },
+)
+
+watch(
+  () => props.isOpen,
+  async (isOpen) => {
+    if (isOpen && props.campaignId) await loadCampaignDetails()
+  },
+)
 
 const refreshLogs = async (): Promise<void> => loadLogs()
 

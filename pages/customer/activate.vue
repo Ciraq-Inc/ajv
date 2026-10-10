@@ -24,7 +24,7 @@
               @input="passwordTouched = true"
             />
             <ul v-if="passwordTouched" class="mt-2 space-y-1">
-              <li class="flex items-center gap-1.5 text-xs" :class="password.length >= 8 ? 'text-green-600' : 'text-zinc-400'">
+              <li class="flex items-center gap-1.5 text-xs" :class="password.length >= 8 ? 'text-brand-700' : 'text-ink-500'">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                   <path v-if="password.length >= 8" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   <circle v-else cx="12" cy="12" r="9" stroke-width="2" />

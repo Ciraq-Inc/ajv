@@ -43,6 +43,7 @@ const REQUEST_LABELS: Record<string, string> = {
   driver_unavailable: 'Driver unavailable',
   driver_assigned: 'Driver assigned',
   out_for_delivery: 'Out for delivery',
+  delivery_failed: 'Delivery failed',
   picked_up: 'Picked up',
   delivered: 'Delivered',
   completed: 'Completed',
@@ -52,47 +53,48 @@ const REQUEST_LABELS: Record<string, string> = {
 }
 
 const STORE_ORDER_BADGE: Record<string, string> = {
-  pending: 'bg-amber-50 text-amber-700',
-  processing: 'bg-[#f4e8fb] text-[#5e3a86]',
-  preparing: 'bg-[#f4e8fb] text-[#5e3a86]',
-  shipped: 'bg-[#ede5ff] text-[#4F217A]',
-  in_transit: 'bg-[#ede5ff] text-[#4F217A]',
-  driver_assigned: 'bg-[#ede5ff] text-[#4F217A]',
-  out_for_delivery: 'bg-[#ede5ff] text-[#4F217A]',
-  ready_for_pickup: 'bg-[#ede5ff] text-[#4F217A]',
-  logistics_pending: 'bg-[#f4e8fb] text-[#5e3a86]',
-  picked_up: 'bg-[#e7f7ea] text-[#228847]',
-  delivered: 'bg-[#e7f7ea] text-[#228847]',
-  completed: 'bg-[#e7f7ea] text-[#228847]',
-  cancelled: 'bg-red-50 text-red-600',
+  pending: 'bg-amber-50 text-amber-800',
+  processing: 'bg-brand-50 text-brand-800',
+  preparing: 'bg-brand-50 text-brand-800',
+  shipped: 'bg-brand-100 text-brand-800',
+  in_transit: 'bg-brand-100 text-brand-800',
+  driver_assigned: 'bg-brand-100 text-brand-800',
+  out_for_delivery: 'bg-brand-100 text-brand-800',
+  ready_for_pickup: 'bg-brand-100 text-brand-800',
+  logistics_pending: 'bg-brand-50 text-brand-800',
+  picked_up: 'bg-brand-700 text-white',
+  delivered: 'bg-brand-700 text-white',
+  completed: 'bg-brand-700 text-white',
+  cancelled: 'bg-red-50 text-red-700',
 }
 
 const REQUEST_BADGE: Record<string, string> = {
-  draft: 'bg-zinc-100 text-zinc-600',
-  pending: 'bg-amber-50 text-amber-700',
-  searching: 'bg-[#f4e8fb] text-[#5e3a86]',
-  finding_pharmacist: 'bg-[#f4e8fb] text-[#5e3a86]',
-  composing: 'bg-[#f4e8fb] text-[#5e3a86]',
-  sourcing: 'bg-[#f4e8fb] text-[#5e3a86]',
-  confirming_with_pharm: 'bg-[#f4e8fb] text-[#5e3a86]',
-  processing: 'bg-[#f4e8fb] text-[#5e3a86]',
-  awaiting_input: 'bg-[#fff7e0] text-[#b07300]',
-  quote_available: 'bg-[#ede5ff] text-[#4F217A]',
-  payment_pending: 'bg-[#fff7e0] text-[#b07300]',
-  paid: 'bg-[#e7f7ea] text-[#228847]',
-  verified: 'bg-[#e7f7ea] text-[#228847]',
-  preparing: 'bg-[#f4e8fb] text-[#5e3a86]',
-  ready_for_pickup: 'bg-[#ede5ff] text-[#4F217A]',
-  logistics_pending: 'bg-[#f4e8fb] text-[#5e3a86]',
-  driver_unavailable: 'bg-red-50 text-red-600',
-  driver_assigned: 'bg-[#ede5ff] text-[#4F217A]',
-  out_for_delivery: 'bg-[#ede5ff] text-[#4F217A]',
-  picked_up: 'bg-[#e7f7ea] text-[#228847]',
-  delivered: 'bg-[#e7f7ea] text-[#228847]',
-  completed: 'bg-[#e7f7ea] text-[#228847]',
-  cancelled: 'bg-red-50 text-red-600',
-  rejected: 'bg-red-50 text-red-600',
-  returned: 'bg-red-50 text-red-600',
+  draft: 'bg-ink-100 text-ink-600',
+  pending: 'bg-amber-50 text-amber-800',
+  searching: 'bg-brand-50 text-brand-800',
+  finding_pharmacist: 'bg-brand-50 text-brand-800',
+  composing: 'bg-brand-50 text-brand-800',
+  sourcing: 'bg-brand-50 text-brand-800',
+  confirming_with_pharm: 'bg-brand-50 text-brand-800',
+  processing: 'bg-brand-50 text-brand-800',
+  awaiting_input: 'bg-amber-50 text-amber-800',
+  quote_available: 'bg-brand-100 text-brand-800',
+  payment_pending: 'bg-amber-50 text-amber-800',
+  paid: 'bg-brand-700 text-white',
+  verified: 'bg-brand-700 text-white',
+  preparing: 'bg-brand-50 text-brand-800',
+  ready_for_pickup: 'bg-brand-100 text-brand-800',
+  logistics_pending: 'bg-brand-50 text-brand-800',
+  driver_unavailable: 'bg-red-50 text-red-700',
+  driver_assigned: 'bg-brand-100 text-brand-800',
+  out_for_delivery: 'bg-brand-100 text-brand-800',
+  delivery_failed: 'bg-red-50 text-red-700',
+  picked_up: 'bg-brand-700 text-white',
+  delivered: 'bg-brand-700 text-white',
+  completed: 'bg-brand-700 text-white',
+  cancelled: 'bg-red-50 text-red-700',
+  rejected: 'bg-red-50 text-red-700',
+  returned: 'bg-red-50 text-red-700',
 }
 
 const TERMINAL_STORE_STATUSES = new Set(['completed', 'delivered', 'cancelled', 'picked_up'])
@@ -131,6 +133,7 @@ const STAGE_MAP: Record<string, RequestStage> = {
   driver_unavailable: 'awaiting_fulfilment',
   driver_assigned: 'awaiting_fulfilment',
   out_for_delivery: 'awaiting_fulfilment',
+  delivery_failed: 'awaiting_fulfilment',
   picked_up: 'complete',
   delivered: 'complete',
   completed: 'complete',
@@ -164,6 +167,7 @@ const REQUEST_SUBTEXTS: Record<string, string> = {
   driver_unavailable: 'No rider available — our team is on it',
   driver_assigned: 'Your rider is on the way',
   out_for_delivery: 'Your rider is on the way',
+  delivery_failed: "We couldn't deliver this. Our team will be in touch",
   picked_up: 'Completed',
   delivered: 'Completed',
   completed: 'Completed',
@@ -186,10 +190,10 @@ export const useOrderStatus = () => {
     REQUEST_LABELS[status ?? ''] ?? humanise(status ?? 'Request')
 
   const storeStatusBadgeClass = (status: string | null | undefined): string =>
-    STORE_ORDER_BADGE[status ?? ''] ?? 'bg-zinc-100 text-zinc-600'
+    STORE_ORDER_BADGE[status ?? ''] ?? 'bg-ink-100 text-ink-600'
 
   const requestStatusBadgeClass = (status: string | null | undefined): string =>
-    REQUEST_BADGE[status ?? ''] ?? 'bg-zinc-100 text-zinc-600'
+    REQUEST_BADGE[status ?? ''] ?? 'bg-ink-100 text-ink-600'
 
   const isOngoingStoreStatus = (status: string | null | undefined): boolean =>
     !TERMINAL_STORE_STATUSES.has(status ?? '')

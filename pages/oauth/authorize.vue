@@ -5,22 +5,22 @@
       <!-- Invalid link — client_id/redirect_uri failed validation. Never redirect from here. -->
       <div v-if="fatalError" class="rounded-2xl border border-red-100 bg-white p-8 text-center shadow-sm">
         <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-          <XMarkIcon class="h-6 w-6 text-red-500" />
+          <XMarkIcon class="h-6 w-6 text-red-700" />
         </div>
-        <h1 class="text-lg font-bold text-slate-900">This sign-in link isn't valid</h1>
-        <p class="mt-2 text-sm text-slate-500">{{ fatalError }}</p>
+        <h1 class="text-lg font-bold text-ink-900">This sign-in link isn't valid</h1>
+        <p class="mt-2 text-sm text-ink-500">{{ fatalError }}</p>
       </div>
 
       <!-- Still validating params / checking session -->
       <div v-else-if="isLoading" class="flex flex-col items-center gap-3 py-16">
-        <div class="h-8 w-8 animate-spin rounded-full border-2 border-slate-200" style="border-top-color: var(--accent-primary);" />
-        <p class="text-sm text-slate-500">Loading…</p>
+        <div class="h-8 w-8 animate-spin rounded-full border-2 border-ink-200" style="border-top-color: var(--accent-primary);" />
+        <p class="text-sm text-ink-500">Loading…</p>
       </div>
 
       <!-- Not logged in yet: reuse the shared login/register component -->
       <div v-else-if="!userStore.isLoggedIn" class="rounded-2xl bg-white p-6 shadow-sm">
-        <p class="mb-4 text-center text-sm text-slate-500">
-          Sign in to MedsGH to continue to <span class="font-semibold text-slate-800">{{ clientName }}</span>
+        <p class="mb-4 text-center text-sm text-ink-500">
+          Sign in to MedsGH to continue to <span class="font-semibold text-ink-900">{{ clientName }}</span>
         </p>
         <Login inline @login-success="onLoginSuccess" />
       </div>
@@ -28,24 +28,24 @@
       <!-- Consent screen -->
       <div v-else class="rounded-2xl bg-white p-8 shadow-sm">
         <div class="mb-6 text-center">
-          <h1 class="text-lg font-bold text-slate-900">
+          <h1 class="text-lg font-bold text-ink-900">
             <span class="font-semibold">{{ clientName }}</span> wants to connect to your MedsGH account
           </h1>
         </div>
 
         <ul class="mb-6 space-y-3">
-          <li v-for="s in requestedScopes" :key="s.scope" class="flex items-start gap-3 text-sm text-slate-700">
+          <li v-for="s in requestedScopes" :key="s.scope" class="flex items-start gap-3 text-sm text-ink-600">
             <CheckCircleIcon class="mt-0.5 h-4 w-4 shrink-0" style="color: var(--accent-primary);" />
             {{ s.label }}
           </li>
         </ul>
 
-        <p v-if="submitError" class="mb-4 text-sm text-red-600">{{ submitError }}</p>
+        <p v-if="submitError" class="mb-4 text-sm text-red-700">{{ submitError }}</p>
 
         <div class="flex gap-3">
           <button
             type="button"
-            class="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
+            class="flex-1 rounded-xl border border-ink-200 py-2.5 text-sm font-semibold text-ink-600 transition-colors hover:bg-ink-50 disabled:opacity-50"
             :disabled="isSubmitting"
             @click="decide(false)"
           >
@@ -62,7 +62,7 @@
           </button>
         </div>
 
-        <p class="mt-4 text-center text-xs text-slate-400">
+        <p class="mt-4 text-center text-xs text-ink-500">
           MedsGH will never share your password with {{ clientName }}.
         </p>
       </div>

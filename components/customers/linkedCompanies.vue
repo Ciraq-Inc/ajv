@@ -1,98 +1,102 @@
 <template>
-  <div>
+  <div class="font-body">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#5d4679]">Pharmacies</p>
-        <h2 class="text-[1.8rem] font-black uppercase tracking-[-0.07em] text-[#4F217A] mt-0.5">Linked Pharmacies</h2>
-        <p class="text-sm font-medium text-zinc-600 mt-1">Browse the pharmacies connected to your account and jump into any linked storefront.</p>
+        <h2 class="font-display text-2xl font-bold text-ink-900">Linked pharmacies</h2>
+        <p class="mt-1 text-base text-ink-600">Browse the pharmacies connected to your account and jump into any storefront.</p>
       </div>
-      <button @click="triggerLinking" :disabled="isLinking"
-        class="inline-flex items-center gap-2 bg-[#4F217A] text-white py-3 px-5 rounded-xl text-sm font-semibold hover:bg-[#3d1861] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex-shrink-0">
-        <ArrowPathIcon v-if="isLinking" class="w-4 h-4 animate-spin" />
-        <LinkIcon v-else class="w-4 h-4" />
-        {{ isLinking ? 'Linking...' : 'Link Accounts' }}
+      <button type="button" @click="triggerLinking" :disabled="isLinking"
+        class="inline-flex min-h-[44px] flex-shrink-0 items-center justify-center gap-2 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:opacity-60">
+        <ArrowPathIcon v-if="isLinking" class="h-5 w-5 animate-spin" aria-hidden="true" />
+        <LinkIcon v-else class="h-5 w-5" aria-hidden="true" />
+        {{ isLinking ? 'Linking…' : 'Link accounts' }}
       </button>
     </div>
 
     <!-- Link feedback -->
-    <div
-      v-if="linkingMessage"
-      role="status"
-      aria-live="polite"
-      class="flex items-start gap-3 rounded-xl border px-4 py-3 mb-4"
-      :class="linkingMessageType === 'error'
-        ? 'border-red-200 bg-red-50 text-red-700'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-700'"
-    >
-      <component :is="linkingMessageType === 'error' ? ExclamationCircleIcon : CheckCircleIcon" class="w-[18px] h-[18px] mt-0.5 flex-shrink-0" />
-      <p class="text-sm font-semibold leading-snug">{{ linkingMessage }}</p>
+    <div v-if="linkingMessage" :role="linkingMessageType === 'error' ? 'alert' : 'status'"
+      class="mb-4 flex items-start gap-3 rounded-2xl px-4 py-3"
+      :class="linkingMessageType === 'error' ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-800'">
+      <component :is="linkingMessageType === 'error' ? ExclamationCircleIcon : CheckCircleIcon" class="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+      <p class="text-base font-semibold">{{ linkingMessage }}</p>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-8 shadow-sm">
-      <ArrowPathIcon class="w-6 h-6 text-zinc-400 animate-spin" />
-      <p class="text-sm font-medium text-zinc-500">Loading your pharmacies...</p>
+    <!-- Loading -->
+    <div v-if="isLoading" role="status" class="flex items-center gap-4 rounded-3xl bg-white px-6 py-8 shadow-lift">
+      <ArrowPathIcon class="h-6 w-6 animate-spin text-brand-700" aria-hidden="true" />
+      <p class="text-base text-ink-600">Loading your pharmacies…</p>
     </div>
 
-    <!-- Companies Grid -->
-    <div v-if="!isLoading && companies.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-      <div
-        v-for="company in companies" :key="company.company_id ?? ''"
-        class="flex flex-col gap-4 rounded-xl border bg-white shadow-sm p-5 transition-all hover:shadow-md"
-        :class="isActiveCompany(company) ? 'border-[#c9a8f0]' : 'border-zinc-200'"
-      >
+    <!-- Load error -->
+    <div v-else-if="loadError" role="alert" class="mb-6 flex flex-col items-center rounded-3xl bg-white px-6 py-10 text-center shadow-lift">
+      <span class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-700">
+        <ExclamationCircleIcon class="h-7 w-7" aria-hidden="true" />
+      </span>
+      <p class="font-display text-lg font-bold text-ink-900">We couldn't load your pharmacies</p>
+      <p class="mb-5 mt-1 text-base text-ink-600">Check your connection and try again.</p>
+      <button type="button" @click="loadCompanies"
+        class="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+        <ArrowPathIcon class="h-5 w-5" aria-hidden="true" />
+        Try again
+      </button>
+    </div>
+
+    <!-- Companies -->
+    <ul v-else-if="companies.length > 0" aria-label="Linked pharmacies" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <li v-for="company in companies" :key="company.company_id ?? ''"
+        class="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-lift"
+        :class="isActiveCompany(company) ? 'ring-2 ring-brand-700' : ''">
         <div class="flex items-start justify-between gap-3">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#4F217A] to-[#381659] shadow-[0_8px_18px_-12px_rgba(53,0,98,0.55)]">
-            <BuildingStorefrontIcon class="w-6 h-6 text-white" />
-          </div>
-          <span
-            class="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em]"
-            :class="isActiveCompany(company) ? 'bg-[#e7f7ea] text-[#228847]' : 'bg-zinc-100 text-zinc-600'"
-          >
+          <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-brand-700 text-white">
+            <BuildingStorefrontIcon class="h-6 w-6" aria-hidden="true" />
+          </span>
+          <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold"
+            :class="isActiveCompany(company) ? 'bg-brand-700 text-white' : 'bg-ink-100 text-ink-600'">
             {{ isActiveCompany(company) ? 'Active' : 'Linked' }}
           </span>
         </div>
 
         <div class="flex-1">
-          <h3 class="font-black text-zinc-900 text-lg tracking-tight leading-tight">{{ company.company_name }}</h3>
-          <p v-if="company.location" class="flex items-center gap-1.5 text-sm text-zinc-500 mt-1.5">
-            <MapPinIcon class="w-3.5 h-3.5 flex-shrink-0" />
+          <h3 class="font-display text-lg font-bold leading-tight text-ink-900">{{ company.company_name }}</h3>
+          <p v-if="company.location" class="mt-1.5 flex items-center gap-1.5 text-base text-ink-600">
+            <MapPinIcon class="h-4 w-4 flex-shrink-0" aria-hidden="true" />
             {{ company.location }}
           </p>
-          <p v-if="company.phone" class="flex items-center gap-1.5 text-sm text-zinc-500 mt-1">
-            <PhoneIcon class="w-3.5 h-3.5 flex-shrink-0" />
+          <p v-if="company.phone" class="mt-1 flex items-center gap-1.5 text-base text-ink-600">
+            <PhoneIcon class="h-4 w-4 flex-shrink-0" aria-hidden="true" />
             {{ company.phone }}
           </p>
         </div>
 
-        <button @click="goToCompanyStore(company)"
-          class="w-full inline-flex items-center justify-center gap-2 border border-zinc-200 bg-white text-zinc-700 py-2.5 px-4 rounded-xl text-sm font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-colors">
-          <ArrowTopRightOnSquareIcon class="w-4 h-4" />
-          Visit Store
+        <button type="button" @click="goToCompanyStore(company)"
+          class="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-white px-4 text-base font-semibold text-brand-700 ring-1 ring-inset ring-brand-200 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+          <ArrowTopRightOnSquareIcon class="h-5 w-5" aria-hidden="true" />
+          Visit store
+          <span class="sr-only">— {{ company.company_name }}</span>
         </button>
+      </li>
+    </ul>
+
+    <!-- Empty -->
+    <div v-else class="mb-6 flex flex-col items-center gap-4 rounded-3xl bg-white px-6 py-12 text-center shadow-lift">
+      <span class="flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+        <BuildingStorefrontIcon class="h-8 w-8" aria-hidden="true" />
+      </span>
+      <div>
+        <p class="font-display text-lg font-bold text-ink-900">No linked pharmacies</p>
+        <p class="mt-1 text-base text-ink-600">You do not have any pharmacies linked to your account yet.</p>
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div v-if="!isLoading && companies.length === 0" class="flex flex-col items-center gap-4 rounded-xl border border-zinc-200 bg-white px-6 py-12 shadow-sm text-center mb-6">
-      <div class="w-14 h-14 bg-zinc-100 rounded-full flex items-center justify-center">
-        <BuildingStorefrontIcon class="w-6 h-6 text-zinc-400" />
-      </div>
+    <!-- Info -->
+    <div class="flex items-start gap-4 rounded-2xl bg-ink-50 px-5 py-4">
+      <span class="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+        <InformationCircleIcon class="h-5 w-5" aria-hidden="true" />
+      </span>
       <div>
-        <p class="font-black text-zinc-800 text-lg">No linked pharmacies</p>
-        <p class="text-sm font-medium text-zinc-500 mt-1">You do not have any pharmacies linked to your account yet.</p>
-      </div>
-    </div>
-
-    <!-- Info box -->
-    <div class="flex items-start gap-4 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-4">
-      <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4ecfb] text-[#5e3a86] flex-shrink-0 mt-0.5">
-        <InformationCircleIcon class="w-[18px] h-[18px]" />
-      </div>
-      <div>
-        <p class="font-semibold text-zinc-800 text-sm">About Linked Pharmacies</p>
-        <p class="text-sm text-zinc-500 mt-0.5">Open any linked pharmacy to browse its products and place direct store orders from the same customer account.</p>
+        <p class="text-base font-semibold text-ink-900">About linked pharmacies</p>
+        <p class="mt-0.5 text-base text-ink-600">Open any linked pharmacy to browse its products and place direct store orders from the same customer account.</p>
       </div>
     </div>
   </div>
@@ -135,6 +139,7 @@ const userStore = useUserStore() as unknown as UserStoreShape;
 // State
 const isLoading = ref<boolean>(false);
 const isLinking = ref<boolean>(false);
+const loadError = ref<boolean>(false);
 const linkingMessage = ref<string>('');
 const linkingMessageType = ref<string>('success');
 let linkingMessageTimer: ReturnType<typeof setTimeout> | null = null;
@@ -198,9 +203,11 @@ const triggerLinking = async (): Promise<void> => {
 const loadCompanies = async (): Promise<void> => {
   try {
     isLoading.value = true;
+    loadError.value = false;
     await userStore.getMyCompanies();
   } catch (err) {
     console.error('Error loading companies:', err);
+    loadError.value = true;
   } finally {
     isLoading.value = false;
   }

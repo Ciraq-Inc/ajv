@@ -1,0 +1,385 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { reactive, nextTick } from 'vue'
+
+// ── Boundaries: user store, router, Nuxt globals, HTTP service ──────────────
+const store = vi.hoisted(() => ({ isLoggedIn: false, checkAuthState: vi.fn() }))
+vi.mock('~/stores/user', async () => {
+  const { reactive } = await import('vue')
+  const state = reactive(store)
+  return { useUserStore: () => state }
+})
+vi.mock('~/composables/useApi', () => ({ useApi: () => ({}) }))
+vi.mock('~/services/orderRequests/orderRequestsService', () => ({
+  createOrderRequestsService: () => ({ submitAsGuest: vi.fn(), reverseGeocode: vi.fn(), geocodeAddress: vi.fn() }),
+}))
+// The real Login card has its own tests; here it is a probe that records how the page drives it.
+vi.mock('~/components/Login.vue', async () => {
+  const { defineComponent, h } = await import('vue')
+  return {
+    default: defineComponent({
+      props: { isOpen: Boolean, inline: Boolean, initialView: String },
+      emits: ['login-success', 'close'],
+      setup(props, { emit }) {
+        return () => (props.inline || props.isOpen)
+          ? h('div', { 'data-testid': props.inline ? 'login-inline' : 'login-modal', 'data-view': props.initialView }, [
+              h('button', { 'data-testid': 'login-done', onClick: () => emit('login-success', {}) }, 'done'),
+              h('button', { 'data-testid': 'login-done-new', onClick: () => emit('login-success', { destination: 'new' }) }, 'done-new'),
+            ])
+          : null
+      },
+    }),
+  }
+})
+
+const route = reactive<{ query: Record<string, unknown> }>({ query: {} })
+const navigateTo = vi.fn()
+vi.stubGlobal('useRoute', () => route)
+vi.stubGlobal('navigateTo', navigateTo)
+vi.stubGlobal('IntersectionObserver', class { observe() {} unobserve() {} disconnect() {} })
+;(process as unknown as { client: boolean }).client = true
+
+import HomePage from '~/pages/index.vue'
+import { useUserStore } from '~/stores/user'
+
+const DRAFT_KEY = 'medsgh_homepage_request_draft'
+
+// A physical click fires mousedown then click; Radix tabs activate on mousedown.
+const press = async (el: { trigger: (e: string) => Promise<void> }) => {
+  await el.trigger('mousedown')
+  await el.trigger('click')
+}
+
+const open = async (query: Record<string, unknown> = {}, loggedIn = false) => {
+  route.query = query
+  ;(useUserStore() as { isLoggedIn: boolean }).isLoggedIn = loggedIn
+  const wrapper = mount(HomePage, { attachTo: document.body })
+  await flushPromises()
+  return wrapper
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.useRealTimers()
+  sessionStorage.clear()
+  document.body.innerHTML = ''
+  store.checkAuthState.mockResolvedValue(undefined)
+})
+
+describe('home page: sign-in area', () => {
+  it('shows a loading skeleton until the stored session has been checked', async () => {
+    let finish!: () => void
+    store.checkAuthState.mockReturnValue(new Promise<void>((res) => { finish = res }))
+    route.query = {}
+    store.isLoggedIn = false
+    const wrapper = mount(HomePage, { attachTo: document.body })
+    await nextTick()
+
+    expect(wrapper.find('[aria-label="Loading sign-in form"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(false)
+
+    finish()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Loading sign-in form"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(true)
+  })
+
+  it('checks the session exactly once on arrival', async () => {
+    await open()
+    expect(store.checkAuthState).toHaveBeenCalledTimes(1)
+  })
+
+  it('leads with the headline and the sign-in card for a logged-out visitor', async () => {
+    const wrapper = await open()
+
+    expect(wrapper.find('h1').text()).toBe('Order any medication online.')
+    expect(wrapper.find('[data-testid="login-inline"]').attributes('data-view')).toBe('login')
+    expect(wrapper.find('#hero-medications').isVisible()).toBe(false)
+  })
+
+  it('switches between "Sign in" and "Quick request"', async () => {
+    const wrapper = await open()
+    const tab = (label: string) => wrapper.findAll('[role="tab"]').find(b => b.text() === label)!
+
+    await press(tab('Quick request'))
+    expect(wrapper.find('#hero-medications').isVisible()).toBe(true)
+    expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(false)
+
+    await press(tab('Sign in'))
+    expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(true)
+    expect(wrapper.find('#hero-medications').isVisible()).toBe(false)
+  })
+
+  it('keeps what the visitor typed when they peek at the other tab and come back', async () => {
+    const wrapper = await open()
+    const tab = (label: string) => wrapper.findAll('[role="tab"]').find(b => b.text() === label)!
+    await press(tab('Quick request'))
+    await wrapper.find('#hero-medications').setValue('Paracetamol 500mg')
+    await wrapper.find('#hero-phone').setValue('0244123456')
+
+    await press(tab('Sign in'))
+    await press(tab('Quick request'))
+
+    expect((wrapper.find('#hero-medications').element as HTMLTextAreaElement).value).toBe('Paracetamol 500mg')
+    expect((wrapper.find('#hero-phone').element as HTMLInputElement).value).toBe('0244123456')
+  })
+
+  it('opens the sign-in view of the card when a quick-request visitor already has an account', async () => {
+    const wrapper = await open()
+    await press(wrapper.findAll('button').find(b => b.text() === 'Quick request')!)
+
+    await wrapper.findAll('button:not([role="tab"])').find(b => b.text() === 'Sign in')!.trigger('click')
+
+    expect(wrapper.find('[data-testid="login-inline"]').attributes('data-view')).toBe('login')
+  })
+})
+
+describe('home page: after signing in', () => {
+  it('sends the new user to their account', async () => {
+    const wrapper = await open()
+    await wrapper.find('[data-testid="login-done"]').trigger('click')
+    await flushPromises()
+    expect(navigateTo).toHaveBeenCalledWith('/customer')
+  })
+
+  it('sends them to the new-request form when the login asks for it', async () => {
+    const wrapper = await open()
+    await wrapper.find('[data-testid="login-done-new"]').trigger('click')
+    await flushPromises()
+    expect(navigateTo).toHaveBeenCalledWith('/customer?tab=new')
+  })
+
+  it('sends them to the new-request form when a request draft is waiting', async () => {
+    const wrapper = await open()
+    sessionStorage.setItem(DRAFT_KEY, '{"items":[]}')
+    await wrapper.find('[data-testid="login-done"]').trigger('click')
+    await flushPromises()
+    expect(navigateTo).toHaveBeenCalledWith('/customer?tab=new')
+  })
+
+  it('keeps the requestId so the order they came for is opened', async () => {
+    const wrapper = await open({ requestId: '42' })
+    await wrapper.find('[data-testid="login-done"]').trigger('click')
+    await flushPromises()
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { requestId: '42' } })
+  })
+})
+
+describe('home page: visitors who are already signed in', () => {
+  it('skips the homepage and goes to the account (replacing history)', async () => {
+    await open({}, true)
+    expect(navigateTo).toHaveBeenCalledWith('/customer', { replace: true })
+  })
+
+  it('goes to the new-request form when a draft is waiting', async () => {
+    sessionStorage.setItem(DRAFT_KEY, '{"items":[]}')
+    await open({}, true)
+    expect(navigateTo).toHaveBeenCalledWith('/customer?tab=new', { replace: true })
+  })
+
+  it('goes to the requested order when the link carries a requestId', async () => {
+    await open({ requestId: '7' }, true)
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { requestId: '7' } }, { replace: true })
+  })
+
+  it('does not redirect a logged-out visitor', async () => {
+    await open()
+    expect(navigateTo).not.toHaveBeenCalled()
+  })
+
+  it('redirects as soon as the user logs in while the page is open', async () => {
+    await open()
+    ;(useUserStore() as { isLoggedIn: boolean }).isLoggedIn = true
+    await flushPromises()
+    expect(navigateTo).toHaveBeenCalledWith('/customer', { replace: true })
+  })
+})
+
+describe('home page: logout notice', () => {
+  it('confirms the logout with an alert and cleans the address bar', async () => {
+    const wrapper = await open({ logged_out: '1' })
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('You have been logged out.')
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/', query: {} }, { replace: true })
+  })
+
+  it('dismisses the notice after four seconds', async () => {
+    vi.useFakeTimers()
+    route.query = { logged_out: '1' }
+    store.isLoggedIn = false
+    const wrapper = mount(HomePage, { attachTo: document.body })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('shows no notice on a normal visit', async () => {
+    const wrapper = await open()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+})
+
+describe('home page: arriving from the Clearance Marketplace', () => {
+  const param = (items: unknown[]) => JSON.stringify({ items })
+
+  it('opens the quick-request card pre-filled with the chosen items', async () => {
+    const wrapper = await open({
+      clearance_draft: param([{ product_name: 'Amoxicillin 500mg', requested_unit: 'capsule', quantity: 2, prefer_clearance_only: true }]),
+    })
+
+    expect(wrapper.find('#hero-medications').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Amoxicillin 500mg')
+    expect(wrapper.text()).toContain('Clearance pricing')
+    expect(wrapper.find('#hero-phone').exists()).toBe(true)
+  })
+
+  it('remembers the selection so it survives signing in', async () => {
+    await open({ clearance_draft: param([{ product_name: 'Amoxicillin 500mg', quantity: 1 }]) })
+
+    const saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY)!)
+    expect(saved.source).toBe('ros-clearance-marketplace')
+    expect(saved.items).toHaveLength(1)
+  })
+
+  it('ignores a malformed link and shows the normal sign-up card', async () => {
+    const wrapper = await open({ clearance_draft: '{not json' })
+
+    expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(true)
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull()
+  })
+
+  it('ignores a link whose items have no product names', async () => {
+    const wrapper = await open({ clearance_draft: param([{ quantity: 3 }, '  ']) })
+
+    expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(true)
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull()
+  })
+
+  it('never lets a quantity drop below one', async () => {
+    const wrapper = await open({ clearance_draft: param([{ product_name: 'Zinc', quantity: -5 }]) })
+    const qty = wrapper.find('li span.w-5')
+    expect(qty.text()).toBe('1')
+  })
+})
+
+describe('home page: hero picture', () => {
+  it('shows the portrait mobile photo full-bleed at the top below lg, not as a faint backdrop', async () => {
+    const wrapper = await open()
+    const img = wrapper.find('img[src="/hero_image_mobile.png"]')
+
+    expect(img.exists()).toBe(true)
+    expect(img.classes()).toEqual(expect.arrayContaining(['lg:hidden', 'w-full', 'object-cover', 'object-top', 'h-[28rem]']))
+    expect(img.classes()).not.toContain('absolute')
+    expect(img.classes()).not.toContain('opacity-20')
+    expect(img.attributes('alt')).toBe('')
+  })
+
+  it('does not use the desktop photo for small screens', async () => {
+    const wrapper = await open()
+    expect(wrapper.find('img[src="/hero_image.jpg"]').exists()).toBe(false)
+  })
+
+  it('uses the full-frame desktop photo from the lg breakpoint up, mirrored', async () => {
+    const wrapper = await open()
+    const desktop = wrapper.find('img[src="/hero_desktop.jpg"]')
+
+    expect(desktop.exists()).toBe(true)
+    expect(desktop.classes()).toEqual(expect.arrayContaining(['hidden', 'lg:block', 'absolute', '-scale-x-100', 'opacity-20', 'object-top', 'top-20', 'w-full']))
+    expect(desktop.attributes('alt')).toBe('')
+  })
+})
+
+describe('home page: phone layout', () => {
+  it('left-aligns the hero copy and lays the trust points out as a compact three-column row', async () => {
+    const wrapper = await open()
+    const h1 = wrapper.find('h1').element
+    const copy = h1.parentElement as HTMLElement
+    const trust = wrapper.find('ul[data-trust]').element as HTMLElement
+
+    expect(copy.classList.contains('text-center')).toBe(false)
+    for (const cls of ['grid', 'grid-cols-3', 'lg:flex']) expect(trust.classList.contains(cls), cls).toBe(true)
+    expect(trust.querySelectorAll('li')).toHaveLength(3)
+  })
+
+  it('states no pharmacy count or delivery time anywhere on the page', async () => {
+    const wrapper = await open()
+    const text = wrapper.text()
+
+    expect(text).not.toMatch(/210/)
+    expect(text).not.toMatch(/45\s*min/i)
+    expect(text).not.toMatch(/Avg\.? delivery/i)
+  })
+
+  it('drops the verified-pharmacies badge', async () => {
+    const wrapper = await open()
+    expect(wrapper.text()).not.toContain('Verified pharmacies across Ghana')
+  })
+
+  it('lets the photo run to the top of the page on phones, with no top padding', async () => {
+    const wrapper = await open()
+    const hero = wrapper.find('section').element as HTMLElement
+
+    expect(hero.classList.contains('pt-0')).toBe(true)
+    expect(hero.classList.contains('lg:pt-36')).toBe(true)
+  })
+
+  it('puts the headline and form on a solid brand sheet that overlaps the photo on phones only', async () => {
+    const wrapper = await open()
+    const sheet = wrapper.find('[data-hero-sheet]').element as HTMLElement
+
+    for (const cls of ['bg-brand-700', '-mt-9', 'rounded-t-[2rem]', 'lg:bg-transparent', 'lg:mt-0', 'lg:rounded-none']) {
+      expect(sheet.classList.contains(cls), cls).toBe(true)
+    }
+    expect(sheet.contains(wrapper.find('h1').element)).toBe(true)
+    expect(sheet.contains(wrapper.find('[role="tablist"]').element)).toBe(true)
+  })
+
+  it('sets the headline in white on the sheet and back to ink from lg', async () => {
+    const wrapper = await open()
+    const h1 = wrapper.find('h1')
+
+    expect(h1.classes()).toEqual(expect.arrayContaining(['text-white', 'lg:text-ink-900']))
+  })
+
+  it('shows the form before the trust points on phones', async () => {
+    const wrapper = await open()
+    const trust = wrapper.find('ul[data-trust]').element
+    const tabs = wrapper.find('[role="tablist"]').element
+
+    expect(trust.classList.contains('order-last')).toBe(true)
+    expect(trust.classList.contains('lg:order-none')).toBe(true)
+    expect(tabs).toBeTruthy()
+  })
+})
+
+describe('home page: sign-in card', () => {
+  it('has no extra panel wrapped around the tabs and form', async () => {
+    const wrapper = await open()
+    const tablist = wrapper.find('[role="tablist"]').element
+    const wrapperPanel = tablist.closest('div.shadow-lift, div.ring-1')
+
+    expect(wrapperPanel).toBeNull()
+  })
+})
+
+describe('home page: content', () => {
+  it('has the sections the navbar links to', async () => {
+    const wrapper = await open()
+    expect(wrapper.find('#how-it-works').exists()).toBe(true)
+    expect(wrapper.find('#support').exists()).toBe(true)
+  })
+
+  it('links to the privacy policy and a contact email in the footer', async () => {
+    const wrapper = await open()
+    expect(wrapper.find('footer a[href="/privacy"]').exists()).toBe(true)
+    expect(wrapper.find('footer a[href^="mailto:"]').exists()).toBe(true)
+  })
+
+  it('shows the current year in the copyright line', async () => {
+    const wrapper = await open()
+    expect(wrapper.find('footer').text()).toContain(`© ${new Date().getFullYear()} MedsGh`)
+  })
+})

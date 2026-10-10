@@ -116,9 +116,15 @@ export default defineNuxtConfig({
         styles: ['normal'],
       },
       {
+        name: 'Plus Jakarta Sans',
+        provider: 'google',
+        weights: ['500', '600', '700', '800'],
+        styles: ['normal'],
+      },
+      {
         name: 'Manrope',
         provider: 'google',
-        weights: ['400', '500', '700'],
+        weights: ['400', '500', '600', '700', '800'],
         styles: ['normal'],
       },
     ],
@@ -159,7 +165,6 @@ export default defineNuxtConfig({
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE ?? process.env.API_BASE_URL ?? '',
       paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
-      paystackSecretKey2: process.env.PAYSTACK_SECRET_KEY || '',
       accessControlUsername: process.env.NUXT_PUBLIC_ACCESS_CONTROL_USERNAME || process.env.ACCESS_CONTROL_USERNAME || 'admin',
       accessControlPassword: process.env.NUXT_PUBLIC_ACCESS_CONTROL_PASSWORD || process.env.ACCESS_CONTROL_PASSWORD || ''
     }

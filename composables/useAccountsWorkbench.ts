@@ -126,7 +126,12 @@ export const useAccountsWorkbench = () => {
 
   type LoadOptions = { background?: boolean }
 
+  let listRequestId = 0
+
   const loadAccounts = async ({ background = false }: LoadOptions = {}) => {
+    // Only the newest request may write the list, so a slow refresh can never
+    // overwrite an account that was created while it was in flight.
+    const requestId = ++listRequestId
     if (background) isRefreshing.value = true
     else {
       isLoading.value = true
@@ -138,8 +143,15 @@ export const useAccountsWorkbench = () => {
       if (!response.success) {
         throw new Error(response.message || 'Could not load accounts.')
       }
+      if (requestId !== listRequestId) return
       accounts.value = response.data ?? []
+      // A successful load, foreground or background, recovers the page from an
+      // earlier load error. Without this the error panel stayed up after a
+      // successful refresh.
+      error.value = ''
+      sessionExpired.value = false
     } catch (err) {
+      if (requestId !== listRequestId) return
       if (background) throw err
       sessionExpired.value = isSessionError(err)
       error.value = sessionExpired.value ? sessionExpiredMessage : messageFromError(err)
@@ -191,13 +203,14 @@ export const useAccountsWorkbench = () => {
 
   const createAccount = async (payload: CreateAccountPayload) => {
     isSaving.value = true
-    error.value = ''
     try {
       const response = await service.createAccount(payload)
       if (response.data) accounts.value = [response.data, ...accounts.value]
       return response.data
     } catch (err) {
-      error.value = messageFromError(err)
+      // Re-thrown for the create dialog to show. This must not touch the shared
+      // `error` ref: the accounts page treats that as "the list failed to load"
+      // and would replace the whole list behind the dialog with an error panel.
       throw err
     } finally {
       isSaving.value = false

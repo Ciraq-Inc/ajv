@@ -9,17 +9,17 @@
     tabindex="-1"
   >
     <!-- Backdrop -->
-    <div class="fixed inset-0 bg-[#1e1a22]/60 backdrop-blur-sm" @click="emit('close')"></div>
+    <div class="fixed inset-0 bg-ink-900/60 backdrop-blur-sm" @click="emit('close')"></div>
 
     <div style="font-family: 'Manrope', sans-serif;" class="min-h-full flex items-center justify-center p-4 sm:p-6">
-      <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-[#fff7ff] shadow-[0_32px_64px_-8px_rgba(30,26,34,0.22),0_0_0_1px_rgba(82,0,148,0.06)]">
+      <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-lift">
 
         <!-- Header -->
-        <div class="relative px-7 pt-6 pb-5 border-b border-[#ede4f6]">
+        <div class="relative px-7 pt-6 pb-5 border-b border-ink-200">
           <button
             type="button"
             @click="emit('close')"
-            class="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#f2eaf9] text-[#7d7484] transition hover:bg-[#e5d2f6] hover:text-[#520094] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/50"
+            class="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-ink-600 transition hover:bg-brand-100 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
             aria-label="Close"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -27,10 +27,10 @@
             </svg>
           </button>
           <div class="pr-10">
-            <h3 id="guest-form-title" class="text-[1.375rem] font-bold tracking-tight text-[#1e1a22] leading-tight">
+            <h3 id="guest-form-title" class="text-[1.375rem] font-bold tracking-tight text-ink-900 leading-tight">
               {{ succeeded ? 'Request placed!' : 'Continue as guest' }}
             </h3>
-            <p class="mt-1 text-sm text-[#4c4453] leading-snug">
+            <p class="mt-1 text-sm text-ink-600 leading-snug">
               {{ succeeded ? 'Check your phone for a tracking link.' : 'Enter your phone number — no account needed.' }}
             </p>
           </div>
@@ -38,20 +38,20 @@
 
         <!-- Success state -->
         <div v-if="succeeded" class="px-7 py-8 text-center">
-          <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-            <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-100">
+            <svg class="h-7 w-7 text-brand-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <p class="text-base font-semibold text-[#1e1a22]">Your request is on its way!</p>
-          <p class="mt-2 text-sm text-[#4c4453]">
+          <p class="text-base font-semibold text-ink-900">Your request is on its way!</p>
+          <p class="mt-2 text-sm text-ink-600">
             We've sent an SMS to <strong>{{ phone }}</strong>
             {{ isNewCustomer ? 'with a link to track your order and set up your account.' : 'with your order confirmation.' }}
           </p>
           <button
             type="button"
             @click="emit('close')"
-            class="mt-6 w-full rounded-2xl bg-[#520094] py-3 text-sm font-semibold text-white transition hover:bg-[#6b00c0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/50"
+            class="mt-6 w-full rounded-2xl bg-brand-700 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
           >
             Done
           </button>
@@ -66,8 +66,8 @@
 
           <!-- Phone -->
           <div>
-            <label for="guest-phone" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">
-              Phone number <span class="text-red-500">*</span>
+            <label for="guest-phone" class="block text-sm font-semibold text-ink-900 mb-1.5">
+              Phone number <span class="text-red-700">*</span>
             </label>
             <input
               id="guest-phone"
@@ -77,14 +77,14 @@
               autocomplete="tel"
               required
               :disabled="isLoading"
-              class="w-full rounded-2xl border border-[#ddd4e8] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50"
+              class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-500 transition focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-700/20 disabled:opacity-50"
             />
           </div>
 
           <!-- Address (optional) -->
           <div>
-            <label for="guest-address" class="block text-sm font-semibold text-[#1e1a22] mb-1.5">
-              Delivery address <span class="text-[#9c94a8] font-normal">(optional)</span>
+            <label for="guest-address" class="block text-sm font-semibold text-ink-900 mb-1.5">
+              Delivery address <span class="text-ink-500 font-normal">(optional)</span>
             </label>
             <input
               id="guest-address"
@@ -93,7 +93,7 @@
               placeholder="e.g. 12 Main St, East Legon, Accra"
               autocomplete="street-address"
               :disabled="isLoading"
-              class="w-full rounded-2xl border border-[#ddd4e8] bg-white px-4 py-3 text-sm text-[#1e1a22] placeholder-[#b0a8bc] transition focus:border-[#520094] focus:outline-none focus:ring-2 focus:ring-[#520094]/20 disabled:opacity-50"
+              class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 text-sm text-ink-900 placeholder-ink-500 transition focus:border-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-700/20 disabled:opacity-50"
             />
           </div>
 
@@ -101,7 +101,7 @@
           <button
             type="submit"
             :disabled="isLoading || !phone.trim()"
-            class="w-full rounded-2xl bg-[#520094] py-3 text-sm font-semibold text-white transition hover:bg-[#6b00c0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#520094]/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            class="w-full rounded-2xl bg-brand-700 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <svg v-if="isLoading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -111,9 +111,9 @@
           </button>
 
           <!-- Sign in link -->
-          <p class="text-center text-sm text-[#4c4453]">
+          <p class="text-center text-sm text-ink-600">
             Already have an account?
-            <button type="button" @click="emit('show-login')" class="font-semibold text-[#520094] hover:underline focus:outline-none">
+            <button type="button" @click="emit('show-login')" class="font-semibold text-brand-700 hover:underline focus:outline-none">
               Sign in
             </button>
           </p>

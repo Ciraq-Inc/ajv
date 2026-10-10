@@ -57,6 +57,8 @@ export interface CustomerProfile {
   lname: string;
   phone: string;
   email?: string;
+  /** True only once the customer has redeemed the link emailed to their current address. */
+  email_verified?: boolean;
   created_at: string;
 }
 
@@ -225,6 +227,8 @@ export interface LedgerEntry {
   runningBalance: number;
   enteredBy: string;
   status: 'posted' | 'pending' | 'reversed';
+  reversedBy?: string;
+  reversedAt?: string | null;
   sourceLinks?: AccountSourceLink[];
   paymentAllocations?: PaymentAllocation[];
   metadata?: Record<string, string>;

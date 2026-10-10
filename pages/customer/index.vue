@@ -2,7 +2,8 @@
   <div class="customer-app">
     <!-- Auth-check skeleton: mirror of the home layout to avoid layout pop-in -->
     <div v-if="isCheckingAuth" class="space-y-6" aria-busy="true" aria-label="Loading your dashboard">
-      <section class="rounded-2xl bg-gradient-to-br from-[#7b3faa] via-[#5c2490] to-[#381659] p-6 shadow-xl">
+      <span class="sr-only" role="status">Loading your dashboard…</span>
+      <section class="rounded-2xl bg-brand-700 p-6 shadow-lift" aria-hidden="true">
         <div class="h-3 w-24 rounded bg-white/15 animate-pulse"></div>
         <div class="mt-3 h-10 w-20 rounded bg-white/15 animate-pulse"></div>
         <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
@@ -13,22 +14,22 @@
           <div class="h-9 w-24 rounded-xl bg-white/15 animate-pulse"></div>
         </div>
       </section>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" aria-hidden="true">
         <div class="space-y-3 lg:col-span-2">
-          <div class="h-3 w-32 rounded bg-zinc-200 animate-pulse"></div>
-          <div v-for="n in 2" :key="`sk-req-${n}`" class="flex gap-4 border border-zinc-100 bg-white px-4 py-4 rounded-xl">
-            <div class="h-10 w-10 rounded-full bg-zinc-100 animate-pulse"></div>
+          <div class="h-3 w-32 rounded bg-ink-100 animate-pulse"></div>
+          <div v-for="n in 2" :key="`sk-req-${n}`" class="flex gap-4 border border-ink-100 bg-white px-4 py-4 rounded-xl">
+            <div class="h-10 w-10 rounded-full bg-ink-50 animate-pulse"></div>
             <div class="flex-1 space-y-2">
-              <div class="h-3 w-1/2 rounded bg-zinc-100 animate-pulse"></div>
-              <div class="h-2.5 w-1/3 rounded bg-zinc-100 animate-pulse"></div>
+              <div class="h-3 w-1/2 rounded bg-ink-50 animate-pulse"></div>
+              <div class="h-2.5 w-1/3 rounded bg-ink-50 animate-pulse"></div>
             </div>
           </div>
         </div>
         <aside class="space-y-3">
-          <div class="h-3 w-28 rounded bg-zinc-200 animate-pulse"></div>
-          <div class="border border-zinc-100 bg-white rounded-xl p-4 space-y-3">
-            <div class="h-3 w-2/3 rounded bg-zinc-100 animate-pulse"></div>
-            <div class="h-2.5 w-1/2 rounded bg-zinc-100 animate-pulse"></div>
+          <div class="h-3 w-28 rounded bg-ink-100 animate-pulse"></div>
+          <div class="border border-ink-100 bg-white rounded-xl p-4 space-y-3">
+            <div class="h-3 w-2/3 rounded bg-ink-50 animate-pulse"></div>
+            <div class="h-2.5 w-1/2 rounded bg-ink-50 animate-pulse"></div>
           </div>
         </aside>
       </div>
@@ -43,81 +44,91 @@
           class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
           role="alert"
         >
-          <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
-          <span class="text-amber-800 font-medium flex-1">Some data could not be loaded. Pull to refresh or wait a moment.</span>
+          <svg class="w-4 h-4 text-amber-800 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+          <span class="text-amber-900 font-medium flex-1">We couldn't load some of your data. Check your connection and try again.</span>
           <button
+            type="button"
             @click="startHomeStatsPolling"
-            class="text-xs font-bold text-amber-700 hover:text-amber-900 transition-colors flex-shrink-0"
-          >Retry</button>
+            class="min-h-[32px] rounded-lg px-3 text-xs font-bold text-amber-900 underline underline-offset-2 hover:bg-amber-100 transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-800/50"
+          >Try again</button>
         </div>
 
-        <section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#7b3faa] via-[#5c2490] to-[#381659] p-6 text-white shadow-xl">
+        <section class="relative overflow-hidden rounded-2xl bg-brand-700 p-6 text-white shadow-lift">
           <!-- decorative blobs -->
-          <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-          <div class="absolute right-16 top-4 w-20 h-20 bg-purple-300/10 rounded-full blur-xl pointer-events-none"></div>
-          <div class="absolute -left-6 -bottom-8 w-32 h-32 bg-purple-900/30 rounded-full blur-2xl pointer-events-none"></div>
+          <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" aria-hidden="true"></div>
+          <div class="absolute right-16 top-4 w-20 h-20 bg-brand-300/10 rounded-full blur-xl pointer-events-none" aria-hidden="true"></div>
+          <div class="absolute -left-6 -bottom-8 w-32 h-32 bg-brand-900/30 rounded-full blur-2xl pointer-events-none" aria-hidden="true"></div>
           <!-- rig sparkle -->
-          <img src="/brand/rig-sparkle.svg" class="absolute right-4 top-1/2 -translate-y-1/2 w-44 h-44 opacity-[0.07] pointer-events-none select-none" aria-hidden="true" />
+          <img src="/brand/rig-sparkle.svg" class="absolute right-4 top-1/2 -translate-y-1/2 w-44 h-44 opacity-[0.07] pointer-events-none select-none" aria-hidden="true" alt="" />
 
-          <p class="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-purple-200 relative z-10">Active Requests</p>
-          <h3 class="mt-2 text-[2.4rem] font-black tracking-tight leading-none relative z-10" style="font-variant-numeric: tabular-nums;">{{ activeRequestCount }}</h3>
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-brand-100 relative z-10">Active Requests</p>
+          <p class="mt-2 font-display text-[2.6rem] font-black tracking-tight leading-none relative z-10" style="font-variant-numeric: tabular-nums;" data-testid="active-request-count">{{ activeRequestCount }}</p>
 
-          <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between relative z-10">
-            <div class="cursor-pointer" @click="goTab('wallet')">
-              <p class="text-[0.6rem] font-bold uppercase tracking-[0.15em] text-purple-300">Available Balance</p>
-              <p class="text-xl font-black mt-0.5 tabular-nums">GHS {{ walletBalance.toFixed(2) }}</p>
-            </div>
-            <button @click="goTab('wallet')" class="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 transition-colors rounded-xl px-4 py-2 text-xs font-bold tracking-wide border border-white/10">
-              <WalletIcon class="w-[15px] h-[15px]" />
+          <div class="mt-5 pt-4 border-t border-white/15 flex items-center justify-between gap-3 relative z-10">
+            <button
+              type="button"
+              data-testid="wallet-balance"
+              class="-m-2 rounded-xl p-2 text-left transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              @click="goTab('wallet')"
+            >
+              <span class="block text-xs font-bold uppercase tracking-[0.14em] text-brand-100">Available Balance</span>
+              <span class="mt-0.5 block font-display text-xl font-black tabular-nums">GHS {{ walletBalance.toFixed(2) }}</span>
+            </button>
+            <button
+              type="button"
+              @click="goTab('wallet')"
+              class="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-4 text-sm font-bold tracking-wide transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              <WalletIcon class="w-[15px] h-[15px]" aria-hidden="true" />
               Top Up
             </button>
           </div>
         </section>
 
         <div class="dashboard-middle grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="space-y-4 lg:col-span-2">
-            <div class="flex items-center justify-between pb-2 border-b border-[#e5d5f5]">
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-[#4F217A]"></div>
-                <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-[#4F217A]">Activity Stream</h3>
-              </div>
-              <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('requests')">
-                Full History
-                <ChevronRightIcon class="w-3.5 h-3.5" />
-              </button>
-            </div>
+          <section class="space-y-4 lg:col-span-2">
+            <SectionHeader title="Activity Stream" action-label="Full History" @action="goTab('requests')" />
 
             <div v-if="isDashboardLoading" class="space-y-3" aria-busy="true">
-              <div v-for="n in 2" :key="`req-sk-${n}`" class="flex w-full items-center gap-3 sm:gap-4 border border-[#e5e7eb] bg-white px-4 py-4 rounded-xl">
-                <div class="h-10 w-10 rounded-full bg-zinc-100 animate-pulse"></div>
+              <span class="sr-only" role="status">Loading your requests…</span>
+              <div v-for="n in 2" :key="`req-sk-${n}`" aria-hidden="true" class="flex w-full items-center gap-3 sm:gap-4 border border-ink-100 bg-white px-4 py-4 rounded-xl">
+                <div class="h-10 w-10 rounded-full bg-ink-50 animate-pulse"></div>
                 <div class="flex-1 space-y-2">
-                  <div class="h-3 w-1/2 rounded bg-zinc-100 animate-pulse"></div>
-                  <div class="h-2.5 w-1/3 rounded bg-zinc-100 animate-pulse"></div>
+                  <div class="h-3 w-1/2 rounded bg-ink-50 animate-pulse"></div>
+                  <div class="h-2.5 w-1/3 rounded bg-ink-50 animate-pulse"></div>
                 </div>
-                <div class="h-3 w-16 rounded bg-zinc-100 animate-pulse"></div>
+                <div class="h-3 w-16 rounded bg-ink-50 animate-pulse"></div>
               </div>
             </div>
 
-            <div v-else-if="recentRequestItems.length === 0" class="flex items-center gap-4 border border-[#e5d5f5] bg-[#faf4ff] px-5 py-4">
-              <div class="flex h-10 w-10 items-center justify-center bg-[#ebd5fb] text-[#4F217A] rounded-full">
-                <DocumentTextIcon class="w-5 h-5" />
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-zinc-900">No requests yet</p>
-                <p class="text-xs text-[#a589c3]">Your latest request activity will appear here.</p>
-              </div>
-            </div>
+            <EmptyState
+              v-else-if="recentRequestItems.length === 0"
+              :icon="DocumentTextIcon"
+              title="No requests yet"
+              description="Your latest request activity will appear here."
+            >
+              <template #action>
+                <button
+                  type="button"
+                  class="min-h-[44px] rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/60 focus-visible:ring-offset-2"
+                  @click="goTab('new')"
+                >Start a request</button>
+              </template>
+            </EmptyState>
 
             <div v-else class="space-y-3">
               <button
                 v-for="request in recentRequestItems"
                 :key="request.id ?? ''"
-                class="flex w-full items-start sm:items-center gap-3 sm:gap-4 border border-[#e5e7eb] bg-white px-4 py-3 sm:py-4 text-left hover:border-[#4F217A]/30 hover:bg-[#faf4ff] hover:shadow-sm transition-all group rounded-xl"
+                type="button"
+                data-testid="request-row"
+                class="flex w-full items-start sm:items-center gap-3 sm:gap-4 border border-ink-100 bg-white px-4 py-3 sm:py-4 text-left hover:border-brand-700/30 hover:bg-brand-50 hover:shadow-soft transition-all group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
                 @click="navigateTo({ path: '/customer', query: { tab: 'requests', requestId: request.id } })"
               >
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[1rem] mt-0.5 sm:mt-0"
-                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-green-50 text-green-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status ?? '') ? 'bg-blue-50 text-blue-700' : 'bg-zinc-100 text-zinc-600'"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full mt-0.5 sm:mt-0"
+                  :class="request.status === 'paid' || request.status === 'verified' ? 'bg-brand-50 text-brand-700' : ['processing', 'composing', 'sourcing', 'confirming_with_pharm'].includes(request.status ?? '') ? 'bg-brand-50 text-brand-700' : 'bg-ink-50 text-ink-600'"
+                  aria-hidden="true"
                 >
                   <component :is="requestIcon(request)" class="w-5 h-5" />
                 </div>
@@ -125,89 +136,81 @@
                 <div class="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div class="min-w-0 flex-1 flex flex-col justify-center">
                     <div class="flex items-center gap-2 mb-1.5 overflow-hidden pr-2">
-                      <h4 class="truncate text-sm font-bold text-zinc-900 group-hover:text-[#4F217A] transition-colors" :title="getRequestHeadline(request)">
+                      <h3 class="truncate text-sm font-bold text-ink-900 group-hover:text-brand-700 transition-colors" :title="getRequestHeadline(request)">
                         {{ getRequestHeadline(request) }}
-                      </h4>
+                      </h3>
                       <span
-                        class="inline-flex px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] rounded-md shrink-0 whitespace-nowrap"
+                        class="inline-flex px-1.5 py-0.5 text-xs font-black uppercase tracking-[0.08em] rounded-md shrink-0 whitespace-nowrap"
                         :class="getRequestStatusClass(request.status ?? '')"
                       >
                         {{ getRequestStatusLabel(request.status ?? '') }}
                       </span>
                     </div>
-                    <p class="truncate text-[0.7rem] font-medium text-zinc-500 mt-0.5 flex items-center gap-1.5 flex-wrap leading-tight">
-                      <span v-if="request.request_number" class="font-mono text-zinc-400">#{{ request.request_number }}</span>
-                      <span v-if="request.request_number" class="w-1 h-1 rounded-full bg-zinc-300"></span>
+                    <p class="truncate text-xs font-medium text-ink-500 mt-0.5 flex items-center gap-1.5 flex-wrap leading-tight">
+                      <span v-if="request.request_number" class="font-mono">#{{ request.request_number }}</span>
+                      <span v-if="request.request_number" class="w-1 h-1 rounded-full bg-ink-200" aria-hidden="true"></span>
                       <span :title="request.updated_at || request.created_at">{{ formatDate(request.updated_at || request.created_at) }}</span>
-                      <span class="w-1 h-1 rounded-full bg-zinc-300"></span>
-                      <span class="text-zinc-600 capitalize tabular-nums">{{ requestMeta(request) }}</span>
+                      <span class="w-1 h-1 rounded-full bg-ink-200" aria-hidden="true"></span>
+                      <span class="text-ink-600 capitalize tabular-nums">{{ requestMeta(request) }}</span>
                     </p>
                   </div>
 
                   <div class="text-left sm:text-right shrink-0 flex flex-col justify-center sm:pl-2">
-                    <span class="hidden sm:block text-[0.6rem] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Price</span>
-                    <strong class="text-sm font-black text-zinc-900 group-hover:text-[#4F217A] tabular-nums leading-none">
-                      <span class="sm:hidden text-zinc-400 font-semibold mr-1">Total:</span>GHS {{ formatMoney(getRequestAmount(request)) }}
+                    <span class="hidden sm:block text-xs font-bold uppercase tracking-widest text-ink-500 mb-0.5">Price</span>
+                    <strong class="text-sm font-black text-ink-900 group-hover:text-brand-700 tabular-nums leading-none">
+                      <span class="sm:hidden text-ink-500 font-semibold mr-1">Total:</span>GHS {{ formatMoney(getRequestAmount(request)) }}
                     </strong>
                   </div>
                 </div>
               </button>
             </div>
-          </div>
+          </section>
 
           <aside class="space-y-4">
-            <div class="flex items-center justify-between pb-2 border-b border-[#e5d5f5]">
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-[#4F217A]"></div>
-                <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-[#4F217A]">Ongoing Orders</h3>
-              </div>
-              <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('orders')">
-                View All
-                <ChevronRightIcon class="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <SectionHeader title="Ongoing Orders" action-label="View All" @action="goTab('orders')" />
 
-            <div class="border border-[#ede5ff] bg-[#faf6ff] shadow-sm rounded-xl overflow-hidden mt-3">
+            <div class="border border-brand-100 bg-brand-50 shadow-soft rounded-xl overflow-hidden mt-3">
               <div v-if="isDashboardLoading" class="px-4 py-4 space-y-3" aria-busy="true">
-                <div class="flex gap-3">
-                  <div class="h-8 w-8 rounded-full bg-[#ede5ff] animate-pulse"></div>
+                <span class="sr-only" role="status">Loading your orders…</span>
+                <div class="flex gap-3" aria-hidden="true">
+                  <div class="h-8 w-8 rounded-full bg-brand-100 animate-pulse"></div>
                   <div class="flex-1 space-y-2">
-                    <div class="h-3 w-1/3 rounded bg-[#ede5ff] animate-pulse"></div>
-                    <div class="h-2.5 w-1/2 rounded bg-[#ede5ff] animate-pulse"></div>
+                    <div class="h-3 w-1/3 rounded bg-brand-100 animate-pulse"></div>
+                    <div class="h-2.5 w-1/2 rounded bg-brand-100 animate-pulse"></div>
                   </div>
                 </div>
               </div>
-              <div v-else-if="ongoingOrderItems.length === 0" class="flex items-center gap-3 px-4 py-5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center bg-[#ede5ff] text-[#4F217A] rounded-full border border-[#d9c7f5]">
-                  <ArchiveBoxIcon class="w-5 h-5" />
-                </div>
-                <div>
-                  <p class="text-sm font-bold text-slate-800">No active orders</p>
-                  <p class="text-xs font-medium text-[#7a5fa0] mt-0.5">Orders in progress will show here.</p>
-                </div>
-              </div>
+              <EmptyState
+                v-else-if="ongoingOrderItems.length === 0"
+                class="border-0 bg-transparent"
+                :icon="ArchiveBoxIcon"
+                title="No active orders"
+                description="Orders in progress will show here."
+              />
 
               <div v-else>
                 <button
                   v-for="order in ongoingOrderItems"
                   :key="order.order_id ?? ''"
-                  class="flex w-full items-start gap-3 px-4 py-4 text-left transition-all hover:bg-[#f0e6ff]/50 group bg-white border-x-0"
-                  :class="{ 'border-t border-[#ede5ff]': ongoingOrderItems.indexOf(order) > 0 }"
+                  type="button"
+                  data-testid="order-row"
+                  class="flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-brand-50 group bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-700/50"
+                  :class="{ 'border-t border-brand-100': ongoingOrderItems.indexOf(order) > 0 }"
                   @click="goTab('orders')"
                 >
-                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] text-[#4F217A] border border-[#d9c7f5] mt-0.5 group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 border border-brand-100 mt-0.5 group-hover:bg-brand-700 group-hover:text-white transition-colors" aria-hidden="true">
                     <ArchiveBoxIcon class="w-4 h-4" />
                   </div>
 
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-2 overflow-hidden">
-                      <h4 class="truncate text-xs font-black tracking-tight text-slate-800 group-hover:text-[#4F217A] transition-colors" :title="'#' + shortOrderId(order.order_id)">#{{ shortOrderId(order.order_id) }}</h4>
-                      <strong class="text-xs font-black text-slate-900 group-hover:text-[#4F217A] transition-colors shrink-0 tabular-nums">GHS {{ formatMoney(order.total_amount) }}</strong>
+                      <h3 class="truncate text-xs font-black tracking-tight text-ink-900 group-hover:text-brand-700 transition-colors" :title="'#' + shortOrderId(order.order_id)">#{{ shortOrderId(order.order_id) }}</h3>
+                      <strong class="text-xs font-black text-ink-900 group-hover:text-brand-700 transition-colors shrink-0 tabular-nums">GHS {{ formatMoney(order.total_amount) }}</strong>
                     </div>
-                    <p class="mt-1 truncate text-[0.7rem] font-medium text-slate-500 group-hover:text-slate-700 transition-colors">{{ getOrderSummary(order) }}</p>
+                    <p class="mt-1 truncate text-xs font-medium text-ink-500">{{ getOrderSummary(order) }}</p>
                     <div class="mt-2 flex items-center gap-1.5 flex-wrap">
-                      <span class="h-1.5 w-1.5 shrink-0 rounded-full shadow-sm" :class="getOrderDotClass(order.status) || 'bg-[#4F217A]'"></span>
-                      <span class="text-[0.65rem] font-black uppercase tracking-widest text-[#4F217A]">{{ getOrderStatusLabel(order.status ?? '') }}</span>
+                      <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="getOrderDotClass(order.status) || 'bg-brand-700'" aria-hidden="true"></span>
+                      <span class="text-xs font-black uppercase tracking-widest text-brand-700">{{ getOrderStatusLabel(order.status ?? '') }}</span>
                     </div>
                   </div>
                 </button>
@@ -218,61 +221,51 @@
 
         <button
           type="button"
-          class="w-full flex items-center gap-4 rounded-2xl border border-[#ede5ff] bg-gradient-to-br from-white to-[#faf6ff] px-5 py-4 text-left hover:border-[#c9a8f0] hover:shadow-[0_4px_16px_-4px_rgba(79,33,122,0.15)] transition-all group"
+          class="w-full flex items-center gap-4 rounded-2xl border border-brand-100 bg-brand-700 px-5 py-4 text-left hover:border-brand-300 hover:shadow-soft transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
           @click="goTab('clearance')"
         >
-          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 border border-brand-100 text-brand-700 group-hover:bg-brand-700 group-hover:text-white transition-colors" aria-hidden="true">
             <TagIcon class="w-5 h-5" />
           </div>
           <div class="min-w-0 flex-1">
-            <h4 class="text-sm font-bold text-slate-800 group-hover:text-[#4F217A] transition-colors">Browse Clearance Deals</h4>
-            <p class="text-[0.7rem] font-bold text-[#7a5fa0] group-hover:text-[#4F217A] transition-colors mt-0.5">Near-expiry stock marked down across all pharmacies</p>
+            <h3 class="text-sm font-bold text-ink-900 group-hover:text-brand-700 transition-colors">Browse Clearance Deals</h3>
+            <p class="text-xs font-medium text-ink-500 mt-0.5">Near-expiry stock marked down across all pharmacies</p>
           </div>
-          <ChevronRightIcon class="hidden sm:block w-4 h-4 text-zinc-400 group-hover:text-[#4F217A] transition-colors shrink-0" />
+          <ChevronRightIcon class="hidden sm:block w-4 h-4 text-ink-500 group-hover:text-brand-700 transition-colors shrink-0" aria-hidden="true" />
         </button>
 
-        <section class="section-wrap space-y-4 pt-4 border-t border-[#ede5ff]">
-          <div class="flex items-center justify-between pb-2 border-b border-[#e5d5f5]">
-            <div class="flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full bg-[#4F217A]"></div>
-              <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-[#4F217A]">Verified Partners</h3>
-            </div>
-            <button class="inline-flex items-center gap-0.5 text-[0.65rem] font-bold uppercase tracking-widest text-[#4F217A] hover:text-[#381659] transition-colors" @click="goTab('companies')">
-              Directory
-              <ChevronRightIcon class="w-3.5 h-3.5" />
-            </button>
-          </div>
+        <section class="space-y-4 pt-4 border-t border-brand-100" data-testid="partners-section">
+          <SectionHeader title="Verified Partners" action-label="Directory" @action="goTab('companies')" />
 
-          <div v-if="verifiedPartners.length === 0" class="flex items-center gap-4 border border-[#ede5ff] bg-[#faf6ff] px-5 py-4 shadow-sm rounded-xl">
-            <div class="flex h-10 w-10 items-center justify-center bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] rounded-full">
-              <BuildingStorefrontIcon class="w-5 h-5" />
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-zinc-900">No pharmacies linked yet</p>
-              <p class="text-xs text-[#7a5fa0]">Your verified pharmacy network will appear here.</p>
-            </div>
-          </div>
+          <EmptyState
+            v-if="verifiedPartners.length === 0"
+            :icon="BuildingStorefrontIcon"
+            title="No pharmacies linked yet"
+            description="Your verified pharmacy network will appear here."
+          />
 
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               v-for="company in verifiedPartners"
               :key="company.id ?? ''"
-              class="flex items-center sm:items-start gap-4 rounded-xl border border-[#ede5ff] bg-gradient-to-br from-white to-[#faf6ff] px-5 py-4 text-left hover:border-[#c9a8f0] hover:shadow-[0_4px_16px_-4px_rgba(79,33,122,0.15)] transition-all group"
+              type="button"
+              data-testid="partner-row"
+              class="flex items-center sm:items-start gap-4 rounded-xl border border-brand-100 bg-brand-700 px-5 py-4 text-left hover:border-brand-300 hover:shadow-soft transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
               @click="goToPharmacy(company)"
             >
-              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ede5ff] border border-[#d9c7f5] text-[#4F217A] group-hover:bg-[#4F217A] group-hover:text-white transition-all shadow-sm">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 border border-brand-100 text-brand-700 group-hover:bg-brand-700 group-hover:text-white transition-colors" aria-hidden="true">
                 <BuildingStorefrontIcon class="w-5 h-5" />
               </div>
 
               <div class="min-w-0 flex-1">
-                <h4 class="truncate text-sm font-bold text-slate-800 group-hover:text-[#4F217A] transition-colors">{{ company.company_name || company.name }}</h4>
-                <div class="mt-1 flex items-center gap-1.5 text-[0.7rem] font-bold text-[#7a5fa0] group-hover:text-[#4F217A] transition-colors flex-wrap">
-                  <CheckBadgeIconSolid class="w-3.5 h-3.5 text-[#a589c3] shrink-0" />
+                <h3 class="truncate text-sm font-bold text-ink-900 group-hover:text-brand-700 transition-colors">{{ company.company_name || company.name }}</h3>
+                <div class="mt-1 flex items-center gap-1.5 text-xs font-medium text-ink-500 flex-wrap">
+                  <CheckBadgeIconSolid class="w-3.5 h-3.5 text-brand-700 shrink-0" aria-hidden="true" />
                   <span class="truncate">{{ getCompanyMeta(company) }}</span>
                 </div>
               </div>
 
-              <div class="hidden sm:flex shrink-0 h-8 w-8 items-center justify-center rounded-full bg-white border border-zinc-200 text-zinc-400 group-hover:text-[#4F217A] group-hover:bg-[#faf6ff] transition-colors">
+              <div class="hidden sm:flex shrink-0 h-8 w-8 items-center justify-center rounded-full bg-white border border-ink-100 text-ink-500 group-hover:text-brand-700 transition-colors" aria-hidden="true">
                 <ChevronRightIcon class="w-4 h-4" />
               </div>
             </button>
@@ -337,6 +330,8 @@ import Profile from '~/components/customers/profile.vue'
 import Wallet from '~/components/customers/wallet.vue'
 import ProfessionalStock from '~/components/customers/professionalStock.vue'
 import ClearanceDeals from '~/components/customers/clearanceDeals.vue'
+import EmptyState from '~/components/shared/EmptyState.vue'
+import SectionHeader from '~/components/shared/SectionHeader.vue'
 import { useUserStore } from '~/stores/user'
 import { getCompactAddressLines } from '~/utils/addressFormat'
 import { useOrderStatus } from '~/composables/useOrderStatus'
@@ -434,7 +429,6 @@ const isOngoingOrderStatus: (status: string) => boolean = orderStatus.isOngoingS
 const formatDate = (value: string | undefined): string => timeAgo(value)
 
 const formatMoney = (value: number | string | undefined): string => Number(value ?? 0).toFixed(2)
-const shortId = (id: string | undefined): string => (id ?? '').substring(0, 8).toUpperCase()
 const shortOrderId = (id: number | string | undefined): string => String(id ?? '').replace(/^#/, '').substring(0, 8)
 
 const getRequestHeadline = (request: RequestItem): string => {
@@ -487,20 +481,20 @@ const getOrderDotClass = (status: string | undefined): string => {
   switch (status) {
     case 'processing':
     case 'pending':
-      return 'bg-[#f59e0b]'
+      return 'bg-amber-800'
     case 'shipped':
     case 'out_for_delivery':
     case 'driver_assigned':
     case 'ready_for_pickup':
-      return 'bg-[#4F217A]'
+      return 'bg-brand-700'
     case 'delivered':
     case 'completed':
     case 'picked_up':
-      return 'bg-[#22c55e]'
+      return 'bg-brand-700'
     case 'cancelled':
-      return 'bg-[#ef4444]'
+      return 'bg-red-700'
     default:
-      return 'bg-[#8b5cf6]'
+      return 'bg-brand-700'
   }
 }
 
@@ -524,7 +518,7 @@ const loadWalletBalance = async (): Promise<boolean> => {
     walletBalance.value = parseFloat(String((json.data as { balance?: number | string })?.balance ?? 0))
     return true
   } catch {
-    walletBalance.value = walletBalance.value // keep stale
+    // keep the last known balance
     return false
   }
 }
@@ -627,8 +621,9 @@ onMounted(async () => {
       return
     }
     isCheckingAuth.value = false
-    await loadDashboard()
+    // Polling does its own first load, so the home tab must not load a second time.
     if (currentTab.value === 'home') await startHomeStatsPolling()
+    else await loadDashboard()
   } catch (error) {
     console.error('Dashboard init error:', error)
   } finally {
@@ -655,41 +650,11 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.dashboard-top {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 2.25fr) minmax(290px, 1fr);
-}
-
 .dashboard-middle {
   display: grid;
   gap: 2rem;
   grid-template-columns: minmax(0, 2fr) minmax(300px, 0.95fr);
   align-items: start;
-}
-
-.partners-grid {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.auth-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 60vh;
-  gap: 16px;
-}
-
-.pulse-ring {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 3px solid #e5e7eb;
-  border-top-color: #520094;
-  animation: spin 0.8s linear infinite;
 }
 
 .page-view {
@@ -699,9 +664,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 1180px) {
-  .dashboard-top,
-  .dashboard-middle,
-  .partners-grid {
+  .dashboard-middle {
     grid-template-columns: 1fr;
   }
 
@@ -711,9 +674,4 @@ onUnmounted(() => {
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

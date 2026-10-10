@@ -2,20 +2,20 @@
   <AccessControl>
     <div class="container mx-auto px-4 py-8">
       <!-- Display current pharmacy info -->
-      <div v-if="pharmacyData" class="mb-6 p-4 bg-blue-50 rounded-lg">
+      <div v-if="pharmacyData" class="mb-6 p-4 bg-brand-50 rounded-lg">
         <h1 class="text-xl font-semibold">
           Managing Inventory for: {{ pharmacyData.name }}
         </h1>
-        <p class="text-sm text-gray-600">{{ pharmacyData.location }}</p>
+        <p class="text-sm text-ink-600">{{ pharmacyData.location }}</p>
       </div>
 
       <!-- Tabs Navigation -->
-      <div class="border-b border-gray-200 mb-6">
+      <div class="border-b border-ink-200 mb-6">
         <nav class="flex -mb-px" aria-label="Tabs">
           <button v-for="tab in tabs" :key="tab.value" @click="activeTab = tab.value" :class="[
             activeTab === tab.value
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-ink-500 hover:text-ink-600 hover:border-ink-200',
             'w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm'
           ]">
             {{ tab.name }}
@@ -29,29 +29,29 @@
 
         <form @submit.prevent="submitProduct" class="max-w-lg mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="brandName">
+            <label class="block text-ink-600 text-sm font-bold mb-2" for="brandName">
               Product Name
             </label>
             <input v-model="productForm.brandName" id="brandName" type="text" required
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-ink-600 leading-tight focus:outline-none focus:shadow-outline"
               placeholder="Enter product name" />
           </div>
 
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="unit">
+            <label class="block text-ink-600 text-sm font-bold mb-2" for="unit">
               Unit
             </label>
             <input v-model="productForm.unit" id="unit" type="text" required
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-ink-600 leading-tight focus:outline-none focus:shadow-outline"
               placeholder="e.g., TABLET, BOTTLE, PACK" />
           </div>
 
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="image">
+            <label class="block text-ink-600 text-sm font-bold mb-2" for="image">
               Product Image
             </label>
             <input @change="handleImageUpload" id="image" type="file" accept="image/*"
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-ink-600 leading-tight focus:outline-none focus:shadow-outline" />
 
             <div v-if="productForm.imagePreview" class="mt-4">
               <img :src="productForm.imagePreview" alt="Product Preview" class="max-w-full h-auto rounded" />
@@ -59,26 +59,26 @@
           </div>
 
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="sellingPrice">
+            <label class="block text-ink-600 text-sm font-bold mb-2" for="sellingPrice">
               Price (GHS)
             </label>
             <input v-model.number="productForm.sellingPrice" id="sellingPrice" type="number" step="0.01" required
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-ink-600 leading-tight focus:outline-none focus:shadow-outline"
               placeholder="Enter price" />
           </div>
 
           <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="stockQty">
+            <label class="block text-ink-600 text-sm font-bold mb-2" for="stockQty">
               Stock Quantity
             </label>
             <input v-model.number="productForm.stockQty" id="stockQty" type="number" required min="0" step="1"
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-ink-600 leading-tight focus:outline-none focus:shadow-outline"
               placeholder="Enter quantity in stock" />
           </div>
 
           <div class="flex items-center justify-between">
             <button type="submit" :disabled="isUploading || !currentPharmacy"
-              class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50">
+              class="w-full bg-brand-700 hover:bg-brand-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50">
               {{ isUploading ? 'Uploading...' : 'Add Product' }}
             </button>
           </div>
@@ -90,11 +90,11 @@
         <!-- Search Input -->
         <div class="p-4 border-b">
           <input v-model="searchQuery" type="text" placeholder="Search products..."
-            class="w-full max-w-md px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            class="w-full max-w-md px-4 py-2 rounded-lg border border-ink-200 focus:outline-none focus:ring-2 focus:ring-brand-700" />
         </div>
 
         <table class="w-full">
-          <thead class="bg-gray-600 border-b">
+          <thead class="bg-ink-600 border-b">
             <tr>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Price</th>
@@ -104,47 +104,47 @@
               <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr v-for="product in filteredProducts" :key="product.id ?? ''" class="hover:bg-gray-50 transition-colors">
+          <tbody class="divide-y divide-ink-200">
+            <tr v-for="product in filteredProducts" :key="product.id ?? ''" class="hover:bg-ink-50 transition-colors">
               <!-- Name Cell -->
-              <td class="p-4 text-sm text-gray-900">
+              <td class="p-4 text-sm text-ink-900">
                 <div v-if="editingId === product.id" class="flex items-center space-x-2">
                   <input v-model="editForm.brandName" type="text"
-                    class="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    class="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-brand-700" />
                 </div>
                 <span v-else>{{ product.brandName }}</span>
               </td>
 
               <!-- Price Cell -->
-              <td class="p-4 text-sm text-gray-900">
+              <td class="p-4 text-sm text-ink-900">
                 <div v-if="editingId === product.id" class="flex items-center space-x-2">
                   <input v-model.number="editForm.sellingPrice" type="number" step="0.01"
-                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-brand-700" />
                 </div>
                 <span v-else>GHS {{ product.sellingPrice }}</span>
               </td>
 
               <!-- Unit Cell -->
-              <td class="p-4 text-sm text-gray-900">
+              <td class="p-4 text-sm text-ink-900">
                 <div v-if="editingId === product.id" class="flex items-center space-x-2">
                   <input v-model="editForm.unit" type="text"
-                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-brand-700" />
                 </div>
                 <span v-else>{{ product.unit }}</span>
               </td>
 
               <!-- Stock Status Cell -->
-              <td class="p-4 text-sm text-gray-900">
+              <td class="p-4 text-sm text-ink-900">
                 <div v-if="editingId === product.id" class="flex items-center space-x-2">
                   <input v-model.number="editForm.stockQty" type="number" min="0" step="1"
-                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    class="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-brand-700" />
                 </div>
                 <div v-else class="flex items-center space-x-2">
                   <span :class="[
                     'px-2 py-1 text-xs rounded-full',
                     (product.stockQty ?? 0) <= 0
                       ? 'bg-red-100 text-red-800'
-                      : 'bg-green-100 text-green-800'
+                      : 'bg-brand-100 text-brand-800'
                   ]">
                     {{ (product.stockQty ?? 0) > 0 ? `${product.stockQty} in stock` : 'Out of Stock' }}
                   </span>
@@ -152,7 +152,7 @@
               </td>
 
               <!-- Last Updated Cell -->
-              <td class="p-4 text-sm text-gray-900">
+              <td class="p-4 text-sm text-ink-900">
                 {{ formatDate(product.lastUpdated) }}
               </td>
 
@@ -161,16 +161,16 @@
                 <div class="flex items-center space-x-2">
                   <template v-if="editingId === product.id">
                     <button @click="handleSave(product.id)"
-                      class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs transition-colors">
+                      class="bg-brand-700 hover:bg-brand-700 text-white px-3 py-1 rounded text-xs transition-colors">
                       Save
                     </button>
                     <button @click="cancelEdit"
-                      class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs transition-colors">
+                      class="bg-ink-500 hover:bg-ink-600 text-white px-3 py-1 rounded text-xs transition-colors">
                       Cancel
                     </button>
                   </template>
                   <button v-else @click="startEdit(product)"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs transition-colors">
+                    class="bg-brand-700 hover:bg-brand-700 text-white px-3 py-1 rounded text-xs transition-colors">
                     Edit
                   </button>
                 </div>

@@ -1,196 +1,114 @@
 <template>
-  <div class="text-[#1d1a20] antialiased overflow-x-hidden min-h-screen bg-[#f4f4f5]">
+  <div class="min-h-screen overflow-x-hidden bg-white font-body text-ink-900 antialiased">
     <!-- WCAG 2.4.1 Bypass Blocks: keyboard skip-link, visible on focus -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
-    <!-- SideNavBar -->
-    <aside class="fixed left-0 top-0 h-full hidden lg:flex flex-col p-5 gap-2 bg-white border-r border-zinc-200 w-64 z-50 ">
-      <div class="flex items-center gap-3 mb-10 px-2 cursor-pointer" @click="goTo('new')">
-        <img src="~/assets/images/rigellogo.png" class="h-10 w-auto object-contain" alt="MedsGH Logo" />
-        <div>
-          <h1 class="text-[1.7rem] font-semibold text-zinc-900 leading-none tracking-tight">MedsGh</h1>
-        </div>
-      </div>
 
-      <nav class="flex-1 space-y-2">
-        <button @click="goTo('new')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'new' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'" >
-          <component :is="activeNav === 'new' ? HomeSolid : HomeOutline" class="w-6 h-6" />
-          Home
-        </button>
-        <button @click="goTo('requests')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'requests' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <component :is="activeNav === 'requests' ? DocumentSolid : DocumentOutline" class="w-6 h-6" />
-          My Requests
-          <span v-if="pendingRequestsCount > 0" class="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+    <!-- Side navigation (large screens) -->
+    <aside class="fixed left-0 top-0 z-50 hidden h-full w-64 flex-col gap-2 border-r border-ink-200 bg-white p-5 lg:flex">
+      <button type="button" class="mb-8 flex min-h-[44px] items-center gap-3 px-2 text-left" aria-label="MedsGH home" @click="goTo('new')">
+        <img src="~/assets/images/rigellogo.png" class="h-10 w-auto object-contain" alt="" />
+        <span class="font-display text-2xl font-bold tracking-tight text-ink-900">MedsGh</span>
+      </button>
+
+      <nav class="flex-1 space-y-1" aria-label="Main">
+        <button
+          v-for="item in sideItems"
+          :key="item.tab"
+          type="button"
+          :aria-current="activeNav === item.tab ? 'page' : undefined"
+          class="flex min-h-[44px] w-full items-center gap-3 rounded-full px-4 py-3 text-left text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+          :class="activeNav === item.tab ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-50'"
+          @click="goTo(item.tab)"
+        >
+          <component :is="activeNav === item.tab ? item.solid : item.outline" class="h-6 w-6" aria-hidden="true" />
+          {{ item.label }}
+          <span v-if="item.tab === 'requests' && pendingRequestsCount > 0" class="ml-auto flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-700 px-1.5 text-xs font-bold leading-none text-white">
             {{ pendingRequestsCount > 9 ? '9+' : pendingRequestsCount }}
           </span>
         </button>
-        <button @click="goTo('wallet')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'wallet' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-6 h-6" />
-          Wallet
-        </button>
-        <button @click="goTo('orders')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'orders' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <component :is="activeNav === 'orders' ? ReceiptSolid : ReceiptOutline" class="w-6 h-6" />
-          History
-        </button>
-        <button @click="goTo('companies')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'companies' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <component :is="activeNav === 'companies' ? PharmacySolid : PharmacyOutline" class="w-6 h-6" />
-          Pharmacies
-        </button>
-        <button @click="goTo('profile')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'profile' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <component :is="activeNav === 'profile' ? UserSolid : UserOutline" class="w-6 h-6" />
-          Profile
-        </button>
-        <button v-if="isProfessionalApproved" @click="goTo('stock')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'stock' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <component :is="activeNav === 'stock' ? BeakerSolid : BeakerOutline" class="w-6 h-6" />
-          Browse Stock
-        </button>
-        <button @click="goTo('clearance')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-medium text-sm text-left" :class="activeNav === 'clearance' ? 'bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200' : 'text-[#5d5564] hover:bg-zinc-50'">
-          <component :is="activeNav === 'clearance' ? TagSolid : TagOutline" class="w-6 h-6" />
-          Clearance Deals
-        </button>
       </nav>
 
-      <div class="mt-auto pt-6 border-t border-[#ede3f2]">
-        <button @click="goTo('new')" class="w-full primary-gradient text-white py-3.5 rounded-xl flex items-center justify-center gap-2 font-semibold shadow-[0_15px_30px_-15px_rgba(53,0,98,0.5)] hover:scale-[0.98] transition-transform">
-          <PlusIcon class="w-5 h-5" />
+      <div class="mt-auto border-t border-ink-200 pt-6">
+        <button type="button" class="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-brand-700 py-3.5 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2" @click="goTo('new')">
+          <PlusIcon class="h-5 w-5" aria-hidden="true" />
           New Request
         </button>
-        <button @click="handleLogout" class="w-full flex items-center gap-3 px-4 py-4 mt-4 text-[#5d5564] hover:text-[#ba1a1a] transition-colors font-medium text-sm rounded-xl hover:bg-red-50">
-          <ArrowRightOnRectangleIcon class="w-6 h-6" />
+        <button type="button" class="mt-3 flex min-h-[44px] w-full items-center gap-3 rounded-full px-4 py-3 text-base font-semibold text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="handleLogout">
+          <ArrowRightOnRectangleIcon class="h-6 w-6" aria-hidden="true" />
           Logout
         </button>
       </div>
     </aside>
 
-    <main id="main-content" tabindex="-1" class="lg:ml-64 min-h-screen bg-gradient-to-br from-[#e8dff5] to-[#ddd5ef] pb-28 lg:pb-0">
-      <!-- TopAppBar: hidden on concierge new-request and list views -->
-      <header
-        v-if="activeNav !== 'new' && activeNav !== 'requests' && activeNav !== 'wallet' && activeNav !== 'orders'"
-        class="sticky top-0 z-40 bg-[#f4f4f5]/92 backdrop-blur-md px-4 lg:px-8 flex justify-between items-center border-b border-zinc-200"
-        :class="activeNav === 'new' ? 'py-5 lg:py-6' : 'py-3.5 lg:py-4'"
-      >
-        <div v-if="activeNav === 'new' || canGoBack" class="flex min-w-0 flex-1 items-center gap-2.5 lg:gap-3">
-          <div v-if="activeNav === 'new' && !canGoBack" class="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#e9daf7] bg-white shadow-sm">
-            <img :src="brandLogo" alt="MedsGH Logo" class="h-7 w-7 object-contain" />
-          </div>
-          <button v-else-if="canGoBack" @click="goTo('new')" aria-label="Back to home" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-zinc-200 text-[#4F217A]">
-            <ArrowLeftIcon class="w-6 h-6" />
-          </button>
-
-          <div v-if="activeNav === 'new'" class="min-w-0 flex-1">
-            <h2 class="truncate text-[1.05rem] font-bold leading-tight tracking-tight text-zinc-900 lg:text-[2rem]">
-              {{ headerGreeting }}
-            </h2>
-            <button
-              type="button"
-              @click="refreshDeliveryLocation"
-              :disabled="isRefreshingLocation"
-              class="mt-1 flex min-w-0 w-full items-center gap-2 rounded-full border border-transparent bg-white/0 px-0 py-1 text-left text-[#7a7280] transition-all hover:bg-[#f7f1ff] hover:text-[#4F217A] focus:outline-none focus-visible:border-[#4F217A]/20 focus-visible:bg-[#f7f1ff] focus-visible:text-[#4F217A]"
-              :title="headerLocation === 'Set your delivery location' ? 'Set your delivery location' : 'Update delivery location'"
-            >
-              <component :is="isRefreshingLocation ? ArrowPathIcon : MapPinIcon" class="w-3.5 h-3.5 shrink-0" :class="isRefreshingLocation ? 'animate-spin' : ''" />
-              <span class="truncate text-xs font-semibold uppercase tracking-[0.08em] lg:text-[12px] lg:tracking-[0.1em]">{{ headerLocation }}</span>
-              <span class="ml-auto shrink-0 hidden sm:inline-flex items-center gap-1 rounded-full border border-[#4F217A]/15 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#4F217A] shadow-sm transition-colors">
-                <template v-if="isRefreshingLocation">
-                  Updating
-                  <ArrowPathIcon class="w-3 h-3 animate-spin" />
-                </template>
-                <template v-else>
-                  Update
-                  <ChevronRightIcon class="w-3 h-3" />
-                </template>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 lg:gap-5" :class="activeNav === 'new' ? '' : 'ml-auto'">
-          <button aria-label="Notifications" class="relative w-10 h-10 hidden lg:flex items-center justify-center rounded-xl text-[#71717a] hover:bg-[#e8e0e8] transition-colors">
-            <BellIcon class="w-6 h-6" />
-            <span v-if="notificationCount > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none pointer-events-none">
-              {{ notificationCount > 99 ? '99+' : notificationCount }}
-            </span>
-          </button>
-          <button class="flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm group" @click="toggleMenu">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F217A] to-[#381659] text-white flex items-center justify-center text-xs font-black shadow-inner">
-              {{ displayUserInitials }}
-            </div>
-            <span class="text-xs font-bold text-zinc-700 group-hover:text-zinc-900 transition-colors hidden sm:block">Menu</span>
-            <ChevronDownIcon class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 transition-colors hidden sm:block" />
-          </button>
-        </div>
-      </header>
-
-      <!-- Slot Area -->
+    <main id="main-content" tabindex="-1" class="min-h-screen bg-white pb-28 lg:ml-64 lg:pb-0">
       <div :class="(activeNav === 'requests' || activeNav === 'wallet') ? '' : (activeNav === 'clearance' ? 'p-4 lg:px-8 lg:pb-8 lg:pt-0' : 'p-4 lg:p-8')">
         <slot />
       </div>
 
-      <!-- Mobile Bottom Nav -->
-      <nav class="lg:hidden fixed bottom-3 left-1/2 z-50 flex w-[calc(100%-1rem)] max-w-md -translate-x-1/2 items-center justify-around rounded-2xl border border-white/50 bg-white/30 px-1 py-1.5 shadow-[0_8px_32px_-8px_rgba(53,0,98,0.22)] backdrop-blur-md pb-safe">
-        <button @click="goTo('new')" :aria-label="'Home'" :aria-current="activeNav === 'new' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'new' ? 'text-[#4F217A]' : 'text-zinc-400'">
-          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'new' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
-            <component :is="activeNav === 'new' ? HomeSolid : HomeOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'new' ? 'scale-110' : ''" />
-          </div>
-          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'new' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Home</span>
-        </button>
-        <button @click="goTo('requests')" :aria-label="'My requests'" :aria-current="activeNav === 'requests' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'requests' ? 'text-[#4F217A]' : 'text-zinc-400'">
-          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'requests' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
-            <component :is="activeNav === 'requests' ? DocumentSolid : DocumentOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'requests' ? 'scale-110' : ''" />
-            <span v-if="pendingRequestsCount > 0" class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 leading-none pointer-events-none ring-2 ring-white">
+      <!-- Mobile bottom bar -->
+      <nav aria-label="Main" class="pb-safe fixed inset-x-2 bottom-3 z-50 mx-auto flex max-w-md items-center justify-around rounded-3xl bg-white px-1 py-1.5 shadow-lift ring-1 ring-ink-200 lg:hidden">
+        <button
+          v-for="item in barItems"
+          :key="item.tab"
+          type="button"
+          :aria-label="item.ariaLabel"
+          :aria-current="activeNav === item.tab ? 'page' : undefined"
+          class="relative flex min-h-[44px] min-w-[56px] flex-col items-center justify-center gap-0.5 rounded-2xl px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+          :class="activeNav === item.tab ? 'text-brand-700' : 'text-ink-600'"
+          @click="goTo(item.tab)"
+        >
+          <span class="relative flex h-8 w-12 items-center justify-center rounded-full" :class="activeNav === item.tab ? 'bg-brand-50' : ''">
+            <component :is="activeNav === item.tab ? item.solid : item.outline" class="h-6 w-6" aria-hidden="true" />
+            <span v-if="item.tab === 'requests' && pendingRequestsCount > 0" class="pointer-events-none absolute -right-0.5 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-700 px-1 text-xs font-bold leading-none text-white ring-2 ring-white">
               {{ pendingRequestsCount > 9 ? '9+' : pendingRequestsCount }}
             </span>
-          </div>
-          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'requests' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Requests</span>
+          </span>
+          <span class="text-xs font-semibold leading-none">{{ item.short }}</span>
         </button>
-        <button @click="goTo('wallet')" :aria-label="'Wallet'" :aria-current="activeNav === 'wallet' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'wallet' ? 'text-[#4F217A]' : 'text-zinc-400'">
-          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'wallet' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
-            <component :is="activeNav === 'wallet' ? WalletSolid : WalletOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'wallet' ? 'scale-110' : ''" />
-          </div>
-          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'wallet' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Wallet</span>
-        </button>
-        <button @click="goTo('clearance')" :aria-label="'Clearance deals'" :aria-current="activeNav === 'clearance' ? 'page' : undefined" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="activeNav === 'clearance' ? 'text-[#4F217A]' : 'text-zinc-400'">
-          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="activeNav === 'clearance' ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
-            <component :is="activeNav === 'clearance' ? TagSolid : TagOutline" class="w-5 h-5 transition-transform duration-200" :class="activeNav === 'clearance' ? 'scale-110' : ''" />
-          </div>
-          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="activeNav === 'clearance' ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">Deals</span>
-        </button>
-        <button @click="toggleMenu()" :aria-label="'More options'" :aria-expanded="showMenu" class="relative flex flex-col items-center gap-0.5 px-2 py-1 min-h-[44px] min-w-[44px] rounded-xl transition-colors duration-200" :class="isMoreActive ? 'text-[#4F217A]' : 'text-zinc-400'">
-          <div class="relative flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200" :class="isMoreActive ? 'bg-gradient-to-b from-[#f3e8ff] to-[#e9d5ff] scale-110 shadow-[0_2px_8px_-2px_rgba(79,33,122,0.25)]' : ''">
-            <component :is="isMoreActive ? MoreSolid : MoreOutline" class="w-5 h-5 transition-transform duration-200" :class="isMoreActive ? 'scale-110' : ''" />
-          </div>
-          <span class="overflow-hidden transition-all duration-200 text-[10px] font-bold leading-none" :class="isMoreActive ? 'max-h-4 opacity-100 mt-0.5' : 'max-h-0 opacity-0'">More</span>
+        <button
+          type="button"
+          aria-label="More options"
+          :aria-expanded="showMenu"
+          class="relative flex min-h-[44px] min-w-[56px] flex-col items-center justify-center gap-0.5 rounded-2xl px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+          :class="isMoreActive ? 'text-brand-700' : 'text-ink-600'"
+          @click="toggleMenu()"
+        >
+          <span class="flex h-8 w-12 items-center justify-center rounded-full" :class="isMoreActive ? 'bg-brand-50' : ''">
+            <component :is="isMoreActive ? MoreSolid : MoreOutline" class="h-6 w-6" aria-hidden="true" />
+          </span>
+          <span class="text-xs font-semibold leading-none">More</span>
         </button>
       </nav>
     </main>
 
-    <!-- Mobile profile sheet -->
+    <!-- Account menu sheet -->
     <Transition name="slide-up">
-      <div v-if="showMenu" class="fixed inset-0 bg-black/20 z-[60] flex items-end justify-center backdrop-blur-sm lg:items-center" @click="showMenu = false">
-        <div class="bg-white w-full lg:w-96 rounded-t-3xl lg:rounded-[2rem] p-6 pb-safe shadow-2xl relative" @click.stop>
-          <div class="w-12 h-1.5 bg-[#e8e0e8] rounded-xl mx-auto mb-6 lg:hidden"></div>
-          <div class="flex items-center gap-4 mb-6">
-            <div class="w-14 h-14 primary-gradient rounded-xl text-white font-semibold flex items-center justify-center text-xl shadow-inner">{{ displayUserInitials }}</div>
-            <div>
-              <p class="font-semibold text-[#1d1a20] text-lg leading-tight">{{ displayUserName }}</p>
-              <p class="text-[#71717a] text-sm">{{ displayUserPhone }}</p>
+      <div v-if="showMenu" class="fixed inset-0 z-[60] flex items-end justify-center bg-ink-900/40 lg:items-center" @click="showMenu = false">
+        <div ref="menuRef" role="dialog" aria-modal="true" aria-labelledby="account-menu-title" class="pb-safe relative w-full rounded-t-3xl bg-white p-6 shadow-lift lg:w-96 lg:rounded-3xl" @click.stop>
+          <div class="mx-auto mb-6 h-1.5 w-12 rounded-full bg-ink-200 lg:hidden" aria-hidden="true"></div>
+          <div class="mb-6 flex items-center gap-4">
+            <div class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 font-display text-xl font-bold text-white" aria-hidden="true">{{ displayUserInitials }}</div>
+            <div class="min-w-0">
+              <p id="account-menu-title" class="truncate font-display text-lg font-bold leading-tight text-ink-900">{{ displayUserName }}</p>
+              <p class="truncate text-base text-ink-600">{{ displayUserPhone }}</p>
             </div>
           </div>
-          <div class="space-y-2">
-            <button @click="showMenu = false; goTo('profile')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
-              <UserOutline class="w-6 h-6 text-[#71717a]" /> View Profile
+          <div class="space-y-1">
+            <button type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="showMenu = false; goTo('profile')">
+              <UserOutline class="h-6 w-6 text-ink-600" aria-hidden="true" /> View Profile
             </button>
-            <button @click="showMenu = false; goTo('companies')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
-              <PharmacyOutline class="w-6 h-6 text-[#71717a]" /> Linked Pharmacies
+            <button type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="showMenu = false; goTo('companies')">
+              <PharmacyOutline class="h-6 w-6 text-ink-600" aria-hidden="true" /> Linked Pharmacies
             </button>
-            <button @click="showMenu = false; goTo('orders')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
-              <ReceiptOutline class="w-6 h-6 text-[#71717a]" /> History
+            <button type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="showMenu = false; goTo('orders')">
+              <ReceiptOutline class="h-6 w-6 text-ink-600" aria-hidden="true" /> History
             </button>
-            <button v-if="isProfessionalApproved" @click="showMenu = false; goTo('stock')" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-white border-r border-zinc-200 transition-colors text-left text-[#1d1a20] font-medium">
-              <BeakerOutline class="w-6 h-6 text-[#71717a]" /> Browse Stock
+            <button v-if="isProfessionalApproved" type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="showMenu = false; goTo('stock')">
+              <BeakerOutline class="h-6 w-6 text-ink-600" aria-hidden="true" /> Browse Stock
             </button>
-            <div class="h-px w-full bg-[#f3ebf3] my-2"></div>
-            <button @click="handleLogout" class="w-full flex items-center gap-4 px-4 py-3 rounded-2xl hover:bg-[#ffdad6] text-[#ba1a1a] transition-colors text-left font-semibold">
-              <ArrowRightOnRectangleIcon class="w-6 h-6" /> Log Out
+            <div class="my-2 h-px w-full bg-ink-200" role="presentation"></div>
+            <button type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="handleLogout">
+              <ArrowRightOnRectangleIcon class="h-6 w-6" aria-hidden="true" /> Log Out
             </button>
           </div>
         </div>
@@ -209,12 +127,13 @@
     />
 
     <!-- Layout toast -->
-    <div v-if="toast"
-      role="status"
-      aria-live="polite"
-      class="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold"
-      :class="toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'">
-      <component :is="toast.type === 'error' ? ErrorIcon : CheckIcon" class="w-5 h-5" />
+    <div
+      v-if="toast"
+      :role="toast.type === 'error' ? 'alert' : 'status'"
+      class="fixed bottom-24 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-3 rounded-full px-5 py-3 text-base font-semibold text-white shadow-lift lg:bottom-6"
+      :class="toast.type === 'error' ? 'bg-red-700' : 'bg-ink-900'"
+    >
+      <component :is="toast.type === 'error' ? ErrorIcon : CheckIcon" class="h-5 w-5" aria-hidden="true" />
       {{ toast.text }}
     </div>
   </div>
@@ -222,7 +141,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import brandLogo from '~/assets/images/rigellogo.png'
+import { useModalA11y } from '~/composables/useModalA11y'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useUserStore } from '~/stores/user'
 import { useRoute } from 'vue-router'
@@ -237,8 +156,6 @@ import {
   UserIcon as UserOutline,
   ArrowRightOnRectangleIcon,
   PlusIcon,
-  BellIcon,
-  ArrowLeftIcon,
   ArrowPathIcon,
   MapPinIcon,
   ChevronRightIcon,
@@ -267,6 +184,8 @@ const { isActiveRequestStatus, getRequestStage } = useOrderStatus()
 const notificationCount = ref(0)
 const pendingRequestsCount = ref(0)
 const showMenu = ref(false)
+const menuRef = ref(null)
+useModalA11y(menuRef, () => showMenu.value, () => { showMenu.value = false })
 const showLogoutConfirm = ref(false)
 const hasMounted = ref(false)
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1440)
@@ -286,11 +205,26 @@ const userInitials = computed(() => {
 const displayUserName = computed(() => hasMounted.value ? userName.value : 'Customer')
 const displayUserFirstName = computed(() => hasMounted.value ? userFirstName.value : 'Customer')
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
-const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || '') : '')
+const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || userStore.currentUser?.email || '') : '')
 const activeNav = computed(() => route.query.tab || 'new')
 const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock', 'profile'].includes(activeNav.value))
-const canGoBack = computed(() => route.query.tab && route.query.tab !== 'new' && route.query.tab !== 'requests')
 const isProfessionalApproved = computed(() => userStore.masterCustomer?.professional_status === 'approved')
+const sideItems = computed(() => [
+  { tab: 'new', label: 'Home', outline: HomeOutline, solid: HomeSolid },
+  { tab: 'requests', label: 'My Requests', outline: DocumentOutline, solid: DocumentSolid },
+  { tab: 'wallet', label: 'Wallet', outline: WalletOutline, solid: WalletSolid },
+  { tab: 'orders', label: 'History', outline: ReceiptOutline, solid: ReceiptSolid },
+  { tab: 'companies', label: 'Pharmacies', outline: PharmacyOutline, solid: PharmacySolid },
+  { tab: 'profile', label: 'Profile', outline: UserOutline, solid: UserSolid },
+  ...(isProfessionalApproved.value ? [{ tab: 'stock', label: 'Browse Stock', outline: BeakerOutline, solid: BeakerSolid }] : []),
+  { tab: 'clearance', label: 'Clearance Deals', outline: TagOutline, solid: TagSolid },
+])
+const barItems = [
+  { tab: 'new', ariaLabel: 'Home', short: 'Home', outline: HomeOutline, solid: HomeSolid },
+  { tab: 'requests', ariaLabel: 'My requests', short: 'Requests', outline: DocumentOutline, solid: DocumentSolid },
+  { tab: 'wallet', ariaLabel: 'Wallet', short: 'Wallet', outline: WalletOutline, solid: WalletSolid },
+  { tab: 'clearance', ariaLabel: 'Clearance deals', short: 'Deals', outline: TagOutline, solid: TagSolid },
+]
 const greetingLabel = computed(() => {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'
@@ -423,9 +357,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.primary-gradient {
-  background: linear-gradient(135deg, #4F217A 0%, #520094 100%);
-}
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }

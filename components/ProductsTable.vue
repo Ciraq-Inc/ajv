@@ -4,18 +4,18 @@
     <!-- Loading state - only show if pharmacy store is not loading -->
     <div v-if="loading && !pharmacyStore.isLoading" class="p-8 text-center">
       <div class="animate-pulse flex justify-center">
-        <div class="h-6 w-6 bg-blue-500 rounded-full"></div>
+        <div class="h-6 w-6 bg-brand-700 rounded-full"></div>
       </div>
-      <p class="mt-2 text-gray-600">Loading products...</p>
+      <p class="mt-2 text-ink-600">Loading products...</p>
     </div>
 
     <!-- Empty state -->
     <div v-else-if="!filteredProducts.length" class="p-8 text-center bg-white rounded-lg shadow-md">
-      <div class="mb-3 text-gray-400">
+      <div class="mb-3 text-ink-500">
         <i class="ri-shopping-basket-line text-4xl"></i>
       </div>
-      <h3 class="text-lg font-medium text-gray-900">No products available</h3>
-      <p class="mt-1 text-sm text-gray-500">
+      <h3 class="text-lg font-medium text-ink-900">No products available</h3>
+      <p class="mt-1 text-sm text-ink-500">
         {{ searchQuery ? 'Try adjusting your search query' : 'This pharmacy has no products listed yet' }}
       </p>
     </div>
@@ -23,7 +23,7 @@
     <!-- Products table -->
     <div v-else class="bg-white rounded-lg shadow-md overflow-x-auto w-full">
       <table class="w-full min-w-full table-fixed">
-        <thead class="bg-gray-600 border-b">
+        <thead class="bg-ink-600 border-b">
           <tr>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider w-16">Image</th>
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Name</th>
@@ -35,25 +35,25 @@
             <th class="p-4 text-left text-sm font-medium text-white uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200">
-          <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-gray-50 transition-colors">
+        <tbody class="divide-y divide-ink-200">
+          <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-ink-50 transition-colors">
             <td class="p-3">
-              <div class="h-10 w-10 rounded overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
+              <div class="h-10 w-10 rounded overflow-hidden bg-ink-100 flex items-center justify-center border border-ink-200">
                 <img v-if="product.productImageUrl" :src="product.productImageUrl" :alt="product.brandName"
                   class="h-full w-full object-cover" @error="handleImageError" />
-                <svg v-else class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-else class="h-5 w-5 text-ink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
             </td>
-            <td class="p-3 text-sm font-medium text-gray-900">
+            <td class="p-3 text-sm font-medium text-ink-900">
               {{ product.brandName }}
             </td>
-            <td v-if="!props.hidePrices" class="p-3 text-sm text-gray-900">
+            <td v-if="!props.hidePrices" class="p-3 text-sm text-ink-900">
               GHS {{ formatPrice(product.sellingPrice) }}
             </td>
-            <td class="p-3 text-sm text-gray-900">
+            <td class="p-3 text-sm text-ink-900">
               {{ product.unit || 'Unit' }}
             </td>
             <td class="p-3 text-sm">
@@ -61,21 +61,21 @@
                 'px-2 py-1 text-xs rounded-full',
                 product.stockQty <= 0
                   ? 'bg-red-100 text-red-800'
-                  : 'bg-green-100 text-green-800'
+                  : 'bg-brand-100 text-brand-800'
               ]">
                 {{ product.stockQty <= 0 ? 'Out of Stock' : 'In Stock' }} </span>
             </td>
             <td class="p-3">
               <div class="flex items-center">
                 <button @click="decreaseQuantity(product)" :disabled="product.quantity <= 1"
-                  class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-l disabled:opacity-50">
+                  class="bg-ink-200 text-ink-900 px-2 py-1 text-xs rounded-l disabled:opacity-50">
                   -
                 </button>
-                <span class="bg-gray-100 px-2 py-1 text-xs">
+                <span class="bg-ink-100 px-2 py-1 text-xs">
                   {{ product.quantity || 1 }}
                 </span>
                 <button @click="increaseQuantity(product)"
-                  class="bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded-r disabled:opacity-50">
+                  class="bg-ink-200 text-ink-900 px-2 py-1 text-xs rounded-r disabled:opacity-50">
                   +
                 </button>
               </div>

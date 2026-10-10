@@ -42,8 +42,20 @@ export interface RegisterParams {
   otp?: string;
 }
 
+// Sign-up with an email address instead of a phone: no phone field exists on the wire.
+export interface RegisterWithEmailParams {
+  companyId?: number | string | null;
+  fname: string;
+  lname: string;
+  email: string;
+  otp: string;
+  password: string;
+}
+
+// Exactly one of `phone` / `email` identifies who is signing in (the API rejects both).
 export interface LoginParams {
-  phone: string;
+  phone?: string;
+  email?: string;
   password: string;
 }
 
@@ -63,6 +75,19 @@ export interface SendResetOtpParams {
 export interface ResetPasswordParams {
   phone: string;
   otp: string;
+  newPassword: string;
+}
+
+export interface VerifyEmailParams {
+  token: string;
+}
+
+export interface RequestEmailResetParams {
+  email: string;
+}
+
+export interface ResetPasswordWithEmailTokenParams {
+  token: string;
   newPassword: string;
 }
 
@@ -124,11 +149,33 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
-   * Log in with phone + password.
+   * Email a sign-up code to an address (the route for people without a Ghana number).
+   * POST /api/auth/customer/email/send-signup-code
+   */
+  sendSignupEmailCode({ email }: { email: string }): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/email/send-signup-code', { email });
+  },
+
+  /**
+   * Register with an email address and the code that was emailed to it. No phone is sent.
+   * POST /api/auth/customer/register
+   */
+  registerWithEmail({ companyId, fname, lname, email, otp, password }: RegisterWithEmailParams): Promise<ApiEnvelope<AuthPayload>> {
+    const body: Record<string, unknown> = { fname, lname, email, otp, password };
+    if (companyId !== undefined && companyId !== null) {
+      body['company_id'] = companyId;
+    }
+    return api.post('/api/auth/customer/register', body);
+  },
+
+  /**
+   * Log in with phone + password, or with a VERIFIED email + password.
+   * Only the identifier that was given is sent.
    * POST /api/auth/customer/login
    */
-  login({ phone, password }: LoginParams): Promise<ApiEnvelope<AuthPayload>> {
-    return api.post('/api/auth/customer/login', { phone, password });
+  login({ phone, email, password }: LoginParams): Promise<ApiEnvelope<AuthPayload>> {
+    const body: Record<string, unknown> = email !== undefined ? { email, password } : { phone, password };
+    return api.post('/api/auth/customer/login', body);
   },
 
   /**
@@ -218,6 +265,58 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
+   * Request a password-reset link by email. The API answers the same way whether or
+   * not the address has an account.
+   * POST /api/auth/customer/forgot-password
+   */
+  requestEmailReset({ email }: RequestEmailResetParams): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/forgot-password', { email });
+  },
+
+  /**
+   * Set a new password using the single-use token from a reset email.
+   * POST /api/auth/customer/email/reset-password (public; the token is the credential)
+   */
+  resetPasswordWithEmailToken({ token, newPassword }: ResetPasswordWithEmailTokenParams): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/email/reset-password', {
+      token,
+      new_password: newPassword,
+    });
+  },
+
+  /**
+   * Redeem the single-use token from a verification email.
+   * POST /api/auth/customer/email/verify (public; the token is the credential)
+   */
+  verifyEmail({ token }: VerifyEmailParams): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/email/verify', { token });
+  },
+
+  /**
+   * Send (or re-send) the verification email for the signed-in customer's address.
+   * POST /api/auth/customer/email/send-verification
+   */
+  sendEmailVerification(): Promise<ApiEnvelope<{ status?: string } | null>> {
+    return api.post('/api/auth/customer/email/send-verification', {});
+  },
+
+  /**
+   * Which channels this customer can be reached on, and what they have switched on.
+   * GET /api/auth/customer/notification-preferences
+   */
+  getNotificationPreferences(): Promise<ApiEnvelope<NotificationPreferences>> {
+    return api.get('/api/auth/customer/notification-preferences');
+  },
+
+  /**
+   * Change some channels; categories not mentioned are left alone.
+   * PUT /api/auth/customer/notification-preferences
+   */
+  updateNotificationPreferences(categories: NotificationPreferenceChanges): Promise<ApiEnvelope<NotificationPreferences>> {
+    return api.put('/api/auth/customer/notification-preferences', { categories });
+  },
+
+  /**
    * Autocomplete address suggestions for the saved-location flow.
    * GET /api/auth/customer/autocomplete-location?q=&limit=
    */
@@ -280,6 +379,24 @@ export interface VerificationOptions {
   available: boolean;
   phone_hint?: string | null;
 }
+
+export type NotificationChannel = 'sms' | 'email';
+export type NotificationCategoryKey = 'security' | 'action_required' | 'outcome' | 'order_progress' | 'marketing';
+export type NotificationCategoryMode = 'locked' | 'minimum_one' | 'optional' | 'opt_in';
+
+export interface NotificationCategory {
+  mode: NotificationCategoryMode;
+  sms: boolean;
+  email: boolean;
+}
+
+export interface NotificationPreferences {
+  channels: Record<NotificationChannel, { reachable: boolean }>;
+  categories: Record<NotificationCategoryKey, NotificationCategory>;
+}
+
+/** Only the channels being changed, per category. */
+export type NotificationPreferenceChanges = Partial<Record<NotificationCategoryKey, Partial<Record<NotificationChannel, boolean>>>>;
 
 export interface ConfirmVerificationOtpParams {
   challengeId: string;

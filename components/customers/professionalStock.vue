@@ -1,73 +1,75 @@
 <template>
-  <div class="w-full pb-12">
-    <!-- Header -->
-    <header class="flex items-center gap-3 border-b border-zinc-200 bg-white px-5 py-4 mb-4">
-      <div class="w-8 h-8 rounded-lg bg-[#4F217A]/10 text-[#4F217A] flex items-center justify-center flex-shrink-0">
-        <BeakerIcon class="w-[18px] h-[18px]" />
-      </div>
+  <div class="w-full pb-24 font-body">
+    <header class="mb-4 flex items-center gap-3 px-4 pt-2">
+      <span class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+        <BeakerIcon class="h-6 w-6" aria-hidden="true" />
+      </span>
       <div>
-        <h1 class="text-lg font-bold text-zinc-900 tracking-tight">Browse Pharmacy Stock</h1>
-        <p class="text-xs text-zinc-500 font-medium mt-0.5">Search a product and add it straight to a request</p>
+        <h1 class="font-display text-2xl font-bold text-ink-900">Browse pharmacy stock</h1>
+        <p class="mt-0.5 text-base text-ink-600">Search a product and add it straight to a request.</p>
       </div>
     </header>
 
     <div class="max-w-2xl px-4">
       <!-- Location nudge -->
-      <div v-if="!hasLocation" class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-        <MapPinIcon class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+      <div v-if="!hasLocation" role="status" class="mb-4 flex items-start gap-3 rounded-3xl bg-amber-50 p-4">
+        <MapPinIcon class="mt-0.5 h-6 w-6 flex-shrink-0 text-amber-800" aria-hidden="true" />
         <div>
-          <p class="text-sm font-semibold text-amber-800">Location required</p>
-          <p class="text-xs text-amber-700 mt-0.5">Set your home address in your Profile to see nearby pharmacy stock.</p>
+          <p class="text-base font-semibold text-amber-800">Location required</p>
+          <p class="mt-0.5 text-sm text-amber-800">Set your home address in your Profile to see nearby pharmacy stock.</p>
         </div>
       </div>
 
       <!-- Search input -->
       <div class="relative mb-5">
-        <MagnifyingGlassIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+        <MagnifyingGlassIcon class="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-ink-500" aria-hidden="true" />
         <input
           v-model="query"
-          type="text"
+          type="search"
+          autocomplete="off"
+          aria-label="Search pharmacy stock"
           placeholder="Search for a medication or product…"
-          class="w-full pl-10 pr-4 py-3 rounded-xl border border-zinc-200 bg-white text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#4F217A]/20 focus:border-[#4F217A]/40"
+          class="min-h-[44px] w-full rounded-full border-0 bg-ink-50 py-3 pl-12 pr-4 text-base text-ink-900 ring-1 ring-inset ring-ink-200 placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-brand-700 disabled:opacity-60"
           :disabled="!hasLocation"
         />
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <ArrowPathIcon class="w-6 h-6 text-zinc-400 animate-spin" />
+      <div v-if="loading" role="status" class="flex items-center justify-center gap-2 py-12 text-base text-ink-600">
+        <ArrowPathIcon class="h-6 w-6 animate-spin text-brand-700" aria-hidden="true" />
+        <span>Searching nearby pharmacies…</span>
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 font-semibold">
+      <div v-else-if="error" role="alert" class="rounded-3xl bg-red-50 px-5 py-4 text-base font-semibold text-red-700">
         {{ error }}
       </div>
 
       <!-- Empty state (after a search with no results) -->
-      <div v-else-if="searched && candidates.length === 0" class="text-center py-12">
-        <p class="text-sm font-semibold text-zinc-500">No matching products found nearby.</p>
-        <p class="text-xs text-zinc-400 mt-1">Try a different name or check back later.</p>
+      <div v-else-if="searched && candidates.length === 0" class="rounded-3xl bg-brand-50 px-6 py-12 text-center">
+        <p class="font-display text-lg font-bold text-ink-900">No matching products found nearby</p>
+        <p class="mt-1 text-base text-ink-600">Try a different name or check back later.</p>
       </div>
 
       <!-- Results -->
-      <div v-else-if="candidates.length > 0" class="space-y-3">
-        <div
+      <ul v-else-if="candidates.length > 0" aria-label="Matching products" class="space-y-3">
+        <li
           v-for="candidate in candidates"
           :key="`${candidate.pharmacy_id}-${candidate.product_name}`"
-          class="bg-white rounded-xl border border-zinc-200 shadow-sm px-5 py-4"
+          class="rounded-3xl bg-white px-5 py-4 shadow-lift"
         >
           <div class="flex items-start justify-between gap-3">
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold text-zinc-900 truncate">{{ candidate.product_name }}</p>
-              <p class="text-xs text-zinc-500 mt-0.5 truncate">
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-base font-semibold text-ink-900">{{ candidate.product_name }}</p>
+              <p class="mt-0.5 truncate text-sm text-ink-600">
                 {{ formatLastSync(candidate) }}
                 <span v-if="candidate.distance_km != null"> · {{ Number(candidate.distance_km).toFixed(1) }} km</span>
               </p>
             </div>
-            <div class="text-right flex-shrink-0">
-              <p class="text-sm font-black text-zinc-900">GHS {{ Number(candidate.unit_price ?? 0).toFixed(2) }}</p>
-              <p class="text-[10px] font-semibold mt-0.5"
-                :class="Number(candidate.available_quantity) > 0 ? 'text-emerald-600' : 'text-red-500'">
+            <div class="flex-shrink-0 text-right">
+              <p class="text-base font-bold tabular-nums text-ink-900">GHS {{ Number(candidate.unit_price ?? 0).toFixed(2) }}</p>
+              <p class="mt-0.5 text-sm font-semibold"
+                :class="Number(candidate.available_quantity) > 0 ? 'text-brand-700' : 'text-red-700'">
                 {{ Number(candidate.available_quantity) > 0 ? `${candidate.available_quantity} in stock` : 'Out of stock' }}
               </p>
             </div>
@@ -76,35 +78,36 @@
             <button
               type="button"
               :disabled="Number(candidate.available_quantity) <= 0 || isSelected(candidate)"
+              :aria-pressed="isSelected(candidate) ? 'true' : 'false'"
+              :aria-label="`Add ${candidate.product_name} to request`"
               @click="addToRequest(candidate)"
-              class="text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              :class="isSelected(candidate)
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                : 'bg-[#4F217A] border-[#4F217A] text-white hover:bg-[#3d1a61]'"
+              class="flex min-h-[44px] items-center gap-1.5 rounded-full px-5 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              :class="isSelected(candidate) ? 'bg-brand-700 text-white' : 'bg-brand-50 text-brand-700 hover:bg-brand-100'"
             >
-              {{ isSelected(candidate) ? 'Added' : 'Add to request' }}
+              <CheckIcon v-if="isSelected(candidate)" class="h-5 w-5" aria-hidden="true" />
+              <span>{{ isSelected(candidate) ? 'Added' : 'Add to request' }}</span>
             </button>
           </div>
-        </div>
-      </div>
+        </li>
+      </ul>
 
       <!-- Prompt to search -->
-      <div v-else-if="hasLocation && !loading && !searched" class="text-center py-12">
-        <BeakerIcon class="w-10 h-10 text-zinc-200 mx-auto mb-3" />
-        <p class="text-sm font-semibold text-zinc-400">Type a medication name to search nearby pharmacies.</p>
+      <div v-else-if="hasLocation && !loading && !searched" class="py-12 text-center">
+        <BeakerIcon class="mx-auto mb-3 h-10 w-10 text-brand-200" aria-hidden="true" />
+        <p class="text-base text-ink-600">Type a medication name to search nearby pharmacies.</p>
       </div>
     </div>
 
     <!-- Selected items bar -->
     <div v-if="selectedItems.length > 0"
-      class="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-5 py-3 flex items-center justify-between gap-4 z-20">
-      <p class="text-sm font-semibold text-zinc-700">
+      class="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-4 bg-white px-5 py-3 shadow-lift">
+      <p class="text-base font-semibold text-ink-900" role="status">
         {{ selectedItems.length }} item{{ selectedItems.length === 1 ? '' : 's' }} selected
       </p>
       <button
         type="button"
         @click="continueToRequest"
-        class="text-sm font-bold px-4 py-2 rounded-xl bg-[#4F217A] text-white hover:bg-[#3d1a61] transition-colors"
+        class="min-h-[44px] rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2"
       >
         Continue to request
       </button>
@@ -122,6 +125,7 @@ import {
   MagnifyingGlassIcon,
   ArrowPathIcon,
   MapPinIcon,
+  CheckIcon,
 } from '@heroicons/vue/24/outline';
 
 const HOMEPAGE_REQUEST_DRAFT_KEY = 'medsgh_homepage_request_draft';

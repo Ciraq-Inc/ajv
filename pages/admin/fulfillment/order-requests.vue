@@ -119,23 +119,15 @@
                   <option value="">Change status…</option>
                   <option value="pending">Pending</option>
                   <option value="composing">Composing</option>
-                  <option value="composed">Composed</option>
                   <option value="sourcing">Sourcing</option>
-                  <option value="enquiry_sent">Enquiry Sent</option>
-                  <option value="partially_available">Partially Available</option>
-                  <option value="confirming_with_pharm">Confirming With Pharm</option>
                   <option value="awaiting_input">Awaiting Input</option>
-                  <option value="awaiting_customer">Awaiting Customer</option>
                   <option value="payment_pending">Payment Pending</option>
-                  <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                  <option value="items_sourced">Items Sourced</option>
                   <option value="paid">Paid</option>
                   <option value="preparing">Preparing</option>
                   <option value="driver_assigned">Driver Assigned</option>
-                  <option value="in_transit">In Transit</option>
                   <option value="out_for_delivery">Out For Delivery</option>
+                  <option value="delivery_failed">Delivery Failed</option>
                   <option value="ready_for_pickup">Ready For Pickup</option>
-                  <option value="picked_up">Picked Up</option>
                   <option value="delivered">Delivered</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
@@ -656,23 +648,15 @@
                               <option value="">Change status...</option>
                               <option value="pending">Pending</option>
                               <option value="composing">Composing</option>
-                              <option value="composed">Composed</option>
                               <option value="sourcing">Sourcing</option>
-                              <option value="enquiry_sent">Enquiry Sent</option>
-                              <option value="partially_available">Partially Available</option>
-                              <option value="confirming_with_pharm">Confirming With Pharm</option>
                               <option value="awaiting_input">Awaiting Input</option>
-                              <option value="awaiting_customer">Awaiting Customer</option>
                               <option value="payment_pending">Payment Pending</option>
-                              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                              <option value="items_sourced">Items Sourced</option>
                               <option value="paid">Paid</option>
                               <option value="preparing">Preparing</option>
                               <option value="driver_assigned">Driver Assigned</option>
-                              <option value="in_transit">In Transit</option>
                               <option value="out_for_delivery">Out For Delivery</option>
+                              <option value="delivery_failed">Delivery Failed</option>
                               <option value="ready_for_pickup">Ready For Pickup</option>
-                              <option value="picked_up">Picked Up</option>
                               <option value="delivered">Delivered</option>
                               <option value="completed">Completed</option>
                               <option value="cancelled">Cancelled</option>
@@ -684,6 +668,31 @@
                         </div>
 
                       <div class="workspace-composer-divider"></div>
+
+                      <!-- Parcel Panel (provider booking step 1) -->
+                      <div class="parcel-panel">
+                        <div class="parcel-panel-head">
+                          <div class="flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></div>
+                            <span class="text-xs font-bold text-gray-700">Parcel for delivery quote</span>
+                            <span v-if="parcelSaved" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Saved</span>
+                          </div>
+                          <span class="text-[10px] text-gray-400">Weigh once, quote everywhere — customer never sees this.</span>
+                        </div>
+                        <div class="parcel-grid">
+                          <label class="parcel-field"><span>Weight (kg)</span><input v-model="parcelForm.weight" type="number" min="0" max="500" step="0.1" placeholder="0.5" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Length (cm)</span><input v-model="parcelForm.length" type="number" min="0" max="300" step="0.5" placeholder="20" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Width (cm)</span><input v-model="parcelForm.width" type="number" min="0" max="300" step="0.5" placeholder="15" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Height (cm)</span><input v-model="parcelForm.height" type="number" min="0" max="300" step="0.5" placeholder="10" class="parcel-input" /></label>
+                          <label class="parcel-field"><span>Value (GHS)</span><input v-model="parcelForm.value" type="number" min="0" max="1000000" step="0.01" placeholder="Items total" class="parcel-input" /></label>
+                          <label class="parcel-check"><input v-model="parcelForm.fragile" type="checkbox" class="w-3.5 h-3.5 rounded accent-amber-600" /><span>Fragile</span></label>
+                          <label class="parcel-check"><input v-model="parcelForm.coldChain" type="checkbox" class="w-3.5 h-3.5 rounded accent-sky-600" /><span>Cold chain</span></label>
+                        </div>
+                        <div class="parcel-actions">
+                          <button type="button" class="text-[10px] bg-[#4F217A] hover:bg-[#4F217A]/85 text-white px-3 py-1.5 rounded-lg font-bold transition-colors disabled:opacity-50" :disabled="parcelSaving || !selectedRequest" @click="saveParcel">{{ parcelSaving ? 'Saving…' : 'Save parcel' }}</button>
+                          <span v-if="parcelError" class="text-[10px] text-red-600 font-semibold">{{ parcelError }}</span>
+                        </div>
+                      </div>
 
                       <!-- Coverage Matrix Panel -->
                       <div class="coverage-matrix-panel">
@@ -1513,6 +1522,11 @@
                   <strong>{{ formatCurrency(paymentModeTotal) }}</strong>
                 </div>
               </div>
+              <div v-if="selectedRequest?.delivery_provider_code || selectedRequest?.parcel_weight_kg" class="provider-readonly-strip">
+                <span v-if="selectedRequest?.delivery_provider_code" class="provider-readonly-chip">Customer picked: {{ selectedRequest.delivery_provider_code }}{{ selectedRequest.delivery_service_level ? ` · ${selectedRequest.delivery_service_level}` : '' }}{{ selectedRequest.delivery_quote_amount ? ` · GHS ${Number(selectedRequest.delivery_quote_amount).toFixed(2)}` : '' }}</span>
+                <span v-else class="provider-readonly-chip provider-readonly-chip--muted">Own-rider delivery (no provider picked)</span>
+                <span v-if="selectedRequest?.parcel_weight_kg" class="provider-readonly-chip provider-readonly-chip--parcel">Parcel: {{ selectedRequest.parcel_weight_kg }} kg{{ selectedRequest.parcel_length_cm ? ` · ${selectedRequest.parcel_length_cm}×${selectedRequest.parcel_width_cm}×${selectedRequest.parcel_height_cm} cm` : '' }}{{ selectedRequest.parcel_value_ghs ? ` · GHS ${Number(selectedRequest.parcel_value_ghs).toFixed(2)}` : '' }}{{ selectedRequest.parcel_fragile ? ' · fragile' : '' }}{{ selectedRequest.parcel_cold_chain ? ' · cold chain' : '' }}</span>
+              </div>
             </section>
 
             <!-- Fulfillment plan -->
@@ -1620,6 +1634,14 @@
                       class="btn btn-sm btn-outline"
                       @click="openForceAssign(d)"
                     >Force Assign Rider</button>
+                    <button
+                      v-if="isDev && d.delivery_status === 'open' && !d.provider_reference"
+                      class="btn btn-sm"
+                      style="background:#4F217A;color:#fff;border:none;"
+                      :disabled="bookingProviderId === d.id"
+                      @click="bookProviderFor(d)"
+                    >{{ bookingProviderId === d.id ? 'Booking…' : 'Book provider (dev)' }}</button>
+                    <span v-if="d.provider_reference" style="font-size:0.72rem;color:#047857;font-weight:700;">Booked: {{ d.provider_reference }}</span>
                   </div>
                 </div>
               </div>
@@ -1662,6 +1684,31 @@
                 <span><strong>Mode:</strong> {{ logisticsAssessment.mode || '—' }}</span>
                 <span v-if="logisticsAssessment.estimated_delivery_minutes"><strong>ETA:</strong> {{ logisticsAssessment.estimated_delivery_minutes }} min</span>
                 <span v-if="logisticsAssessment.notes" class="muted">{{ logisticsAssessment.notes }}</span>
+              </div>
+            </section>
+          </template>
+
+          <!-- delivery_failed mode: the rider could not hand the order over -->
+          <template v-else-if="workspaceMode === 'delivery_failed'">
+            <section class="section-card workspace-main-card" data-testid="delivery-failed-panel">
+              <div class="section-head">
+                <div>
+                  <h4 class="section-title">Delivery Failed</h4>
+                  <p class="workspace-panel-subcopy">The customer has been told we couldn't deliver. Send it out again, or arrange a refund with them.</p>
+                </div>
+                <span class="status-badge cancelled">{{ formatStatus(selectedRequest?.status) }}</span>
+              </div>
+              <div class="delivery-failed-actions">
+                <button class="btn btn-sm btn-primary" :disabled="redelivering || refundingFailed" @click="redeliverRequest">
+                  {{ redelivering ? 'Reopening…' : 'Redeliver' }}
+                </button>
+                <button class="btn btn-sm btn-secondary" :disabled="redelivering || refundingFailed" data-testid="refund-failed-delivery" @click="refundFailedDelivery">
+                  {{ refundingFailed ? 'Refunding…' : 'Refund customer' }}
+                </button>
+                <label class="delivery-failed-returned">
+                  <input v-model="failedGoodsReturned" type="checkbox" data-testid="goods-returned" />
+                  Goods returned to the pharmacy (takes back the pharmacy's credit)
+                </label>
               </div>
             </section>
           </template>
@@ -1724,6 +1771,14 @@
                       class="btn btn-sm btn-outline"
                       @click="openForceAssign(d)"
                     >Force Assign Rider</button>
+                    <button
+                      v-if="isDev && d.delivery_status === 'open' && !d.provider_reference"
+                      class="btn btn-sm"
+                      style="background:#4F217A;color:#fff;border:none;"
+                      :disabled="bookingProviderId === d.id"
+                      @click="bookProviderFor(d)"
+                    >{{ bookingProviderId === d.id ? 'Booking…' : 'Book provider (dev)' }}</button>
+                    <span v-if="d.provider_reference" style="font-size:0.72rem;color:#047857;font-weight:700;">Booked: {{ d.provider_reference }}</span>
                   </div>
                 </div>
               </div>
@@ -2227,13 +2282,10 @@
               <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <select v-model="composedSummaryStatus" class="form-control composed-request-status-select" style="min-width: 200px; background: #fff; border-color: #bfdbfe;">
                   <option value="">Change request status...</option>
-                  <option value="composed">Composed</option>
-                  <option value="confirming_with_pharm">Confirming With Pharm</option>
-                  <option value="confirmed_in_pharm">Confirmed In Pharm</option>
                   <option value="paid">Paid</option>
                   <option value="ready_for_pickup">Ready For Pickup</option>
-                  <option value="picked_up">Picked Up</option>
                   <option value="out_for_delivery">Out For Delivery</option>
+                  <option value="delivery_failed">Delivery Failed</option>
                   <option value="delivered">Delivered</option>
                   <option value="cancelled">Cancelled</option>
                   <option value="returned">Returned</option>
@@ -2608,6 +2660,18 @@ interface RichOrderRequest {
   feedback?: RequestFeedback | null
   admin_notes?: string | null
   sourcing_radius_km?: number | null
+  parcel_weight_kg?: number | string | null
+  parcel_length_cm?: number | string | null
+  parcel_width_cm?: number | string | null
+  parcel_height_cm?: number | string | null
+  parcel_value_ghs?: number | string | null
+  parcel_fragile?: boolean | number | null
+  parcel_cold_chain?: boolean | number | null
+  delivery_provider_code?: string | null
+  delivery_service_level?: string | null
+  delivery_quote_amount?: number | string | null
+  delivery_quote_reference?: string | null
+  delivery_quote_expires_at?: string | null
   [key: string]: unknown
 }
 
@@ -2621,6 +2685,8 @@ interface OrderStats {
 
 interface Delivery {
   id?: number; status?: string; delivery_status?: string
+  provider_id?: number | null; provider_reference?: string | null; provider_status?: string | null
+  quote_reference?: string | null; idempotency_key?: string | null; service_level?: string | null
   pharmacy_name?: string | null; pharmacy_whatsapp_number?: string | null
   pharmacy_domain?: string | null; pickup_pharmacy_id?: number | null
   net_delivery_fee?: number | null; delivery_fee?: number | null
@@ -2709,13 +2775,13 @@ interface FulfillmentPlan {
 
 const PIPELINE_STAGES = [
   { label: 'Pending',         statuses: ['pending'],                                                                                      nextStatus: 'composing',       nextLabel: 'Start Composing'      },
-  { label: 'Composing',       statuses: ['composing', 'composed'],                                                                        nextStatus: 'sourcing',        nextLabel: 'Start Sourcing'       },
-  { label: 'Sourcing',        statuses: ['sourcing', 'confirming_with_pharm', 'processing', 'enquiry_sent'],                              nextStatus: 'awaiting_input',  nextLabel: 'Send to Customer'     },
-  { label: 'Awaiting Input',  statuses: ['awaiting_input', 'awaiting_customer'],                                                          nextStatus: 'payment_pending', nextLabel: 'Mark Payment Pending' },
-  { label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'], nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
-  { label: 'Paid',            statuses: ['paid', 'preparing', 'logistics_pending', 'driver_unavailable'],                                 nextStatus: null,              nextLabel: null                   },
-  { label: 'In Transit',      statuses: ['in_transit', 'driver_assigned', 'out_for_delivery', 'ready_for_pickup', 'ready_to_order'],      nextStatus: null,              nextLabel: null                   },
-  { label: 'Done',            statuses: ['delivered', 'picked_up', 'completed'],                                                          nextStatus: null,              nextLabel: null                   },
+  { label: 'Composing',       statuses: ['composing'],                                                                        nextStatus: 'sourcing',        nextLabel: 'Start Sourcing'       },
+  { label: 'Sourcing',        statuses: ['sourcing'],                              nextStatus: 'awaiting_input',  nextLabel: 'Send to Customer'     },
+  { label: 'Awaiting Input',  statuses: ['awaiting_input'],                                                          nextStatus: 'payment_pending', nextLabel: 'Mark Payment Pending' },
+  { label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection'], nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
+  { label: 'Paid',            statuses: ['paid', 'preparing', 'logistics_pending'],                                 nextStatus: null,              nextLabel: null                   },
+  { label: 'In Transit',      statuses: ['driver_assigned', 'out_for_delivery', 'delivery_failed', 'ready_for_pickup'],      nextStatus: null,              nextLabel: null                   },
+  { label: 'Done',            statuses: ['delivered', 'completed'],                                                          nextStatus: null,              nextLabel: null                   },
 ]
 
 const adminStore = useAdminStore()
@@ -2754,6 +2820,65 @@ const message = ref<{ text: string; type: string } | null>(null)
 const requestDeliveries = ref<Delivery[]>([])
 const loadingDeliveries = ref(false)
 const forceAssignModal = ref<{ delivery: Delivery; driverId: string | number } | null>(null)
+// Parcel form (provider booking step 1): admin captures once in compose.
+const parcelForm = ref<{ weight: string; length: string; width: string; height: string; value: string; fragile: boolean; coldChain: boolean }>({ weight: '', length: '', width: '', height: '', value: '', fragile: false, coldChain: false })
+const parcelSaving = ref(false)
+const parcelSaved = ref(false)
+const parcelError = ref('')
+const hydrateParcelForm = (req: RichOrderRequest | null) => {
+  parcelSaved.value = false
+  parcelError.value = ''
+  if (!req) return
+  const num = (v: unknown): string => (v === null || v === undefined || v === '' ? '' : String(v))
+  parcelForm.value = {
+    weight: num(req.parcel_weight_kg),
+    length: num(req.parcel_length_cm),
+    width: num(req.parcel_width_cm),
+    height: num(req.parcel_height_cm),
+    value: num(req.parcel_value_ghs),
+    fragile: Boolean(req.parcel_fragile),
+    coldChain: Boolean(req.parcel_cold_chain),
+  }
+  if (req.parcel_weight_kg != null || req.parcel_value_ghs != null) parcelSaved.value = true
+}
+const saveParcel = async () => {
+  const req = selectedRequest.value
+  if (!req) return
+  parcelSaving.value = true
+  parcelError.value = ''
+  try {
+    const body: Record<string, unknown> = {}
+    const toNum = (v: string): number | null => {
+      const t = String(v ?? '').trim()
+      if (!t) return null
+      const n = Number(t)
+      return Number.isFinite(n) && n >= 0 ? n : null
+    }
+    const w = toNum(parcelForm.value.weight)
+    const l = toNum(parcelForm.value.length)
+    const wi = toNum(parcelForm.value.width)
+    const h = toNum(parcelForm.value.height)
+    const v = toNum(parcelForm.value.value)
+    if (w !== null) body.parcel_weight_kg = w
+    if (l !== null) body.parcel_length_cm = l
+    if (wi !== null) body.parcel_width_cm = wi
+    if (h !== null) body.parcel_height_cm = h
+    if (v !== null) body.parcel_value_ghs = v
+    body.parcel_fragile = parcelForm.value.fragile
+    body.parcel_cold_chain = parcelForm.value.coldChain
+    await apiCall('PUT', `/api/order-requests/admin/${req.id}/parcel`, body)
+    selectedRequest.value = { ...req, ...body }
+    parcelSaved.value = true
+    showMessage('Parcel saved — quotes will use these measurements', 'success')
+  } catch (e) {
+    parcelError.value = errMsg(e) || 'Could not save parcel'
+  } finally {
+    parcelSaving.value = false
+  }
+}
+// DEV-ONLY provider booking (booking step 5): stripped from prod builds via import.meta.env.DEV.
+const isDev = (import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV === true
+const bookingProviderId = ref<number | null>(null)
 const assignPharmacyModal = ref<{ delivery: Delivery } | null>(null)
 const assigningPharmacy = ref(false)
 
@@ -2928,25 +3053,24 @@ const prescriptionPreview = ref({
 const STATUS_TAB_CONFIG = [
   { value: '', label: 'All', statuses: [] },
   { value: 'pending', label: 'New Requests', statuses: ['pending'] },
-  { value: 'composing', label: 'Composing', statuses: ['composing', 'composed'] },
-  { value: 'sourcing', label: 'Sourcing', statuses: ['sourcing', 'confirming_with_pharm'] },
-  { value: 'awaiting_input', label: 'Awaiting Customer', statuses: ['awaiting_input', 'awaiting_customer'] },
-  { value: 'payment_pending', label: 'Payment Pending', statuses: ['payment_pending', 'confirmed_in_pharm', 'items_sourced', 'confirmed'] },
+  { value: 'composing', label: 'Composing', statuses: ['composing'] },
+  { value: 'sourcing', label: 'Sourcing', statuses: ['sourcing'] },
+  { value: 'awaiting_input', label: 'Awaiting Customer', statuses: ['awaiting_input'] },
+  { value: 'payment_pending', label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection'] },
   { value: 'paid', label: 'Paid', statuses: ['paid'] },
-  { value: 'in_transit', label: 'In Transit', statuses: ['in_transit', 'out_for_delivery', 'driver_assigned'] }
+  { value: 'in_transit', label: 'In Transit', statuses: ['out_for_delivery', 'driver_assigned', 'delivery_failed'] }
 ]
 
 const STATUS_SELECTOR_OPTIONS = [
   { value: 'preparing', label: 'Preparing' },
   { value: 'ready_for_pickup', label: 'Ready For Pickup' },
-  { value: 'picked_up', label: 'Picked Up' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'delivery_failed', label: 'Delivery Failed' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'returned', label: 'Returned' },
   { value: 'expired', label: 'Expired' },
   { value: 'cancelled', label: 'Cancelled' },
-  // Legacy statuses available for manual override
-  { value: 'logistics_pending', label: 'Logistics Pending (legacy)' },
-  { value: 'driver_unavailable', label: 'Driver Unavailable (legacy)' }
+  { value: 'logistics_pending', label: 'Logistics Pending' }
 ]
 
 const normalizeRequestStatus = (value: unknown) => String(value || '').trim().toLowerCase()
@@ -3657,7 +3781,7 @@ const getComposedSummaryGroupStatus = (group: ComposedSummaryGroup | null | unde
   if (!entry) return ''
 
   const status = String(entry?.response_status || entry?.pharmacy_status || entry?.queue_state || '').trim().toLowerCase()
-  if (entry?.is_confirmed === true || ['full', 'confirmed', 'confirmed_in_pharm'].includes(status)) return 'confirmed'
+  if (entry?.is_confirmed === true || ['full', 'confirmed'].includes(status)) return 'confirmed'
   if (status === 'contacted' || status === 'awaiting_response') return 'contacted'
   if (status === 'declined' || status === 'unavailable') return 'declined'
   if (status === 'timeout' || status === 'timed_out') return 'timed_out'
@@ -3742,7 +3866,7 @@ const isComposedSummaryFullyConfirmed = () => {
 const canMarkRequestComposed = computed(() => {
   if (!selectedRequest.value || loading.value) return false
   const currentStatus = normalizeRequestStatus(selectedRequest.value.status)
-  if (!['pending', 'composing', 'sourcing', 'processing', 'composed', 'confirming_with_pharm'].includes(currentStatus)) return false
+  if (!['pending', 'composing', 'sourcing'].includes(currentStatus)) return false
   return hasComposableItems.value && allItemsResolved.value
 })
 
@@ -3768,8 +3892,8 @@ const nextStepAction = computed(() => {
   const ftype = String(selectedRequest.value?.fulfillment_type || '').toLowerCase()
   const isPickup = ftype.includes('pickup')
   if (idx === 1) return { label: 'Start Sourcing', status: 'sourcing', disabled: !canMarkRequestComposed.value }
-  if (idx === 5) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'In Transit', status: 'in_transit' }
-  if (idx === 6) return isPickup ? { label: 'Mark Picked Up', status: 'picked_up' } : { label: 'Mark Delivered', status: 'delivered' }
+  if (idx === 5) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'Out for Delivery', status: 'out_for_delivery' }
+  if (idx === 6) return isPickup ? { label: 'Mark Collected', status: 'completed' } : { label: 'Mark Delivered', status: 'delivered' }
   const stage = PIPELINE_STAGES[idx]
   if (!stage) return null
   return stage.nextStatus ? { label: stage.nextLabel, status: stage.nextStatus } : null
@@ -3782,7 +3906,7 @@ const autoAdvanceSuggestion = computed(() => {
   if (status === 'pending' && items.length > 0 && items.every(i => i.source_pharmacy_id)) {
     return { message: 'All items routed — ready to start composing?', status: 'composing', label: 'Start Composing' }
   }
-  if (['composing', 'sourcing', 'confirming_with_pharm'].includes(status) && canMarkRequestComposed.value) {
+  if (['composing', 'sourcing'].includes(status) && canMarkRequestComposed.value) {
     return { message: 'All items identified — ready to start sourcing?', status: 'sourcing', label: 'Start Sourcing' }
   }
   return null
@@ -3801,7 +3925,7 @@ const canSendSplitFulfillmentDecision = computed(() => {
 })
 
 const buildFallbackPaymentSnapshotFromRequest = (request: RichOrderRequest | null | undefined) => {
-  const paidStatuses = new Set(['paid', 'preparing', 'ready_for_pickup', 'picked_up', 'in_transit', 'driver_assigned', 'out_for_delivery', 'delivered'])
+  const paidStatuses = new Set(['paid', 'preparing', 'ready_for_pickup', 'driver_assigned', 'out_for_delivery', 'delivered', 'completed'])
   const status = String(request?.status || '').toLowerCase()
   if (!paidStatuses.has(status)) return null
 
@@ -3919,13 +4043,14 @@ const workspaceMode = computed(() => {
   const status = normalizeRequestStatus(selectedRequest.value?.status)
   if (!status) return 'compose'
   if (['pending', 'composing'].includes(status)) return 'compose'
-  if (['sourcing', 'confirming_with_pharm', 'processing', 'enquiry_sent', 'partially_available'].includes(status)) return 'source'
-  if (['awaiting_input', 'awaiting_customer'].includes(status)) return 'decision'
-  if (['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'].includes(status)) return 'payment'
+  if (status === 'sourcing') return 'source'
+  if (status === 'awaiting_input') return 'decision'
+  if (['payment_pending', 'awaiting_method_selection'].includes(status)) return 'payment'
   if (['paid', 'preparing'].includes(status)) return 'fulfillment'
-  if (['driver_assigned', 'in_transit', 'out_for_delivery'].includes(status)) return 'transit'
+  if (status === 'delivery_failed') return 'delivery_failed'
+  if (['driver_assigned', 'out_for_delivery'].includes(status)) return 'transit'
   if (['ready_for_pickup'].includes(status)) return 'pickup'
-  if (['delivered', 'picked_up', 'completed'].includes(status)) return 'done'
+  if (['delivered', 'completed'].includes(status)) return 'done'
   if (['cancelled', 'returned', 'expired'].includes(status)) return 'terminal'
   return 'compose'
 })
@@ -4261,6 +4386,7 @@ const viewRequest = async (req: { id: number | string }) => {
     selectedRequest.value = reqData
     selectedStatus.value = reqData.status || ''
     adminNotes.value = (reqData.admin_notes as string | undefined) || ''
+    hydrateParcelForm(reqData as unknown as RichOrderRequest)
     nearbyPharmacies.value = (reqData.nearby_pharmacies || []) as PharmacyQueueEntry[]
     candidatePlans.value = []
     fulfillmentPlans.value = []
@@ -4319,6 +4445,43 @@ const initiateDeliveries = async () => {
     showMessage(errMsg(e) || 'Failed to initiate deliveries', 'error')
   } finally {
     loadingDeliveries.value = false
+  }
+}
+
+const redelivering = ref(false)
+const redeliverRequest = async () => {
+  if (!selectedRequest.value?.id || redelivering.value) return
+  redelivering.value = true
+  try {
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/redeliver`)
+    showMessage('Delivery reopened for a new rider', 'success')
+    await refreshSelectedRequestDetails()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to reopen the delivery', 'error')
+  } finally {
+    redelivering.value = false
+  }
+}
+
+const refundingFailed = ref(false)
+const failedGoodsReturned = ref(false)
+const refundFailedDelivery = async () => {
+  if (!selectedRequest.value?.id || refundingFailed.value) return
+  const returned = failedGoodsReturned.value
+  const question = returned
+    ? 'Refund the customer in full (delivery fee included) and take back the pharmacy credit?'
+    : 'Refund the customer in full (delivery fee included)? The pharmacy keeps its credit and the platform absorbs the cost.'
+  if (!window.confirm(question)) return
+  refundingFailed.value = true
+  try {
+    await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/refund-failed-delivery`, { goods_returned: returned })
+    failedGoodsReturned.value = false
+    showMessage('Customer refunded to their wallet', 'success')
+    await refreshSelectedRequestDetails()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to refund the customer', 'error')
+  } finally {
+    refundingFailed.value = false
   }
 }
 
@@ -4383,6 +4546,20 @@ const openForceAssign = (delivery: Delivery) => {
 
 const closeForceAssign = () => {
   forceAssignModal.value = null
+}
+
+const bookProviderFor = async (delivery: Delivery) => {
+  if (!delivery?.id || bookingProviderId.value) return
+  bookingProviderId.value = delivery.id
+  try {
+    await apiCall('POST', `/api/deliveries/${delivery.id}/book-provider`)
+    showMessage('Provider booking accepted', 'success')
+    fetchRequestDeliveries(selectedRequest.value?.id)
+  } catch (e) {
+    showMessage(errMsg(e) || 'Provider booking failed', 'error')
+  } finally {
+    bookingProviderId.value = null
+  }
 }
 
 const submitForceAssign = async () => {
@@ -4883,15 +5060,7 @@ const canRunFulfillment = (status: string) => {
     'pending',
     'composing',
     'sourcing',
-    'awaiting_input',
-    // Legacy values kept to support older records.
-    'composed',
-    'confirming_with_pharm',
-    'confirmed_in_pharm',
-    'processing',
-    'items_sourced',
-    'awaiting_customer',
-    'confirmed'
+    'awaiting_input'
   ])
   return allowed.has(status)
 }
@@ -5364,6 +5533,7 @@ const loadFulfillment = async (options: { silent?: boolean; refreshLists?: boole
       selectedRequest.value = { ...fullRequest, status: d.status || fullRequest.status }
       selectedStatus.value = selectedRequest.value.status || ''
       adminNotes.value = (selectedRequest.value.admin_notes as string | undefined) || ''
+      hydrateParcelForm(selectedRequest.value)
       nearbyPharmacies.value = d.nearby_pharmacies || []
       candidatePlans.value = d.candidate_plans || []
       fulfillmentPlans.value = d.fulfillment_plans || []
@@ -5444,33 +5614,35 @@ const handlePharmacyContactStatus = async ({ pharmacy, action, note }: { pharmac
   await recordPharmacyContactAction(pharmacy, action ?? '', opts)
 }
 
+// Marking an order paid has to run the real payment: it credits the pharmacies
+// and sends the order out. A bare status change would do neither.
+const confirmPaymentReceived = async () => {
+  if (!selectedRequest.value) return
+  const ok = window.confirm('Confirm that you have received payment for this order? This credits the pharmacies and sends the order out.')
+  if (!ok) {
+    selectedStatus.value = ''
+    return
+  }
+  loading.value = true
+  try {
+    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/confirm-manual-payment`, { method: 'manual' })
+    selectedStatus.value = ''
+    showStatusOverride.value = false
+    showMessage(res?.message || 'Payment confirmed', 'success')
+    await refreshSelectedRequestDetails()
+  } catch (e) {
+    showMessage(errMsg(e) || 'Failed to confirm payment', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
 const updateStatus = async () => {
   if (!selectedRequest.value || !selectedStatus.value) return
+  if (selectedStatus.value === 'paid') return confirmPaymentReceived()
   loading.value = true
   try {
     const newStatus = selectedStatus.value
-
-    if (newStatus === 'confirmed_in_pharm' && Array.isArray(selectedRequest.value.items)) {
-      const quoteCandidates = selectedRequest.value.items.filter((item) => {
-        const normalizedStatus = String(item?.item_status || item?.sourcing_status || '').toLowerCase()
-        if (['not_available', 'unavailable'].includes(normalizedStatus)) return false
-        const quotePrice = Number(item?.edit_price || item?.unit_price || item?.marked_up_price || 0)
-        return Number.isFinite(quotePrice) && quotePrice > 0
-      })
-
-      for (const item of quoteCandidates) {
-        const quotePrice = Number(item.edit_price || item.unit_price || item.marked_up_price || 0)
-        await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-          unit_price: quotePrice,
-          item_status: 'available'
-        })
-        item.unit_price = quotePrice
-        item.marked_up_price = quotePrice
-        item.line_total = Number((quotePrice * Number(item.quantity || 0)).toFixed(2))
-        item.item_status = 'available'
-        item.sourcing_status = 'allocated'
-      }
-    }
 
     const statusRes = await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/status`, {
       status: newStatus,
@@ -5482,7 +5654,7 @@ const updateStatus = async () => {
     showStatusOverride.value = false
 
     // Only load fulfillment context when explicitly entering the sourcing phase.
-    if (['composing', 'sourcing', 'confirming_with_pharm', 'processing'].includes(newStatus) && canRunFulfillment(newStatus)) {
+    if (['composing', 'sourcing'].includes(newStatus) && canRunFulfillment(newStatus)) {
       const procRes = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
       nearbyPharmacies.value = ((procRes.data as { nearby_pharmacies?: PharmacyQueueEntry[] })?.nearby_pharmacies) || []
     }
@@ -5491,7 +5663,7 @@ const updateStatus = async () => {
     await fetchStats()
     showMessage(statusRes?.message || 'Status updated and fulfillment data refreshed', 'success')
 
-    if (['payment_pending', 'confirmed_in_pharm'].includes(newStatus)) {
+    if (newStatus === 'payment_pending') {
       selectedRequest.value = null
       selectedStatus.value = ''
       adminNotes.value = ''
@@ -6009,6 +6181,7 @@ const saveAdminNewItem = async () => {
     selectedRequest.value = detailData
     selectedStatus.value = detailData.status || ''
     adminNotes.value = (detailData.admin_notes as string | undefined) || ''
+    hydrateParcelForm(selectedRequest.value)
     hydrateItemUiState(selectedRequest.value?.items || [])
     nearbyPharmacies.value = []
     candidatePlans.value = []
@@ -6310,6 +6483,7 @@ const refreshSelectedRequestState = async () => {
   const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
   selectedRequest.value = detailRes.data as RichOrderRequest
   adminNotes.value = (selectedRequest.value?.admin_notes as string | undefined) || ''
+  hydrateParcelForm(selectedRequest.value)
   hydrateItemUiState(selectedRequest.value?.items || [])
   nearbyPharmacies.value = []
   candidatePlans.value = []
@@ -6745,4 +6919,94 @@ definePageMeta({
 
 <style scoped>
 @import '~/assets/css/order-requests.css';
+.delivery-failed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+.delivery-failed-returned {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  flex-basis: 100%;
+}
+.provider-readonly-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.provider-readonly-chip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+}
+.provider-readonly-chip--muted {
+  background: #f4f4f5;
+  color: #71717a;
+}
+.provider-readonly-chip--parcel {
+  background: #fffbeb;
+  color: #92400e;
+}
+.parcel-panel {
+  margin: 0 1rem 1rem;
+  padding: 1rem;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  background: #fffbeb;
+}
+.parcel-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.parcel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.parcel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #57534e;
+}
+.parcel-input {
+  height: 2rem;
+  padding: 0 0.6rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+.parcel-input:focus {
+  outline: none;
+  border-color: #4F217A;
+  box-shadow: 0 0 0 3px rgba(79,33,122,0.08);
+}
+.parcel-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #44403c;
+}
+.parcel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
 </style>
