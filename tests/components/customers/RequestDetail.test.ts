@@ -365,6 +365,38 @@ describe('Request detail: feedback', () => {
     expect(submit.className).toContain('min-h-[44px]')
   })
 
+  it('fills the chosen star and every star before it, and leaves the rest as outlines', async () => {
+    await open(DELIVERED)
+    const group = part('[data-testid="feedback-card"] [role="radiogroup"][aria-label="Product quality rating"]')!
+    const stars = Array.from(group.querySelectorAll<HTMLElement>('[role="radio"]'))
+    const filled = () => stars.map(s => s.querySelector('svg')!.getAttribute('fill') === 'currentColor')
+
+    expect(filled()).toEqual([false, false, false, false, false])
+
+    stars[2].click()
+    await flushPromises()
+
+    expect(filled()).toEqual([true, true, true, false, false])
+  })
+
+  it('sends stars alone, with no note, and closes with a thank-you', async () => {
+    await open(DELIVERED)
+    const card = part('[data-testid="feedback-card"]')!
+    for (const label of ['Product quality', 'Delivery quality', 'Overall']) {
+      card.querySelector<HTMLElement>(`[role="radiogroup"][aria-label="${label} rating"] [role="radio"][aria-label="4 stars"]`)!.click()
+    }
+    await flushPromises()
+    Array.from(card.querySelectorAll('button')).find(b => b.textContent!.includes('Submit Feedback'))!.click()
+    await flushPromises()
+
+    const post = api.request.mock.calls.find(([url, o]) => url === '/api/order-requests/customer/7/feedback' && o?.method === 'POST')
+    expect(post).toBeDefined()
+    const body = typeof post![1].body === 'string' ? JSON.parse(post![1].body) : post![1].body
+    expect(body.rating).toBe(4)
+    expect(body.notes).toBe('')
+    expect(body.comment).toBe('')
+  })
+
   it('labels the notes box', async () => {
     await open(DELIVERED)
     const notes = part('[data-testid="feedback-card"] textarea')!

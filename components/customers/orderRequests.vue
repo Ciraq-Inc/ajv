@@ -564,7 +564,8 @@
                                     :aria-label="`${star} star${star > 1 ? 's' : ''}`"
                                     class="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
                                     @click="feedbackForm[cat.key] = star">
-                                    <StarIcon class="h-7 w-7" :class="star <= feedbackForm[cat.key] ? 'text-brand-700' : 'text-ink-200'" aria-hidden="true" />
+                                    <StarIconSolid v-if="star <= feedbackForm[cat.key]" class="h-7 w-7 text-brand-700" aria-hidden="true" />
+                                    <StarIcon v-else class="h-7 w-7 text-ink-200" aria-hidden="true" />
                                 </button>
                             </div>
                         </div>
@@ -1185,7 +1186,7 @@ import {
     ClockIcon, WalletIcon, InboxIcon, BeakerIcon, ChatBubbleLeftEllipsisIcon,
     BuildingStorefrontIcon, PhoneIcon, PencilIcon,
 } from '@heroicons/vue/24/outline'
-import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
+import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 import { useModalA11y } from '~/composables/useModalA11y'
 
@@ -2679,7 +2680,7 @@ const submitFeedback = async (): Promise<void> => {
             rating_delivery: type === 'delivery' ? (f.rating_delivery || null) : undefined,
             rating_service: type === 'pickup' ? (f.rating_service || null) : undefined,
             rating_overall: type === 'delivery' ? (overallRating || null) : undefined,
-            notes: f.notes?.trim() || null
+            notes: f.notes?.trim() ?? ''
         }
         const res = await apiCall('POST', `/api/order-requests/customer/${String(selectedRequest.value.id)}/feedback`, body)
 
