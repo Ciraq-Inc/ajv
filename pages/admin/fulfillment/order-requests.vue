@@ -119,24 +119,15 @@
                   <option value="">Change status…</option>
                   <option value="pending">Pending</option>
                   <option value="composing">Composing</option>
-                  <option value="composed">Composed</option>
                   <option value="sourcing">Sourcing</option>
-                  <option value="enquiry_sent">Enquiry Sent</option>
-                  <option value="partially_available">Partially Available</option>
-                  <option value="confirming_with_pharm">Confirming With Pharm</option>
                   <option value="awaiting_input">Awaiting Input</option>
-                  <option value="awaiting_customer">Awaiting Customer</option>
                   <option value="payment_pending">Payment Pending</option>
-                  <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                  <option value="items_sourced">Items Sourced</option>
                   <option value="paid">Paid</option>
                   <option value="preparing">Preparing</option>
                   <option value="driver_assigned">Driver Assigned</option>
-                  <option value="in_transit">In Transit</option>
                   <option value="out_for_delivery">Out For Delivery</option>
                   <option value="delivery_failed">Delivery Failed</option>
                   <option value="ready_for_pickup">Ready For Pickup</option>
-                  <option value="picked_up">Picked Up</option>
                   <option value="delivered">Delivered</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
@@ -657,24 +648,15 @@
                               <option value="">Change status...</option>
                               <option value="pending">Pending</option>
                               <option value="composing">Composing</option>
-                              <option value="composed">Composed</option>
                               <option value="sourcing">Sourcing</option>
-                              <option value="enquiry_sent">Enquiry Sent</option>
-                              <option value="partially_available">Partially Available</option>
-                              <option value="confirming_with_pharm">Confirming With Pharm</option>
                               <option value="awaiting_input">Awaiting Input</option>
-                              <option value="awaiting_customer">Awaiting Customer</option>
                               <option value="payment_pending">Payment Pending</option>
-                              <option value="confirmed_in_pharm">Confirmed In Pharm</option>
-                              <option value="items_sourced">Items Sourced</option>
                               <option value="paid">Paid</option>
                               <option value="preparing">Preparing</option>
                               <option value="driver_assigned">Driver Assigned</option>
-                              <option value="in_transit">In Transit</option>
                               <option value="out_for_delivery">Out For Delivery</option>
                               <option value="delivery_failed">Delivery Failed</option>
                               <option value="ready_for_pickup">Ready For Pickup</option>
-                              <option value="picked_up">Picked Up</option>
                               <option value="delivered">Delivered</option>
                               <option value="completed">Completed</option>
                               <option value="cancelled">Cancelled</option>
@@ -2300,12 +2282,8 @@
               <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <select v-model="composedSummaryStatus" class="form-control composed-request-status-select" style="min-width: 200px; background: #fff; border-color: #bfdbfe;">
                   <option value="">Change request status...</option>
-                  <option value="composed">Composed</option>
-                  <option value="confirming_with_pharm">Confirming With Pharm</option>
-                  <option value="confirmed_in_pharm">Confirmed In Pharm</option>
                   <option value="paid">Paid</option>
                   <option value="ready_for_pickup">Ready For Pickup</option>
-                  <option value="picked_up">Picked Up</option>
                   <option value="out_for_delivery">Out For Delivery</option>
                   <option value="delivery_failed">Delivery Failed</option>
                   <option value="delivered">Delivered</option>
@@ -2797,13 +2775,13 @@ interface FulfillmentPlan {
 
 const PIPELINE_STAGES = [
   { label: 'Pending',         statuses: ['pending'],                                                                                      nextStatus: 'composing',       nextLabel: 'Start Composing'      },
-  { label: 'Composing',       statuses: ['composing', 'composed'],                                                                        nextStatus: 'sourcing',        nextLabel: 'Start Sourcing'       },
-  { label: 'Sourcing',        statuses: ['sourcing', 'confirming_with_pharm', 'processing', 'enquiry_sent'],                              nextStatus: 'awaiting_input',  nextLabel: 'Send to Customer'     },
-  { label: 'Awaiting Input',  statuses: ['awaiting_input', 'awaiting_customer'],                                                          nextStatus: 'payment_pending', nextLabel: 'Mark Payment Pending' },
-  { label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'], nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
-  { label: 'Paid',            statuses: ['paid', 'preparing', 'logistics_pending', 'driver_unavailable'],                                 nextStatus: null,              nextLabel: null                   },
-  { label: 'In Transit',      statuses: ['in_transit', 'driver_assigned', 'out_for_delivery', 'delivery_failed', 'ready_for_pickup', 'ready_to_order'],      nextStatus: null,              nextLabel: null                   },
-  { label: 'Done',            statuses: ['delivered', 'picked_up', 'completed'],                                                          nextStatus: null,              nextLabel: null                   },
+  { label: 'Composing',       statuses: ['composing'],                                                                        nextStatus: 'sourcing',        nextLabel: 'Start Sourcing'       },
+  { label: 'Sourcing',        statuses: ['sourcing'],                              nextStatus: 'awaiting_input',  nextLabel: 'Send to Customer'     },
+  { label: 'Awaiting Input',  statuses: ['awaiting_input'],                                                          nextStatus: 'payment_pending', nextLabel: 'Mark Payment Pending' },
+  { label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection'], nextStatus: 'paid',            nextLabel: 'Mark as Paid'         },
+  { label: 'Paid',            statuses: ['paid', 'preparing', 'logistics_pending'],                                 nextStatus: null,              nextLabel: null                   },
+  { label: 'In Transit',      statuses: ['driver_assigned', 'out_for_delivery', 'delivery_failed', 'ready_for_pickup'],      nextStatus: null,              nextLabel: null                   },
+  { label: 'Done',            statuses: ['delivered', 'completed'],                                                          nextStatus: null,              nextLabel: null                   },
 ]
 
 const adminStore = useAdminStore()
@@ -3075,26 +3053,24 @@ const prescriptionPreview = ref({
 const STATUS_TAB_CONFIG = [
   { value: '', label: 'All', statuses: [] },
   { value: 'pending', label: 'New Requests', statuses: ['pending'] },
-  { value: 'composing', label: 'Composing', statuses: ['composing', 'composed'] },
-  { value: 'sourcing', label: 'Sourcing', statuses: ['sourcing', 'confirming_with_pharm'] },
-  { value: 'awaiting_input', label: 'Awaiting Customer', statuses: ['awaiting_input', 'awaiting_customer'] },
-  { value: 'payment_pending', label: 'Payment Pending', statuses: ['payment_pending', 'confirmed_in_pharm', 'items_sourced', 'confirmed'] },
+  { value: 'composing', label: 'Composing', statuses: ['composing'] },
+  { value: 'sourcing', label: 'Sourcing', statuses: ['sourcing'] },
+  { value: 'awaiting_input', label: 'Awaiting Customer', statuses: ['awaiting_input'] },
+  { value: 'payment_pending', label: 'Payment Pending', statuses: ['payment_pending', 'awaiting_method_selection'] },
   { value: 'paid', label: 'Paid', statuses: ['paid'] },
-  { value: 'in_transit', label: 'In Transit', statuses: ['in_transit', 'out_for_delivery', 'driver_assigned', 'delivery_failed'] }
+  { value: 'in_transit', label: 'In Transit', statuses: ['out_for_delivery', 'driver_assigned', 'delivery_failed'] }
 ]
 
 const STATUS_SELECTOR_OPTIONS = [
   { value: 'preparing', label: 'Preparing' },
   { value: 'ready_for_pickup', label: 'Ready For Pickup' },
-  { value: 'picked_up', label: 'Picked Up' },
+  { value: 'completed', label: 'Completed' },
   { value: 'delivery_failed', label: 'Delivery Failed' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'returned', label: 'Returned' },
   { value: 'expired', label: 'Expired' },
   { value: 'cancelled', label: 'Cancelled' },
-  // Legacy statuses available for manual override
-  { value: 'logistics_pending', label: 'Logistics Pending (legacy)' },
-  { value: 'driver_unavailable', label: 'Driver Unavailable (legacy)' }
+  { value: 'logistics_pending', label: 'Logistics Pending' }
 ]
 
 const normalizeRequestStatus = (value: unknown) => String(value || '').trim().toLowerCase()
@@ -3805,7 +3781,7 @@ const getComposedSummaryGroupStatus = (group: ComposedSummaryGroup | null | unde
   if (!entry) return ''
 
   const status = String(entry?.response_status || entry?.pharmacy_status || entry?.queue_state || '').trim().toLowerCase()
-  if (entry?.is_confirmed === true || ['full', 'confirmed', 'confirmed_in_pharm'].includes(status)) return 'confirmed'
+  if (entry?.is_confirmed === true || ['full', 'confirmed'].includes(status)) return 'confirmed'
   if (status === 'contacted' || status === 'awaiting_response') return 'contacted'
   if (status === 'declined' || status === 'unavailable') return 'declined'
   if (status === 'timeout' || status === 'timed_out') return 'timed_out'
@@ -3890,7 +3866,7 @@ const isComposedSummaryFullyConfirmed = () => {
 const canMarkRequestComposed = computed(() => {
   if (!selectedRequest.value || loading.value) return false
   const currentStatus = normalizeRequestStatus(selectedRequest.value.status)
-  if (!['pending', 'composing', 'sourcing', 'processing', 'composed', 'confirming_with_pharm'].includes(currentStatus)) return false
+  if (!['pending', 'composing', 'sourcing'].includes(currentStatus)) return false
   return hasComposableItems.value && allItemsResolved.value
 })
 
@@ -3916,8 +3892,8 @@ const nextStepAction = computed(() => {
   const ftype = String(selectedRequest.value?.fulfillment_type || '').toLowerCase()
   const isPickup = ftype.includes('pickup')
   if (idx === 1) return { label: 'Start Sourcing', status: 'sourcing', disabled: !canMarkRequestComposed.value }
-  if (idx === 5) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'In Transit', status: 'in_transit' }
-  if (idx === 6) return isPickup ? { label: 'Mark Picked Up', status: 'picked_up' } : { label: 'Mark Delivered', status: 'delivered' }
+  if (idx === 5) return isPickup ? { label: 'Ready for Pickup', status: 'ready_for_pickup' } : { label: 'Out for Delivery', status: 'out_for_delivery' }
+  if (idx === 6) return isPickup ? { label: 'Mark Collected', status: 'completed' } : { label: 'Mark Delivered', status: 'delivered' }
   const stage = PIPELINE_STAGES[idx]
   if (!stage) return null
   return stage.nextStatus ? { label: stage.nextLabel, status: stage.nextStatus } : null
@@ -3930,7 +3906,7 @@ const autoAdvanceSuggestion = computed(() => {
   if (status === 'pending' && items.length > 0 && items.every(i => i.source_pharmacy_id)) {
     return { message: 'All items routed — ready to start composing?', status: 'composing', label: 'Start Composing' }
   }
-  if (['composing', 'sourcing', 'confirming_with_pharm'].includes(status) && canMarkRequestComposed.value) {
+  if (['composing', 'sourcing'].includes(status) && canMarkRequestComposed.value) {
     return { message: 'All items identified — ready to start sourcing?', status: 'sourcing', label: 'Start Sourcing' }
   }
   return null
@@ -3949,7 +3925,7 @@ const canSendSplitFulfillmentDecision = computed(() => {
 })
 
 const buildFallbackPaymentSnapshotFromRequest = (request: RichOrderRequest | null | undefined) => {
-  const paidStatuses = new Set(['paid', 'preparing', 'ready_for_pickup', 'picked_up', 'in_transit', 'driver_assigned', 'out_for_delivery', 'delivered'])
+  const paidStatuses = new Set(['paid', 'preparing', 'ready_for_pickup', 'driver_assigned', 'out_for_delivery', 'delivered', 'completed'])
   const status = String(request?.status || '').toLowerCase()
   if (!paidStatuses.has(status)) return null
 
@@ -4067,14 +4043,14 @@ const workspaceMode = computed(() => {
   const status = normalizeRequestStatus(selectedRequest.value?.status)
   if (!status) return 'compose'
   if (['pending', 'composing'].includes(status)) return 'compose'
-  if (['sourcing', 'confirming_with_pharm', 'processing', 'enquiry_sent', 'partially_available'].includes(status)) return 'source'
-  if (['awaiting_input', 'awaiting_customer'].includes(status)) return 'decision'
-  if (['payment_pending', 'awaiting_method_selection', 'confirmed_in_pharm', 'ordered', 'confirmed', 'items_sourced'].includes(status)) return 'payment'
+  if (status === 'sourcing') return 'source'
+  if (status === 'awaiting_input') return 'decision'
+  if (['payment_pending', 'awaiting_method_selection'].includes(status)) return 'payment'
   if (['paid', 'preparing'].includes(status)) return 'fulfillment'
   if (status === 'delivery_failed') return 'delivery_failed'
-  if (['driver_assigned', 'in_transit', 'out_for_delivery'].includes(status)) return 'transit'
+  if (['driver_assigned', 'out_for_delivery'].includes(status)) return 'transit'
   if (['ready_for_pickup'].includes(status)) return 'pickup'
-  if (['delivered', 'picked_up', 'completed'].includes(status)) return 'done'
+  if (['delivered', 'completed'].includes(status)) return 'done'
   if (['cancelled', 'returned', 'expired'].includes(status)) return 'terminal'
   return 'compose'
 })
@@ -5084,15 +5060,7 @@ const canRunFulfillment = (status: string) => {
     'pending',
     'composing',
     'sourcing',
-    'awaiting_input',
-    // Legacy values kept to support older records.
-    'composed',
-    'confirming_with_pharm',
-    'confirmed_in_pharm',
-    'processing',
-    'items_sourced',
-    'awaiting_customer',
-    'confirmed'
+    'awaiting_input'
   ])
   return allowed.has(status)
 }
@@ -5676,28 +5644,6 @@ const updateStatus = async () => {
   try {
     const newStatus = selectedStatus.value
 
-    if (newStatus === 'confirmed_in_pharm' && Array.isArray(selectedRequest.value.items)) {
-      const quoteCandidates = selectedRequest.value.items.filter((item) => {
-        const normalizedStatus = String(item?.item_status || item?.sourcing_status || '').toLowerCase()
-        if (['not_available', 'unavailable'].includes(normalizedStatus)) return false
-        const quotePrice = Number(item?.edit_price || item?.unit_price || item?.marked_up_price || 0)
-        return Number.isFinite(quotePrice) && quotePrice > 0
-      })
-
-      for (const item of quoteCandidates) {
-        const quotePrice = Number(item.edit_price || item.unit_price || item.marked_up_price || 0)
-        await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-          unit_price: quotePrice,
-          item_status: 'available'
-        })
-        item.unit_price = quotePrice
-        item.marked_up_price = quotePrice
-        item.line_total = Number((quotePrice * Number(item.quantity || 0)).toFixed(2))
-        item.item_status = 'available'
-        item.sourcing_status = 'allocated'
-      }
-    }
-
     const statusRes = await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/status`, {
       status: newStatus,
       admin_notes: adminNotes.value,
@@ -5708,7 +5654,7 @@ const updateStatus = async () => {
     showStatusOverride.value = false
 
     // Only load fulfillment context when explicitly entering the sourcing phase.
-    if (['composing', 'sourcing', 'confirming_with_pharm', 'processing'].includes(newStatus) && canRunFulfillment(newStatus)) {
+    if (['composing', 'sourcing'].includes(newStatus) && canRunFulfillment(newStatus)) {
       const procRes = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/process`)
       nearbyPharmacies.value = ((procRes.data as { nearby_pharmacies?: PharmacyQueueEntry[] })?.nearby_pharmacies) || []
     }
@@ -5717,7 +5663,7 @@ const updateStatus = async () => {
     await fetchStats()
     showMessage(statusRes?.message || 'Status updated and fulfillment data refreshed', 'success')
 
-    if (['payment_pending', 'confirmed_in_pharm'].includes(newStatus)) {
+    if (newStatus === 'payment_pending') {
       selectedRequest.value = null
       selectedStatus.value = ''
       adminNotes.value = ''
