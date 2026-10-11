@@ -839,29 +839,32 @@
 
                         <!-- Pay -->
                         <div class="space-y-3">
-                            <button type="button" @click="payForRequest(selectedRequest.id, 'wallet')"
-                                :disabled="payingRequest || !!walletBlockReason"
-                                :aria-describedby="walletBlockReason ? 'request-pay-reason' : undefined"
-                                class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                :class="walletShort ? 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50' : 'bg-brand-700 text-white hover:bg-brand-600'">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="h-5 w-5 animate-spin" aria-hidden="true" />
-                                {{ payingRequest && payingMethod === 'wallet'
-                                    ? 'Paying…'
-                                    : selectedMethodTotal != null ? `Pay with wallet · GHS ${selectedMethodTotal.toFixed(2)}` : 'Pay with wallet' }}
-                            </button>
-                            <button type="button" @click="payForRequest(selectedRequest.id, 'paystack')"
-                                :disabled="payingRequest || payNeedsChoice"
-                                :aria-describedby="payNeedsChoice ? 'request-pay-reason' : undefined"
-                                class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                :class="walletShort ? 'bg-brand-700 text-white hover:bg-brand-600' : 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50'">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="h-5 w-5 animate-spin" aria-hidden="true" />
-                                {{ payingRequest && payingMethod === 'paystack'
-                                    ? 'Opening Paystack…'
-                                    : paystackChargeTotal != null ? `Pay with card or mobile money · GHS ${paystackChargeTotal.toFixed(2)}` : 'Pay with card or mobile money' }}
-                            </button>
-                            <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-center text-sm text-ink-600">
-                                Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
-                            </p>
+                            <!-- The option that will work comes first, in reading and tab order too -->
+                            <template v-for="method in payMethodOrder" :key="method">
+                                <button v-if="method === 'wallet'" type="button" @click="payForRequest(selectedRequest.id, 'wallet')"
+                                    :disabled="payingRequest || !!walletBlockReason"
+                                    :aria-describedby="walletBlockReason ? 'request-pay-reason' : undefined"
+                                    class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    :class="walletShort ? 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50' : 'bg-brand-700 text-white hover:bg-brand-600'">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                    {{ payingRequest && payingMethod === 'wallet'
+                                        ? 'Paying…'
+                                        : selectedMethodTotal != null ? `Pay with wallet · GHS ${selectedMethodTotal.toFixed(2)}` : 'Pay with wallet' }}
+                                </button>
+                                <button v-else type="button" @click="payForRequest(selectedRequest.id, 'paystack')"
+                                    :disabled="payingRequest || payNeedsChoice"
+                                    :aria-describedby="payNeedsChoice ? 'request-pay-reason' : undefined"
+                                    class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    :class="walletShort ? 'bg-brand-700 text-white hover:bg-brand-600' : 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50'">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                    {{ payingRequest && payingMethod === 'paystack'
+                                        ? 'Opening Paystack…'
+                                        : paystackChargeTotal != null ? `Pay with card or mobile money · GHS ${paystackChargeTotal.toFixed(2)}` : 'Pay with card or mobile money' }}
+                                </button>
+                                <p v-if="method === 'paystack' && paystackChargeTotal != null && selectedMethodTotal != null" class="text-center text-sm text-ink-600">
+                                    Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
+                                </p>
+                            </template>
                             <p v-if="walletBlockReason" id="request-pay-reason" class="text-center text-sm text-ink-600">{{ walletBlockReason }}</p>
                             <button v-if="walletShort && !payNeedsChoice && paymentShortfall.requestId !== selectedRequest.id" type="button" @click="openWalletTab"
                                 class="mx-auto flex min-h-[44px] items-center rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
@@ -3154,6 +3157,7 @@ const paystackChargeTotal = computed<number | null>(() => {
 
 const payNeedsChoice = computed<boolean>(() => !!selectedRequest.value && !canPayWithSelection(selectedRequest.value))
 const walletShort = computed<boolean>(() => !payNeedsChoice.value && selectedMethodTotal.value != null && walletBalance.value < selectedMethodTotal.value)
+const payMethodOrder = computed<Array<'wallet' | 'paystack'>>(() => walletShort.value ? ['paystack', 'wallet'] : ['wallet', 'paystack'])
 const walletBlockReason = computed<string>(() => {
     if (payNeedsChoice.value) {
         return deliveryContactNeeded(selectedRequest.value) && !deliveryContactResult(selectedRequest.value).ok

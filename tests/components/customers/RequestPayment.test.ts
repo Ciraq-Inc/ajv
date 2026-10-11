@@ -495,6 +495,18 @@ describe('Request payment: paying', () => {
     expect(btn('Pay with card or mobile money')!.className).toContain('bg-brand-700')
   })
 
+  it('puts the button that works first, for sighted and keyboard users alike', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' }, balance: 100 })
+    const order = () => Array.from(payment().querySelectorAll('button')).map(b => b.textContent).filter(t => /^\s*Pay with/.test(t ?? ''))
+    expect(order()[0]).toContain('Pay with wallet')
+
+    wrapper!.unmount()
+    document.body.innerHTML = ''
+    await open({ detail: { fulfillment_type: 'delivery' }, balance: 10 })
+    expect(order()[0]).toContain('Pay with card or mobile money')
+    expect(order()[1]).toContain('Pay with wallet')
+  })
+
   it('shows the card fee in plain words', async () => {
     await open({ detail: { fulfillment_type: 'delivery' } })
 
