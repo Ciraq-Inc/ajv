@@ -31,6 +31,11 @@ beforeEach(() => {
 })
 
 describe('HomeQuickRequest', () => {
+  it('keeps small text readable: nothing in the form is text-xs or faint ink', () => {
+    const wrapper = mountCard()
+    expect(wrapper.html()).not.toMatch(/(?<![\w:-])(text-xs|text-ink-300|text-ink-400)(?![\w-])/)
+  })
+
   it('keeps the submit button disabled until there is a medication and a phone number', async () => {
     const wrapper = mountCard()
     const submit = wrapper.find('button[type="submit"]')
@@ -43,10 +48,10 @@ describe('HomeQuickRequest', () => {
     expect(submit.attributes('disabled')).toBeUndefined()
   })
 
-  it('splits the freeform list on commas and newlines and sends each as quantity 1', async () => {
+  it('splits the freeform list on new lines and sends each as quantity 1', async () => {
     service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
     const wrapper = mountCard()
-    await fill(wrapper, 'Paracetamol 500mg, Amoxicillin capsules\n  Vitamin C ,, ', '  0244123456 ')
+    await fill(wrapper, 'Paracetamol 500mg\n\n  Vitamin C  \n', '  0244123456 ')
 
     await wrapper.find('form').trigger('submit')
     await flushPromises()
@@ -56,13 +61,33 @@ describe('HomeQuickRequest', () => {
       phone: '0244123456',
       items: [
         { product_name: 'Paracetamol 500mg', quantity: 1 },
-        { product_name: 'Amoxicillin capsules', quantity: 1 },
         { product_name: 'Vitamin C', quantity: 1 },
       ],
       customer_address: undefined,
       customer_latitude: undefined,
       customer_longitude: undefined,
     })
+  })
+
+  it('keeps a comma inside one line as one medicine', async () => {
+    service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+    const wrapper = mountCard()
+    await fill(wrapper, 'Amoxicillin 500mg, capsules', '0244123456')
+
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(service.submitAsGuest.mock.calls[0][0].items).toEqual([
+      { product_name: 'Amoxicillin 500mg, capsules', quantity: 1 },
+    ])
+  })
+
+  it('tells the visitor to put each medicine on its own line', () => {
+    const wrapper = mountCard()
+    const box = wrapper.find('#hero-medications')
+    const hint = wrapper.find(`#${box.attributes('aria-describedby')}`)
+
+    expect(hint.text()).toBe('Put each medicine on its own line.')
   })
 
   it('confirms the request and tells a new customer to set up their account', async () => {
@@ -72,10 +97,13 @@ describe('HomeQuickRequest', () => {
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Request sent!')
+    expect(wrapper.text()).toContain('Request sent')
+    expect(wrapper.text()).not.toContain('Request sent!')
+    expect(wrapper.text()).not.toContain('→')
     expect(wrapper.text()).toContain('0244123456')
     expect(wrapper.text()).toContain('with a link to set up your account.')
     expect(wrapper.text()).toContain('Create your account')
+    expect(wrapper.text()).not.toContain('Your account is ready')
   })
 
   it('tells a returning customer their order details are on the way', async () => {
@@ -97,7 +125,7 @@ describe('HomeQuickRequest', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Phone number is invalid')
-    expect(wrapper.text()).not.toContain('Request sent!')
+    expect(wrapper.text()).not.toContain('Request sent')
     expect(wrapper.find('#hero-phone').exists()).toBe(true)
   })
 
@@ -150,6 +178,16 @@ describe('HomeQuickRequest', () => {
       expect(dec.attributes('disabled')).toBeDefined()
     })
 
+    it('keeps every control on the item row a 44px touch target', () => {
+      const wrapper = mountCard({ draftItems: draft })
+
+      for (const label of ['Decrease quantity', 'Increase quantity', 'Remove item']) {
+        const classes = wrapper.find(`button[aria-label="${label}"]`).classes()
+        expect(classes, label).toContain('h-11')
+        expect(classes, label).toContain('w-11')
+      }
+    })
+
     it('sends the draft items (with the clearance flag) and clears the saved draft on success', async () => {
       service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
       sessionStorage.setItem(DRAFT_KEY, '{"items":[]}')
@@ -185,6 +223,53 @@ describe('HomeQuickRequest', () => {
   })
 
   describe('delivery location', () => {
+    it('labels the address box so a screen reader announces it', () => {
+      const wrapper = mountCard()
+      const label = wrapper.findAll('label').find(l => l.text().startsWith('Delivery location'))!
+
+      expect(label.attributes('for')).toBe('hero-address')
+      expect(wrapper.find('#hero-address').attributes('role')).toBe('combobox')
+    })
+
+    it('lets the visitor pick a suggestion with the keyboard', async () => {
+      vi.useFakeTimers()
+      service.geocodeAddress.mockResolvedValue({ data: [
+        { display_name: 'East Legon, Accra', lat: 5.63, lng: -0.15 },
+        { display_name: 'East Airport, Accra', lat: 5.6, lng: -0.17 },
+      ] })
+      const wrapper = mountCard()
+      const input = wrapper.find('#hero-address')
+
+      await input.setValue('East')
+      await vi.advanceTimersByTimeAsync(500)
+      expect(input.attributes('aria-expanded')).toBe('true')
+
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      await input.trigger('keydown', { key: 'ArrowDown' })
+      const active = input.attributes('aria-activedescendant')!
+      expect(wrapper.find(`#${active}`).text()).toBe('East Airport, Accra')
+
+      await input.trigger('keydown', { key: 'Enter' })
+      expect(wrapper.text()).toContain('East Airport, Accra')
+      expect(wrapper.find('#hero-address').exists()).toBe(false)
+      vi.useRealTimers()
+    })
+
+    it('closes the suggestions on Escape without choosing one', async () => {
+      vi.useFakeTimers()
+      service.geocodeAddress.mockResolvedValue({ data: [{ display_name: 'East Legon, Accra', lat: 5.63, lng: -0.15 }] })
+      const wrapper = mountCard()
+      const input = wrapper.find('#hero-address')
+
+      await input.setValue('East')
+      await vi.advanceTimersByTimeAsync(500)
+      await input.trigger('keydown', { key: 'Escape' })
+
+      expect(wrapper.find('[role="listbox"]').exists()).toBe(false)
+      expect(wrapper.find('#hero-address').exists()).toBe(true)
+      vi.useRealTimers()
+    })
+
     it('searches addresses after three characters and attaches the chosen one to the request', async () => {
       vi.useFakeTimers()
       service.geocodeAddress.mockResolvedValue({ data: [{ display_name: 'East Legon, Accra', lat: 5.63, lng: -0.15 }] })
