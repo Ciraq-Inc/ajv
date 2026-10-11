@@ -6,52 +6,13 @@
             <!-- Page Header -->
             <header>
                 <h1 class="font-display text-3xl font-bold tracking-tight text-ink-900">What do you need?</h1>
-                <p class="mt-2 text-base text-ink-600">List your medicines and we will find them at pharmacies near you.</p>
             </header>
 
             <div class="relative space-y-6">
 
-                    <!-- Prescription: first, because it can stand on its own -->
-                    <section aria-labelledby="request-rx-title" class="rounded-2xl bg-brand-50 p-5">
-                        <h2 id="request-rx-title" class="font-display text-xl font-bold text-ink-900">Have a prescription?</h2>
-                        <p class="mt-1 text-sm text-ink-600">Take a photo or upload it and skip the typing. You can add medicines too.</p>
-                        <div class="mt-4 grid grid-cols-2 items-center gap-3 sm:flex sm:flex-wrap">
-                            <label class="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-700 px-3 text-sm sm:px-5 font-semibold text-white transition-colors focus-within:ring-2 focus-within:ring-brand-700 focus-within:ring-offset-2 hover:bg-brand-600">
-                                <CameraIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                                Take photo
-                                <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="sr-only" />
-                            </label>
-                            <label class="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-white px-3 text-sm sm:px-5 font-semibold text-brand-700 ring-1 ring-brand-700/30 transition-colors focus-within:ring-2 focus-within:ring-brand-700 hover:bg-brand-100">
-                                <ArrowUpTrayIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                                Upload<span class="hidden sm:inline"> prescription</span>
-                                <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="sr-only" />
-                            </label>
-                        </div>
-                        <p v-if="prescriptionFileError" role="alert" class="mt-3 text-sm font-medium text-red-700">{{ prescriptionFileError }}</p>
-                        <input ref="prescriptionReplacePicker" type="file" accept="image/*" @change="onReplacePrescriptionFile" class="hidden" />
-                        <ul v-if="prescriptionFiles.length" class="mt-4 flex flex-wrap gap-3">
-                            <li v-for="(preview, index) in prescriptionFiles" :key="preview.id"
-                                class="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-white">
-                                <img :src="preview.previewUrl" :alt="`Prescription photo ${index + 1}`" class="h-full w-full object-cover" />
-                                <button type="button" @click="removePrescriptionFile(index)"
-                                    :aria-label="`Remove prescription photo ${index + 1}`"
-                                    class="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full bg-ink-900/80 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                                    <XMarkIcon class="h-4 w-4" aria-hidden="true" />
-                                </button>
-                            </li>
-                        </ul>
-                        <div v-if="isUploading" class="mt-4 flex items-center gap-3" role="status" aria-label="Uploading prescription">
-                            <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-white">
-                                <span class="block h-full bg-brand-700 transition-all duration-300"
-                                    :style="{ width: `${uploadProgress}%` }"></span>
-                            </div>
-                            <span class="text-sm font-semibold tabular-nums text-ink-900">{{ Math.round(uploadProgress) }}%</span>
-                        </div>
-                    </section>
-
                     <!-- Medications -->
                     <section aria-labelledby="request-meds-title" class="space-y-5">
-                        <h2 id="request-meds-title" class="font-display text-xl font-bold text-ink-900">Medications</h2>
+                        <h2 id="request-meds-title" class="sr-only">Medications</h2>
 
                         <ul class="space-y-6">
                             <li v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3">
@@ -124,6 +85,44 @@
                                 <ChatBubbleLeftEllipsisIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                                 Add note
                             </button>
+                        </div>
+                    </section>
+
+                    <!-- Prescription: a slim option under the medicines; it can also stand on its own -->
+                    <section aria-labelledby="request-rx-title" class="rounded-2xl bg-brand-50 p-4">
+                        <h2 id="request-rx-title" class="font-display text-lg font-bold text-ink-900">Have a prescription?</h2>
+                        <p class="mt-0.5 text-sm text-ink-600">Skip the typing. You can add medicines too.</p>
+                        <div class="mt-3 grid grid-cols-2 items-center gap-3 sm:flex sm:flex-wrap">
+                            <label class="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-700 px-3 text-sm sm:px-5 font-semibold text-white transition-colors focus-within:ring-2 focus-within:ring-brand-700 focus-within:ring-offset-2 hover:bg-brand-600">
+                                <CameraIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                                Take photo
+                                <input ref="prescriptionPicker" type="file" accept="image/*" capture="environment" @change="onPrescriptionFilesSelected" class="sr-only" />
+                            </label>
+                            <label class="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-white px-3 text-sm sm:px-5 font-semibold text-brand-700 ring-1 ring-brand-700/30 transition-colors focus-within:ring-2 focus-within:ring-brand-700 hover:bg-brand-100">
+                                <ArrowUpTrayIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                                Upload<span class="hidden sm:inline"> prescription</span>
+                                <input type="file" accept="image/*" multiple @change="onPrescriptionFilesSelected" class="sr-only" />
+                            </label>
+                        </div>
+                        <p v-if="prescriptionFileError" role="alert" class="mt-3 text-sm font-medium text-red-700">{{ prescriptionFileError }}</p>
+                        <input ref="prescriptionReplacePicker" type="file" accept="image/*" @change="onReplacePrescriptionFile" class="hidden" />
+                        <ul v-if="prescriptionFiles.length" class="mt-4 flex flex-wrap gap-3">
+                            <li v-for="(preview, index) in prescriptionFiles" :key="preview.id"
+                                class="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-white">
+                                <img :src="preview.previewUrl" :alt="`Prescription photo ${index + 1}`" class="h-full w-full object-cover" />
+                                <button type="button" @click="removePrescriptionFile(index)"
+                                    :aria-label="`Remove prescription photo ${index + 1}`"
+                                    class="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full bg-ink-900/80 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                                    <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+                                </button>
+                            </li>
+                        </ul>
+                        <div v-if="isUploading" class="mt-4 flex items-center gap-3" role="status" aria-label="Uploading prescription">
+                            <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-white">
+                                <span class="block h-full bg-brand-700 transition-all duration-300"
+                                    :style="{ width: `${uploadProgress}%` }"></span>
+                            </div>
+                            <span class="text-sm font-semibold tabular-nums text-ink-900">{{ Math.round(uploadProgress) }}%</span>
                         </div>
                     </section>
 

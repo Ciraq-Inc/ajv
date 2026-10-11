@@ -320,15 +320,23 @@ describe('New request: address dialog', () => {
 
 // ───────────────────────────────────────────────────────────────────────────
 describe('New request: prescription first, quieter extras', () => {
-  it('puts the prescription option ahead of the medication list', async () => {
+  it('starts with the medicine field and keeps the prescription as a slim option after it', async () => {
     const w = await open()
-    const headings = w.findAll('h2').map(h => h.text())
+    const field = w.find('#request-medicine-0').element
+    const rx = w.find('[aria-labelledby="request-rx-title"]')
 
-    expect(headings.indexOf('Have a prescription?')).toBeGreaterThanOrEqual(0)
-    expect(headings.indexOf('Have a prescription?')).toBeLessThan(headings.indexOf('Medications'))
-    const card = w.find('[aria-labelledby="request-rx-title"]')
-    expect(card.text()).toContain('Take photo')
-    expect(card.text()).toContain('Upload prescription')
+    expect(field.compareDocumentPosition(rx.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(rx.text()).toContain('Have a prescription?')
+    expect(rx.text()).toContain('Take photo')
+    expect(rx.text()).toContain('Upload prescription')
+    expect(rx.classes()).not.toContain('p-5')
+  })
+
+  it('has no intro sentence and no visible Medications heading above the field', async () => {
+    const w = await open()
+
+    expect(w.find('h1').element.nextElementSibling).toBeNull()
+    expect(w.find('#request-meds-title').classes()).toContain('sr-only')
   })
 
   it('keeps Take photo and Upload on one row, even on a phone', async () => {
