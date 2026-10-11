@@ -18,6 +18,10 @@ vi.mock('~/services/orders/ordersService', () => ({ createOrdersService: () => (
 vi.mock('~/stores/pharmacy', () => ({ usePharmacyStore: () => ({}) }))
 vi.stubGlobal('useApi', () => ({}))
 
+// Boundary: this phone's push subscription (covered in composables/usePushNotifications.test.ts).
+const releaseThisPhone = vi.hoisted(() => vi.fn())
+vi.mock('~/composables/usePushNotifications', () => ({ releaseThisPhone, realPushBrowser: () => ({}) }))
+
 import { useUserStore } from '../stores/user'
 
 class FakeApiError extends Error {
@@ -248,5 +252,33 @@ describe('email sign-up', () => {
     await expect(store.registerWithEmail({ fname: 'A', lname: 'B', email: 'a@b.co', otp: '000000', password: 'Pw-123456' }))
       .rejects.toMatchObject({ status: 400 })
     expect(store.isLoggedIn).toBe(false)
+  })
+})
+
+describe('logout', () => {
+  it('stops this phone getting the customer\'s notifications, then signs out', async () => {
+    const store = loggedIn()
+    await store.logout()
+
+    expect(releaseThisPhone).toHaveBeenCalledTimes(1)
+    expect(store.customerAuthToken).toBeNull()
+    expect(localStorage.getItem('customerAuthToken')).toBeNull()
+  })
+
+  it('hands the phone back while the customer is still signed in, so the server accepts it', async () => {
+    const store = loggedIn()
+    let tokenDuringRelease: string | null = null
+    releaseThisPhone.mockImplementation(async () => { tokenDuringRelease = store.customerAuthToken })
+    await store.logout()
+
+    expect(tokenDuringRelease).toBe('access-token')
+  })
+
+  it('still signs out when handing the phone back fails', async () => {
+    const store = loggedIn()
+    releaseThisPhone.mockRejectedValue(new Error('boom'))
+    await store.logout()
+
+    expect(store.customerAuthToken).toBeNull()
   })
 })

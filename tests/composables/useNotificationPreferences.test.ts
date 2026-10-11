@@ -181,3 +181,44 @@ describe('saving', () => {
     expect(savePreferences).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('phone notifications (push)', () => {
+  const withPush = (reachable: boolean) => {
+    const body = response()
+    body.data.channels.push.reachable = reachable
+    return body
+  }
+
+  it('disables the phone switch, saying why, until a phone has been turned on', async () => {
+    const prefs = await make(withPush(false))
+    expect(row(prefs, 'order_progress').push.disabled).toBe(true)
+    expect(row(prefs, 'order_progress').push.reason).toMatch(/turn on notifications/i)
+  })
+
+  it('lets order progress be switched off for the phone once a phone is subscribed', async () => {
+    const prefs = await make(withPush(true))
+    prefs.toggle('order_progress', 'push')
+    expect(row(prefs, 'order_progress').push.on).toBe(false)
+  })
+
+  it('keeps security locked on the phone too', async () => {
+    const prefs = await make(withPush(true))
+    expect(row(prefs, 'security').push.disabled).toBe(true)
+  })
+
+  it('does not count the phone as the way to be reached for a must-reach category', async () => {
+    const prefs = await make(response({ emailReachable: false }))
+    prefs.rows.value // rows read once so draft is adopted
+    expect(row(prefs, 'outcome').sms.disabled).toBe(true) // text is the only real channel left
+  })
+
+  it('sends a phone change under the API field name and nothing else', async () => {
+    const prefs = await make(withPush(true))
+    const after = withPush(true)
+    after.data.categories.order_progress.push = false
+    savePreferences.mockResolvedValue(after)
+    prefs.toggle('order_progress', 'push')
+    await prefs.save()
+    expect(savePreferences).toHaveBeenCalledWith({ order_progress: { push: false } })
+  })
+})

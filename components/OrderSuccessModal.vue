@@ -73,6 +73,9 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Only shown to a signed-in customer whose phone could get notifications -->
+              <PushOptInPrompt />
             </div>
           </div>
 
@@ -96,6 +99,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { useModalA11y } from '~/composables/useModalA11y';
+import PushOptInPrompt from '~/components/customers/PushOptInPrompt.vue';
 
 // TODO: remove once stores/ are .ts
 

@@ -1,6 +1,6 @@
 // composables/useNotificationPreferences.ts
 //
-// The "Notifications" part of the customer profile: which channel (text / email) each
+// The "Notifications" part of the customer profile: which channel (text / email / this phone) each
 // kind of message may use. The server decides what is reachable and what can be turned
 // off (rules live in rigel-medsgh notificationChannels.js); this mirrors them only so
 // the toggles are not offered when the server would refuse. It still shows the
@@ -18,7 +18,11 @@ import type {
   NotificationPreferences,
 } from '~/services/customerAuth/customerAuthService'
 
-const CHANNELS: NotificationChannel[] = ['sms', 'email']
+const CHANNELS: NotificationChannel[] = ['sms', 'email', 'push']
+
+// The server's "keep at least one way to be reached" rule counts only these: a phone
+// notification can be missed, so it never stands in for a text or an email.
+const GUARANTEED: NotificationChannel[] = ['sms', 'email']
 
 const COPY: Record<NotificationCategoryKey, { label: string; description: string }> = {
   security: { label: 'Security', description: 'Sign-in codes and account changes. Always sent.' },
@@ -31,6 +35,7 @@ const COPY: Record<NotificationCategoryKey, { label: string; description: string
 const UNREACHABLE: Record<NotificationChannel, string> = {
   sms: 'Text messages are only available for Ghana phone numbers.',
   email: 'Add and verify an email address to get emails.',
+  push: 'Turn on notifications on this phone first.',
 }
 
 export interface ChannelToggle {
@@ -47,6 +52,7 @@ export interface PreferenceRow {
   mode: NotificationCategory['mode']
   sms: ChannelToggle
   email: ChannelToggle
+  push: ChannelToggle
 }
 
 type Draft = Record<NotificationCategoryKey, Record<NotificationChannel, boolean>>
@@ -54,7 +60,7 @@ type Draft = Record<NotificationCategoryKey, Record<NotificationChannel, boolean
 const toDraft = (categories: NotificationPreferences['categories']): Draft => {
   const draft = {} as Draft
   for (const key of Object.keys(categories) as NotificationCategoryKey[]) {
-    draft[key] = { sms: categories[key].sms === true, email: categories[key].email === true }
+    draft[key] = { sms: categories[key].sms === true, email: categories[key].email === true, push: categories[key].push === true }
   }
   return draft
 }
@@ -101,7 +107,7 @@ export function useNotificationPreferences(deps: {
     const mode = prefs.categories[key].mode
     if (mode === 'locked') return { on, disabled: true, reason: 'Always on for your security.' }
     if (mode === 'minimum_one' && on) {
-      const stillOn = CHANNELS.filter((c) => prefs.channels[c].reachable && current[c]).length
+      const stillOn = GUARANTEED.filter((c) => prefs.channels[c].reachable && current[c]).length
       if (stillOn <= 1) return { on, disabled: true, reason: 'Keep at least one way to be reached.' }
     }
     return { on, disabled: false, reason: '' }
@@ -115,6 +121,7 @@ export function useNotificationPreferences(deps: {
       mode: server.value!.categories[key].mode,
       sms: toggleState(key, 'sms'),
       email: toggleState(key, 'email'),
+      push: toggleState(key, 'push'),
     }))
   })
 

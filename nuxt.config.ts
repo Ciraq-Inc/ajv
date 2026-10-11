@@ -54,6 +54,17 @@ export default defineNuxtConfig({
       htmlAttrs: {
         lang: "en",
       },
+      // Installable web app: iPhones only deliver web push to a site added to the Home Screen.
+      link: [
+        { rel: "manifest", href: "/manifest.webmanifest" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      ],
+      meta: [
+        { name: "theme-color", content: "#520094" },
+        { name: "mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-title", content: "MedsGH" },
+      ],
     },
     // Add page transitions for smoother navigation with pharmacy routing
     pageTransition: { name: 'page', mode: 'out-in' }

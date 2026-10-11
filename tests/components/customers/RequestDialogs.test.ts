@@ -19,6 +19,19 @@ vi.mock('~/services/orderRequests/orderRequestsService', () => ({
 const store = vi.hoisted(() => ({ state: null as any }))
 vi.mock('~/stores/user', () => ({ useUserStore: () => store.state }))
 
+// Boundary: this phone's push support (the prompt itself is covered in PushOptInPrompt.test.ts).
+vi.mock('~/composables/usePushNotifications', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/composables/usePushNotifications')>()),
+  realPushBrowser: () => ({
+    supported: () => true,
+    isIos: () => false,
+    isStandalone: () => false,
+    permission: () => 'default',
+    requestPermission: async () => 'default',
+    register: async () => ({ pushManager: { getSubscription: async () => null, subscribe: async () => { throw new Error('not used') } } }),
+  }),
+}))
+
 const navigateTo = vi.fn()
 vi.stubGlobal('navigateTo', navigateTo)
 vi.stubGlobal('useRoute', () => ({ query: {} }))
@@ -62,7 +75,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
   sessionStorage.clear()
-  store.state = { currentUser: { phone: '0244123456', email: '' }, masterCustomer: { id: 1 }, customerAuthToken: 'tok', getProfile: vi.fn(), updateProfile: vi.fn(), clearAuthState: vi.fn() }
+  store.state = { isLoggedIn: true, currentUser: { phone: '0244123456', email: '' }, masterCustomer: { id: 1 }, customerAuthToken: 'tok', getProfile: vi.fn(), updateProfile: vi.fn(), clearAuthState: vi.fn() }
 })
 afterEach(() => { wrapper?.unmount(); wrapper = undefined; document.body.innerHTML = '' })
 
@@ -86,6 +99,11 @@ describe('Request sent', () => {
     expect(go.className).toContain('min-h-[44px]')
     go.click()
     expect(navigateTo).toHaveBeenCalled()
+  })
+
+  it('offers notifications on this phone, the moment a customer most wants updates', async () => {
+    await send()
+    expect(dlg('request-sent-title')!.querySelector('[data-testid="push-prompt"]')).not.toBeNull()
   })
 
   it('closes with Escape and uses brand tokens', async () => {

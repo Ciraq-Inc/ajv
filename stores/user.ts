@@ -16,6 +16,7 @@ import { defineStore } from 'pinia';
 import { createOrdersService } from '~/services/orders/ordersService';
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 import { usePharmacyStore } from '~/stores/pharmacy';
+import { releaseThisPhone, realPushBrowser } from '~/composables/usePushNotifications';
 import type { CustomerProfile, LinkedCompany, Order, LocationSuggestion, ReverseGeocodeResult } from '~/services/types';
 
 // ---------------------------------------------------------------------------
@@ -909,6 +910,11 @@ export const useUserStore = defineStore('user', {
     async logout(): Promise<void> {
       this.isLoading = true;
       try {
+        // While the token is still valid: a shared phone must stop showing this customer's orders.
+        try {
+          const service = this._customerAuthService();
+          await releaseThisPhone({ browser: realPushBrowser(), unsubscribe: (endpoint) => service.unsubscribePush(endpoint) });
+        } catch { /* signing out must always complete */ }
         this.clearAuthState();
       } catch (error: unknown) {
         console.error('Error logging out:', error);

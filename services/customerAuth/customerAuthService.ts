@@ -317,6 +317,30 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
+   * The VAPID public key a browser needs to subscribe for push. 503 when push is switched off.
+   * GET /api/auth/customer/push/public-key
+   */
+  getPushPublicKey(): Promise<ApiEnvelope<{ public_key: string }>> {
+    return api.get('/api/auth/customer/push/public-key');
+  },
+
+  /**
+   * Register this browser to receive order notifications (the browser's PushSubscription JSON).
+   * POST /api/auth/customer/push/subscriptions
+   */
+  subscribePush(subscription: PushSubscriptionPayload): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/push/subscriptions', subscription);
+  },
+
+  /**
+   * Stop sending to one browser.
+   * DELETE /api/auth/customer/push/subscriptions
+   */
+  unsubscribePush(endpoint: string): Promise<ApiEnvelope<null>> {
+    return api.delete('/api/auth/customer/push/subscriptions', { body: JSON.stringify({ endpoint }) });
+  },
+
+  /**
    * Autocomplete address suggestions for the saved-location flow.
    * GET /api/auth/customer/autocomplete-location?q=&limit=
    */
@@ -380,7 +404,12 @@ export interface VerificationOptions {
   phone_hint?: string | null;
 }
 
-export type NotificationChannel = 'sms' | 'email';
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+export type NotificationChannel = 'sms' | 'email' | 'push';
 export type NotificationCategoryKey = 'security' | 'action_required' | 'outcome' | 'order_progress' | 'marketing';
 export type NotificationCategoryMode = 'locked' | 'minimum_one' | 'optional' | 'opt_in';
 
@@ -388,6 +417,7 @@ export interface NotificationCategory {
   mode: NotificationCategoryMode;
   sms: boolean;
   email: boolean;
+  push: boolean;
 }
 
 export interface NotificationPreferences {

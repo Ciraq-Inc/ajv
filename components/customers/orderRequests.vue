@@ -1021,6 +1021,7 @@
                 <h2 id="request-sent-title" class="mt-4 font-display text-2xl font-bold text-ink-900">Request sent</h2>
                 <p class="mt-2 text-base text-ink-600">We'll notify you once a pharmacist has looked at it.</p>
                 <p v-if="submittedNumber" class="mt-2 text-base text-ink-600">Request <strong class="text-ink-900">#{{ submittedNumber }}</strong></p>
+                <PushOptInPrompt class="mt-4" />
                 <button type="button" @click="goToRequestHistory"
                     class="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">View my requests</button>
             </div>
@@ -1188,6 +1189,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
+import PushOptInPrompt from '~/components/customers/PushOptInPrompt.vue'
 import { useModalA11y } from '~/composables/useModalA11y'
 
 // ─── Domain types ────────────────────────────────────────────────────────────

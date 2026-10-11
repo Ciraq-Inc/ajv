@@ -1,10 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 
 const router = vi.hoisted(() => ({ push: vi.fn() }))
 const pharmacy = vi.hoisted(() => ({ pharmacyData: { name: 'Rigel Pharmacy' } as { name?: string } | undefined, pharmacySlug: 'rigel' as string | undefined }))
 vi.mock('vue-router', () => ({ useRouter: () => router }))
 vi.mock('~/stores/pharmacy', () => ({ usePharmacyStore: () => pharmacy }))
+
+// The notification offer inside the modal is covered in PushOptInPrompt.test.ts; here only that it is wired in.
+const user = vi.hoisted(() => ({ isLoggedIn: true }))
+vi.mock('~/stores/user', () => ({ useUserStore: () => user }))
+vi.mock('~/services/customerAuth/customerAuthService', () => ({ createCustomerAuthService: () => ({}) }))
+vi.mock('~/composables/useApi', () => ({ useApi: () => ({}) }))
+vi.mock('~/composables/usePushNotifications', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/composables/usePushNotifications')>()),
+  realPushBrowser: () => ({
+    supported: () => true,
+    isIos: () => false,
+    isStandalone: () => false,
+    permission: () => 'default',
+    requestPermission: async () => 'default',
+    register: async () => ({ pushManager: { getSubscription: async () => null, subscribe: async () => { throw new Error('not used') } } }),
+  }),
+}))
 
 import OrderSuccessModal from '~/components/OrderSuccessModal.vue'
 
@@ -24,6 +41,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   pharmacy.pharmacyData = { name: 'Rigel Pharmacy' }
   pharmacy.pharmacySlug = 'rigel'
+  user.isLoggedIn = true
+  localStorage.clear()
 })
 
 afterEach(() => {
@@ -73,6 +92,19 @@ describe('OrderSuccessModal', () => {
 
     open({ orderId: undefined })
     expect(dialog()!.textContent).toContain('N/A')
+  })
+
+  it('offers phone notifications to a signed-in customer once the order is placed', async () => {
+    open()
+    await flushPromises()
+    expect(dialog()!.querySelector('[data-testid="push-prompt"]')).not.toBeNull()
+  })
+
+  it('does not offer phone notifications to a guest', async () => {
+    user.isLoggedIn = false
+    open()
+    await flushPromises()
+    expect(dialog()!.querySelector('[data-testid="push-prompt"]')).toBeNull()
   })
 
   it('"View Order History" closes and goes to the customer account', () => {

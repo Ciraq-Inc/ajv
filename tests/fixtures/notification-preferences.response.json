@@ -3,14 +3,15 @@
   "data": {
     "channels": {
       "sms": { "reachable": true },
-      "email": { "reachable": true }
+      "email": { "reachable": true },
+      "push": { "reachable": false }
     },
     "categories": {
-      "security": { "mode": "locked", "sms": true, "email": true },
-      "action_required": { "mode": "minimum_one", "sms": true, "email": true },
-      "outcome": { "mode": "minimum_one", "sms": true, "email": true },
-      "order_progress": { "mode": "optional", "sms": true, "email": true },
-      "marketing": { "mode": "opt_in", "sms": false, "email": false }
+      "security": { "mode": "locked", "sms": true, "email": true, "push": true },
+      "action_required": { "mode": "minimum_one", "sms": true, "email": true, "push": true },
+      "outcome": { "mode": "minimum_one", "sms": true, "email": true, "push": true },
+      "order_progress": { "mode": "optional", "sms": true, "email": true, "push": true },
+      "marketing": { "mode": "opt_in", "sms": false, "email": false, "push": false }
     }
   }
 }
