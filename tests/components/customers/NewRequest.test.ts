@@ -136,6 +136,22 @@ describe('New request: the form', () => {
     expect(without.text()).toContain('Set delivery address')
     expect(without.text()).toContain('Required to continue')
   })
+
+  it('shows a saved address as one short line with a Change cue, and still opens the address dialog', async () => {
+    const w = await open()
+    const section = w.find('#request-address-title').element.closest('section')!
+
+    const opener = section.querySelector('button')!
+    expect(opener.querySelectorAll('span.block')).toHaveLength(0)
+    expect(opener.textContent).toContain('Delivering to 12 Oak St, Accra')
+    expect(opener.textContent).toContain('Change')
+    expect(w.find('#request-address-title').classes()).toContain('sr-only')
+    expect(section.querySelector('button')!.className).not.toContain('min-h-[64px]')
+
+    section.querySelector('button')!.click()
+    await flushPromises()
+    expect(button(w, 'Confirm Address').exists()).toBe(true)
+  })
 })
 
 describe('New request: sending', () => {

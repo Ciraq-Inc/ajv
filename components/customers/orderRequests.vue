@@ -157,27 +157,27 @@
                     </section>
 
                     <!-- Delivery address -->
-                    <section aria-labelledby="request-address-title" class="space-y-4 border-t border-ink-100 pt-8">
-                        <h2 id="request-address-title" class="font-display text-xl font-bold text-ink-900">Delivery address</h2>
+                    <section aria-labelledby="request-address-title" class="border-t border-ink-100 pt-6">
+                        <h2 id="request-address-title" class="sr-only">Delivery address</h2>
                         <button @click="showAddressModal = true" type="button"
-                            class="flex min-h-[64px] w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                            :class="customerLat && deliveryAddress.trim() ? 'bg-ink-100 hover:bg-ink-200' : 'border-2 border-amber-500 bg-amber-50 hover:bg-amber-100'">
+                            class="flex w-full items-center gap-3 rounded-xl px-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                            :class="customerLat && deliveryAddress.trim() ? 'min-h-[56px] bg-ink-100 py-2 hover:bg-ink-200' : 'min-h-[64px] border-2 border-amber-500 bg-amber-50 py-3 hover:bg-amber-100'">
                             <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
                                 :class="customerLat && deliveryAddress.trim() ? 'bg-brand-700 text-white' : 'bg-amber-200 text-amber-900'">
                                 <MapPinIconSolid v-if="customerLat && deliveryAddress.trim()" class="h-5 w-5" aria-hidden="true" />
                                 <MapPinIcon v-else class="h-5 w-5" aria-hidden="true" />
                             </span>
-                            <span class="min-w-0 flex-1">
-                                <template v-if="customerLat && deliveryAddress.trim()">
-                                    <span class="block text-sm text-ink-600">Delivering to</span>
-                                    <span class="mt-0.5 block truncate text-base font-semibold text-ink-900">{{ deliveryAddress }}</span>
-                                </template>
-                                <template v-else>
+                            <template v-if="customerLat && deliveryAddress.trim()">
+                                <span class="min-w-0 flex-1 truncate text-base text-ink-900">Delivering to <span class="font-semibold">{{ deliveryAddress }}</span></span>
+                                <span class="flex-shrink-0 text-base font-semibold text-brand-700">Change</span>
+                            </template>
+                            <template v-else>
+                                <span class="min-w-0 flex-1">
                                     <span class="block text-base font-semibold text-ink-900">Set delivery address</span>
                                     <span class="mt-0.5 block text-sm font-medium text-amber-900">Required to continue</span>
-                                </template>
-                            </span>
-                            <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
+                                </span>
+                                <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
+                            </template>
                         </button>
                     </section>
             </div>
