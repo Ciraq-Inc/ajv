@@ -12,6 +12,7 @@
       "outcome": { "mode": "minimum_one", "sms": true, "email": true, "push": true },
       "order_progress": { "mode": "optional", "sms": true, "email": true, "push": true },
       "marketing": { "mode": "opt_in", "sms": false, "email": false, "push": false }
-    }
+    },
+    "routine_texts": { "replaced_by_push": false, "also_text": false }
   }
 }

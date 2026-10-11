@@ -208,6 +208,82 @@ describe('NotificationPreferences screen', () => {
     })
   })
 
+  describe('also text me', () => {
+    const replaced = (extra: Record<string, boolean> = {}) => {
+      const body = clone(contract)
+      body.data.channels.push.reachable = true
+      body.data.routine_texts = { replaced_by_push: true, also_text: false, ...extra }
+      return body
+    }
+    const alsoText = () => document.body.querySelector('input[data-testid="also-text-toggle"]') as HTMLInputElement | null
+
+    it('is not shown when push is not replacing any texts', async () => {
+      await open()
+      expect(alsoText()).toBeNull()
+    })
+
+    it('explains that updates come to the phone and offers texts as well', async () => {
+      await open(replaced())
+      expect(alsoText()).not.toBeNull()
+      expect(alsoText()!.checked).toBe(false)
+      expect(document.body.textContent).toMatch(/come to your phone/i)
+    })
+
+    it('saves ticking it as a remembered yes', async () => {
+      await open(replaced())
+      svc.updateNotificationPreferences.mockResolvedValue(replaced({ replaced_by_push: false, also_text: true }))
+
+      await tap(alsoText()!)
+      saveButton().click()
+      await flushPromises()
+
+      expect(svc.updateNotificationPreferences).toHaveBeenCalledWith({ order_progress: { sms: true } })
+      expect(alsoText()!.checked).toBe(true)
+    })
+
+    it('disappears when order-progress texts are switched off', async () => {
+      await open(replaced())
+      await tap(toggle('Order progress: text message'))
+      expect(alsoText()).toBeNull()
+    })
+  })
+
+  describe('customers who only get email', () => {
+    const emailOnly = () => {
+      const body = clone(contract)
+      body.data.channels.sms.reachable = false
+      for (const c of Object.values(body.data.categories)) c.sms = false
+      return body
+    }
+    const nudge = () => document.body.querySelector('[data-testid="phone-nudge"]')
+
+    it('are nudged to turn on notifications on this phone', async () => {
+      await open(emailOnly())
+      expect(nudge()).not.toBeNull()
+      expect(nudge()!.textContent).toMatch(/only get email/i)
+    })
+
+    it('are not nudged once this phone is on', async () => {
+      phone.permission = 'granted'
+      phone.subscription = { endpoint: 'https://push.example.test/abc' }
+      const body = emailOnly()
+      body.data.channels.push.reachable = true
+      await open(body)
+      expect(nudge()).toBeNull()
+    })
+
+    it('are not nudged when this browser cannot get notifications anyway', async () => {
+      phone.supported = false
+      await open(emailOnly())
+      expect(nudge()).toBeNull()
+    })
+
+    it('are not nudged when they can already be texted', async () => {
+      await open()
+      expect(nudge()).toBeNull()
+    })
+  })
+
   it('offers a retry when the settings cannot be loaded', async () => {
     svc.getNotificationPreferences.mockRejectedValue(new Error('network'))
     wrapper = mount(NotificationPreferences, { attachTo: document.body })

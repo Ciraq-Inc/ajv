@@ -423,10 +423,12 @@ export interface NotificationCategory {
 export interface NotificationPreferences {
   channels: Record<NotificationChannel, { reachable: boolean }>;
   categories: Record<NotificationCategoryKey, NotificationCategory>;
+  /** Routine order texts (rider assigned, on the way...): push may be sending them instead of a text. */
+  routine_texts: { replaced_by_push: boolean; also_text: boolean };
 }
 
-/** Only the channels being changed, per category. */
-export type NotificationPreferenceChanges = Partial<Record<NotificationCategoryKey, Partial<Record<NotificationChannel, boolean>>>>;
+/** Only the channels being changed, per category. null forgets a remembered choice so the default applies. */
+export type NotificationPreferenceChanges = Partial<Record<NotificationCategoryKey, Partial<Record<NotificationChannel, boolean | null>>>>;
 
 export interface ConfirmVerificationOtpParams {
   challengeId: string;
