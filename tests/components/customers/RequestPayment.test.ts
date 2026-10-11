@@ -19,7 +19,8 @@ vi.mock('~/services/orderRequests/orderRequestsService', () => ({
 const store = vi.hoisted(() => ({ state: null as any }))
 vi.mock('~/stores/user', () => ({ useUserStore: () => store.state }))
 
-vi.stubGlobal('navigateTo', vi.fn())
+const navigateTo = vi.fn()
+vi.stubGlobal('navigateTo', navigateTo)
 vi.stubGlobal('useRoute', () => ({ query: {} }))
 vi.stubGlobal('useRouter', () => ({ push: vi.fn(), replace: vi.fn() }))
 vi.stubGlobal('useRuntimeConfig', () => ({ public: { apiBase: 'http://api.test' } }))
@@ -511,6 +512,25 @@ describe('Request payment: paying', () => {
     expect(payment().querySelector(`#${wallet.getAttribute('aria-describedby')}`)!.textContent).toContain('Your wallet has GHS 10.00')
     expect(btn('Top up wallet')).not.toBeNull()
     expect(btn('Pay with card or mobile money')!.className).toContain('bg-brand-700')
+  })
+
+  it('sends the customer to the wallet with exactly the missing amount', async () => {
+    await open({ detail: { fulfillment_type: 'delivery' }, balance: 10 })
+    await click(btn('Top up wallet'))
+
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'wallet', topup: 45 } })
+  })
+
+  it('uses the shortfall the server reported when the wallet turns out to be short', async () => {
+    await open({
+      detail: { fulfillment_type: 'delivery' },
+      balance: 100,
+      pay: () => Promise.reject(Object.assign(new Error('Insufficient'), { status: 402, data: { shortfall: 12.3 } })),
+    })
+    await click(btn('Pay with wallet'))
+    await click(btn('Top up wallet'))
+
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'wallet', topup: 13 } })
   })
 
   it('puts the button that works first, for sighted and keyboard users alike', async () => {

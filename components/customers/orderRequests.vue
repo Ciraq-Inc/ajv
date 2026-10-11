@@ -883,7 +883,7 @@
                                 </p>
                             </template>
                             <p v-if="walletBlockReason" id="request-pay-reason" class="text-center text-sm text-ink-600">{{ walletBlockReason }}</p>
-                            <button v-if="walletShort && !payNeedsChoice && paymentShortfall.requestId !== selectedRequest.id" type="button" @click="openWalletTab"
+                            <button v-if="walletShort && !payNeedsChoice && paymentShortfall.requestId !== selectedRequest.id" type="button" @click="openWalletTab(walletGap)"
                                 class="mx-auto flex min-h-[44px] items-center rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
                                 Top up wallet
                             </button>
@@ -896,7 +896,7 @@
                             role="alert" class="rounded-2xl bg-amber-50 px-4 py-4">
                             <p class="text-base font-semibold text-ink-900">Add GHS {{ paymentShortfall.amount.toFixed(2) }} to continue</p>
                             <p class="mt-1 text-base text-ink-600">Your wallet is short for this payment. Top up that amount, then pay from your wallet.</p>
-                            <button type="button" @click="openWalletTab"
+                            <button type="button" @click="openWalletTab(paymentShortfall.amount)"
                                 class="mt-3 inline-flex min-h-[48px] items-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
                                 Top up wallet
                             </button>
@@ -2849,8 +2849,10 @@ const confirmPriorityAndSubmit = async (): Promise<void> => {
     await submitRequest()
 }
 
-const openWalletTab = async (): Promise<void> => {
-    await navigateTo({ path: '/customer', query: { tab: 'wallet' } })
+// Whole cedis, rounded up, so the top-up the wallet suggests always covers the gap.
+const openWalletTab = async (missing?: number): Promise<void> => {
+    const topup = typeof missing === 'number' && missing > 0 ? Math.ceil(missing) : null
+    await navigateTo({ path: '/customer', query: topup ? { tab: 'wallet', topup } : { tab: 'wallet' } })
 }
 
 watch(deliveryAddressSearch, (value) => {
@@ -3174,6 +3176,7 @@ const paystackChargeTotal = computed<number | null>(() => {
 
 const payNeedsChoice = computed<boolean>(() => !!selectedRequest.value && !canPayWithSelection(selectedRequest.value))
 const walletShort = computed<boolean>(() => !payNeedsChoice.value && selectedMethodTotal.value != null && walletBalance.value < selectedMethodTotal.value)
+const walletGap = computed<number>(() => Math.max(0, (selectedMethodTotal.value ?? 0) - walletBalance.value))
 const feeChoiceOpen = ref<Record<string | number, boolean>>({})
 const payMethodOrder = computed<Array<'wallet' | 'paystack'>>(() => walletShort.value ? ['paystack', 'wallet'] : ['wallet', 'paystack'])
 const walletBlockReason = computed<string>(() => {

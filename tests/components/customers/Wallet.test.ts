@@ -96,6 +96,22 @@ describe('Wallet: top up dialog', () => {
     expect(all.every(b => /min-h-\[44px\]|h-11/.test(b.className))).toBe(true)
   })
 
+  it('opens on its own with the missing amount when sent here from a payment', async () => {
+    route.query = { tab: 'wallet', topup: '45' }
+    await open()
+
+    expect(dlg()).not.toBeNull()
+    expect((dlg()!.querySelector('#topup-amount') as HTMLInputElement).value).toBe('45')
+    expect(dlg()!.textContent).toContain('Add GHS 45.00 to pay for your request')
+  })
+
+  it.each(['abc', '0', '-5', '', '1e9'])('ignores a topup amount of "%s" and waits for the customer to ask', async (bad) => {
+    route.query = { tab: 'wallet', topup: bad }
+    await open()
+
+    expect(dlg()).toBeNull()
+  })
+
   it('closes with Escape or the labelled Close button', async () => {
     await open()
     await openDialog()
