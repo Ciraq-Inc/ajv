@@ -942,3 +942,34 @@ describe('Login: pharmacy restored from storage', () => {
     }
   })
 })
+
+describe('Login: readable and easy to tap', () => {
+  const SMALL_TEXT = /(?<![\w:-])text-xs(?![\w-])/
+
+  it.each(['login', 'signup', 'reset'] as const)('uses no text-xs in the %s view', async (initialView) => {
+    const w = await mountLogin({ inline: true, initialView })
+    expect(w.html()).not.toMatch(SMALL_TEXT)
+  })
+
+  it('uses no text-xs on the signup step after the phone is entered', async () => {
+    user.checkPhoneStatus.mockResolvedValue({ exists: false, hasPassword: false })
+    const w = await mountLogin({ inline: true, initialView: 'signup' })
+    await typeId(w, PHONE)
+    await flushPromises()
+    expect(w.html()).not.toMatch(SMALL_TEXT)
+  })
+
+  it.each(['login', 'signup', 'reset'] as const)('makes the show-password button a 44px target in the %s view', async (initialView) => {
+    const w = await mountLogin({ inline: true, initialView })
+    const toggles = w.findAll('button[aria-label="Show password"]')
+
+    for (const toggle of toggles) {
+      expect(toggle.classes()).toEqual(expect.arrayContaining(['h-11', 'w-11']))
+    }
+  })
+
+  it('keeps the login password box clear of its larger show/hide button', async () => {
+    const w = await mountLogin()
+    expect(w.find('#password').classes()).toContain('pr-14')
+  })
+})

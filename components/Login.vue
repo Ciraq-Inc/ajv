@@ -34,7 +34,7 @@
             v-if="!inline"
             type="button"
             @click="closeModal"
-            class="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-ink-400 transition hover:bg-brand-100 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
+            class="absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-ink-400 transition hover:bg-brand-100 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50"
             aria-label="Close"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -58,7 +58,7 @@
           >
             <div class="h-1.5 w-8 rounded-full bg-brand-700"></div>
             <div class="h-1.5 w-8 rounded-full bg-brand-700"></div>
-            <span class="ml-1 text-xs font-semibold text-brand-700 tracking-wide">Step 2 of 2</span>
+            <span class="ml-1 text-sm font-semibold text-brand-700 tracking-wide">Step 2 of 2</span>
           </div>
           <div
             v-else-if="view === 'signup' && !signupOtpSent"
@@ -67,7 +67,7 @@
           >
             <div class="h-1.5 w-8 rounded-full bg-brand-700"></div>
             <div class="h-1.5 w-8 rounded-full bg-brand-100"></div>
-            <span class="ml-1 text-xs font-semibold text-ink-400 tracking-wide">Step 1 of 2</span>
+            <span class="ml-1 text-sm font-semibold text-ink-500 tracking-wide">Step 1 of 2</span>
           </div>
         </div>
 
@@ -109,15 +109,15 @@
                   :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
                   @input="onIdentifierInput"
                 >
-                <p v-if="identifierError" class="mt-1.5 text-xs text-red-700 flex items-center gap-1" role="alert">
+                <p v-if="identifierError" class="mt-1.5 text-sm text-red-700 flex items-center gap-1" role="alert">
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ identifierError }}
                 </p>
                 <p
                   id="identifierHint"
                   v-if="identifierHint"
-                  class="mt-1.5 text-xs leading-relaxed"
-                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-ink-500' : 'text-ink-400'"
+                  class="mt-1.5 text-sm leading-relaxed"
+                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-ink-500' : 'text-ink-500'"
                   role="status"
                 >{{ identifierHint.text }}</p>
               </div>
@@ -130,7 +130,7 @@
                     v-model="password"
                     :type="showPassword ? 'text' : 'password'"
                     id="password"
-                    class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 pr-11 text-sm text-ink-900 placeholder-ink-400 shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
+                    class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 pr-14 text-sm text-ink-900 placeholder-ink-400 shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                     placeholder="Enter your password"
                     required
                     minlength="6"
@@ -139,7 +139,7 @@
                   <button
                     type="button"
                     @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-ink-400 hover:text-brand-700 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40"
+                    class="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-xl text-ink-500 hover:text-brand-700 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40"
                     :aria-label="showPassword ? 'Hide password' : 'Show password'"
                   >
                     <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
@@ -177,11 +177,11 @@
               >
                 <div v-if="mode === 'verify'" class="mb-5 rounded-2xl bg-brand-50 border border-brand-100 p-4">
                   <p class="text-sm font-semibold text-ink-900">Quick verification</p>
-                  <p class="mt-1 text-xs text-ink-500 leading-relaxed">
+                  <p class="mt-1 text-sm text-ink-500 leading-relaxed">
                     We sent a 6-digit code to <strong class="text-ink-900">{{ formattedPhoneNumber }}</strong> to confirm it's you.
                   </p>
                   <div class="mt-4">
-                    <label class="block text-xs font-semibold text-ink-500 mb-2">Verification code</label>
+                    <label class="block text-sm font-semibold text-ink-500 mb-2">Verification code</label>
                     <!-- 6-box OTP input -->
                     <div class="flex gap-2" role="group" aria-label="6-digit verification code">
                       <input
@@ -206,7 +206,7 @@
                     type="button"
                     @click="resendVerifyOTP"
                     :disabled="isLoading"
-                    class="mt-3 text-xs font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
+                    class="mt-3 text-sm font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
                   >
                     Resend code
                   </button>
@@ -223,12 +223,12 @@
                 <div v-if="mode === 'register'" class="mb-5 rounded-2xl bg-brand-50 border border-brand-100 p-4 space-y-4">
                   <div>
                     <p class="text-sm font-semibold text-ink-900">Almost there</p>
-                    <p class="mt-1 text-xs text-ink-500 leading-relaxed">
+                    <p class="mt-1 text-sm text-ink-500 leading-relaxed">
                       A couple more details and we'll create your account for <strong class="text-ink-900">{{ formattedPhoneNumber }}</strong>.
                     </p>
                     <div
                       v-if="registrationCompany"
-                      class="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-700"
+                      class="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1 text-sm font-bold uppercase tracking-[0.1em] text-brand-700"
                     >
                       <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>
                       {{ registrationCompany }}
@@ -237,13 +237,13 @@
 
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label for="fname" class="block text-xs font-semibold text-ink-500 mb-1.5">First name</label>
+                      <label for="fname" class="block text-sm font-semibold text-ink-500 mb-1.5">First name</label>
                       <input v-model="firstName" type="text" id="fname"
                         class="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder-ink-400 focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                         placeholder="John" required autocomplete="given-name">
                     </div>
                     <div>
-                      <label for="lname" class="block text-xs font-semibold text-ink-500 mb-1.5">Last name</label>
+                      <label for="lname" class="block text-sm font-semibold text-ink-500 mb-1.5">Last name</label>
                       <input v-model="lastName" type="text" id="lname"
                         class="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder-ink-400 focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                         placeholder="Doe" required autocomplete="family-name">
@@ -251,14 +251,14 @@
                   </div>
 
                   <div>
-                    <label for="email" class="block text-xs font-semibold text-ink-500 mb-1.5">Email <span class="font-normal text-ink-500">(optional)</span></label>
+                    <label for="email" class="block text-sm font-semibold text-ink-500 mb-1.5">Email <span class="font-normal text-ink-500">(optional)</span></label>
                     <input v-model="email" type="email" id="email"
                       class="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 placeholder-ink-400 focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                       placeholder="john@example.com" autocomplete="email">
                   </div>
 
                   <div>
-                    <label class="block text-xs font-semibold text-ink-500 mb-2">Verification code</label>
+                    <label class="block text-sm font-semibold text-ink-500 mb-2">Verification code</label>
                     <div class="flex gap-2" role="group" aria-label="6-digit verification code">
                       <input
                         v-for="(_, idx) in otpDigits"
@@ -281,7 +281,7 @@
                       type="button"
                       @click="resendRegisterOTP"
                       :disabled="isLoading"
-                      class="mt-2 text-xs font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
+                      class="mt-2 text-sm font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
                     >
                       Resend code
                     </button>
@@ -295,7 +295,7 @@
                       class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-ink-200 bg-white text-brand-700 focus:ring-brand-700"
                       required
                     >
-                    <span class="text-xs text-ink-500 leading-relaxed">
+                    <span class="text-sm text-ink-500 leading-relaxed">
                       I confirm I am 18 years or older <span class="text-red-700">*</span>
                     </span>
                   </label>
@@ -320,10 +320,10 @@
                 <span v-else>{{ submitLabel }}</span>
               </button>
 
-              <p v-if="signInWhy" id="signin-why" class="mt-2 text-center text-xs text-ink-500">{{ signInWhy }}</p>
+              <p v-if="signInWhy" id="signin-why" class="mt-2 text-center text-sm text-ink-500">{{ signInWhy }}</p>
 
               <!-- Switch to signup -->
-              <p class="mt-5 text-center text-sm text-ink-400">
+              <p class="mt-5 text-center text-sm text-ink-500">
                 New to MedsGh?
                 <button
                   type="button"
@@ -382,15 +382,15 @@
                   :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
                   @input="onIdentifierInput"
                 >
-                <p v-if="identifierError" class="mt-1.5 text-xs text-red-700 flex items-center gap-1" role="alert">
+                <p v-if="identifierError" class="mt-1.5 text-sm text-red-700 flex items-center gap-1" role="alert">
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ identifierError }}
                 </p>
                 <p
                   id="identifierHint"
                   v-if="identifierHint"
-                  class="mt-1.5 text-xs leading-relaxed"
-                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-ink-500' : 'text-ink-400'"
+                  class="mt-1.5 text-sm leading-relaxed"
+                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-ink-500' : 'text-ink-500'"
                   role="status"
                 >{{ identifierHint.text }}</p>
               </div>
@@ -441,7 +441,7 @@
             </div>
 
             <form v-if="!resetSuccess && resetMethod === 'phone'" @submit.prevent="handleResetPassword" novalidate>
-              <div v-if="otpSent" class="mb-4 flex items-center gap-2 rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3 text-xs text-ink-500">
+              <div v-if="otpSent" class="mb-4 flex items-center gap-2 rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3 text-sm text-ink-500">
                 <svg class="h-4 w-4 text-brand-700 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                 Code sent to <strong class="text-ink-900 ml-0.5">{{ formattedPhoneNumber }}</strong>
               </div>
@@ -491,7 +491,7 @@
                     type="button"
                     @click="sendResetOTP"
                     :disabled="isLoading"
-                    class="mt-3 text-xs font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
+                    class="mt-3 text-sm font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
                   >
                     Resend code
                   </button>
@@ -504,7 +504,7 @@
                       v-model="password"
                       :type="showPassword ? 'text' : 'password'"
                       id="resetPassword"
-                      class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 pr-11 text-sm text-ink-900 placeholder-ink-400 shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
+                      class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 pr-14 text-sm text-ink-900 placeholder-ink-400 shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                       placeholder="Min. 6 characters"
                       required
                       minlength="6"
@@ -513,7 +513,7 @@
                     <button
                       type="button"
                       @click="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-ink-400 hover:text-brand-700 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40"
+                      class="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-xl text-ink-500 hover:text-brand-700 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40"
                       :aria-label="showPassword ? 'Hide password' : 'Show password'"
                     >
                       <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
@@ -552,7 +552,7 @@
               <button
                 type="button"
                 @click="backToSignIn"
-                class="text-sm text-ink-400 hover:text-brand-700 focus:outline-none focus-visible:underline"
+                class="text-sm text-ink-500 hover:text-brand-700 focus:outline-none focus-visible:underline"
               >
                 Back to sign in
               </button>
@@ -561,7 +561,7 @@
               <button
                 type="button"
                 @click="backToSignIn"
-                class="text-sm text-ink-400 hover:text-brand-700 focus:outline-none focus-visible:underline"
+                class="text-sm text-ink-500 hover:text-brand-700 focus:outline-none focus-visible:underline"
               >
                 Back to sign in
               </button>
@@ -592,15 +592,15 @@
                   :aria-invalid="(identifierError || loginEmailError || signupEmailError) ? 'true' : 'false'"
                   @input="onIdentifierInput"
                 >
-                <p v-if="identifierError" class="mt-1.5 text-xs text-red-700 flex items-center gap-1" role="alert">
+                <p v-if="identifierError" class="mt-1.5 text-sm text-red-700 flex items-center gap-1" role="alert">
                   <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   {{ identifierError }}
                 </p>
                 <p
                   id="identifierHint"
                   v-if="identifierHint"
-                  class="mt-1.5 text-xs leading-relaxed"
-                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-ink-500' : 'text-ink-400'"
+                  class="mt-1.5 text-sm leading-relaxed"
+                  :class="identifierHint.tone === 'note' ? 'rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-ink-500' : 'text-ink-500'"
                   role="status"
                 >{{ identifierHint.text }}</p>
               </div>
@@ -621,7 +621,7 @@
                 <span v-else>Send code</span>
               </button>
 
-              <p class="mt-3 text-center text-xs leading-relaxed text-ink-400">
+              <p class="mt-3 text-center text-sm leading-relaxed text-ink-500">
                 By continuing you agree to our
                 <a href="/privacy" target="_blank" rel="noopener" class="underline underline-offset-2 hover:text-brand-700">Privacy Policy</a>
                 and to receive order updates{{ signupUpdatesChannel }}, and confirm you are 18 or older.
@@ -632,14 +632,14 @@
             <form v-else @submit.prevent="submitSignup" class="space-y-4" novalidate>
               <!-- Phone confirmation pill -->
               <div class="flex items-center justify-between rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3">
-                <div class="flex items-center gap-2 text-xs text-ink-500">
+                <div class="flex items-center gap-2 text-sm text-ink-500">
                   <svg class="h-4 w-4 text-brand-700 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                   Code sent to <strong class="text-ink-900 ml-0.5 break-all">{{ signupMethod === 'email' ? signupEmailSentTo : formattedPhoneNumber }}</strong>
                 </div>
                 <button
                   type="button"
                   @click="changeSignupContact"
-                  class="text-xs font-semibold text-brand-700 hover:text-brand-600 focus:outline-none focus-visible:underline"
+                  class="text-sm font-semibold text-brand-700 hover:text-brand-600 focus:outline-none focus-visible:underline"
                 >
                   Change
                 </button>
@@ -682,14 +682,14 @@
                     autocomplete="one-time-code"
                   >
                 </div>
-                <p v-if="signupMethod === 'email'" class="mt-2 text-xs text-ink-400">
+                <p v-if="signupMethod === 'email'" class="mt-2 text-sm text-ink-500">
                   Can't find it? Check your spam folder.
                 </p>
                 <button
                   type="button"
                   @click="resendSignupCode"
                   :disabled="isLoading || (signupMethod === 'email' && signupEmailCooldown > 0)"
-                  class="mt-2 text-xs font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
+                  class="mt-2 text-sm font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
                 >
                   {{ signupMethod === 'email' && signupEmailCooldown > 0 ? `Resend code in ${signupEmailCooldown}s` : 'Resend code' }}
                 </button>
@@ -703,7 +703,7 @@
                     v-model="password"
                     :type="showPassword ? 'text' : 'password'"
                     id="su-password"
-                    class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 pr-11 text-sm text-ink-900 placeholder-ink-400 shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
+                    class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 pr-14 text-sm text-ink-900 placeholder-ink-400 shadow-[0_1px_4px_rgba(0,0,0,0.06)] focus:outline-none focus:border-brand-700/50 focus:ring-2 focus:ring-brand-700/15 transition-shadow"
                     placeholder="Min. 6 characters"
                     required
                     minlength="6"
@@ -712,7 +712,7 @@
                   <button
                     type="button"
                     @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-ink-400 hover:text-brand-700 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40"
+                    class="absolute right-1 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-xl text-ink-500 hover:text-brand-700 hover:bg-brand-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40"
                     :aria-label="showPassword ? 'Hide password' : 'Show password'"
                   >
                     <EyeSlashIcon v-if="showPassword" class="w-4 h-4" aria-hidden="true" />
@@ -739,7 +739,7 @@
             </form>
 
             <!-- Switch to login -->
-            <p class="mt-5 text-center text-sm text-ink-400">
+            <p class="mt-5 text-center text-sm text-ink-500">
               Already have an account?
               <button
                 type="button"
