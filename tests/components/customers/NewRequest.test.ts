@@ -177,28 +177,35 @@ describe('New request: sending', () => {
 })
 
 describe('New request: wallet gate', () => {
-  it('covers the form when the wallet is too low, and can be set aside', async () => {
-    const w = await open({ balance: 0 })
+  it('lets the customer fill in the whole form, and offers the exact top-up beside Send', async () => {
+    const w = await open({ balance: 2 })
 
-    expect(w.text()).toContain('Top up to continue')
-    await button(w, 'Top Up Wallet').trigger('click')
-    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'wallet' } })
+    expect(w.find('[aria-label="Top up needed"]').exists()).toBe(false)
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+    expect((w.find('#request-medicine-0').element as HTMLInputElement).value).toBe('Paracetamol')
 
-    await button(w, 'Continue filling in my request').trigger('click')
-    expect(w.text()).not.toContain('Top up to continue')
+    await button(w, 'Top up GHS 3.00').trigger('click')
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'wallet', topup: 3 } })
+  })
+
+  it('shows no wallet balance row when the balance is enough', async () => {
+    const w = await open({ balance: 20 })
+
+    expect(w.text()).not.toContain('Wallet balance')
+    expect(w.text()).not.toContain('Top up GHS')
   })
 
   it('is not shown when the first request is free', async () => {
     const w = await open({ balance: 0, settings: { first_request_free: true } })
 
-    expect(w.text()).not.toContain('Top up to continue')
+    expect(w.text()).not.toContain('Top up GHS')
     expect(w.text()).toContain('Free')
   })
 
   it('is not shown, and the send button says Free, while the fee is switched off', async () => {
     const w = await open({ balance: 0, settings: { request_submission_fee: 0 } })
 
-    expect(w.text()).not.toContain('Top up to continue')
+    expect(w.text()).not.toContain('Top up GHS')
     expect(sendButton(w).text()).toContain('Free')
     expect(sendButton(w).text()).not.toContain('GHS')
   })
@@ -372,8 +379,7 @@ describe('New request: brand purple', () => {
     const w = await open({ balance: 0 })
 
     expect(sendButton(w).classes()).toContain('bg-brand-700')
-    expect(button(w, 'Top Up Wallet').classes()).toContain('bg-brand-700')
-    await button(w, 'Continue filling in my request').trigger('click')
+    expect(button(w, 'Top up GHS').classes()).toContain('bg-brand-700')
     await w.find('#request-address-title').element.closest('section')!.querySelector('button')!.click()
     await flushPromises()
     expect(button(w, 'Confirm Address').classes()).toContain('bg-brand-700')

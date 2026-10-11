@@ -174,43 +174,13 @@
                             <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
                         </button>
                     </section>
-
-                    <!-- Wallet gate overlay -->
-                    <div v-if="!canSearchProducts && !walletGateDismissed" role="group" aria-label="Top up needed"
-                        class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/90 px-6 text-center backdrop-blur-[2px]">
-                        <button @click="walletGateDismissed = true" type="button"
-                            class="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                            aria-label="Dismiss">
-                            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
-                        </button>
-                        <span class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 text-white">
-                            <WalletIcon class="h-7 w-7" aria-hidden="true" />
-                        </span>
-                        <div>
-                            <p class="font-display text-xl font-bold text-ink-900">Top up to continue</p>
-                            <p class="mt-1 text-sm text-ink-600">GHS {{ requestFee.toFixed(2) }} needed · Balance: GHS {{ (walletBalance ?? 0).toFixed(2) }}</p>
-                        </div>
-                        <button @click="openWalletTab" type="button"
-                            class="min-h-[48px] rounded-full bg-brand-700 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
-                            Top Up Wallet
-                        </button>
-                        <button @click="walletGateDismissed = true" type="button"
-                            class="min-h-[44px] px-3 text-sm font-semibold text-ink-900 underline underline-offset-2 hover:text-ink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
-                            Continue filling in my request
-                        </button>
-                    </div>
             </div>
 
             <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-ink-600">Wallet balance</span>
-                    <button @click="openWalletTab" type="button"
-                        :aria-label="`Wallet balance GHS ${walletBalance.toFixed(2)}. Open wallet`"
-                        class="min-h-[44px] rounded-full px-3 text-sm font-bold transition-colors hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                        :class="canSearchProducts ? 'text-brand-800' : 'text-amber-800'">
-                        GHS {{ walletBalance.toFixed(2) }}
-                    </button>
-                </div>
+                <button v-if="!canSearchProducts" @click="openWalletTab(requestFeeShort)" type="button"
+                    class="flex min-h-[48px] w-full items-center justify-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                    Top up GHS {{ Math.ceil(requestFeeShort).toFixed(2) }}
+                </button>
                 <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
                     :aria-describedby="sendWhy ? 'send-why' : undefined"
                     class="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brand-700">
@@ -1461,7 +1431,7 @@ const setApplyFee = (requestId: string | number, value: boolean): void => {
     applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: value }
 }
 const walletBalance = ref<number>(0)
-const walletGateDismissed = ref<boolean>(false)
+const requestFeeShort = computed<number>(() => Math.max(0, requestFee.value - walletBalance.value))
 const submitShortfall = ref<number>(0)
 const paymentShortfall = ref<{ requestId: string | number | null; amount: number }>({
     requestId: null,
@@ -1902,11 +1872,6 @@ watch(customerNotes, (val) => {
     if (String(val || '').trim().length > 0) showNotesField.value = true
 })
 
-// When the wallet balance updates (e.g. after topping up), reset the dismissed
-// gate so the user sees feedback about whether the top-up was enough.
-watch(walletBalance, () => {
-    walletGateDismissed.value = false
-})
 let deliveryAutocompleteTimer: ReturnType<typeof setTimeout> | null = null
 let deliveryAutocompleteSuspend = false
 
