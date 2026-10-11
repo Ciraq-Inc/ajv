@@ -364,6 +364,9 @@
                 </div>
 
                 <div class="px-6 pb-6 pt-2">
+                    <!-- The waiting moment: the best time to offer updates on this phone -->
+                    <PushOptInPrompt v-if="['pending', 'processing', 'sourcing'].includes(getRequestStatus(selectedRequest))" class="mb-4" />
+
                     <!-- Items -->
                     <section v-if="selectedRequest.items?.length" aria-labelledby="request-items-title" class="mb-4">
                         <div class="flex items-center justify-between gap-3">
