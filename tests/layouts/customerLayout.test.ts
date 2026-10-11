@@ -69,12 +69,20 @@ describe('Customer layout: navigation', () => {
     expect(w.text()).toContain('Log Out')
   })
 
-  it('goes home from the bottom bar', async () => {
+  it('starts a new request from the bottom bar, named for the job rather than "Home"', async () => {
     const w = await open('profile')
 
-    await w.find('nav button[aria-label="Home"]').trigger('click')
+    await w.find('nav button[aria-label="Request medicine"]').trigger('click')
 
     expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'new' } })
+  })
+
+  it('names the first side-menu item for the job', async () => {
+    const w = await open('wallet')
+    const labels = w.findAll('aside nav button').map(b => b.text())
+
+    expect(labels[0]).toContain('Request medicine')
+    expect(labels.join(' ')).not.toContain('Home')
   })
 
   it('has the side menu for larger screens, with Profile and Log out', async () => {

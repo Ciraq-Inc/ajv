@@ -210,7 +210,7 @@ const activeNav = computed(() => route.query.tab || 'new')
 const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock', 'profile'].includes(activeNav.value))
 const isProfessionalApproved = computed(() => userStore.masterCustomer?.professional_status === 'approved')
 const sideItems = computed(() => [
-  { tab: 'new', label: 'Home', outline: HomeOutline, solid: HomeSolid },
+  { tab: 'new', label: 'Request medicine', outline: HomeOutline, solid: HomeSolid },
   { tab: 'requests', label: 'My Requests', outline: DocumentOutline, solid: DocumentSolid },
   { tab: 'wallet', label: 'Wallet', outline: WalletOutline, solid: WalletSolid },
   { tab: 'orders', label: 'History', outline: ReceiptOutline, solid: ReceiptSolid },
@@ -220,7 +220,7 @@ const sideItems = computed(() => [
   { tab: 'clearance', label: 'Clearance Deals', outline: TagOutline, solid: TagSolid },
 ])
 const barItems = [
-  { tab: 'new', ariaLabel: 'Home', short: 'Home', outline: HomeOutline, solid: HomeSolid },
+  { tab: 'new', ariaLabel: 'Request medicine', short: 'Request', outline: HomeOutline, solid: HomeSolid },
   { tab: 'requests', ariaLabel: 'My requests', short: 'Requests', outline: DocumentOutline, solid: DocumentSolid },
   { tab: 'wallet', ariaLabel: 'Wallet', short: 'Wallet', outline: WalletOutline, solid: WalletSolid },
   { tab: 'clearance', ariaLabel: 'Clearance deals', short: 'Deals', outline: TagOutline, solid: TagSolid },
