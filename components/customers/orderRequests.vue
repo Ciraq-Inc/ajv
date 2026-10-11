@@ -543,6 +543,12 @@
                         </div>
                     </dl>
 
+                    <button v-if="canLeaveFeedback(selectedRequest) && selectedRequest.items?.length" type="button" @click="requestAgain(selectedRequest)"
+                        class="mb-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                        <ArrowPathIcon class="h-5 w-5" aria-hidden="true" />
+                        Request again
+                    </button>
+
                     <div v-if="canLeaveFeedback(selectedRequest)" data-testid="feedback-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
                         <div class="flex items-start justify-between gap-3">
                             <div>
@@ -1952,6 +1958,20 @@ const goToNewRequest = async (): Promise<void> => {
     selectedRequest.value = null
     showSuccess.value = false
     await navigateTo({ path: '/customer', query: { tab: 'new' } })
+}
+
+// Hands a finished request's items to the new-request form through the same draft the homepage uses.
+const requestAgain = async (request: OrderRequest): Promise<void> => {
+    const items = (request.items ?? [])
+        .filter(item => String(item.product_name ?? '').trim())
+        .map(item => ({
+            product_name: String(item.product_name).trim(),
+            quantity: Math.max(1, Number(item.quantity ?? 1)),
+            requested_unit: String(item['requested_unit'] ?? '')
+        }))
+    if (!items.length) return
+    try { sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({ items })) } catch {}
+    await goToNewRequest()
 }
 
 const goToRequestHistory = async (): Promise<void> => {
