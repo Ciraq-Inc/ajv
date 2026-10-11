@@ -109,22 +109,40 @@ describe('Request payment: choosing how to receive the order', () => {
     expect(pickup.textContent).toContain('The pharmacy is currently closed')
   })
 
-  it('shows the total once a method is chosen, with the search fee kept for later by default', async () => {
+  it('shows the total once a method is chosen, and says in one line that the search fee is kept for later', async () => {
     await open()
     await click(radio('Delivery'))
 
     expect(radio('Delivery')!.getAttribute('aria-checked')).toBe('true')
-    expect(radio('Return to wallet')!.getAttribute('aria-checked')).toBe('true')
     expect(payment().querySelector('[data-testid="payment-total"]')!.textContent).toContain('GHS 55.00')
+    const line = payment().querySelector('[data-testid="search-fee-summary"]')!
+    expect(line.textContent).toContain('GHS 5.00 search fee')
+    expect(line.textContent).toContain('kept in your wallet for a later request')
+    // The two big choice cards stay out of the way until asked for.
+    expect(radio('Apply to order')).toBeNull()
+    expect(radio('Return to wallet')).toBeNull()
   })
 
   it('lets the customer take the search fee off this order', async () => {
     await open()
     await click(radio('Delivery'))
+    await click(btn('Change'))
+    expect(radio('Return to wallet')!.getAttribute('aria-checked')).toBe('true')
     await click(radio('Apply to order'))
 
     expect(radio('Apply to order')!.getAttribute('aria-checked')).toBe('true')
     expect(payment().querySelector('[data-testid="payment-total"]')!.textContent).toContain('GHS 50.00')
+  })
+
+  it('says in the summary when the fee has been taken off this order', async () => {
+    await open()
+    await click(radio('Delivery'))
+    await click(btn('Change'))
+    await click(radio('Apply to order'))
+    await click(btn('Done'))
+
+    expect(radio('Apply to order')).toBeNull()
+    expect(payment().querySelector('[data-testid="search-fee-summary"]')!.textContent).toContain('taken off this order')
   })
 })
 

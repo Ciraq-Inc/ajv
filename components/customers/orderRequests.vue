@@ -811,6 +811,18 @@
 
                         <!-- Search fee: keep it for later, or take it off this order -->
                         <div v-if="canPayWithSelection(selectedRequest) && selectedPaymentOptions?.fee_applicable">
+                            <!-- One line by default; the two choices open only when asked for -->
+                            <div v-if="!feeChoiceOpen[selectedRequest.id]" data-testid="search-fee-summary" class="flex items-center justify-between gap-3">
+                                <p class="text-base text-ink-600">
+                                    GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee,
+                                    {{ applyFeeByRequest[selectedRequest.id] === true ? 'taken off this order' : 'kept in your wallet for a later request' }}
+                                </p>
+                                <button type="button" @click="feeChoiceOpen = { ...feeChoiceOpen, [selectedRequest.id]: true }"
+                                    class="min-h-[44px] shrink-0 rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                    Change
+                                </button>
+                            </div>
+                            <template v-else>
                             <p id="request-fee-title" class="text-base font-semibold text-ink-900">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</p>
                             <div role="radiogroup" aria-labelledby="request-fee-title" class="mt-2 grid grid-cols-2 gap-2">
                                 <button type="button" role="radio" :aria-checked="applyFeeByRequest[selectedRequest.id] === true"
@@ -828,6 +840,11 @@
                                     <span class="block text-sm text-ink-600">Keep it for a later request</span>
                                 </button>
                             </div>
+                            <button type="button" @click="feeChoiceOpen = { ...feeChoiceOpen, [selectedRequest.id]: false }"
+                                class="mt-2 min-h-[44px] rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                Done
+                            </button>
+                            </template>
                         </div>
 
                         <!-- Total -->
@@ -3157,6 +3174,7 @@ const paystackChargeTotal = computed<number | null>(() => {
 
 const payNeedsChoice = computed<boolean>(() => !!selectedRequest.value && !canPayWithSelection(selectedRequest.value))
 const walletShort = computed<boolean>(() => !payNeedsChoice.value && selectedMethodTotal.value != null && walletBalance.value < selectedMethodTotal.value)
+const feeChoiceOpen = ref<Record<string | number, boolean>>({})
 const payMethodOrder = computed<Array<'wallet' | 'paystack'>>(() => walletShort.value ? ['paystack', 'wallet'] : ['wallet', 'paystack'])
 const walletBlockReason = computed<string>(() => {
     if (payNeedsChoice.value) {
