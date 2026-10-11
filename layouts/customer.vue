@@ -372,49 +372,5 @@ onUnmounted(() => {
 .slide-up-leave-to .bg-white {
   transform: translateY(100%);
 }
-
-:deep(.customer-app .dashboard-top > article) {
-  border-radius: 1.9rem;
-}
-
-:deep(.customer-app .dashboard-middle > div > .space-y-4 > button),
-:deep(.customer-app .dashboard-middle > aside > div:last-child),
-:deep(.customer-app .section-wrap > div:last-child > button),
-:deep(.customer-app .section-wrap > div:last-child),
-:deep(.customer-app .section-wrap > div:nth-child(2)) {
-  border-radius: 1.7rem;
-}
-
-:deep(.customer-app .dashboard-top h3),
-:deep(.customer-app .dashboard-middle h3),
-:deep(.customer-app .section-wrap h3) {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-:deep(.customer-app .dashboard-top p.text-\[10px\]),
-:deep(.customer-app .dashboard-middle button.text-xs),
-:deep(.customer-app .section-wrap button.text-xs) {
-  font-weight: 600;
-  letter-spacing: 0.12em;
-}
-
-:deep(.customer-app .dashboard-middle h4),
-:deep(.customer-app .section-wrap h4) {
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-:deep(.customer-app .dashboard-middle strong),
-:deep(.customer-app .section-wrap strong) {
-  font-weight: 700;
-}
-
-:deep(.customer-app .dashboard-middle .inline-flex.rounded-full),
-:deep(.customer-app .section-wrap .inline-flex.rounded-full) {
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
 </style>
 
-<style>.dashboard-top { grid-template-columns: repeat(12, minmax(0, 1fr)) !important; display: grid !important; gap: 1.5rem !important; }</style>
