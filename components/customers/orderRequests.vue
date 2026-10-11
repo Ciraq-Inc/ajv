@@ -35,42 +35,49 @@
                                     </button>
                                 </div>
 
-                                <!-- Unit + Qty -->
-                                <div v-if="item.product_name.trim()" class="flex flex-wrap items-end gap-4">
-                                    <div class="min-w-[9rem] flex-1">
-                                        <label :for="`request-unit-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Unit</label>
-                                        <div class="relative">
-                                            <select v-model="item.requested_unit" :id="`request-unit-${index}`"
-                                                class="min-h-[48px] w-full cursor-pointer appearance-none rounded-lg border-2 border-transparent bg-ink-100 px-4 pr-11 text-base font-medium text-ink-900 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none">
-                                                <option value="" class="bg-white text-base text-ink-900">Choose unit…</option>
-                                                <option v-for="option in medicineUnitOptions" :key="option" :value="option" class="bg-white text-base text-ink-900">{{ option }}</option>
-                                            </select>
-                                            <ChevronDownIcon class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-600" aria-hidden="true" />
-                                        </div>
+                                <!-- Quantity, and a Details toggle for the optional extras -->
+                                <div v-if="item.product_name.trim()" class="flex flex-wrap items-center justify-between gap-3">
+                                    <div class="flex items-center gap-1 rounded-full bg-ink-100 p-1">
+                                        <label :for="`request-qty-${index}`" class="sr-only">Quantity</label>
+                                        <button type="button" :aria-label="`Decrease quantity of ${item.product_name.trim()}`"
+                                            class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                                            @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1"><span aria-hidden="true">−</span></button>
+                                        <input v-model.number="item.quantity" :id="`request-qty-${index}`" type="number" min="1" inputmode="numeric" placeholder="1"
+                                            class="h-11 w-12 appearance-none bg-transparent p-0 text-center text-base font-bold text-ink-900 focus:outline-none" />
+                                        <button type="button" :aria-label="`Increase quantity of ${item.product_name.trim()}`"
+                                            class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                            @click="incrementQty(item)"><span aria-hidden="true">+</span></button>
                                     </div>
-
-                                    <div>
-                                        <label :for="`request-qty-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Quantity</label>
-                                        <div class="flex items-center gap-1 rounded-full bg-ink-100 p-1">
-                                            <button type="button" :aria-label="`Decrease quantity of ${item.product_name.trim()}`"
-                                                class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1"><span aria-hidden="true">−</span></button>
-                                            <input v-model.number="item.quantity" :id="`request-qty-${index}`" type="number" min="1" inputmode="numeric" placeholder="1"
-                                                class="h-11 w-12 appearance-none bg-transparent p-0 text-center text-base font-bold text-ink-900 focus:outline-none" />
-                                            <button type="button" :aria-label="`Increase quantity of ${item.product_name.trim()}`"
-                                                class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                                                @click="incrementQty(item)"><span aria-hidden="true">+</span></button>
-                                        </div>
-                                    </div>
+                                    <button type="button" :aria-expanded="isDetailsOpen(item)" :aria-controls="`request-details-${index}`"
+                                        @click="toggleDetails(item)"
+                                        class="inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-2 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                        Details
+                                        <ChevronDownIcon class="h-5 w-5 transition-transform" :class="isDetailsOpen(item) ? 'rotate-180' : ''" aria-hidden="true" />
+                                    </button>
                                 </div>
 
-                                <label v-if="item.product_name.trim()"
-                                    class="flex min-h-[44px] w-fit cursor-pointer select-none items-center gap-3">
-                                    <input type="checkbox" v-model="item.prefer_clearance_only"
-                                        @change="debouncedSaveFormDraft()"
-                                        class="h-5 w-5 cursor-pointer rounded accent-brand-700" />
-                                    <span class="text-sm font-medium text-ink-900">Clearance/discounted stock only</span>
-                                </label>
+                                <div v-if="item.product_name.trim() && isDetailsOpen(item)" :id="`request-details-${index}`" class="flex flex-col gap-3">
+                                    <div class="flex flex-wrap items-end gap-4">
+                                        <div class="min-w-[9rem] flex-1">
+                                            <label :for="`request-unit-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Unit</label>
+                                            <div class="relative">
+                                                <select v-model="item.requested_unit" :id="`request-unit-${index}`"
+                                                    class="min-h-[48px] w-full cursor-pointer appearance-none rounded-lg border-2 border-transparent bg-ink-100 px-4 pr-11 text-base font-medium text-ink-900 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none">
+                                                    <option value="" class="bg-white text-base text-ink-900">Choose unit…</option>
+                                                    <option v-for="option in medicineUnitOptions" :key="option" :value="option" class="bg-white text-base text-ink-900">{{ option }}</option>
+                                                </select>
+                                                <ChevronDownIcon class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-600" aria-hidden="true" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <label class="flex min-h-[44px] w-fit cursor-pointer select-none items-center gap-3">
+                                        <input type="checkbox" v-model="item.prefer_clearance_only"
+                                            @change="debouncedSaveFormDraft()"
+                                            class="h-5 w-5 cursor-pointer rounded accent-brand-700" />
+                                        <span class="text-sm font-medium text-ink-900">Clearance/discounted stock only</span>
+                                    </label>
+                                </div>
                             </li>
                         </ul>
 
@@ -1201,6 +1208,7 @@ interface RequestItem {
     product_id?: number | null;
     source_pharmacy_id?: number | null;
     unit_price?: number | null;
+    detailsOpen?: boolean;
 }
 
 interface PrescriptionPreview {
@@ -2865,6 +2873,10 @@ watch(deliveryAddressSearch, (value) => {
 })
 
 const addItem = (): void => { requestItems.value.push(newItem()) }
+// Unit and clearance stay out of the way until asked for, but a medicine that already has either shows them.
+const isDetailsOpen = (item: RequestItem): boolean =>
+    item.detailsOpen ?? Boolean(item.requested_unit || item.prefer_clearance_only)
+const toggleDetails = (item: RequestItem): void => { item.detailsOpen = !isDetailsOpen(item) }
 const decrementQty = (item: RequestItem): void => {
     const current = Number(item?.quantity ?? 1)
     item.quantity = Math.max(1, current - 1)

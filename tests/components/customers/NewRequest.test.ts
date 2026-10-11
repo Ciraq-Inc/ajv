@@ -98,13 +98,13 @@ describe('New request: the form', () => {
     }
   })
 
-  it('offers unit and quantity once a medicine is named, with labelled steppers', async () => {
+  it('offers quantity once a medicine is named, with labelled steppers', async () => {
     const w = await open()
-    expect(w.find('select').exists()).toBe(false)
+    expect(w.find('input[type="number"]').exists()).toBe(false)
 
     await w.find('#request-medicine-0').setValue('Paracetamol')
 
-    expect(w.find('select').exists()).toBe(true)
+    expect(w.find('input[type="number"]').exists()).toBe(true)
     const up = button(w, 'Increase quantity of Paracetamol')
     const down = button(w, 'Decrease quantity of Paracetamol')
     expect(down.attributes('disabled')).toBeDefined()
@@ -352,9 +352,10 @@ describe('New request: prescription first, quieter extras', () => {
     for (const l of labels) expect(l.classList.contains('justify-center')).toBe(true)
   })
 
-  it('shows Unit and Quantity labels above the controls once a medicine is named', async () => {
+  it('shows Unit and Quantity labels above the controls once a medicine is named and Details is open', async () => {
     const w = await open()
     await w.find('#request-medicine-0').setValue('Paracetamol')
+    await button(w, 'Details').trigger('click')
 
     expect(w.find('label[for="request-unit-0"]').text()).toBe('Unit')
     expect(w.find('select#request-unit-0').exists()).toBe(true)
@@ -413,6 +414,7 @@ describe('New request: numbering sits inside the field', () => {
     expect(input.classes()).toContain('w-full')
     expect(input.classes()).toContain('pl-14')
 
+    await button(w, 'Details').trigger('click')
     const row = w.find('#request-unit-0').element.closest('.flex-wrap')!
     expect(row.className).not.toContain('pl-11')
     const clearance = w.find('input[type="checkbox"]').element.closest('label')!
@@ -479,5 +481,71 @@ describe('New request: delivering to someone else', () => {
     expect(body).not.toBeNull()
     expect(body).not.toHaveProperty('recipient_name')
     expect(body).not.toHaveProperty('recipient_phone')
+  })
+})
+
+describe('New request: unit and clearance sit behind Details', () => {
+  // Nuxt sets process.client in the browser; the homepage draft is only read there.
+  beforeEach(() => { (process as any).client = true })
+  afterEach(() => { delete (process as any).client })
+  const draft = (item: Record<string, unknown>) =>
+    sessionStorage.setItem('medsgh_homepage_request_draft', JSON.stringify({ items: [{ product_name: 'Amoxil', quantity: 2, ...item }] }))
+
+  it('shows only the name and quantity at first, with a collapsed Details toggle', async () => {
+    const w = await open()
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+
+    expect(w.find('input#request-qty-0').exists()).toBe(true)
+    expect(w.find('select#request-unit-0').exists()).toBe(false)
+    expect(w.find('input[type="checkbox"]').exists()).toBe(false)
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('does not offer Details before a medicine is named', async () => {
+    const w = await open()
+    expect(w.findAll('button').some(b => b.text().includes('Details'))).toBe(false)
+  })
+
+  it('opens and closes Unit and clearance from the toggle', async () => {
+    const w = await open()
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+
+    await button(w, 'Details').trigger('click')
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('true')
+    expect(w.find('select#request-unit-0').exists()).toBe(true)
+    expect(w.find('input[type="checkbox"]').exists()).toBe(true)
+
+    await button(w, 'Details').trigger('click')
+    expect(w.find('select#request-unit-0').exists()).toBe(false)
+  })
+
+  it('keeps a chosen unit in the request even when Details is closed again', async () => {
+    const w = await open()
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+    await button(w, 'Details').trigger('click')
+    await w.find('select#request-unit-0').setValue('tab')
+    await button(w, 'Details').trigger('click')
+
+    await sendButton(w).trigger('click')
+    await flushPromises()
+
+    const post = api.request.mock.calls.find(([url, opts]) => url === '/api/order-requests/customer' && opts?.method === 'POST')
+    expect(JSON.parse(post![1].body).items[0].requested_unit).toBe('tab')
+  })
+
+  it('starts open when the medicine already has a unit', async () => {
+    draft({ requested_unit: 'capsule' })
+    const w = await open()
+
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('true')
+    expect((w.find('select#request-unit-0').element as HTMLSelectElement).value).toBe('capsule')
+  })
+
+  it('starts open when clearance-only is already chosen', async () => {
+    draft({ prefer_clearance_only: true })
+    const w = await open()
+
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('true')
+    expect((w.find('input[type="checkbox"]').element as HTMLInputElement).checked).toBe(true)
   })
 })
