@@ -82,7 +82,9 @@
                   You're not registered at {{ cartError.pharmacyName }} yet
                 </p>
                 <p class="mt-1 text-sm leading-relaxed text-ink-500">
-                  Direct ordering is only available to customers already in {{ cartError.pharmacyName }}'s records. Send your order via WhatsApp for now — the pharmacy can add you using your phone number.
+                  Direct ordering is only available to customers already in {{ cartError.pharmacyName }}'s records.
+                  <template v-if="whatsappNumber">Send your order via WhatsApp for now — the pharmacy can add you using your phone number.</template>
+                  <template v-else>Ask {{ cartError.pharmacyName }} to add your phone number to their records.</template>
                 </p>
               </div>
             </div>
@@ -205,9 +207,9 @@
           <!-- State 2: Logged in but not registered at this pharmacy -->
           <template v-else-if="cartError?.type === 'not_registered'">
             <div class="rounded-xl border border-brand-100 bg-brand-50 p-4">
-              <p class="mb-0.5 text-sm font-semibold text-ink-900">Your WhatsApp order works fine</p>
+              <p v-if="whatsappNumber" class="mb-0.5 text-sm font-semibold text-ink-900">Your WhatsApp order works fine</p>
               <p class="text-sm leading-relaxed text-ink-500">
-                To unlock direct ordering, ask {{ cartError.pharmacyName }} to add your phone number to their records — it links automatically.
+                {{ whatsappNumber ? 'To unlock direct ordering, ask' : 'To order directly, ask' }} {{ cartError.pharmacyName }} to add your phone number to their records — it links automatically.
               </p>
             </div>
           </template>

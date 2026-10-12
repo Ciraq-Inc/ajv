@@ -403,6 +403,18 @@ describe('CartSidebar: ordering directly', () => {
       expect(w.text()).not.toContain('Order Directly (Free Trial)')
     })
 
+    it('does not point the customer to WhatsApp when the pharmacy has no WhatsApp number', async () => {
+      pharmacy.pharmacyData = { ...PHARMACY, whatsapp_number: '' }
+      user.processDirectOrder.mockRejectedValue(Object.assign(new Error('x'), { errorCode: 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY' }))
+      const w = await mountOpen()
+      await button(w, 'Order Directly').trigger('click')
+      await flushPromises()
+
+      expect(w.text()).toContain("You're not registered at Rigel Pharmacy yet")
+      expect(w.text()).not.toContain('WhatsApp')
+      expect(w.text()).toContain('ask Rigel Pharmacy to add your phone number')
+    })
+
     it('names "this pharmacy" when the pharmacy name is unknown', async () => {
       pharmacy.pharmacyData = { whatsapp_number: '0244123456' }
       user.processDirectOrder.mockRejectedValue(Object.assign(new Error('x'), { errorCode: 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY' }))
