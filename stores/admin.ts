@@ -187,6 +187,27 @@ export const useAdminStore = defineStore('admin', {
     },
 
     /**
+     * Start the session from a passed MFA challenge. The backend answers flat:
+     * { success, token, refresh_token, user } — there is no nested `data`.
+     */
+    _startMfaSession(body: unknown): void {
+      const payload = body as {
+        token?: string;
+        refresh_token?: string | null;
+        user?: AdminProfile | null;
+      };
+      this.token = payload.token ?? null;
+      this.admin = payload.user ?? null;
+      this.isAuthenticated = true;
+
+      if (process.client) {
+        localStorage.setItem('adminToken', payload.token ?? '');
+        localStorage.setItem('adminUser', JSON.stringify(payload.user ?? null));
+        if (payload.refresh_token) localStorage.setItem('adminRefreshToken', payload.refresh_token);
+      }
+    },
+
+    /**
      * Verify a TOTP code during the admin login MFA challenge.
      * On success sets the session identical to a direct login.
      */
@@ -204,32 +225,42 @@ export const useAdminStore = defineStore('admin', {
         const data = await this._adminService().verifyMfaTotp(totpParams);
 
         if (data.success) {
-          const payload = data.data as { token: string; refresh_token?: string | null; admin?: AdminProfile };
-          this.token = payload.token;
-          this.admin = payload.admin ?? null;
-          this.isAuthenticated = true;
-
-          if (process.client) {
-            localStorage.setItem('adminToken', payload.token);
-            localStorage.setItem('adminUser', JSON.stringify(payload.admin));
-            if (payload.refresh_token) localStorage.setItem('adminRefreshToken', payload.refresh_token);
-          }
-
+          this._startMfaSession(data);
           return { success: true as const, ...(data.message !== undefined ? { message: data.message } : {}) };
-        } else {
-          return {
-            success: false as const,
-            message: data.message ?? 'Verification failed.',
-          };
         }
+        return { success: false as const, message: data.message ?? 'Verification failed.' };
       } catch (error: unknown) {
         console.error('TOTP verify error:', error);
         return {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Verification failed. Please try again.',
+          message: error instanceof Error ? error.message : 'Verification failed. Please try again.',
+        };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /** Verify the SMS code during the admin login MFA challenge. */
+    async verifyMfaSms({
+      challengeId,
+      code,
+    }: {
+      challengeId: string;
+      code: string;
+    }): Promise<LoginSuccess | LoginFailure> {
+      this.isLoading = true;
+      try {
+        const data = await this._adminService().verifyMfaSms({ challengeId, code });
+        if (data.success) {
+          this._startMfaSession(data);
+          return { success: true as const };
+        }
+        return { success: false as const, message: data.message ?? 'Verification failed.' };
+      } catch (error: unknown) {
+        console.error('SMS MFA verify error:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Verification failed. Please try again.',
         };
       } finally {
         this.isLoading = false;

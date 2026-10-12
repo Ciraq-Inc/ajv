@@ -145,6 +145,14 @@ export const createAdminService = (api: ApiInstance) => ({
   },
 
   /**
+   * Verify the SMS code sent during the admin login MFA challenge.
+   * POST /api/auth/mfa/verify
+   */
+  verifyMfaSms({ challengeId, code }: { challengeId: string; code: string }): Promise<ApiEnvelope<unknown>> {
+    return api.post('/api/auth/mfa/verify', { challenge_id: challengeId, code });
+  },
+
+  /**
    * List all customer signups (admin-only).
    * GET /api/admin/signups
    * Returns the raw envelope `{ success, data, message }` — callers read

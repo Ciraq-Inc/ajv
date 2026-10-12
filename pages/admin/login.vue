@@ -293,6 +293,7 @@ interface AdminStoreShape {
   } | null>;
   verifyWebAuthnAuth: (challengeId: string, assertion: Record<string, unknown>) => Promise<{ success: boolean; message?: string }>;
   verifyMfaTotp: (opts: { challengeId: string; code: string }) => Promise<{ success: boolean; message?: string }>;
+  verifyMfaSms: (opts: { challengeId: string; code: string }) => Promise<{ success: boolean; message?: string }>;
   requestPasswordReset: (identifier: string) => Promise<{ success: boolean; message?: string }>;
 }
 
@@ -515,7 +516,7 @@ const bufferToBase64url = (buffer: ArrayBuffer): string => {
 };
 
 // Verify the MFA code. For TOTP: POST /api/auth/mfa/totp/verify via the store.
-// SMS OTP verification will be wired in a follow-up (Batch B Sprint 2 SMS path).
+// SMS: POST /api/auth/mfa/verify via the store.
 const handleMfaSubmit = async (): Promise<void> => {
   if (!mfaCode.value || mfaCode.value.length < 6) return;
   errorMessage.value = '';
@@ -529,9 +530,10 @@ const handleMfaSubmit = async (): Promise<void> => {
         code: mfaCode.value,
       });
     } else {
-      // SMS path: placeholder — should call the SMS verify store action.
-      // Kept consistent so this handler is the single branch point.
-      result = { success: false, message: 'SMS MFA verify not yet wired in this UI.' };
+      result = await adminStore.verifyMfaSms({
+        challengeId: mfaChallengeId.value,
+        code: mfaCode.value,
+      });
     }
 
     if (result.success) {
