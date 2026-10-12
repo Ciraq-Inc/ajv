@@ -171,8 +171,9 @@
         </div>
 
         <div class="space-y-3">
-          <!-- WhatsApp — always available, always first -->
+          <!-- WhatsApp — first, when the pharmacy has a number to send to -->
           <button
+            v-if="whatsappNumber"
             type="button"
             class="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-brand-700 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-800 active:bg-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="isProcessingOrder"
@@ -347,7 +348,8 @@ useModalA11y(dialogRef, () => isOpenSidebar.value, () => {
   if (!showLoginModal.value) toggleCart();
 });
 
-const sendWhatsAppMessage = (): void => {
+// The pharmacy's number in the form wa.me wants, or '' when it has none we can use.
+const whatsappNumber = computed<string>(() => {
   let phoneNumber: string = pharmacyStore.pharmacyData?.whatsapp_number ?? '';
 
   // Extract the first phone number if multiple are provided with a separator
@@ -358,6 +360,7 @@ const sendWhatsAppMessage = (): void => {
   // Format the phone number properly for WhatsApp
   // Remove all non-digit characters
   phoneNumber = phoneNumber.replace(/\D/g, '');
+  if (!phoneNumber) return '';
 
   // Remove leading zero if present
   if (phoneNumber.startsWith('0')) {
@@ -368,12 +371,26 @@ const sendWhatsAppMessage = (): void => {
   if (!phoneNumber.startsWith('233')) {
     phoneNumber = '233' + phoneNumber;
   }
+  return phoneNumber;
+});
+
+const sendWhatsAppMessage = (): void => {
+  if (!whatsappNumber.value) return;
 
   const messageText = generateWhatsAppMessage();
   const encodedMessage = encodeURIComponent(messageText);
 
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-  window.open(whatsappUrl, '_blank');
+  const whatsappUrl = `https://wa.me/${whatsappNumber.value}?text=${encodedMessage}`;
+  const opened = window.open(whatsappUrl, '_blank');
+
+  // A blocked pop-up means nothing was sent: keep the order so they can try again.
+  if (!opened) {
+    cartError.value = {
+      type: 'generic',
+      message: 'Your browser did not let WhatsApp open. Your cart is still here. Allow pop-ups for this site and try again.',
+    };
+    return;
+  }
 
   cartStore.clearCart();
   toggleCart();
