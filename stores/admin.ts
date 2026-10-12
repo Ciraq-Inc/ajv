@@ -271,6 +271,22 @@ export const useAdminStore = defineStore('admin', {
       }
     },
 
+    /**
+     * Deliberate sign-out: revoke the session on the server first (best effort),
+     * then clear it locally. Use logout() when the server already rejected the session.
+     */
+    async signOut(): Promise<void> {
+      const refreshToken = process.client ? localStorage.getItem('adminRefreshToken') : null;
+      if (refreshToken) {
+        try {
+          await this._adminService().logout({ refreshToken });
+        } catch (error) {
+          console.warn('Server sign-out failed; clearing the local session anyway.', error);
+        }
+      }
+      this.logout();
+    },
+
     logout(): void {
       this.token = null;
       this.admin = null;

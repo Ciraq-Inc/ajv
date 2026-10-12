@@ -468,9 +468,9 @@ const openAttentionItem = (req) => {
 }
 
 
-const handleLogout = () => {
+const handleLogout = async () => {
   if (confirm('Are you sure you want to logout?')) {
-    adminStore.logout()
+    await adminStore.signOut()
     navigateTo('/admin/login')
   }
 }

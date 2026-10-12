@@ -145,6 +145,14 @@ export const createAdminService = (api: ApiInstance) => ({
   },
 
   /**
+   * End this session on the server (revokes the refresh-token family).
+   * POST /api/auth/logout — always answers 200.
+   */
+  logout({ refreshToken }: { refreshToken: string }): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/logout', { refresh_token: refreshToken });
+  },
+
+  /**
    * Verify the SMS code sent during the admin login MFA challenge.
    * POST /api/auth/mfa/verify
    */
