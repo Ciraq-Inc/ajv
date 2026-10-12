@@ -34,9 +34,18 @@ export const serviceSlugOf = (path: string): string => {
 export const canOpenServicePage = (role: unknown, slug: string): boolean => {
   if (ALWAYS_OPEN.has(slug)) return true
   if (normalizeRole(role) === 'third_party_poster') return POSTER_PAGES.has(slug)
-  if (MANAGER_PAGES.has(slug)) return companyRoleRank(role) >= ROLE_RANK.manager
+  if (MANAGER_PAGES.has(slug)) return companyRoleRank(role) >= ROLE_RANK.manager!
   return true
 }
 
 export const defaultServicePage = (role: unknown): string =>
   normalizeRole(role) === 'third_party_poster' ? 'rigel-boards' : 'orders'
+
+const atLeastManager = (role: unknown): boolean => companyRoleRank(role) >= ROLE_RANK.manager!
+
+// Starting, resuming, resending or deleting a campaign spends the pharmacy's credits.
+export const canSendSmsCampaigns = (role: unknown): boolean => atLeastManager(role)
+
+// Buying credits: managers for the pharmacy, and a recruiter account for its own wallet.
+export const canBuySmsCredits = (role: unknown): boolean =>
+  atLeastManager(role) || normalizeRole(role) === 'third_party_poster'

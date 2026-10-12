@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canOpenServicePage, companyRoleRank, defaultServicePage, serviceSlugOf } from '../utils/companyAccess'
+import { canBuySmsCredits, canOpenServicePage, canSendSmsCampaigns, companyRoleRank, defaultServicePage, serviceSlugOf } from '../utils/companyAccess'
 
 // What each kind of pharmacy staff sees in the portal. Mirrors the server's role ladder
 // (rigel-medsgh src/middlewares/companyRole.js): the server is the real gate, this keeps the
@@ -57,5 +57,24 @@ describe('defaultServicePage', () => {
     expect(defaultServicePage('cashier')).toBe('orders')
     expect(defaultServicePage('manager')).toBe('orders')
     expect(defaultServicePage('third_party_poster')).toBe('rigel-boards')
+  })
+})
+
+describe('who can spend on SMS', () => {
+  it.each(['manager', 'owner', 'admin', 'super_admin'])('%s can start campaigns and buy credits', (role) => {
+    expect(canSendSmsCampaigns(role)).toBe(true)
+    expect(canBuySmsCredits(role)).toBe(true)
+  })
+
+  it.each(['cashier', 'pharmacist', 'user', 'assistant', 'third_party_poster', '', undefined, 'mystery'])('%s cannot start campaigns', (role) => {
+    expect(canSendSmsCampaigns(role)).toBe(false)
+  })
+
+  it.each(['cashier', 'pharmacist', '', undefined, 'mystery'])('%s cannot buy credits', (role) => {
+    expect(canBuySmsCredits(role)).toBe(false)
+  })
+
+  it('a recruiter account tops up its own wallet', () => {
+    expect(canBuySmsCredits('third_party_poster')).toBe(true)
   })
 })

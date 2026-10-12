@@ -11,7 +11,7 @@
           <Icon name="RefreshCw" size="18" :class="{ 'animate-spin': loading }" />
           <span>Refresh</span>
         </button>
-        <button @click="showPurchaseModal = true" class="btn-primary" :disabled="loading || !canPurchase">
+        <button v-if="canBuyCredits" @click="showPurchaseModal = true" class="btn-primary" :disabled="loading || !canPurchase">
           <Icon name="Plus" size="18" />
           <span>Purchase Credits</span>
         </button>
@@ -277,6 +277,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useSMSCredits } from '~/composables/useSMSCredits'
+import { useSmsSpendAccess } from '~/composables/useSmsSpendAccess'
+
+const { canBuyCredits } = useSmsSpendAccess()
 
 definePageMeta({
   middleware: ['company-auth'],
