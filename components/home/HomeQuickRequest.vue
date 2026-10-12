@@ -20,7 +20,6 @@ const heroPhone = ref<string>('')
 const heroGuestLoading = ref<boolean>(false)
 const heroGuestError = ref<string>('')
 const heroGuestSuccess = ref<boolean>(false)
-const heroIsNewCustomer = ref<boolean>(true)
 
 const setDraftItems = (items: HeroDraftItem[]): void => emit('update:draftItems', items)
 
@@ -180,7 +179,6 @@ const submitHeroGuestRequest = async (): Promise<void> => {
       heroGuestError.value = result.message ?? 'Failed to place request. Please try again.'
       return
     }
-    heroIsNewCustomer.value = result.data?.is_new_customer !== false
     heroGuestSuccess.value = true
     if (props.draftItems.length) {
       if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY)
@@ -209,7 +207,7 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
       <p class="font-display text-xl font-extrabold text-brand-950">Request sent</p>
       <p class="mt-2 text-base leading-relaxed text-ink-600">
         We'll text you at <strong class="text-brand-950">{{ heroPhone }}</strong>
-        {{ heroIsNewCustomer ? 'with a link to set up your account.' : 'with your order details.' }}
+        with a link to track your order.
       </p>
       <button
         type="button"
@@ -217,21 +215,18 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
         @click="resetHeroGuestForm"
       >Send another</button>
       <div class="mt-4 border-t border-brand-100 pt-4">
-        <template v-if="heroIsNewCustomer">
-          <p class="mb-1 text-sm text-ink-600">Don't want to wait for the text?</p>
-          <button
-            type="button"
-            class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-            @click="emit('switch-view', 'signup')"
-          >Create your account now</button>
-        </template>
-        <template v-else>
-          <button
-            type="button"
-            class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-            @click="emit('switch-view', 'login')"
-          >Sign in to track your order</button>
-        </template>
+        <p class="mb-1 text-sm text-ink-600">Don't want to wait for the text?</p>
+        <button
+          type="button"
+          class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+          @click="emit('switch-view', 'login')"
+        >Sign in</button>
+        <span class="mx-1 text-ink-400" aria-hidden="true">·</span>
+        <button
+          type="button"
+          class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+          @click="emit('switch-view', 'signup')"
+        >Create your account</button>
       </div>
     </div>
 

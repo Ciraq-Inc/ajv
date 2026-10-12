@@ -49,7 +49,7 @@ describe('HomeQuickRequest', () => {
   })
 
   it('splits the freeform list on new lines and sends each as quantity 1', async () => {
-    service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+    service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
     const wrapper = mountCard()
     await fill(wrapper, 'Paracetamol 500mg\n\n  Vitamin C  \n', '  0244123456 ')
 
@@ -70,7 +70,7 @@ describe('HomeQuickRequest', () => {
   })
 
   it('keeps a comma inside one line as one medicine', async () => {
-    service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+    service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
     const wrapper = mountCard()
     await fill(wrapper, 'Amoxicillin 500mg, capsules', '0244123456')
 
@@ -90,8 +90,8 @@ describe('HomeQuickRequest', () => {
     expect(hint.text()).toBe('Put each medicine on its own line.')
   })
 
-  it('confirms the request and tells a new customer to set up their account', async () => {
-    service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+  it('confirms the request and offers sign in or sign up', async () => {
+    service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
     const wrapper = mountCard()
     await fill(wrapper, 'Ibuprofen', '0244123456')
     await wrapper.find('form').trigger('submit')
@@ -101,20 +101,29 @@ describe('HomeQuickRequest', () => {
     expect(wrapper.text()).not.toContain('Request sent!')
     expect(wrapper.text()).not.toContain('→')
     expect(wrapper.text()).toContain('0244123456')
-    expect(wrapper.text()).toContain('with a link to set up your account.')
+    expect(wrapper.text()).toContain('with a link to track your order.')
+    expect(wrapper.text()).toContain('Sign in')
     expect(wrapper.text()).toContain('Create your account')
     expect(wrapper.text()).not.toContain('Your account is ready')
   })
 
-  it('tells a returning customer their order details are on the way', async () => {
-    service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: false } })
-    const wrapper = mountCard()
-    await fill(wrapper, 'Ibuprofen', '0244123456')
-    await wrapper.find('form').trigger('submit')
+  it('says the same whether or not the number already had an account', async () => {
+    // The reply must not reveal whether a phone number is registered.
+    service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
+    const first = mountCard()
+    await fill(first, 'Ibuprofen', '0244123456')
+    await first.find('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('with your order details.')
-    expect(wrapper.text()).toContain('Sign in to track your order')
+    service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: false } })
+    const second = mountCard()
+    await fill(second, 'Ibuprofen', '0244123456')
+    await second.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(second.text()).toBe(first.text())
+    expect(first.text()).toContain('Sign in')
+    expect(first.text()).toContain('Create your account')
   })
 
   it('shows the server message and stays on the form when the request is rejected', async () => {
@@ -140,7 +149,7 @@ describe('HomeQuickRequest', () => {
   })
 
   it('lets the visitor send another request after success', async () => {
-    service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+    service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
     const wrapper = mountCard()
     await fill(wrapper, 'Ibuprofen', '0244123456')
     await wrapper.find('form').trigger('submit')
@@ -189,7 +198,7 @@ describe('HomeQuickRequest', () => {
     })
 
     it('sends the draft items (with the clearance flag) and clears the saved draft on success', async () => {
-      service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+      service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
       sessionStorage.setItem(DRAFT_KEY, '{"items":[]}')
       const wrapper = mountCard({ draftItems: draft })
       await wrapper.find('#hero-phone').setValue('0244123456')
@@ -211,7 +220,7 @@ describe('HomeQuickRequest', () => {
     })
 
     it('sends a new customer to sign-up from the success screen', async () => {
-      service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+      service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
       const wrapper = mountCard()
       await fill(wrapper, 'Ibuprofen', '0244123456')
       await wrapper.find('form').trigger('submit')
@@ -273,7 +282,7 @@ describe('HomeQuickRequest', () => {
     it('searches addresses after three characters and attaches the chosen one to the request', async () => {
       vi.useFakeTimers()
       service.geocodeAddress.mockResolvedValue({ data: [{ display_name: 'East Legon, Accra', lat: 5.63, lng: -0.15 }] })
-      service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true } })
+      service.submitAsGuest.mockResolvedValue({ success: true, data: {} })
       const wrapper = mountCard()
       await fill(wrapper, 'Ibuprofen', '0244123456')
 

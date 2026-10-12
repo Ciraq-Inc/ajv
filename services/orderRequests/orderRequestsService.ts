@@ -42,7 +42,6 @@ export interface ReverseGeoResult {
 export interface GuestSubmitResult {
   request_id: number;
   request_number: string;
-  is_new_customer: boolean;
 }
 
 export const createOrderRequestsService = (api: ApiInstance) => ({
