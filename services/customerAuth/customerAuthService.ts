@@ -18,18 +18,8 @@ import type {
   ReverseGeocodeResult,
 } from '../types';
 
-export interface CheckPhoneParams {
-  phone: string;
-}
-
 export interface SendOtpParams {
   phone: string;
-}
-
-export interface SetupPasswordParams {
-  phone: string;
-  otp: string;
-  password: string;
 }
 
 export interface RegisterParams {
@@ -109,31 +99,11 @@ export interface AuthPayload {
 
 export const createCustomerAuthService = (api: ApiInstance) => ({
   /**
-   * Check whether a phone number is already registered / verified.
-   * POST /api/auth/customer/check-phone
-   */
-  checkPhone({ phone }: CheckPhoneParams): Promise<ApiEnvelope<{ registered: boolean }>> {
-    return api.post('/api/auth/customer/check-phone', { phone });
-  },
-
-  /**
    * Send a one-time password to a phone number for account setup.
    * POST /api/auth/customer/send-otp
    */
   sendSetupOtp({ phone }: SendOtpParams): Promise<ApiEnvelope<null>> {
     return api.post('/api/auth/customer/send-otp', { phone });
-  },
-
-  /**
-   * Complete password setup after OTP verification.
-   * POST /api/auth/customer/setup-password
-   */
-  setupPassword({ phone, otp, password }: SetupPasswordParams): Promise<ApiEnvelope<null>> {
-    return api.post('/api/auth/customer/setup-password', {
-      phone,
-      otp,
-      password,
-    });
   },
 
   /**

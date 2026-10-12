@@ -168,51 +168,6 @@
                 </button>
               </div>
 
-              <!-- Reveal: verify (existing customer, no password set) -->
-              <Transition
-                enter-from-class="opacity-0 -translate-y-3"
-                enter-active-class="transition duration-250 ease-out"
-                leave-to-class="opacity-0 -translate-y-3"
-                leave-active-class="transition duration-150 ease-in"
-              >
-                <div v-if="mode === 'verify'" class="mb-5 rounded-2xl bg-brand-50 border border-brand-100 p-4">
-                  <p class="text-sm font-semibold text-ink-900">Quick verification</p>
-                  <p class="mt-1 text-sm text-ink-500 leading-relaxed">
-                    We sent a 6-digit code to <strong class="text-ink-900">{{ formattedPhoneNumber }}</strong> to confirm it's you.
-                  </p>
-                  <div class="mt-4">
-                    <label class="block text-sm font-semibold text-ink-500 mb-2">Verification code</label>
-                    <!-- 6-box OTP input -->
-                    <div class="flex gap-2" role="group" aria-label="6-digit verification code">
-                      <input
-                        v-for="(_, idx) in otpDigits"
-                        :key="'verify-' + idx"
-                        :ref="el => { if (el) otpRefs[idx] = el as HTMLInputElement }"
-                        v-model="otpDigits[idx]"
-                        type="text"
-                        inputmode="numeric"
-                        maxlength="1"
-                        pattern="[0-9]"
-                        :aria-label="`Digit ${idx + 1}`"
-                        class="h-11 w-10 flex-1 rounded-xl border border-ink-200 bg-white text-center text-base font-bold text-ink-900 shadow-[0_1px_3px_rgba(0,0,0,0.05)] focus:outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 transition-shadow caret-transparent"
-                        @input="handleOtpInput($event, idx)"
-                        @keydown="handleOtpKeydown($event, idx)"
-                        @paste.prevent="handleOtpPaste($event)"
-                        autocomplete="one-time-code"
-                      >
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    @click="resendVerifyOTP"
-                    :disabled="isLoading"
-                    class="mt-3 text-sm font-semibold text-brand-700 hover:text-brand-600 disabled:opacity-50 focus:outline-none focus-visible:underline"
-                  >
-                    Resend code
-                  </button>
-                </div>
-              </Transition>
-
               <!-- Reveal: register (new customer — auto-detected path) -->
               <Transition
                 enter-from-class="opacity-0 -translate-y-3"
@@ -644,6 +599,9 @@
                   Change
                 </button>
               </div>
+              <p v-if="signupMethod !== 'email'" class="-mt-1 text-sm text-ink-500">
+                No code? If this number already has an account, we texted you how to sign in.
+              </p>
 
               <!-- Name row -->
               <div class="grid grid-cols-2 gap-3">
@@ -770,7 +728,7 @@ import { describeEmailAuthError } from '~/utils/emailAuthMessages';
 import { classifyIdentifier, describeIdentifier, type IdentifierPurpose } from '~/utils/contactIdentifier';
 
 type LoginStep = 'signin' | 'reset';
-type LoginMode = 'login' | 'verify' | 'register';
+type LoginMode = 'login' | 'register';
 type LoginView = 'login' | 'signup';
 
 interface LoginSuccessPayload {
@@ -781,10 +739,7 @@ interface LoginSuccessPayload {
 // TODO: remove once stores/ are .ts
 interface UserStoreShape {
   formatPhoneNumber: (phone: string) => string;
-  checkPhoneStatus: (phone: string) => Promise<{ status: string }>;
   login: (phone: string, password: string) => Promise<void>;
-  sendSetupOTP: (phone: string) => Promise<void>;
-  setupPassword: (phone: string, otp: string, password: string) => Promise<void>;
   register: (payload: {
     company_id?: unknown;
     fname: string;
@@ -991,7 +946,6 @@ const stepTitle = computed<string>(() => {
     return signupOtpSent.value ? 'Almost there' : 'Create your account';
   }
   if (currentStep.value === 'reset') return 'Reset your password';
-  if (mode.value === 'verify') return 'Quick verification';
   if (mode.value === 'register') return 'Create your account';
   return 'Sign in to MedsGh';
 });
@@ -1009,7 +963,6 @@ const stepSubtitle = computed<string>(() => {
     if (otpSent.value) return 'Enter the code and choose a new password.';
     return "Enter your phone number or email and we'll help you set a new password.";
   }
-  if (mode.value === 'verify') return "Confirm the code we sent and we'll activate your account.";
   if (mode.value === 'register') {
     return registrationCompany.value
       ? `Registering with ${registrationCompany.value}. Orders will be available there right after signup.`
@@ -1019,13 +972,11 @@ const stepSubtitle = computed<string>(() => {
 });
 
 const submitLabel = computed<string>(() => {
-  if (mode.value === 'verify') return 'Activate account';
   if (mode.value === 'register') return 'Create account';
   return 'Sign in';
 });
 
 const submittingLabel = computed<string>(() => {
-  if (mode.value === 'verify') return 'Activating...';
   if (mode.value === 'register') return 'Creating...';
   return 'Signing in...';
 });
@@ -1037,9 +988,6 @@ const canSubmit = computed<boolean>(() => {
       email: loginEmail.value,
       password: password.value,
     });
-  }
-  if (mode.value === 'verify') {
-    return Boolean(otp.value) && otp.value.length === 6;
   }
   if (mode.value === 'register') {
     return Boolean(otp.value) && otp.value.length === 6
@@ -1310,11 +1258,21 @@ const sendNewCustomerOTP = async (): Promise<void> => {
 // Unified submit dispatcher
 const onSignInSubmit = async (): Promise<void> => {
   if (mode.value === 'login') return submitLogin();
-  if (mode.value === 'verify') return submitVerify();
   if (mode.value === 'register') return submitRegister();
 };
 
-// Path A: phone + password submitted. Decide what to do.
+// Words for a refused phone sign-in. One message for every refusal (wrong password, no
+// account, an account that never had a password), so the screen cannot be used to learn
+// which numbers have accounts. Only a lockout and a server fault are told apart: neither
+// depends on the number.
+const phoneSignInMessage = (err: unknown): string => {
+  const status = (err as { status?: number } | null)?.status;
+  if (status === 429 && err instanceof Error) return err.message;
+  if (typeof status === 'number' && status >= 500) return 'Something went wrong. Please try again.';
+  return "We couldn't sign you in with that number and password. Check them and try again, reset your password, or create an account if you're new here.";
+};
+
+// Path A: phone + password submitted.
 const submitLogin = async (): Promise<void> => {
   if (signInMethod.value === 'email') return submitEmailLogin();
   if (!validatePhoneNumber()) return;
@@ -1327,36 +1285,12 @@ const submitLogin = async (): Promise<void> => {
   isLoading.value = true;
 
   try {
-    const result = await userStore.checkPhoneStatus(phoneE164.value);
-
-    if (result.status === 'registered') {
-      try {
-        await userStore.login(phoneE164.value, password.value);
-        emit('login-success', { destination: 'new', action: 'login' });
-        closeModal();
-      } catch (loginErr) {
-        console.error('Login error:', loginErr);
-        errorMessage.value = `Wrong password for ${formattedPhoneNumber.value}. Try again or reset.`;
-      }
-      return;
-    }
-
-    if (result.status === 'existing_customer_no_password') {
-      await userStore.sendSetupOTP(phoneE164.value);
-      otpSent.value = true;
-      mode.value = 'verify';
-      return;
-    }
-
-    if (result.status === 'new_customer') {
-      errorMessage.value = `No account found for ${formattedPhoneNumber.value}. Check the number, or create a new account below.`;
-      return;
-    }
-
-    throw new Error('Unknown account status.');
+    await userStore.login(phoneE164.value, password.value);
+    emit('login-success', { destination: 'new', action: 'login' });
+    closeModal();
   } catch (err) {
-    console.error('Sign-in error:', err);
-    errorMessage.value = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+    console.error('Login error:', err);
+    errorMessage.value = phoneSignInMessage(err);
   } finally {
     isLoading.value = false;
   }
@@ -1375,23 +1309,6 @@ const submitEmailLogin = async (): Promise<void> => {
     } else {
       errorMessage.value = loginEmailMessage.value;
     }
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Path B: existing customer activates with OTP; reuse already-typed password.
-const submitVerify = async (): Promise<void> => {
-  errorMessage.value = '';
-  isLoading.value = true;
-
-  try {
-    await userStore.setupPassword(phoneE164.value, otp.value, password.value);
-    emit('login-success', { destination: 'new', action: 'setup' });
-    closeModal();
-  } catch (err) {
-    console.error('Activate account error:', err);
-    errorMessage.value = err instanceof Error ? err.message : 'Failed to activate account. Please try again.';
   } finally {
     isLoading.value = false;
   }
@@ -1420,19 +1337,6 @@ const submitRegister = async (): Promise<void> => {
   } catch (err) {
     console.error('Registration error:', err);
     errorMessage.value = err instanceof Error ? err.message : 'Registration failed. Please try again.';
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const resendVerifyOTP = async (): Promise<void> => {
-  errorMessage.value = '';
-  isLoading.value = true;
-  try {
-    await userStore.sendSetupOTP(phoneE164.value);
-  } catch (err) {
-    console.error('Resend verify OTP error:', err);
-    errorMessage.value = err instanceof Error ? err.message : 'Failed to resend code. Please try again.';
   } finally {
     isLoading.value = false;
   }
@@ -1562,7 +1466,7 @@ watch(() => props.isOpen, (newValue) => {
 
 // Scroll first OTP box into view when the verify panel activates.
 watch(mode, async (newMode) => {
-  if (newMode === 'verify' || newMode === 'register') {
+  if (newMode === 'register') {
     await nextTick();
     otpRefs.value[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     otpRefs.value[0]?.focus();

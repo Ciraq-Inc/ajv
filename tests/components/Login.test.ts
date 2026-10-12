@@ -4,10 +4,7 @@ import phoneUtils from '~/utils/phone'
 
 // ── Boundaries: the user/pharmacy stores and the customer-auth HTTP service ──
 const user = vi.hoisted(() => ({
-  checkPhoneStatus: vi.fn(),
   login: vi.fn(),
-  sendSetupOTP: vi.fn(),
-  setupPassword: vi.fn(),
   register: vi.fn(),
   sendResetOTP: vi.fn(),
   resetPassword: vi.fn(),
@@ -78,8 +75,7 @@ beforeEach(() => {
   localStorage.clear()
   pharmacy.pharmacyData = null
   pharmacy.currentPharmacy = null
-  user.checkPhoneStatus.mockResolvedValue({ status: 'registered' })
-  for (const fn of Object.values(user)) if (fn !== user.checkPhoneStatus) (fn as ReturnType<typeof vi.fn>).mockResolvedValue({})
+  for (const fn of Object.values(user)) (fn as ReturnType<typeof vi.fn>).mockResolvedValue({})
   authService.sendSetupOtp.mockResolvedValue({ success: true })
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
@@ -266,11 +262,12 @@ describe('Login: the one box for phone or email', () => {
 
 // ───────────────────────────────────────────────────────────────────────────
 describe('Login: signing in with a phone', () => {
-  it('checks the account, signs in with the E.164 number, and tells the parent', async () => {
+  const UNIFORM = "We couldn't sign you in with that number and password. Check them and try again, reset your password, or create an account if you're new here."
+
+  it('signs in with the E.164 number and tells the parent', async () => {
     const w = await mountLogin()
     await signInWithPhone(w)
 
-    expect(user.checkPhoneStatus).toHaveBeenCalledWith(E164)
     expect(user.login).toHaveBeenCalledWith(E164, PASSWORD)
     expect(w.emitted('login-success')).toEqual([[{ destination: 'new', action: 'login' }]])
     expect(w.emitted('close')).toHaveLength(1)
@@ -283,54 +280,60 @@ describe('Login: signing in with a phone', () => {
     expect(user.login).toHaveBeenCalledWith(E164, PASSWORD)
   })
 
-  it('says the password is wrong, naming the number, without leaving the form', async () => {
-    user.login.mockRejectedValue(new Error('401'))
+  it('refuses a refused sign-in with one message that does not say whether the number has an account', async () => {
+    user.login.mockRejectedValue(new ApiError('Invalid credentials', 401))
     const w = await mountLogin()
     await signInWithPhone(w)
 
-    expect(alertText(w)).toBe(`Wrong password for ${DISPLAY}. Try again or reset.`)
+    expect(alertText(w)).toBe(UNIFORM)
+    expect(alertText(w)).not.toContain(DISPLAY)
     expect(w.emitted('login-success')).toBeUndefined()
     expect(w.emitted('close')).toBeUndefined()
     expect(submitBtn(w).attributes('disabled')).toBeUndefined()
   })
 
-  it('explains that no account exists for a new number and does not sign in or text anything', async () => {
-    user.checkPhoneStatus.mockResolvedValue({ status: 'new_customer' })
+  it('shows the same message whatever the server said about a refused sign-in', async () => {
+    user.login.mockRejectedValue(new ApiError('Account not found', 404))
     const w = await mountLogin()
     await signInWithPhone(w)
 
-    expect(alertText(w)).toContain(`No account found for ${DISPLAY}`)
-    expect(user.login).not.toHaveBeenCalled()
-    expect(user.sendSetupOTP).not.toHaveBeenCalled()
+    expect(alertText(w)).toBe(UNIFORM)
   })
 
-  it('shows a clear message for an unknown account status', async () => {
-    user.checkPhoneStatus.mockResolvedValue({ status: 'weird' })
+  it('does not text anything while signing in', async () => {
+    user.login.mockRejectedValue(new ApiError('Invalid credentials', 401))
     const w = await mountLogin()
     await signInWithPhone(w)
 
-    expect(alertText(w)).toBe('Unknown account status.')
-    expect(user.login).not.toHaveBeenCalled()
+    expect(authService.sendSetupOtp).not.toHaveBeenCalled()
   })
 
-  it('shows the error when the status check itself fails', async () => {
-    user.checkPhoneStatus.mockRejectedValue(new Error('Network down'))
+  it('passes on a lockout so the customer knows to wait', async () => {
+    user.login.mockRejectedValue(new ApiError('Too many attempts. Try again in 15 minutes.', 429))
     const w = await mountLogin()
     await signInWithPhone(w)
 
-    expect(alertText(w)).toBe('Network down')
+    expect(alertText(w)).toBe('Too many attempts. Try again in 15 minutes.')
+  })
+
+  it('says something went wrong, not that the password was bad, when the server fails', async () => {
+    user.login.mockRejectedValue(new ApiError('boom', 503))
+    const w = await mountLogin()
+    await signInWithPhone(w)
+
+    expect(alertText(w)).toBe('Something went wrong. Please try again.')
   })
 
   it('does nothing for an invalid number', async () => {
     const w = await mountLogin()
     await signInWithPhone(w, '024412345678')
 
-    expect(user.checkPhoneStatus).not.toHaveBeenCalled()
+    expect(user.login).not.toHaveBeenCalled()
   })
 
   it('shows progress and blocks a second submit while signing in', async () => {
     let finish!: (v: unknown) => void
-    user.checkPhoneStatus.mockReturnValue(new Promise((res) => { finish = res }))
+    user.login.mockReturnValue(new Promise((res) => { finish = res }))
     const w = await mountLogin()
     await typeId(w, PHONE)
     await w.find('#password').setValue(PASSWORD)
@@ -339,13 +342,12 @@ describe('Login: signing in with a phone', () => {
     expect(submitBtn(w).text()).toContain('Signing in...')
     expect(submitBtn(w).attributes('disabled')).toBeDefined()
 
-    finish({ status: 'new_customer' })
+    finish({})
     await flushPromises()
-    expect(submitBtn(w).text()).toBe('Sign in')
   })
 
   it('clears an old error when the customer tries again', async () => {
-    user.login.mockRejectedValueOnce(new Error('401'))
+    user.login.mockRejectedValueOnce(new ApiError('Invalid credentials', 401))
     const w = await mountLogin()
     await signInWithPhone(w)
     expect(hasAlert(w)).toBe(true)
@@ -356,89 +358,11 @@ describe('Login: signing in with a phone', () => {
   })
 })
 
-describe('Login: existing customer who never set a password', () => {
-  const reachVerify = async () => {
-    user.checkPhoneStatus.mockResolvedValue({ status: 'existing_customer_no_password' })
-    const w = await mountLogin()
-    await signInWithPhone(w)
-    return w
-  }
-
-  it('texts a code and asks for it, without signing in', async () => {
-    const w = await reachVerify()
-
-    expect(user.sendSetupOTP).toHaveBeenCalledWith(E164)
-    expect(user.login).not.toHaveBeenCalled()
-    expect(w.text()).toContain('Quick verification')
-    expect(w.text()).toContain(DISPLAY)
-    expect(w.findAll('input[inputmode="numeric"]')).toHaveLength(6)
-    expect(submitBtn(w).text()).toBe('Activate account')
-  })
-
-  it('needs all 6 digits before Activate is enabled', async () => {
-    const w = await reachVerify()
-    expect(submitBtn(w).attributes('disabled')).toBeDefined()
-
-    await fillOtp(w, '12345')
-    expect(submitBtn(w).attributes('disabled')).toBeDefined()
-
-    await fillOtp(w, '123456')
-    expect(submitBtn(w).attributes('disabled')).toBeUndefined()
-  })
-
-  it('activates with the code and the password already typed, then signs the customer in', async () => {
-    const w = await reachVerify()
-    await fillOtp(w, '482915')
-    await submit(w)
-
-    expect(user.setupPassword).toHaveBeenCalledWith(E164, '482915', PASSWORD)
-    expect(w.emitted('login-success')).toEqual([[{ destination: 'new', action: 'setup' }]])
-    expect(w.emitted('close')).toHaveLength(1)
-  })
-
-  it('shows why activation failed and stays put', async () => {
-    user.setupPassword.mockRejectedValue(new Error('Invalid code'))
-    const w = await reachVerify()
-    await fillOtp(w)
-    await submit(w)
-
-    expect(alertText(w)).toBe('Invalid code')
-    expect(w.emitted('login-success')).toBeUndefined()
-  })
-
-  it('resends the code on request', async () => {
-    const w = await reachVerify()
-    user.sendSetupOTP.mockClear()
-    await button(w, 'Resend code').trigger('click')
-    await flushPromises()
-
-    expect(user.sendSetupOTP).toHaveBeenCalledWith(E164)
-  })
-
-  it('reports a failed resend', async () => {
-    const w = await reachVerify()
-    user.sendSetupOTP.mockRejectedValue(new Error('SMS down'))
-    await button(w, 'Resend code').trigger('click')
-    await flushPromises()
-
-    expect(alertText(w)).toBe('SMS down')
-  })
-
-  it('snaps back to plain sign-in if the customer edits the number', async () => {
-    const w = await reachVerify()
-    await fillOtp(w)
-    await w.find('#identifier').trigger('input')
-
-    expect(w.text()).not.toContain('Quick verification')
-    expect(submitBtn(w).text()).toBe('Sign in')
-  })
-})
-
 describe('Login: the six code boxes', () => {
   const openBoxes = async () => {
-    user.checkPhoneStatus.mockResolvedValue({ status: 'existing_customer_no_password' })
-    const w = await mountLogin()
-    await signInWithPhone(w)
+    const w = await mountLogin({ inline: true, initialView: 'signup' })
+    await typeId(w, PHONE)
+    await submit(w)
     return w
   }
   const boxes = (w: W) => w.findAll('input[inputmode="numeric"]')
@@ -463,7 +387,6 @@ describe('Login: the six code boxes', () => {
     await flushPromises()
 
     expect(values(w)).toBe('123456')
-    expect(submitBtn(w).attributes('disabled')).toBeUndefined()
   })
 
   it('Backspace clears the box, or steps back and clears the previous one when already empty', async () => {
@@ -497,7 +420,6 @@ describe('Login: signing in with an email', () => {
     await submit(w)
 
     expect(user.loginWithEmail).toHaveBeenCalledWith('ama@example.com', PASSWORD)
-    expect(user.checkPhoneStatus).not.toHaveBeenCalled()
     expect(w.emitted('login-success')).toEqual([[{ destination: 'new', action: 'login' }]])
     expect(w.emitted('close')).toHaveLength(1)
   })
@@ -713,6 +635,13 @@ describe('Login: creating an account', () => {
       expect(authService.sendSetupOtp).toHaveBeenCalledWith({ phone: E164 })
       expect(w.text()).toContain('Step 2 of 2')
       expect(w.text()).toContain(`Code sent to ${DISPLAY}`)
+    })
+
+    it('tells a number that already has an account where to go, in words that fit every number', async () => {
+      const w = await mountLogin({ inline: true, initialView: 'signup' })
+      await goStep2Phone(w)
+
+      expect(w.text()).toContain('No code? If this number already has an account, we texted you how to sign in.')
     })
 
     it('shows the server\'s reason and stays on step 1 when the code cannot be sent', async () => {
@@ -952,7 +881,6 @@ describe('Login: readable and easy to tap', () => {
   })
 
   it('uses no text-xs on the signup step after the phone is entered', async () => {
-    user.checkPhoneStatus.mockResolvedValue({ exists: false, hasPassword: false })
     const w = await mountLogin({ inline: true, initialView: 'signup' })
     await typeId(w, PHONE)
     await flushPromises()

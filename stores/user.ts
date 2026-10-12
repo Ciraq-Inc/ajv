@@ -44,7 +44,6 @@ export interface UserState {
   selectedCompany: LinkedCompany | null;
   companies: LinkedCompany[];
   customerAuthToken: string | null;
-  phoneStatus: string | null;
   phoneVerifying: string | null;
   otpSent: boolean;
   isLoading: boolean;
@@ -96,7 +95,6 @@ export const useUserStore = defineStore('user', {
     selectedCompany: null,
     companies: [],
     customerAuthToken: null,
-    phoneStatus: null,
     phoneVerifying: null,
     otpSent: false,
     isLoading: false,
@@ -203,71 +201,6 @@ export const useUserStore = defineStore('user', {
     // -------------------------------------------------------------------
     // Auth flows
     // -------------------------------------------------------------------
-
-    async checkPhoneStatus(phone: string): Promise<{ status?: string; registered?: boolean }> {
-      this.isLoading = true;
-      this.error = null;
-      try {
-        const formattedPhone = this.formatPhoneNumber(phone);
-        const data = await this._customerAuthService().checkPhone({ phone: formattedPhone });
-        if (!data.success) throw new Error(data.message ?? 'Failed to check phone status');
-        this.phoneStatus = (data.data as { status?: string }).status ?? null;
-        this.phoneVerifying = formattedPhone;
-        return data.data as { status?: string; registered?: boolean };
-      } catch (error: unknown) {
-        console.error('Error checking phone status:', error);
-        this.error = error instanceof Error ? error.message : 'Failed to check phone number';
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    async sendSetupOTP(phone: string): Promise<unknown> {
-      this.isLoading = true;
-      this.error = null;
-      try {
-        const formattedPhone = this.formatPhoneNumber(phone);
-        const data = await this._customerAuthService().sendSetupOtp({ phone: formattedPhone });
-        if (!data.success) throw new Error(data.message ?? 'Failed to send OTP');
-        this.otpSent = true;
-        this.phoneVerifying = formattedPhone;
-        return data.data;
-      } catch (error: unknown) {
-        console.error('Error sending setup OTP:', error);
-        this.error = error instanceof Error ? error.message : 'Failed to send verification code';
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    async setupPassword(phone: string, otp: string, password: string): Promise<unknown> {
-      this.isLoading = true;
-      this.error = null;
-      try {
-        const formattedPhone = this.formatPhoneNumber(phone);
-        const data = await this._customerAuthService().setupPassword({
-          phone: formattedPhone,
-          otp,
-          password,
-        });
-        if (!data.success) throw new Error(data.message ?? 'Failed to setup password');
-        this.applyCustomerAuthPayload((data.data as unknown) as CustomerAuthPayload);
-
-        console.log('Password setup successful! User logged in:', this.masterCustomer);
-
-        await this.loadUserStats();
-
-        return data.data;
-      } catch (error: unknown) {
-        console.error('Error setting up password:', error);
-        this.error = error instanceof Error ? error.message : 'Failed to setup password';
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
 
     async register(registrationData: {
       phone: string;
@@ -900,7 +833,6 @@ export const useUserStore = defineStore('user', {
       this.customerAuthToken = null;
       this.phoneVerifying = null;
       this.otpSent = false;
-      this.phoneStatus = null;
       this.nextCursor = null;
       this.orders = [];
       if (typeof window !== 'undefined') {
