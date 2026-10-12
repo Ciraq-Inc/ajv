@@ -178,7 +178,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import { useCrossTenantReports } from '~/composables/useCrossTenantReports'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, UserGroupIcon, CheckCircleIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 
@@ -206,17 +206,12 @@ interface Customer {
   [key: string]: unknown;
 }
 
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
-}
-
 // TODO: remove once services/ are .ts
 interface ReportsServiceShape {
   exportCustomersCsv: () => Promise<Blob>;
 }
 
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reports = useCrossTenantReports()
 const reportsService = createReportsExportService(useApi()) as unknown as ReportsServiceShape
 
 // Reactive data
@@ -262,7 +257,7 @@ const totalVipCustomers = computed<number>(() => {
 // Fetch summary data from the cross-tenant summary API
 const fetchSummary = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/customers/cross-tenant/summary')
+    const response = await reports.getEntitySummary('customers')
     if (response.success) {
       summaryData.value = (response.data ?? []) as CompanySummary[]
     } else {
@@ -278,7 +273,7 @@ const fetchSummary = async (): Promise<void> => {
 // Fetch customers list (simplified - no pagination, search, or filtering)
 const fetchCustomers = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/customers/cross-tenant/dataview')
+    const response = await reports.getEntityDataview('customers')
     if (response.success) {
       customers.value = (response.data ?? []) as Customer[]
     } else {
@@ -347,7 +342,7 @@ const formatDate = (dateString: string | undefined): string => {
 // Export functions
 const exportToJSON = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/customers/cross-tenant/export?format=json')
+    const response = await reports.exportEntityJson('customers')
     if (response.success && response.data) {
       const jsonString = JSON.stringify(response.data, null, 2)
       const blob = new Blob([jsonString], { type: 'application/json' })

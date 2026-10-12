@@ -283,7 +283,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import { useCrossTenantReports } from '~/composables/useCrossTenantReports'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import type { PurchaseItemLine, PaginationMeta } from '~/services/analytics/reportsExportService'
 import {
@@ -309,12 +309,7 @@ interface SummaryResponse {
   [key: string]: unknown;
 }
 
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (url: string) => Promise<SummaryResponse>;
-}
-
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reports = useCrossTenantReports()
 const reportsService = createReportsExportService(useApi())
 
 // Reactive data
@@ -352,11 +347,10 @@ const productsError = ref<string | null>(null)
 // Fetch summary data from the cross-tenant summary API
 const fetchSummary = async (): Promise<void> => {
   try {
-    const params = new URLSearchParams()
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-
-    const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/purchase-items?${params}`)
+    const response = await reports.getPurchaseSummary({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+    })
     if (response.success) {
       summary.value = response
     } else {
@@ -371,7 +365,7 @@ const fetchSummary = async (): Promise<void> => {
 // Fetch sample purchase items
 const fetchPurchaseItems = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/reports/cross-tenant/purchase-items/dataview')
+    const response = await reports.getPurchaseSample()
     if (response.success) {
       purchaseItems.value = (response.data ?? []) as PurchaseItem[]
     } else {
@@ -464,34 +458,6 @@ const formatDate = (dateString: string | undefined): string => {
 }
 
 // Export functions
-const exportToJSON = async (): Promise<void> => {
-  try {
-    const params = new URLSearchParams()
-    params.append('format', 'json')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-
-    const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/purchase-items/export?${params}`)
-    if (response.success && response.data) {
-      const jsonString = JSON.stringify(response.data, null, 2)
-      const blob = new Blob([jsonString], { type: 'application/json' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cross-tenant-purchase-summary_${new Date().toISOString().split('T')[0] ?? ''}.json`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
-  } catch (err) {
-    console.error('Export error:', err)
-    alert('Export failed. Please try again.')
-  }
-}
-
 const exportToCSV = async (): Promise<void> => {
   exportingSummary.value = true
   try {
