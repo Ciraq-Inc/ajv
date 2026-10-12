@@ -2400,6 +2400,7 @@ import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
+import { MAX_PAYMENT_REFERENCE, normalizePaymentReference } from '~/utils/manualPayment'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import {
   ArrowPathIcon,
@@ -5618,14 +5619,20 @@ const handlePharmacyContactStatus = async ({ pharmacy, action, note }: { pharmac
 // and sends the order out. A bare status change would do neither.
 const confirmPaymentReceived = async () => {
   if (!selectedRequest.value) return
-  const ok = window.confirm('Confirm that you have received payment for this order? This credits the pharmacies and sends the order out.')
-  if (!ok) {
+  const entered = window.prompt('You are confirming that payment for this order was received. This credits the pharmacies and sends the order out.\n\nEnter the receipt or transfer number:')
+  if (entered === null) {
     selectedStatus.value = ''
+    return
+  }
+  const reference = normalizePaymentReference(entered)
+  if (!reference) {
+    selectedStatus.value = ''
+    showMessage(`A receipt or transfer number (up to ${MAX_PAYMENT_REFERENCE} characters) is required to confirm payment`, 'error')
     return
   }
   loading.value = true
   try {
-    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/confirm-manual-payment`, { method: 'manual' })
+    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/confirm-manual-payment`, { method: 'manual', reference })
     selectedStatus.value = ''
     showStatusOverride.value = false
     showMessage(res?.message || 'Payment confirmed', 'success')
