@@ -5676,11 +5676,7 @@ const updateStatus = async () => {
       logisticsAssessment.value = null
     }
   } catch (e) {
-    if ((e as { code?: string }).code === 'BACKWARDS_TRANSITION') {
-      showMessage('This would move backwards. Use "Override" to force it.', 'error')
-    } else {
-      showMessage(errMsg(e) || 'Failed to update status', 'error')
-    }
+    showMessage(errMsg(e) || 'Failed to update status', 'error')
   } finally {
     loading.value = false
   }
