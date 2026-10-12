@@ -841,6 +841,14 @@
 
                         <!-- Pay -->
                         <div class="space-y-3">
+                            <div v-if="unverifiedPaystack && String(unverifiedPaystack.requestId) === String(selectedRequest.id)"
+                                data-testid="unverified-payment" class="rounded-xl bg-amber-50 px-4 py-3">
+                                <p class="text-base text-ink-900">We could not confirm your card payment yet. If you were charged, check again before paying a second time.</p>
+                                <button type="button" @click="retryPaystackCheck" :disabled="payingRequest"
+                                    class="mt-3 flex min-h-[52px] w-full items-center justify-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                                    Check my payment again
+                                </button>
+                            </div>
                             <!-- The option that will work comes first, in reading and tab order too -->
                             <template v-for="method in payMethodOrder" :key="method">
                                 <button v-if="method === 'wallet'" type="button" @click="payForRequest(selectedRequest.id, 'wallet')"
@@ -3239,6 +3247,10 @@ const chooseDeliveryRate = (requestId: number | string, rate: { provider_code?: 
     // Picking a rate IS picking Delivery — select the method so totals + pay follow.
     if (selectedPaymentMethodByRequest.value[requestId] !== 'delivery') {
         choosePaymentMethod(requestId, 'delivery')
+    } else if (overrideMethodPickerFor.value[requestId] && !deliveryContactNeeded(selectedRequest.value)) {
+        // Delivery is already the method, so only the rate changed: save it now, otherwise the
+        // total shown here is not the one the server charges.
+        applyMethodSwitch(requestId, 'delivery')
     }
 }
 const submitFulfillmentChoice = async (requestId: number | string, method: string): Promise<{ data?: unknown; message?: string }> => {
@@ -3272,23 +3284,27 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
     payError.value = ''
 
     const request = selectedRequest.value
-    if (requiresMethodSelection(request)) {
-        const chosen = selectedPaymentMethodByRequest.value[id]
-        if (!chosen) {
-            payError.value = 'Choose pickup or delivery first.'
-            return
-        }
-        try {
-            await submitFulfillmentChoice(id, chosen)
-        } catch (err) {
-            payError.value = err instanceof Error ? err.message : 'We could not save your choice. Please try again.'
-            return
-        }
+    const needsChoice = requiresMethodSelection(request)
+    const chosen = selectedPaymentMethodByRequest.value[id]
+    if (needsChoice && !chosen) {
+        payError.value = 'Choose pickup or delivery first.'
+        return
     }
 
+    // Claim the button before the first await, or a second tap during the save sends a second payment.
     payingRequest.value = true
     payingMethod.value = method
+    let handedToPaystack = false
     try {
+        if (needsChoice) {
+            try {
+                await submitFulfillmentChoice(id, chosen as string)
+            } catch (err) {
+                payError.value = err instanceof Error ? err.message : 'We could not save your choice. Please try again.'
+                return
+            }
+        }
+
         paymentShortfall.value = { requestId: null, amount: 0 }
 
         const opts = paymentOptionsByRequest.value[id]
@@ -3302,6 +3318,8 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
             if (!resData?.authorization_url) {
                 throw new Error('Paystack checkout could not be started')
             }
+            // Stay locked while the browser leaves: re-enabling Pay here would let a second checkout start.
+            handedToPaystack = true
             window.location.assign(resData.authorization_url)
             return
         }
@@ -3326,6 +3344,47 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
             payError.value = e.message ?? `We could not start your ${method === 'paystack' ? 'card' : 'wallet'} payment. Nothing was charged. Please try again.`
         }
     } finally {
+        if (!handedToPaystack) {
+            payingRequest.value = false
+            payingMethod.value = ''
+        }
+    }
+}
+
+// Coming back with the Back button restores this page as it was, still locked.
+const unlockAfterBackNavigation = (event: Event): void => {
+    if ((event as PageTransitionEvent).persisted) {
+        payingRequest.value = false
+        payingMethod.value = ''
+    }
+}
+
+// A Paystack payment we could not confirm. The return link is cleaned out of the address bar, so
+// keep the reference here to let the customer ask again while the order still waits for payment.
+const unverifiedPaystack = ref<{ requestId: number | string; reference: string } | null>(null)
+
+const confirmPaystackReference = async (requestId: number | string, reference: string): Promise<void> => {
+    payingRequest.value = true
+    payingMethod.value = 'paystack'
+    try {
+        const res = await apiCall('POST', `/api/order-requests/customer/${requestId}/pay/paystack/verify`, {
+            reference
+        })
+        unverifiedPaystack.value = null
+        await fetchWalletBalance()
+        await fetchMyRequests({ silent: true })
+        await openRequestById(Number(requestId), { silent: true })
+        selectedRequest.value = null
+        showPaymentSuccessAnim.value = true
+        showToast(res.message ?? 'Payment completed successfully')
+    } catch (err) {
+        unverifiedPaystack.value = { requestId, reference }
+        await fetchWalletBalance()
+        await fetchMyRequests({ silent: true })
+        await openRequestById(Number(requestId), { silent: true })
+        showToast(err instanceof Error ? err.message : 'Failed to verify Paystack payment', 'error')
+    } finally {
+        await clearRequestPaymentQuery(Number(requestId))
         payingRequest.value = false
         payingMethod.value = ''
     }
@@ -3338,28 +3397,13 @@ const verifyReturnedPaystackRequestPayment = async (): Promise<void> => {
 
     if (paymentMarker !== 'paystack' || !reference || !requestId || payingRequest.value) return
 
-    payingRequest.value = true
-    payingMethod.value = 'paystack'
-    try {
-        const res = await apiCall('POST', `/api/order-requests/customer/${requestId}/pay/paystack/verify`, {
-            reference
-        })
-        await fetchWalletBalance()
-        await fetchMyRequests({ silent: true })
-        await openRequestById(requestId, { silent: true })
-        selectedRequest.value = null
-        showPaymentSuccessAnim.value = true
-        showToast(res.message ?? 'Payment completed successfully')
-    } catch (err) {
-        await fetchWalletBalance()
-        await fetchMyRequests({ silent: true })
-        await openRequestById(requestId, { silent: true })
-        showToast(err instanceof Error ? err.message : 'Failed to verify Paystack payment', 'error')
-    } finally {
-        await clearRequestPaymentQuery(requestId)
-        payingRequest.value = false
-        payingMethod.value = ''
-    }
+    await confirmPaystackReference(requestId, reference)
+}
+
+const retryPaystackCheck = async (): Promise<void> => {
+    const pending = unverifiedPaystack.value
+    if (!pending || payingRequest.value) return
+    await confirmPaystackReference(pending.requestId, pending.reference)
 }
 
 const respondToDecision = async (decision: RequestDecision, response: string): Promise<void> => {
@@ -3778,6 +3822,7 @@ const statusProgress = (s: string): number => (({
 const showToast = (text: string, type = 'success'): void => { toast.value = { text, type }; setTimeout(() => { toast.value = null }, 4000) }
 
 onMounted(async () => {
+    window.addEventListener('pageshow', unlockAfterBackNavigation)
     await restorePrescriptionsFromSession()
     await loadSavedHomeLocation()
     await fetchRequestSettings()
@@ -3847,6 +3892,7 @@ watchEffect(() => {
 })
 
 onUnmounted(() => {
+    window.removeEventListener('pageshow', unlockAfterBackNavigation)
     // Flush any pending draft save immediately so a quick tab switch
     // (before the 1-second debounce fires) doesn't lose entered medications.
     if (isNewView.value) {

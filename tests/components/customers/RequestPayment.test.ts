@@ -21,7 +21,8 @@ vi.mock('~/stores/user', () => ({ useUserStore: () => store.state }))
 
 const navigateTo = vi.fn()
 vi.stubGlobal('navigateTo', navigateTo)
-vi.stubGlobal('useRoute', () => ({ query: {} }))
+const routeQuery = vi.hoisted(() => ({ value: {} as Record<string, string> }))
+vi.stubGlobal('useRoute', () => ({ get query() { return routeQuery.value } }))
 vi.stubGlobal('useRouter', () => ({ push: vi.fn(), replace: vi.fn() }))
 vi.stubGlobal('useRuntimeConfig', () => ({ public: { apiBase: 'http://api.test' } }))
 
@@ -37,7 +38,7 @@ const OPTIONS = {
   delivery: { fee: 5, total: 55, total_fee_applied: 50 },
 }
 
-interface Setup { detail?: Record<string, unknown>, options?: Record<string, unknown>, balance?: number, pay?: () => Promise<unknown> }
+interface Setup { detail?: Record<string, unknown>, options?: Record<string, unknown>, balance?: number, pay?: () => Promise<unknown>, verify?: () => Promise<unknown>, initialize?: () => Promise<unknown> }
 const open = async (s: Setup = {}) => {
   store.state.getProfile.mockResolvedValue({})
   service.getCustomerSettings.mockResolvedValue({ data: {} })
@@ -46,6 +47,8 @@ const open = async (s: Setup = {}) => {
     if (url === '/api/order-requests/customer') return { data: LIST }
     if (url === '/api/order-requests/customer/7/payment-options') return { data: { ...OPTIONS, ...(s.options ?? {}) } }
     if (url === '/api/order-requests/customer/7/pay' && opts?.method === 'POST') return s.pay ? s.pay() : { message: 'Paid' }
+    if (url === '/api/order-requests/customer/7/pay/paystack/verify' && opts?.method === 'POST') return s.verify ? s.verify() : { message: 'Paid' }
+    if (url === '/api/order-requests/customer/7/pay/paystack/initialize' && opts?.method === 'POST') return s.initialize ? s.initialize() : { data: { authorization_url: 'https://checkout.paystack.test/abc' } }
     if (url === '/api/order-requests/customer/7') {
       return {
         data: {
@@ -73,6 +76,7 @@ const click = async (e: HTMLElement | null) => { if (!e) throw new Error('missin
 
 beforeEach(() => {
   vi.clearAllMocks()
+  routeQuery.value = {}
   localStorage.clear()
   sessionStorage.clear()
   store.state = {
@@ -597,5 +601,128 @@ describe('Request payment: look', () => {
 
     expect(html).not.toMatch(/\[#[0-9a-fA-F]{3,6}\]/)
     expect(html).not.toContain('zinc-')
+  })
+})
+
+describe('Request payment: paying twice, wrong amounts and failed checks', () => {
+  const callsTo = (suffix: string, method: string) =>
+    api.request.mock.calls.filter(([url, o]) => String(url).endsWith(suffix) && o?.method === method)
+  const slowFulfillment = () => {
+    const original = api.request.getMockImplementation()!
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    api.request.mockImplementation(async (url: string, opts?: { method?: string }) => {
+      if (url.endsWith('/fulfillment') && opts?.method === 'PUT') { await gate; return { data: {} } }
+      return original(url, opts)
+    })
+    return release
+  }
+
+  it('saves the choice and takes the payment once when Pay is tapped twice before the first tap finishes', async () => {
+    await open()
+    await click(radio('Delivery'))
+    const release = slowFulfillment()
+    const pay = btn('Pay with wallet')!
+
+    pay.click()
+    pay.click()
+    release()
+    await flushPromises()
+
+    expect(callsTo('/fulfillment', 'PUT')).toHaveLength(1)
+    expect(callsTo('/pay', 'POST')).toHaveLength(1)
+  })
+
+  it('does not take the card payment twice when the other Pay button is tapped while the choice is saving', async () => {
+    await open()
+    await click(radio('Delivery'))
+    const release = slowFulfillment()
+
+    btn('Pay with wallet')!.click()
+    btn('Pay with card or mobile money')!.click()
+    release()
+    await flushPromises()
+
+    expect(callsTo('/pay', 'POST').length + callsTo('/pay/paystack/initialize', 'POST').length).toBe(1)
+  })
+
+  it('keeps Pay off once the customer has been sent to Paystack, so a second checkout cannot start', async () => {
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => {})
+    await open({ detail: { fulfillment_type: 'delivery' } })
+
+    await click(btn('Pay with card or mobile money'))
+
+    expect(assign).toHaveBeenCalledWith('https://checkout.paystack.test/abc')
+    expect(btn('Opening Paystack')!.disabled).toBe(true)
+    expect(btn('Pay with wallet')!.disabled).toBe(true)
+    assign.mockRestore()
+  })
+
+  it('lets Pay work again if the browser restores this page after the customer backed out of Paystack', async () => {
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => {})
+    await open({ detail: { fulfillment_type: 'delivery' } })
+    await click(btn('Pay with card or mobile money'))
+    expect(btn('Opening Paystack')!.disabled).toBe(true)
+
+    window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }))
+    await flushPromises()
+
+    expect(btn('Pay with wallet')!.disabled).toBe(false)
+    assign.mockRestore()
+  })
+
+  describe('coming back from Paystack when the check fails', () => {
+    const comeBack = () => { routeQuery.value = { requestPayment: 'paystack', reference: 'ref_77', requestId: '7' } }
+    const DELIVERY = { fulfillment_type: 'delivery' }
+    const verifies = () => callsTo('/pay/paystack/verify', 'POST')
+
+    it('offers to check the same payment again while the order still waits for payment', async () => {
+      comeBack()
+      await open({ detail: DELIVERY, verify: () => Promise.reject(new Error('We could not confirm your payment yet.')) })
+
+      expect(btn('Check my payment again')).not.toBeNull()
+    })
+
+    it('checks the same reference again when asked, and stops offering it once the payment is confirmed', async () => {
+      comeBack()
+      let checks = 0
+      await open({
+        detail: DELIVERY,
+        verify: async () => {
+          checks += 1
+          if (checks === 1) throw new Error('We could not confirm your payment yet.')
+          return { message: 'Payment completed successfully' }
+        },
+      })
+
+      await click(btn('Check my payment again'))
+
+      expect(verifies()).toHaveLength(2)
+      expect(JSON.parse(verifies()[1]![1].body)).toEqual({ reference: 'ref_77' })
+      expect(dialog()).toBeNull()
+    })
+
+    it('offers nothing when no payment check has failed', async () => {
+      await open({ detail: DELIVERY })
+
+      expect(btn('Check my payment again')).toBeNull()
+    })
+  })
+
+  describe('changing the delivery speed after delivery is locked in', () => {
+    const RATES = [
+      { provider_code: 'bolt', provider_name: 'Bolt', service_level: 'standard', amount: 12, eta_minutes: 40 },
+      { provider_code: 'bolt', provider_name: 'Bolt', service_level: 'express', amount: 20, eta_minutes: 20 },
+    ]
+    const fulfilmentBodies = () => callsTo('/fulfillment', 'PUT').map(([, o]) => JSON.parse(o.body))
+
+    it('saves the speed the customer picks, so the amount charged is the amount shown', async () => {
+      await open({ detail: { fulfillment_type: 'delivery' }, options: { delivery: { fee: 5, total: 55, total_fee_applied: 50, provider_rates: RATES } } })
+      await click(find(dialog()!, 'button', ' method'))
+
+      await click(radio('express'))
+
+      expect(fulfilmentBodies()).toEqual([expect.objectContaining({ fulfillment_type: 'delivery', provider_code: 'bolt', service_level: 'express' })])
+    })
   })
 })
