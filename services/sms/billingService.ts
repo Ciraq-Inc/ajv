@@ -67,6 +67,17 @@ export interface ResolveIssueData {
   [key: string]: unknown;
 }
 
+/**
+ * A retry or double-click carrying the same key is applied once by the server.
+ * Use a new key for each distinct top-up.
+ */
+export interface TopUpOptions {
+  idempotencyKey?: string;
+}
+
+const idempotencyOptions = ({ idempotencyKey }: TopUpOptions) =>
+  idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined;
+
 export const createBillingService = (api: ApiInstance) => ({
   // ========== Company Endpoints ==========
 
@@ -90,14 +101,14 @@ export const createBillingService = (api: ApiInstance) => ({
 
   // ========== Admin Endpoints ==========
 
-  /** Top up SMS credits for a company. POST /api/sms-credits/admin/topup */
-  topUpCredits(data: TopUpCreditsData): Promise<ApiEnvelope<unknown>> {
-    return api.post('/api/sms-credits/admin/topup', data);
+  /** Top up SMS credits for a company. POST /api/sms-credits/admin/topup-sms */
+  topUpCredits(data: TopUpCreditsData, opts: TopUpOptions = {}): Promise<ApiEnvelope<unknown>> {
+    return api.post('/api/sms-credits/admin/topup-sms', data, idempotencyOptions(opts));
   },
 
   /** Top up money balance for a company. POST /api/sms-credits/admin/topup-money */
-  topUpMoney(data: TopUpMoneyData): Promise<ApiEnvelope<unknown>> {
-    return api.post('/api/sms-credits/admin/topup-money', data);
+  topUpMoney(data: TopUpMoneyData, opts: TopUpOptions = {}): Promise<ApiEnvelope<unknown>> {
+    return api.post('/api/sms-credits/admin/topup-money', data, idempotencyOptions(opts));
   },
 
   /** Purchase SMS credits from money balance for a company. POST /api/sms-credits/admin/purchase */

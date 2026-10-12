@@ -730,6 +730,11 @@ const lowBalanceCount = computed<number>(() =>
   billingHealthRows.value.filter(h => h.sms_balance < 100).length
 )
 
+// One key per top-up. A retry after a timeout or a double-click reuses it, so the server credits once;
+// changing the company or amount makes it a different top-up.
+let topUpKey: string | null = null
+watch(() => [topUpForm.value.company_id, topUpForm.value.amount], () => { topUpKey = null })
+
 const canSubmitTopUp = computed<boolean>(() =>
   !!topUpForm.value.company_id &&
   topUpForm.value.amount !== null &&
@@ -1076,7 +1081,9 @@ const handleTopUp = async (): Promise<void> => {
       description: topUpForm.value.reason || 'Admin top-up'
     }
 
-    await topUpMoney(topUpData)
+    topUpKey ??= crypto.randomUUID()
+    await topUpMoney(topUpData, { idempotencyKey: topUpKey })
+    topUpKey = null
 
     // Refresh billing health data
     await fetchBillingHealth()

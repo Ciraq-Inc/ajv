@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { createBillingService } from '~/services/sms/billingService'
-import type { BillingTransactionFilters, BillingIssueFilters, AuditLogFilters, TopUpCreditsData, TopUpMoneyData, ResolveIssueData, AdminPurchaseCreditsData, AdminPurchaseCreditsResult } from '~/services/sms/billingService'
+import type { BillingTransactionFilters, BillingIssueFilters, AuditLogFilters, TopUpCreditsData, TopUpMoneyData, TopUpOptions, ResolveIssueData, AdminPurchaseCreditsData, AdminPurchaseCreditsResult } from '~/services/sms/billingService'
 import type { SmsBalance, SmsTransaction, BillingHealth, BillingIssue, AuditLogEntry } from '~/services/types'
 
 export const useSMSBilling = () => {
@@ -81,12 +81,12 @@ export const useSMSBilling = () => {
 
   // ========== Admin Functions ==========
 
-  const topUpCredits = async (topUpData: TopUpCreditsData): Promise<unknown> => {
+  const topUpCredits = async (topUpData: TopUpCreditsData, opts?: TopUpOptions): Promise<unknown> => {
     loading.value = true
     error.value = null
 
     try {
-      const response = await service.topUpCredits(topUpData)
+      const response = await service.topUpCredits(topUpData, opts)
       return response
     } catch (err) {
       const e = err as Error
@@ -98,12 +98,12 @@ export const useSMSBilling = () => {
     }
   }
 
-  const topUpMoney = async (topUpData: TopUpMoneyData): Promise<unknown> => {
+  const topUpMoney = async (topUpData: TopUpMoneyData, opts?: TopUpOptions): Promise<unknown> => {
     loading.value = true
     error.value = null
 
     try {
-      const response = await service.topUpMoney(topUpData)
+      const response = await service.topUpMoney(topUpData, opts)
       return response
     } catch (err) {
       const e = err as Error
