@@ -175,6 +175,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE ?? process.env.API_BASE_URL ?? '',
+      // Keep the customer refresh token in the API's HttpOnly cookie, not localStorage. Needs app and API on the same site.
+      cookieRefresh: process.env.NUXT_PUBLIC_COOKIE_REFRESH === 'true',
       paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
       accessControlUsername: process.env.NUXT_PUBLIC_ACCESS_CONTROL_USERNAME || process.env.ACCESS_CONTROL_USERNAME || 'admin',
       accessControlPassword: process.env.NUXT_PUBLIC_ACCESS_CONTROL_PASSWORD || process.env.ACCESS_CONTROL_PASSWORD || ''

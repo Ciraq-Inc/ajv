@@ -341,6 +341,15 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
+   * Sign out of the HttpOnly-cookie session (cookie refresh mode): the refresh cookie is revoked and cleared.
+   * GET /api/auth/csrf, then POST /api/auth/logout
+   */
+  async endCookieSession(): Promise<void> {
+    const csrf = await api.get<{ csrf_token: string }>('/api/auth/csrf', { credentials: 'include' });
+    await api.post('/api/auth/logout', {}, { credentials: 'include', headers: { 'X-CSRF-Token': csrf.data?.csrf_token ?? '' } });
+  },
+
+  /**
    * Autocomplete address suggestions for the saved-location flow.
    * GET /api/auth/customer/autocomplete-location?q=&limit=
    */

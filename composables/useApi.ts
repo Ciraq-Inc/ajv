@@ -3,6 +3,7 @@
 
 import type { ApiEnvelope } from '~/services/types'
 import { friendlyApiMessage } from '~/utils/friendlyError'
+import { cookieRefreshEnabled } from '~/utils/cookieRefresh'
 
 // ---------------------------------------------------------------------------
 // Augmented error type so we can attach an HTTP status code to thrown errors
@@ -126,6 +127,25 @@ function getTokenType(accessToken: string): string | null {
   } catch {
     return null
   }
+}
+
+const CUSTOMER_ENDPOINT_PREFIXES = [
+  '/api/auth/customer',
+  '/api/order-requests/customer',
+  '/api/orders',
+  '/api/wallet',
+  '/api/customer',
+  '/api/professionals/customer',
+  '/api/oauth',
+]
+
+/** True when a 401 on this endpoint should be refreshed from the customer's HttpOnly cookie. */
+function usesCookieRefresh(endpoint: string): boolean {
+  if (!process.client || !cookieRefreshEnabled()) return false
+  if (window.location.pathname.match(/\/([^/]+)\/services/)) return false
+  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')) return false
+  if (CUSTOMER_ENDPOINT_PREFIXES.some(p => endpoint.startsWith(p))) return true
+  return !localStorage.getItem('adminToken')
 }
 
 function resolveRefreshToken(endpoint: string): string | null {
@@ -266,31 +286,71 @@ function getLoginUrl(): string {
 // Refresh-then-retry
 // ---------------------------------------------------------------------------
 
+async function postRefresh(
+  baseURL: string,
+  endpoint: string,
+  init: { headers?: Record<string, string>; body: Record<string, string>; credentials?: RequestCredentials },
+): Promise<string | null> {
+  try {
+    const response = await fetch(`${baseURL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...init.headers },
+      body: JSON.stringify(init.body),
+      ...(init.credentials ? { credentials: init.credentials } : {}),
+    })
+    if (!response.ok) return null
+    const data = await response.json() as {
+      success: boolean
+      access_token?: string
+      refresh_token?: string
+    }
+    if (!data.success || !data.access_token) return null
+    updateStoredTokens(endpoint, data.access_token, init.credentials ? null : (data.refresh_token ?? null))
+    return data.access_token
+  } catch {
+    return null
+  }
+}
+
+/** Refresh using the HttpOnly cookie. The CSRF token has to be asked for: its cookie is not readable from the API's host. */
+async function refreshFromCookie(baseURL: string, endpoint: string): Promise<string | null> {
+  try {
+    const csrfResponse = await fetch(`${baseURL}/api/auth/csrf`, { credentials: 'include' })
+    if (!csrfResponse.ok) return null
+    const csrf = await csrfResponse.json() as { data?: { csrf_token?: string } }
+    const csrfToken = csrf.data?.csrf_token
+    if (!csrfToken) return null
+    return await postRefresh(baseURL, endpoint, {
+      headers: { 'X-CSRF-Token': csrfToken },
+      body: {},
+      credentials: 'include',
+    })
+  } catch {
+    return null
+  }
+}
+
 async function tryRefresh(baseURL: string, endpoint: string): Promise<string | null> {
   // Deduplicate concurrent 401s — all latch onto the same in-flight refresh.
   if (refreshPromise) return refreshPromise
 
-  const rawRefreshToken = resolveRefreshToken(endpoint)
-  if (!rawRefreshToken) return null
+  const cookieMode = usesCookieRefresh(endpoint)
+  const storedRefreshToken = resolveRefreshToken(endpoint)
+  if (!cookieMode && !storedRefreshToken) return null
 
   refreshPromise = (async () => {
     try {
-      const response = await fetch(`${baseURL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: rawRefreshToken }),
-      })
-      if (!response.ok) return null
-      const data = await response.json() as {
-        success: boolean
-        access_token?: string
-        refresh_token?: string
+      if (cookieMode) {
+        const viaCookie = await refreshFromCookie(baseURL, endpoint)
+        if (viaCookie) {
+          // A token an earlier version left in localStorage is no longer needed there.
+          localStorage.removeItem('customerRefreshToken')
+          return viaCookie
+        }
+        // No usable cookie (e.g. a session from before the switch): the stored token still works.
+        if (!storedRefreshToken) return null
       }
-      if (!data.success || !data.access_token) return null
-      updateStoredTokens(endpoint, data.access_token, data.refresh_token ?? null)
-      return data.access_token
-    } catch {
-      return null
+      return await postRefresh(baseURL, endpoint, { body: { refresh_token: storedRefreshToken as string } })
     } finally {
       refreshPromise = null
     }

@@ -51,3 +51,78 @@ describe('customer session survives an expired access token', () => {
     expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith('/api/auth/refresh'))).toBe(false)
   })
 })
+
+// With cookie refresh switched on, the refresh token lives only in an HttpOnly
+// cookie. The browser cannot read the CSRF cookie from the API host, so it asks
+// the API for the token and sends it back with the refresh.
+describe('customer session refreshed from the HttpOnly cookie (cookie refresh on)', () => {
+  const cookieMode = () => vi.stubGlobal('useRuntimeConfig', () => ({ public: { apiBase: 'http://api.test', cookieRefresh: true } }))
+  const optionsOf = (fetchMock: ReturnType<typeof backend>, path: string) =>
+    fetchMock.mock.calls.find(([u]) => String(u) === `http://api.test${path}`)?.[1] as RequestInit
+
+  beforeEach(() => localStorage.removeItem('customerRefreshToken'))
+
+  it('refreshes with the cookie and the CSRF token, never sending or keeping a refresh token in the page', async () => {
+    const fetchMock = backend({
+      '/api/auth/customer/profile': (n) => (n === 1 ? json(401, { message: 'expired' }) : json(200, { success: true, data: { id: 7 } })),
+      '/api/auth/csrf': () => json(200, { success: true, data: { csrf_token: 'csrf-1' } }),
+      '/api/auth/refresh': () => json(200, { success: true, access_token: 'new-access', refresh_token: 'rotated-in-cookie' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    cookieMode()
+
+    const res = await useApi().get('/api/auth/customer/profile')
+
+    expect(res).toMatchObject({ success: true, data: { id: 7 } })
+    const refresh = optionsOf(fetchMock, '/api/auth/refresh')
+    expect(refresh.credentials).toBe('include')
+    expect((refresh.headers as Record<string, string>)['X-CSRF-Token']).toBe('csrf-1')
+    expect(JSON.parse(String(refresh.body))).not.toHaveProperty('refresh_token')
+    expect(optionsOf(fetchMock, '/api/auth/csrf').credentials).toBe('include')
+    expect(localStorage.getItem('customerAuthToken')).toBe('new-access')
+    expect(localStorage.getItem('customerRefreshToken')).toBeNull()
+  })
+
+  it('drops a refresh token left in localStorage by an earlier version once the cookie refresh works', async () => {
+    localStorage.setItem('customerRefreshToken', 'old-legacy')
+    vi.stubGlobal('fetch', backend({
+      '/api/auth/customer/profile': (n) => (n === 1 ? json(401, { message: 'expired' }) : json(200, { success: true, data: {} })),
+      '/api/auth/csrf': () => json(200, { success: true, data: { csrf_token: 'csrf-1' } }),
+      '/api/auth/refresh': () => json(200, { success: true, access_token: 'new-access', refresh_token: 'x' }),
+    }))
+    cookieMode()
+
+    await useApi().get('/api/auth/customer/profile')
+
+    expect(localStorage.getItem('customerRefreshToken')).toBeNull()
+  })
+
+  it('falls back to a legacy stored refresh token when there is no usable cookie, so nobody is logged out by the switch', async () => {
+    localStorage.setItem('customerRefreshToken', 'old-legacy')
+    const fetchMock = backend({
+      '/api/auth/customer/profile': (n) => (n === 1 ? json(401, { message: 'expired' }) : json(200, { success: true, data: {} })),
+      '/api/auth/csrf': () => json(200, { success: true, data: { csrf_token: 'csrf-1' } }),
+      '/api/auth/refresh': (n) => (n === 1 ? json(400, { message: 'refresh_token is required' }) : json(200, { success: true, access_token: 'via-legacy', refresh_token: 'x' })),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    cookieMode()
+
+    await useApi().get('/api/auth/customer/profile')
+
+    expect(JSON.parse(String(fetchMock.mock.calls.filter(([u]) => String(u).endsWith('/api/auth/refresh'))[1]![1]!.body))).toEqual({ refresh_token: 'old-legacy' })
+    expect(localStorage.getItem('customerAuthToken')).toBe('via-legacy')
+  })
+
+  it('treats a failed cookie refresh with nothing to fall back on as an expired session', async () => {
+    vi.stubGlobal('fetch', backend({
+      '/api/auth/customer/profile': () => json(401, { message: 'expired' }),
+      '/api/auth/csrf': () => json(200, { success: true, data: { csrf_token: 'csrf-1' } }),
+      '/api/auth/refresh': () => json(401, { message: 'Invalid refresh token' }),
+    }))
+    cookieMode()
+
+    await expect(useApi().get('/api/auth/customer/profile')).rejects.toMatchObject({ status: 401 })
+
+    expect(localStorage.getItem('customerAuthToken')).toBeNull()
+  })
+})

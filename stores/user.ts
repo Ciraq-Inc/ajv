@@ -17,6 +17,7 @@ import { createOrdersService } from '~/services/orders/ordersService';
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { releaseThisPhone, realPushBrowser } from '~/composables/usePushNotifications';
+import { cookieRefreshEnabled } from '~/utils/cookieRefresh';
 import type { CustomerProfile, LinkedCompany, Order, LocationSuggestion, ReverseGeocodeResult } from '~/services/types';
 
 // ---------------------------------------------------------------------------
@@ -148,8 +149,10 @@ export const useUserStore = defineStore('user', {
       this.companies = payload?.companies ?? [];
       this.selectedCompany = payload?.selected_company ?? this.companies[0] ?? null;
       this.customerAuthToken = payload?.token ?? null;
-      if (process.client && payload?.refresh_token) {
-        localStorage.setItem('customerRefreshToken', payload.refresh_token);
+      if (process.client) {
+        // With cookie refresh the API keeps the refresh token in an HttpOnly cookie; the page never holds it.
+        if (cookieRefreshEnabled()) localStorage.removeItem('customerRefreshToken');
+        else if (payload?.refresh_token) localStorage.setItem('customerRefreshToken', payload.refresh_token);
       }
       this.persistAuthData();
       this.authInitialized = true;
@@ -915,6 +918,10 @@ export const useUserStore = defineStore('user', {
           const service = this._customerAuthService();
           await releaseThisPhone({ browser: realPushBrowser(), unsubscribe: (endpoint) => service.unsubscribePush(endpoint) });
         } catch { /* signing out must always complete */ }
+        // The refresh cookie would otherwise sign them straight back in on the next 401.
+        if (cookieRefreshEnabled()) {
+          try { await this._customerAuthService().endCookieSession(); } catch { /* local sign-out still completes */ }
+        }
         this.clearAuthState();
       } catch (error: unknown) {
         console.error('Error logging out:', error);
