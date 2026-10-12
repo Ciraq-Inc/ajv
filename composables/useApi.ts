@@ -227,6 +227,23 @@ function clearAuthForEndpoint(endpoint: string): void {
   )
 }
 
+// /api/auth/* 401s normally mean wrong credentials, so they are not refreshed.
+// These ones are called with the customer's access token, so a 401 there means
+// the token expired and a silent refresh should be tried first.
+const REFRESHABLE_AUTH_ENDPOINTS = [
+  '/api/auth/customer/profile',
+  '/api/auth/customer/my-companies',
+  '/api/auth/customer/switch-company',
+  '/api/auth/customer/trigger-linking',
+  '/api/auth/customer/notification-preferences',
+]
+
+function canRefreshOn401(endpoint: string): boolean {
+  if (!endpoint.startsWith('/api/auth/')) return true
+  const path = endpoint.split('?')[0] as string
+  return REFRESHABLE_AUTH_ENDPOINTS.includes(path)
+}
+
 function getLoginUrl(): string {
   if (!process.client) return '/'
   const path = window.location.pathname
@@ -346,8 +363,8 @@ export const useApi = (): ApiInstance => {
     }
 
     // 401: attempt a silent token refresh, then retry once.
-    // Exclude auth endpoints — a 401 there means wrong credentials, not session expiry.
-    if (response.status === 401 && !_isRetry && !endpoint.startsWith('/api/auth/')) {
+    // Exclude credential endpoints (login, OTP, ...) — a 401 there means wrong credentials, not session expiry.
+    if (response.status === 401 && !_isRetry && canRefreshOn401(endpoint)) {
       const newToken = await tryRefresh(baseURL, endpoint)
       if (newToken) {
         return apiRequest<T>(endpoint, options, true)
