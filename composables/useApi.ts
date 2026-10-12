@@ -62,6 +62,18 @@ let refreshPromise: Promise<string | null> | null = null
 // Token helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * True on an /admin page while an admin is signed in. The admin portal calls shared
+ * endpoints (/api/orders, /api/wallet, ...) that customer pages call too; there the
+ * admin's token must win over a customer token left in the same browser.
+ */
+function onAdminPortal(endpoint: string): boolean {
+  if (!process.client) return false
+  if (!/^\/admin(\/|$)/.test(window.location.pathname)) return false
+  if (endpoint.startsWith('/api/driver') || endpoint.startsWith('/api/dispatch')) return false
+  return !!localStorage.getItem('adminToken')
+}
+
 /** Resolve the bearer token to inject, following the same priority as before. */
 function resolveToken(endpoint: string): string | null {
   if (!process.client) return null
@@ -80,6 +92,8 @@ function resolveToken(endpoint: string): string | null {
   } catch {
     // store not available yet
   }
+
+  if (onAdminPortal(endpoint)) return localStorage.getItem('adminToken')
 
   // Endpoint-prefix-specific fallbacks
   if (endpoint.startsWith('/api/driver')) {
@@ -144,6 +158,7 @@ function usesCookieRefresh(endpoint: string): boolean {
   if (!process.client || !cookieRefreshEnabled()) return false
   if (window.location.pathname.match(/\/([^/]+)\/services/)) return false
   if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')) return false
+  if (onAdminPortal(endpoint)) return false
   if (CUSTOMER_ENDPOINT_PREFIXES.some(p => endpoint.startsWith(p))) return true
   return !localStorage.getItem('adminToken')
 }
@@ -156,7 +171,10 @@ function resolveRefreshToken(endpoint: string): string | null {
     return localStorage.getItem(`company_${companyDomain}_refresh_token`)
   }
 
-  if (endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')) {
+  if (
+    endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/professionals/admin') || endpoint.startsWith('/api/sso')
+    || onAdminPortal(endpoint)
+  ) {
     return localStorage.getItem('adminRefreshToken')
   }
 
