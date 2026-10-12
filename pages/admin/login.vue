@@ -266,6 +266,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
+import { safeInternalPath } from '~/utils/safeInternalPath';
 
 // Define layout
 definePageMeta({
@@ -354,9 +355,9 @@ const redirectAfterLogin = (): void => {
   successMessage.value = message;
 
   setTimeout(() => {
-    const intendedRoute = localStorage.getItem('adminIntendedRoute');
+    const intendedRoute = safeInternalPath(localStorage.getItem('adminIntendedRoute'));
+    localStorage.removeItem('adminIntendedRoute');
     if (intendedRoute) {
-      localStorage.removeItem('adminIntendedRoute');
       void navigateTo(intendedRoute);
     } else {
       void navigateTo(dashboardRoute);
