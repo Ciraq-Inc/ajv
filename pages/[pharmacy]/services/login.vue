@@ -298,6 +298,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import { createPharmacyService } from '~/services/pharmacy/pharmacyService'
+import { defaultServicePage } from '~/utils/companyAccess'
 
 definePageMeta({
   layout: false,
@@ -397,10 +398,7 @@ const getPostLoginTarget = (): string => {
     return decodeURIComponent(redirect)
   }
   const companyStoreAny = companyStore as unknown as { userRole?: string }
-  const defaultDashboard = companyStoreAny.userRole === 'third_party_poster'
-    ? `/${companyDomain.value}/services/rigel-boards`
-    : `/${companyDomain.value}/services/sms-campaigns`
-  return defaultDashboard
+  return `/${companyDomain.value}/services/${defaultServicePage(companyStoreAny.userRole)}`
 }
 
 // Form state

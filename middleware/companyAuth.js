@@ -1,4 +1,6 @@
 // middleware/companyAuth.js
+import { canOpenServicePage, defaultServicePage, serviceSlugOf } from '~/utils/companyAccess'
+
 export default defineNuxtRouteMiddleware(async (to, from) => {
   // Skip on server side
   if (process.server) return
@@ -22,10 +24,17 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     if (redirectTarget) {
       return navigateTo(decodeURIComponent(redirectTarget))
     }
-    // Route recruiters to rigel-boards, others to sms-campaigns
-    const defaultDashboard = companyStore.userRole === 'third_party_poster' 
-      ? `/${companyDomain}/services/rigel-boards`
-      : `/${companyDomain}/services/sms-campaigns`
+    // Recruiters land on the hiring board, everyone else on orders
+    const defaultDashboard = `/${companyDomain}/services/${defaultServicePage(companyStore.userRole)}`
     return navigateTo(defaultDashboard)
+  }
+
+  // A role that may not open this page goes to its own landing page instead
+  if (companyStore.isLoggedIn) {
+    const slug = serviceSlugOf(to.path)
+    if (slug && !canOpenServicePage(companyStore.userRole, slug)) {
+      const companyDomain = to.path.match(/\/([^\/]+)\/services/)?.[1]
+      return navigateTo(`/${companyDomain}/services/${defaultServicePage(companyStore.userRole)}`)
+    }
   }
 })

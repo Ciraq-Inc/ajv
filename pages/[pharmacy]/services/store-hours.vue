@@ -130,6 +130,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 
 definePageMeta({
+    middleware: ['company-auth'],
     layout: 'company',
 })
 

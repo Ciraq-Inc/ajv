@@ -113,6 +113,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import { useApi } from '~/composables/useApi'
+import { canOpenServicePage, serviceSlugOf } from '~/utils/companyAccess'
 import {
   SwatchIcon,
   ChevronLeftIcon,
@@ -319,23 +320,15 @@ const allNavigationSections = computed(() => [
   },
 ])
 
-const navigationSections = computed(() => {
-  if (normalizedRole.value !== 'third_party_poster') {
-    return allNavigationSections.value
-  }
-
-  return allNavigationSections.value
+// Show only the pages this role can open (the server enforces the same rules).
+const navigationSections = computed(() =>
+  allNavigationSections.value
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => {
-        return (
-          item.path.endsWith('/services/rigel-boards') ||
-          item.path.endsWith('/services/sms-billing')
-        )
-      }),
+      items: section.items.filter((item) => canOpenServicePage(normalizedRole.value, serviceSlugOf(item.path))),
     }))
     .filter((section) => section.items.length > 0)
-})
+)
 
 // Toggle sidebar
 const toggleSidebar = () => {
