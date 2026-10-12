@@ -359,6 +359,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useCompanyStore } from '~/stores/company'
 import { usePickupHandover } from '~/composables/usePickupHandover'
+import { usePharmacyPortal } from '~/composables/usePharmacyPortal'
 
 definePageMeta({
   middleware: ['company-auth'],
@@ -392,22 +393,12 @@ interface OrderItem {
   line_total?: number | string | null
 }
 
-interface OrderDetailResponse {
-  success?: boolean
-  order?: OrderRow | null
-  items?: OrderItem[] | null
-}
-
-interface OrdersResponse {
-  success?: boolean
-  orders?: OrderRow[] | null
-}
-
 // TODO: remove once stores/ are .ts
 const companyStore = useCompanyStore() as unknown as {
-  makeAuthRequest: (url: string, options?: RequestInit) => Promise<OrderDetailResponse & OrdersResponse>
   currentCompany?: { name?: string | null; tel1?: string | null; tel2?: string | null; whatsapp_number?: string | null } | null
 }
+
+const portal = usePharmacyPortal()
 
 const pharmacyName = computed<string>(() => companyStore.currentCompany?.name ?? 'Pharmacy')
 const pharmacyPhones = computed<string[]>(() => {
@@ -531,7 +522,7 @@ const openDetail = async (order: OrderRow): Promise<void> => {
   detailOpen.value = true
   detailLoading.value = true
   try {
-    const res = await companyStore.makeAuthRequest(`/api/pharmacy-portal/orders/${String(order.id)}`)
+    const res = await portal.getOrder<OrderRow, OrderItem>(order.id)
     if (res.success) {
       detailOrder.value = res.order ?? order
       detailItems.value = res.items ?? []
@@ -543,7 +534,7 @@ const openDetail = async (order: OrderRow): Promise<void> => {
   }
 }
 
-const pickup = usePickupHandover((url, options) => companyStore.makeAuthRequest(url, options))
+const pickup = usePickupHandover(portal)
 const pickupCode = ref<string>('')
 const pickupError = ref<string>('')
 
@@ -586,7 +577,7 @@ const printReceipt = (): void => {
 const fetchOrders = async (): Promise<void> => {
   loading.value = true
   try {
-    const res = await companyStore.makeAuthRequest('/api/pharmacy-portal/orders')
+    const res = await portal.listOrders<OrderRow>()
     if (res.success) orders.value = res.orders ?? []
   } catch (e) {
     console.error('Failed to fetch orders', e)

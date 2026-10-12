@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useCompanyStore } from '~/stores/company'
+import { usePharmacyPortal } from '~/composables/usePharmacyPortal'
 
 definePageMeta({
   middleware: ['company-auth'],
@@ -85,16 +85,7 @@ interface Transaction {
   balance_after?: number | string | null
 }
 
-interface WalletResponse {
-  success?: boolean
-  wallet?: WalletData | null
-  transactions?: Transaction[] | null
-}
-
-// TODO: remove once stores/ are .ts
-const companyStore = useCompanyStore() as unknown as {
-  makeAuthRequest: (url: string, options?: RequestInit) => Promise<WalletResponse>
-}
+const portal = usePharmacyPortal()
 
 const loading = ref<boolean>(true)
 const wallet = ref<WalletData>({})
@@ -127,7 +118,7 @@ const txLabel = (type: string | null | undefined): string => {
 const fetchWallet = async (): Promise<void> => {
   loading.value = true
   try {
-    const res = await companyStore.makeAuthRequest('/api/pharmacy-portal/wallet')
+    const res = await portal.getWallet<WalletData, Transaction>()
     if (res.success) {
       wallet.value = res.wallet ?? {}
       transactions.value = res.transactions ?? []

@@ -130,7 +130,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useCompanyStore } from '~/stores/company'
+import { usePharmacyPortal } from '~/composables/usePharmacyPortal'
+import type { PortalActionResponse } from '~/services/pharmacyPortal/pharmacyPortalService'
 
 definePageMeta({
   middleware: ['company-auth'],
@@ -147,16 +148,7 @@ interface Rider {
   is_active: boolean
 }
 
-interface RidersResponse {
-  success?: boolean
-  message?: string | null
-  riders?: Rider[] | null
-}
-
-// TODO: remove once stores/ are .ts
-const companyStore = useCompanyStore() as unknown as {
-  makeAuthRequest: (url: string, options?: RequestInit) => Promise<RidersResponse>
-}
+const portal = usePharmacyPortal()
 
 const loading = ref<boolean>(true)
 const riders = ref<Rider[]>([])
@@ -179,7 +171,7 @@ const form = reactive({
 const fetchRiders = async (): Promise<void> => {
   loading.value = true
   try {
-    const res = await companyStore.makeAuthRequest('/api/pharmacy/riders')
+    const res = await portal.listRiders<Rider>()
     if (res.success) riders.value = res.riders ?? []
   } catch (e) {
     console.error('Failed to fetch riders', e)
@@ -196,11 +188,7 @@ const addRider = async (): Promise<void> => {
   }
   saving.value = true
   try {
-    const res = await companyStore.makeAuthRequest('/api/pharmacy/riders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form }),
-    })
+    const res = await portal.addRider({ ...form })
     if (res.success) {
       showForm.value = false
       Object.assign(form, { name: '', phone: '', username: '', password: '', vehicle_type: '', vehicle_registration: '' })
@@ -222,7 +210,7 @@ const askRemove = (id: number | string): void => {
 
 // Remove and restore share one path: the server says why when it refuses (for example the rider
 // still has a delivery in progress) and that message is shown rather than swallowed.
-const changeRider = async (id: number | string, request: () => Promise<RidersResponse>, failure: string): Promise<void> => {
+const changeRider = async (id: number | string, request: () => Promise<PortalActionResponse>, failure: string): Promise<void> => {
   listError.value = ''
   busyId.value = id
   try {
@@ -241,16 +229,10 @@ const changeRider = async (id: number | string, request: () => Promise<RidersRes
 }
 
 const deactivateRider = (id: number | string): Promise<void> =>
-  changeRider(id, () => companyStore.makeAuthRequest(`/api/pharmacy/riders/${String(id)}`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-  }), 'Could not remove this rider')
+  changeRider(id, () => portal.deactivateRider(id), 'Could not remove this rider')
 
 const reactivateRider = (id: number | string): Promise<void> =>
-  changeRider(id, () => companyStore.makeAuthRequest(`/api/pharmacy/riders/${String(id)}/reactivate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  }), 'Could not reactivate this rider')
+  changeRider(id, () => portal.reactivateRider(id), 'Could not reactivate this rider')
 
 onMounted(() => { void fetchRiders() })
 </script>
