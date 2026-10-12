@@ -421,6 +421,7 @@ const handleAddToCart = (product: ProductItem): void => {
     unit: product.unit ?? 'unit',
   });
 
+  product.quantity = 1;
   product.justAdded = true;
   setTimeout(() => { product.justAdded = false; }, 1000);
   emit('itemAddedToCart', product);
