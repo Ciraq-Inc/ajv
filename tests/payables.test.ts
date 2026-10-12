@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { PayableSummary } from '../services/types'
-import { payablesForView } from '../utils/payables'
+import {
+  allocateBatchPayment, canPayPayable, cleanDetailValues, detailValidationMessage, ledgerSyncLabel, payableLifecycleLabel,
+  payablesForView, pendingPaymentAmount, pendingPaymentStatus,
+} from '../utils/payables'
 
 const payable = (overrides: Partial<PayableSummary>): PayableSummary => ({
   id: 'payable-1',
@@ -46,5 +49,74 @@ describe('payablesForView', () => {
 
     expect(payablesForView([settledByBalance], 'settled', false)).toEqual([settledByBalance])
     expect(payablesForView([settledByBalance], 'awaiting', false)).toEqual([])
+  })
+})
+
+describe('allocateBatchPayment', () => {
+  const owing = (id: string, balancePesewas: number, dueDate?: string) => payable({ id, balancePesewas, ...(dueDate ? { dueDate } : {}) })
+
+  it('pays the oldest due invoice first and stops when the money runs out', () => {
+    const rows = allocateBatchPayment([
+      owing('b', 5000, '2026-09-20'), owing('a', 4000, '2026-09-01'), owing('c', 6000, '2026-10-01'),
+    ], 7000)
+    expect(rows.map((r) => [r.payable.id, r.allocationPesewas, r.afterPesewas])).toEqual([
+      ['a', 4000, 0], ['b', 3000, 2000], ['c', 0, 6000],
+    ])
+  })
+
+  it('never allocates more than the amount, or more than an invoice owes', () => {
+    const rows = allocateBatchPayment([owing('a', 1000, '2026-09-01'), owing('b', 1000, '2026-09-02')], 50000)
+    expect(rows.map((r) => r.allocationPesewas)).toEqual([1000, 1000])
+    expect(allocateBatchPayment([owing('a', 1000)], 0)[0]!.allocationPesewas).toBe(0)
+    expect(allocateBatchPayment([owing('a', 1000)], -300)[0]!.allocationPesewas).toBe(0)
+  })
+
+  it('puts invoices with no usable date last and orders ties by id', () => {
+    const rows = allocateBatchPayment([owing('10', 100), owing('9', 100), owing('1', 100, '2026-01-01'), owing('x', 100, 'not a date')], 1000)
+    expect(rows.map((r) => r.payable.id)).toEqual(['1', '9', '10', 'x'])
+  })
+})
+
+describe('payment details', () => {
+  it('drops blank values and trims the rest', () => {
+    expect(cleanDetailValues({ account: ' 123 ', note: '   ', ref: '' })).toEqual({ account: '123' })
+  })
+
+  it('names the first required detail that is missing', () => {
+    const fields = [{ key: 'a', label: 'Account number', required: true }, { key: 'b', label: 'Note' }]
+    expect(detailValidationMessage(fields, { a: ' ' })).toBe('Account number is required.')
+    expect(detailValidationMessage(fields, { a: '1' })).toBe('')
+  })
+})
+
+describe('where a payment is on its way to the POS', () => {
+  it('counts the queued action, else what was recorded beyond what the POS confirmed', () => {
+    expect(pendingPaymentAmount(payable({ paymentActionAmountPesewas: 2500 }))).toBe(25)
+    expect(pendingPaymentAmount(payable({ amountPaidPesewas: 3000, lastConfirmedPaidPesewas: 1000 }))).toBe(20)
+    expect(pendingPaymentAmount(payable({ amountPaidPesewas: 500, lastConfirmedPaidPesewas: 1000 }))).toBe(0)
+  })
+
+  it.each([
+    [{ paymentActionStatus: 'pending' }, 'Needs Sync Inventory'],
+    [{ paymentActionStatus: 'leased' }, 'Needs Sync Inventory'],
+    [{ paymentActionStatus: 'acknowledged' }, 'Confirming'],
+    [{ paymentConfirmationStatus: 'acknowledged' as const }, 'Confirming'],
+    [{ paymentActionStatus: '' }, 'Awaiting confirmation'],
+  ])('%j reads as %s', (over, label) => {
+    expect(pendingPaymentStatus(payable(over))).toBe(label)
+  })
+
+  it('says how far the payment has got in the ledger', () => {
+    expect(ledgerSyncLabel({ paymentActionStatus: 'corroborated' })).toBe('Confirmed by RigelOS')
+    expect(ledgerSyncLabel({ paymentConfirmationStatus: 'acknowledged' })).toBe('Payment recorded · awaiting invoice confirmation')
+    expect(ledgerSyncLabel({ paymentActionStatus: 'failed' })).toBe('Payment needs attention')
+    expect(ledgerSyncLabel({})).toBe('Payment recorded')
+  })
+
+  it('only lets an invoice that is ready to pay and has a balance be paid', () => {
+    expect(canPayPayable(payable({}))).toBe(true)
+    expect(canPayPayable(payable({ balancePesewas: 0 }))).toBe(false)
+    expect(canPayPayable(payable({ lifecycle: 'awaiting' }))).toBe(false)
+    expect(payableLifecycleLabel(payable({ lifecycle: 'attention' }))).toBe('Needs attention')
   })
 })

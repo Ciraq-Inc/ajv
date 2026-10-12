@@ -635,7 +635,10 @@ import DateRangePicker from '~/components/ui/date-range-picker/DateRangePicker.v
 import { ArrowPathIcon, BanknotesIcon, BellIcon, CheckIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import type { PayableLedgerEntry, PayablePaymentContextInput, PayablePaymentMethod, PayableSummary, PaymentMethodSubtype, PaymentMethodSummary } from '~/services/types'
 import { useAccountsWorkbench } from '~/composables/useAccountsWorkbench'
-import { payableAmount, payableLifecycle, type PayableTab } from '~/utils/payables'
+import {
+  allocateBatchPayment, canPayPayable, cleanDetailValues, detailValidationMessage, ledgerSyncLabel, payableAmount,
+  payableLifecycle, payableLifecycleLabel, pendingPaymentAmount, pendingPaymentNeedsSync, pendingPaymentStatus, type PayableTab,
+} from '~/utils/payables'
 import { paymentDetailFields, type PaymentDetailDefinition } from '~/utils/payablePaymentDetails'
 
 definePageMeta({
@@ -794,25 +797,7 @@ const batchAmountPesewas = computed(() => {
   return Math.round(numeric * 100)
 })
 const batchAmountValue = computed(() => batchAmountPesewas.value / 100)
-const batchAllocationDate = (payable: PayableSummary) => {
-  const value = payable.dueDate || payable.invoiceDate
-  if (!value) return Number.POSITIVE_INFINITY
-  const timestamp = Date.parse(value)
-  return Number.isFinite(timestamp) ? timestamp : Number.POSITIVE_INFINITY
-}
-const batchAllocationRows = computed(() => {
-  let remaining = batchAmountPesewas.value
-  const orderedPayables = [...selectedBatchPayables.value].sort((left, right) => {
-    const dateDifference = batchAllocationDate(left) - batchAllocationDate(right)
-    return dateDifference || String(left.id).localeCompare(String(right.id), undefined, { numeric: true })
-  })
-  return orderedPayables.map((payable) => {
-    const balancePesewas = amount(payable)
-    const allocationPesewas = Math.min(balancePesewas, Math.max(remaining, 0))
-    remaining -= allocationPesewas
-    return { payable, balancePesewas, allocationPesewas, afterPesewas: balancePesewas - allocationPesewas }
-  })
-})
+const batchAllocationRows = computed(() => allocateBatchPayment(selectedBatchPayables.value, batchAmountPesewas.value))
 const batchAllocatedTotalPesewas = computed(() => batchAllocationRows.value.reduce((sum, row) => sum + row.allocationPesewas, 0))
 const batchUnappliedPesewas = computed(() => Math.max(0, selectedBatchTotalPesewas.value - batchAllocatedTotalPesewas.value))
 const batchAmountError = computed(() => {
@@ -892,11 +877,6 @@ const batchPaymentMethodSubtypes = computed(() => (
   selectedBatchPaymentMethod.value?.subtypes?.filter((subtype) => subtype.isActive) || []
 ))
 const currentBatchPaymentDetailFields = computed<PaymentDetailDefinition[]>(() => paymentDetailFields(selectedBatchPaymentMethod.value, selectedBatchPaymentSubtype.value))
-const cleanDetailValues = (values: Record<string, string>) => Object.entries(values).reduce<Record<string, string>>((result, [key, value]) => {
-  const safeValue = String(value || '').trim()
-  if (safeValue) result[key] = safeValue
-  return result
-}, {})
 const paymentContextInput = computed<PayablePaymentContextInput | undefined>(() => {
   const method = selectedPaymentMethod.value
   if (!method) return undefined
@@ -923,10 +903,6 @@ const batchPaymentContextInput = computed<PayablePaymentContextInput | undefined
 })
 const paymentDetailsLabel = computed(() => selectedPaymentMethod.value ? `Add ${selectedPaymentMethod.value.name} details` : 'Add details')
 const batchPaymentDetailsLabel = computed(() => selectedBatchPaymentMethod.value ? `Add ${selectedBatchPaymentMethod.value.name} details` : 'Add details')
-const detailValidationMessage = (fields: PaymentDetailDefinition[], values: Record<string, string>) => {
-  const missing = fields.find((field) => field.required && !String(values[field.key] || '').trim())
-  return missing ? `${missing.label} is required.` : ''
-}
 const setActiveTab = (tab: PayableTab) => {
   if (tab === 'ledger') attentionOnly.value = false
   if (tab !== 'to_pay') clearBatchSelection()
@@ -969,18 +945,6 @@ const payableDate = (payable: PayableSummary) => {
   const value = payable.invoiceDate || payable.sourceUpdatedAt || payable.dueDate || payable.lastSnapshotAt
   return value ? String(value).slice(0, 10) : '—'
 }
-const pendingPaymentAmount = (payable: PayableSummary) => {
-  const actionAmount = Number(payable.paymentActionAmountPesewas || 0)
-  if (actionAmount > 0) return actionAmount / 100
-  const locallyRecorded = Math.max(0, Number(payable.amountPaidPesewas || 0) - Number(payable.lastConfirmedPaidPesewas || 0))
-  return locallyRecorded / 100
-}
-const pendingPaymentNeedsSync = (payable: PayableSummary) => ['pending', 'leased'].includes(payable.paymentActionStatus || '')
-const pendingPaymentStatus = (payable: PayableSummary) => {
-  if (pendingPaymentNeedsSync(payable)) return 'Needs Sync Inventory'
-  if (payable.paymentActionStatus === 'acknowledged' || payable.paymentConfirmationStatus === 'acknowledged') return 'Confirming'
-  return 'Awaiting confirmation'
-}
 const pendingPaymentTime = (payable: PayableSummary) => {
   const value = payable.paymentActionCreatedAt || payable.sourceUpdatedAt || payable.lastSnapshotAt
   if (!value) return 'time not recorded'
@@ -997,7 +961,7 @@ const goToPendingPayments = () => {
   attentionOnly.value = false
   setActiveTab('awaiting')
 }
-const statusLabel = (payable: PayableSummary) => ({ attention: 'Needs attention', to_pay: 'Ready to pay', awaiting: 'Awaiting sync', settled: 'Settled' }[lifecycle(payable)])
+const statusLabel = payableLifecycleLabel
 const detailOverdue = computed(() => {
   const payable = selectedPayable.value
   if (!payable || !payable.dueDate || lifecycle(payable) !== 'to_pay') return false
@@ -1009,7 +973,7 @@ const attentionMessage = (payable: PayableSummary) => {
   if (payable.syncStatus === 'needs_reconciliation' || payable.paymentConfirmationStatus === 'needs_reconciliation') return 'This invoice is waiting for a newer Rigel OS snapshot to reconcile the mismatch. Do not record another payment; it will become available again automatically once the confirmed snapshot arrives.'
   return ''
 }
-const canPay = (payable: PayableSummary) => lifecycle(payable) === 'to_pay' && amount(payable) > 0
+const canPay = canPayPayable
 const payableStatusSummary = (payable: PayableSummary) => {
   const state = lifecycle(payable)
   if (state === 'settled') return { title: 'Paid in full', description: 'This invoice has no balance remaining.', className: '' }
@@ -1024,12 +988,6 @@ const openLedgerEntry = (entry: PayableLedgerEntry) => {
 const ledgerMethodLabel = (entry: PayableLedgerEntry) => entry.paymentContext?.methodName || entry.paymentMethod || 'Not specified'
 const ledgerSubtypeLabel = (entry: PayableLedgerEntry) => entry.paymentContext?.subtypeName || ''
 const ledgerFundingLabel = (entry: PayableLedgerEntry) => entry.accountId ? (entry.accountName || 'Account') : 'Payment method only'
-const ledgerSyncLabel = (entry: PayableLedgerEntry) => {
-  if (entry.paymentActionStatus === 'corroborated' || entry.paymentConfirmationStatus === 'corroborated') return 'Confirmed by RigelOS'
-  if (entry.paymentActionStatus === 'acknowledged' || entry.paymentConfirmationStatus === 'acknowledged') return 'Payment recorded · awaiting invoice confirmation'
-  if (entry.paymentActionStatus === 'failed') return 'Payment needs attention'
-  return 'Payment recorded'
-}
 
 const paymentAccount = computed(() => activeAccounts.value.find((account) => account.id === paymentAccountId.value) || null)
 const balanceAfterPayment = computed(() => {
