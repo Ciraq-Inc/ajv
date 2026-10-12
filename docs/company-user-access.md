@@ -32,12 +32,11 @@ This feature allows companies to manage which of their users can access the onli
 - Provides search and filtering functionality
 - Exports user data to CSV
 
-#### Store Integration
-**File:** `stores/company.js`
+#### Service Integration
+**Files:** `services/companyUsers/companyUsersService.ts`, `composables/useCompanyUsers.ts`
 
-**New Method:** `makeAuthRequest(url, options)`
-- Handles authenticated API requests for company users
-- Automatically includes company domain and authorization headers
+- `listUsers()`, `setRole(id, role)` and `setAccess(id, allowed)` call the endpoints below
+- Every call carries the company domain and authorization headers from `companyStore.getApiHeaders()`
 - Used by the user access component to communicate with backend
 
 ### 3. API Endpoints
@@ -224,7 +223,7 @@ ajv/
 ├── middleware/
 │   └── companyAuth.js                # Authentication middleware
 ├── stores/
-│   └── company.js                    # Company store with makeAuthRequest
+│   └── company.js                    # Company store (session and headers)
 └── docs/
     └── company-user-access.md        # This file
 ```

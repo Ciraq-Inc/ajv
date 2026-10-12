@@ -422,7 +422,7 @@ import {
   ArrowDownTrayIcon,
   CheckIcon,
 } from '@heroicons/vue/24/outline'
-import { useAdminStore } from '~/stores/admin'
+import { useAdminAccess } from '~/composables/useAdminAccess'
 
 interface TenantUser {
   id: string;
@@ -455,18 +455,7 @@ interface UserStats {
   companies?: number;
 }
 
-interface AdminResponse {
-  success: boolean;
-  message?: string;
-  data?: { users?: TenantUser[]; stats?: UserStats; updated?: number; [key: string]: unknown } | TenantUser[] | CompanyRef[];
-}
-
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (path: string, options?: { method?: string; body?: string }) => Promise<AdminResponse>;
-}
-
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+const access = useAdminAccess()
 
 // State
 const users = ref<TenantUser[]>([])
@@ -546,7 +535,7 @@ const loadUsers = async (): Promise<void> => {
   error.value = null
 
   try {
-    const response = await adminStore.makeAuthRequest('/api/admin/users/access')
+    const response = await access.listTenantUsers()
 
     if (response.success) {
       const d = response.data as { users?: TenantUser[]; stats?: UserStats } | undefined
@@ -565,7 +554,7 @@ const loadUsers = async (): Promise<void> => {
 
 const loadCompanies = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/companies')
+    const response = await access.listCompanies()
     if (response.success) {
       companies.value = (response.data as CompanyRef[]) ?? []
     }
@@ -579,16 +568,7 @@ const toggleUserAccess = async (user: TenantUser): Promise<void> => {
   updating.value = user.id
 
   try {
-    const response = await adminStore.makeAuthRequest(
-      `/api/admin/users/${user.id}/access`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({
-          company_id: user.company_id,
-          allowed_online_access: newValue,
-        }),
-      }
-    )
+    const response = await access.setUserAccess(user.id, { companyId: user.company_id, allowed: newValue })
 
     if (response.success) {
       user.allowed_online_access = newValue
@@ -625,10 +605,7 @@ const bulkEnableAccess = async (): Promise<void> => {
   if (!confirm(`Enable online access for ${selectedUsers.value.length} users?`)) return
 
   try {
-    const response = await adminStore.makeAuthRequest('/api/admin/users/bulk-access', {
-      method: 'PUT',
-      body: JSON.stringify({ user_ids: selectedUsers.value, allowed_online_access: true }),
-    })
+    const response = await access.setBulkAccess(selectedUsers.value, true)
 
     if (response.success) {
       const d = response.data as { updated?: number } | undefined
@@ -648,10 +625,7 @@ const bulkDisableAccess = async (): Promise<void> => {
   if (!confirm(`Disable online access for ${selectedUsers.value.length} users?`)) return
 
   try {
-    const response = await adminStore.makeAuthRequest('/api/admin/users/bulk-access', {
-      method: 'PUT',
-      body: JSON.stringify({ user_ids: selectedUsers.value, allowed_online_access: false }),
-    })
+    const response = await access.setBulkAccess(selectedUsers.value, false)
 
     if (response.success) {
       const d = response.data as { updated?: number } | undefined
@@ -691,10 +665,7 @@ const saveEditUser = async (): Promise<void> => {
   savingUser.value = true
   editUserError.value = ''
   try {
-    const response = await adminStore.makeAuthRequest(
-      `/api/admin/users/${editingUser.value.id}`,
-      { method: 'PUT', body: JSON.stringify({ company_id: editingUser.value.company_id, ...editUserForm.value }) }
-    )
+    const response = await access.updateTenantUser(editingUser.value.id, editingUser.value.company_id, editUserForm.value)
     if (response.success) {
       Object.assign(editingUser.value, editUserForm.value)
       editingUser.value = null

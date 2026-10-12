@@ -339,7 +339,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import { useAdminAccess } from '~/composables/useAdminAccess'
 import { PlusIcon, TrashIcon, DocumentDuplicateIcon, CheckIcon, CheckCircleIcon, ClockIcon, KeyIcon, ExclamationTriangleIcon, XMarkIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 
 interface Company {
@@ -372,18 +372,7 @@ interface GeneratedKey {
   created_at: string;
 }
 
-interface AdminResponse {
-  success: boolean;
-  data?: unknown;
-  message?: string;
-}
-
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (path: string, options?: { method?: string; body?: string }) => Promise<AdminResponse>;
-}
-
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+const access = useAdminAccess()
 
 // State
 const companies = ref<Company[]>([])
@@ -433,7 +422,7 @@ const filteredCompanies = computed<Company[]>(() => {
 // Methods
 const loadCompanies = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/companies')
+    const response = await access.listCompanies()
     if (response.success) {
       companies.value = (response.data as Company[]) ?? []
     }
@@ -467,13 +456,13 @@ const loadApiKeys = async (): Promise<void> => {
 
   try {
     // Load API keys
-    const keysResponse = await adminStore.makeAuthRequest(`/api/companies/${selectedCompany.value}/api-keys`)
+    const keysResponse = await access.listApiKeys(selectedCompany.value)
     if (keysResponse.success) {
       apiKeys.value = (keysResponse.data as ApiKey[]) ?? []
     }
 
     // Load stats
-    const statsResponse = await adminStore.makeAuthRequest(`/api/companies/${selectedCompany.value}/api-keys/stats`)
+    const statsResponse = await access.getApiKeyStats(selectedCompany.value)
     if (statsResponse.success) {
       stats.value = (statsResponse.data as ApiKeyStats) ?? {}
     }
@@ -489,17 +478,9 @@ const generateApiKey = async (): Promise<void> => {
   generating.value = true
 
   try {
-    const payload: { key_name: string; expires_at?: string } = {
-      key_name: keyForm.value.key_name,
-    }
-
-    if (keyForm.value.expires_at) {
-      payload.expires_at = keyForm.value.expires_at
-    }
-
-    const response = await adminStore.makeAuthRequest(`/api/companies/${selectedCompany.value}/api-keys`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
+    const response = await access.createApiKey(selectedCompany.value as number, {
+      keyName: keyForm.value.key_name,
+      expiresAt: keyForm.value.expires_at,
     })
 
     if (response.success) {
@@ -525,10 +506,7 @@ const deactivateKey = async (): Promise<void> => {
   deleting.value = true
 
   try {
-    const response = await adminStore.makeAuthRequest(
-      `/api/companies/${selectedCompany.value}/api-keys/${deactivatingKey.value?.id}`,
-      { method: 'DELETE' },
-    )
+    const response = await access.deactivateApiKey(selectedCompany.value as number, deactivatingKey.value?.id as number)
 
     if (response.success) {
       alert('API key deactivated successfully!')
@@ -577,9 +555,7 @@ const copyApiKey = async (keyId: number): Promise<void> => {
   try {
     let plaintext = revealedKeys.value[keyId]
     if (!plaintext) {
-      const res = await adminStore.makeAuthRequest(
-        `/api/companies/${selectedCompany.value}/api-keys/${keyId}/reveal`
-      )
+      const res = await access.revealApiKey(selectedCompany.value as number, keyId)
       if (!res.success) { alert(res.message || 'Failed to retrieve key'); return }
       plaintext = (res.data as any).api_key
       revealedKeys.value = { ...revealedKeys.value, [keyId]: plaintext }
