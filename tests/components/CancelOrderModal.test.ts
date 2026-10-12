@@ -79,7 +79,7 @@ describe('CancelOrderModal', () => {
       await button(w, 'Cancel Order').trigger('click')
       await flushPromises()
 
-      expect(store.cancelOrder).toHaveBeenCalledWith('ORD-123', '')
+      expect(store.cancelOrder).toHaveBeenCalledWith('ORD-123', null, '')
     })
 
     it('sends the chosen reason', async () => {
@@ -90,7 +90,7 @@ describe('CancelOrderModal', () => {
       await button(w, 'Cancel Order').trigger('click')
       await flushPromises()
 
-      expect(store.cancelOrder).toHaveBeenCalledWith('ORD-123', 'Taking too long')
+      expect(store.cancelOrder).toHaveBeenCalledWith('ORD-123', null, 'Taking too long')
     })
 
     it('sends the typed explanation for "Other", or "Other" when left blank', async () => {
@@ -100,14 +100,14 @@ describe('CancelOrderModal', () => {
       await typed.find('#otherReason').setValue('Moving abroad')
       await button(typed, 'Cancel Order').trigger('click')
       await flushPromises()
-      expect(store.cancelOrder).toHaveBeenLastCalledWith('ORD-123', 'Moving abroad')
+      expect(store.cancelOrder).toHaveBeenLastCalledWith('ORD-123', null, 'Moving abroad')
       typed.unmount()
 
       const blank = open()
       await blank.find('#cancellationReason').setValue('Other')
       await button(blank, 'Cancel Order').trigger('click')
       await flushPromises()
-      expect(store.cancelOrder).toHaveBeenLastCalledWith('ORD-123', 'Other')
+      expect(store.cancelOrder).toHaveBeenLastCalledWith('ORD-123', null, 'Other')
     })
 
     it('confirms success, announces the order id, and leaves only a Close button', async () => {

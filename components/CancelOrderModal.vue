@@ -159,8 +159,8 @@ const confirmCancellation = async (): Promise<void> => {
 
   try {
     // userStore.cancelOrder is untyped (store not yet .ts)
-    await (userStore as { cancelOrder: (id: string | undefined, reason: string) => Promise<void> })
-      .cancelOrder(props.orderId, finalReason.value);
+    await (userStore as { cancelOrder: (id: string | undefined, companyId: null, reason: string) => Promise<void> })
+      .cancelOrder(props.orderId, null, finalReason.value);
     isSuccess.value = true;
     emit('cancellation-success', props.orderId);
   } catch (error: unknown) {

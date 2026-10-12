@@ -805,6 +805,7 @@ export const useUserStore = defineStore('user', {
     async cancelOrder(
       orderId: number | string,
       companyId: number | string | null = null,
+      reason = '',
     ): Promise<unknown> {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
@@ -813,6 +814,7 @@ export const useUserStore = defineStore('user', {
         const company_id = companyId ?? pharmacyStore.currentPharmacy;
         const cancelParams: import('~/services/orders/ordersService').CancelParams = {};
         if (company_id != null) cancelParams.companyId = company_id;
+        if (reason.trim()) cancelParams.reason = reason.trim();
         const data = await this._ordersService().cancel(orderId, cancelParams);
         if (!data.success) throw new Error(data.message ?? 'Failed to cancel order');
         return data;

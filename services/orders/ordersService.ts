@@ -36,6 +36,7 @@ export interface GetByIdParams {
 
 export interface CancelParams {
   companyId?: number | string;
+  reason?: string;
 }
 
 export const createOrdersService = (api: ApiInstance) => ({
@@ -89,10 +90,10 @@ export const createOrdersService = (api: ApiInstance) => ({
   },
 
   /**
-   * Cancel a customer order. Body carries company_id.
+   * Cancel a customer order. Body carries company_id and an optional reason.
    * PUT /api/orders/:orderId/cancel
    */
-  cancel(orderId: number | string, { companyId }: CancelParams = {}): Promise<ApiEnvelope<Order>> {
-    return api.put(`/api/orders/${orderId}/cancel`, { company_id: companyId });
+  cancel(orderId: number | string, { companyId, reason }: CancelParams = {}): Promise<ApiEnvelope<Order>> {
+    return api.put(`/api/orders/${orderId}/cancel`, { company_id: companyId, ...(reason ? { reason } : {}) });
   },
 });
