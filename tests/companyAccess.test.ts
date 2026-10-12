@@ -27,7 +27,7 @@ describe('serviceSlugOf', () => {
 })
 
 describe('canOpenServicePage', () => {
-  it.each(['riders', 'user-access', 'store-hours', 'developers'])('%s needs a manager', (slug) => {
+  it.each(['riders', 'user-access', 'store-hours', 'store-settings', 'developers'])('%s needs a manager', (slug) => {
     expect(canOpenServicePage('cashier', slug)).toBe(false)
     expect(canOpenServicePage('pharmacist', slug)).toBe(false)
     expect(canOpenServicePage('manager', slug)).toBe(true)

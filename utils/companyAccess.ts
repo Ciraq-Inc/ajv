@@ -20,8 +20,8 @@ const normalizeRole = (role: unknown): string =>
 
 export const companyRoleRank = (role: unknown): number => ROLE_RANK[normalizeRole(role)] || 0
 
-// Pages that change how the pharmacy runs (its riders, its staff, its hours, its API keys).
-const MANAGER_PAGES = new Set(['riders', 'user-access', 'store-hours', 'developers'])
+// Pages that change how the pharmacy runs (its riders, its staff, its hours, its storefront, its API keys).
+const MANAGER_PAGES = new Set(['riders', 'user-access', 'store-hours', 'store-settings', 'developers'])
 // A recruiter account belongs to the hiring board and the wallet, nothing else.
 const POSTER_PAGES = new Set(['rigel-boards', 'sms-billing'])
 const ALWAYS_OPEN = new Set(['login', 'support'])
