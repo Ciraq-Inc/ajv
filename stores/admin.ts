@@ -26,6 +26,7 @@ export type AdminRole =
   | 'admin'
   | 'super_admin';
 
+// Mirrors ADMIN_ROLE_RANK in rigel-medsgh/src/auth/adminRoles.js — keep the two in step.
 const ROLE_HIERARCHY: Record<string, number> = {
   data_consumer: 0,
   business_analyst: 1,
@@ -34,7 +35,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
   auditor: 4,
   manager: 5,
   admin: 6,
-  super_admin: 6,
+  super_admin: 7,
 };
 
 export interface AdminState {
@@ -89,9 +90,10 @@ export const useAdminStore = defineStore('admin', {
 
     getRole: (state): string | null => state.admin?.role ?? null,
 
-    isSuperAdmin: (state): boolean =>
-      state.admin?.role != null &&
-      ['super_admin', 'admin'].includes(state.admin.role),
+    isSuperAdmin: (state): boolean => state.admin?.role === 'super_admin',
+
+    isAdminOrAbove: (state): boolean =>
+      state.admin?.role === 'admin' || state.admin?.role === 'super_admin',
 
     getDashboardRoute: (state): string => {
       if (state.admin?.role === 'data_consumer') {
@@ -103,8 +105,10 @@ export const useAdminStore = defineStore('admin', {
     hasRole:
       (state) =>
       (requiredRole: string): boolean => {
-        const adminLevel = ROLE_HIERARCHY[state.admin?.role ?? ''] ?? 0;
-        const requiredLevel = ROLE_HIERARCHY[requiredRole] ?? 0;
+        const adminLevel = ROLE_HIERARCHY[state.admin?.role ?? ''];
+        const requiredLevel = ROLE_HIERARCHY[requiredRole];
+        // Unknown role on either side: deny.
+        if (adminLevel === undefined || requiredLevel === undefined) return false;
         return adminLevel >= requiredLevel;
       },
   },
