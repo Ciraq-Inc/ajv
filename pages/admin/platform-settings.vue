@@ -713,8 +713,10 @@ const fetchSettings = async (): Promise<void> => {
 
     for (const setting of allSettings.value) {
       const found = current.find((row) => row.setting_key === setting.key)
+      // A setting that was never stored shows (and is compared against) its default, so only what the
+      // admin actually edits counts as a change and gets written.
       const value = found?.setting_value ?? setting.defaultValue
-      originalSettings[setting.key] = found?.setting_value ?? ''
+      originalSettings[setting.key] = value
       editedSettings[setting.key] = value
     }
 
@@ -735,6 +737,17 @@ const saveAll = async (): Promise<void> => {
 
     if (changedSettings.length === 0) {
       showMessage('No changes to save')
+      return
+    }
+
+    const notNumeric = allSettings.value.find(
+      (setting) =>
+        setting.type === 'number' &&
+        editedSettings[setting.key] !== originalSettings[setting.key] &&
+        !Number.isFinite(Number(String(editedSettings[setting.key] ?? '').trim() || NaN))
+    )
+    if (notNumeric) {
+      showMessage(`${notNumeric.label} must be a number`, 'error')
       return
     }
 
