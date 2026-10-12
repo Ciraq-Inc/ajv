@@ -4,11 +4,6 @@
 // and authentication state. All HTTP delegates to the service layer via
 // factory accessors. Public method names and return shapes are preserved
 // 1:1 — no caller changes needed.
-//
-// The legacy `makeAuthRequest(endpoint, options)` action is kept because
-// ~9 components/pages outside this PR's scope still call it directly.
-// Migrating those callers onto per-domain services is tracked as a
-// follow-up.
 
 import { defineStore } from 'pinia';
 import { createAdminService } from '~/services/admin/adminService';
@@ -303,25 +298,6 @@ export const useAdminStore = defineStore('admin', {
         // logging the user out due to a backend hiccup.
         console.warn('Token verification: transient error, keeping session', error);
         return true;
-      }
-    },
-
-    // Legacy public helper retained for external callers — see file-top note.
-    async makeAuthRequest(endpoint: string, options: Record<string, unknown> = {}): Promise<unknown> {
-      if (!this.token) {
-        throw new Error('No authentication token available');
-      }
-
-      try {
-        return await this._adminService().request(endpoint, options);
-      } catch (error: unknown) {
-        const err = error as { status?: number } | null;
-        if (err && err.status === 401) {
-          this.logout();
-          throw new Error('Session expired. Please login again.');
-        }
-        console.error('Auth request error:', error);
-        throw error;
       }
     },
 

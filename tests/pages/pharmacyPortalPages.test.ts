@@ -9,7 +9,6 @@ vi.stubGlobal('useApi', () => ({ request: http.request }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ params: { pharmacy: 'kofi' } }) }))
 vi.mock('~/stores/company', () => ({
   useCompanyStore: () => ({
-    makeAuthRequest: (url: string, options?: unknown) => http.request(url, options),
     getApiHeaders: () => ({ 'x-company-domain': 'kofi' }),
   }),
 }))

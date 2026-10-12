@@ -8,7 +8,6 @@ vi.stubGlobal('definePageMeta', vi.fn())
 vi.stubGlobal('useApi', () => ({ request: http.request }))
 vi.mock('~/stores/company', () => ({
   useCompanyStore: () => ({
-    makeAuthRequest: (url: string, options?: unknown) => http.request(url, options),
     getApiHeaders: () => ({ 'x-company-domain': 'kofi' }),
     currentCompany: { name: 'Kofi Pharmacy', tel1: '0244000111', tel2: null, whatsapp_number: null },
   }),

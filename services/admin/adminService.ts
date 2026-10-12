@@ -13,12 +13,6 @@
 // Public behavior MUST mirror the legacy in-store fetch calls exactly:
 // same paths, same method, same body shape. Response envelope handling
 // (`{ success, data, message }`) is performed by the caller (the store).
-//
-// Note on the generic `request(endpoint, options)` export: it exists to
-// support the legacy `adminStore.makeAuthRequest(...)` helper, which is
-// still consumed by ~9 components/pages outside this PR's scope. Once
-// those callers migrate to dedicated services, this generic export and
-// `makeAuthRequest` itself can be deleted. Tracked as a follow-up.
 
 import type {
   ApiInstance,
@@ -191,22 +185,5 @@ export const createAdminService = (api: ApiInstance) => ({
     notes?: string;
   }): Promise<ApiEnvelope<{ request_number: string }>> {
     return api.post('/api/admin/order-requests/on-behalf', data);
-  },
-
-  /**
-   * Generic authenticated request used by the legacy
-   * `adminStore.makeAuthRequest(endpoint, options)` helper. Thin
-   * passthrough to `useApi`; the store wraps this to translate 401 into
-   * `logout()` + a friendlier error. Other non-2xx responses now throw
-   * (via `useApi`) instead of returning the envelope — a small behavior
-   * change vs the legacy raw-fetch helper. Existing component callers
-   * (~9 outside this PR's scope) already wrap their call sites in
-   * try/catch, so the failure path lands in their catch instead of
-   * `if (response.success === false)`. Tracked as a follow-up to migrate
-   * those callers onto per-domain services so this generic helper can
-   * be deleted entirely.
-   */
-  request(endpoint: string, options: RequestInit = {}): Promise<unknown> {
-    return api.request(endpoint, options);
   },
 });

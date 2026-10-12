@@ -189,16 +189,5 @@ export const createCompanyAuthService = (api: ApiInstance, getHeaders: HeadersPr
     listCompanies(): Promise<ApiEnvelope<Company[]>> {
       return api.get('/api/companies');
     },
-
-    /**
-     * Generic authenticated request used by the legacy
-     * `companyStore.makeAuthRequest(url, options)` helper. Thin
-     * passthrough to `useApi`. Tracked as a follow-up to migrate those
-     * callers onto per-domain services so this generic helper can be
-     * deleted entirely.
-     */
-    request(endpoint: string, options: ApiOptions = {}): Promise<unknown> {
-      return api.request(endpoint, withHeaders(options));
-    },
   };
 };

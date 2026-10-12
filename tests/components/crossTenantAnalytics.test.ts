@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 
-// The one boundary is the HTTP call. Whether a component reaches the server through the admin
-// store's generic helper or through a service, the request is recorded here as "path?sorted=query".
+// The one boundary is the HTTP call, recorded here as "path?sorted=query".
 const net = vi.hoisted(() => {
   const seen: string[] = []
   let respond: (url: string) => unknown = () => ({ success: true, data: [] })
@@ -30,7 +29,6 @@ vi.mock('~/stores/admin', () => ({
   useAdminStore: () => ({
     get token() { return admin.token },
     logout: admin.logout,
-    makeAuthRequest: (url: string, options?: unknown) => net.call(url, options as undefined),
   }),
 }))
 

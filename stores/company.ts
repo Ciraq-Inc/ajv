@@ -478,14 +478,6 @@ export const useCompanyStore = defineStore('company', {
       }
     },
 
-    // Legacy public helper retained for the many pharmacy-portal pages and
-    // access-management components that still call
-    // `companyStore.makeAuthRequest(...)`. Migrating those call sites onto
-    // per-domain services is tracked as a follow-up.
-    async makeAuthRequest(url: string, options: Record<string, unknown> = {}): Promise<unknown> {
-      return this._companyAuthService().request(url, options);
-    },
-
     async fetchTheme(): Promise<void> {
       if (!this.company?.id) return;
       try {
