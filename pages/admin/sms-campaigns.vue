@@ -359,7 +359,9 @@
       :message="confirmDialog.message"
       :type="confirmDialog.type"
       :confirmText="confirmDialog.confirmText"
-      @confirm="confirmDialog.onConfirm"
+      :loading="confirmBusy"
+      :error="confirmError"
+      @confirm="runConfirmed"
       @cancel="closeConfirmDialog"
     />
   </div>
@@ -429,6 +431,7 @@ const {
   fetchCampaigns,
   pauseCampaign: pauseCampaignAction,
   resumeCampaign: resumeCampaignAction,
+  cancelCampaign: cancelCampaignAction,
 } = useSMSCampaigns()
 
 // Cast to local Campaign type which has explicit field types
@@ -442,6 +445,8 @@ const filters = ref<{ search: string; status: string; company: string }>({
 
 const selectedCampaign = ref<Campaign | null>(null)
 const showConfirmDialog = ref<boolean>(false)
+const confirmBusy = ref<boolean>(false)
+const confirmError = ref<string | null>(null)
 const confirmDialog = ref<ConfirmDialogState>({
   title: '',
   message: '',
@@ -537,6 +542,22 @@ const closeCampaignModal = (): void => {
   selectedCampaign.value = null
 }
 
+// Runs the open dialog's action once at a time. A failure stays on the dialog so the admin sees why.
+const runConfirmed = async (): Promise<void> => {
+  if (confirmBusy.value) return
+  confirmBusy.value = true
+  confirmError.value = null
+  try {
+    await confirmDialog.value.onConfirm()
+    closeConfirmDialog()
+    await refreshData()
+  } catch (err) {
+    confirmError.value = (err as Error)?.message || 'Something went wrong. Please try again.'
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
 const pauseCampaign = (campaign: Campaign): void => {
   confirmDialog.value = {
     title: 'Pause Campaign',
@@ -545,11 +566,9 @@ const pauseCampaign = (campaign: Campaign): void => {
     confirmText: 'Pause Campaign',
     onConfirm: async () => {
       await pauseCampaignAction(campaign.id)
-      closeConfirmDialog()
-      await refreshData()
     },
   }
-  showConfirmDialog.value = true
+  openConfirmDialog()
 }
 
 const resumeCampaign = (campaign: Campaign): void => {
@@ -560,11 +579,9 @@ const resumeCampaign = (campaign: Campaign): void => {
     confirmText: 'Resume Campaign',
     onConfirm: async () => {
       await resumeCampaignAction(campaign.id)
-      closeConfirmDialog()
-      await refreshData()
     },
   }
-  showConfirmDialog.value = true
+  openConfirmDialog()
 }
 
 const cancelCampaign = (campaign: Campaign): void => {
@@ -574,11 +591,14 @@ const cancelCampaign = (campaign: Campaign): void => {
     type: 'danger',
     confirmText: 'Cancel Campaign',
     onConfirm: async () => {
-      // Would call cancel API
-      closeConfirmDialog()
-      await refreshData()
+      await cancelCampaignAction(campaign.id)
     },
   }
+  openConfirmDialog()
+}
+
+const openConfirmDialog = (): void => {
+  confirmError.value = null
   showConfirmDialog.value = true
 }
 
