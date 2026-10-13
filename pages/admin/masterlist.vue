@@ -52,6 +52,10 @@
       {{ syncError }}
     </div>
 
+    <div v-if="loadError" role="alert" class="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      {{ loadError }}
+    </div>
+
     <div v-if="syncResult" class="mb-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
       <p class="font-semibold">Master products sync completed</p>
       <p class="mt-1">
@@ -713,6 +717,7 @@ interface MasterSyncResult {
 
 const syncResult = ref<MasterSyncResult | null>(null);
 const syncError = ref<string>('');
+const loadError = ref<string>('');
 
 // Upload Modal State
 const showUploadModal = ref<boolean>(false);
@@ -777,12 +782,14 @@ const formatNumber = (num: number | null | undefined): string =>
 
 const loadStats = async (): Promise<void> => {
   try {
+    loadError.value = '';
     const response = await api.get('/api/master-products/stats') as unknown as ApiResponse;
     if (response.success) {
       stats.value = response.data as MasterProductStats;
     }
   } catch (error) {
     console.error('Error loading stats:', error);
+    loadError.value = 'Could not load master product stats. Use Refresh to try again.';
   }
 };
 
@@ -794,6 +801,7 @@ const loadClassificationOptions = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Error loading classification options:', error);
+    loadError.value = 'Could not load the classification filter. Use Refresh to try again.';
   }
 };
 
@@ -820,6 +828,8 @@ const loadProducts = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Error loading products:', error);
+    products.value = [];
+    loadError.value = 'Could not load master products. Use Refresh to try again.';
   } finally {
     loading.value = false;
   }

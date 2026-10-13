@@ -6,6 +6,10 @@
       <p class="text-gray-600">Monitor billing health, manage credits, and resolve issues</p>
     </div>
 
+    <div v-if="actionError" role="alert" class="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      {{ actionError }}
+    </div>
+
     <!-- Quick Actions -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <button
@@ -689,6 +693,7 @@ const reconciling = ref<boolean>(false)
 const showTopUpModal = ref<boolean>(false)
 const toppingUp = ref<boolean>(false)
 const topUpError = ref<string>('')
+const actionError = ref<string>('')
 
 // Company search state (Top Up Money modal)
 const companySearch = ref<string>('')
@@ -837,6 +842,7 @@ const openTopUpFor = (health: BillingHealthRow): void => {
 // Reconcile specific company
 const reconcileCompany = async (companyId: number | string): Promise<void> => {
   reconciling.value = true
+  actionError.value = ''
   try {
     await runReconciliation(companyId)
     await Promise.all([
@@ -845,6 +851,7 @@ const reconcileCompany = async (companyId: number | string): Promise<void> => {
     ])
   } catch (error) {
     console.error('Reconciliation failed:', error)
+    actionError.value = 'Reconciliation failed. Please try again.'
   } finally {
     reconciling.value = false
   }
@@ -852,11 +859,13 @@ const reconcileCompany = async (companyId: number | string): Promise<void> => {
 
 // Resolve issue
 const resolveIssue = async (issueId: number | string, resolution: Record<string, unknown>): Promise<void> => {
+  actionError.value = ''
   try {
     await resolveIssueAction(issueId, resolution as Parameters<typeof resolveIssueAction>[1])
     await fetchBillingIssues()
   } catch (error) {
     console.error('Failed to resolve issue:', error)
+    actionError.value = 'The issue could not be resolved. Please try again.'
   }
 }
 
