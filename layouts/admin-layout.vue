@@ -1,5 +1,6 @@
 <template>
   <div v-if="isReady" class="admin-layout">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <!-- WCAG 2.4.1 Bypass Blocks -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Sidebar -->
@@ -366,6 +367,8 @@ import { useAdminStore } from '~/stores/admin'
 import { canAccessAdminPage } from '~/utils/adminRoleFloors'
 import { useRoute, useRouter } from 'vue-router'
 import { useAttentionQueue } from '~/composables/useAttentionQueue'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
 
 const adminStore = useAdminStore()
 const route = useRoute()
@@ -472,11 +475,17 @@ const openAttentionItem = (req) => {
 }
 
 
-const handleLogout = async () => {
-  if (confirm('Are you sure you want to logout?')) {
+const { pending, ask, accept, cancel } = useConfirmAction()
+
+const handleLogout = () => {
+  ask({
+    title: 'Log out?',
+    message: 'You will need to sign in again to use the admin portal.',
+    confirmText: 'Yes, log out',
+  }, async () => {
     await adminStore.signOut()
     navigateTo('/admin/login')
-  }
+  })
 }
 
 const checkMobile = () => {

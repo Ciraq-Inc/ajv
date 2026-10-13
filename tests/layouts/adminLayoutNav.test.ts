@@ -23,7 +23,8 @@ vi.mock('~/composables/useAttentionQueue', async () => {
     }),
   }
 })
-vi.stubGlobal('navigateTo', vi.fn())
+const navigateTo = vi.fn()
+vi.stubGlobal('navigateTo', navigateTo)
 
 import AdminLayout from '~/layouts/admin-layout.vue'
 
@@ -37,6 +38,7 @@ const openAs = async (role: string) => {
   store.state = {
     admin: { fname: 'Test', lname: 'Admin', role },
     getRole: role,
+    signOut: vi.fn(),
     hasRole: (required: string) => ROLE_RANK[role] >= ROLE_RANK[required],
   }
   wrapper = mount(AdminLayout, {
@@ -123,5 +125,45 @@ describe('admin sidebar follows the role floors', () => {
 
     await openAs('order_processor')
     expect(attention.start).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('admin sidebar: logging out', () => {
+  const nativeConfirm = vi.fn(() => true)
+  const dialog = () => (wrapper as ReturnType<typeof mount>).find('[role="alertdialog"]')
+
+  beforeEach(() => {
+    nativeConfirm.mockClear()
+    navigateTo.mockClear()
+    vi.stubGlobal('confirm', nativeConfirm)
+  })
+
+  it('asks on the page first, and only signs out once the admin agrees', async () => {
+    await openAs('admin')
+
+    await (wrapper as ReturnType<typeof mount>).find('.logout-btn').trigger('click')
+    await flushPromises()
+
+    expect(nativeConfirm).not.toHaveBeenCalled()
+    expect(dialog().exists()).toBe(true)
+    expect(store.state.signOut).not.toHaveBeenCalled()
+
+    await dialog().findAll('button').find((b) => /yes, log out/i.test(b.text()))!.trigger('click')
+    await flushPromises()
+
+    expect(store.state.signOut).toHaveBeenCalledTimes(1)
+    expect(navigateTo).toHaveBeenCalledWith('/admin/login')
+  })
+
+  it('stays signed in when the admin backs out', async () => {
+    await openAs('admin')
+
+    await (wrapper as ReturnType<typeof mount>).find('.logout-btn').trigger('click')
+    await flushPromises()
+    await dialog().findAll('button').find((b) => /cancel/i.test(b.text()))!.trigger('click')
+    await flushPromises()
+
+    expect(dialog().exists()).toBe(false)
+    expect(store.state.signOut).not.toHaveBeenCalled()
   })
 })

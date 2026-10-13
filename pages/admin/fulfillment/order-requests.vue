@@ -1,5 +1,7 @@
 ﻿<template>
   <div class="order-requests-page">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
+    <PromptAction :pending="promptPending" :error="promptError" @submit="submitPrompt" @cancel="cancelPrompt" />
     <OrderRequestsHeader
       v-if="!selectedRequest"
       :stats="stats"
@@ -2402,6 +2404,10 @@ import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
 import { MAX_PAYMENT_REFERENCE, normalizePaymentReference } from '~/utils/manualPayment'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import PromptAction from '~/components/admin/PromptAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
+import { usePromptAction } from '~/composables/usePromptAction'
 import {
   ArrowPathIcon,
   ArrowLeftIcon,
@@ -4120,6 +4126,11 @@ const allItemsCovered = computed(() => {
 // Typed error helper — safely extracts .message from unknown catch values
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
+// Questions go to the admin on the page, not through the browser's confirm()/prompt().
+const { pending, ask, accept, cancel } = useConfirmAction()
+const { pending: promptPending, ask: askFor, submit: submitPromptValue, cancel: cancelPrompt } = usePromptAction()
+const promptError = ref('')
+
 // API helper — delegates to useApi so auth headers and base URL are
 // injected centrally. The call signature is preserved so all 70+ callers
 // inside this page remain unchanged.
@@ -4466,13 +4477,20 @@ const redeliverRequest = async () => {
 
 const refundingFailed = ref(false)
 const failedGoodsReturned = ref(false)
-const refundFailedDelivery = async () => {
+const refundFailedDelivery = () => {
   if (!selectedRequest.value?.id || refundingFailed.value) return
   const returned = failedGoodsReturned.value
-  const question = returned
-    ? 'Refund the customer in full (delivery fee included) and take back the pharmacy credit?'
-    : 'Refund the customer in full (delivery fee included)? The pharmacy keeps its credit and the platform absorbs the cost.'
-  if (!window.confirm(question)) return
+  ask({
+    title: 'Refund the customer in full?',
+    message: returned
+      ? 'The delivery fee is included, and the pharmacy credit is taken back.'
+      : 'The delivery fee is included. The pharmacy keeps its credit and the platform absorbs the cost.',
+    confirmText: 'Yes, refund',
+  }, () => doRefundFailedDelivery(returned))
+}
+
+const doRefundFailedDelivery = async (returned: boolean) => {
+  if (!selectedRequest.value?.id || refundingFailed.value) return
   refundingFailed.value = true
   try {
     await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/refund-failed-delivery`, { goods_returned: returned })
@@ -4980,7 +4998,7 @@ const unresolveItem = async (item: RequestItem) => {
   }
 }
 
-const routePharmacyAction = async (pharmacy: PharmacyQueueEntry) => {
+const routePharmacyAction = (pharmacy: PharmacyQueueEntry) => {
   const reqId = selectedRequest.value?.id
   if (!reqId || !pharmacy?.pharmacy_id) return
   const coveredItems = (pharmacy.covered || []).map(c => ({
@@ -4990,11 +5008,18 @@ const routePharmacyAction = async (pharmacy: PharmacyQueueEntry) => {
   }))
   if (coveredItems.length === 0) return
 
-  const confirmed = window.confirm(
-    `Route ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}?\n\nThis will update the source pharmacy for these items.`
-  )
-  if (!confirmed) return
+  ask({
+    title: `Route ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}?`,
+    message: 'This updates the source pharmacy for these items.',
+    confirmText: 'Yes, route',
+  }, () => doRoutePharmacy(reqId, pharmacy, coveredItems))
+}
 
+const doRoutePharmacy = async (
+  reqId: number | string,
+  pharmacy: PharmacyQueueEntry,
+  coveredItems: Array<{ item_id: unknown; matched_product_id: unknown; distance_km: unknown }>
+) => {
   try {
     await apiCall('POST', `/api/order-requests/admin/${reqId}/route-pharmacy`, {
       pharmacy_id: pharmacy.pharmacy_id,
@@ -5617,19 +5642,31 @@ const handlePharmacyContactStatus = async ({ pharmacy, action, note }: { pharmac
 
 // Marking an order paid has to run the real payment: it credits the pharmacies
 // and sends the order out. A bare status change would do neither.
-const confirmPaymentReceived = async () => {
+const confirmPaymentReceived = () => {
   if (!selectedRequest.value) return
-  const entered = window.prompt('You are confirming that payment for this order was received. This credits the pharmacies and sends the order out.\n\nEnter the receipt or transfer number:')
-  if (entered === null) {
-    selectedStatus.value = ''
-    return
-  }
+  promptError.value = ''
+  askFor({
+    title: 'Confirm payment was received',
+    message: 'This credits the pharmacies and sends the order out.',
+    label: 'Receipt or transfer number',
+    confirmText: 'Confirm payment',
+    onCancel: () => { selectedStatus.value = ''; promptError.value = '' },
+  }, doConfirmPaymentReceived)
+}
+
+// A blank reference keeps the dialog open and says why, instead of dropping what the admin was doing.
+const submitPrompt = async (entered: string) => {
   const reference = normalizePaymentReference(entered)
   if (!reference) {
-    selectedStatus.value = ''
-    showMessage(`A receipt or transfer number (up to ${MAX_PAYMENT_REFERENCE} characters) is required to confirm payment`, 'error')
+    promptError.value = `A receipt or transfer number (up to ${MAX_PAYMENT_REFERENCE} characters) is required to confirm payment`
     return
   }
+  promptError.value = ''
+  await submitPromptValue(reference)
+}
+
+const doConfirmPaymentReceived = async (reference: string) => {
+  if (!selectedRequest.value) return
   loading.value = true
   try {
     const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/confirm-manual-payment`, { method: 'manual', reference })
@@ -5720,12 +5757,16 @@ const applyNextStep = async (statusOverride?: string | null) => {
   await updateStatus()
 }
 
-const sendBackToCompose = async () => {
+const sendBackToCompose = () => {
   if (!selectedRequest.value) return
-  const ok = window.confirm('Send this request back to Compose? Existing allocations will be preserved.')
-  if (!ok) return
-  selectedStatus.value = 'composing'
-  await updateStatus()
+  ask({
+    title: 'Send this request back to Compose?',
+    message: 'Existing allocations are kept.',
+    confirmText: 'Yes, send back',
+  }, async () => {
+    selectedStatus.value = 'composing'
+    await updateStatus()
+  })
 }
 
 const saveNotes = async () => {
@@ -5870,11 +5911,19 @@ const renotifyDecision = async (decisionId: number) => {
   }
 }
 
-const resolveDecisionAsAdmin = async (decisionId: number, response: string) => {
+const resolveDecisionAsAdmin = (decisionId: number, response: string) => {
+  if (!selectedRequest.value) return
+  const verb = response === 'approved' ? 'Approve' : 'Decline'
+  ask({
+    title: `${verb} this decision for the customer?`,
+    message: 'It is recorded as the customer\'s answer.',
+    confirmText: `Yes, ${verb.toLowerCase()}`,
+  }, () => doResolveDecisionAsAdmin(decisionId, response))
+}
+
+const doResolveDecisionAsAdmin = async (decisionId: number, response: string) => {
   if (!selectedRequest.value) return
   const label = response === 'approved' ? 'approve' : 'decline'
-  const ok = window.confirm(`${response === 'approved' ? 'Approve' : 'Decline'} this decision on behalf of the customer?`)
-  if (!ok) return
   loading.value = true
   try {
     await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/decisions/${decisionId}/resolve`, { response })
@@ -6702,12 +6751,16 @@ const clearSavedSelection = async (item: RequestItem) => {
   }
 }
 
-const deleteRequestItem = async (item: RequestItem) => {
+const deleteRequestItem = (item: RequestItem) => {
   if (!item?.id) return
+  ask({
+    title: `Delete "${item.product_name}" from this request?`,
+    message: 'The item is removed from the request right away.',
+    confirmText: 'Yes, delete',
+  }, () => doDeleteRequestItem(item))
+}
 
-  const confirmed = window.confirm(`Delete "${item.product_name}" from this request?`)
-  if (!confirmed) return
-
+const doDeleteRequestItem = async (item: RequestItem) => {
   loading.value = true
   try {
     await apiCall('DELETE', `/api/order-requests/admin/items/${item.id}`)
