@@ -1900,178 +1900,6 @@
 
         </div>
 
-        <div v-if="alternativeModal.open" class="workspace-nested-overlay" @click.self="closeAlternativeModal">
-          <div class="workspace-nested-modal">
-            <div class="workspace-nested-head">
-              <div>
-                <span class="workspace-nested-label">Alternative</span>
-                <h4>Prepare an alternative for customer review</h4>
-              </div>
-              <button type="button" class="modal-close" @click="closeAlternativeModal">
-                <XMarkIcon class="close-svg" />
-              </button>
-            </div>
-
-            <div class="workspace-nested-content">
-              <div v-if="alternativeModal.item" class="alternative-context-card">
-                <div class="alternative-context-head">
-                  <div>
-                    <span class="alternative-context-label">Original request</span>
-                    <strong>{{ alternativeModal.item.product_name }}</strong>
-                  </div>
-                  <span class="alternative-context-qty">Qty {{ getRequestedQuantity(alternativeModal.item) }}</span>
-                </div>
-                <div class="alternative-compact-preview">
-                  <div class="alternative-preview-line">
-                    <span class="alternative-compare-label">Current</span>
-                    <span class="alternative-preview-text">
-                      {{ alternativeModal.item.product_name }}
-                      <template v-if="Number(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price || 0) > 0">
-                        • {{ formatCurrency(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price) }}
-                      </template>
-                    </span>
-                  </div>
-                  <div class="alternative-preview-line replacement">
-                    <span class="alternative-compare-label">Alternative</span>
-                    <span class="alternative-preview-text">
-                      {{ alternativePreviewName }}
-                      <template v-if="alternativeModal.price !== '' && alternativeModal.price !== null && alternativeModal.price !== undefined">
-                        • {{ formatCurrency(alternativeModal.price) }}
-                      </template>
-                    </span>
-                  </div>
-                </div>
-                <div class="alternative-context-summary">
-                  <span v-if="alternativePriceDifference !== null" class="alternative-summary-chip">
-                    Price difference: {{ formatSignedCurrency(alternativePriceDifference) }}
-                  </span>
-                  <span v-if="selectedAlternativeDistance" class="alternative-summary-chip">
-                    {{ selectedAlternativeDistance }}
-                  </span>
-                  <span v-if="hasExistingAlternative" class="alternative-summary-chip alt-existing">
-                    Existing alternative will be updated
-                  </span>
-                </div>
-              </div>
-
-              <div class="workspace-nested-body">
-                <div class="nested-form-sections">
-                  <section class="nested-form-panel nested-form-panel--source">
-                    <div class="nested-form-panel-head">
-                      <span class="nested-panel-label">Source</span>
-                      <p>Choose where this alternative is coming from.</p>
-                    </div>
-                    <div class="nested-field-grid compact">
-                      <div class="nested-field">
-                        <label>Source Pharmacy</label>
-                        <select v-model.number="alternativeModal.pharmacy_id" class="form-control">
-                          <option value="">Choose pharmacy</option>
-                          <option
-                            v-for="pharm in nearbyPharmacies"
-                            :key="`alternative-${alternativeModal.item?.id || 'item'}-${pharm.id}`"
-                            :value="pharm.id"
-                          >
-                            {{ pharm.name }} ({{ formatDistance(pharm.distance_km) }})
-                          </option>
-                        </select>
-                      </div>
-                      <div class="nested-field">
-                        <label>Quantity</label>
-                        <input
-                          v-model.number="alternativeModal.allocated_quantity"
-                          type="number"
-                          min="1"
-                          step="1"
-                          class="form-control"
-                          placeholder="Qty"
-                        />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="nested-form-panel">
-                    <div class="nested-form-panel-head">
-                      <span class="nested-panel-label">Customer-facing details</span>
-                    </div>
-                    <div class="nested-field-grid">
-                      <div class="nested-field nested-field-wide">
-                        <label>Alternative Product</label>
-                        <div class="item-product-edit alternative-product-edit">
-                          <input
-                            v-model="alternativeModal.name"
-                            type="text"
-                            class="form-control"
-                            placeholder="Search product..."
-                            @input="onAlternativeProductInput"
-                            @focus="alternativeModal.showProductDropdown = true"
-                            @blur="closeAlternativeProductDropdown"
-                          />
-                          <div
-                            v-if="alternativeModal.showProductDropdown"
-                            class="product-search-dropdown"
-                          >
-                            <div v-if="alternativeModal.product_search_loading" class="dropdown-empty">
-                              Searching...
-                            </div>
-                            <template v-else>
-                              <button
-                                v-for="(result, resultIndex) in alternativeModal.productSearchResults"
-                                :key="`alternative-result-${resultIndex}`"
-                                type="button"
-                                class="product-search-result"
-                                @mousedown.prevent="selectAlternativeProduct(result)"
-                              >
-                                <span class="product-search-name">
-                                  {{ getProductSearchLabel(result) }}
-                                  <span v-if="result.is_clearance" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 ml-1">Clearance</span>
-                                </span>
-                                <span v-if="getProductResultMeta(result)" class="product-search-meta">
-                                  {{ getProductResultMeta(result) }}
-                                </span>
-                              </button>
-                              <div v-if="alternativeModal.productSearchResults.length === 0" class="dropdown-empty">
-                                No matching products
-                              </div>
-                            </template>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="nested-field">
-                        <label>Customer Price</label>
-                        <input
-                          v-model.number="alternativeModal.price"
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          class="form-control"
-                          placeholder="Price"
-                        />
-                      </div>
-                      <div class="nested-field nested-field-wide">
-                        <label>Note</label>
-                        <input
-                          v-model="alternativeModal.note"
-                          type="text"
-                          class="form-control"
-                          placeholder="Optional note about brand, form, or strength"
-                        />
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              </div>
-            </div>
-
-            <div class="workspace-nested-actions">
-              <button type="button" class="btn-secondary" @click="closeAlternativeModal" :disabled="loading">
-                Cancel
-              </button>
-              <button type="button" class="btn-primary" @click="saveAlternativeForItem" :disabled="loading || !canSaveAlternative">
-                {{ hasExistingAlternative ? 'Update Alternative' : 'Save Alternative' }}
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -2866,23 +2694,6 @@ const adminNewItem = reactive(createAdminNewItemDraft())
 const adminNewItemSelection = ref<ProductSearchResult | null>(null)
 const adminNewItemDropdownOpen = ref(false)
 const adminNewItemInput = ref<HTMLInputElement | null>(null)
-const alternativeModal = ref<{
-  open: boolean; item: RequestItem | null; pharmacy_id: string
-  allocated_quantity: number; name: string; productSearchResults: ProductSearchResult[]
-  showProductDropdown: boolean; product_search_loading: boolean; note: string; price: string
-  productSearchDebounceHandle?: ReturnType<typeof setTimeout> | null
-}>({
-  open: false,
-  item: null,
-  pharmacy_id: '',
-  allocated_quantity: 1,
-  name: '',
-  productSearchResults: [],
-  showProductDropdown: false,
-  product_search_loading: false,
-  note: '',
-  price: ''
-})
 interface ResponseModalItem {
   id?: number; item_id?: number; product_name?: string | null; available: boolean
   requested_quantity?: number; requested_unit?: string | null
@@ -3061,17 +2872,6 @@ const activeRequestItem = computed(() => {
   return items[0] || null
 })
 
-const selectedAlternativePharmacy = computed(() => {
-  const pharmacyId = Number(alternativeModal.value.pharmacy_id || 0)
-  if (!pharmacyId) return null
-  return nearbyPharmacies.value.find((pharm) => Number(pharm.id) === pharmacyId) || null
-})
-
-const selectedAlternativeDistance = computed(() => {
-  if (!selectedAlternativePharmacy.value?.distance_km && selectedAlternativePharmacy.value?.distance_km !== 0) return ''
-  return `${formatDistance(selectedAlternativePharmacy.value.distance_km)} away`
-})
-
 const getCustomerWhatsAppUrl = (phone: string | null | undefined, request?: { request_number?: string | number; [key: string]: unknown } | null) => {
   const digits = phoneUtils.formatWhatsApp(phone)
   if (!digits) return ''
@@ -3108,39 +2908,6 @@ const customerPaymentWhatsAppUrl = computed(() => {
   const link = buildCustomerOrderLink(selectedRequest.value?.id)
   const text = `Hi ${name}, your MedsGH order${num ? ` ${num}` : ''} is confirmed and awaiting payment.${totalStr ? ` Total:${totalStr}.` : ''} Please complete your payment here:\n${link}\n- MedsGH Team`
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
-})
-
-const alternativePreviewName = computed(() => {
-  const typed = String(alternativeModal.value.name || '').trim()
-  return typed || 'Alternative name not set yet'
-})
-
-const alternativePriceDifference = computed(() => {
-  if (!alternativeModal.value.item) return null
-  const altPriceRaw = alternativeModal.value.price
-  if (altPriceRaw === '' || altPriceRaw === null || altPriceRaw === undefined) return null
-  const altPrice = Number(altPriceRaw)
-  if (!Number.isFinite(altPrice)) return null
-
-  const originalPrice = Number(
-    alternativeModal.value.item?.marked_up_price
-    || alternativeModal.value.item?.unit_price
-    || 0
-  )
-
-  return altPrice - originalPrice
-})
-
-const hasExistingAlternative = computed(() => Boolean(getLatestSubstituteAllocation(alternativeModal.value.item)))
-
-const canSaveAlternative = computed(() => {
-  return Boolean(
-    alternativeModal.value.item
-    && Number(alternativeModal.value.pharmacy_id || 0) > 0
-    && Number(alternativeModal.value.allocated_quantity || 0) > 0
-    && String(alternativeModal.value.name || '').trim()
-    && Number(alternativeModal.value.price || 0) > 0
-  )
 })
 
 const getRequestedQuantity = (item: RequestItem | null | undefined) => {
@@ -3180,31 +2947,6 @@ const selectPrescriptionImage = (index: number) => {
   if (nextIndex < 0 || nextIndex >= prescriptionAttachmentUrls.value.length) return
   activePrescriptionImageIndex.value = nextIndex
   resetAdminNewItem()
-}
-
-const getAllocationPharmacy = (item: RequestItem | null | undefined) => {
-  if (!item?.allocation_pharmacy_id) return null
-  return nearbyPharmacies.value?.find((p) => p.id === item.allocation_pharmacy_id) || null
-}
-
-const getPersistedItemSourceSummary = (item: RequestItem | null | undefined) => {
-  const pharmacyName = String(item?.pharmacy_name || '').trim()
-  const sourcePharmacyId = Number(item?.source_pharmacy_id || 0)
-  const sourceProductId = Number(item?.source_product_id || 0)
-  const distanceValue = item?.source_distance_km ?? getAllocationPharmacy(item)?.distance_km ?? null
-  const unitPrice = Number(item?.marked_up_price || item?.unit_price || 0)
-  const productName = String(item?.source_product_name || '').trim()
-  if (!pharmacyName && sourcePharmacyId <= 0 && sourceProductId <= 0 && unitPrice <= 0 && !productName) return null
-
-  return {
-    pharmacyId: sourcePharmacyId || null,
-    name: pharmacyName || (sourcePharmacyId > 0 ? `Pharmacy ${sourcePharmacyId}` : 'Selected source'),
-    productName: productName || null,
-    distance: distanceValue !== null && distanceValue !== undefined && Number.isFinite(Number(distanceValue))
-      ? formatDistance(distanceValue)
-      : null,
-    price: unitPrice > 0 ? unitPrice.toFixed(2) : null
-  }
 }
 
 const customerReadySummary = computed(() => {
@@ -3289,28 +3031,6 @@ const composedCoverageSummary = computed(() => {
     uncovered: Math.max(itemPool.length - coveredItems, 0)
   }
 })
-
-const buildComposedPharmacyWhatsAppUrl = (request: RichOrderRequest | null | undefined, group: { phone?: string; name?: string; items?: Array<{ productName: string; quantity?: number; price?: number | null }> }) => {
-  const digits = phoneUtils.formatWhatsApp(group?.phone || '')
-  if (!digits) return ''
-
-  const requestNumber = String(request?.request_number || '').trim()
-  const customerName = String(request?.customer_name || '').trim()
-  const lines = (group?.items || []).map((entry: { productName: string; quantity?: number; price?: number | null }) => {
-    const qtyPart = entry.quantity ? `Qty ${entry.quantity}` : null
-    const pricePart = entry.price != null ? formatCurrency(entry.price) : null
-    return `- ${entry.productName}${qtyPart ? ` (${qtyPart}${pricePart ? `, ${pricePart}` : ''})` : ''}`
-  })
-
-  const text = [
-    `Hello ${group?.name || 'Pharmacy'},`,
-    requestNumber ? `Please confirm availability for ${requestNumber}${customerName ? ` for ${customerName}` : ''}.` : 'Please confirm availability for this request.',
-    '',
-    ...lines
-  ].join('\n')
-
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
-}
 
 
 const canMarkRequestComposed = computed(() => {
@@ -3751,21 +3471,6 @@ const hydrateAllocationUiState = (allocation: Allocation | null | undefined) => 
   if (allocation.edit_status === undefined) allocation.edit_status = allocation.status || 'confirmed'
   if (allocation.edit_substitute_name === undefined) allocation.edit_substitute_name = allocation.substitute_name || ''
   if (allocation.edit_substitute_note === undefined) allocation.edit_substitute_note = allocation.substitute_note || ''
-}
-
-const closeAlternativeModal = () => {
-  alternativeModal.value = {
-    open: false,
-    item: null,
-    pharmacy_id: '',
-    allocated_quantity: 1,
-    name: '',
-    productSearchResults: [],
-    showProductDropdown: false,
-    product_search_loading: false,
-    note: '',
-    price: ''
-  }
 }
 
 const openPrescriptionPreview = (url: string | null | undefined, index = 0) => {
@@ -5193,153 +4898,6 @@ const getRequestSearchCoordinates = () => {
   }
 }
 
-const getProductSearchLabel = (result: ProductSearchResult | null | undefined) => {
-  const baseName = String(
-    result?.product_description
-    || result?.master_name
-    || result?.product_name
-    || result?.name
-    || result?.brand_name
-    || ''
-  ).trim()
-  const strength = String(result?.strength || '').trim()
-  if (!baseName && !strength) return ''
-  if (strength && !baseName.toLowerCase().includes(strength.toLowerCase())) {
-    return `${baseName} ${strength}`.trim()
-  }
-  return baseName
-}
-
-const getProductResultMeta = (result: ProductSearchResult | null | undefined) => {
-  const parts = []
-  const companyName = String(result?.company_name || '').trim()
-  if (companyName) {
-    parts.push(companyName)
-  }
-  const distanceKm = Number(result?.distance_km)
-  if (Number.isFinite(distanceKm) && distanceKm >= 0) {
-    parts.push(`${distanceKm.toFixed(1)} km`)
-  }
-  const unit = String(result?.unit || '').trim()
-  if (unit) {
-    parts.push(unit)
-  }
-  const availableQuantity = Number(result?.available_quantity)
-  if (Number.isFinite(availableQuantity) && availableQuantity > 0) {
-    parts.push(`${availableQuantity} in stock`)
-  }
-  const minPrice = Number(result?.min_price || 0)
-  const maxPrice = Number(result?.max_price || 0)
-  const directPrice = Number(result?.price || 0)
-  if (directPrice > 0) {
-    parts.push(formatCurrency(directPrice))
-  } else if (minPrice > 0 || maxPrice > 0) {
-    if (maxPrice > minPrice && minPrice > 0) {
-      parts.push(`${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`)
-    } else {
-      const price = maxPrice > 0 ? maxPrice : minPrice
-      if (price > 0) parts.push(formatCurrency(price))
-    }
-  }
-  if (!parts.length && result?.strength) {
-    parts.push(String(result.strength))
-  }
-  return parts.join(' • ')
-}
-
-const fetchProductSearchResults = async (query: string | null | undefined, options: { requestedUnit?: string; pharmacySearch?: string; clearanceOnly?: boolean } = {}) => {
-  const trimmedQuery = String(query || '').trim()
-  if (trimmedQuery.length < 2) return []
-
-  const coords = getRequestSearchCoordinates()
-  const params = new URLSearchParams()
-  params.append('search', trimmedQuery)
-  params.append('limit', '8')
-
-  const requestedUnit = String(options?.requestedUnit || '').trim()
-  if (requestedUnit) {
-    params.append('requestedUnit', requestedUnit)
-  }
-
-  const pharmacySearch = String(options?.pharmacySearch || '').trim()
-  if (pharmacySearch) {
-    params.append('pharmacySearch', pharmacySearch)
-  }
-
-  if (options?.clearanceOnly) {
-    params.append('clearanceOnly', 'true')
-  }
-
-  if (coords.hasCoords) {
-    params.append('latitude', String(coords.lat))
-    params.append('longitude', String(coords.lng))
-    params.append('radiusKm', String(Number(selectedRequest.value?.sourcing_radius_km || 10) || 10))
-  }
-
-  const res = await apiCall('GET', `/api/inventory-analytics/search-products?${params.toString()}`)
-  const resData = res?.data as { products?: ProductSearchResult[] } | null
-  return Array.isArray(resData?.products) ? resData!.products! : []
-}
-
-const searchAlternativeProducts = async () => {
-  const query = String(alternativeModal.value.name || '').trim()
-  if (query.length < 2) {
-    alternativeModal.value.productSearchResults = []
-    return
-  }
-
-  alternativeModal.value.product_search_loading = true
-  try {
-    alternativeModal.value.productSearchResults = await fetchProductSearchResults(query, {
-      requestedUnit: alternativeModal.value.item?.requested_unit || '',
-      clearanceOnly: composeClearanceOnly.value
-    })
-  } catch (e) {
-    alternativeModal.value.productSearchResults = []
-  } finally {
-    alternativeModal.value.product_search_loading = false
-  }
-}
-
-const onAlternativeProductInput = () => {
-  alternativeModal.value.showProductDropdown = true
-  if (!alternativeModal.value.name || alternativeModal.value.name.trim().length < 2) {
-    alternativeModal.value.productSearchResults = []
-    return
-  }
-  if (alternativeModal.value.productSearchDebounceHandle) {
-    clearTimeout(alternativeModal.value.productSearchDebounceHandle)
-  }
-  alternativeModal.value.productSearchDebounceHandle = setTimeout(() => {
-    searchAlternativeProducts()
-  }, 300)
-}
-
-const selectAlternativeProduct = (result: ProductSearchResult) => {
-  const label = getProductSearchLabel(result)
-  if (!label) return
-  alternativeModal.value.name = label
-
-  const selectedPharmacyId = Number(result?.company_id || 0)
-  if (selectedPharmacyId > 0) {
-    alternativeModal.value.pharmacy_id = String(selectedPharmacyId)
-  }
-
-  const price = Number(result?.price || 0)
-  if (price > 0 && (alternativeModal.value.price === '' || alternativeModal.value.price === null || alternativeModal.value.price === undefined)) {
-    alternativeModal.value.price = String(Number(price.toFixed(2)))
-  }
-
-  alternativeModal.value.showProductDropdown = false
-  alternativeModal.value.productSearchResults = []
-}
-
-const closeAlternativeProductDropdown = () => {
-  setTimeout(() => {
-    alternativeModal.value.showProductDropdown = false
-  }, 160)
-}
-
 const saveAdminNewItem = async () => {
   if (!selectedRequest.value || !canAddAdminItem.value) return
 
@@ -5403,52 +4961,6 @@ const saveAdminNewItem = async () => {
     showMessage(errMsg(e) || 'Failed to add item', 'error')
   } finally {
     loading.value = false
-  }
-}
-
-interface AllocationSource {
-  allocation_type?: string; allocation_pharmacy_id?: number | string
-  allocation_quantity?: number; substitute_name?: string; substitute_note?: string
-  allocation_unit_price?: number | string | null; edit_price?: number | string | null
-  unit_price?: number | null; [key: string]: unknown
-}
-const buildAllocationPayload = (item: RequestItem, source: AllocationSource = item) => {
-  const allocationType = source.allocation_type || 'exact'
-  const pharmacyId = Number(source.allocation_pharmacy_id || 0)
-  const quantity = Number(source.allocation_quantity || 0)
-  if (!Number.isInteger(pharmacyId) || pharmacyId <= 0) {
-    throw new Error('Choose a pharmacy before creating an allocation')
-  }
-
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new Error('Allocation quantity must be greater than 0')
-  }
-
-  if (allocationType === 'substitute' && !String(source.substitute_name || '').trim()) {
-    throw new Error('Alternative name is required before saving')
-  }
-
-  const allocationUnitPrice = source.allocation_unit_price === '' || source.allocation_unit_price === null || source.allocation_unit_price === undefined
-    ? null
-    : Number(source.allocation_unit_price)
-  const exactUnitPrice = source.edit_price === '' || source.edit_price === null || source.edit_price === undefined
-    ? (source.unit_price === null || source.unit_price === undefined ? null : Number(source.unit_price))
-    : Number(source.edit_price)
-
-  if (allocationType === 'substitute' && (allocationUnitPrice === null || !Number.isFinite(allocationUnitPrice) || allocationUnitPrice <= 0)) {
-    throw new Error('Alternative price must be greater than 0')
-  }
-
-  return {
-    pharmacy_id: pharmacyId,
-    allocated_quantity: quantity,
-    allocation_type: allocationType,
-    substitute_name: allocationType === 'substitute' ? String(source.substitute_name || '').trim() : null,
-    substitute_note: allocationType === 'substitute' ? String(source.substitute_note || '').trim() : null,
-    unit_price: allocationType === 'substitute'
-      ? allocationUnitPrice
-      : (exactUnitPrice !== null && Number.isFinite(exactUnitPrice) && exactUnitPrice > 0 ? exactUnitPrice : null),
-    status: 'confirmed'
   }
 }
 
@@ -5532,7 +5044,6 @@ const formatRelativeTime = (d: string | null | undefined) => {
   const diffMonths = Math.floor(diffDays / 30)
   return `${diffMonths}mo ago`
 }
-const formatSignedCurrency = formatSignedGhs
 const formatRatingStars = (rating: number | string | null | undefined) => {
   const safeRating = Math.max(0, Math.min(5, Number(rating || 0)))
   return `${'★'.repeat(safeRating)}${'☆'.repeat(Math.max(5 - safeRating, 0))}`
@@ -5544,48 +5055,6 @@ const formatExcludedReason = (reason: string | null | undefined) => {
   return 'Not included'
 }
 const formatDistance = (km: number | string | null | undefined) => `${Number(km || 0).toFixed(1)} km`
-const getLatestSubstituteAllocation = (item: RequestItem | null | undefined) => {
-  if (!Array.isArray(item?.allocations)) return null
-
-  const substituteAllocations = item.allocations
-    .filter((allocation: Allocation) => {
-      const type = String(allocation?.allocation_type || '').toLowerCase()
-      const status = String(allocation?.status || '').toLowerCase()
-      return type === 'substitute' && ['proposed', 'confirmed'].includes(status)
-    })
-    .sort((a: Allocation, b: Allocation) => {
-      const aTime = new Date(a?.updated_at || a?.created_at || 0).getTime()
-      const bTime = new Date(b?.updated_at || b?.created_at || 0).getTime()
-      return bTime - aTime
-    })
-
-  return substituteAllocations[0] || null
-}
-const saveAlternativeForItem = async () => {
-  const item = alternativeModal.value.item
-  if (!item) return
-
-  loading.value = true
-  try {
-    const payload = buildAllocationPayload(item, {
-      allocation_type: 'substitute',
-      allocation_pharmacy_id: alternativeModal.value.pharmacy_id,
-      allocation_quantity: alternativeModal.value.allocated_quantity,
-      substitute_name: alternativeModal.value.name,
-      substitute_note: alternativeModal.value.note,
-      allocation_unit_price: alternativeModal.value.price
-    })
-
-    await apiCall('POST', `/api/order-requests/admin/items/${item.id}/allocations`, payload)
-    await refreshSelectedRequestState()
-    closeAlternativeModal()
-    showMessage('Alternative saved', 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to save alternative', 'error')
-  } finally {
-    loading.value = false
-  }
-}
 // One toast slot: a newer message restarts the clock, so an older timer cannot clear it early.
 let messageTimer: ReturnType<typeof setTimeout> | null = null
 const showMessage = (text: string, type = 'success') => {
