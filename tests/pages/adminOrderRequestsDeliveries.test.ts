@@ -259,3 +259,42 @@ describe('admin notes', () => {
     expect(wrapper.text()).toContain('Failed to save notes')
   })
 })
+
+describe('booking a delivery provider (dev builds)', () => {
+  const book = () => wrapper.findAll('button').find((b) => /book provider/i.test(b.text()))
+
+  it('books the provider for an open delivery and refreshes the deliveries', async () => {
+    await open('preparing', [delivery()])
+    const before = calls(/5\/deliveries$/).length
+
+    await book()!.trigger('click')
+    await flushPromises()
+
+    expect(calls(/deliveries\/31\/book-provider/, 'POST')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Provider booking accepted')
+    expect(calls(/5\/deliveries$/).length).toBe(before + 1)
+  })
+
+  it('says so when the booking fails', async () => {
+    await open('preparing', [delivery()])
+    failOn = 'book-provider'
+
+    await book()!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('server said no')
+  })
+
+  it('offers no booking once a provider reference exists, and shows it instead', async () => {
+    await open('preparing', [delivery({ provider_reference: 'BK-77' })])
+
+    expect(book()).toBeUndefined()
+    expect(wrapper.text()).toContain('Booked: BK-77')
+  })
+
+  it('offers no booking for a delivery that is no longer open', async () => {
+    await open('preparing', [delivery({ delivery_status: 'assigned' })])
+
+    expect(book()).toBeUndefined()
+  })
+})
