@@ -113,7 +113,7 @@
                     <div>
                       <label class="text-sm text-gray-600 font-medium">Cost</label>
                       <p class="text-gray-900 mt-1 text-sm font-semibold">
-                        GHS {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}
+                        {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}
                       </p>
                     </div>
 
@@ -345,6 +345,7 @@
 import { ref, watch, computed } from 'vue'
 import { XMarkIcon, ArrowPathIcon, UsersIcon, CheckCircleIcon, ClockIcon, XCircleIcon, PlayIcon, PauseIcon, DocumentTextIcon, TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useSMSCampaigns } from '~/composables/useSMSCampaigns'
+import { formatGhs } from '~/utils/money'
 import { useSmsSpendAccess } from '~/composables/useSmsSpendAccess'
 
 const { canSendCampaigns } = useSmsSpendAccess()
@@ -506,10 +507,7 @@ const formatDate = (date: string | null | undefined): string => {
   })
 }
 
-const formatCurrency = (value: number | null | undefined): string => {
-  const num = parseFloat(String(value ?? 0)) || 0
-  return num.toFixed(2)
-}
+const formatCurrency = formatGhs
 
 const getStatusClass = (status: string): string => {
   const classes: Record<string, string> = {
@@ -572,7 +570,7 @@ const formatTimelineChips = (metadata: unknown): Chip[] => {
   }
 
   if (m.actual_cost != null)
-    chips.push({ label: 'Actual cost', value: `GHS ${Number(m.actual_cost).toFixed(2)}` })
+    chips.push({ label: 'Actual cost', value: formatGhs(m.actual_cost) })
 
   return chips
 }

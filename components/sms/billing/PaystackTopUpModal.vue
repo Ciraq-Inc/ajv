@@ -26,7 +26,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-xs md:text-sm cs-text font-medium mb-1">Current Money Balance</p>
-              <p class="text-xl md:text-2xl font-bold cs-text">GH₵ {{ formatMoney(currentBalance) }}</p>
+              <p class="text-xl md:text-2xl font-bold cs-text">GHS {{ formatMoney(currentBalance) }}</p>
             </div>
             <Icon name="Wallet" class="h-8 w-8 md:h-10 md:w-10 text-blue-400" />
           </div>
@@ -92,7 +92,7 @@
                   Automatically convert to SMS credits
                 </label>
                 <p class="text-xs cs-text mt-1">
-                  After payment, your money balance will be automatically converted to SMS credits at the current rate (GH₵{{ smsRate }} per SMS)
+                  After payment, your money balance will be automatically converted to SMS credits at the current rate (GHS {{ formatMoney(smsRate) }} per SMS)
                 </p>
                 <p v-if="form.amount && form.autoPurchaseSMS" class="text-xs font-medium cs-text mt-2">
                   → You'll receive approximately {{ estimatedSMSCredits }} SMS credits
@@ -105,16 +105,16 @@
           <div v-if="form.amount && form.amount > 0" class="bg-gray-50 border border-gray-200 rounded-lg p-3 md:p-4 space-y-1.5 md:space-y-2">
             <div class="flex justify-between text-xs md:text-sm">
               <span class="text-gray-600">Amount to Credit:</span>
-              <span class="font-medium text-gray-900">GH₵ {{ formatMoney(form.amount) }}</span>
+              <span class="font-medium text-gray-900">GHS {{ formatMoney(form.amount) }}</span>
             </div>
             <div class="flex justify-between text-xs md:text-sm">
               <span class="text-gray-600">Paystack Fee (1.95% + GH₵0.50):</span>
-              <span class="font-medium text-gray-900">GH₵ {{ formatMoney(paystackFee) }}</span>
+              <span class="font-medium text-gray-900">GHS {{ formatMoney(paystackFee) }}</span>
             </div>
             <div class="border-t border-gray-300 pt-1.5 md:pt-2 mt-1.5 md:mt-2">
               <div class="flex justify-between">
                 <span class="font-semibold text-gray-900 text-xs md:text-sm">Total to Pay:</span>
-                <span class="font-bold cs-text text-base md:text-lg">GH₵ {{ formatMoney(totalAmount) }}</span>
+                <span class="font-bold cs-text text-base md:text-lg">GHS {{ formatMoney(totalAmount) }}</span>
               </div>
             </div>
           </div>
@@ -124,7 +124,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-xs md:text-sm text-green-600 font-medium mb-1">Balance After Top-up</p>
-                <p class="text-xl md:text-2xl font-bold text-green-900">GH₵ {{ formatMoney(balanceAfterTopup) }}</p>
+                <p class="text-xl md:text-2xl font-bold text-green-900">GHS {{ formatMoney(balanceAfterTopup) }}</p>
               </div>
               <Icon name="TrendingUp" class="h-6 w-6 md:h-8 md:w-8 text-green-400" />
             </div>
@@ -169,6 +169,7 @@
 import { ref, computed, watch } from 'vue'
 import { usePaystack } from '~/composables/usePaystack'
 import { useApi } from '~/composables/useApi'
+import { formatAmount } from '~/utils/money'
 
 // TODO: remove once composables/ are .ts
 const props = defineProps<{
@@ -246,10 +247,7 @@ const calculateTotal = (): void => {
   form.value = { ...form.value }
 }
 
-const formatMoney = (amount: number | null | undefined): string => {
-  if (!amount && amount !== 0) return '0.00'
-  return parseFloat(String(amount)).toFixed(2)
-}
+const formatMoney = formatAmount
 
 const close = (): void => {
   if (!processing.value) {

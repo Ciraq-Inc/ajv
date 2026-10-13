@@ -210,6 +210,7 @@ import { computed, ref, watch } from 'vue'
 import { CalendarIcon, PlayIcon, PauseIcon, PencilIcon, DocumentDuplicateIcon, PaperAirplaneIcon, TrashIcon, XCircleIcon, ArchiveBoxIcon, ArrowUturnLeftIcon, EllipsisVerticalIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
+import { formatGhs } from '~/utils/money'
 import { useSmsSpendAccess } from '~/composables/useSmsSpendAccess'
 
 interface Campaign {
@@ -271,10 +272,7 @@ const progressPercentage = computed<number>(() => {
   return Math.round((sent / total) * 100)
 })
 
-const formatCurrency = (value: number | null | undefined): string => {
-  const num = parseFloat(String(value ?? 0)) || 0
-  return num.toFixed(2)
-}
+const formatCurrency = formatGhs
 
 const canReuse = computed<boolean>(() =>
   ['draft', 'completed', 'cancelled', 'paused'].includes(props.campaign.status),

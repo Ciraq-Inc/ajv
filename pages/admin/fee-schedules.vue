@@ -121,7 +121,7 @@
                   </td>
                   <td>
                     <input v-if="selected.is_draft && tierEdits[t.id]" v-model.number="tierEdits[t.id]!.fee_ghs" type="number" step="0.01" class="form-control compact" />
-                    <span v-else>{{ Number(t.fee_ghs).toFixed(2) }}</span>
+                    <span v-else>{{ formatAmount(t.fee_ghs) }}</span>
                   </td>
                   <td>
                     <input v-if="selected.is_draft && tierEdits[t.id]" v-model="tierEdits[t.id]!.label" class="form-control compact" placeholder="optional" />
@@ -197,6 +197,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { createFeeSchedulesService } from '~/services/feeSchedules/feeSchedulesService'
 import type { FeeTier } from '~/services/types'
+import { formatAmount } from '~/utils/money'
 import ConfirmAction from '~/components/admin/ConfirmAction.vue'
 import { useConfirmAction } from '~/composables/useConfirmAction'
 

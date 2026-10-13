@@ -162,7 +162,7 @@
               </div>
             </td>
             <td>
-              <div class="cost-cell">GHS {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}</div>
+              <div class="cost-cell">{{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}</div>
             </td>
             <td>
               <div class="date-cell">{{ formatDate(campaign.created_at) }}</div>
@@ -311,7 +311,7 @@
               </div>
               <div class="stat-box">
                 <div class="stat-box-label">Actual Cost</div>
-                <div class="stat-box-value">GHS {{ formatCurrency(selectedCampaign.actual_cost || selectedCampaign.sms_cost || 0) }}</div>
+                <div class="stat-box-value">{{ formatCurrency(selectedCampaign.actual_cost || selectedCampaign.sms_cost || 0) }}</div>
               </div>
               <div class="stat-box">
                 <div class="stat-box-label">Payment Status</div>

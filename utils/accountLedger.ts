@@ -1,4 +1,5 @@
 import type { LedgerEntry } from '~/services/types'
+import { formatAmount } from '~/utils/money'
 
 // How a money-account ledger row is read, filtered and worded. Pure on purpose: the account page
 // keeps only the refs and wiring, so these rules can be checked without mounting a 2,000-line page.
@@ -24,8 +25,7 @@ export const paymentMethodLabel = (method: string): string =>
 export const statusLabel = (status: string): string =>
   status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 
-export const formatLedgerAmount = (value: number | null | undefined): string =>
-  new Intl.NumberFormat('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value || 0))
+export const formatLedgerAmount = (value: number | null | undefined): string => formatAmount(value)
 
 export const sourceLabel = (source: string, labels: SourceLabels): string =>
   labels[source] || source.replace(/_/g, ' ')

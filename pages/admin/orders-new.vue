@@ -257,7 +257,7 @@
                 {{ order.item_count || 0 }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                GHS {{ formatPrice(order.total_amount) }}
+                {{ formatGhs(order.total_amount) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="[
@@ -326,7 +326,7 @@
                 </div>
                 <div class="text-right">
                   <p class="text-sm text-gray-500">Total Amount</p>
-                  <p class="text-lg font-bold text-indigo-600">GHS {{ formatPrice(orderDetails.total_amount) }}</p>
+                  <p class="text-lg font-bold text-indigo-600">{{ formatGhs(orderDetails.total_amount) }}</p>
                 </div>
               </div>
 
@@ -391,13 +391,13 @@
                         {{ item.qty }}
                       </td>
                       <td class="px-4 py-3 text-sm text-gray-500 text-right">
-                        GHS {{ formatPrice(item.selling_price) }}
+                        {{ formatGhs(item.selling_price) }}
                       </td>
                       <td class="px-4 py-3 text-sm text-gray-500 text-right">
-                        GHS {{ formatPrice(item.discount || 0) }}
+                        {{ formatGhs(item.discount || 0) }}
                       </td>
                       <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                        GHS {{ formatPrice(item.line_total) }}
+                        {{ formatGhs(item.line_total) }}
                       </td>
                     </tr>
                   </tbody>
@@ -410,7 +410,7 @@
                         Total:
                       </td>
                       <td class="px-4 py-3 text-sm font-bold text-indigo-600 text-right">
-                        GHS {{ formatPrice(orderDetails.total_amount) }}
+                        {{ formatGhs(orderDetails.total_amount) }}
                       </td>
                     </tr>
                     <tr v-if="(orderDetails.total_discount ?? 0) > 0">
@@ -418,7 +418,7 @@
                         Total Discount:
                       </td>
                       <td class="px-4 py-2 text-sm text-green-600 text-right">
-                        -GHS {{ formatPrice(orderDetails.total_discount) }}
+                        -{{ formatGhs(orderDetails.total_discount) }}
                       </td>
                     </tr>
                   </tfoot>
@@ -447,6 +447,7 @@ import { usePharmacyStore } from '~/stores/pharmacy';
 import { createAdminOrdersService } from '~/services/adminOrders/adminOrdersService';
 import PageNotice from '~/components/admin/PageNotice.vue';
 import { usePageNotice } from '~/composables/usePageNotice';
+import { formatGhs } from '~/utils/money';
 
 interface AdminOrder {
   order_id: string
@@ -725,8 +726,6 @@ const formatOrderDate = (dateString: string | null | undefined): string => {
   }
 };
 
-const formatPrice = (price: number | string | null | undefined): string =>
-  Number(price ?? 0).toFixed(2);
 
 const capitalizeFirstLetter = (string: string | null | undefined): string => {
   if (!string) return '';

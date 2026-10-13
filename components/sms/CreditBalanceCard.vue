@@ -37,6 +37,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatGhs } from '~/utils/money'
 
 interface Trend {
   direction: 'up' | 'down'
@@ -63,7 +64,7 @@ const lowBalance = computed<boolean>(
 
 const formattedValue = computed<string | number>(() => {
   if (props.isCurrency) {
-    return `₵${parseFloat(String(props.value ?? 0)).toFixed(2)}`
+    return formatGhs(props.value)
   }
   return props.value ?? 0
 })

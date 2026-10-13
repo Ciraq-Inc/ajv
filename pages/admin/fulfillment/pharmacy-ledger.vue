@@ -199,6 +199,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import { downloadCsv, toCsv } from '~/utils/csv'
+import { formatGhs } from '~/utils/money'
 
 definePageMeta({ requiredRole: 'order_processor', middleware: ['admin-auth'], layout: 'admin-layout' })
 
@@ -277,8 +278,7 @@ const filteredPharmacies = computed<PharmacyRow[]>(() => {
   })
 })
 
-const formatCurrency = (value: number | null | undefined): string =>
-  `GHS ${Number(value ?? 0).toFixed(2)}`
+const formatCurrency = formatGhs
 
 const prettyDate = (value: string | null | undefined): string => {
   if (!value) return 'All time'

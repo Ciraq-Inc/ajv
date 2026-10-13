@@ -180,7 +180,7 @@
               </div>
               <div class="workspace-overview-item">
                 <span class="workspace-overview-key">Hold</span>
-                <strong>GHS {{ parseFloat(String(selectedRequest.request_fee || 0)).toFixed(2) }}</strong>
+                <strong>{{ formatCurrency(selectedRequest.request_fee) }}</strong>
               </div>
               <div class="workspace-overview-item">
                 <span class="workspace-overview-key">Items</span>
@@ -496,7 +496,7 @@
                               <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
                                 → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
                                 <template v-if="(item as any).source_product_name">
-                                  <span class="font-normal text-purple-400 mx-0.5">·</span>{{ (item as any).source_product_name }}<template v-if="item.unit_price"> · GHS {{ Number(item.unit_price).toFixed(2) }}</template>
+                                  <span class="font-normal text-purple-400 mx-0.5">·</span>{{ (item as any).source_product_name }}<template v-if="item.unit_price"> · {{ formatCurrency(item.unit_price) }}</template>
                                 </template>
                               </div>
                             </template>
@@ -568,7 +568,7 @@
                                 </span>
                                 <span class="text-[10px] text-gray-500">
                                   {{ pp.pharmacy_name }}
-                                  <template v-if="(pp.price ?? 0) > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
+                                  <template v-if="(pp.price ?? 0) > 0"> · {{ formatCurrency(pp.price) }}</template>
                                   <template v-if="(pp.available_quantity ?? 0) > 0"> · {{ pp.available_quantity }} in stock</template>
                                 </span>
                               </button>
@@ -846,10 +846,10 @@
                                   <span class="text-[10px] text-gray-700 font-medium truncate flex-1">{{ match.matched_product_name }}</span>
                                   <span v-if="match.is_clearance" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Clearance</span>
                                   <template v-if="match.is_clearance && match.original_price">
-                                    <span class="text-[10px] text-gray-400 line-through shrink-0">GHS {{ Number(match.original_price).toFixed(2) }}</span>
-                                    <span class="text-[10px] font-bold text-amber-700 shrink-0">GHS {{ Number(match.clearance_price ?? match.price).toFixed(2) }}</span>
+                                    <span class="text-[10px] text-gray-400 line-through shrink-0">{{ formatCurrency(match.original_price) }}</span>
+                                    <span class="text-[10px] font-bold text-amber-700 shrink-0">{{ formatCurrency(match.clearance_price ?? match.price) }}</span>
                                   </template>
-                                  <span v-else-if="match.price" class="text-[10px] font-bold text-gray-900 shrink-0">GHS {{ Number(match.price).toFixed(2) }}</span>
+                                  <span v-else-if="match.price" class="text-[10px] font-bold text-gray-900 shrink-0">{{ formatCurrency(match.price) }}</span>
                                   <span class="text-[9px] font-bold px-1 py-0.5 rounded shrink-0" :class="Number(match.stock || 0) > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ match.stock ?? 0 }} left</span>
                                   <button
                                     type="button"
@@ -951,7 +951,7 @@
                                         <span v-if="sp.is_clearance" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Clearance</span>
                                       </span>
                                       <span class="text-[10px] text-gray-500">
-                                        GH₵{{ Number(sp.price || 0).toFixed(2) }} · {{ sp.available_quantity || 0 }} in stock
+                                        {{ formatCurrency(sp.price || 0) }} · {{ sp.available_quantity || 0 }} in stock
                                         <template v-if="sp.distance_km !== null"> · {{ Number(sp.distance_km).toFixed(2) }} km</template>
                                       </span>
                                     </button>
@@ -1347,7 +1347,7 @@
                     </span>
                     <span v-if="decisionOrderValue(dec) !== null" class="decision-stat decision-stat--value">
                       <span class="decision-stat-label">Order value</span>
-                      <span class="decision-stat-value">GHS {{ decisionOrderValue(dec)!.toFixed(2) }}</span>
+                      <span class="decision-stat-value">{{ formatCurrency(decisionOrderValue(dec)) }}</span>
                     </span>
                   </div>
 
@@ -1525,9 +1525,9 @@
                 </div>
               </div>
               <div v-if="selectedRequest?.delivery_provider_code || selectedRequest?.parcel_weight_kg" class="provider-readonly-strip">
-                <span v-if="selectedRequest?.delivery_provider_code" class="provider-readonly-chip">Customer picked: {{ selectedRequest.delivery_provider_code }}{{ selectedRequest.delivery_service_level ? ` · ${selectedRequest.delivery_service_level}` : '' }}{{ selectedRequest.delivery_quote_amount ? ` · GHS ${Number(selectedRequest.delivery_quote_amount).toFixed(2)}` : '' }}</span>
+                <span v-if="selectedRequest?.delivery_provider_code" class="provider-readonly-chip">Customer picked: {{ selectedRequest.delivery_provider_code }}{{ selectedRequest.delivery_service_level ? ` · ${selectedRequest.delivery_service_level}` : '' }}{{ selectedRequest.delivery_quote_amount ? ` · ${formatCurrency(selectedRequest.delivery_quote_amount)}` : '' }}</span>
                 <span v-else class="provider-readonly-chip provider-readonly-chip--muted">Own-rider delivery (no provider picked)</span>
-                <span v-if="selectedRequest?.parcel_weight_kg" class="provider-readonly-chip provider-readonly-chip--parcel">Parcel: {{ selectedRequest.parcel_weight_kg }} kg{{ selectedRequest.parcel_length_cm ? ` · ${selectedRequest.parcel_length_cm}×${selectedRequest.parcel_width_cm}×${selectedRequest.parcel_height_cm} cm` : '' }}{{ selectedRequest.parcel_value_ghs ? ` · GHS ${Number(selectedRequest.parcel_value_ghs).toFixed(2)}` : '' }}{{ selectedRequest.parcel_fragile ? ' · fragile' : '' }}{{ selectedRequest.parcel_cold_chain ? ' · cold chain' : '' }}</span>
+                <span v-if="selectedRequest?.parcel_weight_kg" class="provider-readonly-chip provider-readonly-chip--parcel">Parcel: {{ selectedRequest.parcel_weight_kg }} kg{{ selectedRequest.parcel_length_cm ? ` · ${selectedRequest.parcel_length_cm}×${selectedRequest.parcel_width_cm}×${selectedRequest.parcel_height_cm} cm` : '' }}{{ selectedRequest.parcel_value_ghs ? ` · ${formatCurrency(selectedRequest.parcel_value_ghs)}` : '' }}{{ selectedRequest.parcel_fragile ? ' · fragile' : '' }}{{ selectedRequest.parcel_cold_chain ? ' · cold chain' : '' }}</span>
               </div>
             </section>
 
@@ -1612,8 +1612,8 @@
                   </div>
                   <div class="delivery-meta">
                     <span v-if="d.distance_km" :title="d.distance_method === 'haversine' ? 'Estimated distance (straight-line × 1.3)' : 'Driving distance (ORS)'">{{ d.distance_method === 'haversine' ? '~' : '' }}{{ Number(d.distance_km).toFixed(1) }} km<template v-if="d.duration_minutes"> · {{ Math.round(d.duration_minutes) }} min</template></span>
-                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
-                    <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
+                    <span v-if="d.delivery_fee">{{ formatCurrency(d.delivery_fee) }} gross</span>
+                    <span v-if="d.net_delivery_fee !== undefined">/ {{ formatCurrency(d.net_delivery_fee) }} net</span>
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
                   </div>
                   <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status ?? '')" class="delivery-card-actions">
@@ -1750,8 +1750,8 @@
                   </div>
                   <div class="delivery-meta">
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
-                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
-                    <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
+                    <span v-if="d.delivery_fee">{{ formatCurrency(d.delivery_fee) }} gross</span>
+                    <span v-if="d.net_delivery_fee !== undefined">/ {{ formatCurrency(d.net_delivery_fee) }} net</span>
                     <span v-if="d.distance_km" :title="d.distance_method === 'haversine' ? 'Estimated distance (straight-line × 1.3)' : 'Driving distance (ORS)'">{{ d.distance_method === 'haversine' ? '~' : '' }}{{ Number(d.distance_km).toFixed(1) }} km<template v-if="d.duration_minutes"> · {{ Math.round(d.duration_minutes) }} min</template></span>
                   </div>
                   <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status ?? '')" class="delivery-card-actions">
@@ -2166,7 +2166,7 @@
                     </label>
                   </div>
                   <div v-if="item.catalog_price != null" class="response-price-hint">
-                    <span class="response-price-hint-label">Catalog: GHS {{ Number(item.catalog_price).toFixed(2) }}</span>
+                    <span class="response-price-hint-label">Catalog: {{ formatCurrency(item.catalog_price) }}</span>
                     <span v-if="item.catalog_synced_at" class="response-price-hint-sync">· synced {{ formatRelativeTime(item.catalog_synced_at) }}</span>
                   </div>
                 </div>
@@ -2323,7 +2323,7 @@
                   <div class="composed-pharmacy-meta" style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     <span class="composed-meta-chip" style="font-size: 0.75rem; background: #f3f4f6; color: #374151; padding: 0.15rem 0.5rem; border-radius: 999px;">{{ group.items.length }} item{{ group.items.length !== 1 ? 's' : '' }}</span>
                     <span v-if="group.distanceKm !== null && group.distanceKm !== undefined" class="composed-meta-chip" style="font-size: 0.75rem; background: #f3f4f6; color: #374151; padding: 0.15rem 0.5rem; border-radius: 999px;">{{ formatDistance(group.distanceKm) }} away</span>
-                    <span class="composed-meta-chip composed-meta-chip--value" style="font-size: 0.75rem; background: #ecfdf5; color: #047857; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 600;">GHS {{ Number(group.totalValue || 0).toFixed(2) }}</span>
+                    <span class="composed-meta-chip composed-meta-chip--value" style="font-size: 0.75rem; background: #ecfdf5; color: #047857; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 600;">{{ formatCurrency(group.totalValue || 0) }}</span>
                     <span v-if="getComposedSummaryGroupStatus(group)" :style="getComposedSummaryGroupStatus(group) === 'confirmed' ? 'font-size: 0.75rem; background: #dcfce7; color: #166534; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 700;' : 'font-size: 0.75rem; background: #f3f4f6; color: #374151; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 700;'">{{ getComposedSummaryGroupStatus(group).replace('_', ' ') }}</span>
                   </div>
                 </div>
@@ -2376,7 +2376,7 @@
                     <tr v-for="entry in group.items" :key="`composed-${group.pharmacyId || group.name}-${entry.id}`" style="border-bottom: 1px solid #f3f4f6;">
                       <td style="padding: 1rem 1.5rem; color: #111827; font-weight: 500;">{{ entry.productName }}</td>
                       <td style="padding: 1rem 1.5rem; text-align: right; color: #6b7280;">{{ entry.quantity }}</td>
-                      <td style="padding: 1rem 1.5rem; text-align: right; color: #111827; font-weight: 600; font-variant-numeric: tabular-nums;">{{ entry.price != null ? `GHS ${Number(entry.price).toFixed(2)}` : '-' }}</td>
+                      <td style="padding: 1rem 1.5rem; text-align: right; color: #111827; font-weight: 600; font-variant-numeric: tabular-nums;">{{ entry.price != null ? formatCurrency(entry.price) : '-' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -2403,6 +2403,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
 import { MAX_PAYMENT_REFERENCE, normalizePaymentReference } from '~/utils/manualPayment'
+import { formatGhs, formatSignedGhs } from '~/utils/money'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import ConfirmAction from '~/components/admin/ConfirmAction.vue'
 import PromptAction from '~/components/admin/PromptAction.vue'
@@ -3265,7 +3266,7 @@ const customerPaymentWhatsAppUrl = computed(() => {
   const name = String(selectedRequest.value?.customer_name || '').trim() || 'there'
   const num = String(selectedRequest.value?.request_number || '').trim()
   const total = paymentModeTotal.value
-  const totalStr = total > 0 ? ` GHS ${total.toFixed(2)}` : ''
+  const totalStr = total > 0 ? ` ${formatCurrency(total)}` : ''
   const link = buildCustomerOrderLink(selectedRequest.value?.id)
   const text = `Hi ${name}, your MedsGH order${num ? ` ${num}` : ''} is confirmed and awaiting payment.${totalStr ? ` Total:${totalStr}.` : ''} Please complete your payment here:\n${link}\n- MedsGH Team`
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
@@ -3671,7 +3672,7 @@ const buildComposedPharmacyWhatsAppUrl = (request: RichOrderRequest | null | und
   const customerName = String(request?.customer_name || '').trim()
   const lines = (group?.items || []).map((entry: { productName: string; quantity?: number; price?: number | null }) => {
     const qtyPart = entry.quantity ? `Qty ${entry.quantity}` : null
-    const pricePart = entry.price != null ? `GHS ${Number(entry.price).toFixed(2)}` : null
+    const pricePart = entry.price != null ? formatCurrency(entry.price) : null
     return `- ${entry.productName}${qtyPart ? ` (${qtyPart}${pricePart ? `, ${pricePart}` : ''})` : ''}`
   })
 
@@ -4538,10 +4539,10 @@ const buildPharmacyWhatsAppUrl = (delivery: Delivery) => {
     (item) => item.source_pharmacy_id === delivery.pickup_pharmacy_id
   )
   const itemLines = pharmacyItems.length
-    ? pharmacyItems.map((i) => `• ${i.product_name} × ${i.quantity} — GHS ${Number(i.line_total || 0).toFixed(2)}`).join('\n')
+    ? pharmacyItems.map((i) => `• ${i.product_name} × ${i.quantity} — ${formatCurrency(i.line_total || 0)}`).join('\n')
     : '(items on record)'
   const pharmacyTotal = pharmacyItems.reduce((sum, i) => sum + Number(i.line_total || 0), 0)
-  const netFee = Number(delivery.net_delivery_fee ?? delivery.delivery_fee ?? 0).toFixed(2)
+  const netFee = formatCurrency(delivery.net_delivery_fee ?? delivery.delivery_fee ?? 0)
   const deliveriesLink = delivery.pharmacy_domain
     ? `${window.location.origin}/${delivery.pharmacy_domain}/services/deliveries`
     : `${window.location.origin}/services/deliveries`
@@ -4550,9 +4551,9 @@ const buildPharmacyWhatsAppUrl = (delivery: Delivery) => {
     `Hi ${delivery.pharmacy_name},\n\n` +
     `Payment confirmed for Order *${req.request_number}* ✓\n\n` +
     `Your items to prepare:\n${itemLines}\n` +
-    `Drug earnings: GHS ${pharmacyTotal.toFixed(2)}\n\n` +
+    `Drug earnings: ${formatCurrency(pharmacyTotal)}\n\n` +
     `Delivery to: ${req.customer_address || 'customer location'}\n` +
-    `Delivery earnings (net): GHS ${netFee}\n\n` +
+    `Delivery earnings (net): ${netFee}\n\n` +
     `Accept delivery & assign your rider here:\n${deliveriesLink}\n\n` +
     `Reply YES to confirm you will handle delivery.`
 
@@ -5790,7 +5791,7 @@ const calculateTotals = async () => {
   try {
     const res = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}/totals`)
     const totals = res.data as { subtotal?: number; available_items?: unknown[]; unavailable_items?: unknown[] }
-    showMessage(`Subtotal: GHS ${totals.subtotal} | ${(totals.available_items || []).length} available, ${(totals.unavailable_items || []).length} unavailable`, 'success')
+    showMessage(`Subtotal: ${formatCurrency(totals.subtotal)} | ${(totals.available_items || []).length} available, ${(totals.unavailable_items || []).length} unavailable`, 'success')
   } catch (e) {
     showMessage('Failed to calculate totals', 'error')
   }
@@ -6007,13 +6008,13 @@ const getProductResultMeta = (result: ProductSearchResult | null | undefined) =>
   const maxPrice = Number(result?.max_price || 0)
   const directPrice = Number(result?.price || 0)
   if (directPrice > 0) {
-    parts.push(`GHS ${directPrice.toFixed(2)}`)
+    parts.push(formatCurrency(directPrice))
   } else if (minPrice > 0 || maxPrice > 0) {
     if (maxPrice > minPrice && minPrice > 0) {
-      parts.push(`GHS ${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)}`)
+      parts.push(`${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`)
     } else {
       const price = maxPrice > 0 ? maxPrice : minPrice
-      if (price > 0) parts.push(`GHS ${price.toFixed(2)}`)
+      if (price > 0) parts.push(formatCurrency(price))
     }
   }
   if (!parts.length && result?.strength) {
@@ -6785,7 +6786,7 @@ const formatStatus = (status: string | null | undefined) => {
 }
 const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
 const formatDateTime = (d: string | null | undefined) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-'
-const formatCurrency = (value: number | string | null | undefined) => `GHS ${Number(value || 0).toFixed(2)}`
+const formatCurrency = formatGhs
 const formatRelativeTime = (d: string | null | undefined) => {
   if (!d) return null
   const diffMs = Date.now() - new Date(d).getTime()
@@ -6798,11 +6799,7 @@ const formatRelativeTime = (d: string | null | undefined) => {
   const diffMonths = Math.floor(diffDays / 30)
   return `${diffMonths}mo ago`
 }
-const formatSignedCurrency = (value: number | string | null | undefined) => {
-  const amount = Number(value || 0)
-  const sign = amount > 0 ? '+' : amount < 0 ? '-' : ''
-  return `${sign}GHS ${Math.abs(amount).toFixed(2)}`
-}
+const formatSignedCurrency = formatSignedGhs
 const formatRatingStars = (rating: number | string | null | undefined) => {
   const safeRating = Math.max(0, Math.min(5, Number(rating || 0)))
   return `${'★'.repeat(safeRating)}${'☆'.repeat(Math.max(5 - safeRating, 0))}`

@@ -33,5 +33,6 @@ describe('Vue style blocks', () => {
       .filter((o) => o.imports.length > 0)
 
     expect(offenders).toEqual([])
-  })
+    // Reads every page and component; with the whole suite running in parallel that outlasts the 5s default.
+  }, 30_000)
 })

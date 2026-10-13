@@ -226,7 +226,7 @@
                   </span>
                 </td> -->
                 <td class="py-3 px-3 text-right text-gray-900 font-medium">
-                  {{ parseFloat(String(health.money_balance ?? 0)).toFixed(2) }}
+                  {{ formatAmount(health.money_balance) }}
                 </td>
                 <!-- <td class="py-3 px-3 text-right text-gray-600">
                   {{ formatNumber(health.total_sms_sent || 0) }}
@@ -595,9 +595,9 @@
                 <p class="font-medium mb-1">Purchase Preview:</p>
                 <p>Company: {{ buyCreditsSelectedCompany?.name ?? '' }}</p>
                 <p>SMS Credits: {{ formatNumber(buyCreditsForm.sms_count) }}</p>
-                <p>Rate: GHS {{ smsRate }} per SMS</p>
-                <p class="font-semibold">Estimated Cost: GHS {{ buyCreditsEstimatedCost.toFixed(2) }}</p>
-                <p>Current Money Balance: GHS {{ buyCreditsSelectedMoneyBalance.toFixed(2) }}</p>
+                <p>Rate: {{ formatGhs(smsRate) }} per SMS</p>
+                <p class="font-semibold">Estimated Cost: {{ formatGhs(buyCreditsEstimatedCost) }}</p>
+                <p>Current Money Balance: {{ formatGhs(buyCreditsSelectedMoneyBalance) }}</p>
               </div>
             </div>
 
@@ -605,7 +605,7 @@
             <div v-if="buyCreditsInsufficientFunds" class="bg-red-50 border border-red-200 rounded-lg p-3">
               <p class="text-sm text-red-800 font-medium">Insufficient money balance</p>
               <p class="text-xs text-red-700 mt-1">
-                Required: GHS {{ buyCreditsEstimatedCost.toFixed(2) }} — Available: GHS {{ buyCreditsSelectedMoneyBalance.toFixed(2) }}
+                Required: {{ formatGhs(buyCreditsEstimatedCost) }} — Available: {{ formatGhs(buyCreditsSelectedMoneyBalance) }}
               </p>
             </div>
 
@@ -648,6 +648,7 @@ import PageNotice from '~/components/admin/PageNotice.vue'
 import { usePageNotice } from '~/composables/usePageNotice'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
+import { formatAmount, formatGhs } from '~/utils/money'
 
 // Define page metadata
 definePageMeta({
