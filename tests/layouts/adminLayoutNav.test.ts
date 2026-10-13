@@ -104,7 +104,8 @@ describe('admin sidebar follows the role floors', () => {
     await openAs('business_analyst')
     const shown = links()
 
-    expect(shown).toEqual(expect.arrayContaining(['/admin/data', '/admin/masterlist', '/admin/clearance-sale', '/admin/security']))
+    expect(shown).toEqual(expect.arrayContaining(['/admin/data', '/admin/clearance-sale', '/admin/security']))
+    expect(shown).not.toContain('/admin/masterlist')
     expect(shown).not.toContain('/admin/fulfillment/requests')
     expect(shown).not.toContain('/admin/customers')
   })

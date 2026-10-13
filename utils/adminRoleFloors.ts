@@ -21,7 +21,7 @@ export const ADMIN_PAGE_FLOORS: Record<string, AdminPageFloor> = {
   '/admin/fulfillment/requests': 'order_processor',
   '/admin/fulfillment/riders': 'order_processor',
   '/admin/fulfillment/screen': 'order_processor',
-  '/admin/masterlist': null,
+  '/admin/masterlist': 'manager',
   '/admin/orders-new': 'order_processor',
   '/admin/platform-settings': 'super_admin',
   '/admin/professionals': 'admin',

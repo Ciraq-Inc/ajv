@@ -815,6 +815,8 @@ export interface JobApplication {
 export interface MasterProductUploadResult {
   success: boolean;
   imageUrl?: string;
+  /** True when the server left the product alone because it already has an image and force was off. */
+  skipped?: boolean;
   error?: string;
 }
 
