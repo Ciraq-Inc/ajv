@@ -344,3 +344,86 @@ describe('coverage matrix: finding a substitute for an uncovered item', () => {
     expect(wrapper.text()).toContain("No products found in this pharmacy's catalog.")
   })
 })
+
+describe('coverage matrix: how the search is worded and aimed', () => {
+  const searchFor = async (productName: string, over: Record<string, unknown> = {}) => {
+    const list = pharmacies()
+    list[0]!.uncovered = [{ item_id: 10, product_name: productName }]
+    coverage = { success: true, data: { pharmacies: list } }
+    await open(over)
+    await button(/find substitute/i).trigger('click')
+    await flushPromises()
+    return new URL('http://x' + calls(/pharmacy-products\/search/)[0]![0]).searchParams
+  }
+
+  it.each([
+    ['Amoxicillin 500mg Capsules', 'Amoxicillin Capsules'],
+    ['Cough Syrup (Adult) 100ml', 'Cough Syrup'],
+    ['Vitamin C 1000 mg tablets extra strong', 'Vitamin tablets extra'],
+    ['Ibuprofen-400', 'Ibuprofen'],
+    ['Co Q', 'Co Q'],
+  ])('searches "%s" as "%s"', async (name, expected) => {
+    const params = await searchFor(name)
+
+    expect(params.get('q')).toBe(expected)
+  })
+
+  it('searches with the whole name when nothing is left after simplifying', async () => {
+    const params = await searchFor('500mg')
+
+    expect(params.get('q')).toBe('500mg')
+  })
+
+  it('sends the customer location so nearer stock ranks first', async () => {
+    const params = await searchFor('Amoxil', { customer_latitude: 5.6, customer_longitude: -0.19 })
+
+    expect(params.get('lat')).toBe('5.6')
+    expect(params.get('lng')).toBe('-0.19')
+  })
+
+  it('accepts the other names the server uses for the location', async () => {
+    const params = await searchFor('Amoxil', { delivery_lat: 5.5, delivery_lng: -0.2 })
+
+    expect(params.get('lat')).toBe('5.5')
+    expect(params.get('lng')).toBe('-0.2')
+  })
+
+  it('sends no location when the request has none, or it is zero', async () => {
+    const none = await searchFor('Amoxil')
+    expect(none.has('lat')).toBe(false)
+    expect(none.has('lng')).toBe(false)
+
+    wrapper.unmount()
+    http.request.mockClear()
+    const zero = await searchFor('Amoxil', { customer_latitude: 0, customer_longitude: 0 })
+    expect(zero.has('lat')).toBe(false)
+  })
+})
+
+describe('coverage matrix: coverage bar', () => {
+  const bar = (i: number) => wrapper.findAll('.coverage-pharmacy-card')[i]!.find('.coverage-bar-fill')
+  const withScores = (scores: Array<[number, number]>) => {
+    const list = pharmacies()
+    list[0]!.coverage_score = scores[0]![0]; list[0]!.total_items = scores[0]![1]
+    list[1]!.coverage_score = scores[1]![0]; list[1]!.total_items = scores[1]![1]
+    coverage = { success: true, data: { pharmacies: list } }
+  }
+  const style = (i: number) => (bar(i).element as HTMLElement).style
+
+  it('is green when full, amber from half, red below half, and grey and empty with no items', async () => {
+    withScores([[4, 4], [2, 4]])
+    await open()
+    expect(style(0).width).toBe('100%')
+    expect(style(0).background).toMatch(/16, 185, 129|#10b981/i)
+    expect(style(1).width).toBe('50%')
+    expect(style(1).background).toMatch(/245, 158, 11|#f59e0b/i)
+    wrapper.unmount()
+
+    withScores([[1, 4], [0, 0]])
+    await open()
+    expect(style(0).width).toBe('25%')
+    expect(style(0).background).toMatch(/239, 68, 68|#ef4444/i)
+    expect(style(1).width).toBe('0%')
+    expect(style(1).background).toMatch(/156, 163, 175|#9ca3af/i)
+  })
+})
