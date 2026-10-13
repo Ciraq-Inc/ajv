@@ -984,10 +984,14 @@ export interface PharmacyReportData {
 // SMS settings
 // ---------------------------------------------------------------------------
 
+// The sms_settings row as the API returns it. Writes take { rate, provider } (SmsGlobalSettingsUpdate);
+// reads come back under the column names.
 export interface SmsSettings {
   id: number;
-  rate: number;
-  provider: string;
+  active_provider: string;
+  sms_rate_per_unit: number | string;
+  updated_at: string | null;
+  [key: string]: unknown;
 }
 
 export interface SmsGlobalSettingsUpdate {
