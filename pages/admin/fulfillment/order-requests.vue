@@ -1121,7 +1121,7 @@
                         <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
                         <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction(pharm, 'declined', { showSuccess: true })">Unavailable ✗</button>
                       </template>
-                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading" @click="routePharmacyAction(pharm)">Route here</button>
+                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading || routingPharmacy" @click="routePharmacyAction(pharm)">Route here</button>
                     </div>
                   </div>
                 </template>
@@ -1183,7 +1183,7 @@
                         <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
                         <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction(pharm, 'declined', { showSuccess: true })">Unavailable ✗</button>
                       </template>
-                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading" @click="routePharmacyAction(pharm)">Route here</button>
+                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading || routingPharmacy" @click="routePharmacyAction(pharm)">Route here</button>
                     </div>
                   </div>
                 </template>
@@ -5016,22 +5016,34 @@ const routePharmacyAction = (pharmacy: PharmacyQueueEntry) => {
   }, () => doRoutePharmacy(reqId, pharmacy, coveredItems))
 }
 
+// Routing moves stock allocation, so a second confirm or click while the first is in flight is ignored.
+const routingPharmacy = ref(false)
 const doRoutePharmacy = async (
   reqId: number | string,
   pharmacy: PharmacyQueueEntry,
   coveredItems: Array<{ item_id: unknown; matched_product_id: unknown; distance_km: unknown }>
 ) => {
+  if (routingPharmacy.value) return
+  routingPharmacy.value = true
   try {
     await apiCall('POST', `/api/order-requests/admin/${reqId}/route-pharmacy`, {
       pharmacy_id: pharmacy.pharmacy_id,
       items: coveredItems
     })
-    showMessage(`Routed ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}`, 'success')
-    // Refresh request data + coverage
-    await refreshSelectedRequestDetails()
-    fetchPharmacyCoverage()
   } catch (e) {
     showMessage('Failed to route items', 'error')
+    routingPharmacy.value = false
+    return
+  }
+  try {
+    // Refresh request data + coverage, then say what happened (the refresh must not replace it).
+    await refreshSelectedRequestState()
+    fetchPharmacyCoverage()
+    showMessage(`Routed ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}`, 'success')
+  } catch (e) {
+    showMessage(`Routed ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}, but the page could not refresh. Press Refresh.`, 'error')
+  } finally {
+    routingPharmacy.value = false
   }
 }
 
