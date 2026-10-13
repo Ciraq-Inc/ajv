@@ -11,15 +11,15 @@ import type { ApiInstance, ApiEnvelope, FeeSchedule, FeeTier } from '../types';
 
 export interface CreateDraftParams {
   name?: string;
-  top_tier_per_km?: number;
-  max_billable_km?: number;
+  top_tier_per_km?: number | null;
+  max_billable_km?: number | null;
   clone_from_id?: number | null;
 }
 
 export interface UpdateHeaderParams {
   name?: string;
-  top_tier_per_km?: number;
-  max_billable_km?: number;
+  top_tier_per_km?: number | null;
+  max_billable_km?: number | null;
   notes?: string;
 }
 

@@ -344,6 +344,10 @@ const canAddTier = computed<boolean>(() =>
   newTier.from_km !== null && newTier.fee_ghs !== null
 )
 
+// A number input that was emptied holds '' (not null); either way it means "not set".
+const numberOrNull = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null
+
 const saveHeader = async (): Promise<void> => {
   if (!selected.value) return
   loading.value = true
@@ -351,8 +355,8 @@ const saveHeader = async (): Promise<void> => {
     await feeSchedulesService.updateHeader(selected.value.id, {
       name: header.name,
       notes: header.notes,
-      ...(header.top_tier_per_km != null && { top_tier_per_km: header.top_tier_per_km }),
-      ...(header.max_billable_km != null && { max_billable_km: header.max_billable_km }),
+      top_tier_per_km: numberOrNull(header.top_tier_per_km),
+      max_billable_km: numberOrNull(header.max_billable_km),
     })
     showMessage('Header saved')
     await fetchAll()
@@ -450,8 +454,8 @@ const createDraft = async (): Promise<void> => {
   try {
     const res = await feeSchedulesService.createDraft({
       name: createForm.name,
-      ...(createForm.top_tier_per_km != null && { top_tier_per_km: createForm.top_tier_per_km }),
-      ...(createForm.max_billable_km != null && { max_billable_km: createForm.max_billable_km }),
+      ...(numberOrNull(createForm.top_tier_per_km) !== null && { top_tier_per_km: createForm.top_tier_per_km }),
+      ...(numberOrNull(createForm.max_billable_km) !== null && { max_billable_km: createForm.max_billable_km }),
       ...(createForm.clone_from_id != null && { clone_from_id: createForm.clone_from_id }),
     })
     showMessage('Draft created')
