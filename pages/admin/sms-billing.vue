@@ -1,5 +1,6 @@
 <template>
   <div class="admin-sms-billing-page">
+    <PageNotice :notice="notice" @dismiss="dismiss" />
     <!-- Header -->
     <div class="mb-6">
       <!-- <h1 class="text-3xl font-bold text-gray-900 mb-2">SMS Billing Management</h1> -->
@@ -642,6 +643,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useSMSBilling } from '~/composables/useSMSBilling'
+import PageNotice from '~/components/admin/PageNotice.vue'
+import { usePageNotice } from '~/composables/usePageNotice'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
 
@@ -687,6 +690,7 @@ const {
   companiesWithIssues,
   overallHealthStatus
 } = useSMSBilling()
+const { notice, notify, dismiss } = usePageNotice()
 
 const activeTab = ref<string>('health')
 const reconciling = ref<boolean>(false)
@@ -1069,7 +1073,7 @@ const handleBuyCredits = async (): Promise<void> => {
     const count = buyCreditsForm.value.sms_count
     const name = buyCreditsSelectedCompany.value?.name ?? ''
     closeBuyCreditsModal()
-    alert(`Successfully purchased ${formatNumber(count)} SMS credits for ${name}`)
+    notify(`Successfully purchased ${formatNumber(count)} SMS credits for ${name}`, 'success')
   } catch (err) {
     buyCreditsError.value = err instanceof Error ? err.message : 'Failed to purchase credits. Please try again.'
   } finally {
@@ -1105,7 +1109,7 @@ const handleTopUp = async (): Promise<void> => {
     closeTopUpModal()
 
     // Show success alert
-    alert(`Successfully added ${formatNumber(amount)} money balance to ${companyName}`)
+    notify(`Successfully added ${formatNumber(amount)} money balance to ${companyName}`, 'success')
 
   } catch (error) {
     topUpError.value = error instanceof Error ? error.message : 'Failed to top up money. Please try again.'

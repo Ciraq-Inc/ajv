@@ -1,5 +1,6 @@
 <template>
   <div class="container mx-auto p-4">
+    <PageNotice :notice="notice" @dismiss="dismiss" />
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -619,6 +620,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useApi } from '~/composables/useApi';
 import { createMasterProductsService } from '~/services/masterProducts/masterProductsService';
+import PageNotice from '~/components/admin/PageNotice.vue';
+import { usePageNotice } from '~/composables/usePageNotice';
 
 definePageMeta({
   middleware: 'admin-auth',
@@ -685,6 +688,7 @@ interface ApiResponse {
 }
 
 const api = useApi();
+const { notice, notify, dismiss } = usePageNotice();
 const masterProductsService = createMasterProductsService(api);
 
 const loading = ref<boolean>(false);
@@ -1043,7 +1047,7 @@ const uploadImage = async (): Promise<void> => {
 
       await loadStats();
       closeUploadModal();
-      alert('Image uploaded successfully!');
+      notify('Image uploaded successfully.', 'success');
     } else {
       uploadError.value = response.error ?? 'Upload failed';
     }
@@ -1074,13 +1078,13 @@ const removeImage = async (product: MasterProduct): Promise<void> => {
       }
 
       await loadStats();
-      alert('Image removed successfully!');
+      notify('Image removed successfully.', 'success');
     } else {
-      alert('Failed to remove image: ' + (response.error ?? 'Unknown error'));
+      notify('Failed to remove image: ' + (response.error ?? 'Unknown error'));
     }
   } catch (error) {
     console.error('Remove error:', error);
-    alert('Failed to remove image');
+    notify(error instanceof Error ? `Failed to remove image: ${error.message}` : 'Failed to remove image');
   } finally {
     uploadingProductId.value = null;
   }
@@ -1207,7 +1211,7 @@ const startAutoUpload = async (): Promise<void> => {
     await loadProducts();
   } catch (error) {
     console.error('Bulk upload error:', error);
-    alert('Bulk upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    notify('Bulk upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   } finally {
     autoUploading.value = false;
   }

@@ -6,16 +6,7 @@
 -->
 <template>
   <div class="container mx-auto p-4">
-    <div
-      v-if="notice"
-      data-test="page-notice"
-      role="alert"
-      :class="['fixed top-4 left-1/2 -translate-x-1/2 z-[130] flex max-w-lg items-start gap-3 rounded-md border px-4 py-3 text-sm shadow-lg',
-        notice.kind === 'success' ? 'border-green-300 bg-green-50 text-green-800' : 'border-red-300 bg-red-50 text-red-800']"
-    >
-      <span class="flex-1">{{ notice.text }}</span>
-      <button type="button" aria-label="Dismiss" class="leading-none" @click="notice = null">×</button>
-    </div>
+    <PageNotice :notice="notice" @dismiss="dismiss" />
 
     <ConfirmDialog
       :is-open="pendingStatusChange !== null"
@@ -454,6 +445,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { createAdminOrdersService } from '~/services/adminOrders/adminOrdersService';
+import PageNotice from '~/components/admin/PageNotice.vue';
+import { usePageNotice } from '~/composables/usePageNotice';
 
 interface AdminOrder {
   order_id: string
@@ -508,13 +501,7 @@ const error = ref<string>('');
 const pendingStatusChange = ref<{ order: AdminOrder; newStatus: string } | null>(null);
 
 // Outcome of an action (saved, refused) shows on the page rather than in a browser alert.
-const notice = ref<{ text: string; kind: 'success' | 'error' } | null>(null);
-let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-const notify = (text: string, kind: 'success' | 'error'): void => {
-  notice.value = { text, kind };
-  clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => { notice.value = null; }, 8000);
-};
+const { notice, notify, dismiss } = usePageNotice();
 const searchQuery = ref<string>('');
 const statusFilter = ref<string>('');
 const limitFilter = ref<number>(50);

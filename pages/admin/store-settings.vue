@@ -1,5 +1,6 @@
 <template>
     <div class="container mx-auto p-4">
+        <PageNotice :notice="notice" @dismiss="dismiss" />
         <!-- Header -->
         <div class="bg-white rounded-lg shadow-md p-4 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -139,6 +140,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import PageNotice from '~/components/admin/PageNotice.vue';
+import { usePageNotice } from '~/composables/usePageNotice';
+
+const { notice, notify, dismiss } = usePageNotice();
 
 definePageMeta({
     layout: 'admin-layout',
@@ -213,7 +218,7 @@ const toggleHidePrices = async (company: CompanyRow): Promise<void> => {
     } catch (err) {
         console.error('Error saving store settings:', err);
         company.hide_prices = !newValue; // revert on error
-        alert(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
+        notify(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
         company._saving = false;
     }

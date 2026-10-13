@@ -22,15 +22,7 @@
       <p style="margin: 0; font-size: 0.875rem;">{{ error }}</p>
     </div>
 
-    <div
-      v-if="notice"
-      data-test="page-notice"
-      role="alert"
-      style="position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 32rem; display: flex; align-items: flex-start; gap: 0.75rem; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 0.75rem 1rem; border-radius: 6px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15); font-size: 0.875rem;"
-    >
-      <span style="flex: 1;">{{ notice }}</span>
-      <button type="button" aria-label="Dismiss" style="background: none; border: none; cursor: pointer; color: inherit; font-size: 1rem; line-height: 1;" @click="notice = ''">×</button>
-    </div>
+    <PageNotice :notice="notice" @dismiss="dismiss" />
 
     <ConfirmDialog
       :is-open="pendingConfirm !== null"
@@ -269,6 +261,8 @@
 </template>
 
 <script setup lang="ts">
+import PageNotice from '~/components/admin/PageNotice.vue'
+import { usePageNotice } from '~/composables/usePageNotice'
 import { ref, onMounted } from 'vue'
 
 interface CompanyRow {
@@ -360,13 +354,7 @@ const loading = ref<boolean>(false)
 const error = ref<string>('')
 
 // Messages about an action (a failed save, a missing field) show on the page, above any open modal.
-const notice = ref<string>('')
-let noticeTimer: ReturnType<typeof setTimeout> | undefined
-const notify = (message: string): void => {
-  notice.value = message
-  clearTimeout(noticeTimer)
-  noticeTimer = setTimeout(() => { notice.value = '' }, 10000)
-}
+const { notice, notify, dismiss } = usePageNotice()
 
 const pendingConfirm = ref<{ title: string; message: string; confirmText: string; run: () => Promise<void> } | null>(null)
 

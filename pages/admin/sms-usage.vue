@@ -1,5 +1,6 @@
 <template>
   <div class="admin-sms-usage-page">
+    <PageNotice :notice="notice" @dismiss="dismiss" />
     <!-- Header -->
     <div class="mb-4">
       <p class="text-gray-600">Billed SMS volume and cost by company, for a chosen date range.</p>
@@ -236,6 +237,8 @@ import {
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useSMSUsageReport } from '~/composables/useSMSUsageReport'
+import PageNotice from '~/components/admin/PageNotice.vue'
+import { usePageNotice } from '~/composables/usePageNotice'
 import { formatCurrency, formatDate, formatNumber } from '~/utils/constants/sms'
 import type { SmsUsageSummaryRow } from '~/services/types'
 import type { UsageSummaryFilters } from '~/services/sms/usageReportsService'
@@ -258,6 +261,7 @@ const {
   exportUsageCsv,
   fetchCompanyTransactions,
 } = useSMSUsageReport()
+const { notice, notify, dismiss } = usePageNotice()
 
 const defaultEndDate = new Date().toISOString().split('T')[0] ?? ''
 const defaultStartDate = (() => {
@@ -342,7 +346,7 @@ const exportCsv = async (): Promise<void> => {
     window.URL.revokeObjectURL(url)
   } catch (err) {
     console.error('Export error:', err)
-    alert('Export failed. Please try again.')
+    notify('Export failed. Please try again.')
   } finally {
     exporting.value = false
   }
