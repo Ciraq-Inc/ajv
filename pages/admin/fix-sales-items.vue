@@ -378,6 +378,7 @@
 import { ref, onMounted } from 'vue';
 
 definePageMeta({
+  requiredRole: 'auditor',
   layout: 'admin-layout',
   middleware: ['admin-auth']
 });

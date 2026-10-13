@@ -305,6 +305,7 @@ onMounted(() => { void refreshSettings() })
 
 // Define page metadata
 definePageMeta({
+  requiredRole: 'super_admin',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })

@@ -8,6 +8,7 @@
 import SharedOrderRequestsPage from './order-requests.vue'
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: 'admin-auth',
   layout: 'admin-layout'
 })

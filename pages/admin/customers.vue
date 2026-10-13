@@ -324,6 +324,7 @@ import { createAdminService } from '~/services/admin/adminService'
 import { ApiError } from '~/composables/useApi'
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })

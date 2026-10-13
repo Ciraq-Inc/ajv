@@ -170,6 +170,7 @@ const formatDate = (dt: string | null | undefined): string => {
 onMounted(() => { void fetchDeliveries() })
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: 'admin-auth',
   layout: 'admin-layout'
 })

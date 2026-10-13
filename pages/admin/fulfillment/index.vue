@@ -4,6 +4,7 @@
 
 <script setup lang="ts">
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: 'admin-auth',
   layout: 'admin-layout'
 })

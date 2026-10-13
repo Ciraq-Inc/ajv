@@ -650,6 +650,7 @@ import { formatDate, formatNumber } from '~/utils/constants/sms'
 
 // Define page metadata
 definePageMeta({
+  requiredRole: 'super_admin',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })

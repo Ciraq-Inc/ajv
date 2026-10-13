@@ -8,6 +8,7 @@
 import UserAccessMgt from '~/components/access/userAccessMgt.vue'
 
 definePageMeta({
+  requiredRole: 'auditor',
   middleware: ['admin-auth'],
   layout: 'admin-layout'
 })

@@ -146,6 +146,7 @@ import { usePageNotice } from '~/composables/usePageNotice';
 const { notice, notify, dismiss } = usePageNotice();
 
 definePageMeta({
+  requiredRole: 'admin',
     layout: 'admin-layout',
     middleware: ['admin-auth']
 });

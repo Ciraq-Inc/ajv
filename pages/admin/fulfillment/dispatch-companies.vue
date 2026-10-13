@@ -345,6 +345,7 @@ const api = useApi() as unknown as {
 }
 
 definePageMeta({
+  requiredRole: 'order_processor',
   layout: 'admin-layout',
   middleware: 'admin-auth',
 })

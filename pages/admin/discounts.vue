@@ -461,7 +461,7 @@ import { useApi } from '~/composables/useApi'
 import { createAdminDiscountsService } from '~/services/discounts/adminDiscountsService'
 import type { DiscountCode, DiscountStats, CreateDiscountPayload } from '~/services/discounts/discountsService'
 
-definePageMeta({ layout: 'admin-layout', middleware: ['admin-auth'] })
+definePageMeta({ requiredRole: 'auditor', layout: 'admin-layout', middleware: ['admin-auth'] })
 
 const api = useApi()
 const svc = createAdminDiscountsService(api)

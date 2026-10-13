@@ -200,7 +200,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import { downloadCsv, toCsv } from '~/utils/csv'
 
-definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
+definePageMeta({ requiredRole: 'order_processor', middleware: ['admin-auth'], layout: 'admin-layout' })
 
 interface PharmacyRow {
   pharmacy_id?: number | null

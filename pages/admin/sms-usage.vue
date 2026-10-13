@@ -244,6 +244,7 @@ import type { SmsUsageSummaryRow } from '~/services/types'
 import type { UsageSummaryFilters } from '~/services/sms/usageReportsService'
 
 definePageMeta({
+  requiredRole: 'super_admin',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })

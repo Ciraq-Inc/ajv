@@ -389,6 +389,7 @@ import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
 import { formatCurrency, formatDate } from '~/utils/constants/sms'
 
 definePageMeta({
+  requiredRole: 'super_admin',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })

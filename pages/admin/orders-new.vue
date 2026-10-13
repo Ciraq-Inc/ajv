@@ -488,6 +488,7 @@ const pharmacyStore = usePharmacyStore();
 const adminOrdersService = createAdminOrdersService(useApi());
 
 definePageMeta({
+  requiredRole: 'order_processor',
   layout: 'pharm',
   middleware: ['admin-auth'],
 });

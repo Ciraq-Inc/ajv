@@ -365,6 +365,7 @@ import { createProfessionalsAdminService } from '~/services/professionals/profes
 import type { ProfessionalApplication, Profession, RegistryEntry } from '~/services/professionals/professionalsAdminService';
 
 definePageMeta({
+  requiredRole: 'admin',
   layout: 'admin-layout',
   middleware: ['admin-auth'],
 });

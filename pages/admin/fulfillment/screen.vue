@@ -122,7 +122,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 
-definePageMeta({ middleware: ['admin-auth'], layout: false })
+definePageMeta({ requiredRole: 'order_processor', middleware: ['admin-auth'], layout: false })
 
 const orderRequestsService = createOrderRequestsService(useApi())
 

@@ -303,7 +303,7 @@ import { useRuntimeConfig } from '#app'
 import { createDeveloperPortalService } from '~/services/developerPortal/developerPortalService'
 import type { ApiKey } from '~/services/developerPortal/developerPortalService'
 
-definePageMeta({ layout: 'admin-layout', middleware: ['admin-auth'] })
+definePageMeta({ requiredRole: 'auditor', layout: 'admin-layout', middleware: ['admin-auth'] })
 
 const api = useApi()
 const svc = createDeveloperPortalService(api)

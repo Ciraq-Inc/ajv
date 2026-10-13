@@ -771,7 +771,7 @@ const saveAll = async (): Promise<void> => {
 
 onMounted(() => { void fetchSettings() })
 
-definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
+definePageMeta({ requiredRole: 'super_admin', middleware: ['admin-auth'], layout: 'admin-layout' })
 </script>
 
 <style scoped>
