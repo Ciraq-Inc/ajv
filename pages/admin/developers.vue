@@ -1,5 +1,6 @@
 <template>
   <div class="admin-developers">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <div class="page-header">
       <div>
         <h1 class="page-title">Developer API</h1>
@@ -299,9 +300,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
-import { useRuntimeConfig } from '#app'
 import { createDeveloperPortalService } from '~/services/developerPortal/developerPortalService'
 import type { ApiKey } from '~/services/developerPortal/developerPortalService'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
+
+const { pending, ask, accept, cancel } = useConfirmAction()
 
 definePageMeta({ requiredRole: 'auditor', layout: 'admin-layout', middleware: ['admin-auth'] })
 
@@ -361,9 +365,16 @@ const loadKeys = async () => {
   } finally { keysLoading.value = false }
 }
 
-const revokeKey = async (key: ApiKey) => {
+const askToRevoke = (key: ApiKey, run: () => Promise<void>) =>
+  ask({ title: `Revoke "${key.key_name}"?`, message: 'Anything using this key will stop working. This cannot be undone.', confirmText: 'Yes, revoke' }, run)
+
+const revokeKey = (key: ApiKey) => {
   if (!selectedCompany.value) return
-  if (!confirm(`Revoke "${key.key_name}"? Cannot be undone.`)) return
+  askToRevoke(key, () => doRevokeKey(key))
+}
+
+const doRevokeKey = async (key: ApiKey) => {
+  if (!selectedCompany.value) return
   try {
     await svc.revokeKey(selectedCompany.value.id, key.id)
     showToast(`${key.key_name} revoked`)
@@ -383,8 +394,9 @@ const loadPlatformKeys = async () => {
   } finally { platformKeysLoading.value = false }
 }
 
-const revokePlatformKey = async (key: ApiKey) => {
-  if (!confirm(`Revoke "${key.key_name}"? Cannot be undone.`)) return
+const revokePlatformKey = (key: ApiKey) => askToRevoke(key, () => doRevokePlatformKey(key))
+
+const doRevokePlatformKey = async (key: ApiKey) => {
   try {
     await svc.revokePlatformKey(key.id)
     showToast(`${key.key_name} revoked`)

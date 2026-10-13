@@ -89,11 +89,11 @@ describe('admin security page: passkeys', () => {
   })
 
   it('keeps the passkey and says why when removing it fails', async () => {
-    vi.stubGlobal('confirm', () => true)
     adminStore.deleteWebAuthnCredential.mockRejectedValue(new Error('Network down'))
     const wrapper = await mountPage(SecurityPage)
 
     await wrapper.findAll('button').find((b) => /remove/i.test(b.text()))!.trigger('click')
+    await wrapper.find('[role="alertdialog"]').findAll('button').find((b) => /yes, remove/i.test(b.text()))!.trigger('click')
     await flushPromises()
 
     expect(wrapper.text()).toContain('Work laptop')

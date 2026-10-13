@@ -1,5 +1,6 @@
 <template>
   <div class="max-w-2xl mx-auto py-8 px-4">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900">Account Security</h1>
       <p class="text-sm text-gray-500 mt-1">Manage passkeys and two-factor authentication for your super_admin account.</p>
@@ -163,6 +164,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAdminStore } from '~/stores/admin';
+import ConfirmAction from '~/components/admin/ConfirmAction.vue';
+import { useConfirmAction } from '~/composables/useConfirmAction';
+
+const { pending, ask, accept, cancel } = useConfirmAction();
 
 definePageMeta({
   middleware: 'admin-auth',
@@ -386,8 +391,15 @@ const cancelRegistration = (): void => {
 // Removal
 // ---------------------------------------------------------------------------
 
-const removeCredential = async (id: string | number): Promise<void> => {
-  if (!confirm('Remove this passkey? You will no longer be able to use it to sign in.')) return;
+const removeCredential = (id: string | number): void => {
+  ask({
+    title: 'Remove this passkey?',
+    message: 'You will no longer be able to use it to sign in.',
+    confirmText: 'Yes, remove',
+  }, () => doRemoveCredential(id));
+};
+
+const doRemoveCredential = async (id: string | number): Promise<void> => {
   removingId.value = id;
   credentialsError.value = '';
   try {

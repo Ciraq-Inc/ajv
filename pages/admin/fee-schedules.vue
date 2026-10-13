@@ -1,5 +1,6 @@
 <template>
   <div class="fee-schedules-page">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <div class="page-header">
       <div>
         <h1 class="page-title">Fee Schedules</h1>
@@ -196,6 +197,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { createFeeSchedulesService } from '~/services/feeSchedules/feeSchedulesService'
 import type { FeeTier } from '~/services/types'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
+
+const { pending, ask, accept, cancel } = useConfirmAction()
 
 const feeSchedulesService = createFeeSchedulesService(useApi())
 
@@ -392,9 +397,12 @@ const saveTier = async (tierId: number | string): Promise<void> => {
   }
 }
 
-const deleteTier = async (tierId: number | string): Promise<void> => {
+const deleteTier = (tierId: number | string): void => {
+  ask({ title: 'Delete this tier?', message: 'It is removed from this draft right away.', confirmText: 'Yes, delete' }, () => doDeleteTier(tierId))
+}
+
+const doDeleteTier = async (tierId: number | string): Promise<void> => {
   if (!selected.value) return
-  if (!confirm('Delete this tier?')) return
   loading.value = true
   try {
     await feeSchedulesService.deleteTier(selected.value.id, tierId)
@@ -407,9 +415,17 @@ const deleteTier = async (tierId: number | string): Promise<void> => {
   }
 }
 
-const publishDraft = async (): Promise<void> => {
+const publishDraft = (): void => {
   if (!selected.value) return
-  if (!confirm(`Publish "${selected.value.name}"? This will supersede the currently active schedule and apply to all new quotes.`)) return
+  ask({
+    title: `Publish "${selected.value.name}"?`,
+    message: 'This supersedes the currently active schedule and applies to all new quotes.',
+    confirmText: 'Yes, publish',
+  }, doPublishDraft)
+}
+
+const doPublishDraft = async (): Promise<void> => {
+  if (!selected.value) return
   loading.value = true
   try {
     await feeSchedulesService.publish(selected.value.id)

@@ -1,6 +1,7 @@
 <template>
   <div class="container mx-auto p-4">
     <PageNotice :notice="notice" @dismiss="dismiss" />
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -310,7 +311,7 @@
                     </svg>
                     {{ product.product_image_url ? 'Change' : 'Upload' }}
                   </button>
-                  <button v-if="product.product_image_url" @click="removeImage(product)"
+                  <button v-if="product.product_image_url" @click="removeImage(product)" aria-label="Remove image" title="Remove image"
                     :disabled="uploadingProductId === product.id"
                     class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 flex items-center disabled:opacity-50">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -622,6 +623,8 @@ import { useApi } from '~/composables/useApi';
 import { createMasterProductsService } from '~/services/masterProducts/masterProductsService';
 import PageNotice from '~/components/admin/PageNotice.vue';
 import { usePageNotice } from '~/composables/usePageNotice';
+import ConfirmAction from '~/components/admin/ConfirmAction.vue';
+import { useConfirmAction } from '~/composables/useConfirmAction';
 
 definePageMeta({
   middleware: 'admin-auth',
@@ -689,6 +692,7 @@ interface ApiResponse {
 
 const api = useApi();
 const { notice, notify, dismiss } = usePageNotice();
+const { pending, ask, accept, cancel } = useConfirmAction();
 const masterProductsService = createMasterProductsService(api);
 
 const loading = ref<boolean>(false);
@@ -1060,9 +1064,15 @@ const uploadImage = async (): Promise<void> => {
   }
 };
 
-const removeImage = async (product: MasterProduct): Promise<void> => {
-  if (!confirm('Are you sure you want to remove this image?')) return;
+const removeImage = (product: MasterProduct): void => {
+  ask({
+    title: 'Remove this image?',
+    message: 'The product goes back to having no image.',
+    confirmText: 'Yes, remove',
+  }, () => doRemoveImage(product));
+};
 
+const doRemoveImage = async (product: MasterProduct): Promise<void> => {
   try {
     uploadingProductId.value = product.id;
     const response = await api.post('/api/master-products/remove-image', {
