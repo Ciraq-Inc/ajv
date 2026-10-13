@@ -6240,39 +6240,44 @@ const saveAdminNewItem = async () => {
 
     adminNewItemSelection.value = null
     resetAdminNewItem()
+    // The item exists from here on. A failure below is a failed refresh, not a failed add.
+    try {
 
-    const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-    const detailData = detailRes.data as RichOrderRequest
-    selectedRequest.value = detailData
-    selectedStatus.value = detailData.status || ''
-    adminNotes.value = (detailData.admin_notes as string | undefined) || ''
-    hydrateParcelForm(selectedRequest.value)
-    hydrateItemUiState(selectedRequest.value?.items || [])
-    nearbyPharmacies.value = []
-    candidatePlans.value = []
-    fulfillmentPlans.value = []
-    allocationSummary.value = null
-    pharmacyQueue.value = []
-    showAllOutreachPharmacies.value = false
-    nextRecommendedPharmacy.value = null
-    logisticsAssessment.value = null
+      const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+      const detailData = detailRes.data as RichOrderRequest
+      selectedRequest.value = detailData
+      selectedStatus.value = detailData.status || ''
+      adminNotes.value = (detailData.admin_notes as string | undefined) || ''
+      hydrateParcelForm(selectedRequest.value)
+      hydrateItemUiState(selectedRequest.value?.items || [])
+      nearbyPharmacies.value = []
+      candidatePlans.value = []
+      fulfillmentPlans.value = []
+      allocationSummary.value = null
+      pharmacyQueue.value = []
+      showAllOutreachPharmacies.value = false
+      nextRecommendedPharmacy.value = null
+      logisticsAssessment.value = null
 
-    // Auto-resolve if a product was selected from the search dropdown
-    if (selection) {
-      const newItemId = Number((createRes?.data as { id?: number } | null)?.id || 0)
-      if (newItemId > 0) {
-        await resolveItemToPharmProduct({ id: newItemId } as RequestItem, selection)
-        const refreshed = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-        selectedRequest.value = refreshed.data as RichOrderRequest
-        hydrateItemUiState(selectedRequest.value?.items || [])
+      // Auto-resolve if a product was selected from the search dropdown
+      if (selection) {
+        const newItemId = Number((createRes?.data as { id?: number } | null)?.id || 0)
+        if (newItemId > 0) {
+          await resolveItemToPharmProduct({ id: newItemId } as RequestItem, selection)
+          const refreshed = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+          selectedRequest.value = refreshed.data as RichOrderRequest
+          hydrateItemUiState(selectedRequest.value?.items || [])
+        }
       }
-    }
 
-    await fetchRequests({ silent: true })
-    await fetchStats({ silent: true })
-    showMessage('Item added to request', 'success')
-    await nextTick()
-    adminNewItemInput.value?.focus()
+      await fetchRequests({ silent: true })
+      await fetchStats({ silent: true })
+      showMessage('Item added to request', 'success')
+      await nextTick()
+      adminNewItemInput.value?.focus()
+    } catch (refreshError) {
+      showMessage('Item added, but the page could not refresh. Press Refresh.', 'error')
+    }
   } catch (e) {
     showMessage(errMsg(e) || 'Failed to add item', 'error')
   } finally {
@@ -6922,9 +6927,12 @@ const queueStateClass = (state: string | null | undefined) => ({
   muted: ['not_contacted', 'pending', 'unknown'].includes(state ?? ''),
   danger: ['declined', 'timeout'].includes(state ?? '')
 })
+// One toast slot: a newer message restarts the clock, so an older timer cannot clear it early.
+let messageTimer: ReturnType<typeof setTimeout> | null = null
 const showMessage = (text: string, type = 'success') => {
   message.value = { text, type }
-  setTimeout(() => { message.value = null }, 4000)
+  if (messageTimer) clearTimeout(messageTimer)
+  messageTimer = setTimeout(() => { message.value = null; messageTimer = null }, 4000)
 }
 
 const pollRequestList = async () => {
