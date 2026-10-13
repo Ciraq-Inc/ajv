@@ -444,6 +444,7 @@
               <input
                 v-model.number="topUpForm.amount"
                 type="number"
+                step="0.01"
                 min="1"
                 max="100000"
                 required

@@ -102,6 +102,17 @@ describe('admin security page: passkeys', () => {
 })
 
 describe('admin SMS billing: actions', () => {
+  it('lets the money top-up take pesewas, since the backend accepts two decimals', async () => {
+    const wrapper = await mountPage(SmsBillingPage)
+
+    await wrapper.findAll('button').find((b) => /top.?up/i.test(b.text()))!.trigger('click')
+    await flushPromises()
+
+    const amount = wrapper.find('input[placeholder="e.g., 1000"]')
+    expect(amount.exists()).toBe(true)
+    expect(amount.attributes('step')).toBe('0.01')
+  })
+
   it('says so when a reconciliation fails', async () => {
     billing.runReconciliation.mockRejectedValue(new Error('Network down'))
     const wrapper = await mountPage(SmsBillingPage)
