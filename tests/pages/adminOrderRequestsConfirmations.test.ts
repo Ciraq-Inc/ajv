@@ -175,6 +175,25 @@ describe('order requests: confirming payment was received', () => {
     expect(paymentDialog().exists()).toBe(false)
   })
 
+  it("confirms once when the dialog is submitted twice before the first answer", async () => {
+    await startPaymentConfirmation()
+    let release: (v: unknown) => void = () => {}
+    http.request.mockImplementation((url: string, opts: { method?: string }) => {
+      if (url.endsWith("/confirm-manual-payment")) return new Promise((resolve) => { release = resolve })
+      if (url === "/api/order-requests/admin/5" && (opts.method ?? "GET") === "GET") return Promise.resolve({ success: true, data: detail({ status: "payment_pending" }) })
+      return Promise.resolve({ success: true, data: [] })
+    })
+
+    await paymentDialog().find("input").setValue("RCPT-77")
+    void paymentDialog().trigger("submit")
+    void paymentDialog().trigger("submit")
+    await flushPromises()
+    release({ success: true, message: "done" })
+    await flushPromises()
+
+    expect(writes("POST")).toHaveLength(1)
+  })
+
   it('will not confirm without a receipt number', async () => {
     await startPaymentConfirmation()
 
