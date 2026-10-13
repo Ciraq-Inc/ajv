@@ -139,3 +139,66 @@ describe('order requests: routing items to a pharmacy', () => {
     expect(routes()).toHaveLength(1)
   })
 })
+
+describe('order requests: routing items to a pharmacy, the details', () => {
+  it('sends every covered item the pharmacy can supply', async () => {
+    await open([{ ...pharmacy(), distance_km: 2.5, covered: [{ item_id: 9, matched_product_id: 77 }, { item_id: 10, matched_product_id: 78 }] }])
+
+    await routeButton().trigger('click')
+    await flushPromises()
+    expect(dialog().text()).toContain('Route 2 item(s) to Healthway Pharmacy?')
+    await answer()
+
+    expect(JSON.parse(routes()[0]![1].body).items).toEqual([
+      { item_id: 9, matched_product_id: 77, distance_km: 2.5 },
+      { item_id: 10, matched_product_id: 78, distance_km: 2.5 },
+    ])
+  })
+
+  it('looks at the coverage again after routing', async () => {
+    await open()
+    const coverage = () => http.request.mock.calls.filter(([url]) => /pharmacy-coverage/.test(url)).length
+    const before = coverage()
+
+    await routeButton().trigger('click')
+    await flushPromises()
+    await answer()
+
+    expect(coverage()).toBe(before + 1)
+  })
+
+  it('lets the admin try again after a failure', async () => {
+    await open()
+    routeCall = async () => { throw new Error('boom') }
+    await routeButton().trigger('click')
+    await flushPromises()
+    await answer()
+    expect(wrapper.text()).toContain('Failed to route items')
+
+    routeCall = undefined
+    await routeButton().trigger('click')
+    await flushPromises()
+    await answer()
+
+    expect(routes()).toHaveLength(2)
+    expect(wrapper.text()).toContain('Routed 1 item(s) to Healthway Pharmacy')
+  })
+
+  it('says the routing worked but the page needs a refresh, when only the refresh fails', async () => {
+    await open()
+    routeCall = async () => {
+      http.request.mockImplementation(async (url: string) => {
+        if (url === '/api/order-requests/admin/5') throw new Error('refresh failed')
+        return { success: true, data: [] }
+      })
+      return { success: true, data: {} }
+    }
+
+    await routeButton().trigger('click')
+    await flushPromises()
+    await answer()
+
+    expect(wrapper.text()).toContain('Routed 1 item(s) to Healthway Pharmacy, but the page could not refresh. Press Refresh.')
+    expect(wrapper.text()).not.toContain('Failed to route items')
+  })
+})
