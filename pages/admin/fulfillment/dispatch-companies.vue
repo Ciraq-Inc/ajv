@@ -22,6 +22,27 @@
       <p style="margin: 0; font-size: 0.875rem;">{{ error }}</p>
     </div>
 
+    <div
+      v-if="notice"
+      data-test="page-notice"
+      role="alert"
+      style="position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 1000; max-width: 32rem; display: flex; align-items: flex-start; gap: 0.75rem; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 0.75rem 1rem; border-radius: 6px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15); font-size: 0.875rem;"
+    >
+      <span style="flex: 1;">{{ notice }}</span>
+      <button type="button" aria-label="Dismiss" style="background: none; border: none; cursor: pointer; color: inherit; font-size: 1rem; line-height: 1;" @click="notice = ''">×</button>
+    </div>
+
+    <ConfirmDialog
+      :is-open="pendingConfirm !== null"
+      :title="pendingConfirm?.title"
+      :message="pendingConfirm?.message"
+      :confirm-text="pendingConfirm?.confirmText"
+      cancel-text="Cancel"
+      variant="danger"
+      @confirm="runPendingConfirm"
+      @close="pendingConfirm = null"
+    />
+
     <!-- Companies List -->
     <div class="companies-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
       <div v-for="company in companies" :key="company.id" class="company-card" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; background: #fff; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
@@ -49,7 +70,7 @@
             <button @click="openEditCompany(company)" style="background: none; border: 1px solid #d1d5db; border-radius: 4px; padding: 0.3rem 0.6rem; font-size: 0.8rem; cursor: pointer; color: #374151;">
               Edit
             </button>
-            <button @click="deleteCompany(company)" style="background: none; border: 1px solid #fca5a5; border-radius: 4px; padding: 0.3rem 0.6rem; font-size: 0.8rem; cursor: pointer; color: #dc2626;">
+            <button @click="askToDeactivate(company)" style="background: none; border: 1px solid #fca5a5; border-radius: 4px; padding: 0.3rem 0.6rem; font-size: 0.8rem; cursor: pointer; color: #dc2626;">
               Delete
             </button>
           </div>
@@ -202,7 +223,7 @@
               </div>
               <div style="display: flex; gap: 0.35rem; flex-shrink: 0;">
                 <button @click="openEditAdmin(admin)" style="background: none; border: 1px solid #d1d5db; border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer; color: #374151;">Edit</button>
-                <button @click="removeAdmin(admin)" style="background: none; border: 1px solid #fca5a5; border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer; color: #dc2626;">Remove</button>
+                <button @click="askToRemoveAdmin(admin)" style="background: none; border: 1px solid #fca5a5; border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer; color: #dc2626;">Remove</button>
               </div>
             </div>
 
@@ -338,6 +359,17 @@ const companies = ref<CompanyRow[]>([])
 const loading = ref<boolean>(false)
 const error = ref<string>('')
 
+// Messages about an action (a failed save, a missing field) show on the page, above any open modal.
+const notice = ref<string>('')
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
+const notify = (message: string): void => {
+  notice.value = message
+  clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => { notice.value = '' }, 10000)
+}
+
+const pendingConfirm = ref<{ title: string; message: string; confirmText: string; run: () => Promise<void> } | null>(null)
+
 // Create Company
 const showCreateModal = ref<boolean>(false)
 const saving = ref<boolean>(false)
@@ -385,7 +417,7 @@ const fetchCompanies = async (): Promise<void> => {
 
 const createCompany = async (): Promise<void> => {
   if (!newCompany.value.name || !newCompany.value.phone) {
-    alert('Company name and phone are required')
+    notify('Company name and phone are required')
     return
   }
 
@@ -406,11 +438,11 @@ const createCompany = async (): Promise<void> => {
       newCompany.value = { name: '', phone: '', address1: '', location: '', latitude: '', longitude: '' }
       await fetchCompanies()
     } else {
-      alert(response.message ?? 'Failed to create')
+      notify(response.message ?? 'Failed to create')
     }
   } catch (e) {
     console.error(e)
-    alert(e instanceof Error ? e.message : 'Error creating company')
+    notify(e instanceof Error ? e.message : 'Error creating company')
   } finally {
     saving.value = false
   }
@@ -435,7 +467,7 @@ const openEditCompany = (company: CompanyRow): void => {
 
 const saveEditCompany = async (): Promise<void> => {
   if (!editCompanyForm.value.name || !editCompanyForm.value.phone) {
-    alert('Name and phone are required')
+    notify('Name and phone are required')
     return
   }
 
@@ -459,29 +491,51 @@ const saveEditCompany = async (): Promise<void> => {
       showEditModal.value = false
       await fetchCompanies()
     } else {
-      alert(response.message ?? 'Failed to save')
+      notify(response.message ?? 'Failed to save')
     }
   } catch (e) {
     console.error(e)
-    alert(e instanceof Error ? e.message : 'Error saving company')
+    notify(e instanceof Error ? e.message : 'Error saving company')
   } finally {
     savingEdit.value = false
   }
 }
 
-const deleteCompany = async (company: CompanyRow): Promise<void> => {
-  if (!confirm(`Deactivate "${company.name}"? This will hide it from the active list.`)) return
+const askToDeactivate = (company: CompanyRow): void => {
+  pendingConfirm.value = {
+    title: `Deactivate "${company.name}"?`,
+    message: 'This will hide it from the active list.',
+    confirmText: 'Yes, deactivate',
+    run: () => deleteCompany(company),
+  }
+}
 
+const askToRemoveAdmin = (admin: AdminRow): void => {
+  pendingConfirm.value = {
+    title: `Remove admin "${admin.name ?? admin.username}"?`,
+    message: 'They will no longer be able to log in.',
+    confirmText: 'Yes, remove',
+    run: () => removeAdmin(admin),
+  }
+}
+
+const runPendingConfirm = async (): Promise<void> => {
+  const pending = pendingConfirm.value
+  pendingConfirm.value = null
+  if (pending) await pending.run()
+}
+
+const deleteCompany = async (company: CompanyRow): Promise<void> => {
   try {
     const response = await api.delete(`/api/deliveries/dispatch-companies/${company.id}`)
     if (response.success) {
       await fetchCompanies()
     } else {
-      alert(response.message ?? 'Failed to delete')
+      notify(response.message ?? 'Failed to delete')
     }
   } catch (e) {
     console.error(e)
-    alert(e instanceof Error ? e.message : 'Error deleting company')
+    notify(e instanceof Error ? e.message : 'Error deleting company')
   }
 }
 
@@ -508,7 +562,7 @@ const closeAdminsModal = (): void => {
 
 const createAdmin = async (): Promise<void> => {
   if (!newAdmin.value.name || !newAdmin.value.phone || !newAdmin.value.username || !newAdmin.value.password) {
-    alert('Name, phone, username and password are required')
+    notify('Name, phone, username and password are required')
     return
   }
 
@@ -529,10 +583,10 @@ const createAdmin = async (): Promise<void> => {
       await manageAdmins(company)
       void fetchCompanies()
     } else {
-      alert(response.message ?? 'Failed to add admin')
+      notify(response.message ?? 'Failed to add admin')
     }
   } catch (e) {
-    alert(e instanceof Error ? e.message : 'An error occurred')
+    notify(e instanceof Error ? e.message : 'An error occurred')
   } finally {
     savingAdmin.value = false
   }
@@ -550,7 +604,7 @@ const openEditAdmin = (admin: AdminRow): void => {
 
 const saveEditAdmin = async (admin: AdminRow): Promise<void> => {
   if (!editAdminForm.value.name || !editAdminForm.value.phone) {
-    alert('Name and phone are required')
+    notify('Name and phone are required')
     return
   }
 
@@ -574,19 +628,17 @@ const saveEditAdmin = async (admin: AdminRow): Promise<void> => {
       editingAdminId.value = null
       await manageAdmins(company)
     } else {
-      alert(response.message ?? 'Failed to save admin')
+      notify(response.message ?? 'Failed to save admin')
     }
   } catch (e) {
     console.error(e)
-    alert(e instanceof Error ? e.message : 'Error updating admin')
+    notify(e instanceof Error ? e.message : 'Error updating admin')
   } finally {
     savingEditAdmin.value = false
   }
 }
 
 const removeAdmin = async (admin: AdminRow): Promise<void> => {
-  if (!confirm(`Remove admin "${admin.name ?? admin.username}"? They will no longer be able to log in.`)) return
-
   try {
     const company = selectedCompany.value
     if (!company) return
@@ -598,11 +650,11 @@ const removeAdmin = async (admin: AdminRow): Promise<void> => {
       await manageAdmins(company)
       void fetchCompanies()
     } else {
-      alert(response.message ?? 'Failed to remove admin')
+      notify(response.message ?? 'Failed to remove admin')
     }
   } catch (e) {
     console.error(e)
-    alert(e instanceof Error ? e.message : 'Error removing admin')
+    notify(e instanceof Error ? e.message : 'Error removing admin')
   }
 }
 
