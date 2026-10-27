@@ -573,7 +573,7 @@
             </div>
           </div>
           <p class="ad-chq-note" :class="{ 'is-future': isPostDatedCheque }">
-            <template v-if="isPostDatedCheque">Post-dated cheque. It stays pending and the amount reflects on the account balance on {{ formatDate(chequeForm.dueDate) }}.</template>
+            <template v-if="isPostDatedCheque">Post-dated cheque. It stays pending and the amount reflects on the account balance on {{ formatDate(chequeForm.dueDate) }}. You'll get an SMS reminder the day before.</template>
             <template v-else>Due today or earlier, so the amount reflects on the account balance straight away.</template>
           </p>
         </section>

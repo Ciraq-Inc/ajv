@@ -19,6 +19,7 @@ import type {
   PayableSupplierOption,
   PaymentMethodSummary,
   ReceiveChequePayload,
+  ScheduledPayment,
   TransferPayload,
 } from '../types'
 
@@ -241,6 +242,16 @@ export const createAccountsService = (api: ApiInstance) => ({
       sourceLinks: payload.sourceLinks,
       postingKey: payload.postingKey,
     })
+  },
+
+  listScheduledPayments(params: { status?: string; accountId?: string | number } = {}): Promise<ApiEnvelope<ScheduledPayment[]>> {
+    return api.get('/api/accounts/scheduled-payments', {
+      params: { status: params.status || undefined, accountId: params.accountId || undefined },
+    })
+  },
+
+  cancelScheduledPayment(id: string | number): Promise<ApiEnvelope<ScheduledPayment>> {
+    return api.post(`/api/accounts/scheduled-payments/${id}/cancel`, {})
   },
 
   listCheques(accountId: string | number, status?: string | string[]): Promise<ApiEnvelope<AccountCheque[]>> {

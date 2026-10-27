@@ -540,6 +540,33 @@ export interface PayableSummary {
   sourceUpdatedAt?: string | null;
   lastSnapshotAt?: string | null;
   dueDate?: string | null;
+  /** Post-dated cheque amount held against this invoice until its cheque date. */
+  scheduledPesewas?: number;
+  scheduledReleaseDate?: string;
+  scheduledPaymentId?: string;
+}
+
+/** A supplier payment by post-dated cheque, parked until its cheque date. */
+export interface ScheduledPayment {
+  id: string;
+  kind: 'account' | 'method' | 'batch';
+  accountId: string;
+  chequeNumber: string;
+  supplierName: string;
+  releaseDate: string;
+  amount: number;
+  amountPesewas: number;
+  status: 'scheduled' | 'releasing' | 'released' | 'failed' | 'cancelled';
+  lastError: string;
+  enteredBy: string;
+  createdAt: string;
+  items: Array<{ payableId: string; amount: number; amountPesewas: number }>;
+}
+
+/** What a payment endpoint returns when the cheque is dated in the future. */
+export interface ScheduledPaymentResult {
+  scheduled: true;
+  scheduledPayment: ScheduledPayment;
 }
 
 export interface PayableSupplierOption {
