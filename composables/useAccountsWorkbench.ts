@@ -417,6 +417,20 @@ export const useAccountsWorkbench = () => {
     }
   }
 
+  const cancelScheduledPayment = async (id: string | number) => {
+    isSaving.value = true
+    error.value = ''
+    try {
+      const response = await service.cancelScheduledPayment(id)
+      return response.data
+    } catch (err) {
+      error.value = messageFromError(err)
+      throw err
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   const loadPaymentMethods = async () => {
     try {
       const response = await service.listPaymentMethods()
@@ -575,6 +589,7 @@ export const useAccountsWorkbench = () => {
     postMoneyOut,
     postPayableMethodPayment,
     postPayablePaymentBatch,
+    cancelScheduledPayment,
     loadPaymentMethods,
     postLoanReceived,
     postLoanRepayment,

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { PayableSummary } from '../services/types'
 import {
-  allocateBatchPayment, canPayPayable, cleanDetailValues, detailValidationMessage, ledgerSyncLabel, payableLifecycleLabel,
-  payablesForView, pendingPaymentAmount, pendingPaymentStatus,
+  allocateBatchPayment, canPayPayable, chequeReleaseDate, cleanDetailValues, detailValidationMessage, hasScheduledCheque,
+  ledgerSyncLabel, payableAmount, payableLifecycleLabel, payablesForView, pendingPaymentAmount, pendingPaymentStatus,
+  postDatedUntil,
 } from '../utils/payables'
 
 const payable = (overrides: Partial<PayableSummary>): PayableSummary => ({
@@ -118,5 +119,28 @@ describe('where a payment is on its way to the POS', () => {
     expect(canPayPayable(payable({ balancePesewas: 0 }))).toBe(false)
     expect(canPayPayable(payable({ lifecycle: 'awaiting' }))).toBe(false)
     expect(payableLifecycleLabel(payable({ lifecycle: 'attention' }))).toBe('Needs attention')
+  })
+})
+
+describe('post-dated cheques', () => {
+  it('uses the later of the cheque date and the clearance date as the release date', () => {
+    expect(chequeReleaseDate({ cheque_date: '2026-11-01', expected_clearance_date: '2026-11-03' })).toBe('2026-11-03')
+    expect(chequeReleaseDate({ cheque_date: '2026-11-05' })).toBe('2026-11-05')
+    expect(chequeReleaseDate({ cheque_date: 'soon' })).toBe('')
+  })
+
+  it('only holds a cheque dated after today, and only for the cheque method', () => {
+    expect(postDatedUntil('cheque', { cheque_date: '2026-10-28' }, '2026-10-27')).toBe('2026-10-28')
+    expect(postDatedUntil('cheque', { cheque_date: '2026-10-27' }, '2026-10-27')).toBe('')
+    expect(postDatedUntil('cheque', {}, '2026-10-27')).toBe('')
+    expect(postDatedUntil('cash', { cheque_date: '2026-12-01' }, '2026-10-27')).toBe('')
+  })
+
+  it('leaves out the part of an invoice already covered by a held cheque', () => {
+    const held = payable({ balancePesewas: 10000, scheduledPesewas: 4000 })
+    expect(hasScheduledCheque(held)).toBe(true)
+    expect(payableAmount(held)).toBe(6000)
+    expect(payableAmount(payable({ balancePesewas: 10000, scheduledPesewas: 10000 }))).toBe(0)
+    expect(hasScheduledCheque(payable({}))).toBe(false)
   })
 })

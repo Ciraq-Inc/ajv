@@ -3,7 +3,28 @@ import type { PayableSummary } from '../services/types'
 export type PayableTab = 'to_pay' | 'awaiting' | 'settled' | 'ledger' | 'reports'
 export type PayableLifecycle = 'to_pay' | 'awaiting' | 'settled' | 'attention'
 
-export const payableAmount = (payable: PayableSummary): number => Number(payable.balancePesewas || 0)
+/** What can still be paid now: the balance less any post-dated cheque already held against it. */
+export const payableAmount = (payable: PayableSummary): number =>
+  Math.max(0, Number(payable.balancePesewas || 0) - Number(payable.scheduledPesewas || 0))
+
+/** True when a cheque is parked against this invoice waiting for its date. */
+export const hasScheduledCheque = (payable: PayableSummary): boolean => Number(payable.scheduledPesewas || 0) > 0
+
+/** Date a cheque written for `details` stops being post-dated: the later of cheque date and clearance date. */
+export const chequeReleaseDate = (details: Record<string, string>): string => {
+  const dates = ['cheque_date', 'expected_clearance_date']
+    .map((key) => String(details[key] || '').trim())
+    .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
+    .sort()
+  return dates.length ? dates[dates.length - 1] : ''
+}
+
+/** The cheque date when it is still in the future, otherwise ''. */
+export const postDatedUntil = (methodKey: string | undefined, details: Record<string, string>, today = new Date().toISOString().slice(0, 10)): string => {
+  if (methodKey !== 'cheque') return ''
+  const release = chequeReleaseDate(details)
+  return release > today ? release : ''
+}
 
 export const needsAttention = (payable: PayableSummary): boolean => payable.lifecycle === 'attention'
 

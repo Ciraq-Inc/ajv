@@ -169,7 +169,7 @@
                   <td class="pb-strong pb-cut" :title="payable.supplierName || 'Unnamed supplier'">{{ payable.supplierName || 'Unnamed supplier' }}</td>
                   <td class="pb-r pb-mute pb-num">{{ formatTableAmount(payable.invoiceAmountPesewas) }}</td>
                   <td class="pb-r pb-mute pb-num">{{ Number(payable.amountPaidPesewas) ? formatTableAmount(payable.amountPaidPesewas) : '—' }}</td>
-                  <td class="pb-r pb-bal pb-num">{{ formatTableAmount(payable.balancePesewas) }}</td>
+                  <td class="pb-r pb-bal pb-num">{{ formatTableAmount(payable.balancePesewas) }}<span v-if="hasScheduledCheque(payable)" class="pb-hold" :title="`${formatPesewas(payable.scheduledPesewas || 0)} is covered by a post-dated cheque`">Cheque · {{ heldDateLabel(payable.scheduledReleaseDate) }}</span></td>
                   <td v-if="activeTab === 'to_pay'" class="pb-r"><button v-if="canPay(payable)" type="button" class="pb-btn pb-btn-quiet pb-btn-sm" @click.stop="openPaymentFor(payable.id)">Pay</button></td>
                 </tr>
               </tbody>
@@ -188,6 +188,7 @@
               <div class="pb-item-sub">
                 <span>Amount <b>{{ formatTableAmount(payable.invoiceAmountPesewas) }}</b></span>
                 <span>Paid <b>{{ Number(payable.amountPaidPesewas) ? formatTableAmount(payable.amountPaidPesewas) : '—' }}</b></span>
+                <span v-if="hasScheduledCheque(payable)" class="pb-hold">Cheque · {{ heldDateLabel(payable.scheduledReleaseDate) }}</span>
                 <button v-if="activeTab === 'to_pay' && canPay(payable)" type="button" class="pb-btn pb-btn-quiet pb-btn-sm" @click.stop="openPaymentFor(payable.id)">Pay</button>
               </div>
             </div>
@@ -304,6 +305,18 @@
             </div>
             <div><dt>Source</dt><dd>{{ selectedPayable.source === 'warehouse' ? 'Warehouse' : 'Store' }}</dd></div>
           </dl>
+          <div v-if="hasScheduledCheque(selectedPayable)" class="pb-note is-wait">
+            <p>Post-dated cheque held</p>
+            <span>{{ formatPesewas(selectedPayable.scheduledPesewas || 0) }} will be applied on {{ heldDateLabel(selectedPayable.scheduledReleaseDate, true) }}. Until then the money stays in your account and this invoice still shows as owing.</span>
+            <div class="pb-note-actions">
+              <button v-if="cancelArmedId !== selectedPayable.scheduledPaymentId" type="button" class="pb-link" @click="cancelArmedId = selectedPayable.scheduledPaymentId || ''">Cancel this cheque</button>
+              <template v-else>
+                <button type="button" class="pb-link pb-link-danger" :disabled="isSaving" @click="cancelHeldCheque(selectedPayable)">{{ isSaving ? 'Cancelling…' : 'Yes, cancel it' }}</button>
+                <button type="button" class="pb-link" @click="cancelArmedId = ''">Keep it</button>
+              </template>
+            </div>
+            <p v-if="cancelError" class="pb-err">{{ cancelError }}</p>
+          </div>
           <div v-if="lifecycle(selectedPayable) !== 'to_pay'" class="pb-note" :class="payableStatusSummary(selectedPayable).className">
             <p>{{ payableStatusSummary(selectedPayable).title }}</p>
             <span>{{ payableStatusSummary(selectedPayable).description }}</span>
@@ -402,7 +415,7 @@
               </UiSelect>
               <p v-if="paymentAttempted && paymentErrorFor('account')" class="pb-err">{{ paymentErrorFor('account') }}</p>
               <p v-else-if="paymentAttempted && paymentMode === 'method' && paymentErrorFor('method')" class="pb-err">{{ paymentErrorFor('method') }}</p>
-              <p v-else-if="paymentMode === 'account' && balanceAfterPayment !== null && balanceAfterPayment >= 0" class="pb-hint">Balance after <b>{{ formatMoney(balanceAfterPayment) }}</b></p>
+              <p v-else-if="paymentMode === 'account' && !paymentPostDatedUntil && balanceAfterPayment !== null && balanceAfterPayment >= 0" class="pb-hint">Balance after <b>{{ formatMoney(balanceAfterPayment) }}</b></p>
             </div>
             <div class="pb-field">
               <label for="payable-amount" class="pb-lbl">Amount</label>
@@ -459,6 +472,7 @@
             </div>
           </div>
         </div>
+        <p v-if="paymentPostDatedUntil" class="pb-postdated" role="status">Post-dated cheque. Nothing leaves your account and the invoice stays unpaid until <b>{{ heldDateLabel(paymentPostDatedUntil, true) }}</b>, then it is applied automatically. You will get an SMS reminder the day before.</p>
         <p v-if="paymentSubmitError" class="pb-dlg-error" role="alert">{{ paymentSubmitError }}</p>
         <footer class="pb-dlg-foot">
           <span class="pb-dlg-meta" />
@@ -579,6 +593,7 @@
           </table>
         </div>
 
+        <p v-if="batchPostDatedUntil" class="pb-postdated" role="status">Post-dated cheque. Nothing leaves your account and these invoices stay unpaid until <b>{{ heldDateLabel(batchPostDatedUntil, true) }}</b>, then the payment is applied automatically. You will get an SMS reminder the day before.</p>
         <p v-if="batchSubmitError" class="pb-dlg-error" role="alert">{{ batchSubmitError }}</p>
         <footer class="pb-dlg-foot">
           <span class="pb-dlg-meta"><template v-if="selectedBatchAccount && batchAccountId">{{ selectedBatchAccount.name }} balance after <b :class="{ 'is-neg': selectedBatchAccountAfter !== null && selectedBatchAccountAfter < 0 }">{{ formatMoney(selectedBatchAccountAfter || 0) }}</b></template></span>
@@ -621,7 +636,7 @@
           <span class="pb-dlg-meta" />
           <div class="pb-dlg-actions">
             <button type="button" class="pb-btn pb-btn-quiet" @click="dismissSuccess">Close</button>
-            <button type="button" class="pb-btn pb-btn-primary" @click="viewLedgerFromSuccess">View ledger</button>
+            <button v-if="!successDetails.scheduled" type="button" class="pb-btn pb-btn-primary" @click="viewLedgerFromSuccess">View ledger</button>
           </div>
         </footer>
       </UiDialogContent>
@@ -633,11 +648,11 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import DateRangePicker from '~/components/ui/date-range-picker/DateRangePicker.vue'
 import { ArrowPathIcon, BanknotesIcon, BellIcon, CheckIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
-import type { PayableLedgerEntry, PayablePaymentContextInput, PayablePaymentMethod, PayableSummary, PaymentMethodSubtype, PaymentMethodSummary } from '~/services/types'
+import type { PayableLedgerEntry, PayablePaymentContextInput, PayablePaymentMethod, PayableSummary, PaymentMethodSubtype, PaymentMethodSummary, ScheduledPaymentResult } from '~/services/types'
 import { useAccountsWorkbench } from '~/composables/useAccountsWorkbench'
 import {
-  allocateBatchPayment, canPayPayable, cleanDetailValues, detailValidationMessage, ledgerSyncLabel, payableAmount,
-  payableLifecycle, payableLifecycleLabel, pendingPaymentAmount, pendingPaymentNeedsSync, pendingPaymentStatus, type PayableTab,
+  allocateBatchPayment, canPayPayable, cleanDetailValues, detailValidationMessage, hasScheduledCheque, ledgerSyncLabel, payableAmount,
+  payableLifecycle, payableLifecycleLabel, pendingPaymentAmount, pendingPaymentNeedsSync, pendingPaymentStatus, postDatedUntil, type PayableTab,
 } from '~/utils/payables'
 import { paymentDetailFields, type PaymentDetailDefinition } from '~/utils/payablePaymentDetails'
 
@@ -653,7 +668,7 @@ const router = useRouter()
 const pharmacy = computed(() => String(route.params.pharmacy || ''))
 const accountsPath = computed(() => `/${pharmacy.value}/services/accounts`)
 const reportsPath = computed(() => `/${pharmacy.value}/services/accounts/payables/reports`)
-const { accounts, formatMoney, isSaving, loadAccounts, loadPayableLedger, loadPayableSuppliers, loadPayables, loadPendingPayables, payables, pendingPayables, pendingPayableCount, pendingPayableTotalPesewas, isLoadingPendingPayables, payableCounts, payableSummary, payableSuppliers, payableLedgerEntries, payableLedgerPagination, payableLedgerSummary, payablesPagination, postMoneyOut, postPayableMethodPayment, postPayablePaymentBatch, paymentMethods: syncedPaymentMethods, loadPaymentMethods } = useAccountsWorkbench()
+const { accounts, formatMoney, isSaving, loadAccounts, loadPayableLedger, loadPayableSuppliers, loadPayables, loadPendingPayables, payables, pendingPayables, pendingPayableCount, pendingPayableTotalPesewas, isLoadingPendingPayables, payableCounts, payableSummary, payableSuppliers, payableLedgerEntries, payableLedgerPagination, payableLedgerSummary, payablesPagination, postMoneyOut, postPayableMethodPayment, postPayablePaymentBatch, cancelScheduledPayment, paymentMethods: syncedPaymentMethods, loadPaymentMethods } = useAccountsWorkbench()
 
 const activeTab = ref<PayableTab>('to_pay')
 const searchQuery = ref('')
@@ -693,7 +708,7 @@ const paymentDetailValues = ref<Record<string, string>>({})
 type PayableConfirmation = { title: string, message: string, confirmLabel: string, amount?: number }
 const confirmOpen = ref(false)
 const confirmDetails = ref<PayableConfirmation | null>(null)
-type PayableSuccess = { title: string, message: string, amount?: number }
+type PayableSuccess = { title: string, message: string, amount?: number, scheduled?: boolean }
 const pendingConfirmAction = ref<(() => Promise<PayableSuccess | false>) | null>(null)
 const confirmOrigin = ref<'payment' | 'batch' | null>(null)
 const isConfirming = ref(false)
@@ -901,6 +916,30 @@ const batchPaymentContextInput = computed<PayablePaymentContextInput | undefined
     details: cleanDetailValues(batchPaymentDetailValues.value),
   }
 })
+// A cheque dated in the future is held, not paid: these drive the notice in the pay dialogs.
+const paymentPostDatedUntil = computed(() => postDatedUntil(selectedPaymentMethod.value?.methodKey, paymentDetailValues.value))
+const batchPostDatedUntil = computed(() => postDatedUntil(selectedBatchPaymentMethod.value?.methodKey, batchPaymentDetailValues.value))
+const heldDateLabel = (value?: string, long = false) => {
+  if (!value) return '—'
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('en-GH', long ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short' })
+}
+const isScheduledResult = (value: unknown): value is ScheduledPaymentResult => Boolean((value as ScheduledPaymentResult | undefined)?.scheduled)
+const cancelArmedId = ref('')
+const cancelError = ref('')
+const cancelHeldCheque = async (payable: PayableSummary) => {
+  if (!payable.scheduledPaymentId) return
+  cancelError.value = ''
+  try {
+    await cancelScheduledPayment(payable.scheduledPaymentId)
+    cancelArmedId.value = ''
+    await refresh()
+  } catch (error) {
+    cancelError.value = error instanceof Error ? error.message : 'Could not cancel this cheque. Try again.'
+  }
+}
+watch([detailOpen, selectedPayableId], () => { cancelArmedId.value = ''; cancelError.value = '' })
 const paymentDetailsLabel = computed(() => selectedPaymentMethod.value ? `Add ${selectedPaymentMethod.value.name} details` : 'Add details')
 const batchPaymentDetailsLabel = computed(() => selectedBatchPaymentMethod.value ? `Add ${selectedBatchPaymentMethod.value.name} details` : 'Add details')
 const setActiveTab = (tab: PayableTab) => {
@@ -1143,11 +1182,12 @@ const executePayment = async (): Promise<PayableSuccess | false> => {
   const payable = selectedPayable.value
   if (!payable) return false
   const description = `Supplier payment to ${payable.supplierName || 'supplier'}${paymentNotes.value.trim() ? `: ${paymentNotes.value.trim()}` : ''}`
+  let outcome: unknown
   try {
     if (paymentMode.value === 'account') {
-      await postMoneyOut({ accountId: paymentAccountId.value, source: 'supplier_payment', amount: Number(paymentAmount.value), description, reference: payable.supplierInvoiceNo || payable.invoiceId, payableId: payable.id, postingKey: paymentIdempotencyKey.value, paymentContext: paymentContextInput.value, metadata: { recordedFrom: 'payables_workbench', workflow: 'payable_settlement', payableId: payable.id, invoiceId: payable.invoiceId, orderId: payable.orderId, supplierName: payable.supplierName } })
+      outcome = await postMoneyOut({ accountId: paymentAccountId.value, source: 'supplier_payment', amount: Number(paymentAmount.value), description, reference: payable.supplierInvoiceNo || payable.invoiceId, payableId: payable.id, postingKey: paymentIdempotencyKey.value, paymentContext: paymentContextInput.value, metadata: { recordedFrom: 'payables_workbench', workflow: 'payable_settlement', payableId: payable.id, invoiceId: payable.invoiceId, orderId: payable.orderId, supplierName: payable.supplierName } })
     } else {
-      await postPayableMethodPayment({ payableId: payable.id, paymentMethod: paymentMethod.value, paymentContext: paymentContextInput.value, amount: Number(paymentAmount.value), description, reference: payable.supplierInvoiceNo || payable.invoiceId, idempotencyKey: paymentIdempotencyKey.value })
+      outcome = await postPayableMethodPayment({ payableId: payable.id, paymentMethod: paymentMethod.value, paymentContext: paymentContextInput.value, amount: Number(paymentAmount.value), description, reference: payable.supplierInvoiceNo || payable.invoiceId, idempotencyKey: paymentIdempotencyKey.value })
     }
     // Close the payment dialog before refreshing the active tab. A successful
     // payment can move this invoice out of To pay, which would otherwise leave
@@ -1155,6 +1195,14 @@ const executePayment = async (): Promise<PayableSuccess | false> => {
     paymentOpen.value = false
     await nextTick()
     await refresh()
+    if (isScheduledResult(outcome)) {
+      return {
+        title: 'Cheque scheduled',
+        message: `${payable.supplierName || 'Supplier'} · ${payable.supplierInvoiceNo || payable.invoiceId}. Applied on ${heldDateLabel(outcome.scheduledPayment.releaseDate, true)}; nothing has left your account yet.`,
+        amount: Number(paymentAmount.value),
+        scheduled: true,
+      }
+    }
     return {
       title: 'Payment recorded',
       message: `${payable.supplierName || 'Supplier'} · ${payable.supplierInvoiceNo || payable.invoiceId}`,
@@ -1206,7 +1254,7 @@ const executeBatchPayment = async (): Promise<PayableSuccess | false> => {
   const count = selectedBatchPayables.value.length
   const amount = batchAmountValue.value
   try {
-    await postPayablePaymentBatch({
+    const outcome: unknown = await postPayablePaymentBatch({
       payableIds: [...selectedBatchIds.value],
       accountId: batchAccountId.value,
       amount: batchAmountValue.value,
@@ -1220,6 +1268,14 @@ const executeBatchPayment = async (): Promise<PayableSuccess | false> => {
     batchOpen.value = false
     clearBatchSelection()
     await refresh()
+    if (isScheduledResult(outcome)) {
+      return {
+        title: 'Cheque scheduled',
+        message: `${count} ${supplierName || 'supplier'} invoice${count === 1 ? '' : 's'}. Applied on ${heldDateLabel(outcome.scheduledPayment.releaseDate, true)}; nothing has left your account yet.`,
+        amount,
+        scheduled: true,
+      }
+    }
     return {
       title: 'Batch payment posted',
       message: `${count} ${supplierName || 'supplier'} invoice${count === 1 ? '' : 's'} settled.`,
@@ -1653,6 +1709,12 @@ onBeforeUnmount(() => {
 .pb-note.is-bad { border-color: #fecdca; background: #fef3f2; }
 .pb-note.is-bad p { color: #912018; }
 .pb-note.is-wait { border-color: #f3d9a4; background: #fffaf0; }
+.pb-note-actions { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.pb-link-danger { color: #b42318; }
+.pb-link-danger:hover { color: #912018; }
+.pb-link:disabled { opacity: 0.5; cursor: default; }
+.pb-hold { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 500; color: #92580a; }
+.pb-postdated { padding: 10px 12px; border-radius: 10px; border: 1px solid #f3d9a4; background: #fffaf0; font-size: 12.5px; line-height: 1.5; color: #92580a; }
 
 .pb-grid { display: grid; gap: 14px; }
 .pb-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
