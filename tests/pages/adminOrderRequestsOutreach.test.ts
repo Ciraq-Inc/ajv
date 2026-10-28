@@ -167,7 +167,7 @@ describe('outreach board: a pharmacy that answers', () => {
   })
 
   it('records a partial answer as partial', async () => {
-    await open([entry({ queue_state: 'awaiting_response' })])
+    await open([entry({ queue_state: 'awaiting_response', coverage_items: [{ item_id: 9, unit_price: 4.5 }] })])
 
     await openModal('outreach-btn--partial')
     await wrapper.find('.response-item-checkbox input[type="checkbox"]').setValue(true)
@@ -186,7 +186,7 @@ describe('outreach board: a pharmacy that answers', () => {
   })
 
   it('sends the note with the contact record', async () => {
-    await open([entry({ queue_state: 'awaiting_response' })])
+    await open([entry({ queue_state: 'awaiting_response', coverage_items: [{ item_id: 9, unit_price: 4.5 }] })])
 
     await openModal('outreach-btn--confirm')
     await wrapper.find('.response-note-field textarea').setValue('Stock arrives Thursday')
@@ -196,12 +196,24 @@ describe('outreach board: a pharmacy that answers', () => {
   })
 
   it('does not allocate anything when recording the response fails', async () => {
-    await open([entry({ queue_state: 'awaiting_response' })])
+    await open([entry({ queue_state: 'awaiting_response', coverage_items: [{ item_id: 9, unit_price: 4.5 }] })])
     failOn = '/contact/'
 
     await openModal('outreach-btn--confirm')
     await submit()
 
+    expect(contacts()).toHaveLength(1)
+    expect(calls(/allocations/, 'POST')).toHaveLength(0)
+  })
+
+  it('will not submit an available item that has no price, and says so', async () => {
+    await open([entry({ queue_state: 'awaiting_response' })])
+
+    await openModal('outreach-btn--confirm')
+    await submit()
+
+    expect(wrapper.text()).toContain('Enter a unit price for 1 available item before submitting')
+    expect(contacts()).toHaveLength(0)
     expect(calls(/allocations/, 'POST')).toHaveLength(0)
   })
 })

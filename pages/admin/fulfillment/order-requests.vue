@@ -995,7 +995,11 @@
               <!-- Sourcing mode banners -->
               <template v-if="pharmacyQueue?.length">
                 <!-- Single mode: goal statement -->
-                <div v-if="sourcingMode === 'single'" class="sourcing-goal-banner">
+                <div v-if="sourcingMode === 'single' && pendingComposed.length > 0 && composedSourcePharmacyIds.size > 1" class="sourcing-goal-banner" data-testid="pending-composed-banner">
+                  <span>Items were split across {{ composedSourcePharmacyIds.size }} pharmacies — the order moves on once each confirms.</span>
+                  <span class="sourcing-goal-count sourcing-goal-count--warn">Still waiting on: <template v-for="(p, i) in pendingComposed" :key="p.pharmacy_id"><template v-if="i > 0">; </template><strong>{{ p.pharmacy_name }}</strong> ({{ p.item_names.join(', ') }})</template></span>
+                </div>
+                <div v-else-if="sourcingMode === 'single'" class="sourcing-goal-banner">
                   <span>Looking for <strong>one pharmacy</strong> to supply all {{ (selectedRequest?.items || []).length }} item{{ (selectedRequest?.items || []).length !== 1 ? 's' : '' }}</span>
                   <span v-if="fullMatchQueue.length > 0" class="sourcing-goal-count">{{ fullMatchQueue.length }} full match{{ fullMatchQueue.length !== 1 ? 'es' : '' }}</span>
                   <span v-else class="sourcing-goal-count sourcing-goal-count--warn">No single-pharmacy full match found</span>
@@ -2042,9 +2046,9 @@
             type="button"
             class="btn-primary"
             @click="submitResponseModal"
-            :disabled="responseModal.submitting || responseModal.items.filter(i => i.available).length === 0"
+            :disabled="responseModal.submitting || responseModal.refreshing || responseModal.items.filter(i => i.available).length === 0"
           >
-            {{ responseModal.submitting ? 'Saving…' : 'Submit Response' }}
+            {{ responseModal.submitting ? 'Saving…' : responseModal.refreshing ? 'Checking prices…' : 'Submit Response' }}
           </button>
         </div>
       </div>
@@ -2087,6 +2091,9 @@ import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
 import { MAX_PAYMENT_REFERENCE, normalizePaymentReference } from '~/utils/manualPayment'
 import { formatGhs, formatSignedGhs } from '~/utils/money'
+import { availableItemsMissingPrice } from '~/utils/responseModalPrice'
+import { applyFreshCatalogPrices, type FreshCatalogPrice } from '~/utils/responseModalCatalog'
+import { pendingComposedPharmacies } from '~/utils/outreachPending'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
 import ConfirmAction from '~/components/admin/ConfirmAction.vue'
 import PromptAction from '~/components/admin/PromptAction.vue'
@@ -2705,12 +2712,13 @@ interface ResponseModalItem {
 }
 const responseModal = ref<{
   open: boolean; pharmacy: PharmacyQueueEntry | null; mode: string
-  submitting: boolean; note: string; items: ResponseModalItem[]
+  submitting: boolean; refreshing: boolean; note: string; items: ResponseModalItem[]
 }>({
   open: false,
   pharmacy: null,
   mode: 'full',
   submitting: false,
+  refreshing: false,
   note: '',
   items: []
 })
@@ -3218,6 +3226,9 @@ const composedSourcePharmacyIds = computed(() => new Set(
     .map(i => Number((i as Record<string, unknown>).source_pharmacy_id || 0))
     .filter(id => id > 0)
 ))
+const pendingComposed = computed(() =>
+  pendingComposedPharmacies(selectedRequest.value?.items || [], pharmacyQueue.value || [])
+)
 const composedPharmacyQueue = computed(() => {
   const q = pharmacySearchQuery.value.toLowerCase().trim()
   return pharmacyQueue.value.filter((p: PharmacyQueueEntry) =>
@@ -4384,25 +4395,44 @@ const savePharmacyPhone = async (pharm: PharmacyQueueEntry) => {
   }
 }
 
+// Bumped on every open so a refresh that finishes after the modal was closed or reopened is ignored.
+let responseModalOpenSeq = 0
+
 const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
+  const seq = ++responseModalOpenSeq
+  // Open at once from the queue already on screen. The refresh below is a full fulfillment
+  // recompute (a few hundred KB), so waiting for it made the modal appear seconds late.
+  responseModal.value = buildResponseModal(pharm, mode)
   // Refresh the cached pharmacy_queue so coverage prices reflect the current
   // products table, not a stale snapshot from the last "Run fulfillment process".
-  // Best-effort: if it fails we still open the modal with whatever's cached.
+  // Best-effort: if it fails we keep the modal as opened.
   try {
     await loadFulfillment({ silent: true, refreshLists: false })
   } catch {}
-  // Re-resolve the pharmacy from the refreshed queue (the original `pharm`
-  // reference points to the pre-refresh queue entry).
+  if (seq !== responseModalOpenSeq || !responseModal.value.open) return
   const freshPharm = (pharmacyQueue.value || []).find(
     (p) => Number(p?.pharmacy_id) === Number(pharm?.pharmacy_id)
-  ) || pharm
+  )
+  if (freshPharm) {
+    const freshPrices = new Map<number, FreshCatalogPrice>(
+      (freshPharm.coverage_items || []).map((ci) => [
+        Number(ci?.item_id || 0),
+        { unit_price: ci?.unit_price == null ? null : Number(ci.unit_price), catalog_synced_at: ci?.catalog_synced_at || null }
+      ])
+    )
+    responseModal.value.pharmacy = freshPharm
+    responseModal.value.items = applyFreshCatalogPrices(responseModal.value.items, freshPrices)
+  }
+  responseModal.value.refreshing = false
+}
 
+const buildResponseModal = (pharm: PharmacyQueueEntry, mode: string) => {
   const allItems = selectedRequest.value?.items || []
   // Build lookup of existing active allocations for this pharmacy
   const existingAllocsByItemId = new Map()
   for (const item of allItems) {
     const activeAlloc = (item.allocations || []).find(
-      a => Number(a.pharmacy_id) === Number(freshPharm.pharmacy_id) &&
+      a => Number(a.pharmacy_id) === Number(pharm.pharmacy_id) &&
            ['confirmed', 'proposed'].includes(a.status ?? '')
     )
     if (activeAlloc) existingAllocsByItemId.set(item.id, activeAlloc)
@@ -4417,12 +4447,12 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
       return false
     }
     const assignedPharmacyId = Number(item.source_pharmacy_id || 0)
-    const isAssignedElsewhere = assignedPharmacyId > 0 && assignedPharmacyId !== Number(freshPharm.pharmacy_id || 0)
+    const isAssignedElsewhere = assignedPharmacyId > 0 && assignedPharmacyId !== Number(pharm.pharmacy_id || 0)
     return !isAssignedElsewhere || existingAllocsByItemId.has(item.id)
   })
   const items = sourceItems.map((item) => {
     const existingAlloc = existingAllocsByItemId.get(item.id)
-    const coverageItem = (freshPharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
+    const coverageItem = (pharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
     const fullRequestedQty = Number(item.requested_quantity || item.quantity || 1)
     const remainingQty = sourcingMode.value === 'split'
       ? Math.max(fullRequestedQty - Number(item.sourced_quantity || 0), 1)
@@ -4431,7 +4461,7 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
     const catalogPrice = coverageItem?.unit_price != null && Number(coverageItem.unit_price) > 0
       ? Number(coverageItem.unit_price)
       : null
-    const isSelectedFromThisPharmacy = Number(item.source_pharmacy_id || 0) === Number(freshPharm.pharmacy_id || 0)
+    const isSelectedFromThisPharmacy = Number(item.source_pharmacy_id || 0) === Number(pharm.pharmacy_id || 0)
     const adminSavedPrice = isSelectedFromThisPharmacy && item.unit_price != null && Number(item.unit_price) > 0
       ? String(item.unit_price)
       : null
@@ -4459,11 +4489,12 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
       showSubstitute: existingAlloc?.allocation_type === 'substitute'
     }
   })
-  responseModal.value = {
+  return {
     open: true,
-    pharmacy: freshPharm,
+    pharmacy: pharm,
     mode,
     submitting: false,
+    refreshing: true,
     note: '',
     items
   }
@@ -4480,6 +4511,11 @@ const submitResponseModal = async () => {
   const availableItems = modal.items.filter((i) => i.available)
   if (availableItems.length === 0) {
     showMessage('Mark at least one item as available', 'error')
+    return
+  }
+  const unpriced = availableItemsMissingPrice(availableItems)
+  if (unpriced.length > 0) {
+    showMessage(`Enter a unit price for ${unpriced.length} available item${unpriced.length !== 1 ? 's' : ''} before submitting`, 'error')
     return
   }
 
