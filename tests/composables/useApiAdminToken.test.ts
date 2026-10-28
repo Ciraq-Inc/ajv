@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 
 vi.stubGlobal('useRuntimeConfig', () => ({ public: { apiBase: 'http://api.test' } }))
 ;(process as unknown as { client: boolean }).client = true
@@ -50,5 +51,19 @@ describe('admin pages send the admin token', () => {
     await useApi().get('/api/orders/123')
 
     expect(authHeaderOf(fetchMock)).toBe('Bearer CUSTOMER')
+  })
+
+  it('uses the sample API base as the backend root without duplicating /api', async () => {
+    const sampleEnv = readFileSync(`${process.cwd()}/.env.example`, 'utf8')
+    const apiBase = sampleEnv.match(/^API_BASE_URL=(.+)$/m)?.[1]?.trim().replace(/^['"]|['"]$/g, '')
+    expect(apiBase).toBe('http://localhost:3009')
+
+    const fetchMock = vi.fn(ok)
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('useRuntimeConfig', () => ({ public: { apiBase } }))
+
+    await useApi().get('/api/jobs/upload-document')
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3009/api/jobs/upload-document')
   })
 })

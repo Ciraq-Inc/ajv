@@ -5,6 +5,7 @@
 .nitro
 .cache
 dist
+coverage
 
 # Node dependencies
 node_modules
@@ -33,3 +34,4 @@ firebase-debug.*.log
 functions/
 .vercel
 tests/auth-state.json
+test-results
