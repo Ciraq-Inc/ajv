@@ -6,16 +6,100 @@
             <!-- Page Header -->
             <header>
                 <h1 class="font-display text-3xl font-bold tracking-tight text-ink-900">What do you need?</h1>
-                <p class="mt-2 text-base text-ink-600">List your medicines and we will find them at pharmacies near you.</p>
             </header>
 
             <div class="relative space-y-6">
 
-                    <!-- Prescription: first, because it can stand on its own -->
-                    <section aria-labelledby="request-rx-title" class="rounded-2xl bg-brand-50 p-5">
-                        <h2 id="request-rx-title" class="font-display text-xl font-bold text-ink-900">Have a prescription?</h2>
-                        <p class="mt-1 text-sm text-ink-600">Take a photo or upload it and skip the typing. You can add medicines too.</p>
-                        <div class="mt-4 grid grid-cols-2 items-center gap-3 sm:flex sm:flex-wrap">
+                    <!-- Medications -->
+                    <section aria-labelledby="request-meds-title" class="space-y-5">
+                        <h2 id="request-meds-title" class="sr-only">Medications</h2>
+
+                        <ul class="space-y-6">
+                            <li v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3">
+                                <div class="relative">
+                                    <span class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 select-none items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white" aria-hidden="true">{{ index + 1 }}</span>
+                                    <label :for="`request-medicine-${index}`" class="sr-only">Medication {{ index + 1 }}: name, brand or strength</label>
+                                    <input v-model="item.product_name" type="text"
+                                        :id="`request-medicine-${index}`"
+                                        autocomplete="off"
+                                        autocapitalize="words"
+                                        inputmode="text"
+                                        placeholder="Medicine name, brand, or strength"
+                                        @input="debouncedSaveFormDraft()"
+                                        :class="requestItems.length > 1 ? 'pr-14' : 'pr-4'"
+                                        class="min-h-[56px] w-full rounded-lg border-2 border-transparent bg-ink-100 py-3 pl-14 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none" />
+                                    <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
+                                        type="button" :aria-label="`Remove medication ${index + 1}`"
+                                        class="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+                                    </button>
+                                </div>
+
+                                <!-- Quantity, and a Details toggle for the optional extras -->
+                                <div v-if="item.product_name.trim()" class="flex flex-wrap items-center justify-between gap-3">
+                                    <div class="flex items-center gap-1 rounded-full bg-ink-100 p-1">
+                                        <label :for="`request-qty-${index}`" class="sr-only">Quantity</label>
+                                        <button type="button" :aria-label="`Decrease quantity of ${item.product_name.trim()}`"
+                                            class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                                            @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1"><span aria-hidden="true">−</span></button>
+                                        <input v-model.number="item.quantity" :id="`request-qty-${index}`" type="number" min="1" inputmode="numeric" placeholder="1"
+                                            class="h-11 w-12 appearance-none bg-transparent p-0 text-center text-base font-bold text-ink-900 focus:outline-none" />
+                                        <button type="button" :aria-label="`Increase quantity of ${item.product_name.trim()}`"
+                                            class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                                            @click="incrementQty(item)"><span aria-hidden="true">+</span></button>
+                                    </div>
+                                    <button type="button" :aria-expanded="isDetailsOpen(item)" :aria-controls="`request-details-${index}`"
+                                        @click="toggleDetails(item)"
+                                        class="inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-2 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                        Details
+                                        <ChevronDownIcon class="h-5 w-5 transition-transform" :class="isDetailsOpen(item) ? 'rotate-180' : ''" aria-hidden="true" />
+                                    </button>
+                                </div>
+
+                                <div v-if="item.product_name.trim() && isDetailsOpen(item)" :id="`request-details-${index}`" class="flex flex-col gap-3">
+                                    <div class="flex flex-wrap items-end gap-4">
+                                        <div class="min-w-[9rem] flex-1">
+                                            <label :for="`request-unit-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Unit</label>
+                                            <div class="relative">
+                                                <select v-model="item.requested_unit" :id="`request-unit-${index}`"
+                                                    class="min-h-[48px] w-full cursor-pointer appearance-none rounded-lg border-2 border-transparent bg-ink-100 px-4 pr-11 text-base font-medium text-ink-900 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none">
+                                                    <option value="" class="bg-white text-base text-ink-900">Choose unit…</option>
+                                                    <option v-for="option in medicineUnitOptions" :key="option" :value="option" class="bg-white text-base text-ink-900">{{ option }}</option>
+                                                </select>
+                                                <ChevronDownIcon class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-600" aria-hidden="true" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <label class="flex min-h-[44px] w-fit cursor-pointer select-none items-center gap-3">
+                                        <input type="checkbox" v-model="item.prefer_clearance_only"
+                                            @change="debouncedSaveFormDraft()"
+                                            class="h-5 w-5 cursor-pointer rounded accent-brand-700" />
+                                        <span class="text-sm font-medium text-ink-900">Clearance/discounted stock only</span>
+                                    </label>
+                                </div>
+                            </li>
+                        </ul>
+
+                        <div class="flex flex-wrap items-center gap-x-6">
+                            <button @click="addItem" type="button"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full pr-3 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <PlusIcon class="h-5 w-5" aria-hidden="true" />
+                                Add another medication
+                            </button>
+                            <button v-if="!showNotesField" @click="openNotesField" type="button"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full pr-3 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                <ChatBubbleLeftEllipsisIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                                Add note
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Prescription: a slim option under the medicines; it can also stand on its own -->
+                    <section aria-labelledby="request-rx-title" class="rounded-2xl bg-brand-50 p-4">
+                        <h2 id="request-rx-title" class="font-display text-lg font-bold text-ink-900">Have a prescription?</h2>
+                        <p class="mt-0.5 text-sm text-ink-600">Skip the typing. You can add medicines too.</p>
+                        <div class="mt-3 grid grid-cols-2 items-center gap-3 sm:flex sm:flex-wrap">
                             <label class="inline-flex min-h-[48px] cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-700 px-3 text-sm sm:px-5 font-semibold text-white transition-colors focus-within:ring-2 focus-within:ring-brand-700 focus-within:ring-offset-2 hover:bg-brand-600">
                                 <CameraIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                                 Take photo
@@ -49,84 +133,6 @@
                         </div>
                     </section>
 
-                    <!-- Medications -->
-                    <section aria-labelledby="request-meds-title" class="space-y-5">
-                        <h2 id="request-meds-title" class="font-display text-xl font-bold text-ink-900">Medications</h2>
-
-                        <ul class="space-y-6">
-                            <li v-for="(item, index) in requestItems" :key="index" class="flex flex-col gap-3">
-                                <div class="relative">
-                                    <span class="pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 select-none items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white" aria-hidden="true">{{ index + 1 }}</span>
-                                    <label :for="`request-medicine-${index}`" class="sr-only">Medication {{ index + 1 }}: name, brand or strength</label>
-                                    <input v-model="item.product_name" type="text"
-                                        :id="`request-medicine-${index}`"
-                                        autocomplete="off"
-                                        autocapitalize="words"
-                                        inputmode="text"
-                                        placeholder="Medicine name, brand, or strength"
-                                        @input="debouncedSaveFormDraft()"
-                                        :class="requestItems.length > 1 ? 'pr-14' : 'pr-4'"
-                                        class="min-h-[56px] w-full rounded-lg border-2 border-transparent bg-ink-100 py-3 pl-14 text-base font-medium text-ink-900 placeholder-ink-500 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none" />
-                                    <button v-if="requestItems.length > 1" @click="removeRequestItem(index)"
-                                        type="button" :aria-label="`Remove medication ${index + 1}`"
-                                        class="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
-                                        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
-                                    </button>
-                                </div>
-
-                                <!-- Unit + Qty -->
-                                <div v-if="item.product_name.trim()" class="flex flex-wrap items-end gap-4">
-                                    <div class="min-w-[9rem] flex-1">
-                                        <label :for="`request-unit-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Unit</label>
-                                        <div class="relative">
-                                            <select v-model="item.requested_unit" :id="`request-unit-${index}`"
-                                                class="min-h-[48px] w-full cursor-pointer appearance-none rounded-lg border-2 border-transparent bg-ink-100 px-4 pr-11 text-base font-medium text-ink-900 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none">
-                                                <option value="" class="bg-white text-base text-ink-900">Choose unit…</option>
-                                                <option v-for="option in medicineUnitOptions" :key="option" :value="option" class="bg-white text-base text-ink-900">{{ option }}</option>
-                                            </select>
-                                            <ChevronDownIcon class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-600" aria-hidden="true" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label :for="`request-qty-${index}`" class="mb-1.5 block text-sm font-semibold text-ink-900">Quantity</label>
-                                        <div class="flex items-center gap-1 rounded-full bg-ink-100 p-1">
-                                            <button type="button" :aria-label="`Decrease quantity of ${item.product_name.trim()}`"
-                                                class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 disabled:opacity-30 disabled:hover:bg-transparent"
-                                                @click="decrementQty(item)" :disabled="Number(item.quantity || 1) <= 1"><span aria-hidden="true">−</span></button>
-                                            <input v-model.number="item.quantity" :id="`request-qty-${index}`" type="number" min="1" inputmode="numeric" placeholder="1"
-                                                class="h-11 w-12 appearance-none bg-transparent p-0 text-center text-base font-bold text-ink-900 focus:outline-none" />
-                                            <button type="button" :aria-label="`Increase quantity of ${item.product_name.trim()}`"
-                                                class="flex h-11 w-11 items-center justify-center rounded-full text-xl font-medium text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                                                @click="incrementQty(item)"><span aria-hidden="true">+</span></button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <label v-if="item.product_name.trim()"
-                                    class="flex min-h-[44px] w-fit cursor-pointer select-none items-center gap-3">
-                                    <input type="checkbox" v-model="item.prefer_clearance_only"
-                                        @change="debouncedSaveFormDraft()"
-                                        class="h-5 w-5 cursor-pointer rounded accent-brand-700" />
-                                    <span class="text-sm font-medium text-ink-900">Clearance/discounted stock only</span>
-                                </label>
-                            </li>
-                        </ul>
-
-                        <div class="flex flex-wrap items-center gap-x-6">
-                            <button @click="addItem" type="button"
-                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full pr-3 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
-                                <PlusIcon class="h-5 w-5" aria-hidden="true" />
-                                Add another medication
-                            </button>
-                            <button v-if="!showNotesField" @click="openNotesField" type="button"
-                                class="inline-flex min-h-[44px] items-center gap-2 rounded-full pr-3 text-base font-semibold text-brand-700 underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
-                                <ChatBubbleLeftEllipsisIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                                Add note
-                            </button>
-                        </div>
-                    </section>
-
                     <!-- Contact + notes -->
                     <section v-if="showNotesField" aria-labelledby="request-extras-title" class="space-y-5 border-t border-ink-100 pt-8">
                         <h2 id="request-extras-title" class="font-display text-xl font-bold text-ink-900">
@@ -151,66 +157,36 @@
                     </section>
 
                     <!-- Delivery address -->
-                    <section aria-labelledby="request-address-title" class="space-y-4 border-t border-ink-100 pt-8">
-                        <h2 id="request-address-title" class="font-display text-xl font-bold text-ink-900">Delivery address</h2>
+                    <section aria-labelledby="request-address-title" class="border-t border-ink-100 pt-6">
+                        <h2 id="request-address-title" class="sr-only">Delivery address</h2>
                         <button @click="showAddressModal = true" type="button"
-                            class="flex min-h-[64px] w-full items-center gap-4 rounded-xl px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                            :class="customerLat && deliveryAddress.trim() ? 'bg-ink-100 hover:bg-ink-200' : 'border-2 border-amber-500 bg-amber-50 hover:bg-amber-100'">
+                            class="flex w-full items-center gap-3 rounded-xl px-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+                            :class="customerLat && deliveryAddress.trim() ? 'min-h-[56px] bg-ink-100 py-2 hover:bg-ink-200' : 'min-h-[64px] border-2 border-amber-500 bg-amber-50 py-3 hover:bg-amber-100'">
                             <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
                                 :class="customerLat && deliveryAddress.trim() ? 'bg-brand-700 text-white' : 'bg-amber-200 text-amber-900'">
                                 <MapPinIconSolid v-if="customerLat && deliveryAddress.trim()" class="h-5 w-5" aria-hidden="true" />
                                 <MapPinIcon v-else class="h-5 w-5" aria-hidden="true" />
                             </span>
-                            <span class="min-w-0 flex-1">
-                                <template v-if="customerLat && deliveryAddress.trim()">
-                                    <span class="block text-sm text-ink-600">Delivering to</span>
-                                    <span class="mt-0.5 block truncate text-base font-semibold text-ink-900">{{ deliveryAddress }}</span>
-                                </template>
-                                <template v-else>
+                            <template v-if="customerLat && deliveryAddress.trim()">
+                                <span class="min-w-0 flex-1 truncate text-base text-ink-900">Delivering to <span class="font-semibold">{{ deliveryAddress }}</span></span>
+                                <span class="flex-shrink-0 text-base font-semibold text-brand-700">Change</span>
+                            </template>
+                            <template v-else>
+                                <span class="min-w-0 flex-1">
                                     <span class="block text-base font-semibold text-ink-900">Set delivery address</span>
                                     <span class="mt-0.5 block text-sm font-medium text-amber-900">Required to continue</span>
-                                </template>
-                            </span>
-                            <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
+                                </span>
+                                <ChevronRightIcon class="h-5 w-5 flex-shrink-0 text-ink-500" aria-hidden="true" />
+                            </template>
                         </button>
                     </section>
-
-                    <!-- Wallet gate overlay -->
-                    <div v-if="!canSearchProducts && !walletGateDismissed" role="group" aria-label="Top up needed"
-                        class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/90 px-6 text-center backdrop-blur-[2px]">
-                        <button @click="walletGateDismissed = true" type="button"
-                            class="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-ink-100 text-ink-900 transition-colors hover:bg-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                            aria-label="Dismiss">
-                            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
-                        </button>
-                        <span class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 text-white">
-                            <WalletIcon class="h-7 w-7" aria-hidden="true" />
-                        </span>
-                        <div>
-                            <p class="font-display text-xl font-bold text-ink-900">Top up to continue</p>
-                            <p class="mt-1 text-sm text-ink-600">GHS {{ requestFee.toFixed(2) }} needed · Balance: GHS {{ (walletBalance ?? 0).toFixed(2) }}</p>
-                        </div>
-                        <button @click="openWalletTab" type="button"
-                            class="min-h-[48px] rounded-full bg-brand-700 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
-                            Top Up Wallet
-                        </button>
-                        <button @click="walletGateDismissed = true" type="button"
-                            class="min-h-[44px] px-3 text-sm font-semibold text-ink-900 underline underline-offset-2 hover:text-ink-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
-                            Continue filling in my request
-                        </button>
-                    </div>
             </div>
 
             <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-ink-600">Wallet balance</span>
-                    <button @click="openWalletTab" type="button"
-                        :aria-label="`Wallet balance GHS ${walletBalance.toFixed(2)}. Open wallet`"
-                        class="min-h-[44px] rounded-full px-3 text-sm font-bold transition-colors hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
-                        :class="canSearchProducts ? 'text-brand-800' : 'text-amber-800'">
-                        GHS {{ walletBalance.toFixed(2) }}
-                    </button>
-                </div>
+                <button v-if="!canSearchProducts" @click="openWalletTab(requestFeeShort)" type="button"
+                    class="flex min-h-[48px] w-full items-center justify-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                    Top up GHS {{ Math.ceil(requestFeeShort).toFixed(2) }}
+                </button>
                 <button @click="openPriorityGate" :disabled="!canSubmit || isSubmitting" type="button"
                     :aria-describedby="sendWhy ? 'send-why' : undefined"
                     class="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brand-700">
@@ -364,6 +340,9 @@
                 </div>
 
                 <div class="px-6 pb-6 pt-2">
+                    <!-- The waiting moment: the best time to offer updates on this phone -->
+                    <PushOptInPrompt v-if="['pending', 'processing', 'sourcing'].includes(getRequestStatus(selectedRequest))" class="mb-4" />
+
                     <!-- Items -->
                     <section v-if="selectedRequest.items?.length" aria-labelledby="request-items-title" class="mb-4">
                         <div class="flex items-center justify-between gap-3">
@@ -542,6 +521,12 @@
                             <dd class="tabular-nums">GHS {{ parseFloat(String(selectedRequest.estimated_total)).toFixed(2) }}</dd>
                         </div>
                     </dl>
+
+                    <button v-if="canLeaveFeedback(selectedRequest) && selectedRequest.items?.length" type="button" @click="requestAgain(selectedRequest)"
+                        class="mb-4 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
+                        <ArrowPathIcon class="h-5 w-5" aria-hidden="true" />
+                        Request again
+                    </button>
 
                     <div v-if="canLeaveFeedback(selectedRequest)" data-testid="feedback-card" class="mb-4 rounded-2xl bg-ink-50 px-4 py-4">
                         <div class="flex items-start justify-between gap-3">
@@ -811,6 +796,18 @@
 
                         <!-- Search fee: keep it for later, or take it off this order -->
                         <div v-if="canPayWithSelection(selectedRequest) && selectedPaymentOptions?.fee_applicable">
+                            <!-- One line by default; the two choices open only when asked for -->
+                            <div v-if="!feeChoiceOpen[selectedRequest.id]" data-testid="search-fee-summary" class="flex items-center justify-between gap-3">
+                                <p class="text-base text-ink-600">
+                                    GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee,
+                                    {{ applyFeeByRequest[selectedRequest.id] === true ? 'taken off this order' : 'kept in your wallet for a later request' }}
+                                </p>
+                                <button type="button" @click="feeChoiceOpen = { ...feeChoiceOpen, [selectedRequest.id]: true }"
+                                    class="min-h-[44px] shrink-0 rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                    Change
+                                </button>
+                            </div>
+                            <template v-else>
                             <p id="request-fee-title" class="text-base font-semibold text-ink-900">GHS {{ parseFloat(String(selectedPaymentOptions?.request_fee ?? 0)).toFixed(2) }} search fee</p>
                             <div role="radiogroup" aria-labelledby="request-fee-title" class="mt-2 grid grid-cols-2 gap-2">
                                 <button type="button" role="radio" :aria-checked="applyFeeByRequest[selectedRequest.id] === true"
@@ -828,6 +825,11 @@
                                     <span class="block text-sm text-ink-600">Keep it for a later request</span>
                                 </button>
                             </div>
+                            <button type="button" @click="feeChoiceOpen = { ...feeChoiceOpen, [selectedRequest.id]: false }"
+                                class="mt-2 min-h-[44px] rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
+                                Done
+                            </button>
+                            </template>
                         </div>
 
                         <!-- Total -->
@@ -839,31 +841,42 @@
 
                         <!-- Pay -->
                         <div class="space-y-3">
-                            <button type="button" @click="payForRequest(selectedRequest.id, 'wallet')"
-                                :disabled="payingRequest || !!walletBlockReason"
-                                :aria-describedby="walletBlockReason ? 'request-pay-reason' : undefined"
-                                class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                :class="walletShort ? 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50' : 'bg-brand-700 text-white hover:bg-brand-600'">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="h-5 w-5 animate-spin" aria-hidden="true" />
-                                {{ payingRequest && payingMethod === 'wallet'
-                                    ? 'Paying…'
-                                    : selectedMethodTotal != null ? `Pay with wallet · GHS ${selectedMethodTotal.toFixed(2)}` : 'Pay with wallet' }}
-                            </button>
-                            <button type="button" @click="payForRequest(selectedRequest.id, 'paystack')"
-                                :disabled="payingRequest || payNeedsChoice"
-                                :aria-describedby="payNeedsChoice ? 'request-pay-reason' : undefined"
-                                class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                :class="walletShort ? 'bg-brand-700 text-white hover:bg-brand-600' : 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50'">
-                                <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="h-5 w-5 animate-spin" aria-hidden="true" />
-                                {{ payingRequest && payingMethod === 'paystack'
-                                    ? 'Opening Paystack…'
-                                    : paystackChargeTotal != null ? `Pay with card or mobile money · GHS ${paystackChargeTotal.toFixed(2)}` : 'Pay with card or mobile money' }}
-                            </button>
-                            <p v-if="paystackChargeTotal != null && selectedMethodTotal != null" class="text-center text-sm text-ink-600">
-                                Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
-                            </p>
+                            <div v-if="unverifiedPaystack && String(unverifiedPaystack.requestId) === String(selectedRequest.id)"
+                                data-testid="unverified-payment" class="rounded-xl bg-amber-50 px-4 py-3">
+                                <p class="text-base text-ink-900">We could not confirm your card payment yet. If you were charged, check again before paying a second time.</p>
+                                <button type="button" @click="retryPaystackCheck" :disabled="payingRequest"
+                                    class="mt-3 flex min-h-[52px] w-full items-center justify-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                                    Check my payment again
+                                </button>
+                            </div>
+                            <!-- The option that will work comes first, in reading and tab order too -->
+                            <template v-for="method in payMethodOrder" :key="method">
+                                <button v-if="method === 'wallet'" type="button" @click="payForRequest(selectedRequest.id, 'wallet')"
+                                    :disabled="payingRequest || !!walletBlockReason"
+                                    :aria-describedby="walletBlockReason ? 'request-pay-reason' : undefined"
+                                    class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    :class="walletShort ? 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50' : 'bg-brand-700 text-white hover:bg-brand-600'">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'wallet'" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                    {{ payingRequest && payingMethod === 'wallet'
+                                        ? 'Paying…'
+                                        : selectedMethodTotal != null ? `Pay with wallet · GHS ${selectedMethodTotal.toFixed(2)}` : 'Pay with wallet' }}
+                                </button>
+                                <button v-else type="button" @click="payForRequest(selectedRequest.id, 'paystack')"
+                                    :disabled="payingRequest || payNeedsChoice"
+                                    :aria-describedby="payNeedsChoice ? 'request-pay-reason' : undefined"
+                                    class="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    :class="walletShort ? 'bg-brand-700 text-white hover:bg-brand-600' : 'border border-ink-200 bg-white text-ink-900 hover:bg-ink-50'">
+                                    <ArrowPathIcon v-if="payingRequest && payingMethod === 'paystack'" class="h-5 w-5 animate-spin" aria-hidden="true" />
+                                    {{ payingRequest && payingMethod === 'paystack'
+                                        ? 'Opening Paystack…'
+                                        : paystackChargeTotal != null ? `Pay with card or mobile money · GHS ${paystackChargeTotal.toFixed(2)}` : 'Pay with card or mobile money' }}
+                                </button>
+                                <p v-if="method === 'paystack' && paystackChargeTotal != null && selectedMethodTotal != null" class="text-center text-sm text-ink-600">
+                                    Includes GHS {{ (paystackChargeTotal - selectedMethodTotal).toFixed(2) }} Paystack processing fee
+                                </p>
+                            </template>
                             <p v-if="walletBlockReason" id="request-pay-reason" class="text-center text-sm text-ink-600">{{ walletBlockReason }}</p>
-                            <button v-if="walletShort && !payNeedsChoice && paymentShortfall.requestId !== selectedRequest.id" type="button" @click="openWalletTab"
+                            <button v-if="walletShort && !payNeedsChoice && paymentShortfall.requestId !== selectedRequest.id" type="button" @click="openWalletTab(walletGap)"
                                 class="mx-auto flex min-h-[44px] items-center rounded-full px-4 text-base font-semibold text-brand-700 underline underline-offset-4 transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
                                 Top up wallet
                             </button>
@@ -876,7 +889,7 @@
                             role="alert" class="rounded-2xl bg-amber-50 px-4 py-4">
                             <p class="text-base font-semibold text-ink-900">Add GHS {{ paymentShortfall.amount.toFixed(2) }} to continue</p>
                             <p class="mt-1 text-base text-ink-600">Your wallet is short for this payment. Top up that amount, then pay from your wallet.</p>
-                            <button type="button" @click="openWalletTab"
+                            <button type="button" @click="openWalletTab(paymentShortfall.amount)"
                                 class="mt-3 inline-flex min-h-[48px] items-center rounded-full bg-brand-700 px-6 text-base font-semibold text-white transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">
                                 Top up wallet
                             </button>
@@ -1021,6 +1034,7 @@
                 <h2 id="request-sent-title" class="mt-4 font-display text-2xl font-bold text-ink-900">Request sent</h2>
                 <p class="mt-2 text-base text-ink-600">We'll notify you once a pharmacist has looked at it.</p>
                 <p v-if="submittedNumber" class="mt-2 text-base text-ink-600">Request <strong class="text-ink-900">#{{ submittedNumber }}</strong></p>
+                <PushOptInPrompt class="mt-4" />
                 <button type="button" @click="goToRequestHistory"
                     class="mt-6 inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-brand-700 px-5 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2">View my requests</button>
             </div>
@@ -1188,6 +1202,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { MapPinIcon as MapPinIconSolid, CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid, PaperAirplaneIcon as PaperAirplaneIconSolid } from '@heroicons/vue/24/solid'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
+import PushOptInPrompt from '~/components/customers/PushOptInPrompt.vue'
 import { useModalA11y } from '~/composables/useModalA11y'
 
 // ─── Domain types ────────────────────────────────────────────────────────────
@@ -1201,6 +1216,7 @@ interface RequestItem {
     product_id?: number | null;
     source_pharmacy_id?: number | null;
     unit_price?: number | null;
+    detailsOpen?: boolean;
 }
 
 interface PrescriptionPreview {
@@ -1430,7 +1446,7 @@ const setApplyFee = (requestId: string | number, value: boolean): void => {
     applyFeeByRequest.value = { ...applyFeeByRequest.value, [requestId]: value }
 }
 const walletBalance = ref<number>(0)
-const walletGateDismissed = ref<boolean>(false)
+const requestFeeShort = computed<number>(() => Math.max(0, requestFee.value - walletBalance.value))
 const submitShortfall = ref<number>(0)
 const paymentShortfall = ref<{ requestId: string | number | null; amount: number }>({
     requestId: null,
@@ -1871,11 +1887,6 @@ watch(customerNotes, (val) => {
     if (String(val || '').trim().length > 0) showNotesField.value = true
 })
 
-// When the wallet balance updates (e.g. after topping up), reset the dismissed
-// gate so the user sees feedback about whether the top-up was enough.
-watch(walletBalance, () => {
-    walletGateDismissed.value = false
-})
 let deliveryAutocompleteTimer: ReturnType<typeof setTimeout> | null = null
 let deliveryAutocompleteSuspend = false
 
@@ -1930,6 +1941,20 @@ const goToNewRequest = async (): Promise<void> => {
     selectedRequest.value = null
     showSuccess.value = false
     await navigateTo({ path: '/customer', query: { tab: 'new' } })
+}
+
+// Hands a finished request's items to the new-request form through the same draft the homepage uses.
+const requestAgain = async (request: OrderRequest): Promise<void> => {
+    const items = (request.items ?? [])
+        .filter(item => String(item.product_name ?? '').trim())
+        .map(item => ({
+            product_name: String(item.product_name).trim(),
+            quantity: Math.max(1, Number(item.quantity ?? 1)),
+            requested_unit: String(item['requested_unit'] ?? '')
+        }))
+    if (!items.length) return
+    try { sessionStorage.setItem(HOMEPAGE_REQUEST_DRAFT_KEY, JSON.stringify({ items })) } catch {}
+    await goToNewRequest()
 }
 
 const goToRequestHistory = async (): Promise<void> => {
@@ -2827,8 +2852,10 @@ const confirmPriorityAndSubmit = async (): Promise<void> => {
     await submitRequest()
 }
 
-const openWalletTab = async (): Promise<void> => {
-    await navigateTo({ path: '/customer', query: { tab: 'wallet' } })
+// Whole cedis, rounded up, so the top-up the wallet suggests always covers the gap.
+const openWalletTab = async (missing?: number): Promise<void> => {
+    const topup = typeof missing === 'number' && missing > 0 ? Math.ceil(missing) : null
+    await navigateTo({ path: '/customer', query: topup ? { tab: 'wallet', topup } : { tab: 'wallet' } })
 }
 
 watch(deliveryAddressSearch, (value) => {
@@ -2854,6 +2881,10 @@ watch(deliveryAddressSearch, (value) => {
 })
 
 const addItem = (): void => { requestItems.value.push(newItem()) }
+// Unit and clearance stay out of the way until asked for, but a medicine that already has either shows them.
+const isDetailsOpen = (item: RequestItem): boolean =>
+    item.detailsOpen ?? Boolean(item.requested_unit || item.prefer_clearance_only)
+const toggleDetails = (item: RequestItem): void => { item.detailsOpen = !isDetailsOpen(item) }
 const decrementQty = (item: RequestItem): void => {
     const current = Number(item?.quantity ?? 1)
     item.quantity = Math.max(1, current - 1)
@@ -3152,6 +3183,9 @@ const paystackChargeTotal = computed<number | null>(() => {
 
 const payNeedsChoice = computed<boolean>(() => !!selectedRequest.value && !canPayWithSelection(selectedRequest.value))
 const walletShort = computed<boolean>(() => !payNeedsChoice.value && selectedMethodTotal.value != null && walletBalance.value < selectedMethodTotal.value)
+const walletGap = computed<number>(() => Math.max(0, (selectedMethodTotal.value ?? 0) - walletBalance.value))
+const feeChoiceOpen = ref<Record<string | number, boolean>>({})
+const payMethodOrder = computed<Array<'wallet' | 'paystack'>>(() => walletShort.value ? ['paystack', 'wallet'] : ['wallet', 'paystack'])
 const walletBlockReason = computed<string>(() => {
     if (payNeedsChoice.value) {
         return deliveryContactNeeded(selectedRequest.value) && !deliveryContactResult(selectedRequest.value).ok
@@ -3213,6 +3247,10 @@ const chooseDeliveryRate = (requestId: number | string, rate: { provider_code?: 
     // Picking a rate IS picking Delivery — select the method so totals + pay follow.
     if (selectedPaymentMethodByRequest.value[requestId] !== 'delivery') {
         choosePaymentMethod(requestId, 'delivery')
+    } else if (overrideMethodPickerFor.value[requestId] && !deliveryContactNeeded(selectedRequest.value)) {
+        // Delivery is already the method, so only the rate changed: save it now, otherwise the
+        // total shown here is not the one the server charges.
+        applyMethodSwitch(requestId, 'delivery')
     }
 }
 const submitFulfillmentChoice = async (requestId: number | string, method: string): Promise<{ data?: unknown; message?: string }> => {
@@ -3246,23 +3284,27 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
     payError.value = ''
 
     const request = selectedRequest.value
-    if (requiresMethodSelection(request)) {
-        const chosen = selectedPaymentMethodByRequest.value[id]
-        if (!chosen) {
-            payError.value = 'Choose pickup or delivery first.'
-            return
-        }
-        try {
-            await submitFulfillmentChoice(id, chosen)
-        } catch (err) {
-            payError.value = err instanceof Error ? err.message : 'We could not save your choice. Please try again.'
-            return
-        }
+    const needsChoice = requiresMethodSelection(request)
+    const chosen = selectedPaymentMethodByRequest.value[id]
+    if (needsChoice && !chosen) {
+        payError.value = 'Choose pickup or delivery first.'
+        return
     }
 
+    // Claim the button before the first await, or a second tap during the save sends a second payment.
     payingRequest.value = true
     payingMethod.value = method
+    let handedToPaystack = false
     try {
+        if (needsChoice) {
+            try {
+                await submitFulfillmentChoice(id, chosen as string)
+            } catch (err) {
+                payError.value = err instanceof Error ? err.message : 'We could not save your choice. Please try again.'
+                return
+            }
+        }
+
         paymentShortfall.value = { requestId: null, amount: 0 }
 
         const opts = paymentOptionsByRequest.value[id]
@@ -3276,6 +3318,8 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
             if (!resData?.authorization_url) {
                 throw new Error('Paystack checkout could not be started')
             }
+            // Stay locked while the browser leaves: re-enabling Pay here would let a second checkout start.
+            handedToPaystack = true
             window.location.assign(resData.authorization_url)
             return
         }
@@ -3300,6 +3344,47 @@ const payForRequest = async (id: number | string, method = 'wallet'): Promise<vo
             payError.value = e.message ?? `We could not start your ${method === 'paystack' ? 'card' : 'wallet'} payment. Nothing was charged. Please try again.`
         }
     } finally {
+        if (!handedToPaystack) {
+            payingRequest.value = false
+            payingMethod.value = ''
+        }
+    }
+}
+
+// Coming back with the Back button restores this page as it was, still locked.
+const unlockAfterBackNavigation = (event: Event): void => {
+    if ((event as PageTransitionEvent).persisted) {
+        payingRequest.value = false
+        payingMethod.value = ''
+    }
+}
+
+// A Paystack payment we could not confirm. The return link is cleaned out of the address bar, so
+// keep the reference here to let the customer ask again while the order still waits for payment.
+const unverifiedPaystack = ref<{ requestId: number | string; reference: string } | null>(null)
+
+const confirmPaystackReference = async (requestId: number | string, reference: string): Promise<void> => {
+    payingRequest.value = true
+    payingMethod.value = 'paystack'
+    try {
+        const res = await apiCall('POST', `/api/order-requests/customer/${requestId}/pay/paystack/verify`, {
+            reference
+        })
+        unverifiedPaystack.value = null
+        await fetchWalletBalance()
+        await fetchMyRequests({ silent: true })
+        await openRequestById(Number(requestId), { silent: true })
+        selectedRequest.value = null
+        showPaymentSuccessAnim.value = true
+        showToast(res.message ?? 'Payment completed successfully')
+    } catch (err) {
+        unverifiedPaystack.value = { requestId, reference }
+        await fetchWalletBalance()
+        await fetchMyRequests({ silent: true })
+        await openRequestById(Number(requestId), { silent: true })
+        showToast(err instanceof Error ? err.message : 'Failed to verify Paystack payment', 'error')
+    } finally {
+        await clearRequestPaymentQuery(Number(requestId))
         payingRequest.value = false
         payingMethod.value = ''
     }
@@ -3312,28 +3397,13 @@ const verifyReturnedPaystackRequestPayment = async (): Promise<void> => {
 
     if (paymentMarker !== 'paystack' || !reference || !requestId || payingRequest.value) return
 
-    payingRequest.value = true
-    payingMethod.value = 'paystack'
-    try {
-        const res = await apiCall('POST', `/api/order-requests/customer/${requestId}/pay/paystack/verify`, {
-            reference
-        })
-        await fetchWalletBalance()
-        await fetchMyRequests({ silent: true })
-        await openRequestById(requestId, { silent: true })
-        selectedRequest.value = null
-        showPaymentSuccessAnim.value = true
-        showToast(res.message ?? 'Payment completed successfully')
-    } catch (err) {
-        await fetchWalletBalance()
-        await fetchMyRequests({ silent: true })
-        await openRequestById(requestId, { silent: true })
-        showToast(err instanceof Error ? err.message : 'Failed to verify Paystack payment', 'error')
-    } finally {
-        await clearRequestPaymentQuery(requestId)
-        payingRequest.value = false
-        payingMethod.value = ''
-    }
+    await confirmPaystackReference(requestId, reference)
+}
+
+const retryPaystackCheck = async (): Promise<void> => {
+    const pending = unverifiedPaystack.value
+    if (!pending || payingRequest.value) return
+    await confirmPaystackReference(pending.requestId, pending.reference)
 }
 
 const respondToDecision = async (decision: RequestDecision, response: string): Promise<void> => {
@@ -3752,6 +3822,7 @@ const statusProgress = (s: string): number => (({
 const showToast = (text: string, type = 'success'): void => { toast.value = { text, type }; setTimeout(() => { toast.value = null }, 4000) }
 
 onMounted(async () => {
+    window.addEventListener('pageshow', unlockAfterBackNavigation)
     await restorePrescriptionsFromSession()
     await loadSavedHomeLocation()
     await fetchRequestSettings()
@@ -3821,6 +3892,7 @@ watchEffect(() => {
 })
 
 onUnmounted(() => {
+    window.removeEventListener('pageshow', unlockAfterBackNavigation)
     // Flush any pending draft save immediately so a quick tab switch
     // (before the 1-second debounce fires) doesn't lose entered medications.
     if (isNewView.value) {

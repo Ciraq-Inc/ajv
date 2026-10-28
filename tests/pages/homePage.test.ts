@@ -98,7 +98,7 @@ describe('home page: sign-in area', () => {
     expect(wrapper.find('#hero-medications').isVisible()).toBe(false)
   })
 
-  it('switches between "Sign in" and "Quick request"', async () => {
+  it('switches between "Sign in / Sign up" and "Quick request"', async () => {
     const wrapper = await open()
     const tab = (label: string) => wrapper.findAll('[role="tab"]').find(b => b.text() === label)!
 
@@ -106,7 +106,7 @@ describe('home page: sign-in area', () => {
     expect(wrapper.find('#hero-medications').isVisible()).toBe(true)
     expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(false)
 
-    await press(tab('Sign in'))
+    await press(tab('Sign in / Sign up'))
     expect(wrapper.find('[data-testid="login-inline"]').exists()).toBe(true)
     expect(wrapper.find('#hero-medications').isVisible()).toBe(false)
   })
@@ -118,7 +118,7 @@ describe('home page: sign-in area', () => {
     await wrapper.find('#hero-medications').setValue('Paracetamol 500mg')
     await wrapper.find('#hero-phone').setValue('0244123456')
 
-    await press(tab('Sign in'))
+    await press(tab('Sign in / Sign up'))
     await press(tab('Quick request'))
 
     expect((wrapper.find('#hero-medications').element as HTMLTextAreaElement).value).toBe('Paracetamol 500mg')
@@ -260,8 +260,8 @@ describe('home page: arriving from the Clearance Marketplace', () => {
 
   it('never lets a quantity drop below one', async () => {
     const wrapper = await open({ clearance_draft: param([{ product_name: 'Zinc', quantity: -5 }]) })
-    const qty = wrapper.find('li span.w-5')
-    expect(qty.text()).toBe('1')
+    const qty = wrapper.find('li button[aria-label="Increase quantity"]').element.previousElementSibling
+    expect(qty?.textContent?.trim()).toBe('1')
   })
 })
 

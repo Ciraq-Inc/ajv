@@ -4,11 +4,6 @@
 // and authentication state. All HTTP delegates to the service layer via
 // factory accessors. Public method names and return shapes are preserved
 // 1:1 — no caller changes needed.
-//
-// The legacy `makeAuthRequest(endpoint, options)` action is kept because
-// ~9 components/pages outside this PR's scope still call it directly.
-// Migrating those callers onto per-domain services is tracked as a
-// follow-up.
 
 import { defineStore } from 'pinia';
 import { createAdminService } from '~/services/admin/adminService';
@@ -31,6 +26,7 @@ export type AdminRole =
   | 'admin'
   | 'super_admin';
 
+// Mirrors ADMIN_ROLE_RANK in rigel-medsgh/src/auth/adminRoles.js — keep the two in step.
 const ROLE_HIERARCHY: Record<string, number> = {
   data_consumer: 0,
   business_analyst: 1,
@@ -39,7 +35,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
   auditor: 4,
   manager: 5,
   admin: 6,
-  super_admin: 6,
+  super_admin: 7,
 };
 
 export interface AdminState {
@@ -94,9 +90,10 @@ export const useAdminStore = defineStore('admin', {
 
     getRole: (state): string | null => state.admin?.role ?? null,
 
-    isSuperAdmin: (state): boolean =>
-      state.admin?.role != null &&
-      ['super_admin', 'admin'].includes(state.admin.role),
+    isSuperAdmin: (state): boolean => state.admin?.role === 'super_admin',
+
+    isAdminOrAbove: (state): boolean =>
+      state.admin?.role === 'admin' || state.admin?.role === 'super_admin',
 
     getDashboardRoute: (state): string => {
       if (state.admin?.role === 'data_consumer') {
@@ -108,8 +105,10 @@ export const useAdminStore = defineStore('admin', {
     hasRole:
       (state) =>
       (requiredRole: string): boolean => {
-        const adminLevel = ROLE_HIERARCHY[state.admin?.role ?? ''] ?? 0;
-        const requiredLevel = ROLE_HIERARCHY[requiredRole] ?? 0;
+        const adminLevel = ROLE_HIERARCHY[state.admin?.role ?? ''];
+        const requiredLevel = ROLE_HIERARCHY[requiredRole];
+        // Unknown role on either side: deny.
+        if (adminLevel === undefined || requiredLevel === undefined) return false;
         return adminLevel >= requiredLevel;
       },
   },
@@ -192,6 +191,27 @@ export const useAdminStore = defineStore('admin', {
     },
 
     /**
+     * Start the session from a passed MFA challenge. The backend answers flat:
+     * { success, token, refresh_token, user } — there is no nested `data`.
+     */
+    _startMfaSession(body: unknown): void {
+      const payload = body as {
+        token?: string;
+        refresh_token?: string | null;
+        user?: AdminProfile | null;
+      };
+      this.token = payload.token ?? null;
+      this.admin = payload.user ?? null;
+      this.isAuthenticated = true;
+
+      if (process.client) {
+        localStorage.setItem('adminToken', payload.token ?? '');
+        localStorage.setItem('adminUser', JSON.stringify(payload.user ?? null));
+        if (payload.refresh_token) localStorage.setItem('adminRefreshToken', payload.refresh_token);
+      }
+    },
+
+    /**
      * Verify a TOTP code during the admin login MFA challenge.
      * On success sets the session identical to a direct login.
      */
@@ -209,36 +229,62 @@ export const useAdminStore = defineStore('admin', {
         const data = await this._adminService().verifyMfaTotp(totpParams);
 
         if (data.success) {
-          const payload = data.data as { token: string; refresh_token?: string | null; admin?: AdminProfile };
-          this.token = payload.token;
-          this.admin = payload.admin ?? null;
-          this.isAuthenticated = true;
-
-          if (process.client) {
-            localStorage.setItem('adminToken', payload.token);
-            localStorage.setItem('adminUser', JSON.stringify(payload.admin));
-            if (payload.refresh_token) localStorage.setItem('adminRefreshToken', payload.refresh_token);
-          }
-
+          this._startMfaSession(data);
           return { success: true as const, ...(data.message !== undefined ? { message: data.message } : {}) };
-        } else {
-          return {
-            success: false as const,
-            message: data.message ?? 'Verification failed.',
-          };
         }
+        return { success: false as const, message: data.message ?? 'Verification failed.' };
       } catch (error: unknown) {
         console.error('TOTP verify error:', error);
         return {
           success: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Verification failed. Please try again.',
+          message: error instanceof Error ? error.message : 'Verification failed. Please try again.',
         };
       } finally {
         this.isLoading = false;
       }
+    },
+
+    /** Verify the SMS code during the admin login MFA challenge. */
+    async verifyMfaSms({
+      challengeId,
+      code,
+    }: {
+      challengeId: string;
+      code: string;
+    }): Promise<LoginSuccess | LoginFailure> {
+      this.isLoading = true;
+      try {
+        const data = await this._adminService().verifyMfaSms({ challengeId, code });
+        if (data.success) {
+          this._startMfaSession(data);
+          return { success: true as const };
+        }
+        return { success: false as const, message: data.message ?? 'Verification failed.' };
+      } catch (error: unknown) {
+        console.error('SMS MFA verify error:', error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Verification failed. Please try again.',
+        };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * Deliberate sign-out: revoke the session on the server first (best effort),
+     * then clear it locally. Use logout() when the server already rejected the session.
+     */
+    async signOut(): Promise<void> {
+      const refreshToken = process.client ? localStorage.getItem('adminRefreshToken') : null;
+      if (refreshToken) {
+        try {
+          await this._adminService().logout({ refreshToken });
+        } catch (error) {
+          console.warn('Server sign-out failed; clearing the local session anyway.', error);
+        }
+      }
+      this.logout();
     },
 
     logout(): void {
@@ -303,25 +349,6 @@ export const useAdminStore = defineStore('admin', {
         // logging the user out due to a backend hiccup.
         console.warn('Token verification: transient error, keeping session', error);
         return true;
-      }
-    },
-
-    // Legacy public helper retained for external callers — see file-top note.
-    async makeAuthRequest(endpoint: string, options: Record<string, unknown> = {}): Promise<unknown> {
-      if (!this.token) {
-        throw new Error('No authentication token available');
-      }
-
-      try {
-        return await this._adminService().request(endpoint, options);
-      } catch (error: unknown) {
-        const err = error as { status?: number } | null;
-        if (err && err.status === 401) {
-          this.logout();
-          throw new Error('Session expired. Please login again.');
-        }
-        console.error('Auth request error:', error);
-        throw error;
       }
     },
 

@@ -184,6 +184,38 @@
             </div>
           </div>
         </form>
+
+        <!-- Confirm: this rewrites stored sales items, so it never starts from a single click -->
+        <div
+          v-if="confirming"
+          data-test="fix-confirm"
+          role="alertdialog"
+          aria-label="Confirm fixing sales items"
+          class="mt-6 bg-amber-50 border border-amber-300 rounded-lg p-4"
+        >
+          <p class="text-sm text-amber-900 mb-3">
+            This rewrites the time of day on every matching sales item from
+            <strong>{{ formData.startDate }}</strong> to <strong>{{ formData.endDate }}</strong>
+            ({{ formData.startHour }}:00 to {{ formData.endHour }}:00<template v-if="formData.companyId">, company {{ formData.companyId }}</template><template v-else>, all companies</template>).
+            Continue?
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              @click="runFix"
+            >
+              Yes, fix items
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+              @click="confirming = false"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- SQL Output -->
@@ -346,6 +378,7 @@
 import { ref, onMounted } from 'vue';
 
 definePageMeta({
+  requiredRole: 'auditor',
   layout: 'admin-layout',
   middleware: ['admin-auth']
 });
@@ -419,6 +452,7 @@ const itemsCount = ref<number | null>(null);
 const history = ref<HistoryItem[]>([]);
 const generatedSQL = ref<SQLResult | null>(null);
 const copied = ref<boolean>(false);
+const confirming = ref<boolean>(false);
 
 // Set default dates (last 30 days)
 onMounted(() => {
@@ -513,9 +547,16 @@ const checkItemsCount = async (): Promise<void> => {
   }
 };
 
-// Submit form
-const handleSubmit = async (): Promise<void> => {
+// Submitting only asks; runFix does the work once the admin confirms.
+const handleSubmit = (): void => {
+  error.value = null;
   if (!validateForm()) return;
+  confirming.value = true;
+};
+
+const runFix = async (): Promise<void> => {
+  confirming.value = false;
+  if (loading.value || !validateForm()) return;
 
   loading.value = true;
   error.value = null;
@@ -634,7 +675,7 @@ const copySQL = async (): Promise<void> => {
     }, 2000);
   } catch (err) {
     console.error('Failed to copy:', err);
-    alert('Failed to copy SQL to clipboard');
+    error.value = 'Could not copy the SQL to the clipboard. Select the text and copy it manually.';
   }
 };
 

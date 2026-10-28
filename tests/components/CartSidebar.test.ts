@@ -56,7 +56,7 @@ beforeEach(() => {
   user.processDirectOrder.mockResolvedValue({ orderId: 'ORD-9', orderData: { status: 'new' } })
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'error').mockImplementation(() => {})
-  vi.spyOn(window, 'open').mockImplementation(() => null)
+  vi.spyOn(window, 'open').mockImplementation(() => ({}) as Window)
 })
 
 afterEach(() => {
@@ -243,6 +243,25 @@ describe('CartSidebar: ordering by WhatsApp', () => {
     expect(sentUrl().searchParams.get('text')).toContain('from *your pharmacy*')
   })
 
+  it('keeps the cart and says so when the browser blocks WhatsApp from opening', async () => {
+    vi.spyOn(window, 'open').mockImplementation(() => null)
+    const w = await mountOpen()
+    await button(w, 'Send Order via WhatsApp').trigger('click')
+    await flushPromises()
+
+    expect(cart.clearCart).not.toHaveBeenCalled()
+    expect(w.emitted('close')).toBeUndefined()
+    expect(w.text()).toContain('Your cart is still here')
+    expect(w.text()).toContain('Your Cart')
+  })
+
+  it.each([[undefined], [''], ['  '], ['n/a']])('offers no WhatsApp button when the pharmacy number is %j', async (given) => {
+    pharmacy.pharmacyData = { ...PHARMACY, whatsapp_number: given }
+    const w = await mountOpen()
+
+    expect(w.text()).not.toContain('Send Order via WhatsApp')
+  })
+
   it('empties the cart and closes the sidebar after sending', async () => {
     const w = await mountOpen()
     await button(w, 'Send Order via WhatsApp').trigger('click')
@@ -382,6 +401,18 @@ describe('CartSidebar: ordering directly', () => {
       // …and the footer switches to the WhatsApp-first guidance instead of offering the same failing button.
       expect(w.text()).toContain('Your WhatsApp order works fine')
       expect(w.text()).not.toContain('Order Directly (Free Trial)')
+    })
+
+    it('does not point the customer to WhatsApp when the pharmacy has no WhatsApp number', async () => {
+      pharmacy.pharmacyData = { ...PHARMACY, whatsapp_number: '' }
+      user.processDirectOrder.mockRejectedValue(Object.assign(new Error('x'), { errorCode: 'CUSTOMER_NOT_REGISTERED_WITH_COMPANY' }))
+      const w = await mountOpen()
+      await button(w, 'Order Directly').trigger('click')
+      await flushPromises()
+
+      expect(w.text()).toContain("You're not registered at Rigel Pharmacy yet")
+      expect(w.text()).not.toContain('WhatsApp')
+      expect(w.text()).toContain('ask Rigel Pharmacy to add your phone number')
     })
 
     it('names "this pharmacy" when the pharmacy name is unknown', async () => {

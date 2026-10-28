@@ -17,6 +17,7 @@ export interface PharmacyLedgerParams {
   startDate?: string;
   endDate?: string;
   limit?: number;
+  offset?: number;
 }
 
 export interface GuestSubmitParams {
@@ -42,7 +43,6 @@ export interface ReverseGeoResult {
 export interface GuestSubmitResult {
   request_id: number;
   request_number: string;
-  is_new_customer: boolean;
 }
 
 export const createOrderRequestsService = (api: ApiInstance) => ({
@@ -91,12 +91,13 @@ export const createOrderRequestsService = (api: ApiInstance) => ({
     return api.get('/api/order-requests/admin/stats');
   },
 
-  getPharmacyLedger({ pharmacyId, startDate, endDate, limit = 50 }: PharmacyLedgerParams = {}): Promise<ApiEnvelope<PharmacyLedgerEntry[]>> {
+  getPharmacyLedger({ pharmacyId, startDate, endDate, limit = 50, offset = 0 }: PharmacyLedgerParams = {}): Promise<ApiEnvelope<PharmacyLedgerEntry[]>> {
     const params = new URLSearchParams();
     if (pharmacyId) params.set('pharmacyId', String(pharmacyId));
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
     params.set('limit', String(limit));
+    if (offset) params.set('offset', String(offset));
     const qs = params.toString();
     return api.get(`/api/order-requests/admin/pharmacy-ledger${qs ? `?${qs}` : ''}`);
   },

@@ -354,7 +354,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import { useCrossTenantReports } from '~/composables/useCrossTenantReports'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import ProductsTable from './ProductsTable.vue'
 import { ArrowDownTrayIcon, ArrowPathIcon, ExclamationTriangleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
@@ -522,21 +522,12 @@ interface Pagination {
   has_more: boolean;
 }
 
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
-}
-
 interface ReportsServiceShape {
   exportInventoryStockValueCsv: () => Promise<Blob>;
 }
 
-// Use admin store
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reports = useCrossTenantReports()
 const reportsService = createReportsExportService(useApi()) as unknown as ReportsServiceShape
-
-// API Configuration
-const API_BASE = '/api/inventory-analytics'
 
 // State
 const loading = ref<boolean>(false)
@@ -585,31 +576,23 @@ const filteredCompanies = computed<StockCompany[]>(() => {
 })
 
 // Helper Functions
-const apiCall = async (endpoint: string, params: Record<string, string | number | boolean> = {}): Promise<unknown> => {
-  const queryString = new URLSearchParams(
-    Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
-  ).toString()
-  const url = `${API_BASE}${endpoint}${queryString ? '?' + queryString : ''}`
-
-  const data = await adminStore.makeAuthRequest(url)
-
-  if (!data.success) {
-    throw new Error(data.message ?? 'API request failed')
+// The analytics endpoints answer { success, data }; hand back `data`, or fail with the server's message.
+const unwrap = (response: { success?: boolean; data?: unknown; message?: string }): unknown => {
+  if (!response.success) {
+    throw new Error(response.message ?? 'API request failed')
   }
-
-  return data.data
+  return response.data
 }
 
 // Data Loading Functions
 const loadStockValue = async (): Promise<void> => {
-  stockValue.value = await apiCall('/composite-stock-value') as StockValueData
+  stockValue.value = unwrap(await reports.getInventoryStockValue()) as StockValueData
 }
 
 const loadAlerts = async (): Promise<void> => {
   loadingAlerts.value = true
   try {
-    const params: Record<string, string> = alertFilter.value ? { alertType: alertFilter.value } : {}
-    const data = await apiCall('/alerts', params) as AlertsData
+    const data = unwrap(await reports.getInventoryAlerts(alertFilter.value)) as AlertsData
     alerts.value = data
     alertsList.value = data.alerts ?? []
   } finally {
@@ -620,10 +603,10 @@ const loadAlerts = async (): Promise<void> => {
 const loadTopProducts = async (): Promise<void> => {
   loadingTopProducts.value = true
   try {
-    const result = await apiCall('/top-products', {
+    const result = unwrap(await reports.getInventoryTopProducts({
       metric: topProductsMetric.value,
       limit: topProductsLimit.value
-    }) as { products?: TopProduct[] }
+    })) as { products?: TopProduct[] }
     topProducts.value = result.products ?? []
   } finally {
     loadingTopProducts.value = false
@@ -633,16 +616,13 @@ const loadTopProducts = async (): Promise<void> => {
 const searchProducts = async (): Promise<void> => {
   loadingProducts.value = true
   try {
-    const params: Record<string, string | number | boolean> = {
+    const data = unwrap(await reports.getInventoryProductStock({
       limit: productsPagination.value.limit,
-      offset: productsPagination.value.offset
-    }
-
-    if (productSearch.value) params['productName'] = productSearch.value
-    if (showOnlyLowStock.value) params['belowReorder'] = true
-    if (showOnlyExpiring.value) params['expiringSoon'] = true
-
-    const data = await apiCall('/product-stock-details', params) as { products?: ProductItem[]; pagination?: Pagination }
+      offset: productsPagination.value.offset,
+      productName: productSearch.value,
+      belowReorder: showOnlyLowStock.value,
+      expiringSoon: showOnlyExpiring.value,
+    })) as { products?: ProductItem[]; pagination?: Pagination }
     productsList.value = data.products ?? []
     productsPagination.value = data.pagination ?? { total: 0, limit: 100, offset: 0, has_more: false }
   } finally {

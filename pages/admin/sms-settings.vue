@@ -7,7 +7,7 @@
         <p class="page-subtitle">Manage global SMS settings, providers, and company-specific configurations</p>
       </div>
       <div class="header-actions">
-        <button @click="refreshSettings" class="btn-secondary" :disabled="loading">
+        <button @click="refreshSettings(true)" class="btn-secondary" :disabled="loading">
           <Icon name="RefreshCw" size="18" :class="{ 'animate-spin': loading }" />
           <span>Refresh</span>
         </button>
@@ -126,7 +126,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { createSmsSettingsService } from '~/services/sms/smsSettingsService'
-import type { SmsGlobalSettingsUpdate } from '~/services/types'
+import type { SmsGlobalSettingsUpdate, SmsSettings } from '~/services/types'
 
 // State
 const loading = ref<boolean>(false)
@@ -135,16 +135,9 @@ const activeTab = ref<string>('global')
 const message = ref<{ text: string; type: string } | null>(null)
 const smsSettingsService = createSmsSettingsService(useApi())
 
-// Data — SmsSettings has { id, rate, provider } but the backend may return
-// additional fields like `sms_rate_per_unit` and `updated_at`; use a wider shape.
-interface GlobalSettingsDisplay {
-  active_provider: string;
-  sms_rate_per_unit: number | string;
-  updated_at: string | null;
-  [key: string]: unknown;
-}
-
-const globalSettings = reactive<GlobalSettingsDisplay>({
+// Data — the active sms_settings row, shaped as the API returns it.
+const globalSettings = reactive<SmsSettings>({
+  id: 0,
   active_provider: '',
   sms_rate_per_unit: 0,
   updated_at: null,
@@ -176,7 +169,14 @@ const hasGlobalChanges = computed<boolean>(() =>
 // the helper rather than re-implementing it twice.
 
 // Methods
-const refreshSettings = async (): Promise<void> => {
+// useApi already turns a failed call into a readable message (the server's reason, or a friendly
+// network one); fall back to the page's own wording only when there is none.
+const reasonFrom = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback
+
+// `announce` is true only when the admin pressed Refresh; loading the page or refreshing after a save
+// stays quiet unless something is wrong.
+const refreshSettings = async (announce = false): Promise<void> => {
   loading.value = true
   loadingMessage.value = 'Loading settings...'
 
@@ -188,13 +188,13 @@ const refreshSettings = async (): Promise<void> => {
     } else if (globalData.message === 'SMS settings not configured') {
       // Settings not initialized yet
       showMessage('SMS settings not configured yet', 'error')
+      return
     }
 
-    showMessage('Settings refreshed successfully', 'success')
+    if (announce) showMessage('Settings refreshed successfully', 'success')
   } catch (error) {
     console.error('Failed to refresh settings:', error)
-    const msg = error instanceof Error ? error.message : ''
-    if (msg.includes('404')) {
+    if ((error as { status?: number } | null)?.status === 404) {
       showMessage('SMS settings not configured yet', 'error')
     } else {
       showMessage('Failed to refresh settings', 'error')
@@ -222,7 +222,7 @@ const updateSmsRate = async (): Promise<void> => {
     showMessage('SMS rate updated successfully', 'success')
   } catch (error) {
     console.error('Failed to update SMS rate:', error)
-    showMessage('Failed to update SMS rate', 'error')
+    showMessage(reasonFrom(error, 'Failed to update SMS rate'), 'error')
   } finally {
     loading.value = false
   }
@@ -253,7 +253,7 @@ const saveGlobalSettings = async (): Promise<void> => {
     showMessage('Global settings saved successfully', 'success')
   } catch (error) {
     console.error('Failed to save global settings:', error)
-    showMessage('Failed to save global settings', 'error')
+    showMessage(reasonFrom(error, 'Failed to save global settings'), 'error')
   } finally {
     loading.value = false
   }
@@ -277,7 +277,7 @@ const updateProvider = async (): Promise<void> => {
     showMessage('Provider updated successfully', 'success')
   } catch (error) {
     console.error('Failed to update provider:', error)
-    showMessage('Failed to update provider', 'error')
+    showMessage(reasonFrom(error, 'Failed to update provider'), 'error')
   } finally {
     loading.value = false
   }
@@ -305,6 +305,7 @@ onMounted(() => { void refreshSettings() })
 
 // Define page metadata
 definePageMeta({
+  requiredRole: 'super_admin',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })

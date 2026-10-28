@@ -290,6 +290,14 @@ describe('ProductsGrid: quantity and adding to the cart', () => {
     })
   })
 
+  it('puts the card back to one after adding, so a second tap does not add the same amount again', async () => {
+    const w = await mountGrid()
+    await card(w, 'Paracetamol 500mg').find('button[aria-label="Increase quantity of Paracetamol 500mg"]').trigger('click')
+    await card(w, 'Paracetamol 500mg').find('button[aria-label="Add to cart"]').trigger('click')
+
+    expect(qty(card(w, 'Paracetamol 500mg'))).toBe('1')
+  })
+
   it('leaves out the image for products without one and defaults the unit', async () => {
     const w = await mountGrid()
     await card(w, 'Vitamin C').find('button[aria-label="Add to cart"]').trigger('click')

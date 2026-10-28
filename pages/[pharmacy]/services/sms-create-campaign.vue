@@ -548,6 +548,7 @@
 
     <!-- Test SMS Button (Fixed) -->
     <button
+      v-if="canSendCampaigns"
       @click="showTestModal = true"
       class="fixed bottom-6 right-6 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
     >
@@ -566,6 +567,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import MessageComposer from '~/components/sms/campaign/MessageComposer.vue'
 import TestSmsModal from '~/components/sms/shared/TestSmsModal.vue'
+import { useSmsSpendAccess } from '~/composables/useSmsSpendAccess'
+
+const { canSendCampaigns } = useSmsSpendAccess()
 
 definePageMeta({
   layout: 'company',

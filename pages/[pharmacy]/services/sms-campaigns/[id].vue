@@ -28,7 +28,7 @@
 
           <!-- Action Buttons -->
           <button
-            v-if="campaign.status === 'draft'"
+            v-if="campaign.status === 'draft' && canSendCampaigns"
             @click="startCampaign"
             class="px-4 py-2 cs-btn text-white rounded-lg transition-colors flex items-center gap-2"
           >
@@ -46,7 +46,7 @@
           </button>
 
           <button
-            v-if="campaign.status === 'paused'"
+            v-if="campaign.status === 'paused' && canSendCampaigns"
             @click="resumeCampaign"
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
           >
@@ -276,6 +276,9 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
+import { useSmsSpendAccess } from '~/composables/useSmsSpendAccess'
+
+const { canSendCampaigns } = useSmsSpendAccess()
 
 definePageMeta({
   layout: 'company',

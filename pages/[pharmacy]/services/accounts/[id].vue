@@ -573,7 +573,7 @@
             </div>
           </div>
           <p class="ad-chq-note" :class="{ 'is-future': isPostDatedCheque }">
-            <template v-if="isPostDatedCheque">Post-dated cheque. It stays pending and the amount reflects on the account balance on {{ formatDate(chequeForm.dueDate) }}.</template>
+            <template v-if="isPostDatedCheque">Post-dated cheque. It stays pending and the amount reflects on the account balance on {{ formatDate(chequeForm.dueDate) }}. You'll get an SMS reminder the day before.</template>
             <template v-else>Due today or earlier, so the amount reflects on the account balance straight away.</template>
           </p>
         </section>
@@ -862,6 +862,25 @@ import {
 } from '@heroicons/vue/24/outline'
 import type { AccountSummary, AccountType, CreditCandidate, LedgerEntry, MoneyInSource, MoneyOutSource, PaymentAllocation } from '~/services/types'
 import { useAccountsWorkbench } from '~/composables/useAccountsWorkbench'
+import {
+  filterLedger,
+  formatLedgerAmount,
+  groupLedgerByDate,
+  ledgerAdditionalDetails,
+  ledgerDateGroupDate,
+  ledgerDateGroupLabel,
+  ledgerEntrySummary as ledgerEntrySummaryOf,
+  ledgerDescription,
+  ledgerPaymentMethodDisplay,
+  ledgerPaymentMethodOptions as paymentMethodOptionsOf,
+  ledgerReferenceDisplay,
+  ledgerReferenceLabel,
+  ledgerSourceDetail as ledgerSourceDetailOf,
+  ledgerSourceLabel as ledgerSourceLabelOf,
+  ledgerTableDate,
+  paymentMethodLabel,
+  statusLabel,
+} from '~/utils/accountLedger'
 
 definePageMeta({
   middleware: ['company-auth'],
@@ -1073,52 +1092,17 @@ const candidateGroupLabel = computed(() => moneyInCandidateGroupBy.value === 'sh
 const selectedMoneyOutSource = computed(() => moneyOutSourceOptions.find((option) => option.value === moneyOutForm.value.source) || moneyOutSourceOptions[0])
 const isSupplierPayment = computed(() => moneyOutForm.value.source === 'supplier_payment')
 const selectedPayable = computed(() => payables.value.find((payable) => payable.id === selectedPayableId.value) || null)
-const canShowLedgerPaymentMethod = (entry: LedgerEntry) => Boolean(entry.moneyIn) && ['sales', 'credit_payment', 'cheque', 'manual'].includes(entry.source)
-const ledgerMethodValues = (entry: LedgerEntry) => {
-  if (!canShowLedgerPaymentMethod(entry)) return []
-  const allocationMethods = (entry.paymentAllocations || [])
-    .map((allocation) => String(allocation.methodKey || allocation.methodName || '').trim().toLowerCase().replace(/[\s-]+/g, '_'))
-    .filter(Boolean)
-  // `method` was historically populated with the account type (for example
-  // `bank`) rather than the way the movement was paid.  Payment methods now
-  // come from allocations or movement metadata, so never expose the legacy
-  // account identity as a payment-method filter.
-  const metadataMethod = String(entry.metadata?.paymentMethod || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
-  return [...new Set([...allocationMethods, metadataMethod].filter(Boolean))]
-}
-const ledgerPaymentMethodOptions = computed(() => {
-  const methods = new Set<string>()
-  ledger.value.forEach((entry) => ledgerMethodValues(entry).forEach((method) => methods.add(method)))
-  return [...methods].sort()
-})
+const ledgerPaymentMethodOptions = computed(() => paymentMethodOptionsOf(ledger.value))
 
-const visibleLedger = computed(() => {
-  const query = ledgerSearch.value.trim().toLowerCase()
-  return ledger.value.filter((entry) => {
-    const entryDate = entry.date?.slice(0, 10) || ''
-    const directionMatches = ledgerDirection.value === 'all' || (ledgerDirection.value === 'in' ? Boolean(entry.moneyIn) : Boolean(entry.moneyOut))
-    const dateMatches = (!ledgerFromDate.value || entryDate >= ledgerFromDate.value) && (!ledgerToDate.value || entryDate <= ledgerToDate.value)
-    const methodMatches = ledgerMethod.value === 'all' || ledgerMethodValues(entry).includes(ledgerMethod.value)
-    const statusMatches = ledgerStatus.value === 'all' || entry.status === ledgerStatus.value
-    if (entry.source === 'reversal') return false
-    if (!directionMatches || !dateMatches || !methodMatches || !statusMatches) return false
-    if (!query) return true
-    return [entry.reference, entry.enteredBy, ...ledgerMethodValues(entry), ledgerSourceLabel(entry), entry.metadata?.context, statusLabel(entry.status)].filter(Boolean).join(' ').toLowerCase().includes(query)
-  })
-})
-const ledgerDateGroups = computed(() => {
-  const groups: Array<{ date: string, entries: LedgerEntry[] }> = []
-  visibleLedger.value.forEach((entry) => {
-    const date = entry.date?.slice(0, 10) || ''
-    const currentGroup = groups[groups.length - 1]
-    if (!currentGroup || currentGroup.date !== date) {
-      groups.push({ date, entries: [entry] })
-      return
-    }
-    currentGroup.entries.push(entry)
-  })
-  return groups
-})
+const visibleLedger = computed(() => filterLedger(ledger.value, {
+  query: ledgerSearch.value,
+  direction: ledgerDirection.value,
+  fromDate: ledgerFromDate.value,
+  toDate: ledgerToDate.value,
+  method: ledgerMethod.value,
+  status: ledgerStatus.value,
+}, sourceLabels))
+const ledgerDateGroups = computed(() => groupLedgerByDate(visibleLedger.value))
 const ledgerDateRangeInvalid = computed(() => Boolean(ledgerFromDate.value && ledgerToDate.value && ledgerFromDate.value > ledgerToDate.value))
 const ledgerAdvancedFilterCount = computed(() => [ledgerDirection.value !== 'all', ledgerMethod.value !== 'all', ledgerStatus.value !== 'all'].filter(Boolean).length)
 const ledgerFilterCount = computed(() => [ledgerSearch.value.trim(), ledgerDirection.value !== 'all', ledgerDatePreset.value !== 'all_time', ledgerMethod.value !== 'all', ledgerStatus.value !== 'all'].filter(Boolean).length)
@@ -1245,137 +1229,15 @@ const accountSubtitle = (item: AccountSummary) => {
   if (item.type === 'loan') return [metadata.lenderName, metadata.loanReference].filter(Boolean).join(' / ') || 'Loan account'
   return [metadata.location, metadata.custodian].filter(Boolean).join(' / ') || item.branch || accountTypeLabels[item.type]
 }
-const sourceLabel = (source: string) => sourceLabels[source] || source.replace(/_/g, ' ')
-const ledgerPaymentAllocations = (entry: LedgerEntry) => entry.paymentAllocations || []
-const ledgerDescription = (entry: LedgerEntry) => String(entry.description || entry.recipient || '').replace(/\s+/g, ' ').trim()
-const ledgerSourceLabel = (entry: LedgerEntry) => {
-  const allocations = ledgerPaymentAllocations(entry)
-  if (allocations.length) return allocations.map((allocation) => allocation.methodName).join(' · ')
-  return entry.metadata?.creditSourceLabel || sourceLabel(entry.source)
-}
-const ledgerRecipient = (entry: LedgerEntry) => String(entry.recipient || entry.description || '').replace(/\s+/g, ' ').trim()
-const ledgerMethodValue = (entry: LedgerEntry) => ledgerMethodValues(entry)[0] || ''
-const ledgerPaymentMethodDisplay = (entry: LedgerEntry) => {
-  if (entry.paymentContext?.methodName) {
-    return [entry.paymentContext.methodName, entry.paymentContext.subtypeName].filter(Boolean).join(' · ')
-  }
-  if (!canShowLedgerPaymentMethod(entry)) return ''
-  const allocations = ledgerPaymentAllocations(entry)
-  if (allocations.length) return allocations.map((allocation) => allocation.methodName).join(' · ')
-  const method = ledgerMethodValue(entry)
-  return method ? paymentMethodLabel(method) : ''
-}
-const ledgerSourceDetail = (entry: LedgerEntry) => {
-  const allocations = ledgerPaymentAllocations(entry)
-  if (!canShowLedgerPaymentMethod(entry)) return ''
-  if (allocations.some((allocation) => Number(allocation.amount) > 0)) {
-    return allocations.map((allocation) => `${allocation.methodName} ${formatLedgerAmount(allocation.amount)}`).join(' · ')
-  }
-  if (allocations.length) return ''
-  if (entry.metadata?.paymentMethodSummary) return entry.metadata.paymentMethodSummary
-  const method = ledgerMethodValue(entry)
-  if (!method) return ''
-  const detail = paymentMethodLabel(method)
-  return detail.toLowerCase() === ledgerSourceLabel(entry).trim().toLowerCase() ? '' : detail
-}
-const ledgerMetadataLabels: Record<string, string> = {
-  cashierName: 'Cashier',
-  shiftName: 'Shift',
-  branchName: 'Branch',
-  customerName: 'Customer',
-  supplierName: 'Supplier',
-  lenderName: 'Lender',
-  bankName: 'Bank',
-  drawerName: 'Drawer',
-  chequeNumber: 'Cheque number',
-  receivedDate: 'Received date',
-  expectedClearanceDate: 'Expected clearance',
-  invoiceId: 'Invoice',
-  supplierInvoiceNo: 'Supplier invoice',
-  orderId: 'Order',
-  settlementId: 'Settlement',
-  tel: 'Phone',
-  paymentReferences: 'Payment references',
-  paymentMethodSummary: 'Payment breakdown',
-  saleCount: 'Sales included',
-  allocationCount: 'Payment allocations',
-}
-const ledgerAdditionalDetails = (entry: LedgerEntry) => Object.entries(entry.metadata || {})
-  .filter(([key, value]) => (
-    (Boolean(ledgerMetadataLabels[key]) && String(value || '').trim() && key !== 'paymentMethodSummary')
-    || (key === 'paymentMethodSummary' && String(value || '').trim() && ledgerPaymentAllocations(entry).length === 0)
-  ))
-  .map(([key, value]) => ({ key, label: ledgerMetadataLabels[key] || key, value: String(value).trim() }))
-const statusLabel = (status: string) => status.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
+const ledgerSourceLabel = (entry: LedgerEntry) => ledgerSourceLabelOf(entry, sourceLabels)
+const ledgerSourceDetail = (entry: LedgerEntry) => ledgerSourceDetailOf(entry, sourceLabels)
+const ledgerEntrySummary = (entry: LedgerEntry) => ledgerEntrySummaryOf(entry, sourceLabels)
 const statusBadgeClass = (status: string) => `ad-tag-${status}`
 const recordedByLabel = (entry: LedgerEntry) => {
   const value = entry.enteredBy?.trim()
   return value === 'company_user' ? (companyStore.userName || 'Company user') : (value || 'Not recorded')
 }
-const paymentMethodLabel = (method: string) => method.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 const formatPayableAmount = (pesewas: number) => formatMoney(Number(pesewas || 0) / 100)
-const formatLedgerAmount = (value: number | null | undefined) => new Intl.NumberFormat('en-GH', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-}).format(Number(value || 0))
-const ledgerTableDate = (entry: LedgerEntry) => entry.date?.slice(0, 10) || '—'
-const ledgerDateGroupLabel = (value: string) => {
-  if (!value) return 'Undated entries'
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-  if (date.getTime() === today.getTime()) return 'Today'
-  if (date.getTime() === yesterday.getTime()) return 'Yesterday'
-  return new Intl.DateTimeFormat('en-GB', { weekday: 'long' }).format(date)
-}
-const ledgerDateGroupDate = (value: string) => {
-  if (!value) return ''
-  const date = new Date(`${value}T00:00:00`)
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
-}
-const shortDateFromText = (value: string) => {
-  const match = value.match(/\b\d{4}-\d{2}-\d{2}\b/)
-  if (!match) return ''
-  const date = new Date(`${match[0]}T00:00:00`)
-  return Number.isNaN(date.getTime())
-    ? match[0]
-    : new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
-}
-const shortenLedgerText = (value: string, maxLength = 58) => {
-  const normalized = value.replace(/\s+/g, ' ').trim()
-  if (normalized.length <= maxLength) return normalized
-  const words = normalized.slice(0, maxLength - 1).trimEnd().split(' ')
-  words.pop()
-  return `${words.join(' ')}...`
-}
-const ledgerEntrySummary = (entry: LedgerEntry) => {
-  const description = ledgerRecipient(entry) || ledgerSourceLabel(entry)
-  const date = shortDateFromText(description)
-  if (entry.source === 'sales' && date) {
-    const descriptionMethod = description.match(/^(.+?)\s+sales collection\s+for\b/i)?.[1]
-    const method = descriptionMethod || entry.metadata?.paymentMethod
-    return `${method ? paymentMethodLabel(method) : 'Sales'} sales · ${date}`
-  }
-  if (entry.source === 'credit_payment' && date) return `Credit payment · ${date}`
-  if (entry.source === 'cheque' && date) return `Cheque receipt · ${date}`
-  return shortenLedgerText(description)
-}
-const ledgerReferenceLabel = (entry: LedgerEntry) => {
-  const reference = String(entry.reference || '').replace(/\s+/g, ' ').trim()
-  return reference || 'No reference'
-}
-const ledgerReferenceDisplay = (entry: LedgerEntry) => {
-  const reference = ledgerReferenceLabel(entry)
-  if (reference.length <= 26) return reference
-  const head = reference.slice(0, 15).trimEnd()
-  const tail = reference.slice(-9).trimStart()
-  return `${head}…${tail}`
-}
 const applyLedgerDatePreset = (preset: 'month' | 'last_30_days' | 'all_time' | 'custom') => {
   ledgerDatePreset.value = preset
   if (preset === 'custom') return

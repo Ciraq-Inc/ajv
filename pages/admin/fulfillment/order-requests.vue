@@ -1,5 +1,7 @@
 ﻿<template>
   <div class="order-requests-page">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
+    <PromptAction :pending="promptPending" :error="promptError" @submit="submitPrompt" @cancel="cancelPrompt" />
     <OrderRequestsHeader
       v-if="!selectedRequest"
       :stats="stats"
@@ -178,7 +180,7 @@
               </div>
               <div class="workspace-overview-item">
                 <span class="workspace-overview-key">Hold</span>
-                <strong>GHS {{ parseFloat(String(selectedRequest.request_fee || 0)).toFixed(2) }}</strong>
+                <strong>{{ formatCurrency(selectedRequest.request_fee) }}</strong>
               </div>
               <div class="workspace-overview-item">
                 <span class="workspace-overview-key">Items</span>
@@ -494,7 +496,7 @@
                               <div v-if="item.source_pharmacy_id" class="text-[9px] text-purple-600 font-semibold mt-0.5">
                                 → {{ item.pharmacy_name || `Pharmacy #${item.source_pharmacy_id}` }}
                                 <template v-if="(item as any).source_product_name">
-                                  <span class="font-normal text-purple-400 mx-0.5">·</span>{{ (item as any).source_product_name }}<template v-if="item.unit_price"> · GHS {{ Number(item.unit_price).toFixed(2) }}</template>
+                                  <span class="font-normal text-purple-400 mx-0.5">·</span>{{ (item as any).source_product_name }}<template v-if="item.unit_price"> · {{ formatCurrency(item.unit_price) }}</template>
                                 </template>
                               </div>
                             </template>
@@ -566,7 +568,7 @@
                                 </span>
                                 <span class="text-[10px] text-gray-500">
                                   {{ pp.pharmacy_name }}
-                                  <template v-if="(pp.price ?? 0) > 0"> · GH₵{{ Number(pp.price).toFixed(2) }}</template>
+                                  <template v-if="(pp.price ?? 0) > 0"> · {{ formatCurrency(pp.price) }}</template>
                                   <template v-if="(pp.available_quantity ?? 0) > 0"> · {{ pp.available_quantity }} in stock</template>
                                 </span>
                               </button>
@@ -844,10 +846,10 @@
                                   <span class="text-[10px] text-gray-700 font-medium truncate flex-1">{{ match.matched_product_name }}</span>
                                   <span v-if="match.is_clearance" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Clearance</span>
                                   <template v-if="match.is_clearance && match.original_price">
-                                    <span class="text-[10px] text-gray-400 line-through shrink-0">GHS {{ Number(match.original_price).toFixed(2) }}</span>
-                                    <span class="text-[10px] font-bold text-amber-700 shrink-0">GHS {{ Number(match.clearance_price ?? match.price).toFixed(2) }}</span>
+                                    <span class="text-[10px] text-gray-400 line-through shrink-0">{{ formatCurrency(match.original_price) }}</span>
+                                    <span class="text-[10px] font-bold text-amber-700 shrink-0">{{ formatCurrency(match.clearance_price ?? match.price) }}</span>
                                   </template>
-                                  <span v-else-if="match.price" class="text-[10px] font-bold text-gray-900 shrink-0">GHS {{ Number(match.price).toFixed(2) }}</span>
+                                  <span v-else-if="match.price" class="text-[10px] font-bold text-gray-900 shrink-0">{{ formatCurrency(match.price) }}</span>
                                   <span class="text-[9px] font-bold px-1 py-0.5 rounded shrink-0" :class="Number(match.stock || 0) > 5 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ match.stock ?? 0 }} left</span>
                                   <button
                                     type="button"
@@ -949,7 +951,7 @@
                                         <span v-if="sp.is_clearance" class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Clearance</span>
                                       </span>
                                       <span class="text-[10px] text-gray-500">
-                                        GH₵{{ Number(sp.price || 0).toFixed(2) }} · {{ sp.available_quantity || 0 }} in stock
+                                        {{ formatCurrency(sp.price || 0) }} · {{ sp.available_quantity || 0 }} in stock
                                         <template v-if="sp.distance_km !== null"> · {{ Number(sp.distance_km).toFixed(2) }} km</template>
                                       </span>
                                     </button>
@@ -993,7 +995,11 @@
               <!-- Sourcing mode banners -->
               <template v-if="pharmacyQueue?.length">
                 <!-- Single mode: goal statement -->
-                <div v-if="sourcingMode === 'single'" class="sourcing-goal-banner">
+                <div v-if="sourcingMode === 'single' && pendingComposed.length > 0 && composedSourcePharmacyIds.size > 1" class="sourcing-goal-banner" data-testid="pending-composed-banner">
+                  <span>Items were split across {{ composedSourcePharmacyIds.size }} pharmacies — the order moves on once each confirms.</span>
+                  <span class="sourcing-goal-count sourcing-goal-count--warn">Still waiting on: <template v-for="(p, i) in pendingComposed" :key="p.pharmacy_id"><template v-if="i > 0">; </template><strong>{{ p.pharmacy_name }}</strong> ({{ p.item_names.join(', ') }})</template></span>
+                </div>
+                <div v-else-if="sourcingMode === 'single'" class="sourcing-goal-banner">
                   <span>Looking for <strong>one pharmacy</strong> to supply all {{ (selectedRequest?.items || []).length }} item{{ (selectedRequest?.items || []).length !== 1 ? 's' : '' }}</span>
                   <span v-if="fullMatchQueue.length > 0" class="sourcing-goal-count">{{ fullMatchQueue.length }} full match{{ fullMatchQueue.length !== 1 ? 'es' : '' }}</span>
                   <span v-else class="sourcing-goal-count sourcing-goal-count--warn">No single-pharmacy full match found</span>
@@ -1119,7 +1125,7 @@
                         <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
                         <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction(pharm, 'declined', { showSuccess: true })">Unavailable ✗</button>
                       </template>
-                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading" @click="routePharmacyAction(pharm)">Route here</button>
+                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading || routingPharmacy" @click="routePharmacyAction(pharm)">Route here</button>
                     </div>
                   </div>
                 </template>
@@ -1181,7 +1187,7 @@
                         <button type="button" class="outreach-btn outreach-btn--partial" :class="{ active: pharm.queue_state === 'partial' }" @click="openResponseModal(pharm, 'partial')">Partial</button>
                         <button type="button" class="outreach-btn outreach-btn--decline" :class="{ active: pharm.queue_state === 'declined' }" @click="recordPharmacyContactAction(pharm, 'declined', { showSuccess: true })">Unavailable ✗</button>
                       </template>
-                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading" @click="routePharmacyAction(pharm)">Route here</button>
+                      <button v-if="pharm.queue_state === 'full'" type="button" class="outreach-btn outreach-btn--route" :disabled="loading || routingPharmacy" @click="routePharmacyAction(pharm)">Route here</button>
                     </div>
                   </div>
                 </template>
@@ -1345,7 +1351,7 @@
                     </span>
                     <span v-if="decisionOrderValue(dec) !== null" class="decision-stat decision-stat--value">
                       <span class="decision-stat-label">Order value</span>
-                      <span class="decision-stat-value">GHS {{ decisionOrderValue(dec)!.toFixed(2) }}</span>
+                      <span class="decision-stat-value">{{ formatCurrency(decisionOrderValue(dec)) }}</span>
                     </span>
                   </div>
 
@@ -1523,9 +1529,9 @@
                 </div>
               </div>
               <div v-if="selectedRequest?.delivery_provider_code || selectedRequest?.parcel_weight_kg" class="provider-readonly-strip">
-                <span v-if="selectedRequest?.delivery_provider_code" class="provider-readonly-chip">Customer picked: {{ selectedRequest.delivery_provider_code }}{{ selectedRequest.delivery_service_level ? ` · ${selectedRequest.delivery_service_level}` : '' }}{{ selectedRequest.delivery_quote_amount ? ` · GHS ${Number(selectedRequest.delivery_quote_amount).toFixed(2)}` : '' }}</span>
+                <span v-if="selectedRequest?.delivery_provider_code" class="provider-readonly-chip">Customer picked: {{ selectedRequest.delivery_provider_code }}{{ selectedRequest.delivery_service_level ? ` · ${selectedRequest.delivery_service_level}` : '' }}{{ selectedRequest.delivery_quote_amount ? ` · ${formatCurrency(selectedRequest.delivery_quote_amount)}` : '' }}</span>
                 <span v-else class="provider-readonly-chip provider-readonly-chip--muted">Own-rider delivery (no provider picked)</span>
-                <span v-if="selectedRequest?.parcel_weight_kg" class="provider-readonly-chip provider-readonly-chip--parcel">Parcel: {{ selectedRequest.parcel_weight_kg }} kg{{ selectedRequest.parcel_length_cm ? ` · ${selectedRequest.parcel_length_cm}×${selectedRequest.parcel_width_cm}×${selectedRequest.parcel_height_cm} cm` : '' }}{{ selectedRequest.parcel_value_ghs ? ` · GHS ${Number(selectedRequest.parcel_value_ghs).toFixed(2)}` : '' }}{{ selectedRequest.parcel_fragile ? ' · fragile' : '' }}{{ selectedRequest.parcel_cold_chain ? ' · cold chain' : '' }}</span>
+                <span v-if="selectedRequest?.parcel_weight_kg" class="provider-readonly-chip provider-readonly-chip--parcel">Parcel: {{ selectedRequest.parcel_weight_kg }} kg{{ selectedRequest.parcel_length_cm ? ` · ${selectedRequest.parcel_length_cm}×${selectedRequest.parcel_width_cm}×${selectedRequest.parcel_height_cm} cm` : '' }}{{ selectedRequest.parcel_value_ghs ? ` · ${formatCurrency(selectedRequest.parcel_value_ghs)}` : '' }}{{ selectedRequest.parcel_fragile ? ' · fragile' : '' }}{{ selectedRequest.parcel_cold_chain ? ' · cold chain' : '' }}</span>
               </div>
             </section>
 
@@ -1610,8 +1616,8 @@
                   </div>
                   <div class="delivery-meta">
                     <span v-if="d.distance_km" :title="d.distance_method === 'haversine' ? 'Estimated distance (straight-line × 1.3)' : 'Driving distance (ORS)'">{{ d.distance_method === 'haversine' ? '~' : '' }}{{ Number(d.distance_km).toFixed(1) }} km<template v-if="d.duration_minutes"> · {{ Math.round(d.duration_minutes) }} min</template></span>
-                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
-                    <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
+                    <span v-if="d.delivery_fee">{{ formatCurrency(d.delivery_fee) }} gross</span>
+                    <span v-if="d.net_delivery_fee !== undefined">/ {{ formatCurrency(d.net_delivery_fee) }} net</span>
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
                   </div>
                   <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status ?? '')" class="delivery-card-actions">
@@ -1748,8 +1754,8 @@
                   </div>
                   <div class="delivery-meta">
                     <span v-if="d.driver_name">Rider: {{ d.driver_name }}</span>
-                    <span v-if="d.delivery_fee">GHS {{ Number(d.delivery_fee).toFixed(2) }} gross</span>
-                    <span v-if="d.net_delivery_fee !== undefined">/ GHS {{ Number(d.net_delivery_fee).toFixed(2) }} net</span>
+                    <span v-if="d.delivery_fee">{{ formatCurrency(d.delivery_fee) }} gross</span>
+                    <span v-if="d.net_delivery_fee !== undefined">/ {{ formatCurrency(d.net_delivery_fee) }} net</span>
                     <span v-if="d.distance_km" :title="d.distance_method === 'haversine' ? 'Estimated distance (straight-line × 1.3)' : 'Driving distance (ORS)'">{{ d.distance_method === 'haversine' ? '~' : '' }}{{ Number(d.distance_km).toFixed(1) }} km<template v-if="d.duration_minutes"> · {{ Math.round(d.duration_minutes) }} min</template></span>
                   </div>
                   <div v-if="!['picking_up','picked_up','in_transit','delivered','failed','cancelled'].includes(d.delivery_status ?? '')" class="delivery-card-actions">
@@ -1898,178 +1904,6 @@
 
         </div>
 
-        <div v-if="alternativeModal.open" class="workspace-nested-overlay" @click.self="closeAlternativeModal">
-          <div class="workspace-nested-modal">
-            <div class="workspace-nested-head">
-              <div>
-                <span class="workspace-nested-label">Alternative</span>
-                <h4>Prepare an alternative for customer review</h4>
-              </div>
-              <button type="button" class="modal-close" @click="closeAlternativeModal">
-                <XMarkIcon class="close-svg" />
-              </button>
-            </div>
-
-            <div class="workspace-nested-content">
-              <div v-if="alternativeModal.item" class="alternative-context-card">
-                <div class="alternative-context-head">
-                  <div>
-                    <span class="alternative-context-label">Original request</span>
-                    <strong>{{ alternativeModal.item.product_name }}</strong>
-                  </div>
-                  <span class="alternative-context-qty">Qty {{ getRequestedQuantity(alternativeModal.item) }}</span>
-                </div>
-                <div class="alternative-compact-preview">
-                  <div class="alternative-preview-line">
-                    <span class="alternative-compare-label">Current</span>
-                    <span class="alternative-preview-text">
-                      {{ alternativeModal.item.product_name }}
-                      <template v-if="Number(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price || 0) > 0">
-                        • {{ formatCurrency(alternativeModal.item.marked_up_price || alternativeModal.item.unit_price) }}
-                      </template>
-                    </span>
-                  </div>
-                  <div class="alternative-preview-line replacement">
-                    <span class="alternative-compare-label">Alternative</span>
-                    <span class="alternative-preview-text">
-                      {{ alternativePreviewName }}
-                      <template v-if="alternativeModal.price !== '' && alternativeModal.price !== null && alternativeModal.price !== undefined">
-                        • {{ formatCurrency(alternativeModal.price) }}
-                      </template>
-                    </span>
-                  </div>
-                </div>
-                <div class="alternative-context-summary">
-                  <span v-if="alternativePriceDifference !== null" class="alternative-summary-chip">
-                    Price difference: {{ formatSignedCurrency(alternativePriceDifference) }}
-                  </span>
-                  <span v-if="selectedAlternativeDistance" class="alternative-summary-chip">
-                    {{ selectedAlternativeDistance }}
-                  </span>
-                  <span v-if="hasExistingAlternative" class="alternative-summary-chip alt-existing">
-                    Existing alternative will be updated
-                  </span>
-                </div>
-              </div>
-
-              <div class="workspace-nested-body">
-                <div class="nested-form-sections">
-                  <section class="nested-form-panel nested-form-panel--source">
-                    <div class="nested-form-panel-head">
-                      <span class="nested-panel-label">Source</span>
-                      <p>Choose where this alternative is coming from.</p>
-                    </div>
-                    <div class="nested-field-grid compact">
-                      <div class="nested-field">
-                        <label>Source Pharmacy</label>
-                        <select v-model.number="alternativeModal.pharmacy_id" class="form-control">
-                          <option value="">Choose pharmacy</option>
-                          <option
-                            v-for="pharm in nearbyPharmacies"
-                            :key="`alternative-${alternativeModal.item?.id || 'item'}-${pharm.id}`"
-                            :value="pharm.id"
-                          >
-                            {{ pharm.name }} ({{ formatDistance(pharm.distance_km) }})
-                          </option>
-                        </select>
-                      </div>
-                      <div class="nested-field">
-                        <label>Quantity</label>
-                        <input
-                          v-model.number="alternativeModal.allocated_quantity"
-                          type="number"
-                          min="1"
-                          step="1"
-                          class="form-control"
-                          placeholder="Qty"
-                        />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="nested-form-panel">
-                    <div class="nested-form-panel-head">
-                      <span class="nested-panel-label">Customer-facing details</span>
-                    </div>
-                    <div class="nested-field-grid">
-                      <div class="nested-field nested-field-wide">
-                        <label>Alternative Product</label>
-                        <div class="item-product-edit alternative-product-edit">
-                          <input
-                            v-model="alternativeModal.name"
-                            type="text"
-                            class="form-control"
-                            placeholder="Search product..."
-                            @input="onAlternativeProductInput"
-                            @focus="alternativeModal.showProductDropdown = true"
-                            @blur="closeAlternativeProductDropdown"
-                          />
-                          <div
-                            v-if="alternativeModal.showProductDropdown"
-                            class="product-search-dropdown"
-                          >
-                            <div v-if="alternativeModal.product_search_loading" class="dropdown-empty">
-                              Searching...
-                            </div>
-                            <template v-else>
-                              <button
-                                v-for="(result, resultIndex) in alternativeModal.productSearchResults"
-                                :key="`alternative-result-${resultIndex}`"
-                                type="button"
-                                class="product-search-result"
-                                @mousedown.prevent="selectAlternativeProduct(result)"
-                              >
-                                <span class="product-search-name">
-                                  {{ getProductSearchLabel(result) }}
-                                  <span v-if="result.is_clearance" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 ml-1">Clearance</span>
-                                </span>
-                                <span v-if="getProductResultMeta(result)" class="product-search-meta">
-                                  {{ getProductResultMeta(result) }}
-                                </span>
-                              </button>
-                              <div v-if="alternativeModal.productSearchResults.length === 0" class="dropdown-empty">
-                                No matching products
-                              </div>
-                            </template>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="nested-field">
-                        <label>Customer Price</label>
-                        <input
-                          v-model.number="alternativeModal.price"
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          class="form-control"
-                          placeholder="Price"
-                        />
-                      </div>
-                      <div class="nested-field nested-field-wide">
-                        <label>Note</label>
-                        <input
-                          v-model="alternativeModal.note"
-                          type="text"
-                          class="form-control"
-                          placeholder="Optional note about brand, form, or strength"
-                        />
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              </div>
-            </div>
-
-            <div class="workspace-nested-actions">
-              <button type="button" class="btn-secondary" @click="closeAlternativeModal" :disabled="loading">
-                Cancel
-              </button>
-              <button type="button" class="btn-primary" @click="saveAlternativeForItem" :disabled="loading || !canSaveAlternative">
-                {{ hasExistingAlternative ? 'Update Alternative' : 'Save Alternative' }}
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -2164,7 +1998,7 @@
                     </label>
                   </div>
                   <div v-if="item.catalog_price != null" class="response-price-hint">
-                    <span class="response-price-hint-label">Catalog: GHS {{ Number(item.catalog_price).toFixed(2) }}</span>
+                    <span class="response-price-hint-label">Catalog: {{ formatCurrency(item.catalog_price) }}</span>
                     <span v-if="item.catalog_synced_at" class="response-price-hint-sync">· synced {{ formatRelativeTime(item.catalog_synced_at) }}</span>
                   </div>
                 </div>
@@ -2212,9 +2046,9 @@
             type="button"
             class="btn-primary"
             @click="submitResponseModal"
-            :disabled="responseModal.submitting || responseModal.items.filter(i => i.available).length === 0"
+            :disabled="responseModal.submitting || responseModal.refreshing || responseModal.items.filter(i => i.available).length === 0"
           >
-            {{ responseModal.submitting ? 'Saving…' : 'Submit Response' }}
+            {{ responseModal.submitting ? 'Saving…' : responseModal.refreshing ? 'Checking prices…' : 'Submit Response' }}
           </button>
         </div>
       </div>
@@ -2243,151 +2077,6 @@
       </div>
     </div>
 
-    <div v-if="composedSummaryRequest" class="workspace-nested-overlay" @click.self="closeComposedSummary">
-      <div class="workspace-nested-modal composed-summary-modal">
-        <div class="workspace-nested-head">
-          <div>
-            <span class="workspace-nested-label">Composed Summary</span>
-            <h4>{{ composedSummaryRequest.request_number }} | {{ composedSummaryRequest.customer_name || 'Unknown Customer' }}</h4>
-          </div>
-          <button type="button" class="modal-close" @click="closeComposedSummary">
-            <XMarkIcon class="close-svg" />
-          </button>
-        </div>
-
-        <div class="workspace-nested-content composed-summary-content" style="padding: 0;">
-          <div class="composed-summary-hero" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: #fdfdfd; display: flex; flex-direction: column; gap: 1rem;">
-            <div class="composed-summary-stats" style="display: flex; gap: 2rem; align-items: baseline; padding-bottom: 0.5rem;">
-              <span class="composed-stat-item" style="display: flex; align-items: baseline; gap: 0.5rem;">
-                <span style="font-size: 0.65rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
-                <strong style="font-size: 1rem; font-weight: 600; color: #111827;">{{ formatStatus(composedSummaryRequest.status) }}</strong>
-              </span>
-              <div style="width: 1px; height: 1rem; background: #e5e7eb; align-self: center;"></div>
-              <span class="composed-stat-item" style="display: flex; align-items: baseline; gap: 0.5rem;">
-                <span style="font-size: 0.65rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Items</span>
-                <strong style="font-size: 1rem; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">{{ composedSummaryRequest.items?.length || 0 }}</strong>
-              </span>
-              <div style="width: 1px; height: 1rem; background: #e5e7eb; align-self: center;"></div>
-              <span class="composed-stat-item" style="display: flex; align-items: baseline; gap: 0.5rem;">
-                <span style="font-size: 0.65rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Sources</span>
-                <strong style="font-size: 1rem; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">{{ composedPharmacySummary.length }}</strong>
-              </span>
-            </div>
-
-            <div class="composed-request-status-bar" style="display: flex; gap: 1rem; align-items: center; border-radius: 6px; border: 1px solid #dbeafe; background: #eff6ff; padding: 1rem;">
-              <div class="composed-request-status-copy" style="flex: 1;">
-                <strong style="font-size: 0.875rem; color: #1e40af;">Master Status Update</strong>
-                <p style="margin: 0; font-size: 0.75rem; color: #3b82f6;">Advance the overall request status once all lines are confirmed or fulfilled.</p>
-              </div>
-              <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <select v-model="composedSummaryStatus" class="form-control composed-request-status-select" style="min-width: 200px; background: #fff; border-color: #bfdbfe;">
-                  <option value="">Change request status...</option>
-                  <option value="paid">Paid</option>
-                  <option value="ready_for_pickup">Ready For Pickup</option>
-                  <option value="out_for_delivery">Out For Delivery</option>
-                  <option value="delivery_failed">Delivery Failed</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="returned">Returned</option>
-                </select>
-                <button
-                  type="button"
-                  class="btn-primary"
-                  :disabled="loading || !composedSummaryStatus"
-                  @click="updateComposedRequestStatus"
-                >
-                  Update Request
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="composedPharmacySummary.length" class="composed-pharmacy-summary" style="padding: 1.5rem; background: #f9fafb;">
-            <div
-              v-for="group in composedPharmacySummary"
-              :key="group.pharmacyId || group.name"
-              class="composed-pharmacy-card"
-              style="margin-bottom: 1.5rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.02);"
-            >
-              <div class="composed-pharmacy-head" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f3f4f6; background: #fcfcfc;">
-                <div class="composed-pharmacy-identity">
-                  <span class="composed-section-kicker" style="font-size: 0.7rem; font-weight: 700; color: #9ca3af; text-transform: uppercase;">Assigned Pharmacy</span>
-                  <div class="composed-info-row" style="margin-top: 0.25rem;">
-                    <strong style="font-size: 1.1rem; color: #111827;">{{ group.name || 'Unknown pharmacy' }}</strong>
-                  </div>
-                  <div class="composed-info-row" style="margin-top: 0.15rem;">
-                    <span style="font-size: 0.85rem; color: #6b7280;">{{ group.phone || 'No phone on file' }}</span>
-                  </div>
-                  <div class="composed-pharmacy-meta" style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <span class="composed-meta-chip" style="font-size: 0.75rem; background: #f3f4f6; color: #374151; padding: 0.15rem 0.5rem; border-radius: 999px;">{{ group.items.length }} item{{ group.items.length !== 1 ? 's' : '' }}</span>
-                    <span v-if="group.distanceKm !== null && group.distanceKm !== undefined" class="composed-meta-chip" style="font-size: 0.75rem; background: #f3f4f6; color: #374151; padding: 0.15rem 0.5rem; border-radius: 999px;">{{ formatDistance(group.distanceKm) }} away</span>
-                    <span class="composed-meta-chip composed-meta-chip--value" style="font-size: 0.75rem; background: #ecfdf5; color: #047857; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 600;">GHS {{ Number(group.totalValue || 0).toFixed(2) }}</span>
-                    <span v-if="getComposedSummaryGroupStatus(group)" :style="getComposedSummaryGroupStatus(group) === 'confirmed' ? 'font-size: 0.75rem; background: #dcfce7; color: #166534; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 700;' : 'font-size: 0.75rem; background: #f3f4f6; color: #374151; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 700;'">{{ getComposedSummaryGroupStatus(group).replace('_', ' ') }}</span>
-                  </div>
-                </div>
-                <div class="composed-pharmacy-actions" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem;">
-                  <a
-                    v-if="group.whatsappUrl"
-                    :href="group.whatsappUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn-whatsapp composed-whatsapp-btn"
-                    style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; border-radius: 6px; background: #10b981; color: #fff; font-size: 0.8rem; font-weight: 500; text-decoration: none;"
-                  >
-                    <i class="ri-whatsapp-line"></i>
-                    <span>Contact</span>
-                  </a>
-                  <span v-else class="composed-whatsapp-missing" style="font-size: 0.75rem; color: #9ca3af; font-style: italic;">No WhatsApp</span>
-                  <div class="composed-status-actions" style="display: flex; gap: 0.4rem; align-items: center;">
-                    <select
-                      v-model="composedGroupActions[group.pharmacyId || group.name]"
-                      class="form-control form-control-sm composed-status-select"
-                      style="min-width: 140px;"
-                    >
-                      <option value="">Status...</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="declined">Declined</option>
-                      <option value="timed_out">Timed Out</option>
-                    </select>
-                    <button
-                      type="button"
-                      class="btn-secondary btn-sm"
-                      :disabled="loading || !composedGroupActions[group.pharmacyId || group.name]"
-                      @click="updateComposedPharmacyStatus(group)"
-                    >
-                      Set
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="composed-item-list" style="padding: 0;">
-                <table class="financial-table" style="width: 100%; border-collapse: collapse; font-size: 0.875rem; text-align: left;">
-                  <thead>
-                    <tr style="background: #f9fafb; border-bottom: 1px solid #f3f4f6;">
-                      <th style="padding: 0.75rem 1.5rem; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em;">Product</th>
-                      <th style="padding: 0.75rem 1.5rem; text-align: right; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; width: 80px;">Qty</th>
-                      <th style="padding: 0.75rem 1.5rem; text-align: right; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; width: 120px;">Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="entry in group.items" :key="`composed-${group.pharmacyId || group.name}-${entry.id}`" style="border-bottom: 1px solid #f3f4f6;">
-                      <td style="padding: 1rem 1.5rem; color: #111827; font-weight: 500;">{{ entry.productName }}</td>
-                      <td style="padding: 1rem 1.5rem; text-align: right; color: #6b7280;">{{ entry.quantity }}</td>
-                      <td style="padding: 1rem 1.5rem; text-align: right; color: #111827; font-weight: 600; font-variant-numeric: tabular-nums;">{{ entry.price != null ? `GHS ${Number(entry.price).toFixed(2)}` : '-' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <div v-else class="selection-summary-empty">
-            No composed pharmacy selections are saved on this request yet.
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Toast -->
     <div v-if="message" class="message-toast" :class="{ 'message-error': message.type === 'error' }">
       {{ message.text }}
@@ -2400,7 +2089,16 @@ import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '~/stores/admin'
 import { phoneUtils } from '~/utils/phone'
+import { MAX_PAYMENT_REFERENCE, normalizePaymentReference } from '~/utils/manualPayment'
+import { formatGhs, formatSignedGhs } from '~/utils/money'
+import { availableItemsMissingPrice } from '~/utils/responseModalPrice'
+import { applyFreshCatalogPrices, type FreshCatalogPrice } from '~/utils/responseModalCatalog'
+import { pendingComposedPharmacies } from '~/utils/outreachPending'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import PromptAction from '~/components/admin/PromptAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
+import { usePromptAction } from '~/composables/usePromptAction'
 import {
   ArrowPathIcon,
   ArrowLeftIcon,
@@ -2795,9 +2493,6 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const selectedRequest = ref<RichOrderRequest | null>(null)
 const selectedStatus = ref('')
-const composedSummaryRequest = ref<RichOrderRequest | null>(null)
-const composedSummaryStatus = ref('')
-const composedGroupActions = ref<Record<string | number, string>>({})
 const openingRequestId = ref<number | null>(null)
 const activeRequestItemId = ref<number | null>(null)
 const activePrescriptionImageIndex = ref(0)
@@ -3006,23 +2701,6 @@ const adminNewItem = reactive(createAdminNewItemDraft())
 const adminNewItemSelection = ref<ProductSearchResult | null>(null)
 const adminNewItemDropdownOpen = ref(false)
 const adminNewItemInput = ref<HTMLInputElement | null>(null)
-const alternativeModal = ref<{
-  open: boolean; item: RequestItem | null; pharmacy_id: string
-  allocated_quantity: number; name: string; productSearchResults: ProductSearchResult[]
-  showProductDropdown: boolean; product_search_loading: boolean; note: string; price: string
-  productSearchDebounceHandle?: ReturnType<typeof setTimeout> | null
-}>({
-  open: false,
-  item: null,
-  pharmacy_id: '',
-  allocated_quantity: 1,
-  name: '',
-  productSearchResults: [],
-  showProductDropdown: false,
-  product_search_loading: false,
-  note: '',
-  price: ''
-})
 interface ResponseModalItem {
   id?: number; item_id?: number; product_name?: string | null; available: boolean
   requested_quantity?: number; requested_unit?: string | null
@@ -3034,12 +2712,13 @@ interface ResponseModalItem {
 }
 const responseModal = ref<{
   open: boolean; pharmacy: PharmacyQueueEntry | null; mode: string
-  submitting: boolean; note: string; items: ResponseModalItem[]
+  submitting: boolean; refreshing: boolean; note: string; items: ResponseModalItem[]
 }>({
   open: false,
   pharmacy: null,
   mode: 'full',
   submitting: false,
+  refreshing: false,
   note: '',
   items: []
 })
@@ -3201,31 +2880,6 @@ const activeRequestItem = computed(() => {
   return items[0] || null
 })
 
-const persistedSelectionItems = computed(() => {
-  const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
-  return items.filter((item: RequestItem) => isSavedSelectionItem(item))
-})
-
-const savedSelectionsTotal = computed(() => persistedSelectionItems.value.reduce((sum: number, item: RequestItem) => {
-  const quantity = getRequestedQuantity(item)
-  const unitPrice = getItemUnitPrice(item)
-  if (unitPrice > 0) return sum + (quantity * unitPrice)
-  return sum + getItemLineTotal(item)
-}, 0))
-
-const selectedAlternativePharmacy = computed(() => {
-  const pharmacyId = Number(alternativeModal.value.pharmacy_id || 0)
-  if (!pharmacyId) return null
-  return nearbyPharmacies.value.find((pharm) => Number(pharm.id) === pharmacyId) || null
-})
-
-const selectedAlternativePharmacyName = computed(() => selectedAlternativePharmacy.value?.name || '')
-
-const selectedAlternativeDistance = computed(() => {
-  if (!selectedAlternativePharmacy.value?.distance_km && selectedAlternativePharmacy.value?.distance_km !== 0) return ''
-  return `${formatDistance(selectedAlternativePharmacy.value.distance_km)} away`
-})
-
 const getCustomerWhatsAppUrl = (phone: string | null | undefined, request?: { request_number?: string | number; [key: string]: unknown } | null) => {
   const digits = phoneUtils.formatWhatsApp(phone)
   if (!digits) return ''
@@ -3258,43 +2912,10 @@ const customerPaymentWhatsAppUrl = computed(() => {
   const name = String(selectedRequest.value?.customer_name || '').trim() || 'there'
   const num = String(selectedRequest.value?.request_number || '').trim()
   const total = paymentModeTotal.value
-  const totalStr = total > 0 ? ` GHS ${total.toFixed(2)}` : ''
+  const totalStr = total > 0 ? ` ${formatCurrency(total)}` : ''
   const link = buildCustomerOrderLink(selectedRequest.value?.id)
   const text = `Hi ${name}, your MedsGH order${num ? ` ${num}` : ''} is confirmed and awaiting payment.${totalStr ? ` Total:${totalStr}.` : ''} Please complete your payment here:\n${link}\n- MedsGH Team`
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
-})
-
-const alternativePreviewName = computed(() => {
-  const typed = String(alternativeModal.value.name || '').trim()
-  return typed || 'Alternative name not set yet'
-})
-
-const alternativePriceDifference = computed(() => {
-  if (!alternativeModal.value.item) return null
-  const altPriceRaw = alternativeModal.value.price
-  if (altPriceRaw === '' || altPriceRaw === null || altPriceRaw === undefined) return null
-  const altPrice = Number(altPriceRaw)
-  if (!Number.isFinite(altPrice)) return null
-
-  const originalPrice = Number(
-    alternativeModal.value.item?.marked_up_price
-    || alternativeModal.value.item?.unit_price
-    || 0
-  )
-
-  return altPrice - originalPrice
-})
-
-const hasExistingAlternative = computed(() => Boolean(getLatestSubstituteAllocation(alternativeModal.value.item)))
-
-const canSaveAlternative = computed(() => {
-  return Boolean(
-    alternativeModal.value.item
-    && Number(alternativeModal.value.pharmacy_id || 0) > 0
-    && Number(alternativeModal.value.allocated_quantity || 0) > 0
-    && String(alternativeModal.value.name || '').trim()
-    && Number(alternativeModal.value.price || 0) > 0
-  )
 })
 
 const getRequestedQuantity = (item: RequestItem | null | undefined) => {
@@ -3329,203 +2950,12 @@ const syncActiveRequestItem = (items: RequestItem[] = []) => {
   activeRequestItemId.value = Number(itemPool[0]?.id || 0) || null
 }
 
-const selectRequestItem = (item: RequestItem) => {
-  const itemId = Number(item?.id || 0)
-  if (itemId <= 0) return
-  activeRequestItemId.value = itemId
-}
-
 const selectPrescriptionImage = (index: number) => {
   const nextIndex = Number(index || 0)
   if (nextIndex < 0 || nextIndex >= prescriptionAttachmentUrls.value.length) return
   activePrescriptionImageIndex.value = nextIndex
   resetAdminNewItem()
 }
-
-const getPrescriptionTargetItem = () => {
-  const items = requestItems.value
-  if (!items.length) return null
-  const targetIndex = Math.min(Math.max(Number(activePrescriptionImageIndex.value || 0), 0), items.length - 1)
-  return items[targetIndex] || null
-}
-
-const advanceToNextRequestItem = (currentItemId: number | null | undefined) => {
-  const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
-  if (!items.length) return false
-
-  const currentIndex = items.findIndex((item) => Number(item?.id || 0) === Number(currentItemId || 0))
-  if (currentIndex < 0) return false
-
-  const nextItem = items[currentIndex + 1] || null
-  if (!nextItem) return false
-
-  selectRequestItem(nextItem)
-  return true
-}
-
-const getAllocationPharmacy = (item: RequestItem | null | undefined) => {
-  if (!item?.allocation_pharmacy_id) return null
-  return nearbyPharmacies.value?.find((p) => p.id === item.allocation_pharmacy_id) || null
-}
-
-const getPersistedItemSourceSummary = (item: RequestItem | null | undefined) => {
-  const pharmacyName = String(item?.pharmacy_name || '').trim()
-  const sourcePharmacyId = Number(item?.source_pharmacy_id || 0)
-  const sourceProductId = Number(item?.source_product_id || 0)
-  const distanceValue = item?.source_distance_km ?? getAllocationPharmacy(item)?.distance_km ?? null
-  const unitPrice = Number(item?.marked_up_price || item?.unit_price || 0)
-  const productName = String(item?.source_product_name || '').trim()
-  if (!pharmacyName && sourcePharmacyId <= 0 && sourceProductId <= 0 && unitPrice <= 0 && !productName) return null
-
-  return {
-    pharmacyId: sourcePharmacyId || null,
-    name: pharmacyName || (sourcePharmacyId > 0 ? `Pharmacy ${sourcePharmacyId}` : 'Selected source'),
-    productName: productName || null,
-    distance: distanceValue !== null && distanceValue !== undefined && Number.isFinite(Number(distanceValue))
-      ? formatDistance(distanceValue)
-      : null,
-    price: unitPrice > 0 ? unitPrice.toFixed(2) : null
-  }
-}
-
-const getDraftItemSourceSummary = (item: RequestItem | null | undefined) => {
-  if (item?.selected_source_summary && (item.selected_source_summary.pharmacyId || item.selected_source_summary.name)) {
-    return item.selected_source_summary
-  }
-  return null
-}
-
-const getAdminSelectedItemTitle = (item: RequestItem | null | undefined) => {
-  const draftName = String(getDraftItemSourceSummary(item)?.productName || '').trim()
-  if (draftName) return draftName
-
-  const savedName = String(getPersistedItemSourceSummary(item)?.productName || '').trim()
-  if (savedName) return savedName
-
-  return 'No pharmacy product selected'
-}
-
-const hasPersistedItemSource = (item: RequestItem | null | undefined) => Boolean(getPersistedItemSourceSummary(item))
-
-const hasDraftItemSource = (item: RequestItem | null | undefined) => Boolean(getDraftItemSourceSummary(item))
-
-const getSelectedSourceDraftLabel = (item: RequestItem | null | undefined) => String(
-  getDraftItemSourceSummary(item)?.productName
-  || getPersistedItemSourceSummary(item)?.productName
-  || item?.product_name
-  || ''
-).trim().toLowerCase()
-
-const canSaveItemSelection = (item: RequestItem | null | undefined) => {
-  const pharmacyId = Number(item?.allocation_pharmacy_id || 0)
-  const price = Number(item?.edit_price || item?.unit_price || 0)
-  return pharmacyId > 0 && Number.isFinite(price) && price > 0 && !item?.selection_dirty
-}
-
-const clearItemSelection = (item: RequestItem) => {
-  const persistedPharmacyId = Number(item?.source_pharmacy_id || getActiveAllocationPharmacyId(item) || 0)
-  const persistedPrice = Number(item?.marked_up_price || item?.unit_price || 0)
-  const persistedProductName = String(item?.source_product_name || item?.product_name || '').trim()
-  item.allocation_pharmacy_id = persistedPharmacyId > 0 ? persistedPharmacyId : ''
-  item.allocation_quantity = getRequestedQuantity(item)
-  item.allocation_type = 'exact'
-  item.allocation_status = 'confirmed'
-  item.product_search = persistedProductName
-  item.product_id = null
-  item.edit_price = Number.isFinite(persistedPrice) && persistedPrice > 0 ? Number(persistedPrice.toFixed(2)) : ''
-  item.allocation_unit_price = ''
-  item.selected_source_product_id = Number(item?.source_product_id || 0) || null
-  item.selected_source_distance_km = item?.source_distance_km == null ? null : Number(item.source_distance_km)
-  item.selected_source_summary = null
-  item.selection_dirty = false
-  item.showProductDropdown = false
-  item.productSearchResults = []
-}
-
-const getSourcingOptions = (item: RequestItem, excludeCurrent = false) => {
-  const itemId = Number(item?.id || 0)
-  if (!itemId) return []
-  const sourceList = Array.isArray(pharmacyQueue.value) && pharmacyQueue.value.length > 0 ? pharmacyQueue.value : []
-  const excludeId = excludeCurrent ? Number(item?.allocation_pharmacy_id || 0) : 0
-  return sourceList
-    .map((pharmacy: PharmacyQueueEntry) => {
-      const pharmacyId = Number(pharmacy?.id || pharmacy?.pharmacy_id || 0)
-      if (excludeId > 0 && pharmacyId === excludeId) return null
-      const coverage = Array.isArray(pharmacy?.coverage_items)
-        ? pharmacy.coverage_items.find((entry: CoverageItem) => Number(entry?.item_id || 0) === itemId)
-        : null
-      const availableQuantity = Number(coverage?.available_quantity || 0)
-      const matchedQuantity = Number(coverage?.matched_quantity || 0)
-      if (availableQuantity === 0 && matchedQuantity === 0) return null
-      return {
-        pharmacyId,
-        name: String(pharmacy.name || pharmacy.pharmacy_name || `Pharmacy ${pharmacyId}`).trim(),
-        distanceKm: Number(Number(pharmacy.distance_km || 0).toFixed(1)),
-        matchedQuantity,
-        availableQuantity,
-        unitPrice: coverage?.unit_price != null ? Number(coverage.unit_price) : null
-      }
-    })
-    .filter((x): x is NonNullable<typeof x> => x != null)
-    .sort((a, b) => {
-      if (b.matchedQuantity !== a.matchedQuantity) return b.matchedQuantity - a.matchedQuantity
-      if (b.availableQuantity !== a.availableQuantity) return b.availableQuantity - a.availableQuantity
-      return a.distanceKm - b.distanceKm
-    })
-}
-
-const getRecommendedSourcingOption = (item: RequestItem) => {
-  const recommendedPharmacyId = Number(nextRecommendedPharmacy.value?.pharmacy_id || 0)
-  if (recommendedPharmacyId <= 0) return null
-
-  return getSourcingOptions(item, false).find((option) => Number(option.pharmacyId || 0) === recommendedPharmacyId) || null
-}
-
-const toggleSourcingDropdown = (item: RequestItem) => {
-  const next = !item.showSourcingDropdown
-  const allItems = selectedRequest.value?.items || []
-  for (const otherItem of allItems) {
-    otherItem.showSourcingDropdown = false
-  }
-  item.showSourcingDropdown = next
-}
-
-const selectSourcingOption = (item: RequestItem, option: { pharmacyId: number; name: string; distanceKm?: number; unitPrice?: number | null; matchedQuantity?: number; availableQuantity?: number }, options: { silent?: boolean; successMessage?: string | null } = {}) => {
-  const { silent = false, successMessage = null } = options
-  item.showSourcingDropdown = false
-  const name = String(item.product_name || 'this item').trim()
-  const isChangingSource = Number(item.allocation_pharmacy_id || 0) > 0
-  item.allocation_pharmacy_id = option.pharmacyId
-  item.allocation_quantity = Number(item.allocation_quantity || 0) > 0
-    ? Number(item.allocation_quantity || 0)
-    : getRequestedQuantity(item)
-  item.allocation_type = 'exact'
-  item.allocation_status = 'confirmed'
-  if (Number.isFinite(option.unitPrice) && Number(option.unitPrice) > 0) {
-    const normalizedUnitPrice = Number(Number(option.unitPrice).toFixed(2))
-    item.edit_price = normalizedUnitPrice
-    item.unit_price = normalizedUnitPrice
-    item.marked_up_price = normalizedUnitPrice
-    item.line_total = Number((normalizedUnitPrice * Number(getRequestedQuantity(item) || 0)).toFixed(2))
-    if (item.editing === undefined) item.editing = false
-  }
-  if (silent) return
-  if (successMessage) {
-    showMessage(successMessage, 'success')
-    return
-  }
-  if (isChangingSource) {
-    showMessage(`Changed source to ${option.name} for ${name}`, 'success')
-  } else {
-    showMessage(`Selected ${option.name} for ${name} — click Save Allocation to confirm`, 'success')
-  }
-}
-
-const hasQuantitySplit = computed(() => {
-  return fulfillmentPlans.value.some((plan: FulfillmentPlan) =>
-    (plan.items || []).some((item: FulfillmentPlanItem) => Number(item.allocated_quantity || 0) > 0 && Number((item as unknown as RequestItem).allocation_quantity || 0) < getRequestedQuantity(item as unknown as RequestItem))
-  )
-})
 
 const customerReadySummary = computed(() => {
   const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
@@ -3559,28 +2989,6 @@ const customerReadySummary = computed(() => {
   }
 })
 
-const requestItemAvailabilitySummary = computed(() => {
-  const items = Array.isArray(selectedRequest.value?.items) ? selectedRequest.value.items : []
-  const unavailable = items.filter((item: RequestItem) => {
-    const status = item.sourcing_status || item.item_status || ''
-    return status === 'unavailable' || item.item_status === 'not_available'
-  }).length
-
-  return {
-    total: items.length,
-    unavailable,
-    available: Math.max(items.length - unavailable, 0)
-  }
-})
-
-const hasPrescriptionAttachments = computed(() => {
-  if (!selectedRequest.value) return false
-  return Boolean(
-    selectedRequest.value.prescription_image_url
-    || (Array.isArray(selectedRequest.value.prescription_images) && selectedRequest.value.prescription_images.length)
-  )
-})
-
 const prescriptionAttachmentUrls = computed(() => {
   if (!selectedRequest.value) return []
   const urls = Array.isArray(selectedRequest.value.prescription_images) && selectedRequest.value.prescription_images.length
@@ -3589,35 +2997,11 @@ const prescriptionAttachmentUrls = computed(() => {
   return urls.filter((url): url is string => typeof url === 'string' && !!url.trim())
 })
 
-const activePrescriptionImageUrl = computed(() => {
-  return prescriptionAttachmentUrls.value[activePrescriptionImageIndex.value] || ''
-})
-
-const showTopQuickAdd = computed(() => {
-  return true
-})
-
-const itemsIntakeSummary = computed(() => {
-  if (!selectedRequest.value) return 'Add an item to the request.'
-  return 'Add a missing request item without leaving the workspace.'
-})
-
 const canAddAdminItem = computed(() => {
   const productName = String(adminNewItem.product_search || '').trim()
   const hasSelectedProduct = Number(adminNewItem.product_id || 0) > 0
   const quantity = Number(adminNewItem.quantity || 0)
   return (productName.length >= 1 || hasSelectedProduct) && Number.isFinite(quantity) && quantity > 0
-})
-
-const canResetAdminNewItem = computed(() => {
-  return String(adminNewItem.product_search || '').trim().length > 0
-    || Number(adminNewItem.quantity || 1) !== 1
-    || String(adminNewItem.requested_unit || '').trim().length > 0
-    || Boolean(adminNewItem.selected_source_summary)
-})
-
-const canSavePrescriptionAdminSelection = computed(() => {
-  return canAddAdminItem.value
 })
 
 const hasComposableItems = computed(() => {
@@ -3656,228 +3040,12 @@ const composedCoverageSummary = computed(() => {
   }
 })
 
-const buildComposedPharmacyWhatsAppUrl = (request: RichOrderRequest | null | undefined, group: { phone?: string; name?: string; items?: Array<{ productName: string; quantity?: number; price?: number | null }> }) => {
-  const digits = phoneUtils.formatWhatsApp(group?.phone || '')
-  if (!digits) return ''
-
-  const requestNumber = String(request?.request_number || '').trim()
-  const customerName = String(request?.customer_name || '').trim()
-  const lines = (group?.items || []).map((entry: { productName: string; quantity?: number; price?: number | null }) => {
-    const qtyPart = entry.quantity ? `Qty ${entry.quantity}` : null
-    const pricePart = entry.price != null ? `GHS ${Number(entry.price).toFixed(2)}` : null
-    return `- ${entry.productName}${qtyPart ? ` (${qtyPart}${pricePart ? `, ${pricePart}` : ''})` : ''}`
-  })
-
-  const text = [
-    `Hello ${group?.name || 'Pharmacy'},`,
-    requestNumber ? `Please confirm availability for ${requestNumber}${customerName ? ` for ${customerName}` : ''}.` : 'Please confirm availability for this request.',
-    '',
-    ...lines
-  ].join('\n')
-
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
-}
-
-const buildComposedPharmacySummary = (request: RichOrderRequest | null | undefined) => {
-  const items = Array.isArray(request?.items) ? request.items : []
-  const grouped = new Map()
-
-  for (const item of items) {
-    const pharmacyId = Number(item?.source_pharmacy_id || 0)
-    const summary = getPersistedItemSourceSummary(item)
-    const phone = String(item?.pharmacy_phone || '').trim()
-    const distanceValue = item?.source_distance_km == null ? null : Number(item.source_distance_km)
-    const priceValue = getItemUnitPrice(item)
-
-    if (pharmacyId <= 0 && !summary?.name) continue
-
-    const groupKey = pharmacyId > 0 ? `pharmacy-${pharmacyId}` : `name-${summary?.name || 'unknown'}`
-    if (!grouped.has(groupKey)) {
-      grouped.set(groupKey, {
-        pharmacyId: pharmacyId || null,
-        name: summary?.name || item?.pharmacy_name || 'Selected pharmacy',
-        phone,
-        distanceKm: Number.isFinite(distanceValue) ? distanceValue : null,
-        items: [],
-        totalValue: 0
-      })
-    }
-
-    const group = grouped.get(groupKey)
-    const quantity = getRequestedQuantity(item)
-    const lineTotal = priceValue > 0 ? priceValue * quantity : getItemLineTotal(item)
-    group.items.push({
-      id: item.id,
-      productName: summary?.productName || item?.source_product_name || item?.product_name || 'Item',
-      quantity,
-      price: priceValue > 0 ? Number(priceValue.toFixed(2)) : null,
-      distanceKm: Number.isFinite(distanceValue) ? distanceValue : group.distanceKm
-    })
-    group.totalValue += Number.isFinite(lineTotal) ? lineTotal : 0
-    if (group.distanceKm == null && Number.isFinite(distanceValue)) {
-      group.distanceKm = distanceValue
-    }
-    if (!group.phone && phone) {
-      group.phone = phone
-    }
-  }
-
-  return Array.from(grouped.values()).map((group) => ({
-    ...group,
-    totalValue: Number(group.totalValue.toFixed(2)),
-    whatsappUrl: buildComposedPharmacyWhatsAppUrl(request, group)
-  }))
-}
-
-interface ComposedSummaryGroup {
-  pharmacyId?: number | null
-  name?: string | null
-  phone?: string
-  distanceKm?: number | null
-  items?: Array<{ id?: number; productName: string; quantity?: number; price?: number | null }>
-  totalValue?: number
-  whatsappUrl?: string
-}
-
-const composedPharmacySummary = computed(() => buildComposedPharmacySummary(composedSummaryRequest.value))
-
-const getComposedSummaryGroupKey = (group: ComposedSummaryGroup | null | undefined): string | number => group?.pharmacyId || group?.name || ''
-
-const getComposedSummaryQueueEntries = () => {
-  const request = composedSummaryRequest.value
-  const queue = Array.isArray(request?.nearby_pharmacies) && request.nearby_pharmacies.length
-    ? request.nearby_pharmacies
-    : (Array.isArray(request?.pharmacy_queue) ? request.pharmacy_queue : [])
-  return Array.isArray(queue) ? queue : []
-}
-
-const getComposedSummaryPharmacyEntry = (group: ComposedSummaryGroup | null | undefined) => {
-  const queue = getComposedSummaryQueueEntries()
-  if (!queue.length) return null
-
-  const targetPharmacyId = Number(group?.pharmacyId || 0)
-  const targetName = String(group?.name || '').trim().toLowerCase()
-
-  return queue.find((entry) => {
-    const entryPharmacyId = Number(entry?.id || entry?.pharmacy_id || entry?.source_pharmacy_id || 0)
-    if (targetPharmacyId > 0 && entryPharmacyId > 0 && entryPharmacyId === targetPharmacyId) {
-      return true
-    }
-
-    const entryName = String(entry?.pharmacy_name || entry?.name || '').trim().toLowerCase()
-    return Boolean(targetName && entryName && entryName === targetName)
-  }) || null
-}
-
-const getComposedSummaryGroupStatus = (group: ComposedSummaryGroup | null | undefined) => {
-  const groupKey = getComposedSummaryGroupKey(group)
-  const localAction = groupKey ? composedGroupActions.value[groupKey] : ''
-  if (localAction === 'confirmed') return 'confirmed'
-  if (localAction === 'contacted') return 'contacted'
-  if (localAction === 'declined') return 'declined'
-  if (localAction === 'timed_out') return 'timed_out'
-
-  const entry = getComposedSummaryPharmacyEntry(group)
-  if (!entry) return ''
-
-  const status = String(entry?.response_status || entry?.pharmacy_status || entry?.queue_state || '').trim().toLowerCase()
-  if (entry?.is_confirmed === true || ['full', 'confirmed'].includes(status)) return 'confirmed'
-  if (status === 'contacted' || status === 'awaiting_response') return 'contacted'
-  if (status === 'declined' || status === 'unavailable') return 'declined'
-  if (status === 'timeout' || status === 'timed_out') return 'timed_out'
-  return ''
-}
-
-const syncComposedSummaryGroupActions = () => {
-  const nextActions: Record<string | number, string> = {}
-  for (const group of composedPharmacySummary.value || []) {
-    const key = getComposedSummaryGroupKey(group as ComposedSummaryGroup)
-    if (!key) continue
-    nextActions[key] = getComposedSummaryGroupStatus(group as ComposedSummaryGroup)
-  }
-  composedGroupActions.value = nextActions
-}
-
-const applyLocalComposedSummaryPharmacyAction = (group: ComposedSummaryGroup | null | undefined, action: string) => {
-  if (!composedSummaryRequest.value || !group) return false
-
-  const queueEntries = getComposedSummaryQueueEntries()
-  const targetPharmacyId = Number(group?.pharmacyId || 0)
-  const targetName = String(group?.name || '').trim().toLowerCase()
-
-  const entry = queueEntries.find((candidate) => {
-    const entryPharmacyId = Number(candidate?.id || candidate?.pharmacy_id || candidate?.source_pharmacy_id || 0)
-    if (targetPharmacyId > 0 && entryPharmacyId > 0 && entryPharmacyId === targetPharmacyId) return true
-    const entryName = String(candidate?.pharmacy_name || candidate?.name || '').trim().toLowerCase()
-    return Boolean(targetName && entryName && entryName === targetName)
-  })
-
-  if (!entry) return false
-
-  if (action === 'confirmed') {
-    entry.response_status = 'full'
-    entry.pharmacy_status = 'confirmed'
-    entry.queue_state = 'full'
-    entry.is_confirmed = true
-    entry.responded_at = entry.responded_at || new Date().toISOString()
-    return true
-  }
-
-  if (action === 'contacted') {
-    entry.response_status = 'pending'
-    entry.pharmacy_status = 'contacted'
-    entry.queue_state = 'awaiting_response'
-    entry.is_confirmed = false
-    entry.contacted_at = entry.contacted_at || new Date().toISOString()
-    return true
-  }
-
-  if (action === 'declined') {
-    entry.response_status = 'declined'
-    entry.pharmacy_status = 'declined'
-    entry.queue_state = 'declined'
-    entry.is_confirmed = false
-    entry.responded_at = entry.responded_at || new Date().toISOString()
-    return true
-  }
-
-  if (action === 'timed_out') {
-    entry.response_status = 'timeout'
-    entry.pharmacy_status = 'timed_out'
-    entry.queue_state = 'timed_out'
-    entry.is_confirmed = false
-    entry.responded_at = entry.responded_at || new Date().toISOString()
-    return true
-  }
-
-  return false
-}
-
-const isComposedSummaryGroupConfirmed = (group: ComposedSummaryGroup | null | undefined) => {
-  return getComposedSummaryGroupStatus(group) === 'confirmed'
-}
-
-const isComposedSummaryFullyConfirmed = () => {
-  const groups = Array.isArray(composedPharmacySummary.value) ? composedPharmacySummary.value : []
-  if (!groups.length) return false
-  return groups.every((group) => isComposedSummaryGroupConfirmed(group))
-}
 
 const canMarkRequestComposed = computed(() => {
   if (!selectedRequest.value || loading.value) return false
   const currentStatus = normalizeRequestStatus(selectedRequest.value.status)
   if (!['pending', 'composing', 'sourcing'].includes(currentStatus)) return false
   return hasComposableItems.value && allItemsResolved.value
-})
-
-const composedStatusHint = computed(() => {
-  if (!selectedRequest.value) return 'Open a request to prepare a composed order.'
-  if (!hasComposableItems.value) return 'Add or confirm at least one request item first.'
-  if (!allItemsResolved.value) {
-    const unresolved = (requestItems.value || []).filter(i => !isItemResolved(i)).length
-    return `${unresolved} item(s) still need to be identified before sourcing can begin.`
-  }
-  return 'All items identified — ready to start sourcing.'
 })
 
 const currentPipelineStageIndex = computed(() => {
@@ -4037,8 +3205,6 @@ const paymentModeTotal = computed(() => {
   return Number((paymentModeSubtotal.value + fee).toFixed(2))
 })
 
-const isPaidRequest = computed(() => normalizeRequestStatus(selectedRequest.value?.status) === 'paid')
-
 const workspaceMode = computed(() => {
   const status = normalizeRequestStatus(selectedRequest.value?.status)
   if (!status) return 'compose'
@@ -4060,6 +3226,9 @@ const composedSourcePharmacyIds = computed(() => new Set(
     .map(i => Number((i as Record<string, unknown>).source_pharmacy_id || 0))
     .filter(id => id > 0)
 ))
+const pendingComposed = computed(() =>
+  pendingComposedPharmacies(selectedRequest.value?.items || [], pharmacyQueue.value || [])
+)
 const composedPharmacyQueue = computed(() => {
   const q = pharmacySearchQuery.value.toLowerCase().trim()
   return pharmacyQueue.value.filter((p: PharmacyQueueEntry) =>
@@ -4118,6 +3287,11 @@ const allItemsCovered = computed(() => {
 
 // Typed error helper — safely extracts .message from unknown catch values
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
+
+// Questions go to the admin on the page, not through the browser's confirm()/prompt().
+const { pending, ask, accept, cancel } = useConfirmAction()
+const { pending: promptPending, ask: askFor, submit: submitPromptValue, cancel: cancelPrompt } = usePromptAction()
+const promptError = ref('')
 
 // API helper — delegates to useApi so auth headers and base URL are
 // injected centrally. The call signature is preserved so all 70+ callers
@@ -4300,22 +3474,6 @@ const closeAdminNewItemDropdown = () => {
   adminNewItemBlurTimeout = setTimeout(() => { adminNewItemDropdownOpen.value = false }, 150)
 }
 
-const clearAdminSelectedProduct = () => {
-  if (adminNewItem.productSearchDebounceHandle) {
-    clearTimeout(adminNewItem.productSearchDebounceHandle)
-  }
-  adminNewItem.product_id = null
-  adminNewItem.product_search = ''
-  adminNewItem.selected_source_pharmacy_id = null
-  adminNewItem.selected_source_product_id = null
-  adminNewItem.selected_source_distance_km = null
-  adminNewItem.selected_source_summary = null
-  adminNewItem.selected_source_price = null
-  adminNewItem.productSearchResults = []
-  adminNewItem.showProductDropdown = false
-  adminNewItem.product_search_loading = false
-}
-
 const hydrateAllocationUiState = (allocation: Allocation | null | undefined) => {
   if (!allocation) return
   if (allocation.editing === undefined) allocation.editing = false
@@ -4324,41 +3482,6 @@ const hydrateAllocationUiState = (allocation: Allocation | null | undefined) => 
   if (allocation.edit_status === undefined) allocation.edit_status = allocation.status || 'confirmed'
   if (allocation.edit_substitute_name === undefined) allocation.edit_substitute_name = allocation.substitute_name || ''
   if (allocation.edit_substitute_note === undefined) allocation.edit_substitute_note = allocation.substitute_note || ''
-}
-
-const openAlternativeModal = (item: RequestItem | null | undefined) => {
-  if (!item) return
-  const existingAlternative = getLatestSubstituteAllocation(item)
-  const existingDetails = getItemSubstituteDetails(item)
-
-  const _altPharmacyIdNum = Number(existingAlternative?.pharmacy_id || item?.allocation_pharmacy_id || item?.source_pharmacy_id || getDefaultAllocationPharmacyId(item) || 0)
-  alternativeModal.value = {
-    open: true,
-    item,
-    pharmacy_id: _altPharmacyIdNum > 0 ? String(_altPharmacyIdNum) : '',
-    allocated_quantity: Number(existingAlternative?.allocated_quantity || getRequestedQuantity(item) || 1),
-    name: String(existingAlternative?.substitute_name || existingDetails?.name || '').trim(),
-    productSearchResults: [],
-    showProductDropdown: false,
-    product_search_loading: false,
-    note: String(existingAlternative?.substitute_note || existingDetails?.note || '').trim(),
-    price: String(existingAlternative?.unit_price ?? existingDetails?.price ?? '')
-  }
-}
-
-const closeAlternativeModal = () => {
-  alternativeModal.value = {
-    open: false,
-    item: null,
-    pharmacy_id: '',
-    allocated_quantity: 1,
-    name: '',
-    productSearchResults: [],
-    showProductDropdown: false,
-    product_search_loading: false,
-    note: '',
-    price: ''
-  }
 }
 
 const openPrescriptionPreview = (url: string | null | undefined, index = 0) => {
@@ -4465,13 +3588,20 @@ const redeliverRequest = async () => {
 
 const refundingFailed = ref(false)
 const failedGoodsReturned = ref(false)
-const refundFailedDelivery = async () => {
+const refundFailedDelivery = () => {
   if (!selectedRequest.value?.id || refundingFailed.value) return
   const returned = failedGoodsReturned.value
-  const question = returned
-    ? 'Refund the customer in full (delivery fee included) and take back the pharmacy credit?'
-    : 'Refund the customer in full (delivery fee included)? The pharmacy keeps its credit and the platform absorbs the cost.'
-  if (!window.confirm(question)) return
+  ask({
+    title: 'Refund the customer in full?',
+    message: returned
+      ? 'The delivery fee is included, and the pharmacy credit is taken back.'
+      : 'The delivery fee is included. The pharmacy keeps its credit and the platform absorbs the cost.',
+    confirmText: 'Yes, refund',
+  }, () => doRefundFailedDelivery(returned))
+}
+
+const doRefundFailedDelivery = async (returned: boolean) => {
+  if (!selectedRequest.value?.id || refundingFailed.value) return
   refundingFailed.value = true
   try {
     await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/refund-failed-delivery`, { goods_returned: returned })
@@ -4519,10 +3649,10 @@ const buildPharmacyWhatsAppUrl = (delivery: Delivery) => {
     (item) => item.source_pharmacy_id === delivery.pickup_pharmacy_id
   )
   const itemLines = pharmacyItems.length
-    ? pharmacyItems.map((i) => `• ${i.product_name} × ${i.quantity} — GHS ${Number(i.line_total || 0).toFixed(2)}`).join('\n')
+    ? pharmacyItems.map((i) => `• ${i.product_name} × ${i.quantity} — ${formatCurrency(i.line_total || 0)}`).join('\n')
     : '(items on record)'
   const pharmacyTotal = pharmacyItems.reduce((sum, i) => sum + Number(i.line_total || 0), 0)
-  const netFee = Number(delivery.net_delivery_fee ?? delivery.delivery_fee ?? 0).toFixed(2)
+  const netFee = formatCurrency(delivery.net_delivery_fee ?? delivery.delivery_fee ?? 0)
   const deliveriesLink = delivery.pharmacy_domain
     ? `${window.location.origin}/${delivery.pharmacy_domain}/services/deliveries`
     : `${window.location.origin}/services/deliveries`
@@ -4531,9 +3661,9 @@ const buildPharmacyWhatsAppUrl = (delivery: Delivery) => {
     `Hi ${delivery.pharmacy_name},\n\n` +
     `Payment confirmed for Order *${req.request_number}* ✓\n\n` +
     `Your items to prepare:\n${itemLines}\n` +
-    `Drug earnings: GHS ${pharmacyTotal.toFixed(2)}\n\n` +
+    `Drug earnings: ${formatCurrency(pharmacyTotal)}\n\n` +
     `Delivery to: ${req.customer_address || 'customer location'}\n` +
-    `Delivery earnings (net): GHS ${netFee}\n\n` +
+    `Delivery earnings (net): ${netFee}\n\n` +
     `Accept delivery & assign your rider here:\n${deliveriesLink}\n\n` +
     `Reply YES to confirm you will handle delivery.`
 
@@ -4956,30 +4086,7 @@ const resolveItemToMaster = async (item: RequestItem, masterProduct: ProductSear
   }
 }
 
-const unresolveItem = async (item: RequestItem) => {
-  if (!item?.id) return
-  try {
-    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-      master_product_id: null,
-      resolution_status: 'unresolved'
-    })
-    if (selectedRequest.value?.items) {
-      const localItem = selectedRequest.value.items.find(i => i.id === item.id)
-      if (localItem) {
-        localItem.master_product_id = null
-        localItem.master_product_description = null
-        localItem.master_product_strength = null
-        localItem.master_product_unit = null
-        localItem.resolution_status = 'unresolved'
-      }
-    }
-    fetchPharmacyCoverage()
-  } catch (e) {
-    showMessage('Failed to unresolve item', 'error')
-  }
-}
-
-const routePharmacyAction = async (pharmacy: PharmacyQueueEntry) => {
+const routePharmacyAction = (pharmacy: PharmacyQueueEntry) => {
   const reqId = selectedRequest.value?.id
   if (!reqId || !pharmacy?.pharmacy_id) return
   const coveredItems = (pharmacy.covered || []).map(c => ({
@@ -4989,30 +4096,42 @@ const routePharmacyAction = async (pharmacy: PharmacyQueueEntry) => {
   }))
   if (coveredItems.length === 0) return
 
-  const confirmed = window.confirm(
-    `Route ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}?\n\nThis will update the source pharmacy for these items.`
-  )
-  if (!confirmed) return
+  ask({
+    title: `Route ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}?`,
+    message: 'This updates the source pharmacy for these items.',
+    confirmText: 'Yes, route',
+  }, () => doRoutePharmacy(reqId, pharmacy, coveredItems))
+}
 
+// Routing moves stock allocation, so a second confirm or click while the first is in flight is ignored.
+const routingPharmacy = ref(false)
+const doRoutePharmacy = async (
+  reqId: number | string,
+  pharmacy: PharmacyQueueEntry,
+  coveredItems: Array<{ item_id: unknown; matched_product_id: unknown; distance_km: unknown }>
+) => {
+  if (routingPharmacy.value) return
+  routingPharmacy.value = true
   try {
     await apiCall('POST', `/api/order-requests/admin/${reqId}/route-pharmacy`, {
       pharmacy_id: pharmacy.pharmacy_id,
       items: coveredItems
     })
-    showMessage(`Routed ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}`, 'success')
-    // Refresh request data + coverage
-    await refreshSelectedRequestDetails()
-    fetchPharmacyCoverage()
   } catch (e) {
     showMessage('Failed to route items', 'error')
+    routingPharmacy.value = false
+    return
   }
-}
-
-const getPharmacyWhatsAppUrl = (phone: string | null | undefined) => {
-  if (!phone) return null
-  const digits = phoneUtils.formatWhatsApp(phone)
-  if (digits.length < 10) return null
-  return `https://wa.me/${digits}`
+  try {
+    // Refresh request data + coverage, then say what happened (the refresh must not replace it).
+    await refreshSelectedRequestState()
+    fetchPharmacyCoverage()
+    showMessage(`Routed ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}`, 'success')
+  } catch (e) {
+    showMessage(`Routed ${coveredItems.length} item(s) to ${pharmacy.pharmacy_name}, but the page could not refresh. Press Refresh.`, 'error')
+  } finally {
+    routingPharmacy.value = false
+  }
 }
 
 const getCoverageColor = (score: number, total: number) => {
@@ -5022,26 +4141,6 @@ const getCoverageColor = (score: number, total: number) => {
   if (ratio >= 0.5) return '#f59e0b'
   return '#ef4444'
 }
-
-const openComposedSummary = async (req: { id: number | string } | null | undefined) => {
-  if (!req?.id) return
-  try {
-    const res = await apiCall('GET', `/api/order-requests/admin/${req.id}`)
-    composedSummaryRequest.value = res.data as RichOrderRequest
-    composedSummaryStatus.value = ''
-    syncComposedSummaryGroupActions()
-  } catch (e) {
-    showMessage('Failed to load composed summary', 'error')
-  }
-}
-
-const closeComposedSummary = () => {
-  composedSummaryRequest.value = null
-  composedSummaryStatus.value = ''
-  composedGroupActions.value = {}
-}
-
-const isComposedTabActive = computed(() => statusFilter.value === 'composing')
 
 const handleProcessRequest = async (req: RichOrderRequest) => {
   const requestId = Number(req?.id || 0)
@@ -5215,16 +4314,6 @@ const maybePromoteRequestToConfirming = (action: string) => {
   selectedStatus.value = 'composing'
 }
 
-const maybePromoteSummaryRequestToConfirming = (action: string) => {
-  if (!composedSummaryRequest.value) return
-
-  const currentStatus = normalizeRequestStatus(composedSummaryRequest.value.status)
-  if (!['contacted', 'confirmed'].includes(action)) return
-  if (!['pending', 'processing'].includes(currentStatus)) return
-
-  composedSummaryRequest.value.status = 'composing'
-}
-
 const recordPharmacyContactAction = async (pharm: PharmacyQueueEntry | null | undefined, action: string, options: { showSuccess?: boolean; note?: string } = {}) => {
   if (!selectedRequest.value || !pharm) return false
 
@@ -5306,25 +4395,44 @@ const savePharmacyPhone = async (pharm: PharmacyQueueEntry) => {
   }
 }
 
+// Bumped on every open so a refresh that finishes after the modal was closed or reopened is ignored.
+let responseModalOpenSeq = 0
+
 const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
+  const seq = ++responseModalOpenSeq
+  // Open at once from the queue already on screen. The refresh below is a full fulfillment
+  // recompute (a few hundred KB), so waiting for it made the modal appear seconds late.
+  responseModal.value = buildResponseModal(pharm, mode)
   // Refresh the cached pharmacy_queue so coverage prices reflect the current
   // products table, not a stale snapshot from the last "Run fulfillment process".
-  // Best-effort: if it fails we still open the modal with whatever's cached.
+  // Best-effort: if it fails we keep the modal as opened.
   try {
     await loadFulfillment({ silent: true, refreshLists: false })
   } catch {}
-  // Re-resolve the pharmacy from the refreshed queue (the original `pharm`
-  // reference points to the pre-refresh queue entry).
+  if (seq !== responseModalOpenSeq || !responseModal.value.open) return
   const freshPharm = (pharmacyQueue.value || []).find(
     (p) => Number(p?.pharmacy_id) === Number(pharm?.pharmacy_id)
-  ) || pharm
+  )
+  if (freshPharm) {
+    const freshPrices = new Map<number, FreshCatalogPrice>(
+      (freshPharm.coverage_items || []).map((ci) => [
+        Number(ci?.item_id || 0),
+        { unit_price: ci?.unit_price == null ? null : Number(ci.unit_price), catalog_synced_at: ci?.catalog_synced_at || null }
+      ])
+    )
+    responseModal.value.pharmacy = freshPharm
+    responseModal.value.items = applyFreshCatalogPrices(responseModal.value.items, freshPrices)
+  }
+  responseModal.value.refreshing = false
+}
 
+const buildResponseModal = (pharm: PharmacyQueueEntry, mode: string) => {
   const allItems = selectedRequest.value?.items || []
   // Build lookup of existing active allocations for this pharmacy
   const existingAllocsByItemId = new Map()
   for (const item of allItems) {
     const activeAlloc = (item.allocations || []).find(
-      a => Number(a.pharmacy_id) === Number(freshPharm.pharmacy_id) &&
+      a => Number(a.pharmacy_id) === Number(pharm.pharmacy_id) &&
            ['confirmed', 'proposed'].includes(a.status ?? '')
     )
     if (activeAlloc) existingAllocsByItemId.set(item.id, activeAlloc)
@@ -5339,12 +4447,12 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
       return false
     }
     const assignedPharmacyId = Number(item.source_pharmacy_id || 0)
-    const isAssignedElsewhere = assignedPharmacyId > 0 && assignedPharmacyId !== Number(freshPharm.pharmacy_id || 0)
+    const isAssignedElsewhere = assignedPharmacyId > 0 && assignedPharmacyId !== Number(pharm.pharmacy_id || 0)
     return !isAssignedElsewhere || existingAllocsByItemId.has(item.id)
   })
   const items = sourceItems.map((item) => {
     const existingAlloc = existingAllocsByItemId.get(item.id)
-    const coverageItem = (freshPharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
+    const coverageItem = (pharm.coverage_items || []).find(ci => Number(ci?.item_id || 0) === Number(item.id))
     const fullRequestedQty = Number(item.requested_quantity || item.quantity || 1)
     const remainingQty = sourcingMode.value === 'split'
       ? Math.max(fullRequestedQty - Number(item.sourced_quantity || 0), 1)
@@ -5353,7 +4461,7 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
     const catalogPrice = coverageItem?.unit_price != null && Number(coverageItem.unit_price) > 0
       ? Number(coverageItem.unit_price)
       : null
-    const isSelectedFromThisPharmacy = Number(item.source_pharmacy_id || 0) === Number(freshPharm.pharmacy_id || 0)
+    const isSelectedFromThisPharmacy = Number(item.source_pharmacy_id || 0) === Number(pharm.pharmacy_id || 0)
     const adminSavedPrice = isSelectedFromThisPharmacy && item.unit_price != null && Number(item.unit_price) > 0
       ? String(item.unit_price)
       : null
@@ -5381,11 +4489,12 @@ const openResponseModal = async (pharm: PharmacyQueueEntry, mode: string) => {
       showSubstitute: existingAlloc?.allocation_type === 'substitute'
     }
   })
-  responseModal.value = {
+  return {
     open: true,
-    pharmacy: freshPharm,
+    pharmacy: pharm,
     mode,
     submitting: false,
+    refreshing: true,
     note: '',
     items
   }
@@ -5402,6 +4511,11 @@ const submitResponseModal = async () => {
   const availableItems = modal.items.filter((i) => i.available)
   if (availableItems.length === 0) {
     showMessage('Mark at least one item as available', 'error')
+    return
+  }
+  const unpriced = availableItemsMissingPrice(availableItems)
+  if (unpriced.length > 0) {
+    showMessage(`Enter a unit price for ${unpriced.length} available item${unpriced.length !== 1 ? 's' : ''} before submitting`, 'error')
     return
   }
 
@@ -5451,74 +4565,6 @@ const submitResponseModal = async () => {
     showMessage(errMsg(e) || 'Failed to submit pharmacy response', 'error')
   } finally {
     modal.submitting = false
-  }
-}
-
-const recordComposedPharmacyContactAction = async (group: { pharmacyId?: number | null; name?: string | null; phone?: string | null }, action: string) => {
-  if (!composedSummaryRequest.value || !group?.pharmacyId) return false
-
-  const actionConfig = (PHARMACY_CONTACT_ACTIONS as Record<string, typeof PHARMACY_CONTACT_ACTIONS[keyof typeof PHARMACY_CONTACT_ACTIONS] | undefined>)[action]
-  if (!actionConfig) {
-    showMessage('Unknown pharmacy contact action', 'error')
-    return false
-  }
-
-  try {
-    await apiCall('POST', `/api/order-requests/admin/${composedSummaryRequest.value.id}/contact/${group.pharmacyId}`, {
-      ...actionConfig.payload,
-      response_note: null
-    })
-    applyLocalComposedSummaryPharmacyAction(group as ComposedSummaryGroup, action)
-    syncComposedSummaryGroupActions()
-    maybePromoteSummaryRequestToConfirming(action)
-    await fetchRequests({ silent: true })
-    await fetchStats({ silent: true })
-    showMessage(actionConfig.successMessage({ name: group.name ?? null }), 'success')
-
-    if (action === 'confirmed') {
-      if (isComposedSummaryFullyConfirmed()) {
-        closeComposedSummary()
-      }
-      return true
-    }
-    return true
-  } catch (e) {
-    showMessage(errMsg(e) || actionConfig.errorMessage, 'error')
-    return false
-  }
-}
-
-const updateComposedPharmacyStatus = async (group: { pharmacyId?: number | null; name?: string | null }) => {
-  const groupKey = group?.pharmacyId ?? group?.name ?? ''
-  const action = composedGroupActions.value[groupKey]
-  if (!action) return
-  loading.value = true
-  try {
-    await recordComposedPharmacyContactAction(group, action)
-  } finally {
-    loading.value = false
-  }
-}
-
-const updateComposedRequestStatus = async () => {
-  if (!composedSummaryRequest.value || !composedSummaryStatus.value) return
-  loading.value = true
-  try {
-    const nextStatus = String(composedSummaryStatus.value || '').trim()
-    await apiCall('PUT', `/api/order-requests/admin/${composedSummaryRequest.value.id}/status`, {
-      status: nextStatus
-    })
-    if (selectedRequest.value?.id === composedSummaryRequest.value.id) {
-      selectedRequest.value.status = nextStatus
-    }
-    await openComposedSummary({ id: composedSummaryRequest.value.id })
-    await fetchRequests({ silent: true })
-    await fetchStats({ silent: true })
-    showMessage('Request status updated', 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to update request status', 'error')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -5596,36 +4642,36 @@ watch(
   { immediate: true }
 )
 
-const contactPharmacy = async (payload: PharmacyQueueEntry & { pharmacy?: PharmacyQueueEntry; note?: string }) => {
-  if (!selectedRequest.value) return
-  const pharm = payload?.pharmacy || payload
-  const note = String(payload?.note || '').trim()
-  if (!pharm) return
-
-  // Open WhatsApp immediately
-  window.open(pharm.whatsapp_url ?? undefined, '_blank')
-
-  await recordPharmacyContactAction(pharm, 'contacted', { showSuccess: false, note })
-}
-
-const handlePharmacyContactStatus = async ({ pharmacy, action, note }: { pharmacy?: PharmacyQueueEntry; action?: string; note?: string } = {}) => {
-  const opts: { showSuccess?: boolean; note?: string } = {}
-  if (note !== undefined) opts.note = note
-  await recordPharmacyContactAction(pharmacy, action ?? '', opts)
-}
-
 // Marking an order paid has to run the real payment: it credits the pharmacies
 // and sends the order out. A bare status change would do neither.
-const confirmPaymentReceived = async () => {
+const confirmPaymentReceived = () => {
   if (!selectedRequest.value) return
-  const ok = window.confirm('Confirm that you have received payment for this order? This credits the pharmacies and sends the order out.')
-  if (!ok) {
-    selectedStatus.value = ''
+  promptError.value = ''
+  askFor({
+    title: 'Confirm payment was received',
+    message: 'This credits the pharmacies and sends the order out.',
+    label: 'Receipt or transfer number',
+    confirmText: 'Confirm payment',
+    onCancel: () => { selectedStatus.value = ''; promptError.value = '' },
+  }, doConfirmPaymentReceived)
+}
+
+// A blank reference keeps the dialog open and says why, instead of dropping what the admin was doing.
+const submitPrompt = async (entered: string) => {
+  const reference = normalizePaymentReference(entered)
+  if (!reference) {
+    promptError.value = `A receipt or transfer number (up to ${MAX_PAYMENT_REFERENCE} characters) is required to confirm payment`
     return
   }
+  promptError.value = ''
+  await submitPromptValue(reference)
+}
+
+const doConfirmPaymentReceived = async (reference: string) => {
+  if (!selectedRequest.value) return
   loading.value = true
   try {
-    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/confirm-manual-payment`, { method: 'manual' })
+    const res = await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/confirm-manual-payment`, { method: 'manual', reference })
     selectedStatus.value = ''
     showStatusOverride.value = false
     showMessage(res?.message || 'Payment confirmed', 'success')
@@ -5676,31 +4722,7 @@ const updateStatus = async () => {
       logisticsAssessment.value = null
     }
   } catch (e) {
-    if ((e as { code?: string }).code === 'BACKWARDS_TRANSITION') {
-      showMessage('This would move backwards. Use "Override" to force it.', 'error')
-    } else {
-      showMessage(errMsg(e) || 'Failed to update status', 'error')
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
-const markRequestComposed = async () => {
-  if (!selectedRequest.value || !canMarkRequestComposed.value) return
-  loading.value = true
-  try {
-    const statusRes = await apiCall('PUT', `/api/order-requests/admin/${selectedRequest.value.id}/status`, {
-      status: 'sourcing',
-      admin_notes: adminNotes.value
-    })
-    selectedRequest.value.status = 'sourcing'
-    selectedStatus.value = ''
-    await fetchRequests()
-    await fetchStats()
-    showMessage(statusRes?.message || 'Request moved to Sourcing', 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to mark request composed', 'error')
+    showMessage(errMsg(e) || 'Failed to update status', 'error')
   } finally {
     loading.value = false
   }
@@ -5717,12 +4739,16 @@ const applyNextStep = async (statusOverride?: string | null) => {
   await updateStatus()
 }
 
-const sendBackToCompose = async () => {
+const sendBackToCompose = () => {
   if (!selectedRequest.value) return
-  const ok = window.confirm('Send this request back to Compose? Existing allocations will be preserved.')
-  if (!ok) return
-  selectedStatus.value = 'composing'
-  await updateStatus()
+  ask({
+    title: 'Send this request back to Compose?',
+    message: 'Existing allocations are kept.',
+    confirmText: 'Yes, send back',
+  }, async () => {
+    selectedStatus.value = 'composing'
+    await updateStatus()
+  })
 }
 
 const saveNotes = async () => {
@@ -5738,17 +4764,6 @@ const saveNotes = async () => {
     showMessage('Failed to save notes', 'error')
   } finally {
     loading.value = false
-  }
-}
-
-const calculateTotals = async () => {
-  if (!selectedRequest.value) return
-  try {
-    const res = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}/totals`)
-    const totals = res.data as { subtotal?: number; available_items?: unknown[]; unavailable_items?: unknown[] }
-    showMessage(`Subtotal: GHS ${totals.subtotal} | ${(totals.available_items || []).length} available, ${(totals.unavailable_items || []).length} unavailable`, 'success')
-  } catch (e) {
-    showMessage('Failed to calculate totals', 'error')
   }
 }
 
@@ -5867,11 +4882,19 @@ const renotifyDecision = async (decisionId: number) => {
   }
 }
 
-const resolveDecisionAsAdmin = async (decisionId: number, response: string) => {
+const resolveDecisionAsAdmin = (decisionId: number, response: string) => {
+  if (!selectedRequest.value) return
+  const verb = response === 'approved' ? 'Approve' : 'Decline'
+  ask({
+    title: `${verb} this decision for the customer?`,
+    message: 'It is recorded as the customer\'s answer.',
+    confirmText: `Yes, ${verb.toLowerCase()}`,
+  }, () => doResolveDecisionAsAdmin(decisionId, response))
+}
+
+const doResolveDecisionAsAdmin = async (decisionId: number, response: string) => {
   if (!selectedRequest.value) return
   const label = response === 'approved' ? 'approve' : 'decline'
-  const ok = window.confirm(`${response === 'approved' ? 'Approve' : 'Decline'} this decision on behalf of the customer?`)
-  if (!ok) return
   loading.value = true
   try {
     await apiCall('POST', `/api/order-requests/admin/${selectedRequest.value.id}/decisions/${decisionId}/resolve`, { response })
@@ -5884,11 +4907,6 @@ const resolveDecisionAsAdmin = async (decisionId: number, response: string) => {
   } finally {
     loading.value = false
   }
-}
-
-const startEditItem = (item: RequestItem) => {
-  item.editing = true
-  item.edit_price = item.unit_price || 0
 }
 
 const getRequestSearchCoordinates = () => {
@@ -5916,244 +4934,6 @@ const getRequestSearchCoordinates = () => {
   }
 }
 
-const getProductSearchLabel = (result: ProductSearchResult | null | undefined) => {
-  const baseName = String(
-    result?.product_description
-    || result?.master_name
-    || result?.product_name
-    || result?.name
-    || result?.brand_name
-    || ''
-  ).trim()
-  const strength = String(result?.strength || '').trim()
-  if (!baseName && !strength) return ''
-  if (strength && !baseName.toLowerCase().includes(strength.toLowerCase())) {
-    return `${baseName} ${strength}`.trim()
-  }
-  return baseName
-}
-
-const getProductResultMeta = (result: ProductSearchResult | null | undefined) => {
-  const parts = []
-  const companyName = String(result?.company_name || '').trim()
-  if (companyName) {
-    parts.push(companyName)
-  }
-  const distanceKm = Number(result?.distance_km)
-  if (Number.isFinite(distanceKm) && distanceKm >= 0) {
-    parts.push(`${distanceKm.toFixed(1)} km`)
-  }
-  const unit = String(result?.unit || '').trim()
-  if (unit) {
-    parts.push(unit)
-  }
-  const availableQuantity = Number(result?.available_quantity)
-  if (Number.isFinite(availableQuantity) && availableQuantity > 0) {
-    parts.push(`${availableQuantity} in stock`)
-  }
-  const minPrice = Number(result?.min_price || 0)
-  const maxPrice = Number(result?.max_price || 0)
-  const directPrice = Number(result?.price || 0)
-  if (directPrice > 0) {
-    parts.push(`GHS ${directPrice.toFixed(2)}`)
-  } else if (minPrice > 0 || maxPrice > 0) {
-    if (maxPrice > minPrice && minPrice > 0) {
-      parts.push(`GHS ${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)}`)
-    } else {
-      const price = maxPrice > 0 ? maxPrice : minPrice
-      if (price > 0) parts.push(`GHS ${price.toFixed(2)}`)
-    }
-  }
-  if (!parts.length && result?.strength) {
-    parts.push(String(result.strength))
-  }
-  return parts.join(' • ')
-}
-
-const fetchProductSearchResults = async (query: string | null | undefined, options: { requestedUnit?: string; pharmacySearch?: string; clearanceOnly?: boolean } = {}) => {
-  const trimmedQuery = String(query || '').trim()
-  if (trimmedQuery.length < 2) return []
-
-  const coords = getRequestSearchCoordinates()
-  const params = new URLSearchParams()
-  params.append('search', trimmedQuery)
-  params.append('limit', '8')
-
-  const requestedUnit = String(options?.requestedUnit || '').trim()
-  if (requestedUnit) {
-    params.append('requestedUnit', requestedUnit)
-  }
-
-  const pharmacySearch = String(options?.pharmacySearch || '').trim()
-  if (pharmacySearch) {
-    params.append('pharmacySearch', pharmacySearch)
-  }
-
-  if (options?.clearanceOnly) {
-    params.append('clearanceOnly', 'true')
-  }
-
-  if (coords.hasCoords) {
-    params.append('latitude', String(coords.lat))
-    params.append('longitude', String(coords.lng))
-    params.append('radiusKm', String(Number(selectedRequest.value?.sourcing_radius_km || 10) || 10))
-  }
-
-  const res = await apiCall('GET', `/api/inventory-analytics/search-products?${params.toString()}`)
-  const resData = res?.data as { products?: ProductSearchResult[] } | null
-  return Array.isArray(resData?.products) ? resData!.products! : []
-}
-
-const searchAdminProducts = async (item: RequestItem) => {
-  const query = String(item.product_search || '').trim()
-  if (query.length < 2) {
-    item.productSearchResults = []
-    return
-  }
-
-  item.product_search_loading = true
-  try {
-    item.productSearchResults = await fetchProductSearchResults(query, {
-      requestedUnit: item?.requested_unit || '',
-      clearanceOnly: Boolean(item.clearanceOnlySearch)
-    })
-  } catch (e) {
-    item.productSearchResults = []
-  } finally {
-    item.product_search_loading = false
-  }
-}
-
-const onAdminProductInput = (item: RequestItem) => {
-  item.showProductDropdown = true
-  item.product_id = null
-  const typedQuery = String(item.product_search || '').trim().toLowerCase()
-  const selectedLabel = getSelectedSourceDraftLabel(item)
-  item.selection_dirty = Boolean(typedQuery) && typedQuery !== selectedLabel
-  if (!item.product_search || item.product_search.trim().length < 2) {
-    item.productSearchResults = []
-    return
-  }
-  if (item.productSearchDebounceHandle) {
-    clearTimeout(item.productSearchDebounceHandle)
-  }
-  item.productSearchDebounceHandle = setTimeout(() => {
-    searchAdminProducts(item)
-  }, 300)
-}
-
-const selectAdminProduct = (item: RequestItem, result: ProductSearchResult) => {
-  const label = getProductSearchLabel(result)
-  if (!label) return
-  item.product_search = label
-  const productIdentity = String(result?.product_id || '').trim()
-  item.product_id = productIdentity || null
-  item.selected_source_product_id = Number(result?.id || 0) || null
-  item.selected_source_pharmacy_id = Number(result?.company_id || 0) || null
-  item.selected_source_distance_km = Number.isFinite(Number(result?.distance_km)) ? Number(result.distance_km) : null
-  if (
-    Object.prototype.hasOwnProperty.call(item, 'requested_unit')
-    && !Object.prototype.hasOwnProperty.call(item, 'allocation_pharmacy_id')
-    && !String(item.requested_unit || '').trim()
-  ) {
-    item.requested_unit = String(result?.unit || '').trim().toLowerCase()
-  }
-  const selectedPharmacyId = Number(result?.company_id || 0)
-  const selectedPrice = Number(result?.price || 0)
-  item.selected_source_summary = {
-    pharmacyId: selectedPharmacyId > 0 ? selectedPharmacyId : null,
-    productName: label,
-    name: String(result?.company_name || '').trim() || (selectedPharmacyId > 0 ? `Pharmacy ${selectedPharmacyId}` : 'Selected source'),
-    distance: Number.isFinite(Number(result?.distance_km)) ? formatDistance(result.distance_km) : null,
-    price: selectedPrice > 0 ? selectedPrice.toFixed(2) : null
-  }
-  item.selected_source_price = selectedPrice > 0 ? Number(selectedPrice.toFixed(2)) : null
-  if (selectedPharmacyId > 0 && Object.prototype.hasOwnProperty.call(item, 'allocation_pharmacy_id')) {
-    item.allocation_pharmacy_id = selectedPharmacyId
-    item.allocation_quantity = getRequestedQuantity(item)
-    item.allocation_type = 'exact'
-    item.allocation_status = 'confirmed'
-    item.allocation_unit_price = ''
-  }
-  if (selectedPrice > 0 && Object.prototype.hasOwnProperty.call(item, 'edit_price')) {
-    const normalizedPrice = Number(selectedPrice.toFixed(2))
-    item.edit_price = normalizedPrice
-  }
-  item.selection_dirty = false
-  item.showProductDropdown = false
-  item.productSearchResults = []
-  
-  // Automatically save allocation upon clicking chosen medication
-  if (item === activeRequestItem.value) {
-    createAllocationForItem(item, { autoAdvance: false })
-  }
-}
-
-const closeAdminProductDropdown = (item: RequestItem) => {
-  setTimeout(() => {
-    item.showProductDropdown = false
-  }, 160)
-}
-
-const searchAlternativeProducts = async () => {
-  const query = String(alternativeModal.value.name || '').trim()
-  if (query.length < 2) {
-    alternativeModal.value.productSearchResults = []
-    return
-  }
-
-  alternativeModal.value.product_search_loading = true
-  try {
-    alternativeModal.value.productSearchResults = await fetchProductSearchResults(query, {
-      requestedUnit: alternativeModal.value.item?.requested_unit || '',
-      clearanceOnly: composeClearanceOnly.value
-    })
-  } catch (e) {
-    alternativeModal.value.productSearchResults = []
-  } finally {
-    alternativeModal.value.product_search_loading = false
-  }
-}
-
-const onAlternativeProductInput = () => {
-  alternativeModal.value.showProductDropdown = true
-  if (!alternativeModal.value.name || alternativeModal.value.name.trim().length < 2) {
-    alternativeModal.value.productSearchResults = []
-    return
-  }
-  if (alternativeModal.value.productSearchDebounceHandle) {
-    clearTimeout(alternativeModal.value.productSearchDebounceHandle)
-  }
-  alternativeModal.value.productSearchDebounceHandle = setTimeout(() => {
-    searchAlternativeProducts()
-  }, 300)
-}
-
-const selectAlternativeProduct = (result: ProductSearchResult) => {
-  const label = getProductSearchLabel(result)
-  if (!label) return
-  alternativeModal.value.name = label
-
-  const selectedPharmacyId = Number(result?.company_id || 0)
-  if (selectedPharmacyId > 0) {
-    alternativeModal.value.pharmacy_id = String(selectedPharmacyId)
-  }
-
-  const price = Number(result?.price || 0)
-  if (price > 0 && (alternativeModal.value.price === '' || alternativeModal.value.price === null || alternativeModal.value.price === undefined)) {
-    alternativeModal.value.price = String(Number(price.toFixed(2)))
-  }
-
-  alternativeModal.value.showProductDropdown = false
-  alternativeModal.value.productSearchResults = []
-}
-
-const closeAlternativeProductDropdown = () => {
-  setTimeout(() => {
-    alternativeModal.value.showProductDropdown = false
-  }, 160)
-}
-
 const saveAdminNewItem = async () => {
   if (!selectedRequest.value || !canAddAdminItem.value) return
 
@@ -6175,306 +4955,48 @@ const saveAdminNewItem = async () => {
 
     adminNewItemSelection.value = null
     resetAdminNewItem()
+    // The item exists from here on. A failure below is a failed refresh, not a failed add.
+    try {
 
-    const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-    const detailData = detailRes.data as RichOrderRequest
-    selectedRequest.value = detailData
-    selectedStatus.value = detailData.status || ''
-    adminNotes.value = (detailData.admin_notes as string | undefined) || ''
-    hydrateParcelForm(selectedRequest.value)
-    hydrateItemUiState(selectedRequest.value?.items || [])
-    nearbyPharmacies.value = []
-    candidatePlans.value = []
-    fulfillmentPlans.value = []
-    allocationSummary.value = null
-    pharmacyQueue.value = []
-    showAllOutreachPharmacies.value = false
-    nextRecommendedPharmacy.value = null
-    logisticsAssessment.value = null
+      const detailRes = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+      const detailData = detailRes.data as RichOrderRequest
+      selectedRequest.value = detailData
+      selectedStatus.value = detailData.status || ''
+      adminNotes.value = (detailData.admin_notes as string | undefined) || ''
+      hydrateParcelForm(selectedRequest.value)
+      hydrateItemUiState(selectedRequest.value?.items || [])
+      nearbyPharmacies.value = []
+      candidatePlans.value = []
+      fulfillmentPlans.value = []
+      allocationSummary.value = null
+      pharmacyQueue.value = []
+      showAllOutreachPharmacies.value = false
+      nextRecommendedPharmacy.value = null
+      logisticsAssessment.value = null
 
-    // Auto-resolve if a product was selected from the search dropdown
-    if (selection) {
-      const newItemId = Number((createRes?.data as { id?: number } | null)?.id || 0)
-      if (newItemId > 0) {
-        await resolveItemToPharmProduct({ id: newItemId } as RequestItem, selection)
-        const refreshed = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
-        selectedRequest.value = refreshed.data as RichOrderRequest
-        hydrateItemUiState(selectedRequest.value?.items || [])
+      // Auto-resolve if a product was selected from the search dropdown
+      if (selection) {
+        const newItemId = Number((createRes?.data as { id?: number } | null)?.id || 0)
+        if (newItemId > 0) {
+          await resolveItemToPharmProduct({ id: newItemId } as RequestItem, selection)
+          const refreshed = await apiCall('GET', `/api/order-requests/admin/${selectedRequest.value.id}`)
+          selectedRequest.value = refreshed.data as RichOrderRequest
+          hydrateItemUiState(selectedRequest.value?.items || [])
+        }
       }
-    }
 
-    await fetchRequests({ silent: true })
-    await fetchStats({ silent: true })
-    showMessage('Item added to request', 'success')
-    await nextTick()
-    adminNewItemInput.value?.focus()
+      await fetchRequests({ silent: true })
+      await fetchStats({ silent: true })
+      showMessage('Item added to request', 'success')
+      await nextTick()
+      adminNewItemInput.value?.focus()
+    } catch (refreshError) {
+      showMessage('Item added, but the page could not refresh. Press Refresh.', 'error')
+    }
   } catch (e) {
     showMessage(errMsg(e) || 'Failed to add item', 'error')
   } finally {
     loading.value = false
-  }
-}
-
-const useNextRecommendedPharmacy = (item: RequestItem) => {
-  const option = getRecommendedSourcingOption(item)
-  if (!option) {
-    showMessage('The next follow-up source does not cover this item', 'info')
-    return
-  }
-
-  selectSourcingOption(
-    item,
-    option,
-    {
-      successMessage: `Prefilled ${option.name} for ${item.product_name} - click Save Allocation to confirm`
-    }
-  )
-}
-
-const prefillNextRecommendedSource = () => {
-  if (!selectedRequest.value || !Array.isArray(selectedRequest.value.items) || !nextRecommendedPharmacy.value) return
-
-  let updatedCount = 0
-  for (const item of selectedRequest.value.items) {
-    const option = getRecommendedSourcingOption(item)
-    if (!option) continue
-
-    const currentSelection = Number(item.allocation_pharmacy_id || item.source_pharmacy_id || 0)
-    const currentStatus = String(item.sourcing_status || item.item_status || '').toLowerCase()
-    const shouldSkip =
-      currentSelection === Number(option.pharmacyId || 0)
-      && ['allocated', 'available', 'confirmed', 'ready_to_order', 'ordered'].includes(currentStatus)
-
-    if (shouldSkip) continue
-
-    selectSourcingOption(item, option, { silent: true })
-    updatedCount += 1
-  }
-
-  if (updatedCount === 0) {
-    showMessage('No pending items matched the next follow-up source', 'info')
-    return
-  }
-
-  const label = nextRecommendedPharmacy.value.pharmacy_name || `Pharmacy ${nextRecommendedPharmacy.value.pharmacy_id}`
-  showMessage(`Prefilled ${label} for ${updatedCount} item${updatedCount === 1 ? '' : 's'} - save allocations to confirm`, 'success')
-}
-
-const fillFullAllocation = (item: RequestItem) => {
-  item.allocation_quantity = getRequestedQuantity(item)
-}
-
-const isPlanItemMissing = (planItem: FulfillmentPlanItem | null | undefined) => {
-  if (!planItem) return true
-  const matchedQuantity = Number(planItem.matched_quantity || 0)
-  if (matchedQuantity > 0) return false
-  const availableQuantity = Number(planItem.available_quantity || 0)
-  if (availableQuantity > 0) return false
-  const likelyType = String(planItem.likely_match_type || '').toLowerCase()
-  return !likelyType || likelyType === 'none'
-}
-
-const getPlanAllocationForPharmacy = (planItem: FulfillmentPlanItem | null | undefined, pharmacyId: number | string | null | undefined) => {
-  const normalizedPharmacyId = Number(pharmacyId || 0)
-  if (!planItem || normalizedPharmacyId <= 0) return null
-
-  const matchingAllocations = Array.isArray(planItem.allocations)
-    ? planItem.allocations.filter((entry) =>
-      Number(entry?.pharmacy_id || 0) === normalizedPharmacyId && Number(entry?.matched_quantity || 0) > 0
-    )
-    : []
-
-  if (matchingAllocations.length) {
-    return matchingAllocations.slice().sort((a, b) => {
-      if (Number(b.matched_quantity || 0) !== Number(a.matched_quantity || 0)) {
-        return Number(b.matched_quantity || 0) - Number(a.matched_quantity || 0)
-      }
-      return Number(a.distance_km || 0) - Number(b.distance_km || 0)
-    })[0]
-  }
-
-  if (Number(planItem?.source_pharmacy_id || 0) === normalizedPharmacyId && Number(planItem?.matched_quantity || 0) > 0) {
-    return {
-      pharmacy_id: normalizedPharmacyId,
-      matched_quantity: Number(planItem.matched_quantity || 0),
-      unit_price: planItem.unit_price
-    }
-  }
-
-  return null
-}
-
-const applyCandidatePlan = async (input: FulfillmentPlan & { plan?: FulfillmentPlan; pharmacy?: PharmacyQueueEntry }) => {
-  const plan = input?.plan || input
-  const selectedPharmacy = input?.pharmacy || null
-  const selectedPharmacyId = Number(selectedPharmacy?.id || selectedPharmacy?.pharmacy_id || 0)
-  const hasPlanPharmacies = Array.isArray(plan?.pharmacies) && plan.pharmacies.length > 0
-
-  if (!selectedRequest.value || !Array.isArray(selectedRequest.value.items) || (!hasPlanPharmacies && selectedPharmacyId <= 0)) {
-    return
-  }
-
-  loading.value = true
-  const items = selectedRequest.value.items
-  const effectivePlanPharmacies = hasPlanPharmacies
-    ? (plan.pharmacies ?? [])
-    : [{ pharmacy_id: selectedPharmacyId, pharmacy_name: selectedPharmacy?.name || `Pharmacy ${selectedPharmacyId}` }]
-  const planPharmacyIds = new Set(effectivePlanPharmacies.map((entry) => Number(entry?.pharmacy_id || 0)).filter((id) => id > 0))
-  const defaultPharmacyId = Number(effectivePlanPharmacies[0]?.pharmacy_id || 0) || ''
-  const fallbackPlanItems = (selectedPharmacy?.coverage_items || []).map((entry) => ({
-    item_id: Number(entry?.item_id || 0),
-    matched_quantity: Number(entry?.matched_quantity || 0),
-    available_quantity: Number(entry?.available_quantity || 0),
-    unit_price: entry?.unit_price != null ? Number(entry.unit_price) : null,
-    source_pharmacy_id: selectedPharmacyId,
-    allocations: Number(entry?.matched_quantity || 0) > 0
-      ? [{
-        pharmacy_id: selectedPharmacyId,
-        matched_quantity: Number(entry?.matched_quantity || 0),
-        available_quantity: Number(entry?.available_quantity || 0),
-        unit_price: entry?.unit_price != null ? Number(entry.unit_price) : null
-      }]
-      : []
-  }))
-  const planItemsById = new Map((hasPlanPharmacies ? (plan.items || []) : fallbackPlanItems).map((entry) => [Number(entry?.item_id || 0), entry]))
-  const unmatchedItems = []
-  let coveredItems = 0
-
-  try {
-    items.forEach((item) => {
-      const planItem = planItemsById.get(Number(item.id))
-      const pharmacyAllocation = selectedPharmacyId > 0
-        ? getPlanAllocationForPharmacy(planItem, selectedPharmacyId)
-        : null
-      const missingFromPlan = selectedPharmacyId > 0
-        ? !pharmacyAllocation
-        : isPlanItemMissing(planItem)
-
-      if (missingFromPlan) {
-        item.allocation_pharmacy_id = ''
-        item.allocation_quantity = getRequestedQuantity(item)
-        item.allocation_type = 'exact'
-        item.allocation_status = 'confirmed'
-        item.allocation_unit_price = ''
-        item.substitute_name = ''
-        item.substitute_note = ''
-        unmatchedItems.push(item)
-        return
-      }
-
-      coveredItems += 1
-      const itemPlanAllocations = selectedPharmacyId > 0
-        ? (pharmacyAllocation ? [pharmacyAllocation] : [])
-        : (Array.isArray(planItem?.allocations)
-          ? planItem.allocations.filter((entry) => Number(entry?.matched_quantity || 0) > 0)
-          : [])
-      const preferredAllocation = selectedPharmacyId > 0
-        ? pharmacyAllocation
-        : itemPlanAllocations.slice().sort((a, b) => {
-          if (Number(b.matched_quantity || 0) !== Number(a.matched_quantity || 0)) {
-            return Number(b.matched_quantity || 0) - Number(a.matched_quantity || 0)
-          }
-          return Number((a as { distance_km?: number }).distance_km || 0) - Number((b as { distance_km?: number }).distance_km || 0)
-        })[0] || null
-      const explicitPharmacyId = Number(
-        preferredAllocation?.pharmacy_id
-        || planItem?.source_pharmacy_id
-        || 0
-      )
-      const currentItemSelection = Number(item.allocation_pharmacy_id || item.source_pharmacy_id || 0)
-      if (explicitPharmacyId > 0) {
-        item.allocation_pharmacy_id = explicitPharmacyId
-      } else if (planPharmacyIds.has(currentItemSelection)) {
-        item.allocation_pharmacy_id = currentItemSelection
-      } else {
-        item.allocation_pharmacy_id = defaultPharmacyId
-      }
-
-      const matchedQuantity = Number(
-        preferredAllocation?.matched_quantity
-        || planItem?.matched_quantity
-        || 0
-      )
-      const sourcedUnitPrice = preferredAllocation?.unit_price !== undefined && preferredAllocation?.unit_price !== null
-        ? Number(preferredAllocation.unit_price)
-        : (planItem?.unit_price !== undefined && planItem?.unit_price !== null
-          ? Number(planItem.unit_price)
-          : null)
-      item.allocation_quantity = matchedQuantity > 0
-        ? Math.min(getRequestedQuantity(item), Math.max(1, Math.floor(matchedQuantity)))
-        : getRequestedQuantity(item)
-      item.allocation_type = 'exact'
-      item.allocation_status = 'confirmed'
-      item.allocation_unit_price = ''
-      item.substitute_name = ''
-      item.substitute_note = ''
-      if (sourcedUnitPrice !== null && Number.isFinite(sourcedUnitPrice) && sourcedUnitPrice > 0) {
-        const normalizedUnitPrice = Number(sourcedUnitPrice.toFixed(2))
-        item.edit_price = normalizedUnitPrice
-        item.unit_price = normalizedUnitPrice
-        item.marked_up_price = normalizedUnitPrice
-        item.line_total = Number((normalizedUnitPrice * Number(getRequestedQuantity(item) || 0)).toFixed(2))
-        if (item.editing === undefined) item.editing = false
-      }
-    })
-
-    if (unmatchedItems.length > 0) {
-      const sourceLabel = selectedPharmacy?.name || plan.label || 'selected source'
-      showMessage(`Prefilled ${coveredItems} matched item(s) from ${sourceLabel}; ${unmatchedItems.length} left unchanged`, 'success')
-    } else {
-      const sourceLabel = selectedPharmacy?.name || String(plan.label || 'selected source').toLowerCase()
-      showMessage(`Prefilled confirmed allocation controls from ${sourceLabel}`, 'success')
-    }
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to apply plan', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-interface AllocationSource {
-  allocation_type?: string; allocation_pharmacy_id?: number | string
-  allocation_quantity?: number; substitute_name?: string; substitute_note?: string
-  allocation_unit_price?: number | string | null; edit_price?: number | string | null
-  unit_price?: number | null; [key: string]: unknown
-}
-const buildAllocationPayload = (item: RequestItem, source: AllocationSource = item) => {
-  const allocationType = source.allocation_type || 'exact'
-  const pharmacyId = Number(source.allocation_pharmacy_id || 0)
-  const quantity = Number(source.allocation_quantity || 0)
-  if (!Number.isInteger(pharmacyId) || pharmacyId <= 0) {
-    throw new Error('Choose a pharmacy before creating an allocation')
-  }
-
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new Error('Allocation quantity must be greater than 0')
-  }
-
-  if (allocationType === 'substitute' && !String(source.substitute_name || '').trim()) {
-    throw new Error('Alternative name is required before saving')
-  }
-
-  const allocationUnitPrice = source.allocation_unit_price === '' || source.allocation_unit_price === null || source.allocation_unit_price === undefined
-    ? null
-    : Number(source.allocation_unit_price)
-  const exactUnitPrice = source.edit_price === '' || source.edit_price === null || source.edit_price === undefined
-    ? (source.unit_price === null || source.unit_price === undefined ? null : Number(source.unit_price))
-    : Number(source.edit_price)
-
-  if (allocationType === 'substitute' && (allocationUnitPrice === null || !Number.isFinite(allocationUnitPrice) || allocationUnitPrice <= 0)) {
-    throw new Error('Alternative price must be greater than 0')
-  }
-
-  return {
-    pharmacy_id: pharmacyId,
-    allocated_quantity: quantity,
-    allocation_type: allocationType,
-    substitute_name: allocationType === 'substitute' ? String(source.substitute_name || '').trim() : null,
-    substitute_note: allocationType === 'substitute' ? String(source.substitute_note || '').trim() : null,
-    unit_price: allocationType === 'substitute'
-      ? allocationUnitPrice
-      : (exactUnitPrice !== null && Number.isFinite(exactUnitPrice) && exactUnitPrice > 0 ? exactUnitPrice : null),
-    status: 'confirmed'
   }
 }
 
@@ -6512,199 +5034,16 @@ const refreshSelectedRequestDetails = async () => {
   }
 }
 
-const applyCandidatePlanNow = async (plan: FulfillmentPlan) => {
-  if (!selectedRequest.value) return
-
-  await applyCandidatePlan(plan)
-
-  loading.value = true
-  try {
-    for (const item of selectedRequest.value.items || []) {
-      if (item.item_status === 'not_available' || item.sourcing_status === 'unavailable') {
-        continue
-      }
-      if (!Number(item.allocation_pharmacy_id || 0)) {
-        continue
-      }
-      const payload = buildAllocationPayload(item)
-      await apiCall('POST', `/api/order-requests/admin/items/${item.id}/allocations`, payload)
-    }
-
-    await refreshSelectedRequestState()
-    showMessage(`Applied ${(plan.label ?? '').toLowerCase()} as confirmed allocations`, 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to apply suggested plan', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-const createAllocationForItem = async (item: RequestItem, options: { autoAdvance?: boolean } = { autoAdvance: true }) => {
-  if (!selectedRequest.value) return
-
-  if (item?.selection_dirty) {
-    showMessage('Pick one of the numbered pharmacy choices before saving this selection', 'error')
-    return
-  }
-
-  loading.value = true
-  try {
-    if (
-      Number(item?.allocation_pharmacy_id || 0) > 0
-      || Number(item?.selected_source_product_id || 0) > 0
-      || item?.selected_source_distance_km !== null
-    ) {
-      await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-        source_pharmacy_id: Number(item?.allocation_pharmacy_id || 0) || null,
-        source_product_id: Number(item?.selected_source_product_id || 0) || null,
-        source_distance_km: item?.selected_source_distance_km ?? null
-      })
-    }
-
-    const payload = buildAllocationPayload(item)
-    await apiCall('POST', `/api/order-requests/admin/items/${item.id}/allocations`, payload)
-
-    item.showProductDropdown = false
-    item.productSearchResults = []
-
-    await refreshSelectedRequestState()
-    
-    if (options.autoAdvance) {
-      advanceToNextRequestItem(item.id)
-    }
-    
-    showMessage('Selection saved', 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to create allocation', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-const startAllocationEdit = (allocation: Allocation) => {
-  hydrateAllocationUiState(allocation)
-  allocation.editing = true
-}
-
-const cancelAllocationEdit = (allocation: Allocation) => {
-  allocation.editing = false
-  allocation.edit_allocated_quantity = Number(allocation.allocated_quantity || 1)
-  allocation.edit_allocation_type = allocation.allocation_type || 'exact'
-  allocation.edit_status = allocation.status || 'confirmed'
-  allocation.edit_substitute_name = allocation.substitute_name || ''
-  allocation.edit_substitute_note = allocation.substitute_note || ''
-}
-
-const saveAllocation = async (item: RequestItem, allocation: Allocation) => {
-  const quantity = Number(allocation.edit_allocated_quantity || 0)
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    showMessage('Allocation quantity must be greater than 0', 'error')
-    return
-  }
-
-  if (allocation.edit_allocation_type === 'substitute' && !String(allocation.edit_substitute_name || '').trim()) {
-    showMessage('Substitute name is required for substitute allocations', 'error')
-    return
-  }
-
-  loading.value = true
-  try {
-    await apiCall('PUT', `/api/order-requests/admin/allocations/${allocation.id}`, {
-      allocated_quantity: quantity,
-      allocation_type: allocation.edit_allocation_type || 'exact',
-      status: allocation.edit_status || 'confirmed',
-      substitute_name: allocation.edit_allocation_type === 'substitute' ? String(allocation.edit_substitute_name || '').trim() : null,
-      substitute_note: allocation.edit_allocation_type === 'substitute' ? String(allocation.edit_substitute_note || '').trim() : null,
-    })
-
-    await refreshSelectedRequestState()
-    showMessage(`${formatAllocationStatusLabel(allocation.edit_status)} allocation updated for ${item.product_name}`, 'success')
-  } catch (e) {
-    showMessage('Failed to update allocation', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-const saveItemPrice = async (item: RequestItem) => {
-  const sourcePharmacyId = Number(item?.allocation_pharmacy_id || item?.source_pharmacy_id || 0)
-  const sourceProductId = Number(item?.selected_source_product_id || item?.source_product_id || 0)
-  const sourceDistanceKm = item?.selected_source_distance_km ?? item?.source_distance_km ?? null
-  const requestedUnit = String(item?.requested_unit || '').trim().toLowerCase()
-  const quantity = Number(item?.allocation_quantity || item?.requested_quantity || item?.quantity || 1)
-  const unitPrice = item?.edit_price === '' || item?.edit_price === null || item?.edit_price === undefined
-    ? Number(item?.unit_price || item?.marked_up_price || 0)
-    : Number(item.edit_price)
-
-  if (!Number.isInteger(sourcePharmacyId) || sourcePharmacyId <= 0) {
-    showMessage('Choose a pharmacy selection before saving', 'error')
-    return
-  }
-
-  if (!Number.isInteger(sourceProductId) || sourceProductId <= 0) {
-    showMessage('Choose a saved pharmacy product before saving', 'error')
-    return
-  }
-
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    showMessage('Quantity must be greater than 0', 'error')
-    return
-  }
-
-  if (!Number.isFinite(unitPrice) || unitPrice < 0) {
-    showMessage('Customer price must be a valid amount', 'error')
-    return
-  }
-
-  loading.value = true
-  try {
-    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-      source_pharmacy_id: sourcePharmacyId,
-      source_product_id: sourceProductId,
-      source_distance_km: sourceDistanceKm,
-      requested_unit: requestedUnit,
-      quantity,
-      requested_quantity: quantity,
-      unit_price: unitPrice,
-      item_status: 'available'
-    })
-
-    await refreshSelectedRequestState()
-    showMessage('Selection updated', 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to update selection', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-
-const clearSavedSelection = async (item: RequestItem) => {
+const deleteRequestItem = (item: RequestItem) => {
   if (!item?.id) return
-
-  loading.value = true
-  try {
-    const isPrescriptionSelection = String(item?.source_type || '').trim().toLowerCase() === 'prescription'
-
-    await apiCall('PUT', `/api/order-requests/admin/items/${item.id}`, {
-      clear_selection: true,
-      remove_saved_selection: isPrescriptionSelection
-    })
-
-    await refreshSelectedRequestState()
-    showMessage('Saved selection cleared', 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to clear saved selection', 'error')
-  } finally {
-    loading.value = false
-  }
+  ask({
+    title: `Delete "${item.product_name}" from this request?`,
+    message: 'The item is removed from the request right away.',
+    confirmText: 'Yes, delete',
+  }, () => doDeleteRequestItem(item))
 }
 
-const deleteRequestItem = async (item: RequestItem) => {
-  if (!item?.id) return
-
-  const confirmed = window.confirm(`Delete "${item.product_name}" from this request?`)
-  if (!confirmed) return
-
+const doDeleteRequestItem = async (item: RequestItem) => {
   loading.value = true
   try {
     await apiCall('DELETE', `/api/order-requests/admin/items/${item.id}`)
@@ -6727,9 +5066,8 @@ const formatStatus = (status: string | null | undefined) => {
   if (status && STATUS_LABEL_OVERRIDES[status as keyof typeof STATUS_LABEL_OVERRIDES]) return STATUS_LABEL_OVERRIDES[status as keyof typeof STATUS_LABEL_OVERRIDES]
   return (status || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
 }
-const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
 const formatDateTime = (d: string | null | undefined) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-'
-const formatCurrency = (value: number | string | null | undefined) => `GHS ${Number(value || 0).toFixed(2)}`
+const formatCurrency = formatGhs
 const formatRelativeTime = (d: string | null | undefined) => {
   if (!d) return null
   const diffMs = Date.now() - new Date(d).getTime()
@@ -6742,11 +5080,6 @@ const formatRelativeTime = (d: string | null | undefined) => {
   const diffMonths = Math.floor(diffDays / 30)
   return `${diffMonths}mo ago`
 }
-const formatSignedCurrency = (value: number | string | null | undefined) => {
-  const amount = Number(value || 0)
-  const sign = amount > 0 ? '+' : amount < 0 ? '-' : ''
-  return `${sign}GHS ${Math.abs(amount).toFixed(2)}`
-}
 const formatRatingStars = (rating: number | string | null | undefined) => {
   const safeRating = Math.max(0, Math.min(5, Number(rating || 0)))
   return `${'★'.repeat(safeRating)}${'☆'.repeat(Math.max(5 - safeRating, 0))}`
@@ -6758,108 +5091,12 @@ const formatExcludedReason = (reason: string | null | undefined) => {
   return 'Not included'
 }
 const formatDistance = (km: number | string | null | undefined) => `${Number(km || 0).toFixed(1)} km`
-const normalizeItemStatus = (item: RequestItem | null | undefined) => {
-  const rawStatus = item?.sourcing_status || item?.item_status || 'pending'
-  const hasQuote = Number(item?.unit_price || 0) > 0 || Number(item?.marked_up_price || 0) > 0
-
-  if (rawStatus === 'unavailable' || item?.item_status === 'not_available') return 'unavailable'
-  if (hasQuote) return 'confirmed'
-  return rawStatus
-}
-const isItemUnavailable = (item: RequestItem | null | undefined) => normalizeItemStatus(item) === 'unavailable'
-const getLatestSubstituteAllocation = (item: RequestItem | null | undefined) => {
-  if (!Array.isArray(item?.allocations)) return null
-
-  const substituteAllocations = item.allocations
-    .filter((allocation: Allocation) => {
-      const type = String(allocation?.allocation_type || '').toLowerCase()
-      const status = String(allocation?.status || '').toLowerCase()
-      return type === 'substitute' && ['proposed', 'confirmed'].includes(status)
-    })
-    .sort((a: Allocation, b: Allocation) => {
-      const aTime = new Date(a?.updated_at || a?.created_at || 0).getTime()
-      const bTime = new Date(b?.updated_at || b?.created_at || 0).getTime()
-      return bTime - aTime
-    })
-
-  return substituteAllocations[0] || null
-}
-const getItemSubstituteDetails = (item: RequestItem | null | undefined) => {
-  const allocation = getLatestSubstituteAllocation(item)
-  if (allocation) {
-    const name = String(allocation.substitute_name || '').trim() || String(item?.substitute_name || '').trim()
-    if (!name) return null
-    const price = allocation.unit_price === null || allocation.unit_price === undefined
-      ? null
-      : Number(allocation.unit_price)
-    return {
-      name,
-      note: String(allocation.substitute_note || '').trim() || null,
-      price: Number.isFinite(price) ? price : null
-    }
-  }
-
-  const name = String(item?.substitute_name || '').trim()
-  if (!name) return null
-  const rawPrice = item?.allocation_unit_price
-  const price = rawPrice === null || rawPrice === undefined || rawPrice === ''
-    ? null
-    : Number(rawPrice)
-
-  return {
-    name,
-    note: String(item?.substitute_note || '').trim() || null,
-    price: Number.isFinite(price) ? price : null
-  }
-}
-
-const saveAlternativeForItem = async () => {
-  const item = alternativeModal.value.item
-  if (!item) return
-
-  loading.value = true
-  try {
-    const payload = buildAllocationPayload(item, {
-      allocation_type: 'substitute',
-      allocation_pharmacy_id: alternativeModal.value.pharmacy_id,
-      allocation_quantity: alternativeModal.value.allocated_quantity,
-      substitute_name: alternativeModal.value.name,
-      substitute_note: alternativeModal.value.note,
-      allocation_unit_price: alternativeModal.value.price
-    })
-
-    await apiCall('POST', `/api/order-requests/admin/items/${item.id}/allocations`, payload)
-    await refreshSelectedRequestState()
-    closeAlternativeModal()
-    showMessage('Alternative saved', 'success')
-  } catch (e) {
-    showMessage(errMsg(e) || 'Failed to save alternative', 'error')
-  } finally {
-    loading.value = false
-  }
-}
-const formatItemStatus = (item: RequestItem | null | undefined) => normalizeItemStatus(item)
-const itemStatusClass = (item: RequestItem | null | undefined) => normalizeItemStatus(item)
-const formatQueueState = (state: string | null | undefined) => (state || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
-const formatAllocationTypeLabel = (value: string | null | undefined) => ({ exact: 'Exact', substitute: 'Alternative' } as Record<string, string>)[value ?? ''] ?? 'Exact'
-const formatAllocationStatusLabel = (value: string | null | undefined) => ({ proposed: 'Confirmed', confirmed: 'Confirmed', declined: 'Declined', expired: 'Expired' } as Record<string, string>)[value ?? ''] ?? 'Confirmed'
-const allocationStatusClass = (value: string | null | undefined) => ({
-  confirmed: value === 'confirmed' || value === 'proposed',
-  declined: value === 'declined',
-  expired: value === 'expired'
-})
-const createAllocationLabel = (item: RequestItem | null | undefined) => item?.allocation_status === 'confirmed'
-  ? 'Add Confirmed Allocation'
-  : 'Add Confirmed Allocation'
-const queueStateClass = (state: string | null | undefined) => ({
-  success: ['full'].includes(state ?? ''),
-  current: ['awaiting_response', 'partial'].includes(state ?? ''),
-  muted: ['not_contacted', 'pending', 'unknown'].includes(state ?? ''),
-  danger: ['declined', 'timeout'].includes(state ?? '')
-})
+// One toast slot: a newer message restarts the clock, so an older timer cannot clear it early.
+let messageTimer: ReturnType<typeof setTimeout> | null = null
 const showMessage = (text: string, type = 'success') => {
   message.value = { text, type }
-  setTimeout(() => { message.value = null }, 4000)
+  if (messageTimer) clearTimeout(messageTimer)
+  messageTimer = setTimeout(() => { message.value = null; messageTimer = null }, 4000)
 }
 
 const pollRequestList = async () => {
@@ -6911,6 +5148,7 @@ onUnmounted(() => {
 })
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })

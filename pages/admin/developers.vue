@@ -1,5 +1,6 @@
 <template>
   <div class="admin-developers">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <div class="page-header">
       <div>
         <h1 class="page-title">Developer API</h1>
@@ -299,11 +300,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
-import { useRuntimeConfig } from '#app'
 import { createDeveloperPortalService } from '~/services/developerPortal/developerPortalService'
 import type { ApiKey } from '~/services/developerPortal/developerPortalService'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
 
-definePageMeta({ layout: 'admin-layout', middleware: ['admin-auth'] })
+const { pending, ask, accept, cancel } = useConfirmAction()
+
+definePageMeta({ requiredRole: 'auditor', layout: 'admin-layout', middleware: ['admin-auth'] })
 
 const api = useApi()
 const svc = createDeveloperPortalService(api)
@@ -361,9 +365,16 @@ const loadKeys = async () => {
   } finally { keysLoading.value = false }
 }
 
-const revokeKey = async (key: ApiKey) => {
+const askToRevoke = (key: ApiKey, run: () => Promise<void>) =>
+  ask({ title: `Revoke "${key.key_name}"?`, message: 'Anything using this key will stop working. This cannot be undone.', confirmText: 'Yes, revoke' }, run)
+
+const revokeKey = (key: ApiKey) => {
   if (!selectedCompany.value) return
-  if (!confirm(`Revoke "${key.key_name}"? Cannot be undone.`)) return
+  askToRevoke(key, () => doRevokeKey(key))
+}
+
+const doRevokeKey = async (key: ApiKey) => {
+  if (!selectedCompany.value) return
   try {
     await svc.revokeKey(selectedCompany.value.id, key.id)
     showToast(`${key.key_name} revoked`)
@@ -383,8 +394,9 @@ const loadPlatformKeys = async () => {
   } finally { platformKeysLoading.value = false }
 }
 
-const revokePlatformKey = async (key: ApiKey) => {
-  if (!confirm(`Revoke "${key.key_name}"? Cannot be undone.`)) return
+const revokePlatformKey = (key: ApiKey) => askToRevoke(key, () => doRevokePlatformKey(key))
+
+const doRevokePlatformKey = async (key: ApiKey) => {
   try {
     await svc.revokePlatformKey(key.id)
     showToast(`${key.key_name} revoked`)
@@ -464,12 +476,12 @@ const docGroups = computed(() => [
     ]},
   { scope: 'customer_auth', name: 'Customer Auth', description: 'Register and authenticate end-customers.',
     endpoints: [
-      { method: 'POST', path: '/api/v1/customer-auth/check-phone', description: 'Check phone status',
-        body: '{ "phone": "+233201234567" }', response: '{ "success": true, "data": { "status": "new_customer|registered|existing_customer_no_password" } }' },
-      { method: 'POST', path: '/api/v1/customer-auth/register', description: 'Register customer',
+      { method: 'POST', path: '/api/v1/customer-auth/check-phone', description: 'Validate and normalize a phone number. Does not reveal whether an account exists.',
+        body: '{ "phone": "+233201234567" }', response: '{ "success": true, "data": { "phone": "+233201234567" } }' },
+      { method: 'POST', path: '/api/v1/customer-auth/register', description: 'Register customer. Company-scoped keys can register only under their own pharmacy; platform keys may pass company_id or omit it for a global customer.',
         body: '{\n  "fname": "John", "lname": "Doe",\n  "phone": "+233201234567",\n  "password": "securepass123",\n  "otp": "123456"\n}',
         response: '{ "success": true, "data": { "master_customer": {...}, "token": "<JWT>", "refresh_token": "..." } }' },
-      { method: 'POST', path: '/api/v1/customer-auth/login', description: 'Login customer',
+      { method: 'POST', path: '/api/v1/customer-auth/login', description: 'Login customer. Company-scoped keys are limited to their own pharmacy; platform keys may pass company_id.',
         body: '{ "phone": "+233201234567", "password": "securepass123" }',
         response: '{ "success": true, "data": { "master_customer": {...}, "token": "<JWT>" } }' },
     ]},
@@ -508,9 +520,9 @@ const docGroups = computed(() => [
     ]},
   { scope: 'wallets', name: 'Wallets', description: 'Read balances and top up via Paystack.',
     endpoints: [
-      { method: 'GET', path: '/api/v1/wallets/customer/:customerId', description: 'Customer balance',
+      { method: 'GET', path: '/api/v1/wallets/customer/:customerId', description: 'Customer balance. Requires x-api-key plus Authorization: Bearer <customer_access_token>; customerId must match the signed-in customer.',
         response: '{ "success": true, "data": { "balance": 25.00, "total_topped_up": 100.00 } }' },
-      { method: 'POST', path: '/api/v1/wallets/customer/:customerId/topup', description: 'Initiate top-up',
+      { method: 'POST', path: '/api/v1/wallets/customer/:customerId/topup', description: 'Initiate top-up. Requires x-api-key plus the matching customer access token.',
         body: '{ "amount": 50, "callback_url": "https://yourapp.com/verify" }',
         response: '{ "success": true, "data": { "authorization_url": "https://checkout.paystack.com/...", "reference": "pay_xxx" } }' },
       { method: 'GET', path: '/api/v1/wallets/company', description: 'Company wallet',
@@ -535,7 +547,7 @@ const docGroups = computed(() => [
       { method: 'DELETE', path: '/api/v1/discounts/:id', description: 'Deactivate a code.',
         response: '{ "success": true, "message": "Discount code deactivated" }' },
     ]},
-  { scope: 'companies', name: 'Companies', description: 'Search and read the pharmacy directory. Platform keys only.',
+  { scope: 'companies', name: 'Companies', description: 'Platform keys can search and read the full pharmacy directory. Company-scoped keys can read only their own pharmacy profile.',
     endpoints: [
       { method: 'GET', path: '/api/v1/companies', description: 'Paginated list of all pharmacies. Optional ?type= filter.',
         response: '{ "success": true, "count": 50, "data": [{ "id": 5, "name": "Clifton Pharmacy", "domain_name": "clifton", "region": "Greater Accra", ... }] }' },

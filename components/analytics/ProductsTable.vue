@@ -154,7 +154,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
-import { useAdminStore } from '~/stores/admin'
+import { useCrossTenantReports } from '~/composables/useCrossTenantReports'
 import phoneUtils from '~/utils/phone'
 
 interface Product {
@@ -174,14 +174,11 @@ interface Pagination {
   has_more: boolean;
 }
 
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (url: string) => Promise<{
-    success?: boolean;
-    data?: { products?: Product[]; pagination?: Pagination };
-    companies?: Company[];
-    message?: string;
-  }>;
+interface ProductsResponse {
+  success?: boolean;
+  data?: { products?: Product[]; pagination?: Pagination };
+  companies?: Company[];
+  message?: string;
 }
 
 // Props
@@ -204,8 +201,8 @@ const emit = defineEmits<{
   'loaded': [payload: { products: Product[]; pagination: Pagination }];
 }>()
 
-// Store
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+// Reports
+const reports = useCrossTenantReports()
 
 // State
 const loading = ref<boolean>(false)
@@ -287,10 +284,7 @@ const loadProducts = async (): Promise<void> => {
       params['clearanceOnly'] = 'true'
     }
 
-    const queryString = new URLSearchParams(params).toString()
-    const url = `${props.apiEndpoint ?? '/api/inventory-analytics/search-products'}?${queryString}`
-
-    const data = await adminStore.makeAuthRequest(url)
+    const data = await reports.searchProducts(params, props.apiEndpoint) as ProductsResponse
 
     if (data.success) {
       products.value = data.data?.products ?? []
@@ -310,7 +304,7 @@ const loadProducts = async (): Promise<void> => {
 
 const loadCompanies = async (): Promise<void> => {
   try {
-    const data = await adminStore.makeAuthRequest('/api/companies')
+    const data = await reports.listCompanies() as ProductsResponse
     if (data.success) {
       companies.value = data.companies ?? []
     }

@@ -17,11 +17,11 @@
           </div>
           <div class="info-row">
             <span>Available Money:</span>
-            <strong>₵{{ formatCurrency(availableBalance) }}</strong>
+            <strong>{{ formatCurrency(availableBalance) }}</strong>
           </div>
           <div class="info-row">
             <span>SMS Rate:</span>
-            <strong>₵{{ formatCurrency(smsRate) }} per SMS</strong>
+            <strong>{{ formatCurrency(smsRate) }} per SMS</strong>
           </div>
         </div>
 
@@ -51,19 +51,19 @@
             </div>
             <div class="breakdown-row">
               <span>Rate per SMS:</span>
-              <span>₵{{ formatCurrency(smsRate) }}</span>
+              <span>{{ formatCurrency(smsRate) }}</span>
             </div>
             <div class="breakdown-divider"></div>
             <div class="breakdown-row total">
               <span>Total Cost:</span>
-              <span>₵{{ formatCurrency(calculateTotalCost) }}</span>
+              <span>{{ formatCurrency(calculateTotalCost) }}</span>
             </div>
           </div>
 
           <!-- Warnings -->
           <div v-if="form.smsCount && calculateTotalCost > (availableBalance ?? 0)" class="error-message">
             <Icon name="AlertCircle" size="16" />
-            <span>Insufficient balance. You need ₵{{ formatCurrency(calculateTotalCost - (availableBalance ?? 0)) }} more.</span>
+            <span>Insufficient balance. You need {{ formatCurrency(calculateTotalCost - (availableBalance ?? 0)) }} more.</span>
           </div>
 
           <!-- Action Buttons -->
@@ -95,6 +95,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { formatGhs } from '~/utils/money'
 
 const props = defineProps<{
   isOpen?: boolean
@@ -117,10 +118,7 @@ const calculateTotalCost = computed<number>(
   () => (form.value.smsCount ?? 0) * (props.smsRate ?? 0.05),
 )
 
-const formatCurrency = (value: number | null | undefined): string => {
-  if (!value && value !== 0) return '0.00'
-  return parseFloat(String(value)).toFixed(2)
-}
+const formatCurrency = formatGhs
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const calculateCost = (): void => {}

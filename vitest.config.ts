@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
@@ -14,5 +14,13 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
+    // Browser specs: Playwright runs these (playwright.config.js, playwright.email-auth.config.js).
+    exclude: [
+      ...configDefaults.exclude,
+      'tests/e2e/**',
+      'tests/order-requests.test.js',
+      'tests/professional-feature.test.js',
+      'tests/sales-reports-mobile.test.js',
+    ],
   },
 })

@@ -83,3 +83,16 @@ describe('customer auth service: email sign-up', () => {
     expect(api.post.mock.calls[0][1]).toMatchObject({ company_id: 5 })
   })
 })
+
+describe('customer auth service: ending a cookie session', () => {
+  it('asks for the CSRF token, then logs out with the cookie and that token', async () => {
+    const { api, service } = make()
+    api.get.mockResolvedValue({ success: true, data: { csrf_token: 'csrf-9' } })
+    api.post.mockResolvedValue({ success: true })
+
+    await service.endCookieSession()
+
+    expect(api.get).toHaveBeenCalledWith('/api/auth/csrf', { credentials: 'include' })
+    expect(api.post).toHaveBeenCalledWith('/api/auth/logout', {}, { credentials: 'include', headers: { 'X-CSRF-Token': 'csrf-9' } })
+  })
+})

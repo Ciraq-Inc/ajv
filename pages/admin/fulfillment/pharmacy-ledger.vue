@@ -115,9 +115,9 @@
               <label>Lines</label>
               <span>{{ selectedPharmacy.transaction_count }}</span>
             </div>
-            <button class="btn-export" @click="() => {}">
+            <button class="btn-export" :disabled="exporting" @click="exportCsv">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Export CSV
+              {{ exporting ? 'Exporting...' : 'Export CSV' }}
             </button>
           </div>
         </div>
@@ -198,8 +198,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { createOrderRequestsService } from '~/services/orderRequests/orderRequestsService'
+import { downloadCsv, toCsv } from '~/utils/csv'
+import { formatGhs } from '~/utils/money'
 
-definePageMeta({ middleware: ['admin-auth'], layout: 'admin-layout' })
+definePageMeta({ requiredRole: 'order_processor', middleware: ['admin-auth'], layout: 'admin-layout' })
 
 interface PharmacyRow {
   pharmacy_id?: number | null
@@ -253,6 +255,7 @@ const toDate = ref<string>('')
 const selectedPharmacyId = ref<number | null>(null)
 const quickRange = ref<string>('30d')
 const applyingRange = ref<boolean>(false)
+const exporting = ref<boolean>(false)
 
 const ranges: Array<{ value: string; label: string }> = [
   { value: 'today', label: 'Today' },
@@ -275,8 +278,7 @@ const filteredPharmacies = computed<PharmacyRow[]>(() => {
   })
 })
 
-const formatCurrency = (value: number | null | undefined): string =>
-  `GHS ${Number(value ?? 0).toFixed(2)}`
+const formatCurrency = formatGhs
 
 const prettyDate = (value: string | null | undefined): string => {
   if (!value) return 'All time'
@@ -347,7 +349,12 @@ const applyQuickRange = (range: string): void => {
   applyingRange.value = false
 }
 
+// Only the newest request may write to the page: clicking through pharmacies quickly must not let a
+// slow earlier answer replace the one on screen.
+let latestLoad = 0
+
 const loadLedger = async ({ pharmacyId = null }: { pharmacyId?: number | null } = {}): Promise<void> => {
+  const thisLoad = ++latestLoad
   loading.value = true
   error.value = ''
   try {
@@ -358,6 +365,7 @@ const loadLedger = async ({ pharmacyId = null }: { pharmacyId?: number | null } 
       ...(fromDate.value && { startDate: fromDate.value }),
       ...(toDate.value && { endDate: toDate.value }),
     })
+    if (thisLoad !== latestLoad) return
     ledger.value = (res.data as unknown as LedgerData) ?? { summary: {}, pharmacies: [], selected_pharmacy: null, transactions: [] }
 
     if (!selectedPharmacyId.value) {
@@ -365,9 +373,48 @@ const loadLedger = async ({ pharmacyId = null }: { pharmacyId?: number | null } 
         (ledger.value.selected_pharmacy?.pharmacy_id ?? ledger.value.pharmacies?.[0]?.pharmacy_id ?? null) as number | null
     }
   } catch (err) {
+    if (thisLoad !== latestLoad) return
     error.value = err instanceof Error ? err.message : 'Failed to load pharmacy ledger'
   } finally {
-    loading.value = false
+    if (thisLoad === latestLoad) loading.value = false
+  }
+}
+
+// The page shows the first 50 lines; the export walks the API in pages of 100 until it runs out.
+const EXPORT_PAGE_SIZE = 100
+const exportCsv = async (): Promise<void> => {
+  if (exporting.value || selectedPharmacyId.value == null) return
+  exporting.value = true
+  error.value = ''
+  try {
+    const rows: TransactionRow[] = []
+    for (let offset = 0; ; offset += EXPORT_PAGE_SIZE) {
+      const res = await orderRequestsService.getPharmacyLedger({
+        limit: EXPORT_PAGE_SIZE,
+        offset,
+        pharmacyId: selectedPharmacyId.value,
+        ...(fromDate.value && { startDate: fromDate.value }),
+        ...(toDate.value && { endDate: toDate.value }),
+      })
+      const page = ((res.data as unknown as LedgerData)?.transactions ?? []) as TransactionRow[]
+      rows.push(...page)
+      if (page.length < EXPORT_PAGE_SIZE) break
+    }
+    const csv = toCsv(rows, [
+      { key: 'transaction_date', header: 'Date' },
+      { key: 'request_number', header: 'Request' },
+      { key: 'customer_name', header: 'Customer' },
+      { key: 'product_name', header: 'Product' },
+      { key: 'quantity', header: 'Qty' },
+      { key: 'request_status', header: 'Status' },
+      { key: 'amount', header: 'Amount' },
+    ])
+    const name = String(selectedPharmacy.value?.pharmacy_name ?? 'pharmacy').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+    downloadCsv(`pharmacy-ledger-${name}.csv`, csv)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to export the ledger'
+  } finally {
+    exporting.value = false
   }
 }
 

@@ -1,5 +1,6 @@
 // Extracted from pages/admin/fulfillment/order-requests.vue — pure format helpers
 // No reactive state. Import and destructure what you need.
+import { formatGhs, formatSignedGhs } from '~/utils/money'
 
 const STATUS_LABEL_OVERRIDES: Record<string, string> = {
   awaiting_method_selection: 'Payment Pending',
@@ -31,8 +32,7 @@ export const formatDateTime = (d: string | Date | null | undefined): string =>
       })
     : '-'
 
-export const formatCurrency = (value: number | string | null | undefined): string =>
-  `GHS ${Number(value ?? 0).toFixed(2)}`
+export const formatCurrency = formatGhs
 
 export const formatRelativeTime = (d: string | Date | null | undefined): string | null => {
   if (!d) return null
@@ -47,11 +47,7 @@ export const formatRelativeTime = (d: string | Date | null | undefined): string 
   return `${diffMonths}mo ago`
 }
 
-export const formatSignedCurrency = (value: number | string | null | undefined): string => {
-  const amount = Number(value ?? 0)
-  const sign = amount > 0 ? '+' : amount < 0 ? '-' : ''
-  return `${sign}GHS ${Math.abs(amount).toFixed(2)}`
-}
+export const formatSignedCurrency = formatSignedGhs
 
 export const formatRatingStars = (rating: number | string | null | undefined): string => {
   const safeRating = Math.max(0, Math.min(5, Number(rating ?? 0)))

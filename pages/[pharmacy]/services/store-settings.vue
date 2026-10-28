@@ -299,6 +299,7 @@ import { createStoreSettingsService } from '~/services/storeSettings/storeSettin
 import type { Ad } from '~/services/types'
 
 definePageMeta({
+    middleware: ['company-auth'],
     layout: 'company',
 })
 

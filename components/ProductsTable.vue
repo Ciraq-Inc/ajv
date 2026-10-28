@@ -317,6 +317,9 @@ const handleAddToCart = (product: ProductItem): void => {
     unit: product.unit ?? 'unit',
   });
 
+  // Back to one, so another tap does not add the same amount again
+  product.quantity = 1;
+
   // Set justAdded to true
   product.justAdded = true;
 

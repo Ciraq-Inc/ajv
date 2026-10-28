@@ -192,7 +192,7 @@ import {
   InformationCircleIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline'
-import { useAdminStore } from '~/stores/admin'
+import { useCrossTenantReports } from '~/composables/useCrossTenantReports'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 
 interface CompanySummary {
@@ -216,16 +216,11 @@ interface User {
   [key: string]: unknown;
 }
 
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
-}
-
 interface ReportsServiceShape {
   exportUsersCsv: () => Promise<Blob>;
 }
 
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reports = useCrossTenantReports()
 const reportsService = createReportsExportService(useApi()) as unknown as ReportsServiceShape
 
 // Reactive data
@@ -251,7 +246,7 @@ const totalActiveUsers = computed<number>(() => {
 // Fetch summary data from the cross-tenant summary API
 const fetchSummary = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/users/cross-tenant/summary')
+    const response = await reports.getEntitySummary('users')
     if (response.success) {
       summaryData.value = (response.data ?? []) as CompanySummary[]
     } else {
@@ -266,7 +261,7 @@ const fetchSummary = async (): Promise<void> => {
 // Fetch users list
 const fetchUsers = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/users/cross-tenant/dataview')
+    const response = await reports.getEntityDataview('users')
     if (response.success) {
       users.value = (response.data ?? []) as User[]
     } else {
@@ -325,7 +320,7 @@ const formatDate = (dateString: string | undefined): string => {
 // Export functions
 const exportToJSON = async (): Promise<void> => {
   try {
-    const response = await adminStore.makeAuthRequest('/api/users/cross-tenant/export?format=json')
+    const response = await reports.exportEntityJson('users')
     if (response.success && response.data) {
       const jsonString = JSON.stringify(response.data, null, 2)
       const blob = new Blob([jsonString], { type: 'application/json' })

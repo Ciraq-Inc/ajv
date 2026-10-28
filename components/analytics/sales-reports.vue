@@ -923,6 +923,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useAdminStore } from '~/stores/admin'
+import { useCrossTenantReports } from '~/composables/useCrossTenantReports'
 import { createReportsExportService } from '~/services/analytics/reportsExportService'
 import { ArrowDownTrayIcon, ArrowPathIcon, BuildingOfficeIcon, ShoppingBagIcon, ChartBarIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
 
@@ -1009,11 +1010,11 @@ interface QuarterlyPharmacy {
 
 // TODO: remove once stores/ are .ts
 interface AdminStoreShape {
-  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string; [key: string]: unknown }>;
   getRole?: string;
 }
 
 const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reports = useCrossTenantReports()
 const reportsService = createReportsExportService(useApi())
 
 // Only show Quarterly Reports for data_consumer
@@ -1138,13 +1139,12 @@ const validateDateRange = (): boolean => {
 // Fetch summary data from the cross-tenant summary API
 const fetchSummary = async (forceRefresh = false): Promise<void> => {
   try {
-    const params = new URLSearchParams()
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    if (forceRefresh) params.append('refresh', 'true')
-
-    const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items?${params}`)
+    const response = await reports.getSalesSummary({
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
+      refresh: forceRefresh,
+    })
     if (response.success) {
       // Normalize the response data
       summary.value = {
@@ -1169,15 +1169,14 @@ const fetchSummary = async (forceRefresh = false): Promise<void> => {
 // Fetch company breakdown (using sales-items summary by company)
 const fetchCompanyBreakdown = async (forceRefresh = false): Promise<void> => {
   try {
-    const params = new URLSearchParams()
-    params.append('limit', '5000') // Increased limit
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-    if (filters.value.date_field) params.append('date_field', filters.value.date_field)
-    if (searchQuery.value && searchQuery.value.trim()) params.append('search', searchQuery.value.trim())
-    if (forceRefresh) params.append('refresh', 'true')
-
-    const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items/dataview?${params}`)
+    const response = await reports.getSalesByCompany({
+      limit: 5000, // Increased limit
+      startDate: filters.value.start_date,
+      endDate: filters.value.end_date,
+      dateField: filters.value.date_field,
+      search: searchQuery.value,
+      refresh: forceRefresh,
+    })
     if (response.success && response.data && Array.isArray(response.data)) {
       // API already returns company-level aggregates, just normalize null values
       summaryByCompany.value = (response.data as Record<string, unknown>[]).map(item => ({
@@ -1198,21 +1197,6 @@ const fetchCompanyBreakdown = async (forceRefresh = false): Promise<void> => {
   } catch (err) {
     console.error('Error fetching company breakdown:', err)
     summaryByCompany.value = []
-  }
-}
-
-// Fetch sample sales items
-const fetchSalesItems = async (): Promise<void> => {
-  try {
-    const response = await adminStore.makeAuthRequest('/api/reports/cross-tenant/sales-items/dataview')
-    if (response.success) {
-      salesItems.value = (response.data ?? []) as SalesItemRow[]
-    } else {
-      salesItems.value = []
-    }
-  } catch (err) {
-    console.error('Error fetching sales items:', err)
-    throw err
   }
 }
 
@@ -1320,34 +1304,6 @@ const formatDate = (dateString: string | undefined): string => {
 }
 
 // Export functions
-const exportToJSON = async (): Promise<void> => {
-  try {
-    const params = new URLSearchParams()
-    params.append('format', 'json')
-    if (filters.value.start_date) params.append('start_date', filters.value.start_date)
-    if (filters.value.end_date) params.append('end_date', filters.value.end_date)
-
-    const response = await adminStore.makeAuthRequest(`/api/reports/cross-tenant/sales-items/export?${params}`)
-    if (response.success && response.data) {
-      const jsonString = JSON.stringify(response.data, null, 2)
-      const blob = new Blob([jsonString], { type: 'application/json' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `cross-tenant-sales-summary_${new Date().toISOString().split('T')[0] ?? ''}.json`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } else {
-      alert('No data available for export')
-    }
-  } catch (err) {
-    console.error('Export error:', err)
-    alert('Export failed. Please try again.')
-  }
-}
-
 const exportToCSV = async (): Promise<void> => {
   if (!validateDateRange()) {
     alert('Please fix the date range before exporting.')

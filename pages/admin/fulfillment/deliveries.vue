@@ -68,7 +68,7 @@
                   <span v-if="d.driver_name">{{ d.driver_name }}</span>
                   <span v-else style="color:#9ca3af;">Unassigned</span>
                 </td>
-                <td style="padding: 0.75rem 1rem; color: #374151;">GH₵ {{ Number(d.delivery_fee || 0).toFixed(2) }}</td>
+                <td style="padding: 0.75rem 1rem; color: #374151;">{{ formatGhs(d.delivery_fee) }}</td>
                 <td style="padding: 0.75rem 1rem;">
                   <span :style="statusStyle(d.delivery_status)" style="padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">
                     {{ formatStatus(d.delivery_status) }}
@@ -84,6 +84,8 @@
 </template>
 
 <script setup lang="ts">
+import { formatGhs } from '~/utils/money'
+
 interface DeliveryRow {
   id: number
   request_id: number
@@ -170,6 +172,7 @@ const formatDate = (dt: string | null | undefined): string => {
 onMounted(() => { void fetchDeliveries() })
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: 'admin-auth',
   layout: 'admin-layout'
 })

@@ -6,6 +6,18 @@
 -->
 <template>
   <div class="container mx-auto p-4">
+    <PageNotice :notice="notice" @dismiss="dismiss" />
+
+    <ConfirmDialog
+      :is-open="pendingStatusChange !== null"
+      title="Change order status?"
+      :message="pendingStatusChange ? `Are you sure you want to change this order to &quot;${pendingStatusChange.newStatus}&quot;?` : ''"
+      confirm-text="Yes, change it"
+      cancel-text="Cancel"
+      @confirm="confirmStatusChange"
+      @close="pendingStatusChange = null"
+    />
+
     <!-- Admin Header -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -245,7 +257,7 @@
                 {{ order.item_count || 0 }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                GHS {{ formatPrice(order.total_amount) }}
+                {{ formatGhs(order.total_amount) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="[
@@ -262,7 +274,7 @@
                   </button>
                   <button 
                     v-if="canChangeStatus(order.status)"
-                    @click="updateOrderStatus(order, getNextStatus(order.status))" 
+                    @click="askToChangeStatus(order, getNextStatus(order.status))" 
                     class="text-blue-600 hover:text-blue-900"
                   >
                     {{ getStatusActionText(order.status) }}
@@ -314,7 +326,7 @@
                 </div>
                 <div class="text-right">
                   <p class="text-sm text-gray-500">Total Amount</p>
-                  <p class="text-lg font-bold text-indigo-600">GHS {{ formatPrice(orderDetails.total_amount) }}</p>
+                  <p class="text-lg font-bold text-indigo-600">{{ formatGhs(orderDetails.total_amount) }}</p>
                 </div>
               </div>
 
@@ -379,13 +391,13 @@
                         {{ item.qty }}
                       </td>
                       <td class="px-4 py-3 text-sm text-gray-500 text-right">
-                        GHS {{ formatPrice(item.selling_price) }}
+                        {{ formatGhs(item.selling_price) }}
                       </td>
                       <td class="px-4 py-3 text-sm text-gray-500 text-right">
-                        GHS {{ formatPrice(item.discount || 0) }}
+                        {{ formatGhs(item.discount || 0) }}
                       </td>
                       <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                        GHS {{ formatPrice(item.line_total) }}
+                        {{ formatGhs(item.line_total) }}
                       </td>
                     </tr>
                   </tbody>
@@ -398,7 +410,7 @@
                         Total:
                       </td>
                       <td class="px-4 py-3 text-sm font-bold text-indigo-600 text-right">
-                        GHS {{ formatPrice(orderDetails.total_amount) }}
+                        {{ formatGhs(orderDetails.total_amount) }}
                       </td>
                     </tr>
                     <tr v-if="(orderDetails.total_discount ?? 0) > 0">
@@ -406,7 +418,7 @@
                         Total Discount:
                       </td>
                       <td class="px-4 py-2 text-sm text-green-600 text-right">
-                        -GHS {{ formatPrice(orderDetails.total_discount) }}
+                        -{{ formatGhs(orderDetails.total_discount) }}
                       </td>
                     </tr>
                   </tfoot>
@@ -433,6 +445,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePharmacyStore } from '~/stores/pharmacy';
 import { createAdminOrdersService } from '~/services/adminOrders/adminOrdersService';
+import PageNotice from '~/components/admin/PageNotice.vue';
+import { usePageNotice } from '~/composables/usePageNotice';
+import { formatGhs } from '~/utils/money';
 
 interface AdminOrder {
   order_id: string
@@ -474,6 +489,7 @@ const pharmacyStore = usePharmacyStore();
 const adminOrdersService = createAdminOrdersService(useApi());
 
 definePageMeta({
+  requiredRole: 'order_processor',
   layout: 'pharm',
   middleware: ['admin-auth'],
 });
@@ -484,6 +500,10 @@ const isLoading = ref<boolean>(false);
 const orderDetailsLoading = ref<boolean>(false);
 const updatingStatus = ref<boolean>(false);
 const error = ref<string>('');
+const pendingStatusChange = ref<{ order: AdminOrder; newStatus: string } | null>(null);
+
+// Outcome of an action (saved, refused) shows on the page rather than in a browser alert.
+const { notice, notify, dismiss } = usePageNotice();
 const searchQuery = ref<string>('');
 const statusFilter = ref<string>('');
 const limitFilter = ref<number>(50);
@@ -561,17 +581,23 @@ const fetchOrderDetails = async (orderId: string): Promise<void> => {
     orderDetails.value = data.data as unknown as AdminOrder;
   } catch (err) {
     console.error('Error fetching order details:', err);
-    alert('Failed to load order details: ' + (err instanceof Error ? err.message : String(err)));
+    notify('Failed to load order details: ' + (err instanceof Error ? err.message : String(err)), 'error');
   } finally {
     orderDetailsLoading.value = false;
   }
 };
 
-const updateOrderStatus = async (order: AdminOrder, newStatus: string): Promise<void> => {
-  if (!confirm(`Are you sure you want to change this order to "${newStatus}"?`)) {
-    return;
-  }
+const askToChangeStatus = (order: AdminOrder, newStatus: string): void => {
+  pendingStatusChange.value = { order, newStatus };
+};
 
+const confirmStatusChange = async (): Promise<void> => {
+  const pending = pendingStatusChange.value;
+  pendingStatusChange.value = null;
+  if (pending) await updateOrderStatus(pending.order, pending.newStatus);
+};
+
+const updateOrderStatus = async (order: AdminOrder, newStatus: string): Promise<void> => {
   try {
     const data = await adminOrdersService.updateStatus(order.order_id, {
       status: newStatus,
@@ -588,10 +614,10 @@ const updateOrderStatus = async (order: AdminOrder, newStatus: string): Promise<
       updateOrderStats();
     }
 
-    alert('Order status updated successfully!');
+    notify('Order status updated successfully.', 'success');
   } catch (err) {
     console.error('Error updating order status:', err);
-    alert('Failed to update order status: ' + (err instanceof Error ? err.message : String(err)));
+    notify('Failed to update order status: ' + (err instanceof Error ? err.message : String(err)), 'error');
   }
 };
 
@@ -619,10 +645,10 @@ const updateOrderStatusFromModal = async (): Promise<void> => {
       updateOrderStats();
     }
 
-    alert('Order status updated successfully!');
+    notify('Order status updated successfully.', 'success');
   } catch (err) {
     console.error('Error updating order status:', err);
-    alert('Failed to update order status: ' + (err instanceof Error ? err.message : String(err)));
+    notify('Failed to update order status: ' + (err instanceof Error ? err.message : String(err)), 'error');
   } finally {
     updatingStatus.value = false;
   }
@@ -700,8 +726,6 @@ const formatOrderDate = (dateString: string | null | undefined): string => {
   }
 };
 
-const formatPrice = (price: number | string | null | undefined): string =>
-  Number(price ?? 0).toFixed(2);
 
 const capitalizeFirstLetter = (string: string | null | undefined): string => {
   if (!string) return '';

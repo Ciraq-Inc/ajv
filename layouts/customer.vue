@@ -29,11 +29,7 @@
       </nav>
 
       <div class="mt-auto border-t border-ink-200 pt-6">
-        <button type="button" class="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-brand-700 py-3.5 text-base font-semibold text-white transition-colors hover:bg-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2" @click="goTo('new')">
-          <PlusIcon class="h-5 w-5" aria-hidden="true" />
-          New Request
-        </button>
-        <button type="button" class="mt-3 flex min-h-[44px] w-full items-center gap-3 rounded-full px-4 py-3 text-base font-semibold text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="handleLogout">
+        <button type="button" class="flex min-h-[44px] w-full items-center gap-3 rounded-full px-4 py-3 text-base font-semibold text-ink-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="handleLogout">
           <ArrowRightOnRectangleIcon class="h-6 w-6" aria-hidden="true" />
           Logout
         </button>
@@ -103,6 +99,9 @@
             <button type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="showMenu = false; goTo('orders')">
               <ReceiptOutline class="h-6 w-6 text-ink-600" aria-hidden="true" /> History
             </button>
+            <button type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="showMenu = false; goTo('clearance')">
+              <TagOutline class="h-6 w-6 text-ink-600" aria-hidden="true" /> Clearance Deals
+            </button>
             <button v-if="isProfessionalApproved" type="button" class="flex min-h-[56px] w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700" @click="showMenu = false; goTo('stock')">
               <BeakerOutline class="h-6 w-6 text-ink-600" aria-hidden="true" /> Browse Stock
             </button>
@@ -155,7 +154,6 @@ import {
   BuildingStorefrontIcon as PharmacyOutline,
   UserIcon as UserOutline,
   ArrowRightOnRectangleIcon,
-  PlusIcon,
   ArrowPathIcon,
   MapPinIcon,
   ChevronRightIcon,
@@ -207,23 +205,23 @@ const displayUserFirstName = computed(() => hasMounted.value ? userFirstName.val
 const displayUserInitials = computed(() => hasMounted.value ? userInitials.value : 'C')
 const displayUserPhone = computed(() => hasMounted.value ? (userStore.currentUser?.phone || userStore.currentUser?.email || '') : '')
 const activeNav = computed(() => route.query.tab || 'new')
-const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock', 'profile'].includes(activeNav.value))
+const isMoreActive = computed(() => showMenu.value || ['orders', 'companies', 'stock', 'profile', 'clearance'].includes(activeNav.value))
 const isProfessionalApproved = computed(() => userStore.masterCustomer?.professional_status === 'approved')
 const sideItems = computed(() => [
-  { tab: 'new', label: 'Home', outline: HomeOutline, solid: HomeSolid },
+  { tab: 'new', label: 'Request medicine', outline: HomeOutline, solid: HomeSolid },
   { tab: 'requests', label: 'My Requests', outline: DocumentOutline, solid: DocumentSolid },
-  { tab: 'wallet', label: 'Wallet', outline: WalletOutline, solid: WalletSolid },
   { tab: 'orders', label: 'History', outline: ReceiptOutline, solid: ReceiptSolid },
-  { tab: 'companies', label: 'Pharmacies', outline: PharmacyOutline, solid: PharmacySolid },
+  { tab: 'wallet', label: 'Wallet', outline: WalletOutline, solid: WalletSolid },
   { tab: 'profile', label: 'Profile', outline: UserOutline, solid: UserSolid },
+  // Side features come after the everyday items.
+  { tab: 'companies', label: 'Pharmacies', outline: PharmacyOutline, solid: PharmacySolid },
   ...(isProfessionalApproved.value ? [{ tab: 'stock', label: 'Browse Stock', outline: BeakerOutline, solid: BeakerSolid }] : []),
   { tab: 'clearance', label: 'Clearance Deals', outline: TagOutline, solid: TagSolid },
 ])
 const barItems = [
-  { tab: 'new', ariaLabel: 'Home', short: 'Home', outline: HomeOutline, solid: HomeSolid },
+  { tab: 'new', ariaLabel: 'Request medicine', short: 'Request', outline: HomeOutline, solid: HomeSolid },
   { tab: 'requests', ariaLabel: 'My requests', short: 'Requests', outline: DocumentOutline, solid: DocumentSolid },
   { tab: 'wallet', ariaLabel: 'Wallet', short: 'Wallet', outline: WalletOutline, solid: WalletSolid },
-  { tab: 'clearance', ariaLabel: 'Clearance deals', short: 'Deals', outline: TagOutline, solid: TagSolid },
 ]
 const greetingLabel = computed(() => {
   const hour = new Date().getHours()
@@ -372,49 +370,5 @@ onUnmounted(() => {
 .slide-up-leave-to .bg-white {
   transform: translateY(100%);
 }
-
-:deep(.customer-app .dashboard-top > article) {
-  border-radius: 1.9rem;
-}
-
-:deep(.customer-app .dashboard-middle > div > .space-y-4 > button),
-:deep(.customer-app .dashboard-middle > aside > div:last-child),
-:deep(.customer-app .section-wrap > div:last-child > button),
-:deep(.customer-app .section-wrap > div:last-child),
-:deep(.customer-app .section-wrap > div:nth-child(2)) {
-  border-radius: 1.7rem;
-}
-
-:deep(.customer-app .dashboard-top h3),
-:deep(.customer-app .dashboard-middle h3),
-:deep(.customer-app .section-wrap h3) {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-:deep(.customer-app .dashboard-top p.text-\[10px\]),
-:deep(.customer-app .dashboard-middle button.text-xs),
-:deep(.customer-app .section-wrap button.text-xs) {
-  font-weight: 600;
-  letter-spacing: 0.12em;
-}
-
-:deep(.customer-app .dashboard-middle h4),
-:deep(.customer-app .section-wrap h4) {
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-:deep(.customer-app .dashboard-middle strong),
-:deep(.customer-app .section-wrap strong) {
-  font-weight: 700;
-}
-
-:deep(.customer-app .dashboard-middle .inline-flex.rounded-full),
-:deep(.customer-app .section-wrap .inline-flex.rounded-full) {
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
 </style>
 
-<style>.dashboard-top { grid-template-columns: repeat(12, minmax(0, 1fr)) !important; display: grid !important; gap: 1.5rem !important; }</style>

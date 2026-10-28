@@ -68,6 +68,8 @@
       </div>
     </div>
 
+    <div v-if="listError" class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{{ listError }}</div>
+
     <!-- Loading -->
     <div v-if="loading" class="py-12 text-center text-gray-500">Loading fleet...</div>
 
@@ -98,12 +100,27 @@
           >
             {{ r.is_active ? 'Active' : 'Inactive' }}
           </span>
+          <template v-if="r.is_active">
+            <template v-if="confirmingId === r.id">
+              <span class="text-xs text-gray-600">Remove {{ r.name }}?</span>
+              <button
+                @click="deactivateRider(r.id)"
+                :disabled="busyId === r.id"
+                class="text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+              >
+                {{ busyId === r.id ? 'Removing...' : 'Yes, remove' }}
+              </button>
+              <button @click="confirmingId = null" class="text-xs text-gray-500 hover:text-gray-700">Keep</button>
+            </template>
+            <button v-else @click="askRemove(r.id)" class="text-xs text-red-500 hover:text-red-700">Remove</button>
+          </template>
           <button
-            v-if="r.is_active"
-            @click="deactivateRider(r.id)"
-            class="text-xs text-red-500 hover:text-red-700"
+            v-else
+            @click="reactivateRider(r.id)"
+            :disabled="busyId === r.id"
+            class="text-xs text-green-700 hover:text-green-900 disabled:opacity-50"
           >
-            Remove
+            {{ busyId === r.id ? 'Restoring...' : 'Reactivate' }}
           </button>
         </div>
       </div>
@@ -113,7 +130,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useCompanyStore } from '~/stores/company'
+import { usePharmacyPortal } from '~/composables/usePharmacyPortal'
+import type { PortalActionResponse } from '~/services/pharmacyPortal/pharmacyPortalService'
 
 definePageMeta({
   middleware: ['company-auth'],
@@ -130,22 +148,16 @@ interface Rider {
   is_active: boolean
 }
 
-interface RidersResponse {
-  success?: boolean
-  message?: string | null
-  riders?: Rider[] | null
-}
-
-// TODO: remove once stores/ are .ts
-const companyStore = useCompanyStore() as unknown as {
-  makeAuthRequest: (url: string, options?: RequestInit) => Promise<RidersResponse>
-}
+const portal = usePharmacyPortal()
 
 const loading = ref<boolean>(true)
 const riders = ref<Rider[]>([])
 const showForm = ref<boolean>(false)
 const saving = ref<boolean>(false)
 const formError = ref<string>('')
+const listError = ref<string>('')
+const confirmingId = ref<number | string | null>(null)
+const busyId = ref<number | string | null>(null)
 
 const form = reactive({
   name: '',
@@ -159,7 +171,7 @@ const form = reactive({
 const fetchRiders = async (): Promise<void> => {
   loading.value = true
   try {
-    const res = await companyStore.makeAuthRequest('/api/pharmacy/riders')
+    const res = await portal.listRiders<Rider>()
     if (res.success) riders.value = res.riders ?? []
   } catch (e) {
     console.error('Failed to fetch riders', e)
@@ -176,11 +188,7 @@ const addRider = async (): Promise<void> => {
   }
   saving.value = true
   try {
-    const res = await companyStore.makeAuthRequest('/api/pharmacy/riders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form }),
-    })
+    const res = await portal.addRider({ ...form })
     if (res.success) {
       showForm.value = false
       Object.assign(form, { name: '', phone: '', username: '', password: '', vehicle_type: '', vehicle_registration: '' })
@@ -195,17 +203,36 @@ const addRider = async (): Promise<void> => {
   }
 }
 
-const deactivateRider = async (id: number | string): Promise<void> => {
+const askRemove = (id: number | string): void => {
+  listError.value = ''
+  confirmingId.value = id
+}
+
+// Remove and restore share one path: the server says why when it refuses (for example the rider
+// still has a delivery in progress) and that message is shown rather than swallowed.
+const changeRider = async (id: number | string, request: () => Promise<PortalActionResponse>, failure: string): Promise<void> => {
+  listError.value = ''
+  busyId.value = id
   try {
-    await companyStore.makeAuthRequest(`/api/pharmacy/riders/${String(id)}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    })
-    await fetchRiders()
+    const res = await request()
+    if (res && res.success === false) {
+      listError.value = res.message ?? failure
+    } else {
+      await fetchRiders()
+    }
   } catch (e) {
-    console.error('Failed to deactivate rider', e)
+    listError.value = e instanceof Error && e.message ? e.message : failure
+  } finally {
+    busyId.value = null
+    confirmingId.value = null
   }
 }
+
+const deactivateRider = (id: number | string): Promise<void> =>
+  changeRider(id, () => portal.deactivateRider(id), 'Could not remove this rider')
+
+const reactivateRider = (id: number | string): Promise<void> =>
+  changeRider(id, () => portal.reactivateRider(id), 'Could not reactivate this rider')
 
 onMounted(() => { void fetchRiders() })
 </script>

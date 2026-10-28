@@ -82,7 +82,9 @@
                   You're not registered at {{ cartError.pharmacyName }} yet
                 </p>
                 <p class="mt-1 text-sm leading-relaxed text-ink-500">
-                  Direct ordering is only available to customers already in {{ cartError.pharmacyName }}'s records. Send your order via WhatsApp for now — the pharmacy can add you using your phone number.
+                  Direct ordering is only available to customers already in {{ cartError.pharmacyName }}'s records.
+                  <template v-if="whatsappNumber">Send your order via WhatsApp for now — the pharmacy can add you using your phone number.</template>
+                  <template v-else>Ask {{ cartError.pharmacyName }} to add your phone number to their records.</template>
                 </p>
               </div>
             </div>
@@ -171,8 +173,9 @@
         </div>
 
         <div class="space-y-3">
-          <!-- WhatsApp — always available, always first -->
+          <!-- WhatsApp — first, when the pharmacy has a number to send to -->
           <button
+            v-if="whatsappNumber"
             type="button"
             class="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-brand-700 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-800 active:bg-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="isProcessingOrder"
@@ -204,9 +207,9 @@
           <!-- State 2: Logged in but not registered at this pharmacy -->
           <template v-else-if="cartError?.type === 'not_registered'">
             <div class="rounded-xl border border-brand-100 bg-brand-50 p-4">
-              <p class="mb-0.5 text-sm font-semibold text-ink-900">Your WhatsApp order works fine</p>
+              <p v-if="whatsappNumber" class="mb-0.5 text-sm font-semibold text-ink-900">Your WhatsApp order works fine</p>
               <p class="text-sm leading-relaxed text-ink-500">
-                To unlock direct ordering, ask {{ cartError.pharmacyName }} to add your phone number to their records — it links automatically.
+                {{ whatsappNumber ? 'To unlock direct ordering, ask' : 'To order directly, ask' }} {{ cartError.pharmacyName }} to add your phone number to their records — it links automatically.
               </p>
             </div>
           </template>
@@ -347,7 +350,8 @@ useModalA11y(dialogRef, () => isOpenSidebar.value, () => {
   if (!showLoginModal.value) toggleCart();
 });
 
-const sendWhatsAppMessage = (): void => {
+// The pharmacy's number in the form wa.me wants, or '' when it has none we can use.
+const whatsappNumber = computed<string>(() => {
   let phoneNumber: string = pharmacyStore.pharmacyData?.whatsapp_number ?? '';
 
   // Extract the first phone number if multiple are provided with a separator
@@ -358,6 +362,7 @@ const sendWhatsAppMessage = (): void => {
   // Format the phone number properly for WhatsApp
   // Remove all non-digit characters
   phoneNumber = phoneNumber.replace(/\D/g, '');
+  if (!phoneNumber) return '';
 
   // Remove leading zero if present
   if (phoneNumber.startsWith('0')) {
@@ -368,12 +373,26 @@ const sendWhatsAppMessage = (): void => {
   if (!phoneNumber.startsWith('233')) {
     phoneNumber = '233' + phoneNumber;
   }
+  return phoneNumber;
+});
+
+const sendWhatsAppMessage = (): void => {
+  if (!whatsappNumber.value) return;
 
   const messageText = generateWhatsAppMessage();
   const encodedMessage = encodeURIComponent(messageText);
 
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-  window.open(whatsappUrl, '_blank');
+  const whatsappUrl = `https://wa.me/${whatsappNumber.value}?text=${encodedMessage}`;
+  const opened = window.open(whatsappUrl, '_blank');
+
+  // A blocked pop-up means nothing was sent: keep the order so they can try again.
+  if (!opened) {
+    cartError.value = {
+      type: 'generic',
+      message: 'Your browser did not let WhatsApp open. Your cart is still here. Allow pop-ups for this site and try again.',
+    };
+    return;
+  }
 
   cartStore.clearCart();
   toggleCart();

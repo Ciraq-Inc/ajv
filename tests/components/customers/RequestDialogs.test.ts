@@ -19,6 +19,19 @@ vi.mock('~/services/orderRequests/orderRequestsService', () => ({
 const store = vi.hoisted(() => ({ state: null as any }))
 vi.mock('~/stores/user', () => ({ useUserStore: () => store.state }))
 
+// Boundary: this phone's push support (the prompt itself is covered in PushOptInPrompt.test.ts).
+vi.mock('~/composables/usePushNotifications', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/composables/usePushNotifications')>()),
+  realPushBrowser: () => ({
+    supported: () => true,
+    isIos: () => false,
+    isStandalone: () => false,
+    permission: () => 'default',
+    requestPermission: async () => 'default',
+    register: async () => ({ pushManager: { getSubscription: async () => null, subscribe: async () => { throw new Error('not used') } } }),
+  }),
+}))
+
 const navigateTo = vi.fn()
 vi.stubGlobal('navigateTo', navigateTo)
 vi.stubGlobal('useRoute', () => ({ query: {} }))
@@ -37,13 +50,13 @@ const dlg = (label: string) => document.body.querySelector(`[role="dialog"][aria
 const press = (key: string) => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }))
 const BAD = /zinc-|emerald-|slate-|gray-|\[#[0-9a-fA-F]{3,6}\]/
 
-const mountWith = async (tab: 'new' | 'list') => {
+const mountWith = async (tab: 'new' | 'list', detail: Record<string, unknown> = DETAIL) => {
   store.state.getProfile.mockResolvedValue(HOME)
   service.getCustomerSettings.mockResolvedValue({ data: { request_submission_fee: 5, first_request_free: false } })
   api.request.mockImplementation(async (url: string, opts?: { method?: string }) => {
     if (url === '/api/wallet') return { data: { balance: 20 } }
     if (url === '/api/order-requests/customer') return opts?.method === 'POST' ? { data: { request_number: 'R-1' } } : { data: LIST }
-    if (url === '/api/order-requests/customer/7') return opts?.method === 'PUT' ? { data: {} } : { data: DETAIL }
+    if (url === '/api/order-requests/customer/7') return opts?.method === 'PUT' ? { data: {} } : { data: detail }
     return { data: {} }
   })
   wrapper = mount(OrderRequests, { props: { defaultSubTab: tab }, attachTo: document.body })
@@ -62,7 +75,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
   sessionStorage.clear()
-  store.state = { currentUser: { phone: '0244123456', email: '' }, masterCustomer: { id: 1 }, customerAuthToken: 'tok', getProfile: vi.fn(), updateProfile: vi.fn(), clearAuthState: vi.fn() }
+  store.state = { isLoggedIn: true, currentUser: { phone: '0244123456', email: '' }, masterCustomer: { id: 1 }, customerAuthToken: 'tok', getProfile: vi.fn(), updateProfile: vi.fn(), clearAuthState: vi.fn() }
 })
 afterEach(() => { wrapper?.unmount(); wrapper = undefined; document.body.innerHTML = '' })
 
@@ -88,6 +101,11 @@ describe('Request sent', () => {
     expect(navigateTo).toHaveBeenCalled()
   })
 
+  it('offers notifications on this phone, the moment a customer most wants updates', async () => {
+    await send()
+    expect(dlg('request-sent-title')!.querySelector('[data-testid="push-prompt"]')).not.toBeNull()
+  })
+
   it('closes with Escape and uses brand tokens', async () => {
     await send()
     expect(dlg('request-sent-title')!.outerHTML).not.toMatch(BAD)
@@ -95,6 +113,23 @@ describe('Request sent', () => {
     await flushPromises()
 
     expect(dlg('request-sent-title')).toBeNull()
+  })
+})
+
+describe('Request detail while waiting', () => {
+  const openDetail = async (status: string) => {
+    const w = await mountWith('list', { ...DETAIL, status })
+    await w.findAll('button').find(b => b.text().includes('Amoxicillin'))!.trigger('click')
+    await flushPromises()
+    return dlg('request-detail-title')!
+  }
+
+  it('offers notifications on this phone while the pharmacies are still being asked', async () => {
+    expect((await openDetail('pending')).querySelector('[data-testid="push-prompt"]')).not.toBeNull()
+  })
+
+  it('stops asking once the request is finished', async () => {
+    expect((await openDetail('delivered')).querySelector('[data-testid="push-prompt"]')).toBeNull()
   })
 })
 

@@ -247,40 +247,6 @@ export const useSMSCredits = () => {
     }
   }
 
-  const topUpMoney = async (companyId: number | string, amount: number, description = ''): Promise<unknown> => {
-    loading.value = true
-    error.value = null
-
-    try {
-      const response = await service.topUpMoney(companyId, amount, description)
-      return response
-    } catch (err) {
-      const e = err as Error
-      error.value = e.message
-      console.error('Error topping up money:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const topUpSms = async (companyId: number | string, smsCount: number, description = ''): Promise<unknown> => {
-    loading.value = true
-    error.value = null
-
-    try {
-      const response = await service.topUpSms(companyId, smsCount, description)
-      return response
-    } catch (err) {
-      const e = err as Error
-      error.value = e.message
-      console.error('Error topping up SMS:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
   const fetchCompanyTransactions = async (companyId: number | string, filters: TransactionFilters = {}): Promise<{ data: SmsTransaction[] }> => {
     loading.value = true
     error.value = null
@@ -356,8 +322,6 @@ export const useSMSCredits = () => {
     // Admin Actions
     fetchAllCompaniesOverview,
     fetchLowBalanceCompanies,
-    topUpMoney,
-    topUpSms,
     fetchCompanyTransactions,
 
     // Computed

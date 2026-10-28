@@ -38,6 +38,7 @@
             <Icon name="Wallet" class="h-8 w-8 opacity-50 flex-shrink-0 mt-0.5" />
           </div>
           <button
+            v-if="canBuyCredits"
             @click="showTopUpModal = true"
             class="w-full bg-white/20 hover:bg-white/30 text-white text-sm font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
           >
@@ -57,6 +58,7 @@
             <Icon name="MessageSquare" class="h-8 w-8 opacity-50 flex-shrink-0 mt-0.5" />
           </div>
           <button
+            v-if="canBuyCredits"
             @click="showPurchaseModal = true"
             :disabled="moneyBalance <= 0"
             class="w-full bg-white/20 hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5"
@@ -253,6 +255,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useSMSBilling } from '~/composables/useSMSBilling'
 import { useSMSCredits } from '~/composables/useSMSCredits'
+import { useSmsSpendAccess } from '~/composables/useSmsSpendAccess'
+
+const { canBuyCredits } = useSmsSpendAccess()
 import PaystackTopUpModal from '~/components/sms/billing/PaystackTopUpModal.vue'
 import { formatDate, formatNumber, formatCurrency } from '~/utils/constants/sms'
 import type { SmsTransaction } from '~/services/types'

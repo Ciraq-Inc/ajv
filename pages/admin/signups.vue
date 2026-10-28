@@ -236,6 +236,7 @@ import { ref, computed, onMounted } from 'vue';
 import { createAdminService } from '~/services/admin/adminService';
 
 definePageMeta({
+  requiredRole: 'manager',
   layout: 'admin-layout',
   middleware: ['admin-auth']
 });

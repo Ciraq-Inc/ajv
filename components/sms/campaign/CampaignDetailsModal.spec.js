@@ -3,6 +3,11 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import CampaignDetailsModal from './CampaignDetailsModal.vue'
 
+// The signed-in role is not what this spec is about; act as a manager so every button shows.
+vi.mock('~/composables/useSmsSpendAccess', () => ({
+  useSmsSpendAccess: () => ({ canSendCampaigns: ref(true), canBuyCredits: ref(true) })
+}))
+
 // Mock the composable
 vi.mock('~/composables/useSMSCampaigns', () => ({
   useSMSCampaigns: () => ({

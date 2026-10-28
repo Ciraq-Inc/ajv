@@ -1,9 +1,14 @@
 <template>
   <div class="admin-sms-billing-page">
+    <PageNotice :notice="notice" @dismiss="dismiss" />
     <!-- Header -->
     <div class="mb-6">
       <!-- <h1 class="text-3xl font-bold text-gray-900 mb-2">SMS Billing Management</h1> -->
       <p class="text-gray-600">Monitor billing health, manage credits, and resolve issues</p>
+    </div>
+
+    <div v-if="actionError" role="alert" class="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      {{ actionError }}
     </div>
 
     <!-- Quick Actions -->
@@ -221,7 +226,7 @@
                   </span>
                 </td> -->
                 <td class="py-3 px-3 text-right text-gray-900 font-medium">
-                  {{ parseFloat(String(health.money_balance ?? 0)).toFixed(2) }}
+                  {{ formatAmount(health.money_balance) }}
                 </td>
                 <!-- <td class="py-3 px-3 text-right text-gray-600">
                   {{ formatNumber(health.total_sms_sent || 0) }}
@@ -439,6 +444,7 @@
               <input
                 v-model.number="topUpForm.amount"
                 type="number"
+                step="0.01"
                 min="1"
                 max="100000"
                 required
@@ -589,9 +595,9 @@
                 <p class="font-medium mb-1">Purchase Preview:</p>
                 <p>Company: {{ buyCreditsSelectedCompany?.name ?? '' }}</p>
                 <p>SMS Credits: {{ formatNumber(buyCreditsForm.sms_count) }}</p>
-                <p>Rate: GHS {{ smsRate }} per SMS</p>
-                <p class="font-semibold">Estimated Cost: GHS {{ buyCreditsEstimatedCost.toFixed(2) }}</p>
-                <p>Current Money Balance: GHS {{ buyCreditsSelectedMoneyBalance.toFixed(2) }}</p>
+                <p>Rate: {{ formatGhs(smsRate) }} per SMS</p>
+                <p class="font-semibold">Estimated Cost: {{ formatGhs(buyCreditsEstimatedCost) }}</p>
+                <p>Current Money Balance: {{ formatGhs(buyCreditsSelectedMoneyBalance) }}</p>
               </div>
             </div>
 
@@ -599,7 +605,7 @@
             <div v-if="buyCreditsInsufficientFunds" class="bg-red-50 border border-red-200 rounded-lg p-3">
               <p class="text-sm text-red-800 font-medium">Insufficient money balance</p>
               <p class="text-xs text-red-700 mt-1">
-                Required: GHS {{ buyCreditsEstimatedCost.toFixed(2) }} — Available: GHS {{ buyCreditsSelectedMoneyBalance.toFixed(2) }}
+                Required: {{ formatGhs(buyCreditsEstimatedCost) }} — Available: {{ formatGhs(buyCreditsSelectedMoneyBalance) }}
               </p>
             </div>
 
@@ -638,11 +644,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useSMSBilling } from '~/composables/useSMSBilling'
+import PageNotice from '~/components/admin/PageNotice.vue'
+import { usePageNotice } from '~/composables/usePageNotice'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
+import { formatAmount, formatGhs } from '~/utils/money'
 
 // Define page metadata
 definePageMeta({
+  requiredRole: 'super_admin',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })
@@ -683,12 +693,14 @@ const {
   companiesWithIssues,
   overallHealthStatus
 } = useSMSBilling()
+const { notice, notify, dismiss } = usePageNotice()
 
 const activeTab = ref<string>('health')
 const reconciling = ref<boolean>(false)
 const showTopUpModal = ref<boolean>(false)
 const toppingUp = ref<boolean>(false)
 const topUpError = ref<string>('')
+const actionError = ref<string>('')
 
 // Company search state (Top Up Money modal)
 const companySearch = ref<string>('')
@@ -729,6 +741,11 @@ const billingHealthRows = computed<BillingHealthRow[]>(() =>
 const lowBalanceCount = computed<number>(() =>
   billingHealthRows.value.filter(h => h.sms_balance < 100).length
 )
+
+// One key per top-up. A retry after a timeout or a double-click reuses it, so the server credits once;
+// changing the company or amount makes it a different top-up.
+let topUpKey: string | null = null
+watch(() => [topUpForm.value.company_id, topUpForm.value.amount], () => { topUpKey = null })
 
 const canSubmitTopUp = computed<boolean>(() =>
   !!topUpForm.value.company_id &&
@@ -832,6 +849,7 @@ const openTopUpFor = (health: BillingHealthRow): void => {
 // Reconcile specific company
 const reconcileCompany = async (companyId: number | string): Promise<void> => {
   reconciling.value = true
+  actionError.value = ''
   try {
     await runReconciliation(companyId)
     await Promise.all([
@@ -840,6 +858,7 @@ const reconcileCompany = async (companyId: number | string): Promise<void> => {
     ])
   } catch (error) {
     console.error('Reconciliation failed:', error)
+    actionError.value = 'Reconciliation failed. Please try again.'
   } finally {
     reconciling.value = false
   }
@@ -847,11 +866,13 @@ const reconcileCompany = async (companyId: number | string): Promise<void> => {
 
 // Resolve issue
 const resolveIssue = async (issueId: number | string, resolution: Record<string, unknown>): Promise<void> => {
+  actionError.value = ''
   try {
     await resolveIssueAction(issueId, resolution as Parameters<typeof resolveIssueAction>[1])
     await fetchBillingIssues()
   } catch (error) {
     console.error('Failed to resolve issue:', error)
+    actionError.value = 'The issue could not be resolved. Please try again.'
   }
 }
 
@@ -1055,7 +1076,7 @@ const handleBuyCredits = async (): Promise<void> => {
     const count = buyCreditsForm.value.sms_count
     const name = buyCreditsSelectedCompany.value?.name ?? ''
     closeBuyCreditsModal()
-    alert(`Successfully purchased ${formatNumber(count)} SMS credits for ${name}`)
+    notify(`Successfully purchased ${formatNumber(count)} SMS credits for ${name}`, 'success')
   } catch (err) {
     buyCreditsError.value = err instanceof Error ? err.message : 'Failed to purchase credits. Please try again.'
   } finally {
@@ -1076,7 +1097,9 @@ const handleTopUp = async (): Promise<void> => {
       description: topUpForm.value.reason || 'Admin top-up'
     }
 
-    await topUpMoney(topUpData)
+    topUpKey ??= crypto.randomUUID()
+    await topUpMoney(topUpData, { idempotencyKey: topUpKey })
+    topUpKey = null
 
     // Refresh billing health data
     await fetchBillingHealth()
@@ -1089,7 +1112,7 @@ const handleTopUp = async (): Promise<void> => {
     closeTopUpModal()
 
     // Show success alert
-    alert(`Successfully added ${formatNumber(amount)} money balance to ${companyName}`)
+    notify(`Successfully added ${formatNumber(amount)} money balance to ${companyName}`, 'success')
 
   } catch (error) {
     topUpError.value = error instanceof Error ? error.message : 'Failed to top up money. Please try again.'

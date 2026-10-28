@@ -1,5 +1,6 @@
 <template>
   <div class="fee-schedules-page">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <div class="page-header">
       <div>
         <h1 class="page-title">Fee Schedules</h1>
@@ -120,7 +121,7 @@
                   </td>
                   <td>
                     <input v-if="selected.is_draft && tierEdits[t.id]" v-model.number="tierEdits[t.id]!.fee_ghs" type="number" step="0.01" class="form-control compact" />
-                    <span v-else>{{ Number(t.fee_ghs).toFixed(2) }}</span>
+                    <span v-else>{{ formatAmount(t.fee_ghs) }}</span>
                   </td>
                   <td>
                     <input v-if="selected.is_draft && tierEdits[t.id]" v-model="tierEdits[t.id]!.label" class="form-control compact" placeholder="optional" />
@@ -196,6 +197,11 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { createFeeSchedulesService } from '~/services/feeSchedules/feeSchedulesService'
 import type { FeeTier } from '~/services/types'
+import { formatAmount } from '~/utils/money'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
+
+const { pending, ask, accept, cancel } = useConfirmAction()
 
 const feeSchedulesService = createFeeSchedulesService(useApi())
 
@@ -339,6 +345,10 @@ const canAddTier = computed<boolean>(() =>
   newTier.from_km !== null && newTier.fee_ghs !== null
 )
 
+// A number input that was emptied holds '' (not null); either way it means "not set".
+const numberOrNull = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null
+
 const saveHeader = async (): Promise<void> => {
   if (!selected.value) return
   loading.value = true
@@ -346,8 +356,8 @@ const saveHeader = async (): Promise<void> => {
     await feeSchedulesService.updateHeader(selected.value.id, {
       name: header.name,
       notes: header.notes,
-      ...(header.top_tier_per_km != null && { top_tier_per_km: header.top_tier_per_km }),
-      ...(header.max_billable_km != null && { max_billable_km: header.max_billable_km }),
+      top_tier_per_km: numberOrNull(header.top_tier_per_km),
+      max_billable_km: numberOrNull(header.max_billable_km),
     })
     showMessage('Header saved')
     await fetchAll()
@@ -392,9 +402,12 @@ const saveTier = async (tierId: number | string): Promise<void> => {
   }
 }
 
-const deleteTier = async (tierId: number | string): Promise<void> => {
+const deleteTier = (tierId: number | string): void => {
+  ask({ title: 'Delete this tier?', message: 'It is removed from this draft right away.', confirmText: 'Yes, delete' }, () => doDeleteTier(tierId))
+}
+
+const doDeleteTier = async (tierId: number | string): Promise<void> => {
   if (!selected.value) return
-  if (!confirm('Delete this tier?')) return
   loading.value = true
   try {
     await feeSchedulesService.deleteTier(selected.value.id, tierId)
@@ -407,9 +420,17 @@ const deleteTier = async (tierId: number | string): Promise<void> => {
   }
 }
 
-const publishDraft = async (): Promise<void> => {
+const publishDraft = (): void => {
   if (!selected.value) return
-  if (!confirm(`Publish "${selected.value.name}"? This will supersede the currently active schedule and apply to all new quotes.`)) return
+  ask({
+    title: `Publish "${selected.value.name}"?`,
+    message: 'This supersedes the currently active schedule and applies to all new quotes.',
+    confirmText: 'Yes, publish',
+  }, doPublishDraft)
+}
+
+const doPublishDraft = async (): Promise<void> => {
+  if (!selected.value) return
   loading.value = true
   try {
     await feeSchedulesService.publish(selected.value.id)
@@ -434,8 +455,8 @@ const createDraft = async (): Promise<void> => {
   try {
     const res = await feeSchedulesService.createDraft({
       name: createForm.name,
-      ...(createForm.top_tier_per_km != null && { top_tier_per_km: createForm.top_tier_per_km }),
-      ...(createForm.max_billable_km != null && { max_billable_km: createForm.max_billable_km }),
+      ...(numberOrNull(createForm.top_tier_per_km) !== null && { top_tier_per_km: createForm.top_tier_per_km }),
+      ...(numberOrNull(createForm.max_billable_km) !== null && { max_billable_km: createForm.max_billable_km }),
       ...(createForm.clone_from_id != null && { clone_from_id: createForm.clone_from_id }),
     })
     showMessage('Draft created')

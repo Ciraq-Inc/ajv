@@ -168,6 +168,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: 'admin-auth',
   layout: 'admin-layout',
 })

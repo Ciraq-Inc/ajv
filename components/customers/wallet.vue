@@ -97,6 +97,7 @@
                     <div>
                         <h2 id="topup-title" class="font-display text-2xl font-bold text-ink-900">Top up wallet</h2>
                         <p class="text-base text-ink-600">Secured by Paystack</p>
+                        <p v-if="neededAmount != null" class="mt-1 text-base font-semibold text-ink-900">Add GHS {{ neededAmount.toFixed(2) }} to pay for your request</p>
                     </div>
                     <button type="button" aria-label="Close" @click="showTopUp = false"
                         class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700">
@@ -219,6 +220,9 @@ const transactions = ref<WalletTransaction[]>([])
 const loading = ref<boolean>(false)
 const showTopUp = ref<boolean>(false)
 const topUpAmount = ref<number>(50)
+// Set when the customer was sent here from a payment that their balance could not cover.
+const neededAmount = ref<number | null>(null)
+const MAX_NEEDED_AMOUNT = 50000
 const isPaying = ref<boolean>(false)
 const topUpDialogRef = ref<HTMLElement | null>(null)
 useModalA11y(topUpDialogRef, () => showTopUp.value, () => { showTopUp.value = false })
@@ -482,6 +486,12 @@ const handleWindowFocus = (): void => {
 onMounted(() => {
     void fetchBalance()
     void fetchTransactions()
+    const needed = Math.ceil(Number(route.query['topup']))
+    if (route.query['topup'] && Number.isFinite(needed) && needed >= 1 && needed <= MAX_NEEDED_AMOUNT) {
+        neededAmount.value = needed
+        topUpAmount.value = needed
+        showTopUp.value = true
+    }
     if (route.query['trxref'] ?? route.query['reference']) void verifyPayment()
     window.addEventListener('focus', handleWindowFocus)
 })

@@ -85,7 +85,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useCompanyStore } from '~/stores/company'
+import { usePharmacyPortal } from '~/composables/usePharmacyPortal'
 
 definePageMeta({
   middleware: ['company-auth'],
@@ -108,17 +108,7 @@ interface RiderRow {
   phone: string
 }
 
-interface DeliveryListResponse {
-  success?: boolean
-  message?: string | null
-  deliveries?: DeliveryRow[] | null
-  riders?: RiderRow[] | null
-}
-
-// TODO: remove once stores/ are .ts
-const companyStore = useCompanyStore() as unknown as {
-  makeAuthRequest: (url: string, options?: RequestInit) => Promise<DeliveryListResponse>
-}
+const portal = usePharmacyPortal()
 
 const route = useRoute()
 const pharmacy = computed<string>(() => String(route.params['pharmacy'] ?? ''))
@@ -149,8 +139,8 @@ const fetchAll = async (): Promise<void> => {
   loading.value = true
   try {
     const [claimedRes, ridersRes] = await Promise.all([
-      companyStore.makeAuthRequest('/api/pharmacy/deliveries/assigned'),
-      companyStore.makeAuthRequest('/api/pharmacy/riders'),
+      portal.listAssignedDeliveries<DeliveryRow>(),
+      portal.listRiders<RiderRow>(),
     ])
     if (claimedRes.success) claimedDeliveries.value = claimedRes.deliveries ?? []
     if (ridersRes.success) riders.value = ridersRes.riders ?? []
@@ -165,12 +155,7 @@ const doAction = async (id: number | string, path: string, body: Record<string, 
   acting.value = id
   errors.value[id] = null
   try {
-    const hasBody = Object.keys(body).length > 0
-    const res = await companyStore.makeAuthRequest(`/api/pharmacy/deliveries/${String(id)}/${path}`, {
-      method: 'POST',
-      headers: hasBody ? { 'Content-Type': 'application/json' } : {},
-      ...(hasBody && { body: JSON.stringify(body) }),
-    })
+    const res = await portal.deliveryAction(id, path, body)
     if (res.success) {
       await fetchAll()
     } else {

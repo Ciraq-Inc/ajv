@@ -140,7 +140,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ArrowPathIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline'
-import { useAdminStore } from '~/stores/admin'
+import { useCrossTenantReports } from '~/composables/useCrossTenantReports'
 
 interface SyncRow {
   record_count?: number | string;
@@ -153,16 +153,11 @@ interface SyncRow {
   [key: string]: unknown;
 }
 
-// TODO: remove once stores/ are .ts
-interface AdminStoreShape {
-  makeAuthRequest: (url: string) => Promise<{ success?: boolean; data?: unknown; message?: string }>;
-}
-
 const props = defineProps<{
   entity?: string | null;
 }>()
 
-const adminStore = useAdminStore() as unknown as AdminStoreShape
+const reports = useCrossTenantReports()
 
 const ENTITIES: Array<{ key: string; label: string }> = [
   { key: 'customer_returns',        label: 'Customer Returns' },
@@ -206,14 +201,11 @@ const fetchData = async (): Promise<void> => {
   error.value = ''
   rows.value = []
   try {
-    const params = new URLSearchParams()
-    if (startDate.value) params.append('start_date', startDate.value)
-    if (endDate.value) params.append('end_date', endDate.value)
-    if (companyIds.value.trim()) params.append('company_ids', companyIds.value.trim())
-
-    const res = await adminStore.makeAuthRequest(
-      `/api/reports/cross-tenant/extended-sync/${activeEntity.value}?${params}`
-    )
+    const res = await reports.getExtendedSync(activeEntity.value, {
+      startDate: startDate.value,
+      endDate: endDate.value,
+      companyIds: companyIds.value,
+    })
     if (res.success) {
       rows.value = (res.data ?? []) as SyncRow[]
     } else {

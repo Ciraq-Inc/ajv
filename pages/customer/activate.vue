@@ -1,80 +1,82 @@
 <template>
-  <div class="activate-page">
-    <div class="activate-card">
-      <div class="activate-logo">
-        <img src="/brand/rig-mark.svg" alt="MedsGH" class="h-10" />
-      </div>
+  <main class="flex min-h-screen items-center justify-center bg-ink-50 p-6">
+    <div class="w-full max-w-md rounded-3xl bg-white p-8 shadow-[0_20px_48px_-8px_rgba(30,26,34,0.18),0_0_0_1px_rgba(82,0,148,0.08)]">
+      <img src="/brand/rig-mark.svg" alt="MedsGH" class="mx-auto mb-6 h-10" />
 
       <template v-if="status === 'idle' || status === 'submitting'">
-        <h1 class="activate-title">Set your password</h1>
-        <p class="activate-sub">Welcome to MedsGH! Create a password to access your account and track your order.</p>
+        <h1 class="text-center text-xl font-bold text-ink-900">Set your password</h1>
+        <p class="mt-2 mb-6 text-center text-base text-ink-600">Welcome to MedsGH. Choose a password to open your account and follow your order.</p>
 
-        <form @submit.prevent="submit" class="activate-form">
-          <div class="form-field">
-            <label for="password">New password</label>
-            <input
-              id="password"
-              v-model="password"
-              type="password"
-              minlength="8"
-              required
-              placeholder="At least 8 characters"
-              class="form-input"
-              :disabled="status === 'submitting'"
-              @input="passwordTouched = true"
-            />
+        <form class="flex flex-col gap-4" @submit.prevent="submit">
+          <div>
+            <label for="password" class="mb-1.5 block text-sm font-semibold text-ink-900">New password</label>
+            <div class="relative">
+              <input
+                id="password"
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                :minlength="MIN_PASSWORD_LENGTH"
+                autocomplete="new-password"
+                :placeholder="`At least ${MIN_PASSWORD_LENGTH} characters`"
+                class="w-full rounded-2xl border border-ink-200 bg-white px-4 py-3 pr-14 text-base text-ink-900 placeholder-ink-500 focus:border-brand-700/50 focus:outline-none focus:ring-2 focus:ring-brand-700/15 disabled:opacity-60"
+                :disabled="status === 'submitting'"
+                @input="passwordTouched = true"
+              />
+              <button
+                type="button"
+                class="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-ink-600 transition-colors hover:bg-brand-50 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700/40"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                @click="showPassword = !showPassword"
+              >
+                <EyeSlashIcon v-if="showPassword" class="h-5 w-5" aria-hidden="true" />
+                <EyeIcon v-else class="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
             <ul v-if="passwordTouched" class="mt-2 space-y-1">
-              <li class="flex items-center gap-1.5 text-xs" :class="password.length >= 8 ? 'text-brand-700' : 'text-ink-500'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path v-if="password.length >= 8" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              <li class="flex items-center gap-1.5 text-sm" :class="password.length >= MIN_PASSWORD_LENGTH ? 'text-brand-700' : 'text-ink-500'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <path v-if="password.length >= MIN_PASSWORD_LENGTH" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   <circle v-else cx="12" cy="12" r="9" stroke-width="2" />
                 </svg>
-                At least 8 characters
+                At least {{ MIN_PASSWORD_LENGTH }} characters
               </li>
             </ul>
           </div>
-          <div class="form-field">
-            <label for="confirm">Confirm password</label>
-            <input
-              id="confirm"
-              v-model="confirm"
-              type="password"
-              minlength="8"
-              required
-              placeholder="Repeat your password"
-              class="form-input"
-              :disabled="status === 'submitting'"
-            />
-          </div>
-          <p v-if="error" class="activate-error">{{ error }}</p>
-          <button type="submit" class="activate-btn" :disabled="status === 'submitting'">
+          <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+          <button
+            type="submit"
+            class="min-h-[48px] w-full rounded-2xl bg-brand-700 px-4 py-3 text-base font-bold text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="status === 'submitting'"
+          >
             {{ status === 'submitting' ? 'Activating…' : 'Activate account' }}
           </button>
         </form>
       </template>
 
-      <template v-else-if="status === 'done'">
-        <div class="activate-success">
-          <p class="activate-success-headline">Account activated</p>
-          <p>Your account is ready. Sign in to view your orders and track your medications.</p>
-          <NuxtLink to="/" class="activate-btn">Sign in to your account</NuxtLink>
-        </div>
-      </template>
-
-      <template v-else-if="status === 'invalid'">
-        <div class="activate-error-block">
-          <p>This activation link is invalid or has already been used. Contact us if you need help.</p>
+      <template v-else>
+        <div class="text-center">
+          <h1 class="text-xl font-bold text-ink-900">This link can't be used</h1>
+          <p role="alert" class="mt-2 text-base text-ink-700">This activation link is invalid or has already been used.</p>
+          <NuxtLink
+            to="/"
+            class="mt-6 flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-brand-700 px-4 py-3 text-base font-bold text-white transition hover:bg-brand-800"
+          >Back to the home page</NuxtLink>
         </div>
       </template>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '~/composables/useApi'
 import { useUserStore } from '~/stores/user'
+
+// Same floor as sign-up (backend passwordPolicy.js).
+const MIN_PASSWORD_LENGTH = 6
 
 const route = useRoute()
 const router = useRouter()
@@ -83,9 +85,9 @@ const userStore = useUserStore()
 
 const token = ref<string>('')
 const password = ref('')
-const confirm = ref('')
+const showPassword = ref(false)
 const error = ref('')
-const status = ref<'idle' | 'submitting' | 'done' | 'invalid'>('idle')
+const status = ref<'idle' | 'submitting' | 'invalid'>('idle')
 const passwordTouched = ref(false)
 
 onMounted(() => {
@@ -99,12 +101,8 @@ onMounted(() => {
 
 const submit = async () => {
   error.value = ''
-  if (password.value.length < 8) {
-    error.value = 'Password must be at least 8 characters.'
-    return
-  }
-  if (password.value !== confirm.value) {
-    error.value = 'Passwords do not match.'
+  if (password.value.length < MIN_PASSWORD_LENGTH) {
+    error.value = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
     return
   }
 
@@ -128,123 +126,3 @@ const submit = async () => {
   }
 }
 </script>
-
-<style scoped>
-.activate-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8f9fc;
-  padding: 1.5rem;
-}
-
-.activate-card {
-  background: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,.08);
-  padding: 2rem;
-  width: 100%;
-  max-width: 400px;
-}
-
-.activate-logo {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
-
-.activate-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111;
-  margin-bottom: 0.4rem;
-  text-align: center;
-}
-
-.activate-sub {
-  font-size: 0.875rem;
-  color: #6b7280;
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.activate-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.form-field label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.form-input {
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.9rem;
-}
-
-.form-input:focus {
-  outline: 2px solid #4f46e5;
-  outline-offset: 2px;
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 2px rgba(124,58,237,.15);
-}
-
-.activate-btn {
-  display: block;
-  width: 100%;
-  text-align: center;
-  background: #4F217A;
-  color: #fff;
-  font-weight: 700;
-  padding: 0.7rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-  text-decoration: none;
-}
-
-.activate-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.activate-error {
-  color: #dc2626;
-  font-size: 0.82rem;
-}
-
-.activate-error-block {
-  color: #dc2626;
-  font-size: 0.9rem;
-  text-align: center;
-}
-
-.activate-success {
-  text-align: center;
-}
-
-.activate-success-headline {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #111;
-  margin-bottom: 0.4rem;
-}
-
-.activate-success p {
-  margin-bottom: 1.25rem;
-  color: #374151;
-}
-</style>

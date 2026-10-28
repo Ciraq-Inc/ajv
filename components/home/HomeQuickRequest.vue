@@ -20,7 +20,6 @@ const heroPhone = ref<string>('')
 const heroGuestLoading = ref<boolean>(false)
 const heroGuestError = ref<string>('')
 const heroGuestSuccess = ref<boolean>(false)
-const heroIsNewCustomer = ref<boolean>(true)
 
 const setDraftItems = (items: HeroDraftItem[]): void => emit('update:draftItems', items)
 
@@ -49,6 +48,7 @@ const heroAddressLoading = ref<boolean>(false)
 const heroAddressDropdownOpen = ref<boolean>(false)
 const heroGpsLoading = ref<boolean>(false)
 const heroGpsError = ref<string>('')
+const heroAddressActiveIndex = ref<number>(-1)
 let heroAddressTimer: ReturnType<typeof setTimeout> | null = null
 
 const clearHeroLocation = (): void => {
@@ -56,6 +56,7 @@ const clearHeroLocation = (): void => {
   heroAddressQuery.value = ''
   heroAddressSuggestions.value = []
   heroAddressDropdownOpen.value = false
+  heroAddressActiveIndex.value = -1
   heroGpsError.value = ''
 }
 
@@ -96,6 +97,7 @@ const onHeroAddressInput = (): void => {
   if (q.length < 3) {
     heroAddressSuggestions.value = []
     heroAddressDropdownOpen.value = false
+    heroAddressActiveIndex.value = -1
     return
   }
   heroAddressLoading.value = true
@@ -105,6 +107,7 @@ const onHeroAddressInput = (): void => {
       const res = await svc.geocodeAddress(q)
       heroAddressSuggestions.value = Array.isArray(res.data) ? res.data : []
       heroAddressDropdownOpen.value = heroAddressSuggestions.value.length > 0
+      heroAddressActiveIndex.value = -1
     } catch {
       heroAddressSuggestions.value = []
     } finally {
@@ -118,6 +121,25 @@ const selectHeroLocation = (s: { display_name: string; lat: number; lng: number 
   heroAddressQuery.value = ''
   heroAddressSuggestions.value = []
   heroAddressDropdownOpen.value = false
+  heroAddressActiveIndex.value = -1
+}
+
+const onHeroAddressKeydown = (event: KeyboardEvent): void => {
+  const count = heroAddressSuggestions.value.length
+  if (!heroAddressDropdownOpen.value || !count) return
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    heroAddressActiveIndex.value = (heroAddressActiveIndex.value + 1) % count
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    heroAddressActiveIndex.value = heroAddressActiveIndex.value <= 0 ? count - 1 : heroAddressActiveIndex.value - 1
+  } else if (event.key === 'Enter' && heroAddressActiveIndex.value >= 0) {
+    event.preventDefault()
+    selectHeroLocation(heroAddressSuggestions.value[heroAddressActiveIndex.value]!)
+  } else if (event.key === 'Escape') {
+    heroAddressDropdownOpen.value = false
+    heroAddressActiveIndex.value = -1
+  }
 }
 
 const closeHeroAddressDropdown = (): void => {
@@ -141,7 +163,7 @@ const submitHeroGuestRequest = async (): Promise<void> => {
     const parsedItems = props.draftItems.length
       ? props.draftItems.map(({ product_name, requested_unit, quantity, prefer_clearance_only }) => ({ product_name, requested_unit, quantity, prefer_clearance_only }))
       : heroMedication.value
-        .split(/[\n,]+/)
+        .split(/\n+/)
         .map(s => s.trim())
         .filter(Boolean)
         .map(name => ({ product_name: name, quantity: 1 }))
@@ -157,7 +179,6 @@ const submitHeroGuestRequest = async (): Promise<void> => {
       heroGuestError.value = result.message ?? 'Failed to place request. Please try again.'
       return
     }
-    heroIsNewCustomer.value = result.data?.is_new_customer !== false
     heroGuestSuccess.value = true
     if (props.draftItems.length) {
       if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(HOMEPAGE_REQUEST_DRAFT_KEY)
@@ -183,10 +204,10 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
       <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-brand-700">
         <CheckIcon class="h-7 w-7" stroke-width="2.5" aria-hidden="true" />
       </div>
-      <p class="font-display text-xl font-extrabold text-brand-950">Request sent!</p>
-      <p class="mt-2 text-sm leading-relaxed text-ink-500">
-        We'll SMS you at <strong class="text-brand-950">{{ heroPhone }}</strong>
-        {{ heroIsNewCustomer ? 'with a link to set up your account.' : 'with your order details.' }}
+      <p class="font-display text-xl font-extrabold text-brand-950">Request sent</p>
+      <p class="mt-2 text-base leading-relaxed text-ink-600">
+        We'll text you at <strong class="text-brand-950">{{ heroPhone }}</strong>
+        with a link to track your order.
       </p>
       <button
         type="button"
@@ -194,21 +215,18 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
         @click="resetHeroGuestForm"
       >Send another</button>
       <div class="mt-4 border-t border-brand-100 pt-4">
-        <template v-if="heroIsNewCustomer">
-          <p class="mb-1.5 text-xs text-ink-400">Your account is ready — set a password to track orders</p>
-          <button
-            type="button"
-            class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-            @click="emit('switch-view', 'signup')"
-          >Create your account →</button>
-        </template>
-        <template v-else>
-          <button
-            type="button"
-            class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
-            @click="emit('switch-view', 'login')"
-          >Sign in to track your order →</button>
-        </template>
+        <p class="mb-1 text-sm text-ink-600">Don't want to wait for the text?</p>
+        <button
+          type="button"
+          class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+          @click="emit('switch-view', 'login')"
+        >Sign in</button>
+        <span class="mx-1 text-ink-400" aria-hidden="true">·</span>
+        <button
+          type="button"
+          class="text-sm font-bold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+          @click="emit('switch-view', 'signup')"
+        >Create your account</button>
       </div>
     </div>
 
@@ -222,15 +240,15 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
       <div v-if="draftItems.length">
         <div class="mb-1.5 flex items-center justify-between">
           <span :class="labelClass" class="!mb-0">What you're requesting</span>
-          <span class="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2.5 py-0.5 text-[0.7rem] font-bold text-brand-700">
-            <TagIcon class="h-3 w-3" aria-hidden="true" /> Clearance pricing
+          <span class="inline-flex items-center gap-1 rounded-full bg-brand-100 px-2.5 py-0.5 text-sm font-bold text-brand-700">
+            <TagIcon class="h-4 w-4" aria-hidden="true" /> Clearance pricing
           </span>
         </div>
         <ul class="space-y-2">
           <li
             v-for="(item, index) in draftItems"
             :key="`${item.product_name}-${index}`"
-            class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5"
+            class="flex items-center gap-1 rounded-xl border border-brand-100 bg-white py-1 pl-3.5 pr-1"
           >
             <span class="min-w-0 flex-1 truncate text-sm text-brand-950">{{ item.product_name }}</span>
             <div class="flex shrink-0 items-center gap-1">
@@ -238,26 +256,26 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
                 type="button"
                 :disabled="heroGuestLoading || item.quantity <= 1"
                 aria-label="Decrease quantity"
-                class="flex h-7 w-7 items-center justify-center rounded-full border border-brand-200 text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
+                class="flex h-11 w-11 items-center justify-center rounded-full text-lg text-brand-700 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
                 @click="decreaseHeroDraftItemQty(index)"
               >−</button>
-              <span class="w-5 text-center text-sm text-brand-950">{{ item.quantity }}</span>
+              <span class="w-6 text-center text-base text-brand-950">{{ item.quantity }}</span>
               <button
                 type="button"
                 :disabled="heroGuestLoading"
                 aria-label="Increase quantity"
-                class="flex h-7 w-7 items-center justify-center rounded-full border border-brand-200 text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
+                class="flex h-11 w-11 items-center justify-center rounded-full text-lg text-brand-700 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
                 @click="increaseHeroDraftItemQty(index)"
               >+</button>
             </div>
             <button
               type="button"
               :disabled="heroGuestLoading"
-              class="shrink-0 text-ink-300 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-500 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 disabled:opacity-40"
               aria-label="Remove item"
               @click="removeHeroDraftItem(index)"
             >
-              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+              <XMarkIcon class="h-5 w-5" aria-hidden="true" />
             </button>
           </li>
         </ul>
@@ -270,11 +288,13 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
           id="hero-medications"
           v-model="heroMedication"
           rows="3"
-          placeholder="e.g. Paracetamol 500mg, Amoxicillin capsules…"
+          placeholder="e.g. Paracetamol 500mg"
+          aria-describedby="hero-medications-hint"
           required
           :disabled="heroGuestLoading"
           :class="[fieldClass, 'resize-none']"
         />
+        <p id="hero-medications-hint" class="mt-1.5 text-sm text-ink-500">Put each medicine on its own line.</p>
       </div>
 
       <div>
@@ -293,24 +313,27 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
 
       <!-- Location picker: GPS first, search-as-you-type fallback -->
       <div>
-        <label :class="labelClass">
-          Delivery location <span class="text-xs font-normal text-ink-400">(optional)</span>
+        <label v-if="!heroSelectedLocation" for="hero-address" :class="labelClass">
+          Delivery location <span class="font-normal text-ink-500">(optional)</span>
         </label>
+        <p v-else :class="labelClass">
+          Delivery location <span class="font-normal text-ink-500">(optional)</span>
+        </p>
 
         <!-- Confirmed location pill -->
         <div
           v-if="heroSelectedLocation"
-          class="flex items-center gap-2 rounded-xl border border-brand-700/30 bg-brand-50 px-3.5 py-2.5"
+          class="flex items-center gap-2 rounded-xl border border-brand-700/30 bg-brand-50 py-1 pl-3.5 pr-1"
         >
           <MapPinIcon class="h-4 w-4 shrink-0 text-brand-700" aria-hidden="true" />
           <span class="flex-1 truncate text-sm text-brand-950">{{ heroSelectedLocation.label }}</span>
           <button
             type="button"
-            class="shrink-0 text-ink-400 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-500 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
             aria-label="Clear location"
             @click="clearHeroLocation"
           >
-            <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -330,11 +353,11 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
             {{ heroGpsLoading ? 'Detecting location…' : 'Use my location' }}
           </button>
 
-          <p v-if="heroGpsError" class="mt-1.5 text-xs text-red-700">{{ heroGpsError }}</p>
+          <p v-if="heroGpsError" role="alert" class="mt-1.5 text-sm text-red-700">{{ heroGpsError }}</p>
 
           <div class="relative my-2.5 flex items-center">
             <div class="flex-1 border-t border-brand-100"></div>
-            <span class="mx-3 text-xs text-ink-400">or type address</span>
+            <span class="mx-3 text-sm text-ink-500">or type address</span>
             <div class="flex-1 border-t border-brand-100"></div>
           </div>
 
@@ -345,8 +368,14 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
               type="text"
               placeholder="Search: East Legon, Achimota…"
               autocomplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="hero-address-suggestions"
+              :aria-expanded="heroAddressDropdownOpen && heroAddressSuggestions.length > 0"
+              :aria-activedescendant="heroAddressActiveIndex >= 0 ? `hero-address-option-${heroAddressActiveIndex}` : undefined"
               :disabled="heroGuestLoading"
               :class="[fieldClass, 'pr-10']"
+              @keydown="onHeroAddressKeydown"
               @input="onHeroAddressInput"
               @blur="closeHeroAddressDropdown"
               @focus="heroAddressDropdownOpen = heroAddressSuggestions.length > 0"
@@ -359,18 +388,23 @@ const spinnerPath = 'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7
             </div>
             <ul
               v-if="heroAddressDropdownOpen && heroAddressSuggestions.length"
+              id="hero-address-suggestions"
               role="listbox"
               aria-label="Address suggestions"
               class="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-brand-100 bg-white shadow-lift"
             >
               <li
-                v-for="s in heroAddressSuggestions"
+                v-for="(s, index) in heroAddressSuggestions"
+                :id="`hero-address-option-${index}`"
                 :key="s.display_name"
                 role="option"
-                class="flex cursor-pointer items-start gap-2.5 px-4 py-2.5 text-sm text-brand-950 hover:bg-brand-50"
+                :aria-selected="heroAddressActiveIndex === index"
+                class="flex cursor-pointer items-start gap-2.5 px-4 py-3 text-sm text-brand-950"
+                :class="heroAddressActiveIndex === index ? 'bg-brand-50' : 'hover:bg-brand-50'"
+                @mouseenter="heroAddressActiveIndex = index"
                 @mousedown.prevent="selectHeroLocation(s)"
               >
-                <MapPinIcon class="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true" />
+                <MapPinIcon class="mt-0.5 h-4 w-4 shrink-0 text-ink-500" aria-hidden="true" />
                 <span class="leading-snug">{{ s.display_name }}</span>
               </li>
             </ul>

@@ -29,7 +29,7 @@ beforeEach(() => {
     { id: 11, name: 'Paracetamol 500mg', price: 5, quantity: 2 },
     { id: 'x-9', name: 'Vitamin C', price: 12, quantity: 1 },
   ]
-  service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: true, request_number: 'REQ-1' } })
+  service.submitAsGuest.mockResolvedValue({ success: true, data: { request_number: 'REQ-1' } })
 })
 
 afterEach(() => {
@@ -96,26 +96,32 @@ describe('GuestCheckoutForm', () => {
       expect(service.submitAsGuest.mock.calls[1][0].customer_address).toBeUndefined()
     })
 
-    it('thanks a new customer and says the SMS carries a link to set up an account', async () => {
+    it('thanks the customer and says the SMS carries a link to track the order', async () => {
       const w = open()
       await w.find('#guest-phone').setValue('0244123456')
       await submit(w)
 
       expect(w.find('h3').text()).toBe('Request placed!')
       expect(w.text()).toContain('0244123456')
-      expect(w.text()).toContain('set up your account')
+      expect(w.text()).toContain('with a link to track your order.')
       expect(w.emitted('guest-order-success')![0]).toEqual([{ requestNumber: 'REQ-1' }])
       expect(w.find('form').exists()).toBe(false)
     })
 
-    it('tells a returning customer they will get an order confirmation instead', async () => {
-      service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: false, request_number: 'REQ-2' } })
+    it('says the same whether or not the number already had an account', async () => {
+      // The reply must not reveal whether a phone number is registered.
+      service.submitAsGuest.mockResolvedValue({ success: true, data: { request_number: 'REQ-2' } })
       const w = open()
       await w.find('#guest-phone').setValue('0244123456')
       await submit(w)
+      const withNoFlag = w.text()
 
-      expect(w.text()).toContain('with your order confirmation.')
-      expect(w.text()).not.toContain('set up your account')
+      service.submitAsGuest.mockResolvedValue({ success: true, data: { is_new_customer: false, request_number: 'REQ-2' } })
+      const again = open()
+      await again.find('#guest-phone').setValue('0244123456')
+      await submit(again)
+
+      expect(again.text()).toBe(withNoFlag)
     })
 
     it('shows the server message and keeps the form so the customer can fix the number', async () => {
@@ -159,7 +165,7 @@ describe('GuestCheckoutForm', () => {
       expect(w.find('button[type="submit"]').attributes('disabled')).toBeDefined()
       expect(w.find('#guest-phone').attributes('disabled')).toBeDefined()
 
-      finish({ success: true, data: { is_new_customer: true, request_number: 'R' } })
+      finish({ success: true, data: { request_number: 'R' } })
       await flushPromises()
       expect(w.find('h3').text()).toBe('Request placed!')
     })

@@ -355,8 +355,8 @@
             <div class="detail-item"><span class="dl">Type</span><span class="dv">{{ typeLabel(selectedCode.discount_type) }}</span></div>
             <div class="detail-item"><span class="dl">Value</span><span class="dv">{{ formatValue(selectedCode) }}</span></div>
             <div class="detail-item"><span class="dl">Redemptions</span><span class="dv">{{ selectedCode.times_used }}{{ selectedCode.max_uses ? ` / ${selectedCode.max_uses}` : '' }}</span></div>
-            <div class="detail-item"><span class="dl">Total Discounted</span><span class="dv">{{ selectedCode.total_discounted != null ? `GHS ${Number(selectedCode.total_discounted).toFixed(2)}` : '—' }}</span></div>
-            <div class="detail-item"><span class="dl">Min Order</span><span class="dv">{{ selectedCode.min_order_amount ? `GHS ${selectedCode.min_order_amount}` : 'None' }}</span></div>
+            <div class="detail-item"><span class="dl">Total Discounted</span><span class="dv">{{ selectedCode.total_discounted != null ? formatGhs(selectedCode.total_discounted) : '—' }}</span></div>
+            <div class="detail-item"><span class="dl">Min Order</span><span class="dv">{{ selectedCode.min_order_amount ? formatGhs(selectedCode.min_order_amount) : 'None' }}</span></div>
             <div class="detail-item"><span class="dl">Per-Customer</span><span class="dv">{{ selectedCode.max_uses_per_customer ?? 1 }}</span></div>
             <div class="detail-item"><span class="dl">Valid From</span><span class="dv">{{ selectedCode.valid_from ? formatDate(selectedCode.valid_from) : '—' }}</span></div>
             <div class="detail-item"><span class="dl">Valid Until</span><span class="dv">{{ selectedCode.valid_until ? formatDate(selectedCode.valid_until) : 'No expiry' }}</span></div>
@@ -458,10 +458,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
+import { formatGhs } from '~/utils/money'
 import { createAdminDiscountsService } from '~/services/discounts/adminDiscountsService'
 import type { DiscountCode, DiscountStats, CreateDiscountPayload } from '~/services/discounts/discountsService'
 
-definePageMeta({ layout: 'admin-layout', middleware: ['admin-auth'] })
+definePageMeta({ requiredRole: 'auditor', layout: 'admin-layout', middleware: ['admin-auth'] })
 
 const api = useApi()
 const svc = createAdminDiscountsService(api)
@@ -730,7 +731,7 @@ const showToast = (text: string, type = 'success') => { toast.value = { text, ty
 const typeLabel = (t: string) => ({ percentage: '% Off', flat_amount: 'Fixed', free_shipping: 'Free Ship' }[t] ?? t)
 const formatValue = (c: DiscountCode) => {
   if (c.discount_type === 'percentage') return `${c.discount_value}%`
-  if (c.discount_type === 'flat_amount') return `GHS ${Number(c.discount_value).toFixed(2)}`
+  if (c.discount_type === 'flat_amount') return formatGhs(c.discount_value)
   return 'Free shipping'
 }
 const formatDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })

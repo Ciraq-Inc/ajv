@@ -147,7 +147,7 @@ export const useCartStore = defineStore('cart', {
 
       const existingItem = this.items.find((item) => String(item.id) === String(drug.id));
       if (existingItem) {
-        existingItem.quantity = drug.quantity || 1;
+        existingItem.quantity += drug.quantity || 1;
       } else {
         const quantity = drug.quantity || 1;
         this.items.unshift({ ...drug, quantity });

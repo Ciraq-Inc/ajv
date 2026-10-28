@@ -5,7 +5,7 @@
       <button 
         @click="showAddAdminModal = true" 
         class="btn-primary"
-        v-if="adminStore.isSuperAdmin"
+        v-if="adminStore.isAdminOrAbove"
       >
         <PlusIcon class="btn-icon-sm" />
         Add New Admin
@@ -94,7 +94,7 @@
             <th>Status</th>
             <th>Last Login</th>
             <th>Created</th>
-            <th v-if="adminStore.isSuperAdmin">Actions</th>
+            <th v-if="adminStore.isAdminOrAbove">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -131,7 +131,7 @@
                 {{ formatDate(admin.created_at) }}
               </div>
             </td>
-            <td v-if="adminStore.isSuperAdmin">
+            <td v-if="adminStore.isAdminOrAbove">
               <div class="actions">
                 <button 
                   @click="editAdmin(admin)" 

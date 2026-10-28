@@ -25,9 +25,8 @@ const open = async (query: Record<string, unknown> = { token: TOKEN }) => {
   await flushPromises()
   return wrapper
 }
-const fill = async (w: ReturnType<typeof mount>, password: string, confirm = password) => {
+const fill = async (w: ReturnType<typeof mount>, password: string) => {
   await w.find('#password').setValue(password)
-  await w.find('#confirm').setValue(confirm)
 }
 const submit = async (w: ReturnType<typeof mount>) => {
   await w.find('form').trigger('submit')
@@ -51,7 +50,23 @@ describe('customer activation: arriving', () => {
 
     expect(w.find('h1').text()).toBe('Set your password')
     expect(w.find('#password').attributes('type')).toBe('password')
-    expect(w.find('#confirm').attributes('type')).toBe('password')
+  })
+
+  it('asks for the password once, with no confirmation field', async () => {
+    const w = await open()
+    expect(w.findAll('input')).toHaveLength(1)
+  })
+
+  it('lets the customer reveal and hide what they typed', async () => {
+    const w = await open()
+    const toggle = w.find('button[aria-label="Show password"]')
+    expect(toggle.exists()).toBe(true)
+
+    await toggle.trigger('click')
+    expect(w.find('#password').attributes('type')).toBe('text')
+
+    await w.find('button[aria-label="Hide password"]').trigger('click')
+    expect(w.find('#password').attributes('type')).toBe('password')
   })
 
   it('says the link is invalid, with no form, when there is no token', async () => {
@@ -59,6 +74,14 @@ describe('customer activation: arriving', () => {
 
     expect(w.text()).toContain('This activation link is invalid or has already been used.')
     expect(w.find('form').exists()).toBe(false)
+  })
+
+  it('gives the customer somewhere to go from the invalid-link message', async () => {
+    const w = await open({})
+
+    const link = w.find('a')
+    expect(link.attributes('href')).toBe('/')
+    expect(link.text()).toBe('Back to the home page')
   })
 
   it('treats a blank token the same as a missing one', async () => {
@@ -73,7 +96,7 @@ describe('customer activation: arriving', () => {
 })
 
 describe('customer activation: choosing a password', () => {
-  it('shows the length rule only after the customer starts typing, and ticks it at eight characters', async () => {
+  it('shows the length rule only after the customer starts typing, and ticks it at six characters', async () => {
     const w = await open()
     expect(w.find('ul li').exists()).toBe(false)
 
@@ -81,7 +104,9 @@ describe('customer activation: choosing a password', () => {
     const rule = w.find('ul li')
     expect(rule.classes()).toContain('text-ink-500')
 
-    await w.find('#password').setValue('long-enough')
+    expect(rule.text()).toContain('At least 6 characters')
+
+    await w.find('#password').setValue('sixchr')
     expect(w.find('ul li').classes()).toContain('text-brand-700')
   })
 
@@ -90,25 +115,24 @@ describe('customer activation: choosing a password', () => {
     await fill(w, 'short')
     await submit(w)
 
-    expect(w.text()).toContain('Password must be at least 8 characters.')
+    expect(w.find('[role="alert"]').text()).toBe('Password must be at least 6 characters.')
     expect(api.post).not.toHaveBeenCalled()
   })
 
-  it('rejects a confirmation that does not match, before calling the API', async () => {
+  it('accepts a six-character password, matching the sign-up rule', async () => {
     const w = await open()
-    await fill(w, GOOD, 'something-else')
+    await fill(w, 'sixchr')
     await submit(w)
 
-    expect(w.text()).toContain('Passwords do not match.')
-    expect(api.post).not.toHaveBeenCalled()
+    expect(api.post).toHaveBeenCalledWith('/api/order-requests/customer/activate', { token: TOKEN, password: 'sixchr' })
   })
 
-  it('does not compare passwords by trimming: spaces are part of the password', async () => {
+  it('keeps spaces as part of the password', async () => {
     const w = await open()
-    await fill(w, 'pass word 123', 'pass word 123 ')
+    await fill(w, ' pass word ')
     await submit(w)
 
-    expect(w.text()).toContain('Passwords do not match.')
+    expect(api.post).toHaveBeenCalledWith('/api/order-requests/customer/activate', { token: TOKEN, password: ' pass word ' })
   })
 })
 
@@ -152,7 +176,6 @@ describe('customer activation: submitting', () => {
     expect(button.text()).toBe('Activating…')
     expect(button.attributes('disabled')).toBeDefined()
     expect(w.find('#password').attributes('disabled')).toBeDefined()
-    expect(w.find('#confirm').attributes('disabled')).toBeDefined()
 
     finish({ success: true })
     await flushPromises()
@@ -178,7 +201,7 @@ describe('customer activation: when the server says no', () => {
     await submit(w)
 
     expect(w.find('form').exists()).toBe(true)
-    expect(w.find('.activate-error').text()).toBe('Failed to activate account')
+    expect(w.find('[role="alert"]').text()).toBe('Failed to activate account')
     expect(w.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
 
     await submit(w)

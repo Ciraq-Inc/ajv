@@ -77,7 +77,7 @@
       </button> -->
       
       <button
-        v-if="campaign.status === 'draft'"
+        v-if="campaign.status === 'draft' && canSendCampaigns"
         @click="$emit('start', campaign.id)"
         class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
       >
@@ -95,7 +95,7 @@
       </button>
 
       <button
-        v-else-if="campaign.status === 'paused'"
+        v-else-if="campaign.status === 'paused' && canSendCampaigns"
         @click="$emit('resume', campaign.id)"
         class="flex-1 px-4 py-2 cs-btn text-white rounded-lg transition-colors text-sm font-medium"
       >
@@ -210,6 +210,8 @@ import { computed, ref, watch } from 'vue'
 import { CalendarIcon, PlayIcon, PauseIcon, PencilIcon, DocumentDuplicateIcon, PaperAirplaneIcon, TrashIcon, XCircleIcon, ArchiveBoxIcon, ArrowUturnLeftIcon, EllipsisVerticalIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import StatusBadge from '~/components/sms/shared/StatusBadge.vue'
 import { formatDate, formatNumber } from '~/utils/constants/sms'
+import { formatGhs } from '~/utils/money'
+import { useSmsSpendAccess } from '~/composables/useSmsSpendAccess'
 
 interface Campaign {
   id: number
@@ -270,19 +272,18 @@ const progressPercentage = computed<number>(() => {
   return Math.round((sent / total) * 100)
 })
 
-const formatCurrency = (value: number | null | undefined): string => {
-  const num = parseFloat(String(value ?? 0)) || 0
-  return num.toFixed(2)
-}
+const formatCurrency = formatGhs
 
 const canReuse = computed<boolean>(() =>
   ['draft', 'completed', 'cancelled', 'paused'].includes(props.campaign.status),
 )
 
+const { canSendCampaigns } = useSmsSpendAccess()
 const canResend = computed<boolean>(
   () =>
-    ['completed', 'paused', 'failed'].includes(props.campaign.status) ||
-    (props.campaign.messages_failed ?? 0) > 0,
+    canSendCampaigns.value &&
+    (['completed', 'paused', 'failed'].includes(props.campaign.status) ||
+      (props.campaign.messages_failed ?? 0) > 0),
 )
 
 const canEdit = computed<boolean>(() =>
@@ -300,6 +301,6 @@ const canArchive = computed<boolean>(() =>
 const canRestore = computed<boolean>(() => props.campaign.status === 'archived')
 
 const canDelete = computed<boolean>(() =>
-  ['draft', 'archived'].includes(props.campaign.status),
+  canSendCampaigns.value && ['draft', 'archived'].includes(props.campaign.status),
 )
 </script>

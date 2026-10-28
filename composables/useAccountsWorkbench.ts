@@ -28,6 +28,7 @@ import type {
   ReceiveChequePayload,
 } from '~/services/types'
 import { isSessionError, sessionExpiredMessage } from '~/utils/accountsSession'
+import { formatGhs } from '~/utils/money'
 
 const accountTypeLabels: Record<AccountType, string> = {
   cash: 'Cash',
@@ -98,13 +99,7 @@ export const useAccountsWorkbench = () => {
   let payableLedgerRequestId = 0
   let accountRequestId = 0
 
-  const formatMoney = (value: number | null | undefined): string =>
-    new Intl.NumberFormat('en-GH', {
-      style: 'currency',
-      currency: 'GHS',
-      currencyDisplay: 'narrowSymbol',
-      minimumFractionDigits: 2,
-    }).format(Number(value ?? 0))
+  const formatMoney = (value: number | null | undefined): string => formatGhs(value)
 
   const formatDate = (value: string | null | undefined): string => {
     if (!value) return 'Not recorded'
@@ -422,6 +417,20 @@ export const useAccountsWorkbench = () => {
     }
   }
 
+  const cancelScheduledPayment = async (id: string | number) => {
+    isSaving.value = true
+    error.value = ''
+    try {
+      const response = await service.cancelScheduledPayment(id)
+      return response.data
+    } catch (err) {
+      error.value = messageFromError(err)
+      throw err
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   const loadPaymentMethods = async () => {
     try {
       const response = await service.listPaymentMethods()
@@ -580,6 +589,7 @@ export const useAccountsWorkbench = () => {
     postMoneyOut,
     postPayableMethodPayment,
     postPayablePaymentBatch,
+    cancelScheduledPayment,
     loadPaymentMethods,
     postLoanReceived,
     postLoanRepayment,

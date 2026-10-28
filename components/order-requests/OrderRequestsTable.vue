@@ -79,7 +79,7 @@
           </td>
           <td style="padding: 0.875rem 1.25rem; text-align: right; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums;">
             <template v-if="getRequestComposedCost(req) !== null">
-              GHS {{ getRequestComposedCost(req)!.toFixed(2) }}
+              {{ formatGhs(getRequestComposedCost(req)) }}
             </template>
             <span v-else style="color: #9ca3af; font-weight: 400;">—</span>
           </td>
@@ -123,6 +123,7 @@
 
 <script setup lang="ts">
 import { EyeIcon } from '@heroicons/vue/24/outline'
+import { formatGhs } from '~/utils/money'
 
 interface OrderRequestRow {
   id: number

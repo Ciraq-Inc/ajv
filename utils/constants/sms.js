@@ -1,3 +1,5 @@
+import { formatGhs } from '~/utils/money'
+
 // SMS Campaign Status
 export const CAMPAIGN_STATUS = {
   DRAFT: 'draft',
@@ -143,13 +145,9 @@ export function formatPhoneNumber(phone) {
 }
 
 // Format currency
-export function formatCurrency(amount, currency = 'GHS') {
+export function formatCurrency(amount) {
   if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('en-GH', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2
-  }).format(amount)
+  return formatGhs(amount)
 }
 
 // Format date

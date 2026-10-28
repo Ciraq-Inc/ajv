@@ -12,12 +12,6 @@
 // Public behavior MUST mirror the legacy in-component fetch calls exactly:
 // same paths, same method, same query shape. Response envelope handling
 // (`{ success, data, message }`) is performed by the caller, not here.
-//
-// Note on scope: components/analytics/inventory.vue uses these same
-// endpoints via `adminStore.makeAuthRequest(...)`, which is already an
-// authenticated wrapper (not a raw fetch). Migrating inventory.vue to this
-// service is a follow-up; it would only swap the helper, not change the
-// HTTP contract.
 
 import type { ApiInstance, ApiEnvelope, CompositeStockValue, TopProduct, InventoryAlert } from '../types';
 

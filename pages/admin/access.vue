@@ -53,6 +53,7 @@ import CompanyStoreSettings from '~/components/access/CompanyStoreSettings.vue'
 import CompaniesManagement from '~/components/analytics/companies.vue'
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: ['admin-auth'],
   layout: 'admin-layout'
 })

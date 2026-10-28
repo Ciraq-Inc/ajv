@@ -1,5 +1,7 @@
 <template>
   <div class="container mx-auto p-4">
+    <PageNotice :notice="notice" @dismiss="dismiss" />
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -50,6 +52,10 @@
 
     <div v-if="syncError" class="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
       {{ syncError }}
+    </div>
+
+    <div v-if="loadError" role="alert" class="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      {{ loadError }}
     </div>
 
     <div v-if="syncResult" class="mb-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
@@ -305,7 +311,7 @@
                     </svg>
                     {{ product.product_image_url ? 'Change' : 'Upload' }}
                   </button>
-                  <button v-if="product.product_image_url" @click="removeImage(product)"
+                  <button v-if="product.product_image_url" @click="removeImage(product)" aria-label="Remove image" title="Remove image"
                     :disabled="uploadingProductId === product.id"
                     class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 flex items-center disabled:opacity-50">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -397,10 +403,9 @@
           <!-- Upload Progress -->
           <div v-if="uploading" class="mb-4">
             <div class="w-full bg-gray-200 rounded-full h-2">
-              <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                :style="{ width: uploadProgress + '%' }"></div>
+              <div class="bg-indigo-600 h-2 rounded-full w-full animate-pulse"></div>
             </div>
-            <p class="text-sm text-center text-gray-600 mt-2">{{ uploadProgress }}%</p>
+            <p class="text-sm text-center text-gray-600 mt-2">Uploading...</p>
           </div>
 
           <!-- Error Message -->
@@ -494,6 +499,16 @@
             </div>
 
             <!-- Selected Files List -->
+            <div v-if="bulkLeftOut.length > 0" class="bg-amber-50 border border-amber-200 rounded-lg p-3" role="status">
+              <p class="text-sm font-medium text-amber-800">
+                {{ bulkLeftOut.length }} {{ bulkLeftOut.length === 1 ? 'file was' : 'files were' }} left out
+              </p>
+              <p v-for="item in bulkLeftOut.slice(0, 5)" :key="item.name" class="text-xs text-amber-800">
+                {{ item.name }}: {{ item.reason }}
+              </p>
+              <p v-if="bulkLeftOut.length > 5" class="text-xs text-amber-800">and {{ bulkLeftOut.length - 5 }} more</p>
+            </div>
+
             <div v-if="selectedBulkFiles.length > 0" class="space-y-2">
               <div class="flex items-center justify-between">
                 <label class="block text-sm font-medium text-gray-700">Selected Files ({{ selectedBulkFiles.length
@@ -615,8 +630,13 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useApi } from '~/composables/useApi';
 import { createMasterProductsService } from '~/services/masterProducts/masterProductsService';
+import PageNotice from '~/components/admin/PageNotice.vue';
+import { usePageNotice } from '~/composables/usePageNotice';
+import ConfirmAction from '~/components/admin/ConfirmAction.vue';
+import { useConfirmAction } from '~/composables/useConfirmAction';
 
 definePageMeta({
+  requiredRole: 'manager',
   middleware: 'admin-auth',
   layout: 'admin-layout',
 });
@@ -637,13 +657,6 @@ interface MasterProductStats {
 interface ClassificationOption {
   id: number | string
   name?: string | null
-  [key: string]: unknown
-}
-
-interface UploadResponse {
-  success: boolean
-  imageUrl?: string
-  error?: string
   [key: string]: unknown
 }
 
@@ -681,6 +694,8 @@ interface ApiResponse {
 }
 
 const api = useApi();
+const { notice, notify, dismiss } = usePageNotice();
+const { pending, ask, accept, cancel } = useConfirmAction();
 const masterProductsService = createMasterProductsService(api);
 
 const loading = ref<boolean>(false);
@@ -713,6 +728,7 @@ interface MasterSyncResult {
 
 const syncResult = ref<MasterSyncResult | null>(null);
 const syncError = ref<string>('');
+const loadError = ref<string>('');
 
 // Upload Modal State
 const showUploadModal = ref<boolean>(false);
@@ -720,7 +736,6 @@ const selectedProduct = ref<MasterProduct | null>(null);
 const selectedFile = ref<File | null>(null);
 const previewUrl = ref<string | null>(null);
 const uploading = ref<boolean>(false);
-const uploadProgress = ref<number>(0);
 const uploadError = ref<string | null>(null);
 const uploadingProductId = ref<number | string | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -731,6 +746,7 @@ const autoUploading = ref<boolean>(false);
 const autoUploadResults = ref<BulkUploadResults | null>(null);
 const forceUpdate = ref<boolean>(false);
 const selectedBulkFiles = ref<File[]>([]);
+const bulkLeftOut = ref<Array<{ name: string; reason: string }>>([]);
 const uploadProgressCount = ref<number>(0);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const bulkFileInput = ref<HTMLInputElement | null>(null);
@@ -777,12 +793,14 @@ const formatNumber = (num: number | null | undefined): string =>
 
 const loadStats = async (): Promise<void> => {
   try {
+    loadError.value = '';
     const response = await api.get('/api/master-products/stats') as unknown as ApiResponse;
     if (response.success) {
       stats.value = response.data as MasterProductStats;
     }
   } catch (error) {
     console.error('Error loading stats:', error);
+    loadError.value = 'Could not load master product stats. Use Refresh to try again.';
   }
 };
 
@@ -794,6 +812,7 @@ const loadClassificationOptions = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Error loading classification options:', error);
+    loadError.value = 'Could not load the classification filter. Use Refresh to try again.';
   }
 };
 
@@ -820,6 +839,8 @@ const loadProducts = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Error loading products:', error);
+    products.value = [];
+    loadError.value = 'Could not load master products. Use Refresh to try again.';
   } finally {
     loading.value = false;
   }
@@ -953,7 +974,6 @@ const closeUploadModal = (): void => {
   selectedFile.value = null;
   previewUrl.value = null;
   uploadError.value = null;
-  uploadProgress.value = 0;
   if (fileInput.value) {
     fileInput.value.value = '';
   }
@@ -991,37 +1011,14 @@ const uploadImage = async (): Promise<void> => {
     uploading.value = true;
     uploadingProductId.value = selectedProduct.value.id;
     uploadError.value = null;
-    uploadProgress.value = 0;
 
     const formData = new FormData();
     formData.append('image', selectedFile.value);
     formData.append('productId', String(selectedProduct.value.id));
     formData.append('productName', String(selectedProduct.value.product_description ?? ''));
 
-    const config = useRuntimeConfig();
-    const xhr = new XMLHttpRequest();
-
-    xhr.upload.addEventListener('progress', (e: ProgressEvent) => {
-      if (e.lengthComputable) {
-        uploadProgress.value = Math.round((e.loaded * 100) / e.total);
-      }
-    });
-
-    const uploadPromise = new Promise<UploadResponse>((resolve, reject) => {
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(JSON.parse(xhr.responseText) as UploadResponse);
-        } else {
-          reject(new Error(xhr.responseText || 'Upload failed'));
-        }
-      });
-      xhr.addEventListener('error', () => reject(new Error('Network error')));
-    });
-
-    xhr.open('POST', `${String(config.public['apiBase'])}/api/master-products/upload-image`);
-    xhr.send(formData);
-
-    const response = await uploadPromise;
+    // The service sends the admin token and renews it when it has expired; a bare XMLHttpRequest did neither.
+    const response = await masterProductsService.uploadImage(formData);
 
     if (response.success) {
       const currentSelected = selectedProduct.value;
@@ -1033,7 +1030,7 @@ const uploadImage = async (): Promise<void> => {
 
       await loadStats();
       closeUploadModal();
-      alert('Image uploaded successfully!');
+      notify('Image uploaded successfully.', 'success');
     } else {
       uploadError.value = response.error ?? 'Upload failed';
     }
@@ -1046,9 +1043,15 @@ const uploadImage = async (): Promise<void> => {
   }
 };
 
-const removeImage = async (product: MasterProduct): Promise<void> => {
-  if (!confirm('Are you sure you want to remove this image?')) return;
+const removeImage = (product: MasterProduct): void => {
+  ask({
+    title: 'Remove this image?',
+    message: 'The product goes back to having no image.',
+    confirmText: 'Yes, remove',
+  }, () => doRemoveImage(product));
+};
 
+const doRemoveImage = async (product: MasterProduct): Promise<void> => {
   try {
     uploadingProductId.value = product.id;
     const response = await api.post('/api/master-products/remove-image', {
@@ -1064,13 +1067,13 @@ const removeImage = async (product: MasterProduct): Promise<void> => {
       }
 
       await loadStats();
-      alert('Image removed successfully!');
+      notify('Image removed successfully.', 'success');
     } else {
-      alert('Failed to remove image: ' + (response.error ?? 'Unknown error'));
+      notify('Failed to remove image: ' + (response.error ?? 'Unknown error'));
     }
   } catch (error) {
     console.error('Remove error:', error);
-    alert('Failed to remove image');
+    notify(error instanceof Error ? `Failed to remove image: ${error.message}` : 'Failed to remove image');
   } finally {
     uploadingProductId.value = null;
   }
@@ -1081,6 +1084,7 @@ const openAutoUploadModal = (): void => {
   autoUploadResults.value = null;
   forceUpdate.value = false;
   selectedBulkFiles.value = [];
+  bulkLeftOut.value = [];
   uploadProgressCount.value = 0;
 };
 
@@ -1089,6 +1093,7 @@ const closeAutoUploadModal = (): void => {
   showAutoUploadModal.value = false;
   autoUploadResults.value = null;
   selectedBulkFiles.value = [];
+  bulkLeftOut.value = [];
   uploadProgressCount.value = 0;
 };
 
@@ -1103,21 +1108,25 @@ const handleFileDrop = (event: DragEvent): void => {
   addFilesToSelection(files);
 };
 
-const addFilesToSelection = (files: File[]): void => {
-  const validFiles = files.filter((file) => {
-    if (!file.type.match(/^image\/(jpeg|png|webp)$/)) return false;
-    if (file.size > 5 * 1024 * 1024) return false;
-    const productId = getProductIdFromFile(file.name);
-    if (!productId || isNaN(parseInt(productId, 10))) return false;
-    return true;
-  });
+// Why a file cannot go in the batch, or null when it can. One image per product: the server keeps one.
+const bulkRejection = (file: File): string | null => {
+  if (!file.type.match(/^image\/(jpeg|png|webp)$/)) return 'not a JPEG, PNG or WebP image';
+  if (file.size > 5 * 1024 * 1024) return 'over 5 MB';
+  const productId = getProductIdFromFile(file.name);
+  if (!productId || isNaN(parseInt(productId, 10))) return 'name must start with the product number, like 1045.jpg';
+  const taken = selectedBulkFiles.value.find((f) => getProductIdFromFile(f.name) === productId);
+  if (taken) return taken.name === file.name ? 'already selected' : `product ${productId} already has ${taken.name} selected`;
+  return null;
+};
 
-  validFiles.forEach((file) => {
-    const exists = selectedBulkFiles.value.some((f) => f.name === file.name);
-    if (!exists) {
-      selectedBulkFiles.value.push(file);
-    }
-  });
+const addFilesToSelection = (files: File[]): void => {
+  const leftOut: Array<{ name: string; reason: string }> = [];
+  for (const file of files) {
+    const reason = bulkRejection(file);
+    if (reason === null) selectedBulkFiles.value.push(file);
+    else leftOut.push({ name: file.name, reason });
+  }
+  bulkLeftOut.value = leftOut;
 };
 
 const getProductIdFromFile = (filename: string): string | null => {
@@ -1165,17 +1174,21 @@ const startAutoUpload = async (): Promise<void> => {
 
         if (data.success) {
           results.success.push({ productId, fileName: file.name, ...(data.imageUrl != null && { imageUrl: data.imageUrl }) });
-        } else if (data.error?.includes('not found')) {
-          results.skipped.push({ productId, fileName: file.name, reason: 'Product not found in database' });
+        } else if (data.skipped) {
+          results.skipped.push({ productId, fileName: file.name, reason: data.error ?? 'Skipped' });
         } else {
           results.failed.push({ productId, fileName: file.name, error: data.error ?? 'Upload failed' });
         }
       } catch (error) {
-        results.failed.push({
-          productId,
-          fileName: file.name,
-          error: error instanceof Error ? error.message : 'Network error',
-        });
+        if ((error as { status?: number }).status === 404) {
+          results.skipped.push({ productId, fileName: file.name, reason: 'Product not found in database' });
+        } else {
+          results.failed.push({
+            productId,
+            fileName: file.name,
+            error: error instanceof Error ? error.message : 'Network error',
+          });
+        }
       }
 
       uploadProgressCount.value++;
@@ -1193,11 +1206,10 @@ const startAutoUpload = async (): Promise<void> => {
       message: `Processed ${selectedBulkFiles.value.length} images: ${results.success.length} uploaded, ${results.failed.length} failed, ${results.skipped.length} skipped`,
     };
 
-    await loadStats();
-    await loadProducts();
+    await Promise.allSettled([loadStats(), loadProducts()]);
   } catch (error) {
     console.error('Bulk upload error:', error);
-    alert('Bulk upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    notify('Bulk upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   } finally {
     autoUploading.value = false;
   }

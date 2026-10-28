@@ -73,10 +73,10 @@
             </div>
 
             <div v-else>
-              <!-- Tab switcher: Sign in (default) <-> Quick request -->
+              <!-- Tab switcher: Sign in / Sign up (default) <-> Quick request -->
               <Tabs v-model="heroTab" class="mb-3">
                 <TabsList class="flex w-full bg-ink-50" aria-label="How would you like to get started?">
-                  <TabsTrigger value="signup">Sign in</TabsTrigger>
+                  <TabsTrigger value="signup">Sign in / Sign up</TabsTrigger>
                   <TabsTrigger value="guest">Quick request</TabsTrigger>
                 </TabsList>
 

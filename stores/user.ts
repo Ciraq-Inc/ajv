@@ -16,6 +16,8 @@ import { defineStore } from 'pinia';
 import { createOrdersService } from '~/services/orders/ordersService';
 import { createCustomerAuthService } from '~/services/customerAuth/customerAuthService';
 import { usePharmacyStore } from '~/stores/pharmacy';
+import { releaseThisPhone, realPushBrowser } from '~/composables/usePushNotifications';
+import { cookieRefreshEnabled } from '~/utils/cookieRefresh';
 import type { CustomerProfile, LinkedCompany, Order, LocationSuggestion, ReverseGeocodeResult } from '~/services/types';
 
 // ---------------------------------------------------------------------------
@@ -42,7 +44,6 @@ export interface UserState {
   selectedCompany: LinkedCompany | null;
   companies: LinkedCompany[];
   customerAuthToken: string | null;
-  phoneStatus: string | null;
   phoneVerifying: string | null;
   otpSent: boolean;
   isLoading: boolean;
@@ -94,7 +95,6 @@ export const useUserStore = defineStore('user', {
     selectedCompany: null,
     companies: [],
     customerAuthToken: null,
-    phoneStatus: null,
     phoneVerifying: null,
     otpSent: false,
     isLoading: false,
@@ -147,8 +147,10 @@ export const useUserStore = defineStore('user', {
       this.companies = payload?.companies ?? [];
       this.selectedCompany = payload?.selected_company ?? this.companies[0] ?? null;
       this.customerAuthToken = payload?.token ?? null;
-      if (process.client && payload?.refresh_token) {
-        localStorage.setItem('customerRefreshToken', payload.refresh_token);
+      if (process.client) {
+        // With cookie refresh the API keeps the refresh token in an HttpOnly cookie; the page never holds it.
+        if (cookieRefreshEnabled()) localStorage.removeItem('customerRefreshToken');
+        else if (payload?.refresh_token) localStorage.setItem('customerRefreshToken', payload.refresh_token);
       }
       this.persistAuthData();
       this.authInitialized = true;
@@ -199,71 +201,6 @@ export const useUserStore = defineStore('user', {
     // -------------------------------------------------------------------
     // Auth flows
     // -------------------------------------------------------------------
-
-    async checkPhoneStatus(phone: string): Promise<{ status?: string; registered?: boolean }> {
-      this.isLoading = true;
-      this.error = null;
-      try {
-        const formattedPhone = this.formatPhoneNumber(phone);
-        const data = await this._customerAuthService().checkPhone({ phone: formattedPhone });
-        if (!data.success) throw new Error(data.message ?? 'Failed to check phone status');
-        this.phoneStatus = (data.data as { status?: string }).status ?? null;
-        this.phoneVerifying = formattedPhone;
-        return data.data as { status?: string; registered?: boolean };
-      } catch (error: unknown) {
-        console.error('Error checking phone status:', error);
-        this.error = error instanceof Error ? error.message : 'Failed to check phone number';
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    async sendSetupOTP(phone: string): Promise<unknown> {
-      this.isLoading = true;
-      this.error = null;
-      try {
-        const formattedPhone = this.formatPhoneNumber(phone);
-        const data = await this._customerAuthService().sendSetupOtp({ phone: formattedPhone });
-        if (!data.success) throw new Error(data.message ?? 'Failed to send OTP');
-        this.otpSent = true;
-        this.phoneVerifying = formattedPhone;
-        return data.data;
-      } catch (error: unknown) {
-        console.error('Error sending setup OTP:', error);
-        this.error = error instanceof Error ? error.message : 'Failed to send verification code';
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    async setupPassword(phone: string, otp: string, password: string): Promise<unknown> {
-      this.isLoading = true;
-      this.error = null;
-      try {
-        const formattedPhone = this.formatPhoneNumber(phone);
-        const data = await this._customerAuthService().setupPassword({
-          phone: formattedPhone,
-          otp,
-          password,
-        });
-        if (!data.success) throw new Error(data.message ?? 'Failed to setup password');
-        this.applyCustomerAuthPayload((data.data as unknown) as CustomerAuthPayload);
-
-        console.log('Password setup successful! User logged in:', this.masterCustomer);
-
-        await this.loadUserStats();
-
-        return data.data;
-      } catch (error: unknown) {
-        console.error('Error setting up password:', error);
-        this.error = error instanceof Error ? error.message : 'Failed to setup password';
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
-    },
 
     async register(registrationData: {
       phone: string;
@@ -801,6 +738,7 @@ export const useUserStore = defineStore('user', {
     async cancelOrder(
       orderId: number | string,
       companyId: number | string | null = null,
+      reason = '',
     ): Promise<unknown> {
       if (!this.isLoggedIn || !this.customerAuthToken) throw new Error('User must be logged in');
       this.isLoading = true;
@@ -809,6 +747,7 @@ export const useUserStore = defineStore('user', {
         const company_id = companyId ?? pharmacyStore.currentPharmacy;
         const cancelParams: import('~/services/orders/ordersService').CancelParams = {};
         if (company_id != null) cancelParams.companyId = company_id;
+        if (reason.trim()) cancelParams.reason = reason.trim();
         const data = await this._ordersService().cancel(orderId, cancelParams);
         if (!data.success) throw new Error(data.message ?? 'Failed to cancel order');
         return data;
@@ -894,7 +833,6 @@ export const useUserStore = defineStore('user', {
       this.customerAuthToken = null;
       this.phoneVerifying = null;
       this.otpSent = false;
-      this.phoneStatus = null;
       this.nextCursor = null;
       this.orders = [];
       if (typeof window !== 'undefined') {
@@ -909,6 +847,15 @@ export const useUserStore = defineStore('user', {
     async logout(): Promise<void> {
       this.isLoading = true;
       try {
+        // While the token is still valid: a shared phone must stop showing this customer's orders.
+        try {
+          const service = this._customerAuthService();
+          await releaseThisPhone({ browser: realPushBrowser(), unsubscribe: (endpoint) => service.unsubscribePush(endpoint) });
+        } catch { /* signing out must always complete */ }
+        // The refresh cookie would otherwise sign them straight back in on the next 401.
+        if (cookieRefreshEnabled()) {
+          try { await this._customerAuthService().endCookieSession(); } catch { /* local sign-out still completes */ }
+        }
         this.clearAuthState();
       } catch (error: unknown) {
         console.error('Error logging out:', error);

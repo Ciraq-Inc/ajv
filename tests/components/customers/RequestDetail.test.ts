@@ -337,6 +337,34 @@ describe('Request detail: look, part two', () => {
 
 const DELIVERED = { status: 'delivered', fulfillment_type: 'delivery', items_total: 25, delivery_fee: 5, estimated_total: 30 }
 
+describe('Request detail: request again', () => {
+  const again = () => Array.from(dialog()!.querySelectorAll('button')).find(b => b.textContent!.includes('Request again'))
+
+  it('offers a delivered request as a one-tap repeat that carries its items to a new request', async () => {
+    await open(DELIVERED)
+    again()!.click()
+    await flushPromises()
+
+    expect(JSON.parse(sessionStorage.getItem('medsgh_homepage_request_draft')!)).toEqual({
+      items: [
+        { product_name: 'Amoxicillin 500mg', quantity: 2, requested_unit: '' },
+        { product_name: 'Paracetamol', quantity: 1, requested_unit: '' },
+      ],
+    })
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'new' } })
+  })
+
+  it('makes the repeat button easy to hit', async () => {
+    await open(DELIVERED)
+    expect(again()!.className).toContain('min-h-[48px]')
+  })
+
+  it('does not offer a repeat while the request is still in progress', async () => {
+    await open({ status: 'preparing', fulfillment_type: 'delivery' })
+    expect(again()).toBeUndefined()
+  })
+})
+
 describe('Request detail: feedback', () => {
   it('asks for each rating as a group of five star choices, one selectable at a time', async () => {
     await open(DELIVERED)

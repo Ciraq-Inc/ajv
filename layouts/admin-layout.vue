@@ -1,5 +1,6 @@
 <template>
   <div v-if="isReady" class="admin-layout">
+    <ConfirmAction :pending="pending" @accept="accept" @cancel="cancel" />
     <!-- WCAG 2.4.1 Bypass Blocks -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <!-- Sidebar -->
@@ -33,51 +34,51 @@
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Analytics</div>
 
-          <NuxtLink to="/admin/data" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/data')" to="/admin/data" class="nav-item" active-class="active">
             <ChartBarIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Data</span>
           </NuxtLink>
         </div>
 
-        <div class="nav-section">
+        <div v-if="can('/admin/fulfillment') || can('/admin/professionals') || can('/admin/customers')" class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Operations</div>
 
           <!-- Fulfillment parent label -->
-          <div class="nav-item" :class="{ active: isInFulfillment }" style="cursor:default; pointer-events:none;">
+          <div v-if="can('/admin/fulfillment')" class="nav-item" :class="{ active: isInFulfillment }" style="cursor:default; pointer-events:none;">
             <ClipboardDocumentListIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Fulfillment</span>
           </div>
 
           <!-- Fulfillment child links -->
-          <template v-if="isInFulfillment || !isSidebarCollapsed">
-            <NuxtLink to="/admin/fulfillment/requests" class="nav-item nav-child-item" active-class="active">
+          <template v-if="can('/admin/fulfillment') && (isInFulfillment || !isSidebarCollapsed)">
+            <NuxtLink v-if="can('/admin/fulfillment/requests')" to="/admin/fulfillment/requests" class="nav-item nav-child-item" active-class="active">
               <ClipboardDocumentListIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Order Requests</span>
             </NuxtLink>
-            <NuxtLink to="/admin/fulfillment/deliveries" class="nav-item nav-child-item" active-class="active">
+            <NuxtLink v-if="can('/admin/fulfillment/deliveries')" to="/admin/fulfillment/deliveries" class="nav-item nav-child-item" active-class="active">
               <TruckIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Deliveries</span>
             </NuxtLink>
-            <NuxtLink to="/admin/fulfillment/dispatch-companies" class="nav-item nav-child-item" active-class="active">
+            <NuxtLink v-if="can('/admin/fulfillment/dispatch-companies')" to="/admin/fulfillment/dispatch-companies" class="nav-item nav-child-item" active-class="active">
               <BuildingOffice2Icon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Dispatch Companies</span>
             </NuxtLink>
-            <NuxtLink to="/admin/fulfillment/riders" class="nav-item nav-child-item" active-class="active">
+            <NuxtLink v-if="can('/admin/fulfillment/riders')" to="/admin/fulfillment/riders" class="nav-item nav-child-item" active-class="active">
               <UserGroupIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Ind. Riders</span>
             </NuxtLink>
-            <NuxtLink to="/admin/fulfillment/pharmacy-ledger" class="nav-item nav-child-item" active-class="active">
+            <NuxtLink v-if="can('/admin/fulfillment/pharmacy-ledger')" to="/admin/fulfillment/pharmacy-ledger" class="nav-item nav-child-item" active-class="active">
               <BanknotesIcon class="nav-icon" aria-hidden="true" style="width:16px;height:16px;min-width:16px;" />
               <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Ledger</span>
             </NuxtLink>
           </template>
 
-          <NuxtLink to="/admin/professionals" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/professionals')" to="/admin/professionals" class="nav-item" active-class="active">
             <IdentificationIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/customers" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/customers')" to="/admin/customers" class="nav-item" active-class="active">
             <UsersIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Customers</span>
           </NuxtLink>
@@ -86,21 +87,21 @@
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Products</div>
 
-          <NuxtLink to="/admin/masterlist" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/masterlist')" to="/admin/masterlist" class="nav-item" active-class="active">
             <CubeIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Master Products</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/clearance-sale" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/clearance-sale')" to="/admin/clearance-sale" class="nav-item" active-class="active">
             <ArchiveBoxIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Clearance Products</span>
           </NuxtLink>
         </div>
 
-        <div class="nav-section">
+        <div v-if="can('/admin/access') || can('/admin/useraccess') || can('/admin/signups')" class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Companies & Users</div>
 
-          <NuxtLink
+          <NuxtLink v-if="can('/admin/access')"
             to="/admin/access?tab=companies"
             class="nav-item"
             exact-active-class="active"
@@ -109,7 +110,7 @@
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Companies</span>
           </NuxtLink>
 
-          <NuxtLink
+          <NuxtLink v-if="can('/admin/useraccess')"
             to="/admin/useraccess"
             class="nav-item"
             active-class="active"
@@ -118,26 +119,26 @@
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">User Access</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/signups" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/signups')" to="/admin/signups" class="nav-item" active-class="active">
             <ClipboardDocumentCheckIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Waitlist Signups</span>
           </NuxtLink>
         </div>
 
-        <div class="nav-section">
+        <div v-if="can('/admin/sms-campaigns') || can('/admin/sms-billing') || can('/admin/sms-usage')" class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">SMS</div>
 
-          <NuxtLink to="/admin/sms-campaigns" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/sms-campaigns')" to="/admin/sms-campaigns" class="nav-item" active-class="active">
             <DevicePhoneMobileIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Campaigns</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/sms-billing" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/sms-billing')" to="/admin/sms-billing" class="nav-item" active-class="active">
             <CreditCardIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Billing</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/sms-usage" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/sms-usage')" to="/admin/sms-usage" class="nav-item" active-class="active">
             <PresentationChartLineIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Usage</span>
           </NuxtLink>
@@ -146,12 +147,12 @@
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Platform Services</div>
 
-          <NuxtLink to="/admin/discounts" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/discounts')" to="/admin/discounts" class="nav-item" active-class="active">
             <TagIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Discounts</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/developers" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/developers')" to="/admin/developers" class="nav-item" active-class="active">
             <CodeBracketSquareIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Developer API</span>
           </NuxtLink>
@@ -171,7 +172,7 @@
         <div class="nav-section">
           <div v-if="!isSidebarCollapsed" class="nav-section-title">Settings</div>
 
-          <NuxtLink
+          <NuxtLink v-if="can('/admin/platform-settings')"
             to="/admin/platform-settings"
             class="nav-item"
             active-class="active"
@@ -180,7 +181,7 @@
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Platform Settings</span>
           </NuxtLink>
 
-          <NuxtLink
+          <NuxtLink v-if="can('/admin/fee-schedules')"
             to="/admin/fee-schedules"
             class="nav-item"
             active-class="active"
@@ -189,7 +190,7 @@
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Fee Schedules</span>
           </NuxtLink>
 
-          <NuxtLink
+          <NuxtLink v-if="can('/admin/store-settings')"
             to="/admin/store-settings"
             class="nav-item"
             active-class="active"
@@ -198,12 +199,12 @@
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Store Settings</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/sms-settings" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/sms-settings')" to="/admin/sms-settings" class="nav-item" active-class="active">
             <Cog6ToothIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">SMS Settings</span>
           </NuxtLink>
 
-          <NuxtLink to="/admin/security" class="nav-item" active-class="active">
+          <NuxtLink v-if="can('/admin/security')" to="/admin/security" class="nav-item" active-class="active">
             <LockClosedIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Security</span>
           </NuxtLink>
@@ -363,12 +364,18 @@ import {
 // back to for the SSO check.
 const supportTicketsUrl = 'https://support.rigelos.com/api/auth/sso-start'
 import { useAdminStore } from '~/stores/admin'
+import { canAccessAdminPage } from '~/utils/adminRoleFloors'
 import { useRoute, useRouter } from 'vue-router'
 import { useAttentionQueue } from '~/composables/useAttentionQueue'
+import ConfirmAction from '~/components/admin/ConfirmAction.vue'
+import { useConfirmAction } from '~/composables/useConfirmAction'
 
 const adminStore = useAdminStore()
 const route = useRoute()
 const router = useRouter()
+
+// Sidebar entries follow the same role floors the pages and the backend enforce.
+const can = (path) => canAccessAdminPage(adminStore.hasRole, path)
 
 // State
 const isReady = ref(false)
@@ -468,11 +475,17 @@ const openAttentionItem = (req) => {
 }
 
 
+const { pending, ask, accept, cancel } = useConfirmAction()
+
 const handleLogout = () => {
-  if (confirm('Are you sure you want to logout?')) {
-    adminStore.logout()
+  ask({
+    title: 'Log out?',
+    message: 'You will need to sign in again to use the admin portal.',
+    confirmText: 'Yes, log out',
+  }, async () => {
+    await adminStore.signOut()
     navigateTo('/admin/login')
-  }
+  })
 }
 
 const checkMobile = () => {
@@ -511,8 +524,9 @@ onMounted(async () => {
   await nextTick()
   isReady.value = true
 
-  // Start polling the attention queue once we're authenticated and mounted.
-  startAttentionPolling()
+  // Start polling the attention queue once we're authenticated and mounted. The feed is the
+  // order-request list, which roles below the order desk may not read.
+  if (can('/admin/fulfillment')) startAttentionPolling()
 })
 
 onUnmounted(() => {

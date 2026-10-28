@@ -162,7 +162,7 @@
               </div>
             </td>
             <td>
-              <div class="cost-cell">GHS {{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}</div>
+              <div class="cost-cell">{{ formatCurrency(campaign.actual_cost || campaign.sms_cost || 0) }}</div>
             </td>
             <td>
               <div class="date-cell">{{ formatDate(campaign.created_at) }}</div>
@@ -311,7 +311,7 @@
               </div>
               <div class="stat-box">
                 <div class="stat-box-label">Actual Cost</div>
-                <div class="stat-box-value">GHS {{ formatCurrency(selectedCampaign.actual_cost || selectedCampaign.sms_cost || 0) }}</div>
+                <div class="stat-box-value">{{ formatCurrency(selectedCampaign.actual_cost || selectedCampaign.sms_cost || 0) }}</div>
               </div>
               <div class="stat-box">
                 <div class="stat-box-label">Payment Status</div>
@@ -359,7 +359,9 @@
       :message="confirmDialog.message"
       :type="confirmDialog.type"
       :confirmText="confirmDialog.confirmText"
-      @confirm="confirmDialog.onConfirm"
+      :loading="confirmBusy"
+      :error="confirmError"
+      @confirm="runConfirmed"
       @cancel="closeConfirmDialog"
     />
   </div>
@@ -387,6 +389,7 @@ import ConfirmDialog from '~/components/sms/shared/ConfirmDialog.vue'
 import { formatCurrency, formatDate } from '~/utils/constants/sms'
 
 definePageMeta({
+  requiredRole: 'super_admin',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })
@@ -429,6 +432,7 @@ const {
   fetchCampaigns,
   pauseCampaign: pauseCampaignAction,
   resumeCampaign: resumeCampaignAction,
+  cancelCampaign: cancelCampaignAction,
 } = useSMSCampaigns()
 
 // Cast to local Campaign type which has explicit field types
@@ -442,6 +446,8 @@ const filters = ref<{ search: string; status: string; company: string }>({
 
 const selectedCampaign = ref<Campaign | null>(null)
 const showConfirmDialog = ref<boolean>(false)
+const confirmBusy = ref<boolean>(false)
+const confirmError = ref<string | null>(null)
 const confirmDialog = ref<ConfirmDialogState>({
   title: '',
   message: '',
@@ -537,6 +543,22 @@ const closeCampaignModal = (): void => {
   selectedCampaign.value = null
 }
 
+// Runs the open dialog's action once at a time. A failure stays on the dialog so the admin sees why.
+const runConfirmed = async (): Promise<void> => {
+  if (confirmBusy.value) return
+  confirmBusy.value = true
+  confirmError.value = null
+  try {
+    await confirmDialog.value.onConfirm()
+    closeConfirmDialog()
+    await refreshData()
+  } catch (err) {
+    confirmError.value = (err as Error)?.message || 'Something went wrong. Please try again.'
+  } finally {
+    confirmBusy.value = false
+  }
+}
+
 const pauseCampaign = (campaign: Campaign): void => {
   confirmDialog.value = {
     title: 'Pause Campaign',
@@ -545,11 +567,9 @@ const pauseCampaign = (campaign: Campaign): void => {
     confirmText: 'Pause Campaign',
     onConfirm: async () => {
       await pauseCampaignAction(campaign.id)
-      closeConfirmDialog()
-      await refreshData()
     },
   }
-  showConfirmDialog.value = true
+  openConfirmDialog()
 }
 
 const resumeCampaign = (campaign: Campaign): void => {
@@ -560,11 +580,9 @@ const resumeCampaign = (campaign: Campaign): void => {
     confirmText: 'Resume Campaign',
     onConfirm: async () => {
       await resumeCampaignAction(campaign.id)
-      closeConfirmDialog()
-      await refreshData()
     },
   }
-  showConfirmDialog.value = true
+  openConfirmDialog()
 }
 
 const cancelCampaign = (campaign: Campaign): void => {
@@ -574,11 +592,14 @@ const cancelCampaign = (campaign: Campaign): void => {
     type: 'danger',
     confirmText: 'Cancel Campaign',
     onConfirm: async () => {
-      // Would call cancel API
-      closeConfirmDialog()
-      await refreshData()
+      await cancelCampaignAction(campaign.id)
     },
   }
+  openConfirmDialog()
+}
+
+const openConfirmDialog = (): void => {
+  confirmError.value = null
   showConfirmDialog.value = true
 }
 

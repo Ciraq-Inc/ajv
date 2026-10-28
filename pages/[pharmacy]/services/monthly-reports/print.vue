@@ -208,6 +208,7 @@ import DonutSummaryChart from '~/components/reports/DonutSummaryChart.vue'
 import { createPharmacyReportsService } from '~/services/pharmacyReports/pharmacyReportsService'
 
 definePageMeta({
+  middleware: ['company-auth'],
   layout: false,
 })
 

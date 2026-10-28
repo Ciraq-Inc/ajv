@@ -98,13 +98,13 @@ describe('New request: the form', () => {
     }
   })
 
-  it('offers unit and quantity once a medicine is named, with labelled steppers', async () => {
+  it('offers quantity once a medicine is named, with labelled steppers', async () => {
     const w = await open()
-    expect(w.find('select').exists()).toBe(false)
+    expect(w.find('input[type="number"]').exists()).toBe(false)
 
     await w.find('#request-medicine-0').setValue('Paracetamol')
 
-    expect(w.find('select').exists()).toBe(true)
+    expect(w.find('input[type="number"]').exists()).toBe(true)
     const up = button(w, 'Increase quantity of Paracetamol')
     const down = button(w, 'Decrease quantity of Paracetamol')
     expect(down.attributes('disabled')).toBeDefined()
@@ -135,6 +135,22 @@ describe('New request: the form', () => {
     const without = await open({ profile: {} })
     expect(without.text()).toContain('Set delivery address')
     expect(without.text()).toContain('Required to continue')
+  })
+
+  it('shows a saved address as one short line with a Change cue, and still opens the address dialog', async () => {
+    const w = await open()
+    const section = w.find('#request-address-title').element.closest('section')!
+
+    const opener = section.querySelector('button')!
+    expect(opener.querySelectorAll('span.block')).toHaveLength(0)
+    expect(opener.textContent).toContain('Delivering to 12 Oak St, Accra')
+    expect(opener.textContent).toContain('Change')
+    expect(w.find('#request-address-title').classes()).toContain('sr-only')
+    expect(section.querySelector('button')!.className).not.toContain('min-h-[64px]')
+
+    section.querySelector('button')!.click()
+    await flushPromises()
+    expect(button(w, 'Confirm Address').exists()).toBe(true)
   })
 })
 
@@ -177,28 +193,35 @@ describe('New request: sending', () => {
 })
 
 describe('New request: wallet gate', () => {
-  it('covers the form when the wallet is too low, and can be set aside', async () => {
-    const w = await open({ balance: 0 })
+  it('lets the customer fill in the whole form, and offers the exact top-up beside Send', async () => {
+    const w = await open({ balance: 2 })
 
-    expect(w.text()).toContain('Top up to continue')
-    await button(w, 'Top Up Wallet').trigger('click')
-    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'wallet' } })
+    expect(w.find('[aria-label="Top up needed"]').exists()).toBe(false)
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+    expect((w.find('#request-medicine-0').element as HTMLInputElement).value).toBe('Paracetamol')
 
-    await button(w, 'Continue filling in my request').trigger('click')
-    expect(w.text()).not.toContain('Top up to continue')
+    await button(w, 'Top up GHS 3.00').trigger('click')
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/customer', query: { tab: 'wallet', topup: 3 } })
+  })
+
+  it('shows no wallet balance row when the balance is enough', async () => {
+    const w = await open({ balance: 20 })
+
+    expect(w.text()).not.toContain('Wallet balance')
+    expect(w.text()).not.toContain('Top up GHS')
   })
 
   it('is not shown when the first request is free', async () => {
     const w = await open({ balance: 0, settings: { first_request_free: true } })
 
-    expect(w.text()).not.toContain('Top up to continue')
+    expect(w.text()).not.toContain('Top up GHS')
     expect(w.text()).toContain('Free')
   })
 
   it('is not shown, and the send button says Free, while the fee is switched off', async () => {
     const w = await open({ balance: 0, settings: { request_submission_fee: 0 } })
 
-    expect(w.text()).not.toContain('Top up to continue')
+    expect(w.text()).not.toContain('Top up GHS')
     expect(sendButton(w).text()).toContain('Free')
     expect(sendButton(w).text()).not.toContain('GHS')
   })
@@ -313,15 +336,23 @@ describe('New request: address dialog', () => {
 
 // ───────────────────────────────────────────────────────────────────────────
 describe('New request: prescription first, quieter extras', () => {
-  it('puts the prescription option ahead of the medication list', async () => {
+  it('starts with the medicine field and keeps the prescription as a slim option after it', async () => {
     const w = await open()
-    const headings = w.findAll('h2').map(h => h.text())
+    const field = w.find('#request-medicine-0').element
+    const rx = w.find('[aria-labelledby="request-rx-title"]')
 
-    expect(headings.indexOf('Have a prescription?')).toBeGreaterThanOrEqual(0)
-    expect(headings.indexOf('Have a prescription?')).toBeLessThan(headings.indexOf('Medications'))
-    const card = w.find('[aria-labelledby="request-rx-title"]')
-    expect(card.text()).toContain('Take photo')
-    expect(card.text()).toContain('Upload prescription')
+    expect(field.compareDocumentPosition(rx.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(rx.text()).toContain('Have a prescription?')
+    expect(rx.text()).toContain('Take photo')
+    expect(rx.text()).toContain('Upload prescription')
+    expect(rx.classes()).not.toContain('p-5')
+  })
+
+  it('has no intro sentence and no visible Medications heading above the field', async () => {
+    const w = await open()
+
+    expect(w.find('h1').element.nextElementSibling).toBeNull()
+    expect(w.find('#request-meds-title').classes()).toContain('sr-only')
   })
 
   it('keeps Take photo and Upload on one row, even on a phone', async () => {
@@ -337,9 +368,10 @@ describe('New request: prescription first, quieter extras', () => {
     for (const l of labels) expect(l.classList.contains('justify-center')).toBe(true)
   })
 
-  it('shows Unit and Quantity labels above the controls once a medicine is named', async () => {
+  it('shows Unit and Quantity labels above the controls once a medicine is named and Details is open', async () => {
     const w = await open()
     await w.find('#request-medicine-0').setValue('Paracetamol')
+    await button(w, 'Details').trigger('click')
 
     expect(w.find('label[for="request-unit-0"]').text()).toBe('Unit')
     expect(w.find('select#request-unit-0').exists()).toBe(true)
@@ -372,8 +404,7 @@ describe('New request: brand purple', () => {
     const w = await open({ balance: 0 })
 
     expect(sendButton(w).classes()).toContain('bg-brand-700')
-    expect(button(w, 'Top Up Wallet').classes()).toContain('bg-brand-700')
-    await button(w, 'Continue filling in my request').trigger('click')
+    expect(button(w, 'Top up GHS').classes()).toContain('bg-brand-700')
     await w.find('#request-address-title').element.closest('section')!.querySelector('button')!.click()
     await flushPromises()
     expect(button(w, 'Confirm Address').classes()).toContain('bg-brand-700')
@@ -399,6 +430,7 @@ describe('New request: numbering sits inside the field', () => {
     expect(input.classes()).toContain('w-full')
     expect(input.classes()).toContain('pl-14')
 
+    await button(w, 'Details').trigger('click')
     const row = w.find('#request-unit-0').element.closest('.flex-wrap')!
     expect(row.className).not.toContain('pl-11')
     const clearance = w.find('input[type="checkbox"]').element.closest('label')!
@@ -465,5 +497,71 @@ describe('New request: delivering to someone else', () => {
     expect(body).not.toBeNull()
     expect(body).not.toHaveProperty('recipient_name')
     expect(body).not.toHaveProperty('recipient_phone')
+  })
+})
+
+describe('New request: unit and clearance sit behind Details', () => {
+  // Nuxt sets process.client in the browser; the homepage draft is only read there.
+  beforeEach(() => { (process as any).client = true })
+  afterEach(() => { delete (process as any).client })
+  const draft = (item: Record<string, unknown>) =>
+    sessionStorage.setItem('medsgh_homepage_request_draft', JSON.stringify({ items: [{ product_name: 'Amoxil', quantity: 2, ...item }] }))
+
+  it('shows only the name and quantity at first, with a collapsed Details toggle', async () => {
+    const w = await open()
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+
+    expect(w.find('input#request-qty-0').exists()).toBe(true)
+    expect(w.find('select#request-unit-0').exists()).toBe(false)
+    expect(w.find('input[type="checkbox"]').exists()).toBe(false)
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('does not offer Details before a medicine is named', async () => {
+    const w = await open()
+    expect(w.findAll('button').some(b => b.text().includes('Details'))).toBe(false)
+  })
+
+  it('opens and closes Unit and clearance from the toggle', async () => {
+    const w = await open()
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+
+    await button(w, 'Details').trigger('click')
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('true')
+    expect(w.find('select#request-unit-0').exists()).toBe(true)
+    expect(w.find('input[type="checkbox"]').exists()).toBe(true)
+
+    await button(w, 'Details').trigger('click')
+    expect(w.find('select#request-unit-0').exists()).toBe(false)
+  })
+
+  it('keeps a chosen unit in the request even when Details is closed again', async () => {
+    const w = await open()
+    await w.find('#request-medicine-0').setValue('Paracetamol')
+    await button(w, 'Details').trigger('click')
+    await w.find('select#request-unit-0').setValue('tab')
+    await button(w, 'Details').trigger('click')
+
+    await sendButton(w).trigger('click')
+    await flushPromises()
+
+    const post = api.request.mock.calls.find(([url, opts]) => url === '/api/order-requests/customer' && opts?.method === 'POST')
+    expect(JSON.parse(post![1].body).items[0].requested_unit).toBe('tab')
+  })
+
+  it('starts open when the medicine already has a unit', async () => {
+    draft({ requested_unit: 'capsule' })
+    const w = await open()
+
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('true')
+    expect((w.find('select#request-unit-0').element as HTMLSelectElement).value).toBe('capsule')
+  })
+
+  it('starts open when clearance-only is already chosen', async () => {
+    draft({ prefer_clearance_only: true })
+    const w = await open()
+
+    expect(button(w, 'Details').attributes('aria-expanded')).toBe('true')
+    expect((w.find('input[type="checkbox"]').element as HTMLInputElement).checked).toBe(true)
   })
 })

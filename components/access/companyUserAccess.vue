@@ -214,6 +214,7 @@ import {
   InformationCircleIcon
 } from '@heroicons/vue/24/outline'
 import { useCompanyStore } from '~/stores/company'
+import { useCompanyUsers } from '~/composables/useCompanyUsers'
 
 interface CompanyUser {
   id: number;
@@ -232,19 +233,13 @@ interface CompanyUser {
   [key: string]: unknown;
 }
 
-interface AuthResponse {
-  success: boolean;
-  message?: string;
-  data?: { users?: CompanyUser[]; [key: string]: unknown };
-}
-
 // TODO: remove once stores/ are .ts
 interface CompanyStoreShape {
   userRole?: string;
-  makeAuthRequest: (path: string, options?: { method?: string; body?: string }) => Promise<AuthResponse>;
 }
 
 const companyStore = useCompanyStore() as unknown as CompanyStoreShape
+const companyUsers = useCompanyUsers()
 
 // State
 const users = ref<CompanyUser[]>([])
@@ -351,7 +346,7 @@ const loadUsers = async (): Promise<void> => {
   error.value = null
 
   try {
-    const response = await companyStore.makeAuthRequest('/api/company/users/access')
+    const response = await companyUsers.listUsers<{ users?: CompanyUser[] }>()
 
     if (response.success) {
       users.value = response.data?.users ?? []
@@ -377,13 +372,7 @@ const updateUserRole = async (user: CompanyUser): Promise<void> => {
 
   updating.value = user.id
   try {
-    const response = await companyStore.makeAuthRequest(
-      `/api/company/users/${user.id}/role`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({ userrole: selectedRole }),
-      }
-    )
+    const response = await companyUsers.setRole(user.id, selectedRole)
 
     if (response.success) {
       user.userrole = selectedRole
@@ -407,13 +396,7 @@ const toggleUserAccess = async (user: CompanyUser): Promise<void> => {
   updating.value = user.id
 
   try {
-    const response = await companyStore.makeAuthRequest(
-      `/api/company/users/${user.id}/access`,
-      {
-        method: 'PUT',
-        body: JSON.stringify({ allowed_online_access: newValue }),
-      }
-    )
+    const response = await companyUsers.setAccess(user.id, newValue)
 
     if (response.success) {
       user.allowed_online_access = newValue

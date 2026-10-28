@@ -18,18 +18,8 @@ import type {
   ReverseGeocodeResult,
 } from '../types';
 
-export interface CheckPhoneParams {
-  phone: string;
-}
-
 export interface SendOtpParams {
   phone: string;
-}
-
-export interface SetupPasswordParams {
-  phone: string;
-  otp: string;
-  password: string;
 }
 
 export interface RegisterParams {
@@ -109,31 +99,11 @@ export interface AuthPayload {
 
 export const createCustomerAuthService = (api: ApiInstance) => ({
   /**
-   * Check whether a phone number is already registered / verified.
-   * POST /api/auth/customer/check-phone
-   */
-  checkPhone({ phone }: CheckPhoneParams): Promise<ApiEnvelope<{ registered: boolean }>> {
-    return api.post('/api/auth/customer/check-phone', { phone });
-  },
-
-  /**
    * Send a one-time password to a phone number for account setup.
    * POST /api/auth/customer/send-otp
    */
   sendSetupOtp({ phone }: SendOtpParams): Promise<ApiEnvelope<null>> {
     return api.post('/api/auth/customer/send-otp', { phone });
-  },
-
-  /**
-   * Complete password setup after OTP verification.
-   * POST /api/auth/customer/setup-password
-   */
-  setupPassword({ phone, otp, password }: SetupPasswordParams): Promise<ApiEnvelope<null>> {
-    return api.post('/api/auth/customer/setup-password', {
-      phone,
-      otp,
-      password,
-    });
   },
 
   /**
@@ -317,6 +287,39 @@ export const createCustomerAuthService = (api: ApiInstance) => ({
   },
 
   /**
+   * The VAPID public key a browser needs to subscribe for push. 503 when push is switched off.
+   * GET /api/auth/customer/push/public-key
+   */
+  getPushPublicKey(): Promise<ApiEnvelope<{ public_key: string }>> {
+    return api.get('/api/auth/customer/push/public-key');
+  },
+
+  /**
+   * Register this browser to receive order notifications (the browser's PushSubscription JSON).
+   * POST /api/auth/customer/push/subscriptions
+   */
+  subscribePush(subscription: PushSubscriptionPayload): Promise<ApiEnvelope<null>> {
+    return api.post('/api/auth/customer/push/subscriptions', subscription);
+  },
+
+  /**
+   * Stop sending to one browser.
+   * DELETE /api/auth/customer/push/subscriptions
+   */
+  unsubscribePush(endpoint: string): Promise<ApiEnvelope<null>> {
+    return api.delete('/api/auth/customer/push/subscriptions', { body: JSON.stringify({ endpoint }) });
+  },
+
+  /**
+   * Sign out of the HttpOnly-cookie session (cookie refresh mode): the refresh cookie is revoked and cleared.
+   * GET /api/auth/csrf, then POST /api/auth/logout
+   */
+  async endCookieSession(): Promise<void> {
+    const csrf = await api.get<{ csrf_token: string }>('/api/auth/csrf', { credentials: 'include' });
+    await api.post('/api/auth/logout', {}, { credentials: 'include', headers: { 'X-CSRF-Token': csrf.data?.csrf_token ?? '' } });
+  },
+
+  /**
    * Autocomplete address suggestions for the saved-location flow.
    * GET /api/auth/customer/autocomplete-location?q=&limit=
    */
@@ -380,7 +383,12 @@ export interface VerificationOptions {
   phone_hint?: string | null;
 }
 
-export type NotificationChannel = 'sms' | 'email';
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+export type NotificationChannel = 'sms' | 'email' | 'push';
 export type NotificationCategoryKey = 'security' | 'action_required' | 'outcome' | 'order_progress' | 'marketing';
 export type NotificationCategoryMode = 'locked' | 'minimum_one' | 'optional' | 'opt_in';
 
@@ -388,15 +396,18 @@ export interface NotificationCategory {
   mode: NotificationCategoryMode;
   sms: boolean;
   email: boolean;
+  push: boolean;
 }
 
 export interface NotificationPreferences {
   channels: Record<NotificationChannel, { reachable: boolean }>;
   categories: Record<NotificationCategoryKey, NotificationCategory>;
+  /** Routine order texts (rider assigned, on the way...): push may be sending them instead of a text. */
+  routine_texts: { replaced_by_push: boolean; also_text: boolean };
 }
 
-/** Only the channels being changed, per category. */
-export type NotificationPreferenceChanges = Partial<Record<NotificationCategoryKey, Partial<Record<NotificationChannel, boolean>>>>;
+/** Only the channels being changed, per category. null forgets a remembered choice so the default applies. */
+export type NotificationPreferenceChanges = Partial<Record<NotificationCategoryKey, Partial<Record<NotificationChannel, boolean | null>>>>;
 
 export interface ConfirmVerificationOtpParams {
   challengeId: string;

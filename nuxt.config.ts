@@ -54,6 +54,17 @@ export default defineNuxtConfig({
       htmlAttrs: {
         lang: "en",
       },
+      // Installable web app: iPhones only deliver web push to a site added to the Home Screen.
+      link: [
+        { rel: "manifest", href: "/manifest.webmanifest" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      ],
+      meta: [
+        { name: "theme-color", content: "#520094" },
+        { name: "mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-title", content: "MedsGH" },
+      ],
     },
     // Add page transitions for smoother navigation with pharmacy routing
     pageTransition: { name: 'page', mode: 'out-in' }
@@ -164,6 +175,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE ?? process.env.API_BASE_URL ?? '',
+      // Keep the customer refresh token in the API's HttpOnly cookie, not localStorage. Needs app and API on the same site.
+      cookieRefresh: process.env.NUXT_PUBLIC_COOKIE_REFRESH === 'true',
       paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_default',
       accessControlUsername: process.env.NUXT_PUBLIC_ACCESS_CONTROL_USERNAME || process.env.ACCESS_CONTROL_USERNAME || 'admin',
       accessControlPassword: process.env.NUXT_PUBLIC_ACCESS_CONTROL_PASSWORD || process.env.ACCESS_CONTROL_PASSWORD || ''

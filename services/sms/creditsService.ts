@@ -97,24 +97,6 @@ export const createCreditsService = (api: ApiInstance) => ({
     return api.get<SmsCompanyOverview[]>(`/api/sms-credits/admin/low-balance?threshold=${threshold}`);
   },
 
-  /** Admin: Top up company money balance. POST /api/sms-credits/admin/topup-money */
-  topUpMoney(companyId: number | string, amount: number, description: string = ''): Promise<ApiEnvelope<unknown>> {
-    return api.post('/api/sms-credits/admin/topup-money', {
-      company_id: companyId,
-      amount,
-      description,
-    });
-  },
-
-  /** Admin: Top up company SMS credits. POST /api/sms-credits/admin/topup-sms */
-  topUpSms(companyId: number | string, smsCount: number, description: string = ''): Promise<ApiEnvelope<unknown>> {
-    return api.post('/api/sms-credits/admin/topup-sms', {
-      company_id: companyId,
-      sms_count: smsCount,
-      description,
-    });
-  },
-
   /** Admin: Get company transaction history. GET /api/sms-credits/admin/transactions/:id */
   getCompanyTransactions(companyId: number | string, filters: TransactionFilters = {}): Promise<ApiEnvelope<SmsTransaction[]>> {
     const params = new URLSearchParams();

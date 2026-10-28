@@ -324,6 +324,7 @@ import { createAdminService } from '~/services/admin/adminService'
 import { ApiError } from '~/composables/useApi'
 
 definePageMeta({
+  requiredRole: 'order_processor',
   middleware: ['admin-auth'],
   layout: 'admin-layout',
 })
@@ -523,6 +524,7 @@ const removeItem = (idx: number) => orderItems.value.splice(idx, 1)
 // ── Submit: create customer ──────────────────────────────────────────────────
 
 const submitCreateCustomer = async () => {
+  if (createLoading.value) return
   createError.value = null
   createLoading.value = true
   try {
@@ -564,7 +566,7 @@ const submitCreateCustomer = async () => {
 // ── Submit: place order ──────────────────────────────────────────────────────
 
 const submitPlaceOrder = async () => {
-  if (!pendingCustomer.value) return
+  if (!pendingCustomer.value || orderLoading.value) return
   orderError.value = null
   orderLoading.value = true
   try {
