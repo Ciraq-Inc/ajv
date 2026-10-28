@@ -466,6 +466,8 @@ const verifyPayment = async (): Promise<void> => {
             topUpConfirmed.value = true
             if (topUpConfirmedTimer) clearTimeout(topUpConfirmedTimer)
             topUpConfirmedTimer = setTimeout(() => { topUpConfirmed.value = false }, 6000)
+        } else {
+            throw new Error(res.message ?? 'Payment verification failed. Please try again.')
         }
     } catch (e) {
         showToast(e instanceof Error ? e.message : 'Payment verification failed', 'error')

@@ -299,6 +299,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import { createPharmacyService } from '~/services/pharmacy/pharmacyService'
 import { defaultServicePage } from '~/utils/companyAccess'
+import { safeInternalPath } from '~/utils/safeInternalPath'
 
 definePageMeta({
   layout: false,
@@ -393,9 +394,9 @@ const companyName = computed<string>(() => {
 
 // TODO: remove once stores/ are .ts — userRole not in typed shape above
 const getPostLoginTarget = (): string => {
-  const redirect = typeof route.query?.['redirect'] === 'string' ? route.query['redirect'] : ''
+  const redirect = safeInternalPath(typeof route.query?.['redirect'] === 'string' ? route.query['redirect'] : null)
   if (redirect) {
-    return decodeURIComponent(redirect)
+    return redirect
   }
   const companyStoreAny = companyStore as unknown as { userRole?: string }
   return `/${companyDomain.value}/services/${defaultServicePage(companyStoreAny.userRole)}`
