@@ -1,10 +1,12 @@
 # Server API Implementation Guide
 
-This directory contains Nuxt server API routes that serve as **reference implementations** for the REST API endpoints documented in `ORDERS_API.md` and `CUSTOMER_AUTH_API.md`.
+This directory contains Nuxt server API routes. Customer login and order routes are placeholders only; they do not implement authentication or order storage.
 
 ## Important Notice
 
-⚠️ **These are MOCK implementations** - They return sample data and do not connect to a real database. For production use, you need to:
+⚠️ **Do not use these routes as a customer API.** The customer login and order routes return `501 Not Implemented` until real authentication, authorization, and database-backed behavior are built. The former mock responses were reachable over HTTP and could be mistaken for real customer data.
+
+Before implementing these routes, you need to:
 
 1. Connect to your actual database (MySQL, PostgreSQL, etc.)
 2. Implement proper JWT token generation and verification
@@ -15,13 +17,13 @@ This directory contains Nuxt server API routes that serve as **reference impleme
 
 ## Current Implementation Status
 
-### ✅ Implemented (Mock Data)
+### Placeholder routes (return 501)
 
 - `POST /api/auth/customer/login` - Customer authentication
-- `POST /api/orders` - Create order
 - `GET /api/orders` - List customer orders
 - `GET /api/orders/{orderId}` - Get order details
 - `PUT /api/orders/{orderId}/cancel` - Cancel order
+- `POST /api/upload-document` - Legacy proxy; the job application page uploads directly to the configured backend endpoint instead
 
 ### ❌ Not Implemented
 
@@ -78,7 +80,7 @@ npm install @prisma/client
 npx prisma init
 ```
 
-3. Replace mock implementations with real database queries
+3. Implement and security-review the placeholder routes before exposing customer data
 
 4. Implement JWT utilities:
 
@@ -210,6 +212,7 @@ CREATE TABLE order_items (
 ### Using cURL
 
 ```bash
+# These placeholder routes return 501 until implemented; these examples are not usable yet.
 # Login
 curl -X POST http://localhost:3000/api/auth/customer/login \
   -H "Content-Type: application/json" \
@@ -276,5 +279,4 @@ For questions or issues:
 
 ---
 
-**Last Updated:** October 16, 2025
-**Version:** 1.0
+**Last Updated:** October 22, 2026
