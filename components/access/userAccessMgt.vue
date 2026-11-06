@@ -51,7 +51,7 @@
         <input 
           v-model="searchQuery" 
           type="text" 
-          placeholder="Search admins by name, email, or role..."
+          placeholder="Search admins by name, email, mobile, or role..."
           class="search-input"
         >
       </div>
@@ -90,6 +90,7 @@
           <tr>
             <th>Admin</th>
             <th>Email</th>
+            <th>Mobile</th>
             <th>Role</th>
             <th>Status</th>
             <th>Last Login</th>
@@ -111,6 +112,7 @@
               </div>
             </td>
             <td>{{ admin.email }}</td>
+            <td>{{ admin.phone || '—' }}</td>
             <td>
               <span class="role-badge" :class="getRoleClass(admin.role)">
                 {{ formatRole(admin.role) }}
@@ -216,6 +218,19 @@
             </div>
 
             <div class="form-group">
+              <label>Mobile number</label>
+              <input
+                v-model="adminForm.phone"
+                type="tel"
+                inputmode="tel"
+                autocomplete="off"
+                placeholder="024 123 4567"
+                class="form-input"
+              >
+              <small class="form-hint">Where support-ticket texts go. Add +44 etc. if it is not a Ghana number.</small>
+            </div>
+
+            <div class="form-group">
               <label>Role *</label>
               <select v-model="adminForm.role" required class="form-select">
                 <option value="">Select Role</option>
@@ -308,6 +323,7 @@ interface AdminUser {
   lname?: string;
   username?: string;
   email?: string;
+  phone?: string | null;
   role?: string;
   is_active?: boolean;
   last_login?: string | null;
@@ -320,6 +336,7 @@ interface AdminForm {
   lname: string;
   username: string;
   email: string;
+  phone: string;
   role: string;
   password: string;
   is_active: boolean;
@@ -360,6 +377,7 @@ const adminForm = ref<AdminForm>({
   lname: '',
   username: '',
   email: '',
+  phone: '',
   role: '',
   password: '',
   is_active: true,
@@ -375,6 +393,7 @@ const filteredAdmins = computed<AdminUser[]>(() => {
       admin.fname?.toLowerCase().includes(query) ||
       admin.lname?.toLowerCase().includes(query) ||
       admin.email?.toLowerCase().includes(query) ||
+      admin.phone?.includes(query) ||
       admin.username?.toLowerCase().includes(query) ||
       admin.role?.toLowerCase().includes(query)
     )
@@ -432,6 +451,7 @@ const editAdmin = (admin: AdminUser): void => {
     lname: admin.lname ?? '',
     username: admin.username ?? '',
     email: admin.email ?? '',
+    phone: admin.phone ?? '',
     role: admin.role ?? '',
     password: '',
     is_active: admin.is_active ?? true,
@@ -450,6 +470,7 @@ const resetForm = (): void => {
     lname: '',
     username: '',
     email: '',
+    phone: '',
     role: '',
     password: '',
     is_active: true,
