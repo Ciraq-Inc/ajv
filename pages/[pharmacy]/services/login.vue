@@ -70,9 +70,6 @@
           </svg>
           <div class="text-sm text-red-700 font-medium">
             <p>{{ error }}</p>
-            <NuxtLink v-if="showSupportLink" :to="supportPath" class="inline-block mt-1.5 font-bold underline">
-              Submit a support ticket
-            </NuxtLink>
           </div>
         </div>
 
@@ -277,18 +274,6 @@
 
       </div>
 
-      <!-- Footer -->
-      <div class="px-6 py-4 mt-2 border-t border-zinc-100">
-        <NuxtLink :to="supportPath"
-          class="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold rounded-xl border-2 transition-colors hover:bg-zinc-50"
-          :style="{ color: accentColor, borderColor: accentColor + '40' }">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" />
-          </svg>
-          <span>Submit a support ticket</span>
-        </NuxtLink>
-      </div>
-
     </div>
   </div>
 </template>
@@ -299,6 +284,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useCompanyStore } from '~/stores/company'
 import { createPharmacyService } from '~/services/pharmacy/pharmacyService'
 import { defaultServicePage } from '~/utils/companyAccess'
+import { safeInternalPath } from '~/utils/safeInternalPath'
 
 definePageMeta({
   layout: false,
@@ -385,17 +371,15 @@ const companyDomain = computed<string>(() => {
   return pathMatch?.[1] ?? 'company'
 })
 
-const supportPath = computed<string>(() => `/${companyDomain.value}/services/support`)
-
 const companyName = computed<string>(() => {
   return companyDomain.value.charAt(0).toUpperCase() + companyDomain.value.slice(1)
 })
 
 // TODO: remove once stores/ are .ts — userRole not in typed shape above
 const getPostLoginTarget = (): string => {
-  const redirect = typeof route.query?.['redirect'] === 'string' ? route.query['redirect'] : ''
+  const redirect = safeInternalPath(typeof route.query?.['redirect'] === 'string' ? route.query['redirect'] : null)
   if (redirect) {
-    return decodeURIComponent(redirect)
+    return redirect
   }
   const companyStoreAny = companyStore as unknown as { userRole?: string }
   return `/${companyDomain.value}/services/${defaultServicePage(companyStoreAny.userRole)}`
@@ -414,10 +398,6 @@ const otpSent = ref<boolean>(false)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const rememberMe = ref<boolean>(true)
 const phoneNumberError = ref<string>('')
-
-// Set when the phone step is refused for a reason support can fix
-// (not enabled / not on file) — see checkPhone.
-const showSupportLink = ref<boolean>(false)
 
 const loading = ref<boolean>(false)
 const error = ref<string>('')
@@ -495,7 +475,6 @@ const checkPhone = async (): Promise<void> => {
   if (!validatePhoneNumber()) return
   
   error.value = ''
-  showSupportLink.value = false
   loading.value = true
 
   try {
@@ -506,11 +485,9 @@ const checkPhone = async (): Promise<void> => {
     } else if (result.status === 'registered') {
       step.value = 'password'
     } else if (result.status === 'not_found') {
-      error.value = 'Phone number not found. Check the number, or contact support.'
-      showSupportLink.value = true
+      error.value = "This number isn't registered here. Ask your pharmacy admin to add you."
     } else if (result.status === 'access_denied') {
-      error.value = 'You do not have permission to access online services yet.'
-      showSupportLink.value = true
+      error.value = "Your number is registered, but online access isn't switched on. Ask your pharmacy admin to enable it."
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to verify phone number'
@@ -654,7 +631,6 @@ const goBack = (): void => {
   confirmPassword.value = ''
   otpSent.value = false
   error.value = ''
-  showSupportLink.value = false
   successMessage.value = ''
   phoneNumberError.value = ''
 }

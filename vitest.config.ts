@@ -14,6 +14,30 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'json-summary', 'html'],
+      reportsDirectory: './coverage',
+      include: [
+        'components/**/*.{js,ts}',
+        'composables/**/*.{js,ts}',
+        'middleware/**/*.{js,ts}',
+        'pages/**/*.{js,ts}',
+        'plugins/**/*.{js,ts}',
+        'server/**/*.{js,ts}',
+        'services/**/*.{js,ts}',
+        'stores/**/*.{js,ts}',
+        'utils/**/*.{js,ts}',
+      ],
+      exclude: ['**/*.d.ts', '**/*.config.{js,ts}', '**/*.spec.{js,ts}', '**/*.test.{js,ts}'],
+      thresholds: {
+        // Initial gate for measured JS/TS files (2026-10-21); Vue SFCs are tracked in Phase 3.
+        lines: 35,
+        statements: 35,
+        functions: 40,
+        branches: 35,
+      },
+    },
     // Browser specs: Playwright runs these (playwright.config.js, playwright.email-auth.config.js).
     exclude: [
       ...configDefaults.exclude,

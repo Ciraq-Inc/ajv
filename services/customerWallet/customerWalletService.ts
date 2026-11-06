@@ -44,6 +44,6 @@ export const createCustomerWalletService = (api: ApiInstance) => ({
    * GET /api/wallet/topup/verify/:trxRef
    */
   verifyTopUp(trxRef: string): Promise<ApiEnvelope<TopUpVerify>> {
-    return api.get(`/api/wallet/topup/verify/${trxRef}`);
+    return api.get(`/api/wallet/topup/verify/${encodeURIComponent(trxRef)}`);
   },
 });

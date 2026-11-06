@@ -49,6 +49,16 @@ describe('Wallet: balance', () => {
 
     expect(document.body.querySelector('[role="status"]')!.textContent).toContain('Verifying')
   })
+
+  it('shows a retryable error when the server says the payment is not verified', async () => {
+    route.query = { trxref: 'abc' }
+    svc.verifyTopUp.mockResolvedValue({ success: false, message: 'Payment is still processing' })
+    await open()
+
+    const toast = document.body.querySelector('[data-testid="toast"]')
+    expect(toast?.getAttribute('role')).toBe('alert')
+    expect(toast?.textContent).toContain('Payment is still processing')
+  })
 })
 
 describe('Wallet: transactions', () => {

@@ -1,5 +1,6 @@
 // middleware/companyAuth.js
 import { canOpenServicePage, defaultServicePage, serviceSlugOf } from '~/utils/companyAccess'
+import { safeInternalPath } from '~/utils/safeInternalPath'
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   // Skip on server side
@@ -20,9 +21,9 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   // If logged in and on login page, redirect to dashboard
   if (companyStore.isLoggedIn && to.path.includes('/login')) {
     const companyDomain = to.path.match(/\/([^\/]+)\/services/)?.[1]
-    const redirectTarget = typeof to.query?.redirect === 'string' ? to.query.redirect : ''
+    const redirectTarget = safeInternalPath(typeof to.query?.redirect === 'string' ? to.query.redirect : null)
     if (redirectTarget) {
-      return navigateTo(decodeURIComponent(redirectTarget))
+      return navigateTo(redirectTarget)
     }
     // Recruiters land on the hiring board, everyone else on orders
     const defaultDashboard = `/${companyDomain}/services/${defaultServicePage(companyStore.userRole)}`
