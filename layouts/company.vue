@@ -55,6 +55,15 @@
 
       <!-- Sidebar Footer -->
       <div class="sidebar-footer">
+        <a
+          :href="SUPPORT_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="help-link"
+        >
+          <QuestionMarkCircleIcon class="h-4 w-4" aria-hidden="true" />
+          <span :class="sidebarCollapsed ? 'sr-only' : 'nav-label'">Help</span>
+        </a>
         <button @click="logoutConfirmOpen = true" class="logout-btn" :disabled="isLoggingOut">
           <ArrowPathIcon v-if="isLoggingOut" class="h-4 w-4 animate-spin" />
           <ArrowLeftOnRectangleIcon v-else class="h-4 w-4" />
@@ -119,6 +128,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ArrowLeftOnRectangleIcon,
+  QuestionMarkCircleIcon,
   ChatBubbleLeftIcon,
   CreditCardIcon,
   ArrowPathIcon,
@@ -168,6 +178,9 @@ const themeVars = computed(() => {
     '--ls-avatar-grad':    t.avatarGrad,
   }
 })
+
+// Public support module (separate app); staff raise tickets there, not inside the portal.
+const SUPPORT_URL = 'https://support.rigelos.com/'
 
 const sidebarCollapsed = ref(false)
 const isLoggingOut = ref(false)
@@ -620,6 +633,25 @@ watch(() => route.path, refreshHoursStatus)
 .sidebar-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 16px;
+}
+
+.help-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.help-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .logout-btn {
