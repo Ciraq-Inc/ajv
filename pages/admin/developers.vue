@@ -423,6 +423,7 @@ const allScopes = [
   { value: 'companies',     label: 'Company / pharmacy directory' },
   { value: 'company_users', label: 'Company staff lookup (multi-tenant)' },
   { value: 'support_tickets', label: 'Support tickets' },
+  { value: 'master_products', label: 'Master product catalogue (with images)' },
 ]
 
 // keyType: 'company' uses selectedCompany; 'platform' creates a cross-pharmacy key
@@ -560,6 +561,17 @@ const docGroups = computed(() => [
     endpoints: [
       { method: 'GET', path: '/api/v1/company-users?phone=0557706385', description: 'Find every company-user record matching a phone number, one entry per pharmacy. Requires a platform API key — company-scoped keys get 403. Returns 200 with an empty array when nothing matches (not 404).',
         response: '{\n  "success": true,\n  "count": 2,\n  "data": [\n    {\n      "company_id": 5,\n      "company_name": "Clifton Pharmacy",\n      "company_domain": "clifton",\n      "id": "U1023",\n      "userid": "jdoe",\n      "username": "jdoe",\n      "lname": "Doe",\n      "mname": null,\n      "sname": "John",\n      "email": "john@clifton.com",\n      "tel": "+233557706385",\n      "userrole": "staff",\n      "isactive": true,\n      "allowed_online_access": true,\n      "phone_verified": true,\n      "last_login": "2026-07-10T08:15:00.000Z",\n      "created_at": "2025-11-02T09:00:00.000Z"\n    },\n    {\n      "company_id": 12,\n      "company_name": "Rigel Pharmacy",\n      "company_domain": "rigel",\n      "id": "U0042",\n      "userid": "jd42",\n      "username": "jd42",\n      "lname": "Doe",\n      "mname": null,\n      "sname": "John",\n      "email": "j.doe@rigel.com",\n      "tel": "+233557706385",\n      "userrole": "pharmacist",\n      "isactive": true,\n      "allowed_online_access": false,\n      "phone_verified": true,\n      "last_login": null,\n      "created_at": "2026-02-14T11:30:00.000Z"\n    }\n  ]\n}' },
+    ]},
+  { scope: 'master_products', name: 'Master Products', description: 'Read the master product catalogue, including product image links. Read-only. Pages hold up to 500 products (default 100). Image links are public URLs. Pharmacy stock, prices and which pharmacies carry a product are not exposed.',
+    endpoints: [
+      { method: 'GET', path: '/api/v1/master-products?search=paracetamol&imageStatus=with-image&classificationIds=1,2&page=1&limit=100', description: 'Search and page through the catalogue. imageStatus is all (default), with-image or without-image; any other value returns 400. classificationIds is a comma-separated list. limit is capped at 500.',
+        response: '{ "success": true, "data": [ { "id": 2089, "product_description": "...", "strength": "500mg", "unit": "Pack", "product_image_url": "https://storage.medsgh.com/rigelonline/master-products/2089-....jpg", "classification_names": "..." } ], "total": 843, "page": 1, "limit": 100, "totalPages": 9 }' },
+      { method: 'GET', path: '/api/v1/master-products/:id', description: 'Get one product, including its image link. 404 when the id does not exist.',
+        response: '{ "success": true, "data": { "id": 2089, "product_description": "...", "product_image_url": "https://storage.medsgh.com/..." } }' },
+      { method: 'GET', path: '/api/v1/master-products/classifications', description: 'The classification options to use in classificationIds.',
+        response: '{ "success": true, "data": [ { "id": 1, "name": "..." } ] }' },
+      { method: 'GET', path: '/api/v1/master-products/stats', description: 'Catalogue totals: how many products there are and how many have an image.',
+        response: '{ "success": true, "data": { "total_master_products": 7095, "active_master_products": 7095, "products_with_images": 843 } }' },
     ]},
   { scope: 'support_tickets', name: 'Support Tickets', description: 'Lodge and track support tickets. A ticket is visible to the key that created it, and — for company-scoped keys — to every other key issued to that same pharmacy. Platform keys may pass company_id to create a ticket for a specific pharmacy, or omit it for a platform-level ticket; company_id is required as a query/body param on every other endpoint for platform keys. requester_phone or requester_email is required so the ticket can be followed up. notify_sms (default true) controls whether agent replies/resolution trigger an outbound SMS — set it false to rely on polling GET /tickets/:id instead.',
     endpoints: [
