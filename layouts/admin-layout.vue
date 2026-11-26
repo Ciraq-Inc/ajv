@@ -73,6 +73,11 @@
             </NuxtLink>
           </template>
 
+          <NuxtLink v-if="can('/admin/pharmacy-accounts')" to="/admin/pharmacy-accounts" class="nav-item" active-class="active">
+            <BanknotesIcon class="nav-icon" aria-hidden="true" />
+            <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Pharmacy Accounts</span>
+          </NuxtLink>
+
           <NuxtLink v-if="can('/admin/professionals')" to="/admin/professionals" class="nav-item" active-class="active">
             <IdentificationIcon class="nav-icon" aria-hidden="true" />
             <span :class="isSidebarCollapsed ? 'sr-only' : 'nav-text'">Professionals</span>
@@ -430,6 +435,7 @@ const pageTitle = computed(() => {
   if (path.includes('/admin/fulfillment/riders')) return 'Independent Riders'
   if (path.includes('/admin/fulfillment/dispatch-companies')) return 'Dispatch Companies'
   if (path.includes('/admin/fulfillment/pharmacy-ledger')) return 'Pharmacy Ledger'
+  if (path.includes('/admin/pharmacy-accounts')) return 'Pharmacy Accounts'
   if (path.includes('/admin/fulfillment')) return 'Fulfillment'
   if (path.includes('/admin/platform-settings')) return 'Platform Settings'
   if (path.includes('/admin/fee-schedules')) return 'Fee Schedules'

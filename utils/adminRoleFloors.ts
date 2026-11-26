@@ -23,6 +23,7 @@ export const ADMIN_PAGE_FLOORS: Record<string, AdminPageFloor> = {
   '/admin/fulfillment/screen': 'order_processor',
   '/admin/masterlist': 'manager',
   '/admin/orders-new': 'order_processor',
+  '/admin/pharmacy-accounts': 'auditor',
   '/admin/platform-settings': 'super_admin',
   '/admin/professionals': 'admin',
   '/admin/security': null,
